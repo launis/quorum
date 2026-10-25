@@ -258,4 +258,3 @@ def test_mcp_validation_context_dto_positive_and_negative() -> None:
 
     with pytest.raises(ValidationError):
         MCPValidationContextDTO.model_validate({"unexpected_key": True})
-

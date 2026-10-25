@@ -75,9 +75,10 @@ The static ontology includes pure system-evaluated metric matrices that assess s
 
 ### 2.16. Declarative MCP Gateway Ontology & Tool Capabilities
 External tool permissions and capabilities are configured declaratively in the static data vault under `system_config` (entity `sys_8172bda70c8641c5`):
-- **Full-Duplex Contract Parity**: Tool definitions enforce 1:1 schema parity between backend `AllowedMCPTool` and frontend `AllowedMcpTool` models, validating `tool_id`, `name`, `description`, `enabled`, and the authoritative `capability: ToolCapability` attribute (`search`, `document_reader`, `action`).
-- **Native Knowledge Ingress Tooling**: The seed vault registers primary information discovery and article extraction tools: `mcp_tavily_search` (`capability: search`), `mcp_wikipedia_search` (`capability: search`), and `mcp_wikipedia_read` (`capability: document_reader`).
-- **Dynamic Studio Governance**: Tool definitions expose bilingual labels and toggle controls in Quorum Studio, enabling administrators to activate or constrain external MCP capabilities per gateway with immediate schema validation.
+- **Full-Duplex Contract Parity**: Gateway configurations and tool definitions enforce 1:1 schema parity between backend `SystemConfigMCPGateways` / `AllowedMCPTool` and frontend `SystemConfigMcpGatewaysDto` / `AllowedMcpTool` models. Models define gateway transport types (`MCPTransportType`: `STREAMABLE_HTTP`, `SSE`), authentication methods (`MCPAuthType`: `NONE`, `API_KEY`, `BEARER`), endpoint URLs, and discovered tools with authoritative `ToolCapability` attributes (`search`, `document_reader`, `action`).
+- **Recursive JSON Schema DTO Contracts**: External tool parameters adhere to recursive schema definitions (`MCPToolInputSchemaDTO` and `MCPToolSchemaPropertyDTO`), completely eradicating untyped JSON dictionaries across tool contracts.
+- **Namespaced Tool Declarations**: Tools are declared under deterministic namespaced aliases combining gateway slug and tool identifier (such as `search__tavily_search` and `search__wikipedia_search`), preventing naming collisions across independent gateway providers.
+- **Dynamic Studio Governance**: Tool definitions expose bilingual labels, live discovery actions, schema preview tables, and per-tool allowlist toggles in Quorum Studio, enabling administrators to configure and constrain external MCP capabilities per gateway with immediate schema validation.
 
 ## 3. Logical Data Flow
 ```mermaid

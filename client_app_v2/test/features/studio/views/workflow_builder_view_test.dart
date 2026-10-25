@@ -1,5 +1,6 @@
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/views/workflow_builder_view.dart';
@@ -15,6 +16,10 @@ class MockStudioClient extends Mock implements StudioClient {}
 class MockLoggerService extends Mock implements LoggerService {}
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(StepFilterScope.all);
+  });
+
   late MockStudioClient mockClient;
   late MockLoggerService mockLogger;
 
@@ -43,6 +48,9 @@ void main() {
     when(() => mockLogger.error(any(), any(), any(), any())).thenReturn(null);
     when(() => mockLogger.info(any(), any())).thenReturn(null);
 
+    when(
+      () => mockClient.getSteps(scope: any(named: 'scope')),
+    ).thenAnswer((_) async => []);
     when(() => mockClient.getSteps()).thenAnswer((_) async => []);
     when(() => mockClient.getMcpGateways()).thenAnswer((_) async => []);
     when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
@@ -134,6 +142,9 @@ void main() {
         when(
           () => mockClient.getWorkflow(testWfId),
         ).thenAnswer((_) async => testWorkflow);
+        when(
+          () => mockClient.getSteps(scope: any(named: 'scope')),
+        ).thenThrow(Exception('Failed to load steps'));
         when(
           () => mockClient.getSteps(),
         ).thenThrow(Exception('Failed to load steps'));

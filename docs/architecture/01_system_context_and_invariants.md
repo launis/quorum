@@ -146,6 +146,13 @@ System refactoring and module decomposition adhere to topological AST boundary e
 5. **In-Flight Hardening**: Newly extracted modules undergo immediate, full AST guardrail and type-check verification before importing them into downstream consumer files.
 6. **Test Suite Preservation & Modular Decomposition**: Test suites are never deleted, suppressed, or amputated during code refactoring. When decomposing large implementation files, corresponding monolithic test suites decompose proportionally into matching modular test files, preserving 100% of existing characterization assertions and edge-case coverage.
 
+### 2.23. Network Egress Security, SSRF Firewall & Protocol-Agnostic Tool Transport
+Outbound communication with external Model Context Protocol (MCP) gateways and network endpoints enforces strict egress boundaries and transport security:
+1. **SSRF & DNS-Rebinding Firewall**: All destination endpoints pass through non-blocking asynchronous address resolution in worker threads prior to socket allocation. Outbound connections strictly prohibit loopback addresses (`127.0.0.0/8`, `::1`), private RFC 1918 subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), link-local and cloud metadata services (`169.254.169.254`), IPv6 mapped addresses, and carrier-grade NAT. HTTP redirect following is disabled to prevent redirect hijacking into internal networks.
+2. **Protocol-Agnostic Transport**: External MCP tools communicate through a protocol-agnostic client supporting both Streamable HTTP and Server-Sent Events (SSE) transports. The client employs dual wire-framing, parsing standard JSON-RPC 2.0 payloads from direct HTTP responses and streaming event frames.
+3. **Runtime Schema Compilation**: Tool argument schemas from external MCP servers are modeled as recursive JSON Schema Abstract Syntax Trees (ASTs). The orchestrator compiles these schemas dynamically into typed runtime validation models using schema generation factories, verifying tool arguments without duck typing or unvalidated dictionaries.
+4. **Sentence-Boundary Budgeting & CDATA Encapsulation**: External tool responses undergo strict character budgeting that truncates safely at sentence boundaries, followed by mandatory CDATA encapsulation. This prevents prompt injection attacks, delimiter hijacking, and formatting corruption in downstream model contexts.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

@@ -852,7 +852,9 @@ def test_run_hardening_pipeline_gate_all(tmp_path: Path, monkeypatch: pytest.Mon
     processed_gates: list[HardeningGate] = []
     processed_agent_cmds: list[str | None] = []
 
-    def mock_process(target: str, args: HardeningRunnerArgsDTO, repo_root: Path | None = None) -> HardeningIterationResultDTO:
+    def mock_process(
+        target: str, args: HardeningRunnerArgsDTO, repo_root: Path | None = None
+    ) -> HardeningIterationResultDTO:
         processed_gates.append(args.gate)
         processed_agent_cmds.append(args.agent_cmd)
         return HardeningIterationResultDTO(
@@ -927,4 +929,3 @@ def test_main_cli_default_subagent_template_resolution(tmp_path: Path, monkeypat
     assert code == 0
     assert captured_dtos[-1].no_agent is False
     assert captured_dtos[-1].gate == HardeningGate.ALL
-
