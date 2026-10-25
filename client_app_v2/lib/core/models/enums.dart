@@ -502,3 +502,67 @@ enum StepZone {
   const StepZone(this.backendValue);
   final String backendValue;
 }
+
+/// Supported transport protocols for external MCP servers.
+@JsonEnum()
+enum McpTransportType {
+  @JsonValue('streamable_http')
+  streamableHttp('streamable_http'),
+  @JsonValue('sse')
+  sse('sse');
+
+  const McpTransportType(this.backendValue);
+  final String backendValue;
+}
+
+/// Authentication schemes for outbound MCP gateway requests.
+@JsonEnum()
+enum McpAuthType {
+  @JsonValue('none')
+  none('none'),
+  @JsonValue('bearer')
+  bearer('bearer'),
+  @JsonValue('api_key_header')
+  apiKeyHeader('api_key_header');
+
+  const McpAuthType(this.backendValue);
+  final String backendValue;
+}
+
+/// Operational capability category of an MCP tool.
+@JsonEnum()
+enum ToolCapability {
+  @JsonValue('search')
+  search('search'),
+  @JsonValue('document_reader')
+  documentReader('document_reader'),
+  @JsonValue('action')
+  action('action'),
+  @JsonValue('general')
+  general('general');
+
+  const ToolCapability(this.backendValue);
+  final String backendValue;
+}
+
+/// JSON Schema Draft 2020-12 primitive and structural property types.
+@JsonEnum()
+enum JsonSchemaPropertyType {
+  @JsonValue('string')
+  string('string'),
+  @JsonValue('number')
+  number('number'),
+  @JsonValue('integer')
+  integer('integer'),
+  @JsonValue('boolean')
+  boolean('boolean'),
+  @JsonValue('array')
+  array('array'),
+  @JsonValue('object')
+  object('object');
+
+  const JsonSchemaPropertyType(this.backendValue);
+  final String backendValue;
+}
+
+// End of enums.dart

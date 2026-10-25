@@ -189,7 +189,7 @@ class McpGatewayForm extends _$McpGatewayForm {
         toolId: 'new_tool',
         name: I18nText(translations: {'en': 'New Tool', 'fi': 'Uusi työkalu'}),
         description: '',
-        inputSchema: <String, dynamic>{},
+        inputSchema: McpToolInputSchemaDto(),
       ),
     );
 

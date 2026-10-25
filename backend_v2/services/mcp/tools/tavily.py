@@ -12,7 +12,13 @@ import backend_v2.services.translation_service as translation_service
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.tools import BaseSearchTool, StandardSearchInputDTO
-from backend_v2.models.dtos.mcp import MCPFunctionDefinitionDTO, MCPToolDeclarationDTO
+from backend_v2.models.dtos.mcp import (
+    MCPFunctionDefinitionDTO,
+    MCPToolDeclarationDTO,
+    MCPToolInputSchemaDTO,
+    MCPToolSchemaPropertyDTO,
+)
+from backend_v2.models.enums import JSONSchemaPropertyType
 from backend_v2.services.mcp.tavily_search_client import tavily_search
 
 logger = logging.getLogger(__name__)
@@ -45,23 +51,23 @@ class TavilyTool(BaseSearchTool):
                     "Use this ONLY when the necessary facts are completely missing from the provided "
                     "context and you require up-to-date or external world knowledge."
                 ),
-                parameters={
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "The exact search query to execute on the internet.",
-                        },
-                        "reasoning": {
-                            "type": "string",
-                            "description": (
+                parameters=MCPToolInputSchemaDTO(
+                    type="object",
+                    properties={
+                        "query": MCPToolSchemaPropertyDTO(
+                            type=JSONSchemaPropertyType.STRING,
+                            description="The exact search query to execute on the internet.",
+                        ),
+                        "reasoning": MCPToolSchemaPropertyDTO(
+                            type=JSONSchemaPropertyType.STRING,
+                            description=(
                                 "Why you believe this search is mathematically necessary. Must be 1-2 sentences."
                             ),
-                        },
+                        ),
                     },
-                    "required": ["query", "reasoning"],
-                    "additionalProperties": False,
-                },
+                    required=["query", "reasoning"],
+                    additional_properties=False,
+                ),
                 strict=True,
             ),
         )

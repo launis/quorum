@@ -17,6 +17,7 @@ from backend_v2.models.domain.system_config import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
+from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO
 from backend_v2.models.dtos.studio import GCPLocationDTO
 from backend_v2.models.enums import CognitiveTier, LLMPlatformType, LLMProvider
 from backend_v2.services.studio.system_config_service import StudioSystemConfigService
@@ -373,7 +374,7 @@ async def test_save_mcp_gateways_success(
                 tool_id="mcp_tavily_search",
                 name=I18nText(translations={"en": "Tavily Search"}),
                 description="Tavily search",
-                input_schema={},
+                input_schema=MCPToolInputSchemaDTO(),
             )
         ],
     )

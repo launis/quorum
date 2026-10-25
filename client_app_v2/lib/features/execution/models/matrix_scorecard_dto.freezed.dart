@@ -1160,7 +1160,7 @@ $HumanOverrideDtoCopyWith<$Res>? get humanOverride {
 /// @nodoc
 mixin _$McpAuditTraceDto {
 
- String? get id;@JsonKey(name: 'tool_id') String get toolId;@JsonKey(name: 'step_name') String get stepName;@JsonKey(name: 'claim_text') String? get claimText; String get query;@JsonKey(name: 'knowledge_gap') String get knowledgeGap;@JsonKey(name: 'search_rationale') String get searchRationale; String get reasoning;@JsonKey(name: 'response_summary') String get responseSummary;@JsonKey(name: 'source_urls') List<String> get sourceUrls;@JsonKey(name: 'impacted_axis_names') List<String> get impactedAxisNames; String? get timestamp;@JsonKey(name: 'duration_ms') int get durationMs;
+ String? get id;@JsonKey(name: 'tool_id') String get toolId;@JsonKey(name: 'gateway_id') String? get gatewayId;@JsonKey(name: 'gateway_slug') String? get gatewaySlug;@JsonKey(name: 'namespaced_alias') String? get namespacedAlias;@JsonKey(name: 'step_name') String get stepName;@JsonKey(name: 'claim_text') String? get claimText; String get query;@JsonKey(name: 'knowledge_gap') String get knowledgeGap;@JsonKey(name: 'search_rationale') String get searchRationale; String get reasoning;@JsonKey(name: 'response_summary') String get responseSummary;@JsonKey(name: 'source_urls') List<String> get sourceUrls;@JsonKey(name: 'impacted_axis_names') List<String> get impactedAxisNames; String? get timestamp;@JsonKey(name: 'duration_ms') int get durationMs;
 /// Create a copy of McpAuditTraceDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1175,7 +1175,7 @@ $McpAuditTraceDtoCopyWith<McpAuditTraceDto> get copyWith => _$McpAuditTraceDtoCo
 
 @override
 String toString() {
-  return 'McpAuditTraceDto(id: $id, toolId: $toolId, stepName: $stepName, claimText: $claimText, query: $query, knowledgeGap: $knowledgeGap, searchRationale: $searchRationale, reasoning: $reasoning, responseSummary: $responseSummary, sourceUrls: $sourceUrls, impactedAxisNames: $impactedAxisNames, timestamp: $timestamp, durationMs: $durationMs)';
+  return 'McpAuditTraceDto(id: $id, toolId: $toolId, gatewayId: $gatewayId, gatewaySlug: $gatewaySlug, namespacedAlias: $namespacedAlias, stepName: $stepName, claimText: $claimText, query: $query, knowledgeGap: $knowledgeGap, searchRationale: $searchRationale, reasoning: $reasoning, responseSummary: $responseSummary, sourceUrls: $sourceUrls, impactedAxisNames: $impactedAxisNames, timestamp: $timestamp, durationMs: $durationMs)';
 }
 
 
@@ -1186,7 +1186,7 @@ abstract mixin class $McpAuditTraceDtoCopyWith<$Res>  {
   factory $McpAuditTraceDtoCopyWith(McpAuditTraceDto value, $Res Function(McpAuditTraceDto) _then) = _$McpAuditTraceDtoCopyWithImpl;
 @useResult
 $Res call({
- String? id,@JsonKey(name: 'tool_id') String toolId,@JsonKey(name: 'step_name') String stepName,@JsonKey(name: 'claim_text') String? claimText, String query,@JsonKey(name: 'knowledge_gap') String knowledgeGap,@JsonKey(name: 'search_rationale') String searchRationale, String reasoning,@JsonKey(name: 'response_summary') String responseSummary,@JsonKey(name: 'source_urls') List<String> sourceUrls,@JsonKey(name: 'impacted_axis_names') List<String> impactedAxisNames, String? timestamp,@JsonKey(name: 'duration_ms') int durationMs
+ String? id,@JsonKey(name: 'tool_id') String toolId,@JsonKey(name: 'gateway_id') String? gatewayId,@JsonKey(name: 'gateway_slug') String? gatewaySlug,@JsonKey(name: 'namespaced_alias') String? namespacedAlias,@JsonKey(name: 'step_name') String stepName,@JsonKey(name: 'claim_text') String? claimText, String query,@JsonKey(name: 'knowledge_gap') String knowledgeGap,@JsonKey(name: 'search_rationale') String searchRationale, String reasoning,@JsonKey(name: 'response_summary') String responseSummary,@JsonKey(name: 'source_urls') List<String> sourceUrls,@JsonKey(name: 'impacted_axis_names') List<String> impactedAxisNames, String? timestamp,@JsonKey(name: 'duration_ms') int durationMs
 });
 
 
@@ -1203,11 +1203,14 @@ class _$McpAuditTraceDtoCopyWithImpl<$Res>
 
 /// Create a copy of McpAuditTraceDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? toolId = null,Object? stepName = null,Object? claimText = freezed,Object? query = null,Object? knowledgeGap = null,Object? searchRationale = null,Object? reasoning = null,Object? responseSummary = null,Object? sourceUrls = null,Object? impactedAxisNames = null,Object? timestamp = freezed,Object? durationMs = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? toolId = null,Object? gatewayId = freezed,Object? gatewaySlug = freezed,Object? namespacedAlias = freezed,Object? stepName = null,Object? claimText = freezed,Object? query = null,Object? knowledgeGap = null,Object? searchRationale = null,Object? reasoning = null,Object? responseSummary = null,Object? sourceUrls = null,Object? impactedAxisNames = null,Object? timestamp = freezed,Object? durationMs = null,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,toolId: null == toolId ? _self.toolId : toolId // ignore: cast_nullable_to_non_nullable
-as String,stepName: null == stepName ? _self.stepName : stepName // ignore: cast_nullable_to_non_nullable
+as String,gatewayId: freezed == gatewayId ? _self.gatewayId : gatewayId // ignore: cast_nullable_to_non_nullable
+as String?,gatewaySlug: freezed == gatewaySlug ? _self.gatewaySlug : gatewaySlug // ignore: cast_nullable_to_non_nullable
+as String?,namespacedAlias: freezed == namespacedAlias ? _self.namespacedAlias : namespacedAlias // ignore: cast_nullable_to_non_nullable
+as String?,stepName: null == stepName ? _self.stepName : stepName // ignore: cast_nullable_to_non_nullable
 as String,claimText: freezed == claimText ? _self.claimText : claimText // ignore: cast_nullable_to_non_nullable
 as String?,query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,knowledgeGap: null == knowledgeGap ? _self.knowledgeGap : knowledgeGap // ignore: cast_nullable_to_non_nullable
@@ -1303,10 +1306,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName, @JsonKey(name: 'claim_text')  String? claimText,  String query, @JsonKey(name: 'knowledge_gap')  String knowledgeGap, @JsonKey(name: 'search_rationale')  String searchRationale,  String reasoning, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls, @JsonKey(name: 'impacted_axis_names')  List<String> impactedAxisNames,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'gateway_id')  String? gatewayId, @JsonKey(name: 'gateway_slug')  String? gatewaySlug, @JsonKey(name: 'namespaced_alias')  String? namespacedAlias, @JsonKey(name: 'step_name')  String stepName, @JsonKey(name: 'claim_text')  String? claimText,  String query, @JsonKey(name: 'knowledge_gap')  String knowledgeGap, @JsonKey(name: 'search_rationale')  String searchRationale,  String reasoning, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls, @JsonKey(name: 'impacted_axis_names')  List<String> impactedAxisNames,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _McpAuditTraceDto() when $default != null:
-return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query,_that.knowledgeGap,_that.searchRationale,_that.reasoning,_that.responseSummary,_that.sourceUrls,_that.impactedAxisNames,_that.timestamp,_that.durationMs);case _:
+return $default(_that.id,_that.toolId,_that.gatewayId,_that.gatewaySlug,_that.namespacedAlias,_that.stepName,_that.claimText,_that.query,_that.knowledgeGap,_that.searchRationale,_that.reasoning,_that.responseSummary,_that.sourceUrls,_that.impactedAxisNames,_that.timestamp,_that.durationMs);case _:
   return orElse();
 
 }
@@ -1324,10 +1327,10 @@ return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName, @JsonKey(name: 'claim_text')  String? claimText,  String query, @JsonKey(name: 'knowledge_gap')  String knowledgeGap, @JsonKey(name: 'search_rationale')  String searchRationale,  String reasoning, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls, @JsonKey(name: 'impacted_axis_names')  List<String> impactedAxisNames,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'gateway_id')  String? gatewayId, @JsonKey(name: 'gateway_slug')  String? gatewaySlug, @JsonKey(name: 'namespaced_alias')  String? namespacedAlias, @JsonKey(name: 'step_name')  String stepName, @JsonKey(name: 'claim_text')  String? claimText,  String query, @JsonKey(name: 'knowledge_gap')  String knowledgeGap, @JsonKey(name: 'search_rationale')  String searchRationale,  String reasoning, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls, @JsonKey(name: 'impacted_axis_names')  List<String> impactedAxisNames,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)  $default,) {final _that = this;
 switch (_that) {
 case _McpAuditTraceDto():
-return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query,_that.knowledgeGap,_that.searchRationale,_that.reasoning,_that.responseSummary,_that.sourceUrls,_that.impactedAxisNames,_that.timestamp,_that.durationMs);case _:
+return $default(_that.id,_that.toolId,_that.gatewayId,_that.gatewaySlug,_that.namespacedAlias,_that.stepName,_that.claimText,_that.query,_that.knowledgeGap,_that.searchRationale,_that.reasoning,_that.responseSummary,_that.sourceUrls,_that.impactedAxisNames,_that.timestamp,_that.durationMs);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1344,10 +1347,10 @@ return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'step_name')  String stepName, @JsonKey(name: 'claim_text')  String? claimText,  String query, @JsonKey(name: 'knowledge_gap')  String knowledgeGap, @JsonKey(name: 'search_rationale')  String searchRationale,  String reasoning, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls, @JsonKey(name: 'impacted_axis_names')  List<String> impactedAxisNames,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id, @JsonKey(name: 'tool_id')  String toolId, @JsonKey(name: 'gateway_id')  String? gatewayId, @JsonKey(name: 'gateway_slug')  String? gatewaySlug, @JsonKey(name: 'namespaced_alias')  String? namespacedAlias, @JsonKey(name: 'step_name')  String stepName, @JsonKey(name: 'claim_text')  String? claimText,  String query, @JsonKey(name: 'knowledge_gap')  String knowledgeGap, @JsonKey(name: 'search_rationale')  String searchRationale,  String reasoning, @JsonKey(name: 'response_summary')  String responseSummary, @JsonKey(name: 'source_urls')  List<String> sourceUrls, @JsonKey(name: 'impacted_axis_names')  List<String> impactedAxisNames,  String? timestamp, @JsonKey(name: 'duration_ms')  int durationMs)?  $default,) {final _that = this;
 switch (_that) {
 case _McpAuditTraceDto() when $default != null:
-return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query,_that.knowledgeGap,_that.searchRationale,_that.reasoning,_that.responseSummary,_that.sourceUrls,_that.impactedAxisNames,_that.timestamp,_that.durationMs);case _:
+return $default(_that.id,_that.toolId,_that.gatewayId,_that.gatewaySlug,_that.namespacedAlias,_that.stepName,_that.claimText,_that.query,_that.knowledgeGap,_that.searchRationale,_that.reasoning,_that.responseSummary,_that.sourceUrls,_that.impactedAxisNames,_that.timestamp,_that.durationMs);case _:
   return null;
 
 }
@@ -1359,11 +1362,14 @@ return $default(_that.id,_that.toolId,_that.stepName,_that.claimText,_that.query
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _McpAuditTraceDto implements McpAuditTraceDto {
-  const _McpAuditTraceDto({this.id, @JsonKey(name: 'tool_id') required this.toolId, @JsonKey(name: 'step_name') required this.stepName, @JsonKey(name: 'claim_text') this.claimText, required this.query, @JsonKey(name: 'knowledge_gap') this.knowledgeGap = '', @JsonKey(name: 'search_rationale') this.searchRationale = '', this.reasoning = '', @JsonKey(name: 'response_summary') this.responseSummary = '', @JsonKey(name: 'source_urls') final  List<String> sourceUrls = const [], @JsonKey(name: 'impacted_axis_names') final  List<String> impactedAxisNames = const [], this.timestamp, @JsonKey(name: 'duration_ms') this.durationMs = 0}): _sourceUrls = sourceUrls,_impactedAxisNames = impactedAxisNames;
+  const _McpAuditTraceDto({this.id, @JsonKey(name: 'tool_id') required this.toolId, @JsonKey(name: 'gateway_id') this.gatewayId, @JsonKey(name: 'gateway_slug') this.gatewaySlug, @JsonKey(name: 'namespaced_alias') this.namespacedAlias, @JsonKey(name: 'step_name') required this.stepName, @JsonKey(name: 'claim_text') this.claimText, required this.query, @JsonKey(name: 'knowledge_gap') this.knowledgeGap = '', @JsonKey(name: 'search_rationale') this.searchRationale = '', this.reasoning = '', @JsonKey(name: 'response_summary') this.responseSummary = '', @JsonKey(name: 'source_urls') final  List<String> sourceUrls = const [], @JsonKey(name: 'impacted_axis_names') final  List<String> impactedAxisNames = const [], this.timestamp, @JsonKey(name: 'duration_ms') this.durationMs = 0}): _sourceUrls = sourceUrls,_impactedAxisNames = impactedAxisNames;
   factory _McpAuditTraceDto.fromJson(Map<String, dynamic> json) => _$McpAuditTraceDtoFromJson(json);
 
 @override final  String? id;
 @override@JsonKey(name: 'tool_id') final  String toolId;
+@override@JsonKey(name: 'gateway_id') final  String? gatewayId;
+@override@JsonKey(name: 'gateway_slug') final  String? gatewaySlug;
+@override@JsonKey(name: 'namespaced_alias') final  String? namespacedAlias;
 @override@JsonKey(name: 'step_name') final  String stepName;
 @override@JsonKey(name: 'claim_text') final  String? claimText;
 @override final  String query;
@@ -1403,7 +1409,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'McpAuditTraceDto(id: $id, toolId: $toolId, stepName: $stepName, claimText: $claimText, query: $query, knowledgeGap: $knowledgeGap, searchRationale: $searchRationale, reasoning: $reasoning, responseSummary: $responseSummary, sourceUrls: $sourceUrls, impactedAxisNames: $impactedAxisNames, timestamp: $timestamp, durationMs: $durationMs)';
+  return 'McpAuditTraceDto(id: $id, toolId: $toolId, gatewayId: $gatewayId, gatewaySlug: $gatewaySlug, namespacedAlias: $namespacedAlias, stepName: $stepName, claimText: $claimText, query: $query, knowledgeGap: $knowledgeGap, searchRationale: $searchRationale, reasoning: $reasoning, responseSummary: $responseSummary, sourceUrls: $sourceUrls, impactedAxisNames: $impactedAxisNames, timestamp: $timestamp, durationMs: $durationMs)';
 }
 
 
@@ -1414,7 +1420,7 @@ abstract mixin class _$McpAuditTraceDtoCopyWith<$Res> implements $McpAuditTraceD
   factory _$McpAuditTraceDtoCopyWith(_McpAuditTraceDto value, $Res Function(_McpAuditTraceDto) _then) = __$McpAuditTraceDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String? id,@JsonKey(name: 'tool_id') String toolId,@JsonKey(name: 'step_name') String stepName,@JsonKey(name: 'claim_text') String? claimText, String query,@JsonKey(name: 'knowledge_gap') String knowledgeGap,@JsonKey(name: 'search_rationale') String searchRationale, String reasoning,@JsonKey(name: 'response_summary') String responseSummary,@JsonKey(name: 'source_urls') List<String> sourceUrls,@JsonKey(name: 'impacted_axis_names') List<String> impactedAxisNames, String? timestamp,@JsonKey(name: 'duration_ms') int durationMs
+ String? id,@JsonKey(name: 'tool_id') String toolId,@JsonKey(name: 'gateway_id') String? gatewayId,@JsonKey(name: 'gateway_slug') String? gatewaySlug,@JsonKey(name: 'namespaced_alias') String? namespacedAlias,@JsonKey(name: 'step_name') String stepName,@JsonKey(name: 'claim_text') String? claimText, String query,@JsonKey(name: 'knowledge_gap') String knowledgeGap,@JsonKey(name: 'search_rationale') String searchRationale, String reasoning,@JsonKey(name: 'response_summary') String responseSummary,@JsonKey(name: 'source_urls') List<String> sourceUrls,@JsonKey(name: 'impacted_axis_names') List<String> impactedAxisNames, String? timestamp,@JsonKey(name: 'duration_ms') int durationMs
 });
 
 
@@ -1431,11 +1437,14 @@ class __$McpAuditTraceDtoCopyWithImpl<$Res>
 
 /// Create a copy of McpAuditTraceDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? toolId = null,Object? stepName = null,Object? claimText = freezed,Object? query = null,Object? knowledgeGap = null,Object? searchRationale = null,Object? reasoning = null,Object? responseSummary = null,Object? sourceUrls = null,Object? impactedAxisNames = null,Object? timestamp = freezed,Object? durationMs = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? toolId = null,Object? gatewayId = freezed,Object? gatewaySlug = freezed,Object? namespacedAlias = freezed,Object? stepName = null,Object? claimText = freezed,Object? query = null,Object? knowledgeGap = null,Object? searchRationale = null,Object? reasoning = null,Object? responseSummary = null,Object? sourceUrls = null,Object? impactedAxisNames = null,Object? timestamp = freezed,Object? durationMs = null,}) {
   return _then(_McpAuditTraceDto(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,toolId: null == toolId ? _self.toolId : toolId // ignore: cast_nullable_to_non_nullable
-as String,stepName: null == stepName ? _self.stepName : stepName // ignore: cast_nullable_to_non_nullable
+as String,gatewayId: freezed == gatewayId ? _self.gatewayId : gatewayId // ignore: cast_nullable_to_non_nullable
+as String?,gatewaySlug: freezed == gatewaySlug ? _self.gatewaySlug : gatewaySlug // ignore: cast_nullable_to_non_nullable
+as String?,namespacedAlias: freezed == namespacedAlias ? _self.namespacedAlias : namespacedAlias // ignore: cast_nullable_to_non_nullable
+as String?,stepName: null == stepName ? _self.stepName : stepName // ignore: cast_nullable_to_non_nullable
 as String,claimText: freezed == claimText ? _self.claimText : claimText // ignore: cast_nullable_to_non_nullable
 as String?,query: null == query ? _self.query : query // ignore: cast_nullable_to_non_nullable
 as String,knowledgeGap: null == knowledgeGap ? _self.knowledgeGap : knowledgeGap // ignore: cast_nullable_to_non_nullable

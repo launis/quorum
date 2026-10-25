@@ -16,7 +16,7 @@ __all__ = [
     "with_test_settings",
 ]
 
-TEST_SETTINGS_OVERRIDES: dict[str, int | str] = {
+TEST_SETTINGS_OVERRIDES: dict[str, int | str | bool] = {
     "environment": "development",
     "dev_max_thinking_budget": 0,
     "matrix_sampling_limit": 1,
@@ -35,6 +35,10 @@ TEST_SETTINGS_OVERRIDES: dict[str, int | str] = {
     "max_precedent_return_count": 0,
     "tavily_max_results": 1,
     "mcp_wikipedia_max_search_results": 1,
+    "mcp_default_timeout_seconds": 30,
+    "mcp_discovery_timeout_seconds": 10,
+    "mcp_max_response_chars": 8000,
+    "mcp_allow_private_networks": False,
     "tda_linker_window_size": 2,
     "tda_linker_overlap": 0,
 }

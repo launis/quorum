@@ -13,8 +13,13 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.tools import BaseSearchTool, BaseTool, StandardSearchInputDTO
 from backend_v2.models.domain.wikipedia import WikipediaReadInputDTO
-from backend_v2.models.dtos.mcp import MCPFunctionDefinitionDTO, MCPToolDeclarationDTO
-from backend_v2.models.enums import ToolCapability
+from backend_v2.models.dtos.mcp import (
+    MCPFunctionDefinitionDTO,
+    MCPToolDeclarationDTO,
+    MCPToolInputSchemaDTO,
+    MCPToolSchemaPropertyDTO,
+)
+from backend_v2.models.enums import JSONSchemaPropertyType, ToolCapability
 from backend_v2.services.mcp.wikipedia_client import (
     resolve_wikipedia_language,
     wikipedia_read_summary,
@@ -53,23 +58,23 @@ class WikipediaSearchTool(BaseSearchTool):
                     "Search Wikipedia articles and return top matching titles and snippets. "
                     "Use this when you need factual encyclopedic background or to find relevant article titles."
                 ),
-                parameters={
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "The exact search query to execute on Wikipedia.",
-                        },
-                        "reasoning": {
-                            "type": "string",
-                            "description": (
+                parameters=MCPToolInputSchemaDTO(
+                    type="object",
+                    properties={
+                        "query": MCPToolSchemaPropertyDTO(
+                            type=JSONSchemaPropertyType.STRING,
+                            description="The exact search query to execute on Wikipedia.",
+                        ),
+                        "reasoning": MCPToolSchemaPropertyDTO(
+                            type=JSONSchemaPropertyType.STRING,
+                            description=(
                                 "Why you believe this search is mathematically necessary. Must be 1-2 sentences."
                             ),
-                        },
+                        ),
                     },
-                    "required": ["query", "reasoning"],
-                    "additionalProperties": False,
-                },
+                    required=["query", "reasoning"],
+                    additional_properties=False,
+                ),
                 strict=True,
             ),
         )
@@ -180,24 +185,24 @@ class WikipediaReadTool(BaseTool):
                     "Retrieve the full encyclopedic summary of a specific Wikipedia article by title. "
                     "Use this when you know the exact article title and need detailed factual content."
                 ),
-                parameters={
-                    "type": "object",
-                    "properties": {
-                        "title": {
-                            "type": "string",
-                            "description": "The exact title of the Wikipedia article to read.",
-                        },
-                        "reasoning": {
-                            "type": "string",
-                            "description": (
+                parameters=MCPToolInputSchemaDTO(
+                    type="object",
+                    properties={
+                        "title": MCPToolSchemaPropertyDTO(
+                            type=JSONSchemaPropertyType.STRING,
+                            description="The exact title of the Wikipedia article to read.",
+                        ),
+                        "reasoning": MCPToolSchemaPropertyDTO(
+                            type=JSONSchemaPropertyType.STRING,
+                            description=(
                                 "Why you believe reading this specific article is mathematically necessary. "
                                 "Must be 1-2 sentences."
                             ),
-                        },
+                        ),
                     },
-                    "required": ["title", "reasoning"],
-                    "additionalProperties": False,
-                },
+                    required=["title", "reasoning"],
+                    additional_properties=False,
+                ),
                 strict=True,
             ),
         )

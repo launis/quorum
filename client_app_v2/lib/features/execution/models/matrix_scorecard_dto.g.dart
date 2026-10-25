@@ -304,6 +304,9 @@ _McpAuditTraceDto _$McpAuditTraceDtoFromJson(
       allowedKeys: const [
         'id',
         'tool_id',
+        'gateway_id',
+        'gateway_slug',
+        'namespaced_alias',
         'step_name',
         'claim_text',
         'query',
@@ -320,6 +323,9 @@ _McpAuditTraceDto _$McpAuditTraceDtoFromJson(
     final val = _McpAuditTraceDto(
       id: $checkedConvert('id', (v) => v as String?),
       toolId: $checkedConvert('tool_id', (v) => v as String),
+      gatewayId: $checkedConvert('gateway_id', (v) => v as String?),
+      gatewaySlug: $checkedConvert('gateway_slug', (v) => v as String?),
+      namespacedAlias: $checkedConvert('namespaced_alias', (v) => v as String?),
       stepName: $checkedConvert('step_name', (v) => v as String),
       claimText: $checkedConvert('claim_text', (v) => v as String?),
       query: $checkedConvert('query', (v) => v as String),
@@ -353,6 +359,9 @@ _McpAuditTraceDto _$McpAuditTraceDtoFromJson(
   },
   fieldKeyMap: const {
     'toolId': 'tool_id',
+    'gatewayId': 'gateway_id',
+    'gatewaySlug': 'gateway_slug',
+    'namespacedAlias': 'namespaced_alias',
     'stepName': 'step_name',
     'claimText': 'claim_text',
     'knowledgeGap': 'knowledge_gap',
@@ -368,6 +377,9 @@ Map<String, dynamic> _$McpAuditTraceDtoToJson(_McpAuditTraceDto instance) =>
     <String, dynamic>{
       'id': instance.id,
       'tool_id': instance.toolId,
+      'gateway_id': instance.gatewayId,
+      'gateway_slug': instance.gatewaySlug,
+      'namespaced_alias': instance.namespacedAlias,
       'step_name': instance.stepName,
       'claim_text': instance.claimText,
       'query': instance.query,

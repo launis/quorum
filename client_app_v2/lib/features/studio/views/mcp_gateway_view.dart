@@ -67,8 +67,8 @@ class McpGatewayView extends HookConsumerWidget {
       final String idToDelete = payload.id;
       if (idToDelete.isEmpty) return;
 
-      final String nameToDisplay = payload.slug?.isNotEmpty == true
-          ? payload.slug!
+      final String nameToDisplay = payload.slug.isNotEmpty
+          ? payload.slug
           : idToDelete;
 
       final confirm = await showDialog<bool>(
@@ -217,7 +217,7 @@ class McpGatewayView extends HookConsumerWidget {
             ),
             AppSpacing.h8,
             TextFormField(
-              initialValue: data.slug ?? '',
+              initialValue: data.slug,
               decoration: InputDecoration(labelText: l10n.slugLabel),
               onSaved: (val) {
                 final current = ref.read(mcpGatewayFormProvider(id)).value;
@@ -228,7 +228,7 @@ class McpGatewayView extends HookConsumerWidget {
                         current.copyWith(
                           slug: val != null && val.trim().isNotEmpty
                               ? val.trim()
-                              : null,
+                              : 'default_mcp_gateway',
                         ),
                       );
                 }
@@ -376,7 +376,7 @@ class McpGatewayView extends HookConsumerWidget {
   ) {
     final currentStr = const JsonEncoder.withIndent(
       '  ',
-    ).convert(tool.inputSchema);
+    ).convert(tool.inputSchema.toJson());
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s16),
@@ -400,10 +400,12 @@ class McpGatewayView extends HookConsumerWidget {
           }
         },
         onSaved: (val) {
-          Map<String, Object?> schema = {};
+          McpToolInputSchemaDto schema = const McpToolInputSchemaDto();
           if (val != null && val.trim().isNotEmpty) {
             try {
-              schema = jsonDecode(val) as Map<String, Object?>;
+              schema = McpToolInputSchemaDto.fromJson(
+                jsonDecode(val) as Map<String, Object?>,
+              );
             } catch (_) {}
           }
           _updateTool(ref, toolIndex, (t) => t.copyWith(inputSchema: schema));

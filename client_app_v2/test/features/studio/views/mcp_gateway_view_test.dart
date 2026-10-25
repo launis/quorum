@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/views/mcp_gateway_view.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
@@ -69,9 +70,13 @@ void main() {
             translations: {'en': 'Tavily Search', 'fi': 'Tavily Haku'},
           ),
           description: 'Search the web using Tavily API',
-          inputSchema: {
-            'query': {'type': 'string'},
-          },
+          inputSchema: McpToolInputSchemaDto(
+            properties: {
+              'query': McpToolSchemaPropertyDto(
+                type: JsonSchemaPropertyType.string,
+              ),
+            },
+          ),
         ),
       ],
     );

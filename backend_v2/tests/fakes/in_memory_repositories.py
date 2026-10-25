@@ -1050,7 +1050,7 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         self._check_fault("get_all_mcp_gateways")
         return [
             self._clone(gw)
-            for gw in sorted(self._mcp_gateways_map.values(), key=lambda g: g.id)
+            for gw in sorted(self._mcp_gateways_map.values(), key=lambda m: (m.slug, m.id))
         ]
 
     async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:

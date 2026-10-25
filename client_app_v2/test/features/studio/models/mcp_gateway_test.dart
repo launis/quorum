@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
 
 void main() {
@@ -10,6 +11,11 @@ void main() {
         'id': 'gw_1234567812345678',
         'type': 'stdio',
         'slug': 'filesystem_gateway',
+        'endpoint_url': 'https://mcp.example.com/v1',
+        'transport_type': 'streamable_http',
+        'auth_type': 'bearer',
+        'auth_env_var': 'MCP_TOKEN',
+        'timeout_seconds': 45,
         'tools': [
           {
             'tool_id': 'read_file',
@@ -17,11 +23,18 @@ void main() {
               'translations': {'en': 'Read File'},
             },
             'description': 'Reads local files',
+            'enabled': true,
             'input_schema': {
               'type': 'object',
               'properties': {
-                'path': {'type': 'string'},
+                'path': {
+                  'type': 'string',
+                  'description': 'File path',
+                  'enum_values': ['/a', '/b'],
+                },
               },
+              'required': ['path'],
+              'additional_properties': false,
             },
           },
         ],
@@ -30,14 +43,30 @@ void main() {
       // Act
       final gateway = McpGateway.fromJson(validJson);
 
-      // Expected: Instantiates McpGateway with correct tools list
+      // Expected: Instantiates McpGateway with correct tools list and recursive schema DTOs
       expect(gateway.id, 'gw_1234567812345678');
       expect(gateway.type, 'stdio');
       expect(gateway.slug, 'filesystem_gateway');
+      expect(gateway.endpointUrl, 'https://mcp.example.com/v1');
+      expect(gateway.transportType, McpTransportType.streamableHttp);
+      expect(gateway.authType, McpAuthType.bearer);
+      expect(gateway.authEnvVar, 'MCP_TOKEN');
+      expect(gateway.timeoutSeconds, 45);
       expect(gateway.tools.length, 1);
       expect(gateway.tools.first.toolId, 'read_file');
-      expect(gateway.tools.first.capability, 'search');
+      expect(gateway.tools.first.capability, ToolCapability.search);
+      expect(gateway.tools.first.enabled, isTrue);
       expect(gateway.tools.first.name.translations['en'], 'Read File');
+      expect(
+        gateway.tools.first.inputSchema.properties['path']?.type,
+        JsonSchemaPropertyType.string,
+      );
+      expect(gateway.tools.first.inputSchema.properties['path']?.enumValues, [
+        '/a',
+        '/b',
+      ]);
+      expect(gateway.tools.first.inputSchema.requiredFields, ['path']);
+      expect(gateway.tools.first.inputSchema.additionalProperties, isFalse);
     });
 
     test('test_mcp_gateway_with_explicit_capability', () {
@@ -58,7 +87,7 @@ void main() {
       };
 
       final gateway = McpGateway.fromJson(validJson);
-      expect(gateway.tools.first.capability, 'document_reader');
+      expect(gateway.tools.first.capability, ToolCapability.documentReader);
     });
 
     test('test_mcp_gateway_hallucinated_fields_fail_fast', () {

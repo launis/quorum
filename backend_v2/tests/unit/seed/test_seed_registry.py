@@ -10,6 +10,7 @@ from backend_v2.models.domain.system_config import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
+from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
 
 
@@ -20,7 +21,7 @@ def test_system_config_discriminator_mcp_gateways() -> None:
         tool_id="mcp_tavily_search",
         name=I18nText(translations={"en": "Tavily Search", "fi": "Tavily Haku"}),
         description="Search tool",
-        input_schema={},
+        input_schema=MCPToolInputSchemaDTO(),
     )
     data = {
         "id": "cfg_0123456789abcdef",

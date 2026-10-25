@@ -95,6 +95,9 @@ abstract class McpAuditTraceDto with _$McpAuditTraceDto {
   const factory McpAuditTraceDto({
     String? id,
     @JsonKey(name: 'tool_id') required String toolId,
+    @JsonKey(name: 'gateway_id') String? gatewayId,
+    @JsonKey(name: 'gateway_slug') String? gatewaySlug,
+    @JsonKey(name: 'namespaced_alias') String? namespacedAlias,
     @JsonKey(name: 'step_name') required String stepName,
     @JsonKey(name: 'claim_text') String? claimText,
     required String query,

@@ -18,8 +18,8 @@ __all__ = [
     "AuthenticityLevel",
     "BlockDataType",
     "BloomLevel",
-    "CognitiveTier",
     "CausalRootCauseType",
+    "CognitiveTier",
     "ComponentType",
     "DisplayScale",
     "EngineType",
@@ -36,6 +36,7 @@ __all__ = [
     "HelpTextKey",
     "HistoricalContextMode",
     "InteractionStrategy",
+    "JSONSchemaPropertyType",
     "LLMCachingStrategy",
     "LLMProvider",
     "LLMProviderName",
@@ -57,9 +58,12 @@ __all__ = [
     "LaxFidelityLevel",
     "LaxHistoricalContextMode",
     "LaxInteractionStrategy",
+    "LaxJSONSchemaPropertyType",
     "LaxLLMCachingStrategy",
     "LaxLLMProvider",
     "LaxLLMProviderName",
+    "LaxMCPAuthType",
+    "LaxMCPTransportType",
     "LaxPlausibilityLevel",
     "LaxPresetView",
     "LaxPromptBlockCategory",
@@ -81,6 +85,8 @@ __all__ = [
     "LaxVirtualSystemStepID",
     "LaxVisualIntent",
     "LaxXaiExtensionType",
+    "MCPAuthType",
+    "MCPTransportType",
     "PipelineConfig",
     "PlausibilityLevel",
     "PresetView",
@@ -1044,6 +1050,7 @@ class ToolCapability(StrEnum):
     SEARCH = "search"
     DOCUMENT_READER = "document_reader"
     ACTION = "action"
+    GENERAL = "general"
 
     @property
     def l10n_key(self) -> str:
@@ -1074,3 +1081,38 @@ class StepZone(StrEnum):
 
 
 LaxStepZone = Annotated[StepZone, Field(strict=False)]
+
+
+class MCPTransportType(StrEnum):
+    """Supported transport protocols for external MCP servers."""
+
+    STREAMABLE_HTTP = "streamable_http"
+    SSE = "sse"
+
+
+LaxMCPTransportType = Annotated[MCPTransportType, Field(strict=False)]
+
+
+class MCPAuthType(StrEnum):
+    """Authentication schemes for outbound MCP gateway requests."""
+
+    NONE = "none"
+    BEARER = "bearer"
+    API_KEY_HEADER = "api_key_header"
+
+
+LaxMCPAuthType = Annotated[MCPAuthType, Field(strict=False)]
+
+
+class JSONSchemaPropertyType(StrEnum):
+    """JSON Schema Draft 2020-12 primitive and structural property types."""
+
+    STRING = "string"
+    NUMBER = "number"
+    INTEGER = "integer"
+    BOOLEAN = "boolean"
+    ARRAY = "array"
+    OBJECT = "object"
+
+
+LaxJSONSchemaPropertyType = Annotated[JSONSchemaPropertyType, Field(strict=False)]

@@ -70,15 +70,23 @@ def extract_python_literal_values_ast(python_code: str, class_name: str, field_n
     raise ValueError(f"Field {field_name} with Literal not found in {class_name}.")
 
 
-def assert_enum_parity(dart_code: str, python_code: str, enum_name: str) -> None:
+def assert_enum_parity(
+    dart_code: str,
+    python_code: str,
+    enum_name: str,
+    dart_enum_name: str | None = None,
+) -> None:
     """Assert parity between a Dart enum and a Python StrEnum."""
-    dart_values = extract_dart_enum_json_values(dart_code, enum_name)
+    resolved_dart_name = enum_name
+    if dart_enum_name is not None:
+        resolved_dart_name = dart_enum_name
+    dart_values = extract_dart_enum_json_values(dart_code, resolved_dart_name)
     py_values = extract_python_enum_values_ast(python_code, enum_name)
 
     missing_in_dart = py_values - dart_values
     missing_in_python = dart_values - py_values
 
-    assert not missing_in_dart, f"Missing in Dart {enum_name}: {missing_in_dart}"
+    assert not missing_in_dart, f"Missing in Dart {resolved_dart_name}: {missing_in_dart}"
     assert not missing_in_python, f"Missing in Python {enum_name}: {missing_in_python}"
 
 
@@ -181,6 +189,41 @@ def test_step_filter_scope_parity() -> None:
 def test_step_zone_parity() -> None:
     """Verify StepZone members match between Python and Dart."""
     assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "StepZone")
+
+
+def test_mcp_transport_type_parity() -> None:
+    """Verify MCPTransportType members match between Python and Dart."""
+    assert_enum_parity(
+        read_file(DART_ENUM_PATH),
+        read_file(PYTHON_ENUMS_PATH),
+        "MCPTransportType",
+        dart_enum_name="McpTransportType",
+    )
+
+
+def test_mcp_auth_type_parity() -> None:
+    """Verify MCPAuthType members match between Python and Dart."""
+    assert_enum_parity(
+        read_file(DART_ENUM_PATH),
+        read_file(PYTHON_ENUMS_PATH),
+        "MCPAuthType",
+        dart_enum_name="McpAuthType",
+    )
+
+
+def test_tool_capability_parity() -> None:
+    """Verify ToolCapability members match between Python and Dart."""
+    assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "ToolCapability")
+
+
+def test_json_schema_property_type_parity() -> None:
+    """Verify JSONSchemaPropertyType members match between Python and Dart."""
+    assert_enum_parity(
+        read_file(DART_ENUM_PATH),
+        read_file(PYTHON_ENUMS_PATH),
+        "JSONSchemaPropertyType",
+        dart_enum_name="JsonSchemaPropertyType",
+    )
 
 
 def test_enum_parity_missing_member_failure() -> None:

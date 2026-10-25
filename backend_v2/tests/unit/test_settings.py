@@ -458,3 +458,40 @@ def test_wikipedia_settings_invariants() -> None:
     # user_agent min length 10
     with pytest.raises(ValidationError):
         Settings(use_mock_llm=True, mcp_wikipedia_user_agent="short")
+
+
+def test_generic_mcp_settings_invariants() -> None:
+    """ISTQB BVA & Equivalence Partitioning for generic MCP protocol settings."""
+    test_settings = get_test_settings()
+    assert test_settings.mcp_default_timeout_seconds == 30
+    assert test_settings.mcp_discovery_timeout_seconds == 10
+    assert test_settings.mcp_max_response_chars == 8000
+    assert test_settings.mcp_allow_private_networks is False
+
+    custom = Settings(
+        use_mock_llm=True,
+        mcp_default_timeout_seconds=60,
+        mcp_discovery_timeout_seconds=15,
+        mcp_max_response_chars=12000,
+        mcp_allow_private_networks=True,
+    )
+    assert custom.mcp_default_timeout_seconds == 60
+    assert custom.mcp_discovery_timeout_seconds == 15
+    assert custom.mcp_max_response_chars == 12000
+    assert custom.mcp_allow_private_networks is True
+
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, mcp_default_timeout_seconds=0)
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, mcp_default_timeout_seconds=301)
+
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, mcp_discovery_timeout_seconds=0)
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, mcp_discovery_timeout_seconds=61)
+
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, mcp_max_response_chars=499)
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, mcp_max_response_chars=50001)
+

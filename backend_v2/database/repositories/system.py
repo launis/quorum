@@ -117,14 +117,14 @@ class SystemRepositoryImpl(BaseRepository):
         return SystemConfigMCPGateways.model_validate(res_list[0], strict=False)
 
     async def get_all_mcp_gateways(self) -> list[SystemConfigMCPGateways]:
-        """Retrieves all MCP gateway configurations ordered deterministically by ID.
+        """Retrieves all MCP gateway configurations ordered deterministically by slug and ID.
 
         Returns:
             A list of validated SystemConfigMCPGateways domain models.
         """
         res_list = await self.driver.query("system_config", [Filter("type", "==", "mcp_gateways")])
         models = [SystemConfigMCPGateways.model_validate(r, strict=False) for r in res_list]
-        return sorted(models, key=lambda g: g.id)
+        return sorted(models, key=lambda m: (m.slug, m.id))
 
     async def update_mcp_gateways(self, gateways_data: SystemConfigMCPGateways) -> bool:
         """Updates or inserts an MCP gateway configuration using its authoritative ID.

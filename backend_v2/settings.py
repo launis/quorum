@@ -71,6 +71,9 @@ class Settings(BaseSettings):
         default_model_strategy: Preferred routing blueprint.
         llm_default_timeout: Connection and execution timeouts.
         mcp_default_timeout_seconds: Default timeout in seconds for MCP tool executions.
+        mcp_discovery_timeout_seconds: Network timeout in seconds for MCP tools/list discovery handshakes.
+        mcp_max_response_chars: Maximum character budget for external MCP tool responses before truncation.
+        mcp_allow_private_networks: Whether MCP endpoint URL validator permits loopback and private networks.
         mcp_wikipedia_max_search_results: Maximum Wikipedia search results returned.
         mcp_wikipedia_max_chars: Maximum characters of Wikipedia article extract before truncation.
         mcp_wikipedia_timeout_seconds: HTTP timeout in seconds for Wikipedia API calls.
@@ -242,9 +245,36 @@ class Settings(BaseSettings):
         ),
     ] = 100
     llm_default_timeout_seconds: Annotated[int, Field(description="Network timeout in seconds for LLM calls")] = 300
+    # Phase 1, Step 1.2: Protocol-agnostic MCP execution, discovery, and SSRF configuration SSOT
     mcp_default_timeout_seconds: Annotated[
-        int, Field(default=30, ge=1, description="Default timeout in seconds for MCP tool executions")
+        int, Field(default=30, ge=1, le=300, description="Default timeout in seconds for MCP tool executions")
     ] = 30
+    mcp_discovery_timeout_seconds: Annotated[
+        int,
+        Field(
+            default=10,
+            ge=1,
+            le=60,
+            description="Network timeout in seconds for MCP tools/list discovery handshakes",
+        ),
+    ] = 10
+    mcp_max_response_chars: Annotated[
+        int,
+        Field(
+            default=8000,
+            ge=500,
+            le=50000,
+            description="Maximum character budget for external MCP tool responses before sentence-boundary truncation",
+        ),
+    ] = 8000
+    mcp_allow_private_networks: Annotated[
+        bool,
+        BeforeValidator(strip_whitespace),
+        Field(
+            default=False,
+            description="Whether MCP endpoint URL validator permits loopback and private RFC-1918 networks",
+        ),
+    ] = False
     rate_limit_cooldown_seconds: Annotated[int, Field(description="Cooldown time after rate limits hit")] = 10
     semaphore_low_rpm_threshold: Annotated[int, Field(description="Threshold for applying strict concurrency")] = 20
     semaphore_low_rpm_limit: Annotated[int, Field(ge=1, description="Concurrency limit for low RPM environments")] = 2

@@ -11,6 +11,7 @@ from pydantic import ConfigDict, Field, JsonValue, field_validator
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.mcp import MCPArgumentValue
 
 
 class OpenAIFunctionCallDTO(V2CoreBase):
@@ -18,13 +19,16 @@ class OpenAIFunctionCallDTO(V2CoreBase):
 
     Attributes:
         name: Function name.
-        arguments: Function arguments as a string or dict.
+        arguments: Function arguments as a string or typed argument mapping.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    name: str
-    arguments: str | dict[str, JsonValue]
+    name: Annotated[str, Field(description="Function name.")]
+    arguments: Annotated[
+        str | dict[str, MCPArgumentValue],
+        Field(description="Function arguments as a JSON string or typed argument dictionary."),
+    ]
 
 
 class OpenAIToolCallDTO(V2CoreBase):
@@ -35,15 +39,19 @@ class OpenAIToolCallDTO(V2CoreBase):
         id: Tool call ID.
         type: Call type, defaults to 'function'.
         function: The function call payload.
+        provider_specific_fields: Optional provider-specific fields.
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    index: int | None = None
-    id: str
-    type: str = "function"
-    function: OpenAIFunctionCallDTO
-    provider_specific_fields: dict[str, JsonValue] | None = None
+    index: Annotated[int | None, Field(default=None, description="Call index.")] = None
+    id: Annotated[str, Field(description="Tool call ID.")]
+    type: Annotated[str, Field(default="function", description="Call type.")] = "function"
+    function: Annotated[OpenAIFunctionCallDTO, Field(description="The function call payload.")]
+    provider_specific_fields: Annotated[
+        dict[str, JsonValue] | None,
+        Field(default=None, description="Optional provider-specific metadata."),
+    ] = None
 
 
 class OpenAIProbeResponseDTO(V2CoreBase):
@@ -54,10 +62,16 @@ class OpenAIProbeResponseDTO(V2CoreBase):
         content: Optional conversational response from the LLM.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    tool_calls: list[OpenAIToolCallDTO] | None = None
-    content: str | None = None
+    tool_calls: Annotated[
+        list[OpenAIToolCallDTO] | None,
+        Field(default=None, description="Optional list of tool calls requested by the LLM."),
+    ] = None
+    content: Annotated[
+        str | None,
+        Field(default=None, description="Optional conversational response from the LLM."),
+    ] = None
 
 
 class TavilyToolArgsDTO(V2CoreBase):
@@ -67,9 +81,9 @@ class TavilyToolArgsDTO(V2CoreBase):
         query: The search query.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    query: str
+    query: Annotated[str, Field(description="The search query.")]
 
 
 class MCPToolLoopResult(V2CoreBase):
@@ -81,19 +95,14 @@ class MCPToolLoopResult(V2CoreBase):
         usage: Cumulative token usage.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     result_data: Annotated[dict[str, JsonValue], Field(description="Final structured output dict.")]
-    audit_traces: Annotated[
-        list[MCPAuditTrace], Field(default_factory=list, description="Audit log of all tool invocations.")
-    ]
-    usage: Annotated[
-        TokenUsage,
-        Field(
-            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-            description="Cumulative token usage.",
-        ),
-    ]
+    audit_traces: list[MCPAuditTrace] = Field(default_factory=list, description="Audit log of all tool invocations.")
+    usage: TokenUsage = Field(
+        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        description="Cumulative token usage.",
+    )
 
 
 class MCPRetrievalResultDTO(V2CoreBase):
@@ -107,21 +116,17 @@ class MCPRetrievalResultDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    audit_traces: Annotated[
-        list[MCPAuditTrace],
-        Field(default_factory=list, description="Audit log of all tool invocations during retrieval."),
-    ]
-    usage: Annotated[
-        TokenUsage,
-        Field(
-            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-            description="Token usage incurred during retrieval.",
-        ),
-    ]
+    audit_traces: list[MCPAuditTrace] = Field(
+        default_factory=list, description="Audit log of all tool invocations during retrieval."
+    )
+    usage: TokenUsage = Field(
+        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        description="Token usage incurred during retrieval.",
+    )
     evidence_payload: Annotated[
         str,
         Field(default="", description="Assembled evidence text formatted for prompt inclusion."),
-    ]
+    ] = ""
 
 
 class MCPSynthesisInstructionsDTO(V2CoreBase):
@@ -132,10 +137,16 @@ class MCPSynthesisInstructionsDTO(V2CoreBase):
         synthesis_length_limit: Optional length limit for synthesis.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    synthesis_preamble: str | None = None
-    synthesis_length_limit: int | None = None
+    synthesis_preamble: Annotated[
+        str | None,
+        Field(default=None, description="Optional text prepended to synthesis."),
+    ] = None
+    synthesis_length_limit: Annotated[
+        int | None,
+        Field(default=None, description="Optional length limit for synthesis."),
+    ] = None
 
 
 class TavilyApiResultItemDTO(V2CoreBase):
@@ -153,13 +164,13 @@ class TavilyApiResultItemDTO(V2CoreBase):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    id: str | None = None
-    title: str = ""
-    url: str = ""
-    content: str = ""
-    raw_content: str | None = None
-    score: float = 0.0
-    published_date: str | None = None
+    id: Annotated[str | None, Field(default=None, description="Unique identifier for the search result.")] = None
+    title: Annotated[str, Field(default="", description="Title of the search result.")] = ""
+    url: Annotated[str, Field(default="", description="URL of the search result.")] = ""
+    content: Annotated[str, Field(default="", description="Search result content.")] = ""
+    raw_content: Annotated[str | None, Field(default=None, description="Unprocessed raw content.")] = None
+    score: Annotated[float, Field(default=0.0, description="Relevance score.")] = 0.0
+    published_date: Annotated[str | None, Field(default=None, description="Published date.")] = None
 
 
 class TavilyApiResponseDTO(V2CoreBase):
@@ -175,13 +186,13 @@ class TavilyApiResponseDTO(V2CoreBase):
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    query: str = ""
-    answer: str | None = ""
-    response_time: float = 0.0
-    images: Annotated[list[str], Field(default_factory=list)]
+    query: Annotated[str, Field(default="", description="The original search query.")] = ""
+    answer: Annotated[str | None, Field(default="", description="AI-generated answer.")] = ""
+    response_time: Annotated[float, Field(default=0.0, description="Response time in seconds.")] = 0.0
+    images: list[str] = Field(default_factory=list, description="List of related images.")
     results: Annotated[list[TavilyApiResultItemDTO], Field(description="Search results list from Tavily.")]
-    follow_up_questions: list[str] | None = None
-    request_id: str | None = None
+    follow_up_questions: Annotated[list[str] | None, Field(default=None, description="Follow-up questions.")] = None
+    request_id: Annotated[str | None, Field(default=None, description="Request ID.")] = None
 
 
 class TavilySearchResult(V2CoreBase):
@@ -195,11 +206,11 @@ class TavilySearchResult(V2CoreBase):
         duration_ms: Round-trip latency in milliseconds.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     query: Annotated[str, Field(description="Echo of the original search query.")]
     answer: Annotated[str, Field(description="AI-generated summary from Tavily.")] = ""
-    source_urls: Annotated[list[str], Field(default_factory=list, description="Deduplicated source URLs.")]
+    source_urls: list[str] = Field(default_factory=list, description="Deduplicated source URLs.")
     raw_content: Annotated[str, Field(description="Concatenated source texts (truncated).")] = ""
     duration_ms: Annotated[int, Field(description="Round-trip latency in milliseconds.")] = 0
 
