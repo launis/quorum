@@ -24,7 +24,7 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 
 class DummySynthesisOutputDTO(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="forbid", strict=True)
     output: str = "success"
 
 

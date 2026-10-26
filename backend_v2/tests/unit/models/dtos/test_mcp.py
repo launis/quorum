@@ -6,9 +6,11 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.dtos.mcp import (
+    FastMCPMetaDTO,
     MCPCapabilityConfigDTO,
     MCPContentBlockDTO,
     MCPDiscoveredToolWireDTO,
+    MCPExecutionMetaDTO,
     MCPFunctionDefinitionDTO,
     MCPIconDTO,
     MCPInitializeClientInfoDTO,
@@ -17,7 +19,10 @@ from backend_v2.models.dtos.mcp import (
     MCPJsonRpcErrorDTO,
     MCPJsonRpcRequestDTO,
     MCPJsonRpcResponseDTO,
+    MCPSearchResultItemDTO,
     MCPServerInfoDTO,
+    MCPStructuredContentDTO,
+    MCPToolAnnotationsDTO,
     MCPToolCallParamsDTO,
     MCPToolCallResultDTO,
     MCPToolDeclarationDTO,
@@ -25,6 +30,7 @@ from backend_v2.models.dtos.mcp import (
     MCPToolExecutionDTO,
     MCPToolInputSchemaDTO,
     MCPToolInvocationDTO,
+    MCPToolMetaDTO,
     MCPToolSchemaPropertyDTO,
     MCPToolsListResultDTO,
     MCPValidationContextDTO,
@@ -462,3 +468,86 @@ def test_mcp_tool_call_result_with_content_execution_meta() -> None:
     assert isinstance(parsed.result, MCPToolCallResultDTO)
     assert parsed.result.content[0].meta is not None
     assert parsed.result.content[0].meta.search_time == 906.5
+
+
+def test_mcp_structured_content_and_meta_dtos_positive_and_negative() -> None:
+    """Test FastMCPMetaDTO, MCPToolMetaDTO, MCPExecutionMetaDTO, MCPSearchResultItemDTO, and MCPStructuredContentDTO."""
+    tool_meta = MCPToolMetaDTO(fastmcp=FastMCPMetaDTO(tags=["search", "web"]))
+    assert tool_meta.fastmcp is not None
+    assert tool_meta.fastmcp.tags == ["search", "web"]
+
+    annotations = MCPToolAnnotationsDTO.model_validate(
+        {
+            "destructiveHint": False,
+            "readOnlyHint": True,
+            "openInNewTab": True,
+            "idempotentHint": True,
+            "openWorldHint": True,
+        }
+    )
+    assert annotations.open_in_new_tab is True
+
+    exec_meta = MCPExecutionMetaDTO.model_validate(
+        {
+            "searchTime": 120.5,
+            "responseTime": 0.42,
+            "requestId": "req_123",
+            "totalCost": 0.005,
+            "progress": 100,
+            "total": 10,
+            "ai.exa/rateLimited": False,
+        }
+    )
+    assert exec_meta.cost == 0.005
+    assert exec_meta.rate_limited is False
+
+    structured = MCPStructuredContentDTO.model_validate(
+        {
+            "query": "quorum architecture",
+            "followUpQuestions": ["What is Quorum V2?"],
+            "answer": "Synthesized answer.",
+            "summary": "Summary text.",
+            "description": "Description text.",
+            "text": "Body text.",
+            "message": "OK",
+            "finding": "Key finding.",
+            "images": ["https://example.com/img.png"],
+            "results": [
+                {
+                    "id": "res_1",
+                    "url": "https://example.com/doc",
+                    "title": "Quorum Doc",
+                    "content": "Extracted content.",
+                    "snippet": "Short snippet.",
+                    "text": "Plain text.",
+                    "summary": "Item summary.",
+                    "rawContent": "<html></html>",
+                    "score": 0.98,
+                }
+            ],
+            "authMode": "bearer",
+            "responseTime": 0.35,
+            "requestId": "req_abc",
+        }
+    )
+    assert structured.query == "quorum architecture"
+    assert structured.follow_up_questions == ["What is Quorum V2?"]
+    assert len(structured.results) == 1
+    assert structured.results[0].raw_content == "<html></html>"
+    assert structured.results[0].score == 0.98
+
+    with pytest.raises(ValidationError):
+        FastMCPMetaDTO.model_validate({"tags": "not_a_list"})
+
+    with pytest.raises(ValidationError):
+        MCPToolMetaDTO.model_validate({"unexpected": True})
+
+    with pytest.raises(ValidationError):
+        MCPExecutionMetaDTO.model_validate({"cost": "not_a_float"})
+
+    with pytest.raises(ValidationError):
+        MCPSearchResultItemDTO.model_validate({"score": "not_a_number"})
+
+    with pytest.raises(ValidationError):
+        MCPStructuredContentDTO.model_validate({"unknown_key": "forbidden"})
+

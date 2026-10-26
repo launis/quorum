@@ -12,6 +12,7 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.system_config import AllowedMCPTool, SystemConfigMCPGateways
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.mcp import (
+    MCPToolDescriptorDTO,
     MCPToolInputSchemaDTO,
     MCPToolInvocationDTO,
     MCPToolSchemaPropertyDTO,
@@ -164,18 +165,32 @@ def test_tool_dispatcher_build_search_arguments_positive_and_negative() -> None:
     assert primary is not None
     assert dispatcher.build_search_arguments(primary, "climate report") == {"query": "climate report"}
 
-    # Single required string property with custom name 'search_term'
+    # Single required string property with custom name 'custom_topic' (outside standard query names)
     custom_tool = AllowedMCPTool(
         tool_id="custom_search",
         capability=ToolCapability.SEARCH,
         name=I18nText(translations={"en": "Custom"}),
         description="Custom search",
         input_schema=MCPToolInputSchemaDTO(
-            properties={"search_term": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING)},
-            required=["search_term"],
+            properties={"custom_topic": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING)},
+            required=["custom_topic"],
         ),
     )
-    assert dispatcher.build_search_arguments(custom_tool, "custom query") == {"search_term": "custom query"}
+    assert dispatcher.build_search_arguments(custom_tool, "custom query") == {"custom_topic": "custom query"}
+
+    # Unindexed MCPToolDescriptorDTO passed to get_argument_model
+    unindexed_descriptor = MCPToolDescriptorDTO(
+        gateway_id="sys_1111222233334444",
+        gateway_slug="unindexed_gw",
+        namespaced_alias="unindexed_gw__custom_search",
+        tool_id="custom_search",
+        description="Unindexed tool",
+        capability=ToolCapability.SEARCH,
+        input_schema=custom_tool.input_schema,
+        enabled=True,
+    )
+    compiled_unindexed = dispatcher.get_argument_model(unindexed_descriptor)
+    assert issubclass(compiled_unindexed, BaseModel)
 
     # Optional single string property when required is empty
     optional_single_str_tool = AllowedMCPTool(
@@ -477,6 +492,16 @@ def test_tool_dispatcher_build_search_arguments_exa_web_search() -> None:
         objective="Custom authoritative search goal",
     )
     assert args_explicit["objective"] == "Custom authoritative search goal"
+
+    # 5. Objective exceeding max_length is truncated to max_length
+    long_objective = "x" * 5000
+    args_truncated = dispatcher.build_search_arguments(
+        resolved,
+        "climate report",
+        objective=long_objective,
+    )
+    assert isinstance(args_truncated["objective"], str)
+    assert len(args_truncated["objective"]) == 4096
 
 
 def test_build_search_arguments_with_configured_params() -> None:

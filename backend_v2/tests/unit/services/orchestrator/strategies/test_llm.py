@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Mapping
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -6,7 +7,7 @@ import pytest
 from pydantic import BaseModel, ConfigDict, JsonValue
 
 from backend_v2.core.hook_registry import HookState
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.domain.blackboard import DraftAtomList, GlobalAtomBlackboard
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
@@ -46,7 +47,7 @@ def _make_mock_hook_state(
 
 
 class DummySynthesisOutputDTO(BaseModel):
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="forbid", strict=True)
     output: str = ""
 
 
@@ -534,6 +535,7 @@ async def test_llm_strategy_missing_atoms_crash(
             },
         ]
     )
+
     mock_hook_state = _make_mock_hook_state({})  # Missing shuffled_atoms
 
     from unittest.mock import AsyncMock, patch
@@ -642,6 +644,23 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
             },
         ]
     )
+
+    bad_gvars = GlobalContextVarsDTO.model_construct(shuffled_atoms="not_a_list")
+    mock_hook_state = _make_mock_hook_state({}, global_context_vars=bad_gvars)
+
+    with patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre:
+        mock_pre.return_value = (mock_hook_state, [])
+        with pytest.raises(AppException) as exc_info:
+            await llm_strategy.execute(
+                step=step,
+                projector=projector,
+                context=context,
+                frozen_ctx=None,
+                trace=[],
+            )
+
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "'shuffled_atoms' is empty or not a list" in exc_info.value.message
 
 
 @pytest.mark.asyncio
@@ -3450,3 +3469,129 @@ async def test_llm_strategy_rejects_running_event_argument(llm_strategy: LLMNode
     context = MagicMock()
     with pytest.raises(TypeError, match="unexpected keyword argument 'running_event'"):
         await llm_strategy.execute(step, projector, context, **{"running_event": MagicMock()})
+
+
+@pytest.mark.asyncio
+async def test_execute_configuration_errors_emit_rfc7807_dual_logs(
+    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Verify every ConfigurationError in LLMNodeStrategy.execute emits structured logger.error."""
+    step = MagicMock()
+    step.id = "step_cfg_err"
+    step.task_blueprint = "bp_1"
+
+    projector = MagicMock()
+    projector.snapshot = []
+
+    context = MagicMock()
+    context.execution_id = "exec_1"
+    context.workflow_id = "wf_1"
+    context.global_context_vars = {}
+    context.output_profile_id = None
+    context.target_locale = "en"
+    context.metadata = ExecutionMetadata()
+
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "role_block_id": None,
+            "extraction_protocol_block_id": "blk_573802341db9d68c",
+            "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
+        }
+    )
+
+    mock_hook_state = _make_mock_hook_state({})
+
+    with (
+        caplog.at_level(logging.ERROR, logger="backend_v2.services.orchestrator.strategies.llm"),
+        patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
+    ):
+        mock_pre.return_value = (mock_hook_state, [])
+        with pytest.raises(ConfigurationError):
+            await llm_strategy.execute(
+                step=step,
+                projector=projector,
+                context=context,
+                frozen_ctx=None,
+                trace=[],
+            )
+
+    assert any("missing mandatory 'output_profile_id'" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_execute_fails_fast_on_corrupted_execution_record_in_db(
+    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock
+) -> None:
+    """Verify corrupted execution record in DB triggers AppException with VALIDATION_FAILED."""
+    step = MagicMock()
+    step.id = "step_corrupt_exec"
+    step.task_blueprint = "bp_1"
+    step.input_mappings = {}
+    step.allowed_mcp_tools = []
+
+    projector = MagicMock()
+    projector.snapshot = []
+
+    context = MagicMock()
+    context.execution_id = "exec_corrupt"
+    context.workflow_id = "wf_1"
+    context.global_context_vars = {}
+    context.output_profile_id = "prof_0123456789abcdef0123456789abcdef"
+    context.target_locale = "en"
+    context.metadata = ExecutionMetadata()
+    context.expected_inputs = []
+
+    mock_repo.set_step(
+        {
+            "id": "stp_0123456789abcdef0123456789abcdef",
+            "slug": "test_step",
+            "name": {"translations": {"en": "Test"}},
+            "description": {"translations": {"en": "Test"}},
+            "extraction_protocol_block_id": "blk_3333333333333333",
+            "criteria_block_ids": ["blk_4444444444444444"],
+        }
+    )
+    mock_repo.set_prompt_blocks(
+        [
+            {
+                "id": "blk_4444444444444444",
+                "slug": "criteria_rule",
+                "category_id": "system_rule",
+                "type": "string",
+                "label": {"translations": {"en": "Criteria"}},
+                "description": {"translations": {"en": "Criteria"}},
+                "instruction_text": "Evaluate.",
+            },
+            {
+                "id": "blk_3333333333333333",
+                "slug": "zero_trust",
+                "category_id": "protocol",
+                "type": "instruction",
+                "label": {"translations": {"en": "Protocol"}},
+                "description": {"translations": {"en": "Protocol"}},
+                "protocol_instructions": "Zero trust protocol.",
+            },
+        ]
+    )
+    mock_repo.set_execution({"id": "exec_corrupt", "invalid_schema_key": 123})
+
+    mock_hook_state = _make_mock_hook_state({})
+
+    with patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre:
+        mock_pre.return_value = (mock_hook_state, [])
+        with pytest.raises(AppException) as exc_info:
+            await llm_strategy.execute(
+                step=step,
+                projector=projector,
+                context=context,
+                frozen_ctx=None,
+                trace=[],
+            )
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "Failed to parse execution record" in exc_info.value.message
