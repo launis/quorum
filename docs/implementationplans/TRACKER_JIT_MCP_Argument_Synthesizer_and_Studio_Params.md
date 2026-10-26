@@ -34,7 +34,7 @@
   - [x] @[backend_v2/models/domain/step.py]
   - [x] @[backend_v2/models/dtos/studio.py]
   - [x] @[backend_v2/models/prompts/execution/mcp_prompts.py]
-  - [ ] @[backend_v2/models/prompts/execution/__init__.py]
+  - [x] @[backend_v2/models/prompts/execution/__init__.py]
   - [ ] @[backend_v2/models/prompts/__init__.py]
   - [ ] @[backend_v2/services/mcp/dispatcher.py]
   - [ ] @[backend_v2/services/mcp/mcp_tool_loop.py]
