@@ -24,9 +24,9 @@
 ### Post-Implementation Gates
 
 - [ ] **Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
-- [ ] **Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Fix_MCP_Tool_List_Schema_Validation.md] --gate backend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"`
+- [ ] **Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Fix_MCP_Tool_List_Schema_Validation.md]" --gate backend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [ ] @[backend_v2/models/dtos/mcp.py]
-- [ ] **Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Fix_MCP_Tool_List_Schema_Validation.md] --gate frontend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
+- [ ] **Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Fix_MCP_Tool_List_Schema_Validation.md]" --gate frontend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`
   - [ ] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
 - [ ] **Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.

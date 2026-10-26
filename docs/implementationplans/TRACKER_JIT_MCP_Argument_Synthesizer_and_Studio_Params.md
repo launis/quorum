@@ -24,12 +24,12 @@
   - [x] Step 4: Wire JIT Argument Synthesis & Step mcp_tool_params into MCP Tool Loop and LLMNodeStrategy
   - [x] Step 5: Flutter NodeStrategy Model Parity, Localization & Studio McpToolParamsPanel Widget
   - [x] Step 6: Global Two-Stage Quality Gates & Cross-Language DTO Parity Verification
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md] @[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md] @[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]`
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md] --gate backend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]" --gate backend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [ ] @[backend_v2/models/dtos/mcp.py]
   - [ ] @[backend_v2/models/domain/step.py]
   - [ ] @[backend_v2/models/dtos/studio.py]
@@ -40,12 +40,12 @@
   - [ ] @[backend_v2/services/mcp/mcp_tool_loop.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [ ] @[backend_v2/services/studio/workflow_service.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md] --gate frontend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]" --gate frontend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`
   - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
 
@@ -67,7 +67,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md] @[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md] @[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
 
