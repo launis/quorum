@@ -159,6 +159,7 @@ RESIDUAL_FUTURE_PHASE_QGR028_FILES: frozenset[str] = frozenset(
         "backend_v2/services/orchestrator/dag_executor.py",
         "backend_v2/services/orchestrator/strategies/logic.py",
         "backend_v2/services/orchestrator/strategies/llm.py",
+        "backend_v2/services/orchestrator/strategies/llm_strategy/blueprint_and_metadata_stage.py",
         "backend_v2/services/orchestrator/synthesis_distiller.py",
         "backend_v2/services/studio/workflow_service.py",
     }

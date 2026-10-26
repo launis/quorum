@@ -10,10 +10,10 @@ import inspect
 import json
 import logging
 import time
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, override
 
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel
 
 from backend_v2.settings import get_settings
 
@@ -23,32 +23,22 @@ if TYPE_CHECKING:
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
-    HookDependencies,
     HookState,
 )
-from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.chunking import ChunkingRequest
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
-from backend_v2.models.domain.inputs import DomainInputValue
-from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.domain.prompt_blocks import (
-    MatrixPromptBlock,
-    PromptBlock,
-    PromptBlockAdapter,
-)
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.system_config import MCPAuditTrace, SystemConfigMCPGateways
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO
 from backend_v2.models.dtos.engine import EngineExecutionRequest, MatrixEvaluationContext
 from backend_v2.models.dtos.hook_delta import StepContextMetadataDTO
 from backend_v2.models.dtos.prompt import PromptMappingDTO
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
-from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO, StepTraceMetadataDTO, TraceEventMetadataDTO
 from backend_v2.models.enums import (
     CognitiveTier,
@@ -56,7 +46,6 @@ from backend_v2.models.enums import (
     PromptBlockCategory,
     VirtualSystemStepID,
 )
-from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -67,19 +56,49 @@ from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisE
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
-from backend_v2.services.orchestrator.strategies.llm_execution.source_document_packer import SourceDocumentPacker
+from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
+    _SCHEMA_BLOCK_EXTENSION as _SCHEMA_BLOCK_EXTENSION,
+)
+from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
+    _SCHEMA_BLOCK_MATRIX as _SCHEMA_BLOCK_MATRIX,
+)
+from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
+    _SCHEMA_BLOCK_SYSTEM as _SCHEMA_BLOCK_SYSTEM,
+)
+from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
+    _SCHEMA_BLOCK_TEXT as _SCHEMA_BLOCK_TEXT,
+)
+from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
+    BlueprintStageResult as BlueprintStageResult,
+)
+from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
+    NodeStatePayload as NodeStatePayload,
+)
+from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
+    dlq_handle_debug_log_error as dlq_handle_debug_log_error,
+)
+from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
+    execute_blueprint_and_pre_hooks_stage as execute_blueprint_and_pre_hooks_stage,
+)
+from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
+    extract_step_context_metadata as extract_step_context_metadata,
+)
 from backend_v2.utils.alias_engine import AliasEngine
 
-__all__ = ["LLMNodeStrategy"]
+__all__ = [
+    "BlueprintStageResult",
+    "LLMNodeStrategy",
+    "NodeStatePayload",
+    "_SCHEMA_BLOCK_EXTENSION",
+    "_SCHEMA_BLOCK_MATRIX",
+    "_SCHEMA_BLOCK_SYSTEM",
+    "_SCHEMA_BLOCK_TEXT",
+    "dlq_handle_debug_log_error",
+    "execute_blueprint_and_pre_hooks_stage",
+    "extract_step_context_metadata",
+]
 
 logger = logging.getLogger(__name__)
-
-_SCHEMA_BLOCK_MATRIX = "MATRIX"
-_SCHEMA_BLOCK_TEXT = "TEXT"
-_SCHEMA_BLOCK_EXTENSION = "EXTENSION"
-_SCHEMA_BLOCK_SYSTEM = "SYSTEM"
-
-type NodeStatePayload = DomainInputValue | ExecutionMetadata | Mapping[str, DomainInputValue] | list[Any] | JsonValue
 
 
 class LLMNodeStrategy(NodeStrategy):
@@ -111,7 +130,8 @@ class LLMNodeStrategy(NodeStrategy):
         Args:
             exc: Exception encountered during debug prompt logging.
         """
-        logger.warning("[LLMStrategy] Failed to write debug prompt log: %s", exc)
+        # Phase 1, Step 2: Delegate debug log error handler to blueprint_and_metadata_stage
+        dlq_handle_debug_log_error(exc, step_logger=logger)
 
     def _extract_step_context_metadata(
         self,
@@ -127,95 +147,8 @@ class LLMNodeStrategy(NodeStrategy):
         Returns:
             StepContextMetadataDTO containing gvars, doc_aliases, and dag_results.
         """
-        gvars = {}
-        if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO):
-            gvars = hook_state.global_context_vars.model_dump(mode="json", exclude_none=True)
-        elif (
-            not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
-            and hook_state.global_context_vars is not None
-        ):
-            gvars = dict(hook_state.global_context_vars)
-
-        blackboard = None
-        if context is not None:
-            blackboard = context.context_variables.global_atom_blackboard
-
-        atoms_by_input = {}
-        if blackboard is not None:
-            atoms_by_input = blackboard.atoms_by_input
-
-        doc_aliases: list[str] = ["N/A"]
-        if atoms_by_input:
-            doc_aliases = list(atoms_by_input.keys())
-
-        raw_inputs_dict: Mapping[str, DomainInputValue] = hook_state.inputs.raw_inputs
-        dynamic_inputs_dict: Mapping[str, DomainInputValue] = hook_state.inputs.dynamic_inputs
-
-        dag_results: dict[str, AtomResultDTO] = {}
-        combined_inputs: list[Any] = list(raw_inputs_dict.values()) + list(dynamic_inputs_dict.values())
-        for step_res in combined_inputs:
-            if isinstance(step_res, list):
-                for item in step_res:
-                    if isinstance(item, AtomResultDTO):
-                        dag_results[item.tda_id] = item
-                    elif not isinstance(item, (str, int, float, bool, list)) and item is not None:
-                        a_id = None
-                        if "tda_id" in item:
-                            a_id = item["tda_id"]
-                        elif "atom_id" in item:
-                            a_id = item["atom_id"]
-                        if a_id:
-                            if isinstance(item, AtomResultDTO):
-                                dag_results[str(a_id)] = item
-                            else:
-                                item_dict = dict(item)
-                                if "atom_id" in item_dict:
-                                    del item_dict["atom_id"]
-                                if "status" not in item_dict:
-                                    item_dict["status"] = ExecutionStatus.PASSED
-                                if "source_quotes" not in item_dict and (
-                                    "contextual_override" not in item_dict or not item_dict["contextual_override"]
-                                ):
-                                    item_dict["contextual_override"] = True
-                                if "evaluation_reasoning" not in item_dict:
-                                    item_dict["evaluation_reasoning"] = "Extracted"
-                                if "tda_id" not in item_dict:
-                                    item_dict["tda_id"] = str(a_id)
-                                dag_results[str(a_id)] = AtomResultDTO.model_validate(item_dict, strict=False)
-            elif isinstance(step_res, AtomResultDTO):
-                dag_results[step_res.tda_id] = step_res
-            elif not isinstance(step_res, (str, int, float, bool, list)) and step_res is not None:
-                if "results" in step_res and isinstance(step_res["results"], list):
-                    for ev in step_res["results"]:
-                        if isinstance(ev, AtomResultDTO):
-                            dag_results[ev.tda_id] = ev
-                        elif not isinstance(ev, (str, int, float, bool, list)) and ev is not None:
-                            extracted_a_id = None
-                            if "tda_id" in ev:
-                                extracted_a_id = ev["tda_id"]
-                            elif "atom_id" in ev:
-                                extracted_a_id = ev["atom_id"]
-                            if extracted_a_id:
-                                ev_dict = dict(ev)
-                                if "atom_id" in ev_dict:
-                                    del ev_dict["atom_id"]
-                                if "status" not in ev_dict:
-                                    ev_dict["status"] = ExecutionStatus.PASSED
-                                if "source_quotes" not in ev_dict and (
-                                    "contextual_override" not in ev_dict or not ev_dict["contextual_override"]
-                                ):
-                                    ev_dict["contextual_override"] = True
-                                if "evaluation_reasoning" not in ev_dict:
-                                    ev_dict["evaluation_reasoning"] = "Extracted"
-                                if "tda_id" not in ev_dict:
-                                    ev_dict["tda_id"] = str(extracted_a_id)
-                                dag_results[str(extracted_a_id)] = AtomResultDTO.model_validate(ev_dict, strict=False)
-
-        return StepContextMetadataDTO(
-            gvars=gvars,
-            doc_aliases=doc_aliases,
-            dag_results=dag_results,
-        )
+        # Phase 1, Step 2: Delegate step context metadata extraction to blueprint_and_metadata_stage
+        return extract_step_context_metadata(hook_state, context)
 
     @override
     async def execute(
@@ -245,234 +178,39 @@ class LLMNodeStrategy(NodeStrategy):
                 or ErrorCodes.RESOURCE_NOT_FOUND upon missing configuration, invalid models, or missing records.
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR upon missing mandatory step/profile blocks.
         """
-        inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "inputs"}
-
-        inputs_unwrapped: object = inputs_payload
-        if "inputs" in inputs_payload:
-            inputs_unwrapped = inputs_payload["inputs"]
-
-        targets = SourceDocumentPacker.resolve_context_targets(step.input_mappings)
-        global_source_text = SourceDocumentPacker.pack(
-            inputs_unwrapped,
-            context.expected_inputs,
-            targets=targets,
-            step_outputs=projector.snapshot,
+        # Phase 1, Step 2: Delegate Stage 1 blueprint resolution and pre-hooks to blueprint_and_metadata_stage
+        stage1 = await execute_blueprint_and_pre_hooks_stage(
+            step=step,
+            projector=projector,
+            context=context,
+            deps=self.deps,
+            run_pre_hooks_fn=self.run_pre_hooks,
+            step_logger=logger,
         )
-        snapshot_steps: list[StepOutputDTO] = []
-        if isinstance(projector.snapshot, list):
-            snapshot_steps = list(projector.snapshot)
-        current_state: dict[str, DomainInputValue] = {
-            "steps": snapshot_steps,
-        }
-
-        pre_events: list[TraceEvent] = []
+        step_obj = stage1.step_obj
+        workflow_obj = stage1.workflow_obj
+        hook_state = stage1.hook_state
+        hook_deps = stage1.hook_deps
+        pre_events = stage1.pre_events
         post_events: list[TraceEvent] = []
-
+        block_map = stage1.block_map
+        role_block = stage1.role_block
+        protocol_block = stage1.protocol_block
+        execution_persona_block = stage1.execution_persona_block
+        criteria_blocks_models = stage1.criteria_blocks_models
+        output_profile = stage1.output_profile
+        target_locale = stage1.target_locale
+        global_source_text = stage1.global_source_text
+        state_data = stage1.state_data
+        inputs_payload = stage1.inputs_payload.raw_inputs
         blueprint_id = step.task_blueprint
-        if not blueprint_id:
-            logger.error(
-                "Step has no task_blueprint configured.",
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
-            )
-            raise AppException(
-                message=f"Step {step.id} has no task_blueprint configured.",
-                status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            )
-
-        step_def_raw = await self.workflow_repo.get_step_by_id(blueprint_id)
-        if not step_def_raw:
-            logger.error(
-                f"Configuration error: Step '{blueprint_id}' not found.",
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
-            )
-            raise AppException(
-                message=f"Configuration error: Step '{blueprint_id}' not found.",
-                status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            )
-
-        step_obj = V2Step.model_validate(step_def_raw)
-        hook_deps = HookDependencies(
-            exec_repo=self.exec_repo,
-            workflow_repo=self.workflow_repo,
-            comp_repo=self.comp_repo,
-            prompt_block_repo=self.prompt_block_repo,
-            output_profile_repo=self.output_profile_repo,
-            identity_repo=self.identity_repo,
-            audit_repo=self.audit_repo,
-            system_repo=self.system_repo,
-        )
-
-        input_keys: set[str] = set()
-        if context.expected_inputs:
-            for ei in context.expected_inputs:
-                input_keys.add(ei.input_key)
-
-        if isinstance(context.global_context_vars, GlobalContextVarsDTO):
-            initial_gvars = context.global_context_vars
-        elif not isinstance(context.global_context_vars, (str, int, float, bool, list)) and context.global_context_vars:
-            known_fields = GlobalContextVarsDTO.model_fields.keys()
-            filtered_vars = {k: v for k, v in context.global_context_vars.items() if k in known_fields}
-            initial_gvars = GlobalContextVarsDTO.model_validate(filtered_vars)
-        else:
-            initial_gvars = GlobalContextVarsDTO()
-
-        safe_raw_inputs = {}
-        if type(inputs_unwrapped) is dict:
-            safe_raw_inputs = dict(inputs_unwrapped)
-        hook_state = HookState(
-            execution_id=context.execution_id,
-            workflow_id=context.workflow_id,
-            step_id=step.id,
-            task_blueprint=blueprint_id,
-            metadata=context.metadata,
-            global_context_vars=initial_gvars,
-            inputs=ExecutionInputsDTO(dynamic_inputs=current_state, raw_inputs=safe_raw_inputs),
-        )
-
-        hook_state, pre_events = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
-        state_data: dict[str, NodeStatePayload]
-        if isinstance(hook_state.inputs, ExecutionInputsDTO):
-            state_data = dict(hook_state.inputs.dynamic_inputs)
-            if "inputs" not in state_data and hook_state.inputs.raw_inputs:
-                state_data["inputs"] = hook_state.inputs.raw_inputs
-        elif not isinstance(hook_state.inputs, (str, int, float, bool, list)) and hook_state.inputs is not None:
-            state_data = dict(hook_state.inputs)
-        else:
-            state_data = {}
-
-        # Removed parallel _apply_alias_chunks_and_audit() that created
-        # conflicting doc IDs (doc1..docN) and <source ID="..." label="..."> XML wrappers
-        # inside the data. AliasEngine + prompt_compiler.build_xml_context() are the
-        # Single Source of Truth for all source aliasing (alias_engine_llm_isolation_mandate).
-
-        if isinstance(context.prompt_blocks, list) and context.prompt_blocks:
-            block_map = {b.id: b for b in context.prompt_blocks if b.id}
-        else:
-            all_prompt_blocks_raw = await self.prompt_block_repo.get_all_prompt_blocks()
-            all_prompt_blocks: list[PromptBlock] = []
-            for raw in all_prompt_blocks_raw:
-                try:
-                    all_prompt_blocks.append(PromptBlockAdapter.validate_python(raw, strict=False))
-                except Exception as e:
-                    logger.error(
-                        "[LLMStrategy] Malformed PromptBlock in DB — Fail-Fast.",
-                        exc_info=True,
-                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
-                    )
-                    raise AppException(
-                        message="Malformed PromptBlock in DB",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    ) from e
-            block_map = {b.id: b for b in all_prompt_blocks if b.id}
-
-        target_profile = context.output_profile_id
-        if not target_profile:
-            msg = f"ExecutionContext missing mandatory 'output_profile_id' for workflow {context.workflow_id}."
-            logger.error(
-                msg,
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "workflow_id": context.workflow_id},
-            )
-            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
-
-        role_block = None
-        if step_obj.role_block_id:
-            if step_obj.role_block_id in block_map:
-                role_block = block_map[step_obj.role_block_id]
-            else:
-                logger.error(
-                    f"Role Block '{step_obj.role_block_id}' not found.",
-                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
-                )
-                raise ConfigurationError(
-                    f"Role Block '{step_obj.role_block_id}' not found.",
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-
-        protocol_block = None
-        if step_obj.extraction_protocol_block_id:
-            if step_obj.extraction_protocol_block_id in block_map:
-                protocol_block = block_map[step_obj.extraction_protocol_block_id]
-            else:
-                logger.error(
-                    f"Extraction Protocol Block '{step_obj.extraction_protocol_block_id}' not found.",
-                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
-                )
-                raise ConfigurationError(
-                    f"Extraction Protocol Block '{step_obj.extraction_protocol_block_id}' not found.",
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-
-        execution_persona_block = None
-        if step_obj.execution_persona_block_id:
-            if step_obj.execution_persona_block_id in block_map:
-                execution_persona_block = block_map[step_obj.execution_persona_block_id]
-            else:
-                logger.error(
-                    f"Execution Persona Block '{step_obj.execution_persona_block_id}' not found.",
-                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
-                )
-                raise ConfigurationError(
-                    f"Execution Persona Block '{step_obj.execution_persona_block_id}' not found.",
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-
-        criteria_blocks_models: list[PromptBlock] = []
-        for m_id in step_obj.criteria_block_ids:
-            if m_id in block_map:
-                criteria_blocks_models.append(block_map[m_id])
-            else:
-                logger.error(
-                    f"Criteria PromptBlock '{m_id}' not found.",
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step.id},
-                )
-                raise AppException(
-                    message=f"Criteria PromptBlock '{m_id}' not found.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-
-        target_locale = context.target_locale
-        if not target_locale:
-            msg = f"ExecutionContext missing mandatory 'target_locale' for workflow {context.workflow_id}."
-            logger.error(
-                msg,
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "workflow_id": context.workflow_id},
-            )
-            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
         effective_mcp_tools = step_obj.allowed_mcp_tools
         effective_mcp_tool_params = step_obj.mcp_tool_params
-
         input_mappings = PromptMappingDTO(mappings=dict(step.input_mappings))
-
-        workflow_def_raw = await self.workflow_repo.get_workflow(context.workflow_id)
-
-        output_profile = None
-        if target_profile:
-            profile_data = await self.output_profile_repo.get_output_profile_by_id(target_profile)
-            if not profile_data:
-                msg = f"OutputProfile '{target_profile}' not found in database."
-                logger.error(
-                    "[LLMStrategy] %s: %s",
-                    ErrorCodes.RESOURCE_NOT_FOUND.name,
-                    msg,
-                    extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.name, "output_profile_id": target_profile},
-                )
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
-                )
-
-            output_profile = OutputProfile.model_validate(profile_data, strict=False)
 
         schema_map: dict[str, str] = {}
         blueprint_labels: dict[str, str] = {}
-        if workflow_def_raw:
-            workflow_obj = Workflow.model_validate(workflow_def_raw)
-
+        if workflow_obj is not None:
             for s in workflow_obj.steps:
                 is_matrix = False
                 blueprint_def_raw = await self.workflow_repo.get_step(s.task_blueprint)
