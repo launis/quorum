@@ -77,11 +77,12 @@ FORMATTER_TIMEOUT_SECONDS: Final[int] = 60
 DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 1800
 DEFAULT_SUBAGENT_MAX_RETRIES: Final[int] = 3
 DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS: Final[float] = 3.0
+# Step 2: Parameterize default subagent templates with {model}
 DEFAULT_BACKEND_AGENT_TEMPLATE: Final[str] = (
-    'agy --model gemini-4-argon-high --dangerously-skip-permissions --print "/tier2-hardening-backend @[{target}]"'
+    'agy --model {model} --dangerously-skip-permissions --print "/tier2-hardening-backend @[{target}]"'
 )
 DEFAULT_FRONTEND_AGENT_TEMPLATE: Final[str] = (
-    'agy --model gemini-4-argon-high --dangerously-skip-permissions --print "/tier2-hardening-frontend @[{target}]"'
+    'agy --model {model} --dangerously-skip-permissions --print "/tier2-hardening-frontend @[{target}]"'
 )
 
 __all__ = [
@@ -114,6 +115,7 @@ __all__ = [
     "parse_tracker_unhardened_targets",
     "process_target_with_retries",
     "run_hardening_pipeline",
+    "run_macro_quality_gate",
     "run_quality_gate",
 ]
 
@@ -161,6 +163,18 @@ class HardeningRunnerArgsDTO(BaseModel):
         bool, Field(default=False, description="Print planned execution steps without mutating disk or git.")
     ] = False
     verbose: Annotated[bool, Field(default=False, description="Enable verbose log output.")] = False
+    # Step 2: Add model selection and micro_audit configuration to HardeningRunnerArgsDTO
+    model: Annotated[
+        str,
+        Field(default="gemini-4-argon-medium", description="AI model identifier for subagent hardening iterations."),
+    ] = "gemini-4-argon-medium"
+    micro_audit: Annotated[
+        bool,
+        Field(
+            default=True,
+            description="Use fast micro-audit during per-target iterations and run macro-audit at completion.",
+        ),
+    ] = True
 
 
 class HardeningIterationResultDTO(BaseModel):
@@ -304,8 +318,9 @@ def parse_tracker_unhardened_targets(tracker_content: str, gate: HardeningGate) 
 
     lines = tracker_content[match.end() :].splitlines()
     unhardened: list[str] = []
+    # Step 3: Make Tracker Target Parsing Resilient to Backticks and Quoting
     item_pattern = re.compile(
-        r"^\s+-\s*\[ \]\s*(?:\[(?:NEW|MODIFY|DELETE)\]\s*)?"
+        r"^\s+-\s*\[ \]\s*(?:`?\[(?:NEW|MODIFY|DELETE)\]\s*`?)?"
         r"`?(?:@\[?([a-zA-Z0-9_/\\.-]+?)(?:#[^`\]\n]+)?\]|"
         r"([a-zA-Z0-9_.-]+(?:[/\\][a-zA-Z0-9_.-]+)*\.[a-zA-Z0-9]+(?:#[^`\]\n]+)?))`?",
     )
@@ -381,8 +396,9 @@ def mark_tracker_target_done(tracker_path: Path, target_file: str) -> bool:
     norm_target = target_file.replace("\\", "/").strip()
     escaped_target = re.escape(norm_target)
 
+    # Step 3: Make mark_tracker_target_done Resilient to Backticks and Quoting
     pattern = re.compile(
-        rf"^(\s+-\s*)\[ \](\s*(?:\[(?:NEW|MODIFY|DELETE)\]\s*)?`?@?\[?{escaped_target}(?:#[^`\]\n]+)?\]?`?.*)$",
+        rf"^(\s+-\s*)\[ \](\s*(?:`?\[(?:NEW|MODIFY|DELETE)\]\s*`?)?`?@?\[?{escaped_target}(?:#[^`\]\n]+)?\]?`?.*)$",
         re.MULTILINE,
     )
 
@@ -591,7 +607,8 @@ def execute_subagent_pass(target_file: str, args: HardeningRunnerArgsDTO, repo_r
         if target_file.endswith(".dart") and "/tier2-hardening-backend" in subagent_template:
             subagent_template = subagent_template.replace("/tier2-hardening-backend", "/tier2-hardening-frontend")
 
-        formatted_cmd = subagent_template.format(target=target_file, target_file=target_file)
+        # Step 2: Format subagent_template with model=args.model
+        formatted_cmd = subagent_template.format(model=args.model, target=target_file, target_file=target_file)
         cmd_args = shlex.split(formatted_cmd, posix=False if sys.platform == "win32" else True)
         subagent_success = False
 
@@ -653,7 +670,12 @@ def execute_subagent_pass(target_file: str, args: HardeningRunnerArgsDTO, repo_r
 
 
 def run_quality_gate(
-    target_file: str, gate: HardeningGate, timeout_seconds: int, repo_root: Path | None = None
+    target_file: str,
+    gate: HardeningGate,
+    timeout_seconds: int,
+    repo_root: Path | None = None,
+    *,
+    micro_audit: bool = False,
 ) -> QualityGateResultDTO:
     """Execute backend or flutter universal quality gate audit loop for the target.
 
@@ -662,17 +684,18 @@ def run_quality_gate(
         gate: Hardening gate (backend, frontend, or all).
         timeout_seconds: Per-target audit timeout duration.
         repo_root: Workspace root directory.
+        micro_audit: When True on backend targets, executes fast single-file micro-audit mode.
 
     Returns:
         QualityGateResultDTO encapsulating execution status and log output.
     """
     root = repo_root or get_repo_root()
 
-    # Dispatches the designated quality gate audit loop with strict AST guardrails:
-    # - Backend: uv run python scripts/backend_audit_loop.py <target_file> --test --ast-strict
-    # - Frontend: uv run python scripts/flutter_audit_loop.py <target_file> --build --strict
+    # Step 2: Dispatch --micro --no-logfire during per-target iterations when micro_audit is True
     if gate == HardeningGate.BACKEND or (gate == HardeningGate.ALL and not target_file.endswith(".dart")):
         cmd = ["uv", "run", "python", "scripts/backend_audit_loop.py", target_file, "--test", "--ast-strict"]
+        if micro_audit:
+            cmd.extend(["--micro", "--no-logfire"])
     else:
         cmd = ["uv", "run", "python", "scripts/flutter_audit_loop.py", target_file, "--build", "--strict"]
 
@@ -690,6 +713,41 @@ def run_quality_gate(
         return QualityGateResultDTO(
             success=False,
             output=f"Audit loop timed out after {timeout_seconds}s.\n{out}\n{err}".strip(),
+            exit_code=124,
+        )
+
+
+def run_macro_quality_gate(
+    targets: list[str],
+    timeout_seconds: int,
+    repo_root: Path | None = None,
+) -> QualityGateResultDTO:
+    """Execute the full 10-stage backend macro quality gate across all hardened backend targets.
+
+    Args:
+        targets: List of hardened backend target file paths.
+        timeout_seconds: Audit timeout duration in seconds.
+        repo_root: Workspace root directory.
+
+    Returns:
+        QualityGateResultDTO encapsulating macro-audit execution status and log output.
+    """
+    root = repo_root or get_repo_root()
+    cmd = ["uv", "run", "python", "scripts/backend_audit_loop.py", *targets, "--test", "--ast-strict"]
+    try:
+        res = execute_subprocess_with_tree_kill(cmd, timeout_seconds=timeout_seconds, cwd=root)
+        output = f"{res.stdout}\n{res.stderr}".strip()
+        return QualityGateResultDTO(
+            success=res.returncode == 0,
+            output=output,
+            exit_code=res.returncode,
+        )
+    except subprocess.TimeoutExpired as exc:
+        out = (exc.output or "") if isinstance(exc.output, str) else ""
+        err = (exc.stderr or "") if isinstance(exc.stderr, str) else ""
+        return QualityGateResultDTO(
+            success=False,
+            output=f"Macro-audit loop timed out after {timeout_seconds}s.\n{out}\n{err}".strip(),
             exit_code=124,
         )
 
@@ -884,7 +942,9 @@ def process_target_with_retries(
         snapshot = capture_workspace_snapshot(root)
 
         execute_subagent_pass(target_file, args, repo_root=root)
-        gate_res = run_quality_gate(target_file, args.gate, args.timeout_seconds, repo_root=root)
+        gate_res = run_quality_gate(
+            target_file, args.gate, args.timeout_seconds, repo_root=root, micro_audit=args.micro_audit
+        )
 
         if gate_res.success:
             checkpoint = mark_tracker_and_checkpoint(target_file, args.tracker, args.state_file, repo_root=root)
@@ -971,10 +1031,14 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
 
     if args.dry_run:
         print(f"\n{ANSIColors.CYAN}--- DRY RUN: Target Hardening Queue ({processed_count} files) ---{ANSIColors.RESET}")
+        micro_flags = " --micro --no-logfire" if args.micro_audit else ""
         for idx, target in enumerate(targets_to_run, 1):
+            is_backend = args.gate == HardeningGate.BACKEND or (
+                args.gate == HardeningGate.ALL and not target.endswith(".dart")
+            )
             gate_cmd = (
-                f"uv run python scripts/backend_audit_loop.py {target} --test --ast-strict"
-                if args.gate == HardeningGate.BACKEND
+                f"uv run python scripts/backend_audit_loop.py {target} --test --ast-strict{micro_flags}"
+                if is_backend
                 else f"uv run python scripts/flutter_audit_loop.py {target} --build"
             )
             print(f"  [{idx}/{processed_count}] {target} -> Planned: {gate_cmd}")
@@ -1012,6 +1076,22 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
             if args.fail_fast and not args.continue_on_failure:
                 print(f"{ANSIColors.YELLOW}⚡ Circuit breaker tripped (fail-fast). Halting queue.{ANSIColors.RESET}")
                 break
+
+    # Step 2: Execute universal macro-audit once across all hardened backend targets at queue completion
+    successful_backend_targets = [it.target_file for it in iterations if it.success and it.target_file.endswith(".py")]
+    if args.micro_audit and successful_backend_targets and (failure_count == 0 or args.continue_on_failure):
+        print(
+            f"\n{ANSIColors.CYAN}🔍 Executing Final Macro-Audit Completion Gate across "
+            f"{len(successful_backend_targets)} hardened backend target(s)...{ANSIColors.RESET}"
+        )
+        macro_res = run_macro_quality_gate(successful_backend_targets, args.timeout_seconds, repo_root=root)
+        if macro_res.success:
+            print(f"  {ANSIColors.GREEN}✅ Final Macro-Audit Completion Gate PASSED.{ANSIColors.RESET}")
+        else:
+            failure_count += 1
+            print(f"  {ANSIColors.RED}❌ Final Macro-Audit Completion Gate FAILED!{ANSIColors.RESET}")
+            if macro_res.output:
+                print(macro_res.output)
 
     return HardeningRunSummaryDTO(
         total_targets=total_targets,
@@ -1102,6 +1182,21 @@ Key Behavioral Invariants for Autonomous AI Agents:
     )
     parser.add_argument("--dry-run", action="store_true", help="Print planned target queue without mutations.")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose diagnostics.")
+    # Step 2: Expose --model and --no-micro CLI arguments in main
+    parser.add_argument(
+        "--model",
+        type=str,
+        choices=["gemini-4-argon-medium", "gemini-4-argon-high", "gemini-3.8-flash-high", "gemini-3.8-flash"],
+        default="gemini-4-argon-medium",
+        help="AI model identifier for subagent hardening iterations (default: gemini-4-argon-medium).",
+    )
+    parser.add_argument(
+        "--no-micro",
+        action="store_false",
+        dest="micro_audit",
+        default=True,
+        help="Disable fast micro-audit mode during per-target iterations and run full 10-stage audit per file.",
+    )
 
     parsed = parser.parse_args(argv)
 
@@ -1154,6 +1249,8 @@ Key Behavioral Invariants for Autonomous AI Agents:
             continue_on_failure=parsed.continue_on_failure,
             dry_run=parsed.dry_run,
             verbose=parsed.verbose,
+            model=parsed.model,
+            micro_audit=parsed.micro_audit,
         )
     except (ValidationError, ValueError) as err:
         sys.stderr.write(f"{ANSIColors.RED}❌ Argument Validation Error: {err}{ANSIColors.RESET}\n")

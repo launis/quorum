@@ -35,6 +35,7 @@ from scripts.auto_hardening_runner import (
     parse_tracker_unhardened_targets,
     process_target_with_retries,
     run_hardening_pipeline,
+    run_macro_quality_gate,
     run_quality_gate,
 )
 
@@ -241,6 +242,10 @@ def test_max_files_batch_capping(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
         )
 
     monkeypatch.setattr("scripts.auto_hardening_runner.process_target_with_retries", mock_process)
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.run_macro_quality_gate",
+        lambda *a, **k: QualityGateResultDTO(success=True, output="Macro OK", exit_code=0),
+    )
 
     args = HardeningRunnerArgsDTO(targets=all_targets, max_files=2, gate=HardeningGate.BACKEND)
     summary = run_hardening_pipeline(args, repo_root=tmp_path)
@@ -868,6 +873,10 @@ def test_run_hardening_pipeline_gate_all(tmp_path: Path, monkeypatch: pytest.Mon
         )
 
     monkeypatch.setattr("scripts.auto_hardening_runner.process_target_with_retries", mock_process)
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.run_macro_quality_gate",
+        lambda *a, **k: QualityGateResultDTO(success=True, output="Macro OK", exit_code=0),
+    )
 
     args = HardeningRunnerArgsDTO(tracker=tracker_file, gate=HardeningGate.ALL)
     summary = run_hardening_pipeline(args, repo_root=tmp_path)
@@ -929,3 +938,200 @@ def test_main_cli_default_subagent_template_resolution(tmp_path: Path, monkeypat
     assert code == 0
     assert captured_dtos[-1].no_agent is False
     assert captured_dtos[-1].gate == HardeningGate.ALL
+
+
+def test_default_model_selection_medium_and_cli_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """TC-AHR-039: Verify default model='gemini-4-argon-medium' and --model CLI override in execute_subagent_pass."""
+    default_dto = HardeningRunnerArgsDTO(targets=["backend_v2/test.py"])
+    assert default_dto.model == "gemini-4-argon-medium"
+    assert default_dto.micro_audit is True
+    assert "{model}" in DEFAULT_BACKEND_AGENT_TEMPLATE
+    assert "{model}" in DEFAULT_FRONTEND_AGENT_TEMPLATE
+
+    executed_cmds: list[list[str]] = []
+
+    def mock_tree_kill(
+        cmd: list[str], timeout_seconds: int, cwd: Path | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        executed_cmds.append(cmd)
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="OK", stderr="")
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill)
+    monkeypatch.setattr("subprocess.run", lambda *a, **k: subprocess.CompletedProcess(args=[], returncode=0))
+
+    # Default model in execute_subagent_pass
+    args_default = HardeningRunnerArgsDTO(
+        agent_cmd=DEFAULT_BACKEND_AGENT_TEMPLATE,
+        targets=["backend_v2/test.py"],
+        gate=HardeningGate.BACKEND,
+        no_auto_fix=True,
+    )
+    assert execute_subagent_pass("backend_v2/test.py", args_default, repo_root=tmp_path) is True
+    assert "gemini-4-argon-medium" in executed_cmds[-1]
+
+    # CLI override --model gemini-3.8-flash-high
+    captured_dtos: list[HardeningRunnerArgsDTO] = []
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.run_hardening_pipeline",
+        lambda dto: (
+            captured_dtos.append(dto)
+            or HardeningRunSummaryDTO(
+                total_targets=1,
+                processed_count=1,
+                success_count=1,
+                failure_count=0,
+                skipped_count=0,
+                iterations=[],
+            )
+        ),
+    )
+    code = main(["--targets", "backend_v2/test.py", "--model", "gemini-3.8-flash-high", "--no-micro"])
+    assert code == 0
+    assert captured_dtos[-1].model == "gemini-3.8-flash-high"
+    assert captured_dtos[-1].micro_audit is False
+
+    assert execute_subagent_pass("backend_v2/test.py", captured_dtos[-1], repo_root=tmp_path) is True
+    assert "gemini-3.8-flash-high" in executed_cmds[-1]
+
+
+def test_micro_audit_dispatch_and_no_micro_flag(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """TC-AHR-040: Verify run_quality_gate appends --micro --no-logfire when micro_audit=True and omits when False."""
+    invoked_cmds: list[list[str]] = []
+
+    def mock_tree_kill(
+        cmd: list[str], timeout_seconds: int, cwd: Path | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        invoked_cmds.append(cmd)
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Audit OK", stderr="")
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill)
+
+    res_micro = run_quality_gate(
+        "scripts/target.py", HardeningGate.BACKEND, timeout_seconds=60, repo_root=tmp_path, micro_audit=True
+    )
+    assert res_micro.success is True
+    assert invoked_cmds[-1] == [
+        "uv",
+        "run",
+        "python",
+        "scripts/backend_audit_loop.py",
+        "scripts/target.py",
+        "--test",
+        "--ast-strict",
+        "--micro",
+        "--no-logfire",
+    ]
+
+    res_full = run_quality_gate(
+        "scripts/target.py", HardeningGate.BACKEND, timeout_seconds=60, repo_root=tmp_path, micro_audit=False
+    )
+    assert res_full.success is True
+    assert invoked_cmds[-1] == [
+        "uv",
+        "run",
+        "python",
+        "scripts/backend_audit_loop.py",
+        "scripts/target.py",
+        "--test",
+        "--ast-strict",
+    ]
+
+
+def test_macro_audit_completion_gate_success_and_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """TC-AHR-041: Verify run_macro_quality_gate runs across hardened backend targets and handles failures/timeouts."""
+    macro_cmds: list[list[str]] = []
+
+    def mock_tree_kill_ok(
+        cmd: list[str], timeout_seconds: int, cwd: Path | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        macro_cmds.append(cmd)
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Macro Passed", stderr="")
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill_ok)
+    res_ok = run_macro_quality_gate(["a.py", "b.py"], timeout_seconds=120, repo_root=tmp_path)
+    assert res_ok.success is True
+    assert macro_cmds[-1] == [
+        "uv",
+        "run",
+        "python",
+        "scripts/backend_audit_loop.py",
+        "a.py",
+        "b.py",
+        "--test",
+        "--ast-strict",
+    ]
+
+    # Timeout case in run_macro_quality_gate
+    def mock_tree_kill_timeout(
+        cmd: list[str], timeout_seconds: int, cwd: Path | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        raise subprocess.TimeoutExpired(cmd=cmd, timeout=timeout_seconds, output="Partial out", stderr="Partial err")
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill_timeout)
+    res_timeout = run_macro_quality_gate(["a.py"], timeout_seconds=10, repo_root=tmp_path)
+    assert res_timeout.success is False
+    assert res_timeout.exit_code == 124
+    assert "Macro-audit loop timed out after 10s" in res_timeout.output
+
+    # Pipeline completion gate: when macro-audit fails, failure_count increments by 1
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.process_target_with_retries",
+        lambda target, args, repo_root=None: HardeningIterationResultDTO(
+            target_file=target,
+            gate=args.gate,
+            success=True,
+            attempts=1,
+            duration_seconds=0.1,
+            git_committed=True,
+            tracker_marked=True,
+        ),
+    )
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.run_macro_quality_gate",
+        lambda targets, timeout_seconds, repo_root=None: QualityGateResultDTO(
+            success=False, output="Circular import detected in Stage 7", exit_code=1
+        ),
+    )
+
+    args = HardeningRunnerArgsDTO(
+        targets=["scripts/a.py", "scripts/b.py"],
+        gate=HardeningGate.BACKEND,
+        micro_audit=True,
+    )
+    summary = run_hardening_pipeline(args, repo_root=tmp_path)
+    assert summary.success_count == 2
+    assert summary.failure_count == 1
+    captured = capsys.readouterr()
+    assert "Circular import detected in Stage 7" in captured.out
+
+
+def test_resilient_backtick_tracker_parsing_and_marking(tmp_path: Path) -> None:
+    """TC-AHR-042: Verify parsing and in-place [x] marking when backticks wrap [NEW]/[MODIFY] tags."""
+    tracker_content = """# Tracker
+### Post-Implementation Gates
+- [ ] **[NOK] Tier 2 Hardening (Backend)**:
+  - [ ] `[NEW] @[backend_v2/services/file1.py]`
+  - [ ] [NEW] `@[backend_v2/services/file2.py]`
+  - [ ] `[MODIFY] @[backend_v2/services/file3.py#L1-L10]`
+"""
+    targets = parse_tracker_unhardened_targets(tracker_content, HardeningGate.BACKEND)
+    assert targets == [
+        "backend_v2/services/file1.py",
+        "backend_v2/services/file2.py",
+        "backend_v2/services/file3.py",
+    ]
+
+    tracker_file = tmp_path / "tracker_backticks.md"
+    tracker_file.write_text(tracker_content, encoding="utf-8")
+
+    for t in targets:
+        assert mark_tracker_target_done(tracker_file, t) is True
+
+    updated = tracker_file.read_text(encoding="utf-8")
+    assert "- [x] `[NEW] @[backend_v2/services/file1.py]`" in updated
+    assert "- [x] [NEW] `@[backend_v2/services/file2.py]`" in updated
+    assert "- [x] `[MODIFY] @[backend_v2/services/file3.py#L1-L10]`" in updated
+    assert "- [x] **[OK] Tier 2 Hardening (Backend)**" in updated
+
