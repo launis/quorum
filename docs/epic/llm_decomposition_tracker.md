@@ -62,7 +62,7 @@
   - [x] [NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/blueprint_and_metadata_stage.py]
   - [x] [NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/prompt_and_schema_stage.py]
   - [x] [NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py]
-  - [ ] [NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/trace_event_stage.py]
+  - [x] [NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/trace_event_stage.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/__init__.py]
   - [x] `@[backend_v2/services/orchestrator/strategies/__init__.py]`
   - [x] `@[backend_v2/services/orchestrator/strategies/registry.py#L42-L60]`
