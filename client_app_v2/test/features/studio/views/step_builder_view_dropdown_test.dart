@@ -31,8 +31,8 @@ void main() {
       final mockStep = NodeStrategy.llm(
         id: 'test_step_1',
         slug: 'test_slug',
-        name: I18nText(translations: {'en': 'Test'}),
-        criteriaBlockIds: ['block_a'],
+        name: const I18nText(translations: {'en': 'Test'}),
+        criteriaBlockIds: const ['block_a'],
       );
 
       final List<PromptBlock> mockPromptBlocks = [
@@ -85,24 +85,17 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Check for the rendered Dropdown
-      // The dropdown label is "Prompt Block"
       expect(find.text('Prompt Block'), findsOneWidget);
-
-      // Verify that 'Block A (block_a)' is selected initial value
       expect(find.text('Block A (block_a)'), findsWidgets);
 
-      // Open the dropdown
       final dropdownFinder = find.byType(DropdownButtonFormField<String>).last;
       await tester.ensureVisible(dropdownFinder);
       await tester.pumpAndSettle();
       await tester.tap(dropdownFinder);
       await tester.pumpAndSettle();
 
-      // Verify dropdown items exist
       expect(find.text('Block B (block_b)').last, findsOneWidget);
 
-      // Restore error widget builder at the very end
       ErrorWidget.builder = originalErrorBuilder;
     });
 
@@ -112,7 +105,6 @@ void main() {
         final originalErrorBuilder = ErrorWidget.builder;
         bool hasAssertError = false;
 
-        // Mock Flutter's FlutterError.onError to detect assertions
         final originalOnError = FlutterError.onError;
         FlutterError.onError = (FlutterErrorDetails details) {
           if (details.exception.toString().contains('Failed assertion:')) {
@@ -124,8 +116,8 @@ void main() {
         final mockStep = NodeStrategy.llm(
           id: 'test_step_1',
           slug: 'test_slug',
-          name: I18nText(translations: {'en': 'Test'}),
-          criteriaBlockIds: ['block_c'], // block_c is filtered out!
+          name: const I18nText(translations: {'en': 'Test'}),
+          criteriaBlockIds: const ['block_c'],
         );
 
         final List<PromptBlock> mockPromptBlocks = [
@@ -188,8 +180,6 @@ void main() {
           ErrorWidget.builder = originalErrorBuilder;
         }
 
-        // If we haven't fixed the bug, hasAssertError will be true (meaning it threw the assertion).
-        // If we fixed the bug, it should NOT throw any assertion error (hasAssertError is false).
         expect(hasAssertError, isFalse);
       },
     );
@@ -241,19 +231,16 @@ void main() {
 
         await tester.pumpAndSettle();
 
-        // 1. Verify DropdownButtonFormField<CognitiveTier> exists
         final tierDropdownFinder = find.byType(
           DropdownButtonFormField<CognitiveTier>,
         );
         expect(tierDropdownFinder, findsOneWidget);
 
-        // 2. Open the dropdown
         await tester.ensureVisible(tierDropdownFinder);
         await tester.pumpAndSettle();
         await tester.tap(tierDropdownFinder);
         await tester.pumpAndSettle();
 
-        // 3. Verify all 4 abstract cognitive tiers are present
         expect(
           find.text('Fast (Zero-Thinking, Low-Latency)').last,
           findsOneWidget,
@@ -271,11 +258,184 @@ void main() {
           findsOneWidget,
         );
 
-        // 4. Verify ZERO physical model leaks or vendor chips
         expect(find.textContaining('['), findsNothing);
         expect(find.textContaining('gemini'), findsNothing);
         expect(find.textContaining('gpt-'), findsNothing);
         expect(find.byIcon(Icons.psychology), findsNothing);
+
+        ErrorWidget.builder = originalErrorBuilder;
+      },
+    );
+
+    testWidgets(
+      'triggers AppErrorBoundary diagnostic node when preHooks contains unsupported legacy hook',
+      (WidgetTester tester) async {
+        final originalErrorBuilder = ErrorWidget.builder;
+
+        final mockStep = NodeStrategy.llm(
+          id: 'test_step_1',
+          slug: 'test_slug',
+          name: const I18nText(translations: {'en': 'Test Step'}),
+          preHooks: const ['legacy_unknown_hook'],
+        );
+
+        final mockClient = MockStudioClient();
+        when(() => mockClient.getPromptBlocks()).thenAnswer((_) async => []);
+        when(() => mockClient.getMcpGateways()).thenAnswer((_) async => []);
+        when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+
+        final mockLogger = MockLoggerService();
+        when(
+          () => mockLogger.error(any(), any(), any(), any()),
+        ).thenReturn(null);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              studioClientProvider.overrideWithValue(mockClient),
+              loggerServiceProvider.overrideWithValue(mockLogger),
+              promptBlocksControllerProvider.overrideWith(() {
+                return MockPromptBlocksController([]);
+              }),
+              modelRegistryControllerProvider.overrideWith(() {
+                return MockModelRegistryController();
+              }),
+              stepFormProvider('test_step_1').overrideWith(() {
+                return MockStepForm(mockStep);
+              }),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: StepBuilderView(stepId: mockStep.id),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNotNull);
+        expect(find.byIcon(Icons.report_problem), findsWidgets);
+        expect(find.textContaining('legacy_unknown_hook'), findsWidgets);
+
+        ErrorWidget.builder = originalErrorBuilder;
+      },
+    );
+
+    testWidgets(
+      'triggers AppErrorBoundary when PromptBlock lacks required locale and en fallback translation',
+      (WidgetTester tester) async {
+        final originalErrorBuilder = ErrorWidget.builder;
+
+        final mockStep = NodeStrategy.llm(
+          id: 'test_step_1',
+          slug: 'test_slug',
+          name: const I18nText(translations: {'en': 'Test Step'}),
+          criteriaBlockIds: const ['block_missing_i18n'],
+        );
+
+        final List<PromptBlock> mockPromptBlocks = [
+          const PromptBlock.systemRule(
+            id: 'block_missing_i18n',
+            slug: 'block_missing_i18n',
+            label: I18nText(translations: {}),
+            description: I18nText(translations: {'en': 'Desc'}),
+          ),
+        ];
+
+        final mockClient = MockStudioClient();
+        when(
+          () => mockClient.getPromptBlocks(),
+        ).thenAnswer((_) async => mockPromptBlocks);
+        when(() => mockClient.getMcpGateways()).thenAnswer((_) async => []);
+        when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+
+        final mockLogger = MockLoggerService();
+        when(
+          () => mockLogger.error(any(), any(), any(), any()),
+        ).thenReturn(null);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              studioClientProvider.overrideWithValue(mockClient),
+              loggerServiceProvider.overrideWithValue(mockLogger),
+              promptBlocksControllerProvider.overrideWith(() {
+                return MockPromptBlocksController(mockPromptBlocks);
+              }),
+              modelRegistryControllerProvider.overrideWith(() {
+                return MockModelRegistryController();
+              }),
+              stepFormProvider('test_step_1').overrideWith(() {
+                return MockStepForm(mockStep);
+              }),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: StepBuilderView(stepId: mockStep.id),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNotNull);
+        expect(find.byIcon(Icons.report_problem), findsWidgets);
+        expect(find.textContaining('block_missing_i18n'), findsWidgets);
+
+        ErrorWidget.builder = originalErrorBuilder;
+      },
+    );
+
+    testWidgets(
+      'does not inject hardcoded fallback description when step description is null',
+      (WidgetTester tester) async {
+        final originalErrorBuilder = ErrorWidget.builder;
+
+        final mockStep = NodeStrategy.llm(
+          id: 'test_step_1',
+          slug: 'test_slug',
+          name: const I18nText(translations: {'en': 'Actual Step Name'}),
+          description: null,
+        );
+
+        final mockClient = MockStudioClient();
+        when(() => mockClient.getPromptBlocks()).thenAnswer((_) async => []);
+        when(() => mockClient.getMcpGateways()).thenAnswer((_) async => []);
+        when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+
+        final mockLogger = MockLoggerService();
+        when(
+          () => mockLogger.error(any(), any(), any(), any()),
+        ).thenReturn(null);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              studioClientProvider.overrideWithValue(mockClient),
+              loggerServiceProvider.overrideWithValue(mockLogger),
+              promptBlocksControllerProvider.overrideWith(() {
+                return MockPromptBlocksController([]);
+              }),
+              modelRegistryControllerProvider.overrideWith(() {
+                return MockModelRegistryController();
+              }),
+              stepFormProvider('test_step_1').overrideWith(() {
+                return MockStepForm(mockStep);
+              }),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: StepBuilderView(stepId: mockStep.id),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(find.text('Test'), findsNothing);
 
         ErrorWidget.builder = originalErrorBuilder;
       },
@@ -353,7 +513,7 @@ class MockPromptBlocksController extends PromptBlocksController {
   @override
   Future<PromptBlockSimulationResponse> simulatePromptBlock(
     PromptBlock payload,
-    Map<String, dynamic> mockInputs, {
+    Map<String, Object?> mockInputs, {
     int? targetScaleScore,
     String? targetLocale,
     String? contextText,

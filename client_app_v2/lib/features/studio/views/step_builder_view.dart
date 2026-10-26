@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/state/mutation.dart';
@@ -19,7 +20,6 @@ import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/models/enums.dart';
-import 'package:client_app/shared/models/i18n_text.dart';
 
 class StepBuilderView extends HookConsumerWidget {
   final String stepId;
@@ -34,43 +34,92 @@ class StepBuilderView extends HookConsumerWidget {
     final promptBlocksAsync = ref.watch(promptBlocksControllerProvider);
     final mcpGatewaysAsync = ref.watch(mcpGatewaysControllerProvider);
 
-    return switch (formState) {
-      AsyncLoading() => Scaffold(
-        appBar: AppBar(title: Text(l10n.stepEditTitle)),
-        body: const Center(child: CircularProgressIndicator()),
-      ),
-      AsyncError(:final error, :final stackTrace) => Scaffold(
-        appBar: AppBar(title: Text(l10n.stepEditTitle)),
-        body: ErrorView(
-          error: error,
-          stackTrace: stackTrace,
-          compact: false,
-          onRetry: () => ref.invalidate(stepFormProvider(stepId)),
-        ),
-      ),
-      AsyncData(:final value) => () {
-        final payload = value;
-        // Absolute Fail-Fast for dependencies
-        if (promptBlocksAsync.hasError) throw promptBlocksAsync.error!;
-        if (mcpGatewaysAsync.hasError) throw mcpGatewaysAsync.error!;
-        if (!promptBlocksAsync.hasValue || !mcpGatewaysAsync.hasValue) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+    final idFocusNode = useFocusNode();
+    final slugController = useTextEditingController();
+    final slugFocusNode = useFocusNode();
+    final syncedStepId = useRef<String?>(null);
+
+    final currentStep = switch (formState) {
+      AsyncData(:final value) => value,
+      _ => null,
+    };
+
+    useEffect(() {
+      if (currentStep != null && syncedStepId.value != currentStep.id) {
+        slugController.text = currentStep.slug;
+        syncedStepId.value = currentStep.id;
+      }
+      return null;
+    }, [currentStep?.id, currentStep?.slug]);
+
+    final deleteMutation = useMutation<void>(
+      onSuccess: (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.studioSaveSuccess)));
+          context.pop();
+        }
+      },
+      onError: (e) {
+        if (context.mounted) {
+          final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to delete step: $e', e);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
           );
         }
+      },
+    );
 
-        return _buildScaffold(
-          context,
-          ref,
-          l10n,
-          formState,
-          payload,
-          stepId,
-          promptBlocksAsync.value!,
-          mcpGatewaysAsync.value!,
-        );
-      }(),
-    };
+    return AppErrorBoundary(
+      child: switch (formState) {
+        AsyncLoading() => Scaffold(
+          appBar: AppBar(title: Text(l10n.stepEditTitle)),
+          body: const Center(child: CircularProgressIndicator()),
+        ),
+        AsyncError(:final error, :final stackTrace) => Scaffold(
+          appBar: AppBar(title: Text(l10n.stepEditTitle)),
+          body: ErrorView(
+            error: error,
+            stackTrace: stackTrace,
+            compact: false,
+            onRetry: () => ref.invalidate(stepFormProvider(stepId)),
+          ),
+        ),
+        AsyncData(:final value) => switch ((
+          promptBlocksAsync,
+          mcpGatewaysAsync,
+        )) {
+          (AsyncError(:final error), _) => throw error,
+          (_, AsyncError(:final error)) => throw error,
+          (
+            AsyncData(value: final promptBlocks),
+            AsyncData(value: final mcpGateways),
+          ) =>
+            _buildScaffold(
+              context,
+              ref,
+              l10n,
+              formState,
+              value,
+              stepId,
+              promptBlocks,
+              mcpGateways,
+              deleteMutation,
+              idFocusNode,
+              slugController,
+              slugFocusNode,
+            ),
+          _ => const Scaffold(body: Center(child: CircularProgressIndicator())),
+        },
+      },
+    );
   }
 
   void _addCriteriaBlock(WidgetRef ref, NodeStrategy payload, String blockId) {
@@ -124,6 +173,9 @@ class StepBuilderView extends HookConsumerWidget {
         content: Text(l10n.stepDeleteConfirmMessage(nameToDisplay)),
         actions: [
           TextButton(
+            style: TextButton.styleFrom(
+              enabledMouseCursor: SystemMouseCursors.click,
+            ),
             onPressed: () => Navigator.pop(ctx),
             child: Text(l10n.cancel),
           ),
@@ -149,34 +201,16 @@ class StepBuilderView extends HookConsumerWidget {
     String stepId,
     List<PromptBlock> promptBlocks,
     List<McpGateway> mcpGateways,
+    MutationState<void> deleteMutation,
+    FocusNode idFocusNode,
+    TextEditingController slugController,
+    FocusNode slugFocusNode,
   ) {
-    final deleteMutation = useMutation<void>(
-      onSuccess: (_) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.studioSaveSuccess)));
-          context.pop();
-        }
-      },
-      onError: (e) {
-        if (context.mounted) {
-          final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
-          ref
-              .read(loggerServiceProvider)
-              .error('Studio', 'Failed to delete step: $e', e);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMsg),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
-      },
-    );
-
     Future<void> saveStep() async {
-      final id = payload.id.trim();
+      final effectivePayload = payload.copyWith(
+        slug: slugController.text.trim(),
+      );
+      final id = effectivePayload.id.trim();
       if (id.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -187,15 +221,15 @@ class StepBuilderView extends HookConsumerWidget {
         return;
       }
 
-      if (payload is NodeStrategyLlm) {
-        // Quality Gate: Specialist LLM blueprints must have at least one role/persona/criteria block
-        if (!payload.isSystemCore) {
+      if (effectivePayload is NodeStrategyLlm) {
+        // Specialist LLM blueprints require at least one role, persona, or criteria block
+        if (!effectivePayload.isSystemCore) {
           final hasRoleOrPersona =
-              (payload.roleBlockId != null &&
-                  payload.roleBlockId!.isNotEmpty) ||
-              (payload.executionPersonaBlockId != null &&
-                  payload.executionPersonaBlockId!.isNotEmpty) ||
-              payload.criteriaBlockIds.isNotEmpty;
+              (effectivePayload.roleBlockId != null &&
+                  effectivePayload.roleBlockId!.isNotEmpty) ||
+              (effectivePayload.executionPersonaBlockId != null &&
+                  effectivePayload.executionPersonaBlockId!.isNotEmpty) ||
+              effectivePayload.criteriaBlockIds.isNotEmpty;
 
           if (!hasRoleOrPersona) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -210,7 +244,9 @@ class StepBuilderView extends HookConsumerWidget {
       }
 
       try {
-        await ref.read(stepFormProvider(stepId).notifier).submit(payload);
+        await ref
+            .read(stepFormProvider(stepId).notifier)
+            .submit(effectivePayload);
         if (context.mounted) {
           ScaffoldMessenger.of(
             context,
@@ -235,98 +271,112 @@ class StepBuilderView extends HookConsumerWidget {
       }
     }
 
-    return AppExceptionBoundary(
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            tooltip: l10n.backToStudioTooltip,
-            onPressed: () => context.go('/admin'),
-          ),
-          title: Text(l10n.stepEditTitle),
-          actions: [
-            if (payload.id.isNotEmpty && !payload.isSystemCore)
-              IconButton(
-                onPressed: () =>
-                    _deleteStep(context, ref, l10n, payload, deleteMutation),
-                icon: Icon(
-                  Icons.delete,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                tooltip: l10n.delete,
-              ),
-            IconButton(
-              onPressed: () => showDialog<void>(
-                context: context,
-                builder: (ctx) => StepSimulationDialog(step: payload),
-              ),
-              icon: Icon(
-                Icons.bug_report,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              tooltip: l10n.simulateStepTooltip,
-            ),
-            if (formState.isLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                child: Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-              )
-            else
-              TextButton.icon(
-                onPressed: saveStep,
-                icon: const Icon(Icons.save),
-                label: Text(l10n.studioSaveButton),
-              ),
-            const SizedBox(width: 16),
-          ],
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          mouseCursor: SystemMouseCursors.click,
+          icon: const Icon(Icons.arrow_back),
+          tooltip: l10n.backToStudioTooltip,
+          onPressed: () => context.go('/admin'),
         ),
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Metadata
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
+        title: Text(l10n.stepEditTitle),
+        actions: [
+          if (payload.id.isNotEmpty && !payload.isSystemCore)
+            IconButton(
+              mouseCursor: SystemMouseCursors.click,
+              onPressed: () =>
+                  _deleteStep(context, ref, l10n, payload, deleteMutation),
+              icon: Icon(
+                Icons.delete,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              tooltip: l10n.delete,
+            ),
+          IconButton(
+            mouseCursor: SystemMouseCursors.click,
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (ctx) => StepSimulationDialog(
+                step: payload.copyWith(slug: slugController.text.trim()),
+              ),
+            ),
+            icon: Icon(
+              Icons.bug_report,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            tooltip: l10n.simulateStepTooltip,
+          ),
+          if (formState.isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+              child: Center(
+                child: SizedBox(
+                  width: AppSpacing.s16,
+                  height: AppSpacing.s16,
+                  child: CircularProgressIndicator(strokeWidth: AppSpacing.s2),
+                ),
+              ),
+            )
+          else
+            TextButton.icon(
+              style: TextButton.styleFrom(
+                enabledMouseCursor: SystemMouseCursors.click,
+              ),
+              onPressed: saveStep,
+              icon: const Icon(Icons.save),
+              label: Text(l10n.studioSaveButton),
+            ),
+          AppSpacing.w16,
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: AppSpacing.p16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Card(
+                elevation: AppSpacing.s2,
+                margin: const EdgeInsets.only(bottom: AppSpacing.s16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.s12),
+                ),
+                child: Padding(
+                  padding: AppSpacing.p16,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
                               l10n.configurationTitle,
+                              overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                             ),
-                            if (payload.isSystemCore) ...[
-                              AppSpacing.w8,
-                              Container(
+                          ),
+                          if (payload.isSystemCore) ...[
+                            AppSpacing.w8,
+                            Flexible(
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 2,
+                                  horizontal: AppSpacing.s8,
+                                  vertical: AppSpacing.s2,
                                 ),
                                 decoration: BoxDecoration(
                                   color: Theme.of(
                                     context,
                                   ).colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.s12,
+                                  ),
                                 ),
                                 child: Text(
                                   l10n.studioSystemCoreBadge,
+                                  overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context).textTheme.labelSmall
                                       ?.copyWith(
-                                        fontSize: 11,
                                         fontWeight: FontWeight.w600,
                                         color: Theme.of(
                                           context,
@@ -334,581 +384,610 @@ class StepBuilderView extends HookConsumerWidget {
                                       ),
                                 ),
                               ),
-                            ],
-                          ],
-                        ),
-                        AppSpacing.h16,
-                        TextFormField(
-                          initialValue: payload.id,
-                          decoration: InputDecoration(
-                            labelText: l10n.stepIdLabel,
-                            border: const OutlineInputBorder(),
-                          ),
-                          readOnly: true,
-                        ),
-                        AppSpacing.h16,
-                        TextFormField(
-                          initialValue: payload.slug,
-                          decoration: InputDecoration(
-                            labelText: l10n.slugLabel,
-                            border: const OutlineInputBorder(),
-                          ),
-                          onChanged: (val) {
-                            ref
-                                .read(stepFormProvider(stepId).notifier)
-                                .forceRebuild(
-                                  payload.copyWith(slug: val.trim()),
-                                );
-                          },
-                        ),
-                        AppSpacing.h16,
-                        I18nTextField(
-                          label: l10n.nameLabel,
-                          initialData: payload.name,
-                          onChanged: (val) {
-                            ref
-                                .read(stepFormProvider(stepId).notifier)
-                                .forceRebuild(payload.copyWith(name: val));
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        I18nTextField(
-                          label: l10n.descriptionLabel,
-                          initialData:
-                              payload.description ??
-                              const I18nText(translations: {'en': 'Test'}),
-                          onChanged: (val) {
-                            ref
-                                .read(stepFormProvider(stepId).notifier)
-                                .forceRebuild(
-                                  payload.copyWith(description: val),
-                                );
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        if (payload is NodeStrategyLlm)
-                          DropdownButtonFormField<CognitiveTier>(
-                            key: ValueKey(payload.cognitiveTier),
-                            isExpanded: true,
-                            initialValue: payload.cognitiveTier,
-                            decoration: InputDecoration(
-                              labelText: l10n.studioCognitiveTierLabel,
-                              border: const OutlineInputBorder(),
-                              isDense: true,
                             ),
-                            items: CognitiveTier.values.map((tier) {
-                              final label = switch (tier) {
-                                CognitiveTier.fast => l10n.studioTierFast,
-                                CognitiveTier.balanced =>
-                                  l10n.studioTierBalanced,
-                                CognitiveTier.deep => l10n.studioTierDeep,
-                                CognitiveTier.reasoning =>
-                                  l10n.studioTierReasoning,
-                              };
-                              return DropdownMenuItem(
-                                value: tier,
-                                child: Text(label),
+                          ],
+                        ],
+                      ),
+                      AppSpacing.h16,
+                      TextFormField(
+                        focusNode: idFocusNode,
+                        initialValue: payload.id,
+                        decoration: InputDecoration(
+                          labelText: l10n.stepIdLabel,
+                          border: const OutlineInputBorder(),
+                        ),
+                        readOnly: true,
+                      ),
+                      AppSpacing.h16,
+                      TextFormField(
+                        controller: slugController,
+                        focusNode: slugFocusNode,
+                        decoration: InputDecoration(
+                          labelText: l10n.slugLabel,
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      AppSpacing.h16,
+                      I18nTextField(
+                        label: l10n.nameLabel,
+                        initialData: payload.name,
+                        onChanged: (val) {
+                          ref
+                              .read(stepFormProvider(stepId).notifier)
+                              .forceRebuild(
+                                payload.copyWith(
+                                  slug: slugController.text.trim(),
+                                  name: val,
+                                ),
+                              );
+                        },
+                      ),
+                      AppSpacing.h16,
+                      I18nTextField(
+                        label: l10n.descriptionLabel,
+                        initialData: payload.description,
+                        onChanged: (val) {
+                          ref
+                              .read(stepFormProvider(stepId).notifier)
+                              .forceRebuild(
+                                payload.copyWith(
+                                  slug: slugController.text.trim(),
+                                  description: val,
+                                ),
+                              );
+                        },
+                      ),
+                      AppSpacing.h16,
+                      if (payload is NodeStrategyLlm)
+                        DropdownButtonFormField<CognitiveTier>(
+                          key: ValueKey(payload.cognitiveTier),
+                          isExpanded: true,
+                          initialValue: payload.cognitiveTier,
+                          decoration: InputDecoration(
+                            labelText: l10n.studioCognitiveTierLabel,
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          items: CognitiveTier.values.map((tier) {
+                            final label = switch (tier) {
+                              CognitiveTier.fast => l10n.studioTierFast,
+                              CognitiveTier.balanced => l10n.studioTierBalanced,
+                              CognitiveTier.deep => l10n.studioTierDeep,
+                              CognitiveTier.reasoning =>
+                                l10n.studioTierReasoning,
+                            };
+                            return DropdownMenuItem(
+                              value: tier,
+                              child: Text(
+                                label,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              ref
+                                  .read(stepFormProvider(stepId).notifier)
+                                  .forceRebuild(
+                                    payload.copyWith(
+                                      slug: slugController.text.trim(),
+                                      cognitiveTier: val,
+                                    ),
+                                  );
+                            }
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+
+              AppSpacing.h24,
+
+              Text(
+                l10n.mcpGatewaysTitle,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              AppSpacing.h16,
+              ...mcpGateways
+                  .where(
+                    (gateway) => gateway.tools.any(
+                      (tool) => tool.enabled && tool.toolId.isNotEmpty,
+                    ),
+                  )
+                  .map((gateway) {
+                    final enabledTools = gateway.tools
+                        .where((tool) => tool.enabled && tool.toolId.isNotEmpty)
+                        .toList();
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.s16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            gateway.slug,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          AppSpacing.h8,
+                          Wrap(
+                            spacing: AppSpacing.s8,
+                            runSpacing: AppSpacing.s8,
+                            children: enabledTools.map((tool) {
+                              final namespacedAlias =
+                                  '${gateway.slug}__${tool.toolId}';
+                              final currentLocale = Localizations.localeOf(
+                                context,
+                              ).languageCode;
+                              final labelText = tool.name.get(currentLocale);
+
+                              if (labelText.trim().isEmpty) {
+                                throw AppException.validation(
+                                  'Fail-Fast: MCP tool $namespacedAlias lacks required translation for locale $currentLocale or en fallback.',
+                                );
+                              }
+
+                              final allowedMcpTools = List<String>.from(
+                                payload.allowedMcpTools,
+                              );
+                              final isSelected = allowedMcpTools.contains(
+                                namespacedAlias,
+                              );
+                              final chipLabel = '$labelText ($namespacedAlias)';
+
+                              return FilterChip(
+                                mouseCursor: SystemMouseCursors.click,
+                                label: Text(chipLabel),
+                                selected: isSelected,
+                                onSelected: (bool selected) {
+                                  if (selected) {
+                                    if (!allowedMcpTools.contains(
+                                      namespacedAlias,
+                                    )) {
+                                      allowedMcpTools.add(namespacedAlias);
+                                    }
+                                  } else {
+                                    allowedMcpTools.remove(namespacedAlias);
+                                  }
+                                  final updatedToolParams =
+                                      <String, Map<String, Object?>>{
+                                        for (final entry
+                                            in payload.mcpToolParams.entries)
+                                          if (selected ||
+                                              entry.key != namespacedAlias)
+                                            entry.key:
+                                                Map<String, Object?>.from(
+                                                  entry.value,
+                                                ),
+                                      };
+                                  ref
+                                      .read(stepFormProvider(stepId).notifier)
+                                      .forceRebuild(
+                                        payload.copyWith(
+                                          slug: slugController.text.trim(),
+                                          allowedMcpTools: allowedMcpTools,
+                                          mcpToolParams: updatedToolParams,
+                                        ),
+                                      );
+                                },
                               );
                             }).toList(),
-                            onChanged: (val) {
-                              if (val != null) {
-                                ref
-                                    .read(stepFormProvider(stepId).notifier)
-                                    .forceRebuild(
-                                      payload.copyWith(cognitiveTier: val),
-                                    );
-                              }
-                            },
                           ),
+                        ],
+                      ),
+                    );
+                  }),
+
+              AppSpacing.h24,
+
+              McpToolParamsPanel(
+                allowedMcpTools: payload.allowedMcpTools,
+                mcpToolParams: payload.mcpToolParams,
+                mcpGateways: mcpGateways,
+                onChanged: (updatedParams) {
+                  ref
+                      .read(stepFormProvider(stepId).notifier)
+                      .forceRebuild(
+                        payload.copyWith(
+                          slug: slugController.text.trim(),
+                          mcpToolParams: updatedParams,
+                        ),
+                      );
+                },
+              ),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.preHooksTitle,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  AppSpacing.w8,
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      enabledMouseCursor: SystemMouseCursors.click,
+                    ),
+                    onPressed: () => _addPreHook(ref, payload, stepId),
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.addHookBtn),
+                  ),
+                ],
+              ),
+              AppSpacing.h16,
+              ReorderableListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: payload.preHooks.length,
+                onReorder: (oldIndex, newIndex) {
+                  if (oldIndex < newIndex) newIndex -= 1;
+                  final hooks = List<String>.from(payload.preHooks);
+                  final item = hooks.removeAt(oldIndex);
+                  hooks.insert(newIndex, item);
+                  ref
+                      .read(stepFormProvider(stepId).notifier)
+                      .forceRebuild(
+                        payload.copyWith(
+                          slug: slugController.text.trim(),
+                          preHooks: hooks,
+                        ),
+                      );
+                },
+                itemBuilder: (context, index) {
+                  final hooks = payload.preHooks;
+                  return _buildPreHookCard(
+                    context,
+                    ref,
+                    l10n,
+                    payload,
+                    stepId,
+                    ValueKey('hook_${index}_${hooks[index]}'),
+                    index,
+                    hooks[index],
+                  );
+                },
+              ),
+              AppSpacing.h24,
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.postHooksTitle,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  AppSpacing.w8,
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      enabledMouseCursor: SystemMouseCursors.click,
+                    ),
+                    onPressed: () => _addPostHook(ref, payload, stepId),
+                    icon: const Icon(Icons.add),
+                    label: Text(l10n.addHookBtn),
+                  ),
+                ],
+              ),
+              AppSpacing.h16,
+              ReorderableListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: payload.postHooks.length,
+                onReorder: (oldIndex, newIndex) {
+                  if (oldIndex < newIndex) newIndex -= 1;
+                  final hooks = List<String>.from(payload.postHooks);
+                  final item = hooks.removeAt(oldIndex);
+                  hooks.insert(newIndex, item);
+                  ref
+                      .read(stepFormProvider(stepId).notifier)
+                      .forceRebuild(
+                        payload.copyWith(
+                          slug: slugController.text.trim(),
+                          postHooks: hooks,
+                        ),
+                      );
+                },
+                itemBuilder: (context, index) {
+                  final hooks = payload.postHooks;
+                  return _buildPostHookCard(
+                    context,
+                    ref,
+                    l10n,
+                    payload,
+                    stepId,
+                    ValueKey('post_hook_${index}_${hooks[index]}'),
+                    index,
+                    hooks[index],
+                  );
+                },
+              ),
+
+              AppSpacing.h24,
+
+              if (payload is NodeStrategyLlm) ...[
+                AppSpacing.h24,
+                Card(
+                  elevation: AppSpacing.s2,
+                  margin: const EdgeInsets.only(bottom: AppSpacing.s16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.s12),
+                  ),
+                  child: Padding(
+                    padding: AppSpacing.p16,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.protocolBlockLabel,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        AppSpacing.h4,
+                        Text(
+                          l10n.protocolBlockDescription,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                        AppSpacing.h12,
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          initialValue:
+                              promptBlocks.any(
+                                (m) =>
+                                    m.id == payload.extractionProtocolBlockId &&
+                                    PromptBlockCategoryGroups.protocolCategories
+                                        .contains(m.categoryId),
+                              )
+                              ? payload.extractionProtocolBlockId
+                              : null,
+                          items: [
+                            DropdownMenuItem<String>(
+                              value: null,
+                              child: Text(
+                                l10n.noneDefaultLabel,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            ...promptBlocks
+                                .where(
+                                  (m) => PromptBlockCategoryGroups
+                                      .protocolCategories
+                                      .contains(m.categoryId),
+                                )
+                                .map((m) {
+                                  final currentLocale = Localizations.localeOf(
+                                    context,
+                                  ).languageCode;
+                                  final rawLabel =
+                                      m.label.translations[currentLocale] ??
+                                      m.label.translations['en'];
+
+                                  if (rawLabel == null ||
+                                      rawLabel.trim().isEmpty) {
+                                    throw AppException.validation(
+                                      'Fail-Fast: PromptBlock ${m.id} lacks required translation for locale $currentLocale or en fallback.',
+                                    );
+                                  }
+
+                                  return DropdownMenuItem(
+                                    value: m.id,
+                                    child: Text(
+                                      '$rawLabel (${m.id})',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                }),
+                          ],
+                          onChanged: (val) {
+                            ref
+                                .read(stepFormProvider(stepId).notifier)
+                                .forceRebuild(
+                                  payload.copyWith(
+                                    slug: slugController.text.trim(),
+                                    extractionProtocolBlockId: val,
+                                  ),
+                                );
+                          },
+                        ),
                       ],
                     ),
                   ),
                 ),
 
                 AppSpacing.h24,
+                Card(
+                  elevation: AppSpacing.s2,
+                  margin: const EdgeInsets.only(bottom: AppSpacing.s16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.s12),
+                  ),
+                  child: Padding(
+                    padding: AppSpacing.p16,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.executionPersonaTitle,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        AppSpacing.h4,
+                        Text(
+                          l10n.executionPersonaDescription,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                        AppSpacing.h12,
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          initialValue:
+                              promptBlocks.any(
+                                (m) =>
+                                    m.id == payload.executionPersonaBlockId &&
+                                    PromptBlockCategoryGroups.personaCategories
+                                        .contains(m.categoryId),
+                              )
+                              ? payload.executionPersonaBlockId
+                              : null,
+                          items: [
+                            DropdownMenuItem<String>(
+                              value: null,
+                              child: Text(
+                                l10n.noneDefaultLabel,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            ...promptBlocks
+                                .where(
+                                  (m) => PromptBlockCategoryGroups
+                                      .personaCategories
+                                      .contains(m.categoryId),
+                                )
+                                .map((m) {
+                                  final currentLocale = Localizations.localeOf(
+                                    context,
+                                  ).languageCode;
+                                  final rawLabel =
+                                      m.label.translations[currentLocale] ??
+                                      m.label.translations['en'];
 
-                // allowed_mcp_tools (Phase 4, Step 4.2: Dynamic {gateway.slug}__{tool.toolId} FilterChips)
-                Text(
-                  l10n.mcpGatewaysTitle,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                                  if (rawLabel == null ||
+                                      rawLabel.trim().isEmpty) {
+                                    throw AppException.validation(
+                                      'Fail-Fast: PromptBlock ${m.id} lacks required translation for locale $currentLocale or en fallback.',
+                                    );
+                                  }
+
+                                  return DropdownMenuItem(
+                                    value: m.id,
+                                    child: Text(
+                                      '$rawLabel (${m.id})',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                }),
+                          ],
+                          onChanged: (val) {
+                            ref
+                                .read(stepFormProvider(stepId).notifier)
+                                .forceRebuild(
+                                  payload.copyWith(
+                                    slug: slugController.text.trim(),
+                                    executionPersonaBlockId: val,
+                                  ),
+                                );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                AppSpacing.h16,
-                ...mcpGateways
-                    .where(
-                      (gateway) => gateway.tools.any(
-                        (tool) => tool.enabled && tool.toolId.isNotEmpty,
-                      ),
-                    )
-                    .map((gateway) {
-                      final enabledTools = gateway.tools
-                          .where(
-                            (tool) => tool.enabled && tool.toolId.isNotEmpty,
-                          )
-                          .toList();
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.s16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              gateway.slug,
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                            AppSpacing.h8,
-                            Wrap(
-                              spacing: AppSpacing.s8,
-                              runSpacing: AppSpacing.s8,
-                              children: enabledTools.map((tool) {
-                                final namespacedAlias =
-                                    '${gateway.slug}__${tool.toolId}';
-                                final currentLocale = Localizations.localeOf(
-                                  context,
-                                ).languageCode;
-                                final labelText = tool.name.get(currentLocale);
-
-                                if (labelText.trim().isEmpty) {
-                                  throw AppException.validation(
-                                    'Fail-Fast: MCP tool $namespacedAlias lacks required translation for locale $currentLocale or en fallback.',
-                                  );
-                                }
-
-                                final allowedMcpTools = List<String>.from(
-                                  payload.allowedMcpTools,
-                                );
-                                final isSelected = allowedMcpTools.contains(
-                                  namespacedAlias,
-                                );
-                                final chipLabel =
-                                    '$labelText ($namespacedAlias)';
-
-                                return FilterChip(
-                                  label: Text(chipLabel),
-                                  selected: isSelected,
-                                  onSelected: (bool selected) {
-                                    if (selected) {
-                                      if (!allowedMcpTools.contains(
-                                        namespacedAlias,
-                                      )) {
-                                        allowedMcpTools.add(namespacedAlias);
-                                      }
-                                    } else {
-                                      allowedMcpTools.remove(namespacedAlias);
-                                    }
-                                    final updatedToolParams =
-                                        <String, Map<String, Object?>>{
-                                          for (final entry
-                                              in payload.mcpToolParams.entries)
-                                            if (selected ||
-                                                entry.key != namespacedAlias)
-                                              entry.key:
-                                                  Map<String, Object?>.from(
-                                                    entry.value,
-                                                  ),
-                                        };
-                                    ref
-                                        .read(stepFormProvider(stepId).notifier)
-                                        .forceRebuild(
-                                          payload.copyWith(
-                                            allowedMcpTools: allowedMcpTools,
-                                            mcpToolParams: updatedToolParams,
-                                          ),
-                                        );
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
 
                 AppSpacing.h24,
-
-                // Phase 1, Step 5: Schema-driven MCP tool parameter overrides panel
-                McpToolParamsPanel(
-                  allowedMcpTools: payload.allowedMcpTools,
-                  mcpToolParams: payload.mcpToolParams,
-                  mcpGateways: mcpGateways,
-                  onChanged: (updatedParams) {
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.criteriaBlocksTitle,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          AppSpacing.h4,
+                          Text(
+                            l10n.criteriaBlocksDescription,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    AppSpacing.w8,
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        enabledMouseCursor: SystemMouseCursors.click,
+                      ),
+                      onPressed: () => _addCriteriaBlock(ref, payload, stepId),
+                      icon: const Icon(Icons.add),
+                      label: Text(l10n.addPromptBlockBtn),
+                    ),
+                  ],
+                ),
+                AppSpacing.h16,
+                ReorderableListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: payload.criteriaBlockIds.length,
+                  onReorder: (oldIndex, newIndex) {
+                    if (oldIndex < newIndex) newIndex -= 1;
+                    final blocks = List<String>.from(payload.criteriaBlockIds);
+                    final item = blocks.removeAt(oldIndex);
+                    blocks.insert(newIndex, item);
                     ref
                         .read(stepFormProvider(stepId).notifier)
                         .forceRebuild(
-                          payload.copyWith(mcpToolParams: updatedParams),
+                          payload.copyWith(
+                            slug: slugController.text.trim(),
+                            criteriaBlockIds: blocks,
+                          ),
                         );
                   },
-                ),
-
-                // pre_hooks
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l10n.preHooksTitle,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => _addPreHook(ref, payload, stepId),
-                      icon: const Icon(Icons.add),
-                      label: Text(l10n.addHookBtn),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ReorderableListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: payload.preHooks.length,
-                  onReorder: (oldIndex, newIndex) {
-                    if (oldIndex < newIndex) newIndex -= 1;
-                    final hooks = List<String>.from(payload.preHooks);
-                    final item = hooks.removeAt(oldIndex);
-                    hooks.insert(newIndex, item);
-                    ref
-                        .read(stepFormProvider(stepId).notifier)
-                        .forceRebuild(payload.copyWith(preHooks: hooks));
-                  },
                   itemBuilder: (context, index) {
-                    final hooks = payload.preHooks;
-                    return _buildPreHookCard(
+                    final blocks = payload.criteriaBlockIds;
+                    return _buildCriteriaBlockCard(
                       context,
                       ref,
                       l10n,
                       payload,
                       stepId,
-                      ValueKey('hook_${index}_${hooks[index]}'),
+                      ValueKey('criteria_block_${index}_${blocks[index]}'),
                       index,
-                      hooks[index],
+                      blocks[index],
+                      promptBlocks,
                     );
                   },
                 ),
-                const SizedBox(height: 24),
-
-                // post_hooks
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l10n.postHooksTitle,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => _addPostHook(ref, payload, stepId),
-                      icon: const Icon(Icons.add),
-                      label: Text(l10n.addHookBtn),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ReorderableListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: payload.postHooks.length,
-                  onReorder: (oldIndex, newIndex) {
-                    if (oldIndex < newIndex) newIndex -= 1;
-                    final hooks = List<String>.from(payload.postHooks);
-                    final item = hooks.removeAt(oldIndex);
-                    hooks.insert(newIndex, item);
-                    ref
-                        .read(stepFormProvider(stepId).notifier)
-                        .forceRebuild(payload.copyWith(postHooks: hooks));
-                  },
-                  itemBuilder: (context, index) {
-                    final hooks = payload.postHooks;
-                    return _buildPostHookCard(
-                      context,
-                      ref,
-                      l10n,
-                      payload,
-                      stepId,
-                      ValueKey('post_hook_${index}_${hooks[index]}'),
-                      index,
-                      hooks[index],
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 24),
-
-                if (payload is NodeStrategyLlm) ...[
-                  // 2. Extraction Protocol Dropdown
-                  const SizedBox(height: 24),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.protocolBlockLabel,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            l10n.protocolBlockDescription,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  fontSize: 13,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                            initialValue:
-                                promptBlocks.any(
-                                  (m) =>
-                                      m.id ==
-                                          payload.extractionProtocolBlockId &&
-                                      PromptBlockCategoryGroups
-                                          .protocolCategories
-                                          .contains(m.categoryId),
-                                )
-                                ? payload.extractionProtocolBlockId
-                                : null,
-                            items: [
-                              DropdownMenuItem<String>(
-                                value: null,
-                                child: Text(l10n.noneDefaultLabel),
-                              ),
-                              ...promptBlocks
-                                  .where(
-                                    (m) => PromptBlockCategoryGroups
-                                        .protocolCategories
-                                        .contains(m.categoryId),
-                                  )
-                                  .map((m) {
-                                    final currentLocale =
-                                        Localizations.localeOf(
-                                          context,
-                                        ).languageCode;
-                                    final rawLabel =
-                                        m.label.translations[currentLocale] ??
-                                        m.label.translations['en'];
-
-                                    if (rawLabel == null ||
-                                        rawLabel.trim().isEmpty) {
-                                      throw AppException.validation(
-                                        'Fail-Fast: PromptBlock ${m.id} lacks required translation for locale $currentLocale or en fallback.',
-                                      );
-                                    }
-
-                                    return DropdownMenuItem(
-                                      value: m.id,
-                                      child: Text(
-                                        '$rawLabel (${m.id})',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    );
-                                  }),
-                            ],
-                            onChanged: (val) {
-                              ref
-                                  .read(stepFormProvider(stepId).notifier)
-                                  .forceRebuild(
-                                    payload.copyWith(
-                                      extractionProtocolBlockId: val,
-                                    ),
-                                  );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // 3. Execution Persona Protocol Dropdown
-                  const SizedBox(height: 24),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.executionPersonaTitle,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            l10n.executionPersonaDescription,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  fontSize: 13,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                          const SizedBox(height: 12),
-                          DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                            initialValue:
-                                promptBlocks.any(
-                                  (m) =>
-                                      m.id == payload.executionPersonaBlockId &&
-                                      PromptBlockCategoryGroups
-                                          .personaCategories
-                                          .contains(m.categoryId),
-                                )
-                                ? payload.executionPersonaBlockId
-                                : null,
-                            items: [
-                              DropdownMenuItem<String>(
-                                value: null,
-                                child: Text(l10n.noneDefaultLabel),
-                              ),
-                              ...promptBlocks
-                                  .where(
-                                    (m) => PromptBlockCategoryGroups
-                                        .personaCategories
-                                        .contains(m.categoryId),
-                                  )
-                                  .map((m) {
-                                    final currentLocale =
-                                        Localizations.localeOf(
-                                          context,
-                                        ).languageCode;
-                                    final rawLabel =
-                                        m.label.translations[currentLocale] ??
-                                        m.label.translations['en'];
-
-                                    if (rawLabel == null ||
-                                        rawLabel.trim().isEmpty) {
-                                      throw AppException.validation(
-                                        'Fail-Fast: PromptBlock ${m.id} lacks required translation for locale $currentLocale or en fallback.',
-                                      );
-                                    }
-
-                                    return DropdownMenuItem(
-                                      value: m.id,
-                                      child: Text(
-                                        '$rawLabel (${m.id})',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    );
-                                  }),
-                            ],
-                            onChanged: (val) {
-                              ref
-                                  .read(stepFormProvider(stepId).notifier)
-                                  .forceRebuild(
-                                    payload.copyWith(
-                                      executionPersonaBlockId: val,
-                                    ),
-                                  );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // 4. Criteria Blocks List (Reorderable)
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l10n.criteriaBlocksTitle,
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              l10n.criteriaBlocksDescription,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    fontSize: 13,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: () =>
-                            _addCriteriaBlock(ref, payload, stepId),
-                        icon: const Icon(Icons.add),
-                        label: Text(l10n.addPromptBlockBtn),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  ReorderableListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: payload.criteriaBlockIds.length,
-                    onReorder: (oldIndex, newIndex) {
-                      if (oldIndex < newIndex) newIndex -= 1;
-                      final blocks = List<String>.from(
-                        payload.criteriaBlockIds,
-                      );
-                      final item = blocks.removeAt(oldIndex);
-                      blocks.insert(newIndex, item);
-                      ref
-                          .read(stepFormProvider(stepId).notifier)
-                          .forceRebuild(
-                            payload.copyWith(criteriaBlockIds: blocks),
-                          );
-                    },
-                    itemBuilder: (context, index) {
-                      final blocks = payload.criteriaBlockIds;
-                      return _buildCriteriaBlockCard(
-                        context,
-                        ref,
-                        l10n,
-                        payload,
-                        stepId,
-                        ValueKey('criteria_block_${index}_${blocks[index]}'),
-                        index,
-                        blocks[index],
-                        promptBlocks,
-                      );
-                    },
-                  ),
-                ],
               ],
-            ),
+            ],
           ),
         ),
       ),
@@ -925,23 +1004,31 @@ class StepBuilderView extends HookConsumerWidget {
     int index,
     String hookDef,
   ) {
-    final knownHooks = [
+    const knownHooks = <String>[
       'search_hook',
       'memory_hook',
       'validation_hook',
       'score_hook',
     ];
-    final bool isCustom = hookDef.isNotEmpty && !knownHooks.contains(hookDef);
+    if (hookDef.isNotEmpty && !knownHooks.contains(hookDef)) {
+      throw AppException.validation(
+        'Fail-Fast: Unsupported pre-hook "$hookDef" in step $stepId.',
+      );
+    }
 
     return Card(
       key: key,
-      margin: const EdgeInsets.only(bottom: 12),
+      elevation: AppSpacing.s2,
+      margin: const EdgeInsets.only(bottom: AppSpacing.s12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: AppSpacing.p12,
         child: Row(
           children: [
             Padding(
-              padding: const EdgeInsets.only(right: 8.0),
+              padding: const EdgeInsets.only(right: AppSpacing.s8),
               child: Icon(
                 Icons.drag_indicator,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -955,25 +1042,32 @@ class StepBuilderView extends HookConsumerWidget {
                 items: [
                   DropdownMenuItem(
                     value: 'search_hook',
-                    child: Text(l10n.hookTavily),
+                    child: Text(
+                      l10n.hookTavily,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'memory_hook',
-                    child: Text(l10n.hookMemory),
+                    child: Text(
+                      l10n.hookMemory,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'validation_hook',
-                    child: Text(l10n.hookValidation),
+                    child: Text(
+                      l10n.hookValidation,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'score_hook',
-                    child: Text(l10n.hookScore),
-                  ),
-                  if (isCustom)
-                    DropdownMenuItem(
-                      value: hookDef,
-                      child: Text(l10n.hookLegacy(hookDef)),
+                    child: Text(
+                      l10n.hookScore,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                  ),
                 ],
                 onChanged: (val) {
                   if (val != null) {
@@ -987,6 +1081,7 @@ class StepBuilderView extends HookConsumerWidget {
               ),
             ),
             IconButton(
+              mouseCursor: SystemMouseCursors.click,
               icon: Icon(
                 Icons.delete,
                 color: Theme.of(context).colorScheme.error,
@@ -1015,7 +1110,7 @@ class StepBuilderView extends HookConsumerWidget {
     int index,
     String hookDef,
   ) {
-    final knownHooks = [
+    const knownHooks = <String>[
       'search_hook',
       'memory_hook',
       'validation_hook',
@@ -1025,17 +1120,25 @@ class StepBuilderView extends HookConsumerWidget {
       'verify_citation_integrity',
       'enforce_hypothesis_linking',
     ];
-    final bool isCustom = hookDef.isNotEmpty && !knownHooks.contains(hookDef);
+    if (hookDef.isNotEmpty && !knownHooks.contains(hookDef)) {
+      throw AppException.validation(
+        'Fail-Fast: Unsupported post-hook "$hookDef" in step $stepId.',
+      );
+    }
 
     return Card(
       key: key,
-      margin: const EdgeInsets.only(bottom: 12),
+      elevation: AppSpacing.s2,
+      margin: const EdgeInsets.only(bottom: AppSpacing.s12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: AppSpacing.p12,
         child: Row(
           children: [
             Padding(
-              padding: const EdgeInsets.only(right: 8.0),
+              padding: const EdgeInsets.only(right: AppSpacing.s8),
               child: Icon(
                 Icons.drag_indicator,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1051,41 +1154,60 @@ class StepBuilderView extends HookConsumerWidget {
                 items: [
                   DropdownMenuItem(
                     value: 'waterfall_scoring_hook',
-                    child: Text(l10n.hookWaterfall),
+                    child: Text(
+                      l10n.hookWaterfall,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'normalize_matrix_scores',
-                    child: Text(l10n.hookNormalize),
+                    child: Text(
+                      l10n.hookNormalize,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'search_hook',
-                    child: Text(l10n.hookTavily),
+                    child: Text(
+                      l10n.hookTavily,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'memory_hook',
-                    child: Text(l10n.hookMemory),
+                    child: Text(
+                      l10n.hookMemory,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'validation_hook',
-                    child: Text(l10n.hookValidation),
+                    child: Text(
+                      l10n.hookValidation,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'score_hook',
-                    child: Text(l10n.hookScore),
+                    child: Text(
+                      l10n.hookScore,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'verify_citation_integrity',
-                    child: Text(l10n.hookVerifyCitation),
+                    child: Text(
+                      l10n.hookVerifyCitation,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   DropdownMenuItem(
                     value: 'enforce_hypothesis_linking',
-                    child: Text(l10n.hookHypothesis),
-                  ),
-                  if (isCustom)
-                    DropdownMenuItem(
-                      value: hookDef,
-                      child: Text(l10n.hookLegacy(hookDef)),
+                    child: Text(
+                      l10n.hookHypothesis,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                  ),
                 ],
                 onChanged: (val) {
                   if (val != null) {
@@ -1099,6 +1221,7 @@ class StepBuilderView extends HookConsumerWidget {
               ),
             ),
             IconButton(
+              mouseCursor: SystemMouseCursors.click,
               icon: Icon(
                 Icons.delete,
                 color: Theme.of(context).colorScheme.error,
@@ -1130,13 +1253,17 @@ class StepBuilderView extends HookConsumerWidget {
   ) {
     return Card(
       key: key,
-      margin: const EdgeInsets.only(bottom: 12),
+      elevation: AppSpacing.s2,
+      margin: const EdgeInsets.only(bottom: AppSpacing.s12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: AppSpacing.p12,
         child: Row(
           children: [
             Padding(
-              padding: const EdgeInsets.only(right: 8.0),
+              padding: const EdgeInsets.only(right: AppSpacing.s8),
               child: Icon(
                 Icons.drag_indicator,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -1171,7 +1298,7 @@ class StepBuilderView extends HookConsumerWidget {
 
                       if (rawLabel == null || rawLabel.trim().isEmpty) {
                         throw AppException.validation(
-                          'Fail-Fast: PromptBlock ${m.id} lacks required FI/EN translation.',
+                          'Fail-Fast: PromptBlock ${m.id} lacks required translation for locale $currentLocale or en fallback.',
                         );
                       }
 
@@ -1200,6 +1327,7 @@ class StepBuilderView extends HookConsumerWidget {
               ),
             ),
             IconButton(
+              mouseCursor: SystemMouseCursors.click,
               icon: Icon(
                 Icons.delete,
                 color: Theme.of(context).colorScheme.error,
