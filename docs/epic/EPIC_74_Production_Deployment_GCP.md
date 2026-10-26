@@ -1,338 +1,127 @@
-# Epic 74: Production Deployment — Google Cloud Platform
+<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/03_seed_vault.md]</rule>
+  <rule>@[.agents/rules/04_directory_reference.md]</rule>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+  <knowledge_item>@[ki_global_config_sovereignty.md]</knowledge_item>
+  <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
+  <knowledge_item>@[ki_api_router_ssot_governance.md]</knowledge_item>
+  <knowledge_item>@[ki_opentelemetry_logfire_observability.md]</knowledge_item>
+  <knowledge_item>@[ki_shared_storage_driver_architecture.md]</knowledge_item>
+</required_context_rules>
+
+# EPIC 74: GCP Production Deployment, Cloud Run & `quorum.ai` Domain Sovereignty
 
 > [!IMPORTANT]
-> **TUOTANTO-INFRASTRUKTUURI**: Tämä Epic toteuttaa Cognitive Quorumin tuotantoympäristön Google Cloud Platformilla. Se korvaa Epic 22:n Firestore-pohjaisen tuotantosuunnitelman PostgreSQL-pohjaisella arkkitehtuurilla (Epic 72) ja hyödyntää CI/CD-putkea (Epic 73).
-
-> [!CAUTION]
-> **RIIPPUVUUDET**: Tämä Epic vaatii Epic 72 (PostgreSQL Driver) ja Epic 73 (CI/CD Pipeline) olevan valmiit ja verifioituja ennen toteutuksen aloittamista.
+> **SOVEREIGN 2026 PRODUCTION INFRASTRUCTURE**: This Epic defines Cognitive Quorum's production cloud infrastructure on Google Cloud Platform (`europe-north1` / Finland). It supersedes legacy Firestore, TinyDB, SQLAlchemy 2.0, and Alembic deployment drafts, anchoring directly on **All-in-PostgreSQL 19 Sovereign Zero-ORM** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`) and **B2B SaaS IAM, Token Exchange & Enterprise Hardening** (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`).
 
 ---
 
-## 1. Yhteenveto ja Tavoite (Objective)
+## 1. Objective & Architectural Overview
 
-Tämän Epicin tavoitteena on provisioida ja konfiguroida tuotantoinfrastruktuuri Google Cloud Platformille siten, että:
+This Epic provisions and hardens Cognitive Quorum's stateless production runtime on Google Cloud Platform (`europe-north1`) across six architectural pillars:
 
-1. **FastAPI-backend** ja **Arq-worker** pyörivät Cloud Runissa
-2. **PostgreSQL** toimii Cloud SQL -palvelussa (managed, PITR-backup)
-3. **Redis** toimii Memorystoressa (managed, Private IP)
-4. **Firebase Auth** pysyy identiteettipalveluna (ei muutoksia)
-5. **Vertex AI** pysyy LLM-rajapintana (ei muutoksia)
-6. **Tietokannan seeding** suoritetaan kerran tuotantokantaan
+1. **Stateless Cloud Run Compute (`quorum-api` & `quorum-worker`)**:
+   - FastAPI HTTP/SSE API server (`quorum-api`) and Arq 2026 background worker daemon (`quorum-worker`) execute inside hardened Python 3.14 containers (`@[backend_v2/Dockerfile]`) without development file-watcher flags (`--reload`).
+2. **Cloud SQL for PostgreSQL 19 (Zero-ORM & Private IP)**:
+   - Managed PostgreSQL 19 instance with native `uuidv7()`, `uuid_extract_timestamp() VIRTUAL`, `default_toast_compression = lz4`, built-in PgBouncer transaction pooling, Private IP VPC isolation (`quorum-vpc`), and 14-day Point-in-Time Recovery (PITR).
+   - Initialized deterministically via idempotent SQL DDL (`[NEW] @[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]`) without Alembic or SQLAlchemy.
+3. **Memorystore for Redis 8 (Fail-Closed Kill-Switch, FinOps Rate Limiting & Arq Queue)**:
+   - Managed Redis instance on Private IP serving sub-millisecond `revoked:usr:{id}` session revocation checks, per-tenant sliding-window TPM/RPM rate limiting, and Arq job queues.
+4. **Global `quorum.ai` Primary Domain Acquisition, Cloud DNS & Multi-Domain SAN SSL**:
+   - Verifies availability and registers the primary global domain `quorum.ai` (and secondary domestic domain `quorum.fi`) via Google Cloud Domains or an accredited domain registrar (`gcloud domains registrations search-domains quorum.ai`). If `quorum.ai` is already registered by a third party, the operator registers an available domain (`cognitivequorum.ai` or `quorum.fi`) and injects it via `PRIMARY_DOMAIN`, `JWT_ISSUER`, `JWT_AUDIENCE`, and `CORS_ORIGINS` environment variables with zero source code modifications.
+   - Cloud Load Balancer + Cloud Armor + Cloud DNS (`quorum-ai-zone`) with Google-Managed multi-domain SAN SSL certificates (`quorum-san-cert`) covering `quorum.ai`, `api.quorum.ai`, `app.quorum.ai`, `studio.quorum.ai`, `quorum.fi`, `api.quorum.fi`, and `app.quorum.fi`.
+   - Production CORS origin enforcement and RFC 8693 JWT issuer/audience claims (`jwt_issuer = "https://api.quorum.ai"`, `jwt_audience = "https://quorum.ai"`) centralized in `Settings` (`@[backend_v2/settings.py#L54-L1053]`).
+5. **GCP Secret Manager & Zero-Plaintext Credential Injection**:
+   - Database credentials (`DATABASE_URL`), JWT signing keys (`JWT_SECRET_KEY`), and Cloud KMS keys are injected into Cloud Run exclusively from GCP Secret Manager (`credential_hardcoding_ban`).
+6. **Typed Cloud Run & Load Balancer Health Probe (`GET /api/v2/system/health`)**:
+   - Exposes a strongly typed `[NEW] HealthCheckResponseDTO` (`class HealthCheckResponseDTO(BaseResponseDTO):` in `@[backend_v2/models/dtos/system.py#L43-L52]`) on `GET /api/v2/system/health` (`@[backend_v2/api/routers/system/health.py#L20-L52]`) for Cloud Run startup/liveness probes and Cloud Load Balancer health checks.
 
-> [!NOTE]
-> **IAM-YHTEENSOPIVUUS**: Tämä infrastruktuuri mahdollistaa uuden B2B SaaS IAM -arkkitehtuurin (Epic IAM-003) käyttöönoton, tarjoten Memorystoren (Redis) nopeaan luvituksen kill-switchiin ja Cloud SQL:n natiivin Row-Level Security (RLS) -tuen tenant-eristykseen.
-
-### Tuotantoarkkitehtuuri
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Google Cloud Platform                        │
-│                    (europe-north1 / Finland)                    │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────────────┐    ┌──────────────────────┐          │
-│  │  Cloud Run: API      │    │  Cloud Run: Worker   │          │
-│  │  (quorum-api)        │    │  (quorum-worker)     │          │
-│  │  min: 0, max: 10     │    │  min: 1, max: 5      │          │
-│  │  2 vCPU / 2 GB       │    │  2 vCPU / 4 GB       │          │
-│  │  Autoscale: requests │    │  Autoscale: CPU      │          │
-│  └──────────┬───────────┘    └──────────┬───────────┘          │
-│             │ SQL Proxy (Private IP)     │                      │
-│             ▼                            ▼                      │
-│  ┌──────────────────────┐    ┌──────────────────────┐          │
-│  │  Cloud SQL           │    │  Memorystore         │          │
-│  │  (PostgreSQL 16)     │    │  (Redis 7)           │          │
-│  │  db-custom-2-8192    │    │  Standard 2 GB       │          │
-│  │  Private IP          │    │  Private IP          │          │
-│  │  PITR: 7 days        │    │  HA: cross-zone      │          │
-│  └──────────────────────┘    └──────────────────────┘          │
-│                                                                 │
-│  ┌──────────────────────┐    ┌──────────────────────┐          │
-│  │  Firebase Auth       │    │  Vertex AI           │          │
-│  │  (identiteetti)      │    │  (LLM)               │          │
-│  │  JWT verify          │    │  gemini-2.5-flash/pro │          │
-│  │  Ilmainen ≤50k MAU   │    │  europe-north1       │          │
-│  └──────────────────────┘    └──────────────────────┘          │
-│                                                                 │
-│  ┌──────────────────────┐    ┌──────────────────────┐          │
-│  │  Cloud Storage       │    │  Secret Manager      │          │
-│  │  (PDF, inputs)       │    │  (API keys, DB creds)│          │
-│  │  europe-north1       │    │  Automaattinen       │          │
-│  └──────────────────────┘    └──────────────────────┘          │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────┐          │
-│  │  Cloud Load Balancer + Cloud Armor               │          │
-│  │  HTTPS termination + DDoS protection             │          │
-│  │  Custom domain: api.quorum.fi (esimerkki)        │          │
-│  └──────────────────────────────────────────────────┘          │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Internet["Global Client Traffic (quorum.ai / quorum.fi)"] -->|"HTTPS TLS 1.3 + SAN SSL"| GLB["Cloud Load Balancer + Cloud Armor"]
+    GLB -->|"api.quorum.ai"| API["Cloud Run: quorum-api (Stateless FastAPI)"]
+    API -->|"VPC Connector (Private IP)"| PG["Cloud SQL: PostgreSQL 19 (PgBouncer, PITR, lz4)"]
+    API -->|"VPC Connector (Private IP)"| Redis["Memorystore: Redis 8 (Kill-Switch, Rate Limit, Arq)"]
+    Worker["Cloud Run: quorum-worker (Arq Daemon)"] -->|"VPC Connector (Private IP)"| PG
+    Worker -->|"VPC Connector (Private IP)"| Redis
+    API -->|"Environment Secret Injection"| Secrets["GCP Secret Manager & Cloud KMS"]
+    Worker -->|"Environment Secret Injection"| Secrets
+    API -->|"Signed URLs / FileDriver"| GCS["Cloud Storage / Firebase Storage (europe-north1)"]
+    Worker -->|"Artifact Streaming"| GCS
 ```
 
 ---
 
-## 2. Arkkitehtuuristen Sääntöjen Huomiointi (Compliance)
+## 2. Scope & Target Codebase Boundaries
 
-### 2.1. Separation of State (Epic 22 periaate — päivitetty)
-
-* **Tuotannossa** Cloud Run -kontit ovat **tilattomia** (stateless). Kaikki data elää Cloud SQL:ssä.
-* **Lokaali `db_v2.json`** ei ole käytössä tuotannossa.
-* **`seed_data.json`** on Build-Time Artifact — käytetään vain tietokannan alustuksessa.
-
-### 2.2. Security (01-python-backend.md)
-
-* **security_logging_ban**: API-avaimet Secret Managerissa — ei ympäristömuuttujissa.
-* **Firebase Auth & JWT**: Firebase Auth hoitaa tunnistautumisen, mutta backend vastaa lokaalista Quorum JWT -valtuutuksesta.
-* **Zero-Latency AuthZ & Rate Limiting**: Memorystore (Redis) mahdollistaa Quorum JWT:n Kill-Switch -tarkistuksen (Blocklist) ja tenant-kohtaisen rate limitingin (AI FinOps) täysin asynkronisesti alle 1 ms latenssilla.
-* **Webhook Security**: Cloud Run API on määritelty vastaanottamaan turvallisesti Firebasen `auth.user.deleted` -tapahtuman pehmeää tietokantapoistoa (Soft Delete) varten.
-* **VPC**: Cloud SQL ja Memorystore eivät ole julkisessa verkossa.
-
----
-
-## 3. Kustannusarvio (FinOps)
-
-### 3.1. Staging-ympäristö
-
-| Palvelu | Konfiguraatio | Arvioitu kustannus/kk |
-|---|---|---|
-| Cloud Run (API) | min 0, max 2, 1 vCPU / 512 MB | €3–5 |
-| Cloud Run (Worker) | min 0, max 1, 1 vCPU / 1 GB | €3–5 |
-| Cloud SQL | db-f1-micro (0.6 GB RAM) | €8 |
-| Memorystore | Basic 1 GB | €5 |
-| Cloud Storage | <1 GB | €0.02 |
-| Firebase Auth | <100 MAU | €0 |
-| Secret Manager | <10 secrets | €0 |
-| **Yhteensä** | | **~€20–25/kk** |
-
-### 3.2. Tuotantoympäristö
-
-| Palvelu | Konfiguraatio | Arvioitu kustannus/kk |
-|---|---|---|
-| Cloud Run (API) | min 1, max 10, 2 vCPU / 2 GB | €15–40 |
-| Cloud Run (Worker) | min 1, max 5, 2 vCPU / 4 GB | €20–50 |
-| Cloud SQL | db-custom-2-8192, HA, PITR | €50–80 |
-| Memorystore | Standard 2 GB, HA | €15–25 |
-| Cloud Storage | <10 GB | €0.20 |
-| Load Balancer + Armor | Standard tier | €18 |
-| Firebase Auth | <1000 MAU | €0 |
-| Vertex AI | Käytön mukaan | €20–200+ |
-| **Yhteensä** | | **~€140–420/kk** |
-
-> [!TIP]
-> **FinOps-säästö**: Context Caching (Epic 67) vähentää Vertex AI -kustannuksia 50–90%, joten todellinen LLM-kustannus on huomattavasti pienempi kuin raaka per-token -hinnoittelu.
+| Category | File Reference | Architectural Responsibility |
+| :--- | :--- | :--- |
+| `[MODIFY]` | `@[backend_v2/settings.py#L54-L1053]` | Add `gcp_project_id`, `gcp_region`, `primary_domain`, `jwt_issuer`, and `jwt_audience` settings; enforce closed `cors_origins` in `_enforce_environment_limits` (`@[backend_v2/settings.py#L847-L908]`) and reject wildcard `["*"]` CORS in production mode via `@model_validator(mode="after")`. |
+| `[MODIFY]` | `@[backend_v2/models/dtos/system.py#L43-L52]` | Define immutable `HealthCheckResponseDTO(BaseResponseDTO)` with `ConfigDict(frozen=True, strict=True, extra="forbid")` for Cloud Run and Load Balancer probes. |
+| `[MODIFY]` | `@[backend_v2/api/routers/system/health.py#L20-L52]` | Implement `GET /api/v2/system/health` (`get_system_health`) returning `HealthCheckResponseDTO` with RFC 7807 structured error handling. |
+| `[MODIFY]` | `@[backend_v2/main.py#L347-L380]` | Replace hardcoded `https://api.quorum.fi/errors/validation-failed` in `validation_exception_handler` with `f"{get_settings().jwt_issuer}/errors/validation-failed"`. |
+| `[MODIFY]` | `@[backend_v2/Dockerfile]` | Remove development `--reload` flag from `CMD`, add non-root `quorum` runtime user, and configure production Uvicorn worker entrypoint. |
+| `[MODIFY]` | `@[docker-compose.yml]` | Remove duplicate `GOOGLE_APPLICATION_CREDENTIALS` environment entry and align container configuration. |
+| `[MODIFY]` | `@[backend_v2/tests/unit/models/dtos/test_system.py#L7-L12]` | Add positive and ISTQB negative unit tests for `HealthCheckResponseDTO`. |
+| `[MODIFY]` | `@[backend_v2/tests/unit/test_health.py#L14-L19]` | Add positive and ISTQB negative unit tests for `get_system_health` (`GET /api/v2/system/health`). |
+| `[MODIFY]` | `@[backend_v2/tests/unit/test_settings.py#L264-L290]` | Add positive and ISTQB negative unit tests for GCP production settings, closed production CORS origins, and wildcard CORS rejection in production. |
+| `[MODIFY]` | `@[backend_v2/tests/unit/test_main.py#L172-L189]` | Verify `validation_exception_handler` RFC 7807 `type` URI resolves dynamically from `Settings.jwt_issuer`. |
 
 ---
 
-## 4. Toteutussuunnitelma (Implementation Phases)
+## 3. Production Environment & Cloud Provisioning Specifications
 
-### Phase 1: GCP-infrastruktuurin provisiointi (1 sessio)
+### 3.1 Production Environment Variables & Secret Manager Bindings
 
-| Tehtävä | Komento / Työkalu | Huomiot |
-|---|---|---|
-| 4.1.1 Projektin konfigurointi | `gcloud config set project cognitive-quorum` | Olemassa oleva projekti |
-| 4.1.2 VPC-verkon luonti | `gcloud compute networks create quorum-vpc` | Private IP -verkko |
-| 4.1.3 Cloud SQL provisiointi | `gcloud sql instances create` | PG 16, europe-north1, Private IP |
-| 4.1.4 Alembic-migraatio | `alembic upgrade head` (Cloud SQL Proxylla) | Skeema tuotantokantaan |
-| 4.1.5 Memorystore provisiointi | `gcloud redis instances create` | Redis 7, Private IP |
-| 4.1.6 Secret Manager setup | `gcloud secrets create` | DATABASE_URL, API keys |
-| 4.1.7 Cloud Storage bucket | `gcloud storage buckets create` | PDF-raportit, inputit |
+| Variable | Production Value | Source |
+| :--- | :--- | :--- |
+| `ENVIRONMENT` | `production` | Cloud Run Env Var |
+| `STORAGE_BACKEND` | `POSTGRES` | Cloud Run Env Var |
+| `GCP_PROJECT` | `cognitive-quorum` | Cloud Run Env Var |
+| `GCP_REGION` | `europe-north1` | Cloud Run Env Var |
+| `VERTEX_LOCATION` | `europe-north1` | Cloud Run Env Var |
+| `PRIMARY_DOMAIN` | `quorum.ai` | Cloud Run Env Var |
+| `JWT_ISSUER` | `https://api.quorum.ai` | Cloud Run Env Var |
+| `JWT_AUDIENCE` | `https://quorum.ai` | Cloud Run Env Var |
+| `API_URL` | `https://api.quorum.ai` | Cloud Run Env Var |
+| `STORAGE_BUCKET_NAME` | `cognitive-quorum.firebasestorage.app` | Cloud Run Env Var |
+| `REDIS_HOST` | `10.x.x.x` (Memorystore Private IP) | Cloud Run Env Var |
+| `REDIS_PORT` | `6379` | Cloud Run Env Var |
+| `DATABASE_URL` | `postgresql://quorum_app:***@10.x.x.x:5432/quorum` | GCP Secret Manager (`quorum-db-url:latest`) |
+| `JWT_SECRET_KEY` | `<256-bit cryptographic secret>` | GCP Secret Manager (`quorum-jwt-secret:latest`) |
 
-#### Cloud SQL -provisiointi (esimerkki)
+### 3.2 Cloud Provisioning & Domain DNS Commands (PowerShell Single-Line Execution)
 
-```bash
-# Staging
-gcloud sql instances create quorum-staging \
-  --database-version=POSTGRES_16 \
-  --tier=db-f1-micro \
-  --region=europe-north1 \
-  --network=quorum-vpc \
-  --no-assign-ip \
-  --enable-point-in-time-recovery \
-  --backup-start-time=02:00
-
-# Tuotanto
-gcloud sql instances create quorum-production \
-  --database-version=POSTGRES_16 \
-  --tier=db-custom-2-8192 \
-  --region=europe-north1 \
-  --availability-type=REGIONAL \
-  --network=quorum-vpc \
-  --no-assign-ip \
-  --enable-point-in-time-recovery \
-  --backup-start-time=02:00 \
-  --retained-backups-count=14
-```
-
-### Phase 2: Cloud Run Deploy (1 sessio)
-
-| Tehtävä | Kuvaus | Huomiot |
-|---|---|---|
-| 4.2.1 Service Account | `gcloud iam service-accounts create quorum-api` | Minimal privileges |
-| 4.2.2 IAM-oikeudet | Cloud SQL Client, Secret Accessor, Storage Admin | Per service |
-| 4.2.3 API Deploy | `gcloud run deploy quorum-api` | Epic 73 Dockerfile |
-| 4.2.4 Worker Deploy | `gcloud run deploy quorum-worker` | Epic 73 Dockerfile.worker |
-| 4.2.5 Environment vars | Secret Manager → Cloud Run env bindings | DATABASE_URL, REDIS_HOST |
-| 4.2.6 Custom domain | `gcloud beta run domain-mappings create` | DNS A/CNAME |
-
-#### Cloud Run -konfiguraatio (esimerkki)
-
-```bash
-# API
-gcloud run deploy quorum-api \
-  --image gcr.io/cognitive-quorum/quorum-api:latest \
-  --region europe-north1 \
-  --platform managed \
-  --vpc-connector quorum-connector \
-  --set-env-vars "QUORUM_DB_DRIVER=postgresql,ENVIRONMENT=production" \
-  --set-secrets "DATABASE_URL=quorum-db-url:latest" \
-  --min-instances 1 \
-  --max-instances 10 \
-  --memory 2Gi \
-  --cpu 2 \
-  --timeout 300 \
-  --allow-unauthenticated
-
-# Worker
-gcloud run deploy quorum-worker \
-  --image gcr.io/cognitive-quorum/quorum-worker:latest \
-  --region europe-north1 \
-  --platform managed \
-  --vpc-connector quorum-connector \
-  --set-env-vars "QUORUM_DB_DRIVER=postgresql,ENVIRONMENT=production" \
-  --set-secrets "DATABASE_URL=quorum-db-url:latest" \
-  --min-instances 1 \
-  --max-instances 5 \
-  --memory 4Gi \
-  --cpu 2 \
-  --timeout 900 \
-  --no-allow-unauthenticated
-```
-
-### Phase 3: Seeding ja Validointi (1 sessio)
-
-| Tehtävä | Kuvaus | Huomiot |
-|---|---|---|
-| 4.3.1 Seed-skripti tuotantoon | `run_seed.py` Cloud SQL Proxylla | Kaikki seed_data → PostgreSQL |
-| 4.3.2 Smoke test | `curl https://api.quorum.fi/health` | 200 OK |
-| 4.3.3 E2E-suoritus | Yksi kokonainen workflow staging-ympäristössä | Kaikki askeleet vihreät |
-| 4.3.4 PDF-generointi | Varmista PDF-tiedoston synty Cloud Storageen | Lataa ja tarkista |
-| 4.3.5 Monitoring setup | Cloud Monitoring + alerting | Error rate, latency, CPU |
-
----
-
-## 5. Ympäristömuuttujat (Environment Variables)
-
-### 5.1. Tuotanto (Secret Managerissa)
-
-| Muuttuja | Arvo | Lähde |
-|---|---|---|
-| `QUORUM_DB_DRIVER` | `postgresql` | Env var |
-| `DATABASE_URL` | `postgresql://quorum:xxx@/quorum?host=/cloudsql/...` | Secret Manager |
-| `REDIS_HOST` | `10.x.x.x` (Private IP) | Env var |
-| `REDIS_PORT` | `6379` | Env var |
-| `FIREBASE_PROJECT_ID` | `cognitive-quorum` | Env var |
-| `GCP_PROJECT` | `cognitive-quorum` | Env var |
-| `GCP_REGION` | `europe-north1` | Env var |
-| `VERTEX_AI_LOCATION` | `europe-north1` | Env var |
-| `STORAGE_BACKEND` | `gcs` | Env var |
-| `GCS_BUCKET` | `quorum-production-files` | Env var |
-| `ENVIRONMENT` | `production` | Env var |
-
-### 5.2. Staging
-
-Sama rakenne, mutta:
-- `DATABASE_URL` → staging Cloud SQL instance
-- `GCS_BUCKET` → `quorum-staging-files`
-- `ENVIRONMENT` → `staging`
-
----
-
-## 6. Turvallisuus (Security)
-
-### 6.1. Verkkoarkkitehtuuri
-
-```
-Internet → Cloud Load Balancer (HTTPS)
-           → Cloud Armor (DDoS, rate limiting)
-           → Cloud Run API (VPC connector)
-              → Cloud SQL (Private IP, ei julkinen)
-              → Memorystore (Private IP, ei julkinen)
-```
-
-### 6.2. IAM-periaatteet
-
-| Service Account | Oikeudet | Palvelu |
-|---|---|---|
-| `quorum-api@` | Cloud SQL Client, Secret Accessor, Storage Object Admin | Cloud Run API |
-| `quorum-worker@` | Cloud SQL Client, Secret Accessor, Storage Object Admin, Vertex AI User | Cloud Run Worker |
-| `quorum-deploy@` | Cloud Run Admin, Artifact Registry Writer | GitHub Actions CI/CD |
-
-### 6.3. Tietoturvallisuusvaatimukset
-
-* **Encryption at rest**: Cloud SQL automaattinen salaus (AES-256)
-* **Encryption in transit**: TLS 1.3 kaikkialla
-* **Backup**: PITR 7–14 päivää, automaattinen
-* **Audit log**: Cloud Audit Logs kaikista admin-operaatioista
-* **No PII in logs**: `security_logging_ban` pysyy voimassa
-
----
-
-## 7. Monitoring ja Alerting
-
-### 7.1. Cloud Monitoring -dashboardit
-
-| Metriikka | Kynnys | Toimenpide |
-|---|---|---|
-| Error rate (5xx) | > 1% / 5 min | Email + Slack alert |
-| P99 latency | > 5s | Warning alert |
-| Cloud SQL CPU | > 80% / 10 min | Scale up alert |
-| Cloud SQL storage | > 80% | Disk expand alert |
-| Worker queue depth | > 50 jobs | Scale up alert |
-| Memory usage | > 90% | OOM risk alert |
-
-### 7.2. Health Check -endpoint
-
-```python
-# backend_v2/routers/health.py
-@router.get("/health")
-async def health_check():
-    """Production health check for Cloud Run and Load Balancer."""
-    return {"status": "ok", "version": "2.9", "db_driver": settings.db_driver}
+```powershell
+gcloud config set project cognitive-quorum
+gcloud domains registrations search-domains quorum.ai
+gcloud compute addresses create quorum-global-ip --global --ip-version IPV4
+gcloud dns managed-zones create quorum-ai-zone --dns-name="quorum.ai." --description="Cognitive Quorum Primary Production DNS Zone" --visibility=public
+gcloud dns record-sets create quorum.ai. --zone=quorum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
+gcloud dns record-sets create api.quorum.ai. --zone=quorum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
+gcloud dns record-sets create app.quorum.ai. --zone=quorum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
+gcloud dns record-sets create studio.quorum.ai. --zone=quorum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
+gcloud compute ssl-certificates create quorum-san-cert --domains="quorum.ai,api.quorum.ai,app.quorum.ai,studio.quorum.ai,quorum.fi,api.quorum.fi,app.quorum.fi" --global
+gcloud compute networks create quorum-vpc --subnet-mode=custom
+gcloud sql instances create quorum-pg19-prod --database-version=POSTGRES_19 --tier=db-custom-2-8192 --region=europe-north1 --availability-type=REGIONAL --network=quorum-vpc --no-assign-ip --enable-point-in-time-recovery --backup-start-time=02:00 --retained-backups-count=14
+gcloud redis instances create quorum-redis-prod --size=2 --region=europe-north1 --tier=STANDARD_HA --redis-version=redis_7_2 --network=quorum-vpc
+gcloud run deploy quorum-api --image europe-north1-docker.pkg.dev/cognitive-quorum/quorum-repo/quorum-api:latest --region europe-north1 --platform managed --vpc-connector quorum-connector --set-env-vars "ENVIRONMENT=production,STORAGE_BACKEND=POSTGRES,GCP_PROJECT=cognitive-quorum,GCP_REGION=europe-north1,PRIMARY_DOMAIN=quorum.ai,JWT_ISSUER=https://api.quorum.ai,JWT_AUDIENCE=https://quorum.ai,API_URL=https://api.quorum.ai" --set-secrets "DATABASE_URL=quorum-db-url:latest,JWT_SECRET_KEY=quorum-jwt-secret:latest" --min-instances 1 --max-instances 10 --memory 2Gi --cpu 2 --timeout 300 --allow-unauthenticated
+gcloud run deploy quorum-worker --image europe-north1-docker.pkg.dev/cognitive-quorum/quorum-repo/quorum-worker:latest --region europe-north1 --platform managed --vpc-connector quorum-connector --command "uv,run,python,-m,backend_v2.run_worker" --set-env-vars "ENVIRONMENT=production,STORAGE_BACKEND=POSTGRES,GCP_PROJECT=cognitive-quorum,GCP_REGION=europe-north1,PRIMARY_DOMAIN=quorum.ai" --set-secrets "DATABASE_URL=quorum-db-url:latest,JWT_SECRET_KEY=quorum-jwt-secret:latest" --min-instances 1 --max-instances 5 --memory 4Gi --cpu 2 --timeout 900 --no-allow-unauthenticated
 ```
 
 ---
 
-## 8. Rollback-suunnitelma
+## 4. Verification & Quality Gates
 
-| Tilanne | Toimenpide | Aikataulu |
-|---|---|---|
-| **API-regressio** | Cloud Run traffic split → edellinen revisio 100% | <1 min |
-| **DB-migraatio epäonnistuu** | `alembic downgrade -1` | <5 min |
-| **Kokonaisvika** | Palaa TinyDB-lokaaliin, pysäytä Cloud Run | <10 min |
-
----
-
-## 9. Verifiointisuunnitelma (Verification)
-
-| Tarkistus | Menetelmä | Hyväksymiskriteeri |
-|---|---|---|
-| Infra provisiointi | `gcloud sql instances describe` | PG 16 running, Private IP |
-| DB-migraatio | `alembic upgrade head` | Kaikki taulut luotu |
-| Seeding | `run_seed.py` + SQL count | Kaikki seed-data kannassa |
-| API deploy | `curl /health` | 200 OK, version 2.9 |
-| Worker deploy | Enqueue test job | Job completes successfully |
-| E2E workflow | Kokonainen suoritus staging-ympäristössä | Kaikki askeleet + PDF vihreät |
-| Firebase Auth | JWT-validointi staging API:sta | 401 ilman tokenia, 200 tokenilla |
-| Monitoring | Trigger test alert | Alert saapuu Slackiin/emailiin |
-
----
-
-## 10. Riippuvuudet ja Rajaukset
-
-* **Vaatii Epic 72**: PostgreSQL-driver oltava valmis ja testattu
-* **Vaatii Epic 73**: Docker build ja CI/CD-putki oltava toimiva
-* **Mahdollistaa Epic IAM-003**: Tarjoaa vaaditun infran uuden B2B IAM -mallin Redis-pohjaiselle kill-switchille ja Cloud SQL RLS-eristykselle.
-* **Ei muuta koodia**: Tämä Epic on 100% infraa — ei backend-koodimuutoksia
-* **Firebase Auth pysyy**: JWT-validointi ei muutu — vain API-URL vaihtuu
-* **Vertex AI pysyy**: LLM-kutsut eivät muutu — sama region (europe-north1)
-* **GCP-projekti**: `cognitive-quorum` (olemassa oleva)
-* **Budjetti**: Staging ~€25/kk, Production ~€140–420/kk (ilman LLM)
+1. **Automated Backend Quality Gate**:
+   ```powershell
+   uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
+   ```
+2. **Plan & Tracker Structural Verification**:
+   ```powershell
+   uv run python scripts/audit_markdown_boundaries.py --file docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md
+   uv run python scripts/audit_tracker_output.py --tracker docs/implementationplans/TRACKER_GCP_Production_Deployment.md --plan-file docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md
+   uv run python scripts/audit_plan_tracker_parity.py --plan docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md --tracker docs/implementationplans/TRACKER_GCP_Production_Deployment.md
+   ```

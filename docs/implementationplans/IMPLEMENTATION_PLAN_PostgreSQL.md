@@ -48,6 +48,15 @@ This plan establishes Quorum's sovereign **All-in-PostgreSQL 19 Zero-ORM Archite
    - Unit tests run completely hermetically in **0 ms** using `InMemoryUnitOfWork` without any Docker or network dependencies.
    - Python database connectivity is enabled in the local virtual environment via `uv add asyncpg`.
 
+### 1.1 Legacy TinyDB Anti-Pattern Eradication & Verification Matrix
+
+| Legacy TinyDB Anti-Pattern | Root Architectural Vulnerability | PostgreSQL 19 Zero-ORM Target Invariant | Dedicated Verification & Test Proof Anchor |
+| :--- | :--- | :--- | :--- |
+| **A. In-Memory Joins & Full-Table Scans** | `table.all()` loaded all records into Python to filter/join via loops (`O(N)` / `O(N^2)`). | Single-Round Multi-CTE SQL (`materialize_wave`) and ANSI SQL `WITH RECURSIVE ... CYCLE` (`CteReasoningStrategy`). | `test_postgres.py::test_single_round_wave_materialization` and `test_postgres.py::test_toulmin_falsification_query_parity`. |
+| **B. File Lock Contention & Concurrency Bottlenecks** | Single `db_v2.json` file lock (`msvcrt.locking`, retry loops) blocked Kahn wave `asyncio.TaskGroup` parallelism. | `PostgresPoolManager` connection pool (`asyncpg`) and Post-Wave Atomic Commit Invariant (`repeatable_read`). | `test_postgres.py::test_transaction_rollback_and_isolation` and `ZORM005` in `scripts/audit_zero_orm_strictness.py`. |
+| **C. Any-Dict Leakage into Domain Logic** | Untyped document storage leaked `dict[str, Any]` across driver boundaries. | Zero-ORM direct binary `pydantic_core` (`\x01` JSONB codec) with immutable Pydantic V2 models (`extra='forbid'`). | `scripts/audit_dict_eradication.py` and `scripts/audit_zero_orm_strictness.py` (`ZORM002`). |
+| **D. Procedural Cascade Deletes** | Application-layer manual loops deleted child entities, risking orphan records. | PostgreSQL engine-level `FOREIGN KEY ... ON DELETE CASCADE` on `run_id` and closed 12-table topology. | SQL DDL `001_pg19_uuidv7_schema.sql` constraints and `test_postgres.py::test_schema_dto_naming_parity`. |
+
 ---
 
 ## 2. Scope & Target Boundaries

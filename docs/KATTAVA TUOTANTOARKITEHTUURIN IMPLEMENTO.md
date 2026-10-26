@@ -1,242 +1,456 @@
-KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTOINTISUUNNITELMA
-Luku 0: Pilvitietokannan ja Ympäristön pystyttäminen verkkoon
-Koska sovelluksessasi on jo yhteys Firebaseen, olet kiinni Google Cloud Platform (GCP) -ekosysteemissä. Tietokannan tuotantopystytys tehdään GCP:hen saumattomasti ja tietoturvallisesti:
-
-Google Cloud SQL for PostgreSQL:
-
-Siirry Google Cloud Consoleen samaan projektiin, jossa Firebase-projektisi elää.
-
-Valitse SQL -> Create Instance -> PostgreSQL.
-
-Versio: Valitse vähintään PostgreSQL 18. Se tuo tuen natiiville asynkroniselle I/O:lle (AIO) ja optimoidulle uuidv7():lle, tehden Pythonin asynkronisesta backendistä erittäin nopean.
-
-Tietoturva & Verkkoyhteydet (VPC):
-
-Ei julkista IP:tä: Ota Public IP pois päältä tietokannan asetuksista.
-
-Private IP: Valitse Private IP ja kytke kanta samaan VPC-verkkoon (Virtual Private Cloud), jossa tuotanto-backendisi (esim. Cloud Run) pyörii. Tämä estää täysin ulkomaailman pääsyn kantaan.
-
-Connection Pooling (PgBouncer):
-
-Kytke Cloud SQL:n asetuksista päälle sisäänrakennettu PgBouncer (Transaction pooling mode). Asynkroninen Python osaa avata nopeasti satoja I/O-yhteyksiä, ja ilman allasta kanta kaatuisi nopeasti connection-rajoihin.
-
-AIO-konfiguraatio (PostgreSQL 18+):
-
-Aseta tietokannan lipuista (Database flags) io_method=io_uring (tai worker), jotta asynkroninen AIO-alijärjestelmä on aktiivinen.
-
-Backendin Ympäristömuuttujat:
-
-Sijoita lokaali ja tuotannon DSN-yhteysmerkkijono .env-tiedostoon:
-DATABASE_URL=postgresql+psycopg://app_user:salasana@<PRIVATE_IP>:5432/quorum_db
-
-Luku 1: Moderni Infra ja Työkalupakki
-Poistamme kaiken teknisen velan ja siirrymme puhtaasti asynkroniseen, tyyppiturvalliseen arkkitehtuuriin. Fallback-logiikkaa demotietokantoihin ei jätetä koodiin.
-
-Poistettavat vanhat riippuvuudet:
-
-Bash
-pip uninstall tinydb
-Asennettavat tuotantotason kirjastot (backend_v2/requirements.txt):
-
-Plaintext
-fastapi
-uvicorn[standard]
-# psycopg v3 korvaa vanhan psycopg2:n natiivilla async-tuella
-psycopg[binary]>=3.0
-sqlalchemy[asyncio]>=2.0
-alembic
-pydantic>=2.0
-pydantic-settings
-firebase-admin
-google-cloud-storage
-hashids
-Luku 2: Tietokantamallit ja Natiivi UUIDv7 (SSOT)
-PostgreSQL on Single Source of Truth (SSOT) kaikelle relaatiodatalle. Tiedostoja ei tallenneta kantaan, vaan kanta pitää ainoastaan Firebase Storagen metadataa yllä.
-
-Käytämme PostgreSQL 18+ natiivia uuidv7():ää. Se on aikajärjestetty, joten se ei pirstaloi tietokannan B-Tree-indeksejä. Huomioituna tietovuotoriskinä UUIDv7 sisältää tarkan luontiajan, joten API-vastauksissa nämä ID:t obfuskoidaan (piilotetaan) hashids-kirjastolla, jottei kilpailija voi päätellä datan luomisvolyymiä.
-
-backend_v2/database/models.py (UUSI):
-
-Python
-import uuid
-from datetime import datetime
-from sqlalchemy import String, DateTime, ForeignKey, text, func, BigInteger, Computed
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-
-class Base(DeclarativeBase):
-    pass
-
-class User(Base):
-    __tablename__ = "users"
-
-    # PostgreSQL 18 natiivi UUIDv7
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()"))
-    
-    # SSOT: Yhteys Firebase Authiin
-    firebase_uid: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    role: Mapped[str] = mapped_column(String(50), default="USER")
-    
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-class FileMetadata(Base):
-    __tablename__ = "file_metadata"
-
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, server_default=text("uuidv7()"))
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    
-    filename: Mapped[str] = mapped_column(String(255), nullable=False)
-    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    
-    # PG 18 Virtual Generated Column (Lasketaan lennossa, ei vie levytilaa)
-    size_mb: Mapped[float] = mapped_column(Computed("size_bytes / 1048576.0", persisted=False))
-    
-    storage_path: Mapped[str] = mapped_column(String(1024), nullable=False, unique=True)
-    
-    # Suojaus orpoja tiedostoja vastaan
-    status: Mapped[str] = mapped_column(String(32), default="pending") # pending -> uploaded
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-Luku 3: Firebase Storage ja Atomic Get-Or-Create
-Löydösten perusteella raskaat binääritiedostot eivät koskaan saa kuormittaa Python-backendin RAM-muistia. Myös Lazy Provisioning (käyttäjien automaattiluonti) altistaa järjestelmän "Race Condition" -virheille. Nämä on korjattu seuraavasti:
-
-Latauspyyntö ja Signed URLs: Frontend pyytää API:lta latauslupaa. Backend luo FileMetadata-rivin tilaan "pending". Backend generoi Firebase Admin SDK:lla aikarajatun (esim. 15 min) latausosoitteen, johon kryptataan ehdoton sallittu koko ja tiedostotyyppi (estää haittaohjelmat). Frontend lataa suoraan pilveen.
-
-Orpojen tiedostojen siivous: Jos selain kaatuu latauksen aikana, pilveen jää roskatiedosto ("Orphaned file"). Backendiin ajastetaan CronJob, joka etsii yli 24h vanhat "pending"-tilaiset tiedostot, pyytää Firebase Admin SDK:ta tuhoamaan ne Storagesta ja poistaa tietokantarivin.
-
-Käyttäjien poistaminen (Split-Brain vältetty): Relaatiokannan CASCADE DELETE ei riitä. Jos GDPR-poisto iskee, backend hakee ensin tiedostot ja tuhoaa ne Storagesta, tuhoaa tilin Firebase Authista, ja vasta sen jälkeen poistaa rivit PostgreSQL:stä.
-
-Autentikaatio & Race Condition -suojaus (PostgreSQL 19 ominaisuus):
-Vältämme haamukäyttäjien syntymisen uuden atomaarisen kyselyn avulla:
-
-Python
-# Kun Firebase-token on validoitu:
-stmt = text("""
-    INSERT INTO users (firebase_uid, email) 
-    VALUES (:uid, :email)
-    ON CONFLICT (firebase_uid) 
-    DO SELECT RETURNING *;  -- PostgreSQL 19 Ominaisuus!
-""")
-result = await db.execute(stmt, {"uid": firebase_uid, "email": email})
-Luku 4: Uusi Tuotantovalmis Seed-Prosessi ja Skeemanhallinta
-Vanhat JSON-seed-tiedostot hävitetään kokonaan. Alembic pitää huolen tietokannan rakenteesta, ja seed-skriptistä tehdään idempotentti (se ei luo tuplarivejä, vaikka ajettaisiin CI/CD:ssä useasti putkeen).
-
-Uusi backend_v2/seed/run_seed.py:
-
-Python
-import asyncio
-import logging
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from backend_v2.database.session import async_session_maker
-from backend_v2.database.models import User
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-async def run_seed():
-    async with async_session_maker() as session:
-        # Vain järjestelmän pakolliset perustiedot (System Seed)
-        system_admins = [
-            {"email": "admin@tuotanto.fi", "firebase_uid": "ADMIN_UID_TÄHÄN", "role": "SUPERADMIN"}
-        ]
-        
-        for admin_data in system_admins:
-            # Tarkistetaan Natural Keyllä (email), ettei luoda tuplia
-            result = await session.execute(select(User).where(User.email == admin_data["email"]))
-            if not result.scalar_one_or_none():
-                session.add(User(**admin_data))
-                logger.info(f"✅ Luotiin uusi admin: {admin_data['email']}")
-        
-        await session.commit()
-
-if __name__ == "__main__":
-    asyncio.run(run_seed())
-Luku 5: Koodikannan Auditointi ja Muutoskartta
-Tämä osuus perustuu huolelliseen läpikäyntiin nykyisestä backend_v2-koodikannastasi. Vertaamme nykytilaa suunnitelmaan ja listaamme konkreettiset muutokset kerros kerrokselta.
-
-5.1. Mitä on tehty ja tekemättä
-Tehdyt asiat (Olemassaoleva perusta):
-
-API-reitityksen erinomainen jako (backend_v2/api/routers/) ja Clean Architecture -kerrokset (services/, database/repositories/).
-
-Rajapintojen Pydantic-mallit (models/dtos/) ja ydinmallit (models/domain/) ovat selkeästi erillään.
-
-Hook-rekisteri (core/hook_registry.py) tukee laajennettavuutta.
-
-Tekemättömät asiat (Seuraavat askeleet):
-
-Järjestelmä operoi täysin demotasolla. Kaikki kantaan liittyvä kommunikaatio nojaa lokaaliin TinyDB-tiedostojärjestelmään ja Firestoreen.
-
-Oikeat relaatiot, viiteavaimet (Foreign Keys) ja tyyppiturvalliset SQLAlchemy-mallit puuttuvat.
-
-Tietokannan versiohallinta (Alembic) on alustamatta.
-
-Tietoturvallinen transaktio- ja yhteyshallinta on tekemättä.
-
-5.2. seed_data.json Taulut, jotka siirtyvät PostgreSQL:ään
-Koodisi rakenteen (database/repositories/) perusteella vanha seed_data.json on sisältänyt seuraavat taulut/kokoelmat:
-
-Komponentit (repositories/components/): agent, execution_persona, extraction_protocol, matrix, output_profile, prompt_block, role, task_blueprint.
-
-Ydintaulut (repositories/): audit, execution, identity (muutetaan tauluksi users), knowledge, system (asetukset), workflow.
-
-Toimenpide: Kaikki vanha json-data heitetään pois. Jokaiselle näistä luodaan backend_v2/database/models.py tiedostoon SQLAlchemy DeclarativeBase -luokat. Vanhat kovakoodatut ID:t hävitetään, ja PostgreSQL 18 generoi rivien syntyessä uudet uuidv7()-avaimet.
-
-5.3. Poistettavat Ohjelmat ja Luokat (Teknisen velan poisto)
-Seuraavat tiedostot poistetaan kokonaan, jotta tuotantokoodiin ei jää kytköksiä demovaiheeseen:
-
-backend_v2/seed/seed_data.json & data/db_v2.json & app.db: Kaikki vanha demodata tuhotaan.
-
-backend_v2/database/tinydb_driver.py: Paikallinen tiedostotietokanta poistetaan tuotantokelvottomana.
-
-backend_v2/database/firestore_driver.py: Relaatiodata kuuluu vain PostgreSQL:ään (SSOT).
-
-backend_v2/services/drivers/local_file_driver.py: Lokaalia levytallennusta ei käytetä pilviympäristössä.
-
-backend_v2/services/drivers/gcs_file_driver.py: Vanha toteutus poistetaan, koska tiedostojen bitit ohjataan suoraan asiakkaalta pilveen.
-
-5.4. Muutettavat Ohjelmat, Aliohjelmat ja Luokat (Refaktorointi)
-A. Tietokantaydin ja Yhteydenhallinta (backend_v2/database/)
-
-Muuttuvat tiedostot: wrapper.py, driver.py, factory.py, interfaces.py, repository.py.
-
-Miksi ja Miten: Nykyinen abstraktiokerros (joka tukee TinyDB:tä ja palauttaa sanakirjoja) puretaan. Yhteydenhallinta yksinkertaistetaan käyttämään asynkronista SQLAlchemy async_sessionmaker:ia. API-reitteihin tietokantasessio injektoidaan suoraan Depends(get_db) -tyylillä. interfaces.py ohjelmoidaan uudelleen vaatimaan tyyppiturvallisia SQLAlchemy-malleja.
-
-B. Data Access Layer (backend_v2/database/repositories/ ja components/)
-
-Muuttuvat tiedostot: Kaikki repositoriot (esim. audit.py, execution.py, workflow.py ja components/agent.py).
-
-Miksi ja Miten: Koodi käyttää nyt TinyDB-spesifiä logiikkaa (esim. Query().id == id). Nämä kaikki refaktoroidaan käyttämään SQLAlchemyn asynkronisia select(), insert(), update() ja delete() -operaatioita.
-
-C. Autentikaatio ja API:t (backend_v2/api/routers/iam/auth.py, users.py & backend_v2/services/auth.py)
-
-Muuttuvat tiedostot: Kirjautumisen, rekisteröitymisen ja salasanojen käsittely.
-
-Miksi ja Miten: Oma logiikka salasanojen tai lokaalien tokenien pyörittämiseen poistetaan tietoturvariskinä ja SSOT-periaatteen vastaisena. Tilalle luodaan Depends-injektio (get_current_user), joka validoi Firebase JWT-tokenin firebase_admin-kirjastolla ja suorittaa "Lazy Provisioningin" (kuten Luku 3).
-
-D. DTO:t ja Domain-mallit (backend_v2/models/dtos/ & domain/)
-
-Muuttuvat tiedostot: Kaikki Pydantic-mallit.
-
-Miksi ja Miten: Löyhät tyypitykset (esim. id: int | str) kiristetään muotoon id: uuid.UUID. Luokkiin lisätään model_config = ConfigDict(from_attributes=True), mikä mahdollistaa saumattoman sillan: FastAPI voi hakea koodissasi SQLAlchemyn objektin ja muuntaa sen suoraan JSON:iksi ilman manuaalista mappauskoodia.
-
-E. Tiedostopalvelut (backend_v2/services/storage.py, file_driver.py)
-
-Muuttuvat tiedostot: Kaikki funktiot, jotka operoivat fyysisillä tavuilla.
-
-Miksi ja Miten: Binäärien luku (.read()) ja kirjoitus (.write()) poistetaan backendistä RAM-muistin suojelemiseksi. Luokat refaktoroidaan URL-generaattoreiksi, jotka tallentavat Postgresiin FileMetadata-rivin ja kutsuvat Firebase Admin SDK:n Signed URL -metodeja.
-
-F. Seed-skriptit ja Skeemanhallinta (backend_v2/seed/run_seed.py, wipe_user_data.py, seed_registry.py)
-
-Muuttuvat tiedostot: Seedaustyökalut.
-
-Miksi ja Miten:
-
-run_seed.py refaktoroidaan luomaan "System Seed" -data suoraan SQLAlchemyn objektien avulla idempotentisti (kuten Luku 4).
-
-wipe_user_data.py muutetaan ajamaan puhtaita Postgres SQL-komentoja (TRUNCATE TABLE users CASCADE).
-
-seed_registry.py voidaan todennäköisesti poistaa.
-
-Alembic: Koodikannasta puuttuu skeeman versiohallinta. Ajamalla alembic init -t async alembic otetaan käyttöön tietokannan versionhallinta, jonka CI/CD-putki ajaa tuotantoon mennessä.
+# KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTOINTISUUNNITELMA (2026)
+## GCP Cloud Run, PostgreSQL 19 Zero-ORM, B2B SaaS IAM & Cloud Storage
+
+> [!NOTE]
+> **Arkkitehtuurin tila ja Single Source of Truth (SSOT)**
+> Tämä asiakirja kokoaa yhteen Cognitive Quorumin tuotantopystytyksen kokonaiskuvan Google Cloud Platformilla (`europe-north1` / Hamina, Suomi). Se korvaa vanhentuneet SQLAlchemy 2.0-, Alembic- ja TinyDB-luonnokset ja nojaa suoraan Quorumin virallisiin 2026-arkkitehtuuristandardeihin:
+> 1. **PostgreSQL 19 Zero-ORM** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`)
+> 2. **B2B SaaS IAM, Token Exchange & Enterprise Hardening** (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`)
+> 3. **GCP Production Deployment** (`@[docs/epic/EPIC_74_Production_Deployment_GCP.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]`, tracker: `@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]`)
+
+---
+
+## Luku 0: Pilvi-infrastruktuuri ja Verkkoympäristö (GCP europe-north1)
+
+> [!NOTE]
+> **GCP-tuotantopystytyksen ja infrastruktuurin suunnitelma & tracker (EPIC 74)**
+> Yksityiskohtainen arkkitehtoninen toteutussuunnitelma ja vaiheittainen seurantadokumentti:
+> * **Toteutussuunnitelma:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]`
+> * **Seurantadokumentti (Tracker):** `@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]`
+
+Tuotantoympäristö provisioidaan Google Cloud Platformin Haminan datakeskukseen (`europe-north1`) samaan GCP-projektiin, jossa Firebase Auth ja Storage sijaitsevat:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Google Cloud Platform                        │
+│                    (europe-north1 / Finland)                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────┐    ┌──────────────────────┐          │
+│  │  Cloud Run: API      │    │  Cloud Run: Worker   │          │
+│  │  (quorum-api)        │    │  (quorum-worker)     │          │
+│  │  min: 1, max: 10     │    │  min: 1, max: 5      │          │
+│  │  2 vCPU / 2 GB       │    │  2 vCPU / 4 GB       │          │
+│  │  Tilaton (Stateless) │    │  Arq async daemon    │          │
+│  └──────────┬───────────┘    └──────────┬───────────┘          │
+│             │ VPC Connector (Private IP) │                      │
+│             ▼                            ▼                      │
+│  ┌──────────────────────┐    ┌──────────────────────┐          │
+│  │  Cloud SQL           │    │  Memorystore         │          │
+│  │  (PostgreSQL 19)     │    │  (Redis 7 / 8)       │          │
+│  │  PgBouncer pooling   │    │  Kill-Switch &       │          │
+│  │  Private IP (VPC)    │    │  FinOps Rate Limit   │          │
+│  │  PITR: 7-14 päivää   │    │  Private IP (VPC)    │          │
+│  └──────────────────────┘    └──────────────────────┘          │
+│                                                                 │
+│  ┌──────────────────────┐    ┌──────────────────────┐          │
+│  │  Firebase Auth       │    │  Vertex AI & LiteLLM │          │
+│  │  (IdP / SSO)         │    │  BYOK LLM Provider   │          │
+│  │  Google / Email      │    │  Context Caching     │          │
+│  └──────────────────────┘    └──────────────────────┘          │
+│                                                                 │
+│  ┌──────────────────────┐    ┌──────────────────────┐          │
+│  │  Cloud Storage       │    │  Secret Manager      │          │
+│  │  (Direct Signed URLs)│    │  (DATABASE_URL,      │          │
+│  │  PDF & User Inputs   │    │   JWT Secret, KMS)   │          │
+│  └──────────────────────┘    └──────────────────────┘          │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────┐          │
+│  │  Cloud Load Balancer + Cloud Armor               │          │
+│  │  HTTPS-terminointi, DDoS-suojaus, Custom Domain  │          │
+│  └──────────────────────────────────────────────────┘          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 0.1 Cloud SQL for PostgreSQL 19
+* **Versio:** PostgreSQL 19 (natiivi `uuidv7()`, `uuid_extract_timestamp() VIRTUAL`, `default_toast_compression = lz4`, `json_array()`).
+* **Verkkoeristys (VPC):** Public IP on kytketty kokonaan pois. Kantaan pääsee ainoastaan sisäisen VPC-verkon (`quorum-vpc`) ja Serverless VPC Access Connectorin kautta.
+* **Yhteysallas (PgBouncer):** Sisäänrakennettu PgBouncer (Transaction pooling mode). Estää asynkronisen Python-backendin yhteyksien loppumisen.
+* **Varmuuskopiot:** Point-in-Time Recovery (PITR) 7–14 päivää automaattisella säilytyksellä.
+
+### 0.2 Memorystore for Redis
+* **Käyttötarkoitus:** 
+  1. Istuntojen reaaliaikainen mitätöinti (**Fail-Closed Kill-Switch**, O(1) haku `revoked:usr:{id}`).
+  2. Organisaatiokohtainen pyyntörajoitus (**AI FinOps TPM/RPM Rate Limiting**).
+* **Verkkoeristys:** Private IP samassa VPC-verkossa Cloud Runin kanssa.
+
+### 0.3 Salaisuuksien hallinta (Secret Manager)
+* Nollatoleranssi `.env`-tiedostoille tai kovakoodatuille avaimille tuotannossa.
+* Cloud Run lataa käynnistyessään salaisuudet (`DATABASE_URL`, `JWT_SECRET_KEY`, Cloud KMS -avaimet) suoraan GCP Secret Managerista ympäristöinjektiona.
+
+### 0.4 Verkkotunnukset, Reititys ja `quorum.ai` -varaus
+Tuotannon verkkoinfrastruktuuri ja kuormantasaus konfiguroidaan tukemaan kansainvälistä pääverkkotunnusta **`quorum.ai`** (rinnalla toissijainen `quorum.fi`):
+* **1. Verkkotunnuksen saatavuuden tarkistus ja hankinta (`quorum.ai` & `quorum.fi`):**
+  * Ennen kuormantasaajan ja SSL-varmenteen pystytystä tarkistetaan `quorum.ai`- ja `quorum.fi`-verkkotunnusten saatavuus Google Cloud Domainsilla (`gcloud domains registrations search-domains quorum.ai`) tai valtuutetulla verkkotunnusvälittäjällä (Cloudflare Registrar `.ai`-tunnuksille ja Traficom-välittäjä `.fi`-tunnuksille).
+  * **Mikäli `quorum.ai` on vapaana:** Rekisteröidään `quorum.ai` ensisijaiseksi globaaliksi verkkotunnukseksi ja `quorum.fi` rinnakkaiseksi kotimaiseksi verkkotunnukseksi sekä ohjataan nimipalvelimet (`NS`-tietueet) Google Cloud DNS -vyöhykkeeseen.
+  * **Toimintamalli, mikäli `quorum.ai` on jo varattu kolmannelle osapuolelle:** Rekisteröidään vapaana oleva ensisijainen verkkotunnus (`cognitivequorum.ai` tai `quorum.fi`) ja asetetaan se Cloud Run -ympäristömuuttujiin (`PRIMARY_DOMAIN`, `JWT_ISSUER`, `JWT_AUDIENCE`, `CORS_ORIGINS`). Koska `@[backend_v2/settings.py#L54-L1053]` lukee kaikki domain- ja JWT-väitteet dynaamisesti ympäristömuuttujista (`AliasChoices`), Python- tai Flutter-lähdekoodiin ei tarvita yhtäkään koodimuutosta.
+* **2. Domain-jako ja reititys (Cloud Load Balancer & Cloud DNS):**
+  * `api.quorum.ai` $\rightarrow$ Cloud Run API (`quorum-api`) REST/SSE-rajapinnat.
+  * `app.quorum.ai` / `studio.quorum.ai` $\rightarrow$ Flutter Web & Studio -käyttöliittymä.
+  * `quorum.ai` $\rightarrow$ Yrityksen pääsivusto / landing page ja ohjaus sovellukseen.
+  * `api.quorum.fi` & `app.quorum.fi` $\rightarrow$ Rinnakkaiset toissijaiset osoitteet automaattisella 301-ohjauksella tai rinnakkaistuella.
+* **3. Google-Managed SSL/TLS -monivarmenne (SAN Certs):**
+  * Luodaan Google-Managed SSL-sertifikaatti (`quorum-san-cert`), joka kattaa kaikki alidomainit (`quorum.ai`, `api.quorum.ai`, `app.quorum.ai`, `studio.quorum.ai`, `quorum.fi`, `api.quorum.fi`, `app.quorum.fi`) yhdellä globaalilla Anycast IP -osoitteella (`quorum-global-ip`).
+* **4. Cloud DNS & SAN SSL -provisiointikomennot (PowerShell):**
+  ```powershell
+  gcloud domains registrations search-domains quorum.ai
+  gcloud compute addresses create quorum-global-ip --global --ip-version IPV4
+  gcloud dns managed-zones create quorum-ai-zone --dns-name="quorum.ai." --description="Cognitive Quorum Primary Production DNS Zone" --visibility=public
+  gcloud dns record-sets create quorum.ai. --zone=quorum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
+  gcloud dns record-sets create api.quorum.ai. --zone=quorum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
+  gcloud dns record-sets create app.quorum.ai. --zone=quorum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
+  gcloud dns record-sets create studio.quorum.ai. --zone=quorum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
+  gcloud compute ssl-certificates create quorum-san-cert --domains="quorum.ai,api.quorum.ai,app.quorum.ai,studio.quorum.ai,quorum.fi,api.quorum.fi,app.quorum.fi" --global
+  ```
+* **5. CORS & Origin Security (`@[backend_v2/settings.py#L54-L1053]`):**
+  * API-ingress sallii nimenomaisesti tuotanto-originit: `https://quorum.ai`, `https://app.quorum.ai`, `https://studio.quorum.ai`, `https://quorum.fi`, `https://app.quorum.fi`.
+* **6. Firebase Auth & OAuth Redirect URIs:**
+  * Lisätään Firebase Authenticationin *Authorized Domains* -listalle: `quorum.ai`, `app.quorum.ai`, `api.quorum.ai`, `quorum.fi`, `app.quorum.fi`.
+* **7. JWT Issuer & Audience SSOT:**
+  * Quorum Local JWT:n token-väitteet: `iss = "https://api.quorum.ai"`, `aud = "https://quorum.ai"`.
+
+---
+
+## Luku 1: Zero-ORM Työkalupakki ja Ajonaikaiset Kirjastot
+
+Tuotantoarkkitehtuurissa poistetaan kaikki demotason tiedostokannat (TinyDB) sekä raskaat välikädet (SQLAlchemy, Alembic, hashids).
+
+### 1.1 Poistettavat legacy-riippuvuudet
+* `tinydb` (tiedostopohjainen demotietokanta).
+* `sqlalchemy` & `alembic` (korvattu puhtaalla Zero-ORM `asyncpg`:llä ja SQL DDL:llä).
+* `hashids` (korvattu RFC 9562 `PrefixedUUID7` -standardilla).
+
+### 1.2 Tuotantotason Python-ajoympäristö (`backend_v2`)
+```toml
+# Hallitaan uv-paketinhallinnalla (uv.lock SSOT)
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "asyncpg>=0.30.0",          # Natiivi asynkroninen PostgreSQL-ajuri
+    "pydantic>=2.10.0",         # DTOt ja domain-validointi (pydantic_core Rust)
+    "pydantic-settings>=2.6.0", # Tyypitetyt ympäristömuuttujat
+    "redis>=5.2.0",             # Asynkroninen Redis Kill-Switchille ja Arqille
+    "arq>=0.26.0",              # Asynkroninen taustatyöjono Cloud Run Workerille
+    "firebase-admin>=6.6.0",    # Firebase ID Token validointi ja Signed URLs
+    "google-cloud-storage>=2.19.0",
+    "google-cloud-secret-manager>=2.21.0",
+    "cryptography>=44.0.0",     # BYOK Envelope Encryption (AES-256-GCM)
+    "logfire>=2.10.0",          # Hajautettu OpenTelemetry-observabiliteetti
+]
+```
+
+---
+
+## Luku 2: Tietokantamallit ja Natiivi UUIDv7 (Zero-ORM SSOT)
+
+PostgreSQL 19 on Single Source of Truth (SSOT) kaikelle sovellusdatalle. Tiedostojen binäärejä ei säilytetä relaatiokannassa, vaan kanta hallinnoi ainoastaan metadataa.
+
+### 2.1 Pääavaimet ja RFC 9562 `PrefixedUUID7`
+* Kaikki SQL-taulut käyttävät primääriavaimena PostgreSQL 19:n natiivia `uuidv7()`-arvoa (`UUID PRIMARY KEY DEFAULT uuidv7()`).
+* Python- ja Flutter-rajapintakerroksessa avaimet sillataan tyyppiturvalliseen **`PrefixedUUID7`** -muotoon (`OPAQUE_STRIPE_ID_REGEX`):
+  * Käyttäjät: `usr_<hex32>` (esim. `usr_01950000000070008000000000000001`)
+  * Organisaatiot: `org_<hex32>`
+  * Kutsut: `inv_<hex32>`
+  * Salaisuudet (BYOK): `sec_<hex32>`
+  * Graafisolmut: `nod_<hex32>`, Kaaret: `edg_<hex32>`, Suoritukset: `exe_<hex32>`
+
+### 2.2 SQL DDL -skeema (`001_pg19_uuidv7_schema.sql`)
+Kanta alustetaan ilman Alembicia suoralla, idempotentilla SQL DDL -tiedostolla:
+
+```sql
+-- PostgreSQL 19 Natiivi Skeema (Ote: users, organizations, file_metadata)
+
+CREATE TABLE organizations (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    name VARCHAR(255) NOT NULL,
+    slug VARCHAR(128) UNIQUE,
+    tier VARCHAR(64) NOT NULL DEFAULT 'standard',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    quota_limit NUMERIC(10,2) NOT NULL DEFAULT 100.00,
+    tpm_limit BIGINT NOT NULL DEFAULT 100000,
+    rpm_limit INT NOT NULL DEFAULT 60,
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL
+);
+
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
+    firebase_uid VARCHAR(128) UNIQUE NOT NULL,
+    email VARCHAR(320) NOT NULL,
+    role VARCHAR(32) NOT NULL DEFAULT 'USER',
+    name VARCHAR(255),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    deleted_at TIMESTAMPTZ, -- GDPR Soft-Delete
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL
+);
+
+CREATE INDEX idx_users_org ON users(organization_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_users_firebase_uid ON users(firebase_uid);
+
+CREATE TABLE file_metadata (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    filename VARCHAR(255) NOT NULL,
+    size_bytes BIGINT NOT NULL,
+    storage_path VARCHAR(1024) NOT NULL UNIQUE,
+    mime_type VARCHAR(128) NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'pending', -- pending -> uploaded -> verified
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL
+);
+```
+
+### 2.3 Pydantic V2 Domain-malli (`backend_v2/models/auth.py`)
+SQLAlchemy-luokkien sijaan backend käyttää muuttumattomia Pydantic V2 -malleja:
+```python
+class User(UserBase):
+    """Immutable User Domain Entity (Zero-ORM SSOT)."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    id: Annotated[str, Field(pattern=r"^usr_[a-fA-F0-9]{32}$")]
+    organization_id: Annotated[str, Field(pattern=r"^org_[a-fA-F0-9]{32}$")]
+    firebase_uid: Annotated[str, Field(min_length=1, max_length=128)]
+    email: Annotated[EmailStr, Field(description="User email address")]
+    role: Annotated[UserRole, Field(description="System authorization role")]
+    is_active: Annotated[bool, Field(default=True)]
+    deleted_at: Annotated[datetime | None, Field(default=None)]
+```
+
+---
+
+## Luku 3: B2B SaaS IAM, Token Exchange ja Turvallisuus
+
+### 3.1 RFC 8693 Token Exchange & Session Upgrade
+Tietokantaa ei koskaan kysellä jokaisella saapuvalla HTTP-pyynnöllä:
+1. **Kirjautuminen / Vaihto:** Asiakassovellus kirjautuu Firebase Authiin ja lähettää lyhytikäisen Firebase ID Tokenin backendille: `POST /api/v2/iam/auth/exchange`.
+2. **Kertatarkistus:** Backend tarkistaa Firebase-allekirjoituksen Firebase Admin SDK:lla, hakee käyttäjän kannasta `firebase_uid`-kentällä ja varmistaa aktiivisuuden (`deleted_at IS NULL`).
+3. **Quorum Local JWT:** Backend myöntää asiakkaalle 15 minuutin sisäisesti allekirjoitetun JWT-tokenin, joka sisältää valtuutustiedot:
+   * `sub`: `usr_<hex32>`
+   * `org`: `org_<hex32>`
+   * `role`: `UserRole`
+4. **0,1 ms API-validointi RAMissa:** Kaikki API-kutsut käyttävät Local JWT:tä. Sen validointi tapahtuu FastAPI:n `get_current_user_from_header` -riippuvuudessa suoraan muistissa ilman tietokantalatenssia.
+
+### 3.2 Redis Fail-Closed Kill-Switch
+Jos ylläpitäjä sulkee käyttäjätilin, muuttaa roolia tai käyttäjä poistetaan GDPR-pyynnöllä:
+* Backend kirjoittaa välittömästi Redisiin avaimen `revoked:usr:{user.id}` (TTL = 900 s).
+* Jokainen API-kutsu tarkistaa O(1) nopeudella Redisistä, ettei käyttäjä ole estolistalla.
+* **Fail-Closed:** Jos Redis-yhteys katkeaa, järjestelmä palauttaa `503 Service Unavailable`, estäen oikeuksien vuotamisen.
+
+### 3.3 Enterprise BYOK (Bring Your Own Key)
+Organisaatiot voivat tuoda omat LLM- ja MCP-avaimensa:
+* Avaimet salataan `Cloud KMS` Envelope Encryption -menetelmällä tai tallennetaan GCP Secret Manager -viitteinä.
+* Avaimet puretaan EPIC 160:ssä luotavassa (created) `SecretService`-palvelussa pyyntökohtaisesti `pydantic.SecretStr`-muotoon ja injektoidaan LLM- ja MCP-kutsuille ilman lokivuotoja.
+
+---
+
+## Luku 4: Firebase Storage ja Direct-to-Cloud Signed URLs
+
+Raskaat binäärit (PDF-raportit, syötetiedostot) eivät saa koskaan kulkea Python-backendin RAM-muistin läpi.
+
+### 4.1 Latausputki (Upload Flow)
+1. **Pyyntö:** Frontend pyytää API:lta latauslupaa: `POST /api/v2/files/upload-request` (tiedoston nimi, koko, MIME-tyyppi).
+2. **Rekisteröinti:** Backend luo tietokantaan `file_metadata`-rivin tilaan `pending`.
+3. **Signed URL:** Backend luo Firebase Admin SDK:lla aikarajatun (15 min) PUT-osoitteen, johon sidotaan sallittu tiedostokoko ja MIME-tyyppi.
+4. **Suoralataus:** Frontend lähettää binäärin suoraan Firebase Storageen.
+5. **Vahvistus:** Frontend kutsuu `POST /api/v2/files/{id}/confirm`, jolloin backend varmistaa tiedoston olemassaolon pilvessä ja asettaa tilaksi `uploaded`.
+
+### 4.2 Orpotiedostojen siivous (Orphan Cleanup CronJob)
+Jos asiakkaan yhteys katkeaa kesken latauksen, pilveen ei jätetä roskatiedostoja:
+* Arq-worker ajaa kerran vuorokaudessa taustatyön, joka etsii yli 24h vanhat `pending`-tilaiset tietokantarivit.
+* Taustatyö tuhoaa tiedoston Storagesta ja poistaa metadatarivin tietokannasta.
+
+### 4.3 GDPR-poistoketju (Split-Brain -suojaus)
+Käyttäjätilin poistuessa suoritetaan tiukka poistojärjestys:
+1. Poistetaan käyttäjän tiedostot Firebase Storagesta.
+2. Poistetaan käyttäjätili Firebase Authista.
+3. Merkitään PostgreSQL-tietokannassa `deleted_at = NOW()`, `is_active = FALSE` ja anonymisoidaan sähköposti (`deleted_usr_...@anonymized.quorum.local`), säilyttäen analyysien suoritushistoria eheänä.
+
+---
+
+## Luku 5: Idempotentti Seeding ja Skeemanhallinta
+
+Tietokannan alustus ja testidata hoidetaan täysin ilman vanhoja JSON-tiedostoja:
+* **DDL-migraatio:** `001_pg19_uuidv7_schema.sql` luo taulut idempotentisti (`CREATE TABLE IF NOT EXISTS`).
+* **Seeding-skripti (`backend_v2/seed/run_seed.py`):**
+  * Lukee järjestelmän pakolliset perustiedot (järjestelmäorganisaatio `ROOT_SYSTEM = "org_01950000000070008000000000000000"`, oletustyönkulut, prompt-lohkot).
+  * Tarkistaa rivit Natural Key -kenttien perusteella, eikä luo tuplia toistuvissakaan CI/CD-ajoissa.
+
+---
+
+## Luku 6: Toteutustiekartta ja Riippuvuudet (The Master Waves)
+
+Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytkeytyy suoraan virallisiin Epiceihin ja hyväksyttyihin toteutussuunnitelmiin. Järjestys perustuu `@[docs/koodikannan_purku_ja_migraatiojarjestys.md]` -analyysiin, jolla eliminoidaan kaksoistyö ja estetään purettujen moduulien desynkronoituminen:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│ 1A. LLM Strategy Monolithin purku (SUORITETTU & LUKITTU - EPIC 157)   │
+│     llm.py (1 090 LOC) -> llm_strategy/ (4 erillistä vaihetta)         │
+│     Plan: docs/epic/tasks_llm/ | Tracker: llm_decomposition_tracker.md │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+┌───────────────────────────────────▼────────────────────────────────────┐
+│ 1B. LLM Provider & Client Engine -purku (Aalto 3.2)                    │
+│     provider.py (1 610 LOC), handler.py (911 LOC), client.py (845 LOC) │
+│     -> backend_v2/llm/engine/ (semaphore_pool, cost, error, executor) │
+│     Komento: /tier3-god-code-decomposition backend_v2/llm/provider.py  │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+┌───────────────────────────────────▼────────────────────────────────────┐
+│ 2. PostgreSQL 19 Zero-ORM & dag_executor.py -purku (EPIC 151)          │
+│    - asyncpg-allas, PrefixedUUID7, 12 taulua, Zero-ORM (ei SQLAlchemy) │
+│    - TinyDB-lukkojen poisto & dag_executor.py (1 640 LOC) purku        │
+│      tapahtumapohjaiseen trace_events-malliin (wave_scheduler jne.)    │
+│    Plan: docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md    │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+┌───────────────────────────────────▼────────────────────────────────────┐
+│ 3. B2B SaaS IAM & Hardening (EPIC 160)                                 │
+│    Token Exchange (RAM <0,1 ms), Redis Kill-Switch, BYOK SecretService │
+│    Epic: docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md  │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+┌───────────────────────────────────▼────────────────────────────────────┐
+│ 4. Storage & Tiedostopalvelut (Tämä suunnitelma, Luku 4)               │
+│    Firebase Storage Signed URLs, FileMetadata, orposiivous             │
+│    Plan: docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+┌───────────────────────────────────▼─────────────────────────────────────────────────┐
+│ 5. GCP Tuotantopystytys & quorum.ai Domain (EPIC 74 & Pilvi-infra)                  │
+│    Cloud SQL PG19, Cloud Run API & Worker, Memorystore, Secret Manager              │
+│    Google-Managed SSL (api.quorum.ai, app.quorum.ai, quorum.fi)                    │
+│    Epic: docs/epic/EPIC_74_Production_Deployment_GCP.md                             │
+│    Plan: docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md │
+│    Tracker: docs/implementationplans/TRACKER_GCP_Production_Deployment.md          │
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Luku 7: Monoliittien ja "God Code" -arkkitehtuurin Purkukartta (Master SSOT)
+
+Jotta tuotantokoodi on testattavaa, helposti ylläpidettävää ja skaalautuvaa, Quorumin arkkitehtuurisäännöt (`@[ki_god_code_prevention.md]`) vaativat kaikkien historiallisten monoliittien purkamisen pieniin, yhden vastuun luokkiin ja palveluihin (Single Responsibility Principle & Hexagonal CQRS).
+
+Koodikannassa on kartoitettu ja aikataulutettu kaikki 12 kriittistä monoliittialuetta. Jokaisella on oma virallinen eepoksensa tai toteutussuunnitelmansa, ja niiden purku on sidottu tarkasti oikeisiin aaltoihin:
+
+| Monoliitti / God Code -alue | Alkuperäinen koko & riski | Purkutoimenpide & tavoitearkkitehtuuri | Virallinen Epic / Toteutussuunnitelma | Suoritusvaihe & Tila |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. DAG Workflow Executor** | `backend_v2/services/orchestrator/dag_executor.py`<br>**1 640 LOC** (koko järjestelmän suurin tiedosto, `execute_workflow` 1 118 LOC). Raskas TinyDB-lukitus (`_update_lock`), tilablobien uudelleenkirjoitus. | Puretaan 4 itsenäiseen moduuliin:<br>1. `wave_scheduler.py` (Kahnin aallot)<br>2. `state_machine.py` (`trace_events` append-only)<br>3. `cancellation_manager.py` (DLQ/TaskGroup)<br>4. `telemetry_broadcaster.py` (SSE/WS) | **PostgreSQL 19 & Event Sourcing**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`<br>`@[docs/epic/EPIC_151_PostgreSQL_Clean_Slate_Migration_and_TinyDB_Eradication.md]` | **Vaihe 2**<br>Puretaan PostgreSQL-migraation yhteydessä (ks. perustelu alla) |
+| **2. LLM Provider Core & Engine** | `backend_v2/llm/provider.py` (**1 610 LOC**), `handler.py` (**911 LOC**), `client.py` (**845 LOC**). Yhdistää semaforit, LiteLLM-kutsut, hinnoittelun ja virheiden parsinnan. | Puretaan alipakettiin `backend_v2/llm/engine/`: `semaphore_pool.py`, `cost_calculator.py`, `error_classifier.py`, `execution_engine.py`. | **LLM Engine Decomposition**<br>`/tier3-god-code-decomposition backend_v2/llm/provider.py` | **Vaihe 1B**<br>Suoritetaan LLM Strategian jälkeen ennen kantaa |
+| **3. LLM Strategy & Orchestrator** | `backend_v2/services/orchestrator/strategies/llm.py`<br>**1 090 LOC**. Vastasi yhtä aikaa prompteista, skeemoista, työkaluista, LLM-kutsusta ja telemetriasta. | 4-vaiheinen Strangler Fig -pilkonta pakettiin `llm_strategy/`: `blueprint_and_metadata_stage`, `prompt_and_schema_stage`, `engine_retry_stage`, `trace_event_stage` ja fasaadi `__init__.py` (< 200 LOC). Monoliitti tuhotaan. | **EPIC 157**<br>`@[docs/epic/llm_decomposition_tracker.md]`<br>`@[docs/epic/tasks_llm/]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` (hashit `b9d66471a`, `3f04a6e2f`) |
+| **4. Tietokantaydin & Tallennus** | `tinydb_driver.py`, `firestore_driver.py` ja `db_v2.json.lock`. Keräsivät sanakirjoja (`dict[str, Any]`), estivät rinnakkaisuuden ja lukitsivat levyn. | Korvataan puhtaalla Zero-ORM -arkkitehtuurilla: heksagonaaliset CQRS-portit (`GraphMutationPort`, `EntityPersistencePort`), `PostgresPoolManager` (`asyncpg`) ja binääriset `pydantic_core` Rust-koodekit. | **PostgreSQL 19 Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` | **Vaihe 2**<br>Valmis suunnitelma, alkaa heti LLM-purkujen jälkeen |
+| **5. Taustatyöntekijät (Workers)** | `backend_v2/worker.py`<br>**2 000+ LOC**. Sekoitti Arq-daemonin käynnistyksen, raskaat DAG-analyysit ja raporttien generoinnin yhteen sekamelskaan. | Pilkottu kolmeen: `worker.py` on pelkkä ohut daemon-käynnistys; raskas laskenta on `backend_v2/workers/execution_worker.py` ja raporttien renderöinti `backend_v2/workers/report_worker.py`. | **Worker Decoupling Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
+| **6. Raportointipalvelu** | `backend_v2/services/report_service.py`<br>**749 LOC**. Käsitteli raporttien elinkaarta, Markdown/PDF-kasausta ja tiedostolukua. | Purettu pakettiin `backend_v2/services/report/`: `lifecycle_service.py`, `compilation_service.py`, `format_reader_service.py`. | **Report Service Decomposition**<br>`@[docs/koodikannan_purku_ja_migraatiojarjestys.md]` | **SUORITETTU & LUKITTU**<br>Vanha tiedosto poistettu |
+| **7. Raporttiviennin Flattenerit** | `backend_v2/services/export_service.py` (**1 123 LOC**) & aiemmin määritelty (defined) `FlatFileService`. Keräsivät sanakirjamutaatioita ja konvertoivat graafeja löyhästi yhden rivin konevektoreiksi. | Monoliittinen flattener tuhottu; korvattu tyypitetyillä Pydantic V2 DTO-virroilla (`ExportMatrixSummaryRowDTO`, `ExportForensicAtomDTO`, `ExportPayloadDTO`) ja modulaarisella `backend_v2/services/export/` -paketilla. | **Export Tables SSOT Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Report_Tables_SSOT_and_Causal_Export.md]` | **SUORITETTU & LUKITTU**<br>`ki_god_code_prevention.md` |
+| **8. Matriisidomainin Jäsennin** | `backend_v2/services/matrix_domain_parser.py`<br>**732 LOC**. Sekoitti asteikot, atomien jäsennyksen, jakaumamuotoilun ja rivien rakentamisen. | Purettu pakettiin `backend_v2/services/matrix_parser/`: `scale_and_atom_stage.py`, `row_builder_stage.py`, `distribution_formatter.py`. | **Matrix Parser Decomposition**<br>`@[docs/epic/matrix_domain_parser_decomposition_tracker.md]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
+| **9. Sitaattien Lexical Verifier** | `backend_v2/services/orchestrator/anchor_validation_service.py`<br>**855 LOC**. Hoiti yhtä aikaa tekstin normalisoinnin, fuzzy-tarkistuksen, morfologian ja tilasiirtymät. | Pilkottu modulaariseksi paketiksi `backend_v2/services/orchestrator/anchor_validation/`: `lexical_normalizer.py`, `lexical_matcher.py`, `evidence_validator.py`, `atom_evaluation_processor.py`. | **Anchor Validation Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Multilingual_Rule_Based_Stemming_in_Anchor_Validation.md]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
+| **10. Keskustelun PDF-ingressi** | `backend_v2/services/ingress/pdf_chat_extractor.py`<br>**682 LOC**. Sekoitti Skia-vektoripiirron, taulukoiden rekonstruoinnin ja puheenvuorojen segmentoinnin. | Pilkottu 3-vaiheiseksi liukuhihnaksi `backend_v2/services/ingress/pdf_extractor/`: `bubble_geometry.py`, `table_and_card_stage.py`, `turn_assembly_stage.py` ja fasaadiksi `pdf_extractor/__init__.py`. | **Chat Ingress SSOT**<br>`@[ki_chat_ingress_and_provenance_architecture.md]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
+| **11. SDUI UI-Mäppääjä** | `backend_v2/services/sdui_mapper_service.py` (juurimonoliitti). Yhdisti laskentalogiikan ja Dumb Painter -renderöinnin. | Juurimonoliitti tuhottu ja siirretty kanoniseen paikkaan `backend_v2/services/sdui/sdui_mapper_service.py`. | **SDUI Dumb Painter Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md]` | **SUORITETTU & LUKITTU**<br>Juurimonoliitti poistettu |
+| **12. Dynaaminen MCP & Työkalukutsu** | `backend_v2/services/mcp/mcp_tool_loop.py` (**651 LOC**) ja Flutterin `StepBuilderView` (lomakemonoliitti). Kovakoodatut työkalut ja kytkökset. | Staattiset työkalut poistettu; korvattu protokolla-agnostisella `GenericMCPClient`:llä, `SchemaFactory`:lla ja JIT-syntetisoijalla. Flutterissa eristetty `McpToolParamsPanel`. | **EPIC 159 (Dynamic MCP)**<br>`@[docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md]`<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]` | **SUORITETTU & KOVENNETTU**<br>`GenericMCPClient` tuotannossa |
+
+---
+
+### Kriittiset arkkitehtoniset säännöt purkujen ajoitukselle:
+
+#### Miksi `dag_executor.py` puretaan nimenomaan PostgreSQL-migraatiossa (Vaihe 2)?
+* **Syy:** `dag_executor.py`:n 1 640 rivistä yli 70 % liittyy nykyiseen **TinyDB-tiedostolukitukseen** (`_update_lock`, `msvcrt/fcntl`) ja monen megatavun `execution_trace`-blobin toistuvaan sarjallistamiseen levylle.
+* Jos `dag_executor.py` yritettäisiin pilkkoa ennen PostgreSQL-vaihetta, jouduttaisiin rakentamaan monimutkaisia väliaikaisia lukitus- ja tilanhallintamoduuleita tiedostokannalle — ja heittämään ne heti perään roskiin tietokantamigraatiossa.
+* PostgreSQL 19:ssä siirrytään **append-only `trace_events` -tapahtumavirtaan** (`asyncpg`), jolloin koko tiedostolukitus poistuu luonnostaan. `dag_executor.py` puretaan suoraan neljään puhtaaseen tapahtumamoduuliin (`wave_scheduler.py`, `state_machine.py`, `cancellation_manager.py`, `telemetry_broadcaster.py`) ilman väliaikaista koodijätettä.
+
+#### Miksi `provider.py` ja LLM-ydin puretaan heti LLM Strategian jälkeen (Vaihe 1B)?
+* **Syy:** EPIC 159 (Dynamic MCP) on jo poistanut vanhat staattiset työkalut (`tavily.py`, `wikipedia.py`, `models/domain/tools.py`) ja stabiloinut `GenericMCPClient`:in ja `ToolDispatcher`:in.
+* Kun `strategies/llm.py` valmistuu (Vaihe 1A), koko LLM-infrastruktuuri on puhdas vanhoista MCP-riippuvuuksista. Tällöin `provider.py` voidaan pilkkoa puhtaiksi itsenäisiksi moottoreiksi (`semaphore_pool.py`, `cost_calculator.py`, `error_classifier.py`, `execution_engine.py`) ennen tietokantamigraatiota.
+
+---
+
+## Luku 8: Ihmisen Ohjauskeskus ja Työjärjestys (Human Executive Playbook)
+
+> [!IMPORTANT]
+> **Kaikki tekeminen tapahtuu suunnitelmien ja epicien kautta**
+> Kehittäjän tai tekoälyn ei tule koskaan ryhtyä kirjoittamaan suoraa koodia tai muuttamaan arkkitehtuuria ilman hyväksyttyä toteutussuunnitelmaa (`IMPLEMENTATION_PLAN_*.md`) ja seurantatiedostoa (`TRACKER_*.md`). Tämä takaa, että jokainen muutos testataan automaattisissa laatuporteissa (`universal_quality_gates`).
+
+Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askeleelta:
+
+### Askel 1: Saata maaliin LLM Strategy -purku (Vaihe 1A) — [SUORITETTU & LUKITTU]
+* **Tavoite:** Viimeistele `backend_v2/services/orchestrator/strategies/llm.py`:n poisto ja paketin `llm_strategy/__init__.py` käyttöönotto.
+* **Seurantatiedosto:** `@[docs/epic/llm_decomposition_tracker.md]`
+* **Tila:** Suoritettu ja kovennettu (hash `b9d66471a`, Tier 2 Hardening `3f04a6e2f`). Monoliitti poistettu ja korvattu 199-rivisellä fasaadilla `llm_strategy/__init__.py`.
+* **Laatuvarmennus:** 10/10 laatuporttia läpäisty (`58 passed, 99.53%` kattavuus).
+
+---
+
+### Askel 2: Suorita LLM Provider & Client Engine -purku (Vaihe 1B)
+* **Tavoite:** Pura `backend_v2/llm/provider.py` (1 610 LOC), `handler.py` (911 LOC) ja `client.py` (845 LOC) puhtaiksi alipalveluiksi (`backend_v2/llm/engine/`).
+* **Suunnittelukomento (God Code Planner):**
+  ```powershell
+  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier3-god-code-decomposition backend_v2/llm/provider.py --full-auto"
+  ```
+* **Trackertiedoston luonti & suoritus:**
+  ```powershell
+  agy -i "/tier1-tracker-generator [NEW] @[docs/epic/provider_decomposition_plan.md]"
+  uv run python scripts/auto_phase_runner.py --tracker docs/epic/provider_decomposition_tracker.md
+  ```
+
+---
+
+### Askel 3: Suorita PostgreSQL 19 Zero-ORM & `dag_executor.py` -purku (Vaihe 2)
+* **Tavoite:** Korvaa TinyDB ja JSON-levylukot PostgreSQL 19:llä, `asyncpg`:llä ja `trace_events` append-only -tapahtumavirralla. Pura samalla `dag_executor.py` (1 640 LOC) neljään suoritusmoduuliin.
+* **Toteutussuunnitelma:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` (EPIC 151)
+* **1. Luo seurantatiedosto:**
+  ```powershell
+  agy -i "/tier1-plan-tracker-generator @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]"
+  ```
+* **2. Käynnistä automaattinen vaiheittainen toteutus:**
+  ```powershell
+  agy -i "/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] [NEW] @[docs/implementationplans/TRACKER_PostgreSQL.md]"
+  ```
+* **Laatuvarmennus:**
+  ```powershell
+  uv run python scripts/backend_audit_loop.py backend_v2/database/ --test --ast-strict
+  uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/execution/ --test --ast-strict
+  ```
+
+---
+
+### Askel 4: Suorita B2B SaaS IAM & Hardening (Vaihe 3)
+* **Tavoite:** Ota käyttöön RFC 8693 Token Exchange, 0,1 ms in-RAM JWT -validointi, Redis Fail-Closed Kill-Switch, moniroolivaltuutus ja luotava (create) [NEW] `SecretService`.
+* **Virallinen Eepos:** `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`
+* **1. Generoi vaihekohtaiset suunnitelmat ja tracker:**
+  ```powershell
+  agy -i "/tier1-planner @[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]"
+  ```
+* **2. Suorita vaiheet multi-phase runnerilla:**
+  ```powershell
+  uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_160_tracker.md
+  ```
+
+---
+
+### Askel 5: Suorita Firebase Storage Direct-to-Cloud Signed URLs (Vaihe 4)
+* **Tavoite:** Toteuta frontendin suoralataus Firebase Storageen (15 min PUT Signed URLs), tiedostometadatan rekisteröinti ja orposiivous-taustatyö.
+* **Toteutussuunnitelma:** `[NEW] @[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]`
+* **Suoritus:**
+  ```powershell
+  agy -i "/tier2-execute --full-auto [NEW] @[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]"
+  ```
+
+---
+
+### Askel 6: Suorita GCP-tuotantopystytys & `quorum.ai` Domain (Vaihe 5)
+* **Tavoite:** Provisioi GCP europe-north1 -resurssit (Cloud SQL PG19, Cloud Run API & Worker, Memorystore Redis, Secret Manager, Cloud Armor, Cloud Load Balancer) ja kytke Google-Managed SAN SSL `api.quorum.ai`-, `app.quorum.ai`- ja `quorum.fi`-osoitteille.
+* **Virallinen Eepos:** `@[docs/epic/EPIC_74_Production_Deployment_GCP.md]`
+* **Toteutussuunnitelma:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]`
+* **Seurantadokumentti (Tracker):** `@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]`
+* **1. Luo seurantatiedosto (mikäli ei vielä luotu):**
+  ```powershell
+  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier1-plan-tracker-generator @[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]"
+  ```
+* **2. Käynnistä automaattinen suoritus:**
+  ```powershell
+  uv run python scripts/auto_phase_runner.py --tracker docs/implementationplans/TRACKER_GCP_Production_Deployment.md --model gemini-4-argon-high
+  ```
+  tai suoraan itsenäisessä CLI-sessiossa:
+  ```powershell
+  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md] @[docs/implementationplans/TRACKER_GCP_Production_Deployment.md] --full-auto. PERMISSION GRANTED for continuous full-auto execution across all steps. Proceed autonomously through all steps without intermediate confirmations."
+  ```
