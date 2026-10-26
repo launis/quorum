@@ -183,18 +183,20 @@ class McpToolParamsPanel extends StatelessWidget {
                         ),
                       ),
                       AppSpacing.w8,
-                      Container(
-                        padding: AppSpacing.p8,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(AppSpacing.s8),
-                        ),
-                        child: Text(
-                          entry.namespacedAlias,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer,
+                      Flexible(
+                        child: Container(
+                          padding: AppSpacing.p8,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(AppSpacing.s8),
                           ),
-                          overflow: TextOverflow.ellipsis,
+                          child: Text(
+                            entry.namespacedAlias,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
                       if (hasOverrides) ...<Widget>[
@@ -202,6 +204,9 @@ class McpToolParamsPanel extends StatelessWidget {
                         TextButton.icon(
                           key: ValueKey<String>(
                             'mcp_param_reset_${entry.namespacedAlias}',
+                          ),
+                          style: TextButton.styleFrom(
+                            enabledMouseCursor: SystemMouseCursors.click,
                           ),
                           onPressed: () =>
                               _resetToolParams(entry.namespacedAlias),
@@ -286,6 +291,7 @@ class McpToolParamsPanel extends StatelessWidget {
           : (prop.defaultValue is bool ? prop.defaultValue as bool : false);
       return SwitchListTile(
         key: ValueKey<String>('mcp_param_bool_${namespacedAlias}_$propName'),
+        mouseCursor: SystemMouseCursors.click,
         contentPadding: EdgeInsets.zero,
         title: Text(propName, overflow: TextOverflow.ellipsis),
         subtitle: prop.description.isNotEmpty
@@ -391,6 +397,7 @@ class _SchemaTextParamField extends StatefulWidget {
 
 class _SchemaTextParamFieldState extends State<_SchemaTextParamField> {
   late final TextEditingController _controller;
+  late final FocusNode _focusNode;
 
   @override
   void initState() {
@@ -398,6 +405,7 @@ class _SchemaTextParamFieldState extends State<_SchemaTextParamField> {
     _controller = TextEditingController(
       text: widget.currentValue?.toString() ?? '',
     );
+    _focusNode = FocusNode();
   }
 
   @override
@@ -414,6 +422,7 @@ class _SchemaTextParamFieldState extends State<_SchemaTextParamField> {
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -423,6 +432,7 @@ class _SchemaTextParamFieldState extends State<_SchemaTextParamField> {
     return TextFormField(
       key: widget.fieldKey,
       controller: _controller,
+      focusNode: _focusNode,
       keyboardType: widget.keyboardType,
       maxLength: widget.maxLength,
       decoration: InputDecoration(
