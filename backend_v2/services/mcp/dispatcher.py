@@ -15,7 +15,7 @@ import time
 import uuid
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING
 
 import opentelemetry.trace as trace
 from pydantic import BaseModel, JsonValue, ValidationError
@@ -33,6 +33,7 @@ from backend_v2.models.dtos.mcp import (
     MCPArgumentValue,
     MCPToolDeclarationDTO,
     MCPToolDescriptorDTO,
+    MCPToolInputSchemaDTO,
     MCPToolInvocationDTO,
 )
 from backend_v2.models.enums import JSONSchemaPropertyType, ToolCapability
@@ -41,6 +42,10 @@ from backend_v2.models.prompts import MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCT
 from backend_v2.services.mcp.alias_registry import AliasRegistry
 from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
+
+if TYPE_CHECKING:
+    from backend_v2.llm.client import LLMClient
+    from backend_v2.services.llm_task_executor import LLMTaskExecutor
 
 __all__ = ["ToolDispatcher"]
 
@@ -214,8 +219,6 @@ class ToolDispatcher:
         Maps the search query, static Studio parameter overrides, and optional companion
         context (specifically objective or claim) to schema properties declared by the tool.
 
-        # Phase 1, Step 3: Support multi-parameter search tool schemas and Studio configured_params
-
         Args:
             tool: Target search tool descriptor or AllowedMCPTool domain object.
             query: Search query string to bind.
@@ -240,7 +243,6 @@ class ToolDispatcher:
                 if param_key in props and param_val is not None:
                     args[param_key] = param_val
 
-        # 1. Bind query parameter (prefer 'query', then 'q', 'search_query', 'search_term')
         query_key: str | None = None
         for candidate in ("query", "q", "search_query", "search_term"):
             if candidate in props and props[candidate].type == JSONSchemaPropertyType.STRING:
@@ -250,38 +252,25 @@ class ToolDispatcher:
         if query_key is not None:
             args[query_key] = query
 
-        # 2. Bind objective parameter if declared in properties and not overridden
-        if (
-            "objective" in props
-            and props["objective"].type == JSONSchemaPropertyType.STRING
-            and "objective" not in args
-        ):
-            resolved_objective = objective
-            if not resolved_objective and claim_text:
-                resolved_objective = f"Verify factual accuracy for claim: {claim_text}"
-            elif not resolved_objective and reasoning:
-                resolved_objective = reasoning
-            elif not resolved_objective:
-                resolved_objective = f"Find external evidence regarding: {query}"
+        self._bind_objective_parameter(
+            schema=tool.input_schema,
+            args=args,
+            query=query,
+            claim_text=claim_text,
+            reasoning=reasoning,
+            objective=objective,
+        )
 
-            prop_def = props["objective"]
-            if prop_def.max_length is not None and len(resolved_objective) > prop_def.max_length:
-                resolved_objective = resolved_objective[: prop_def.max_length]
-            args["objective"] = resolved_objective
-
-        # 3. Handle single required string property with custom name
         if len(required_keys) == 1 and query_key is None:
             req_key = required_keys[0]
             if req_key in props and props[req_key].type == JSONSchemaPropertyType.STRING and req_key not in args:
                 args[req_key] = query
 
-        # 4. Handle tool with zero required keys and single string property
         if not required_keys and query_key is None:
             string_keys = [k for k, v in props.items() if v.type == JSONSchemaPropertyType.STRING]
             if len(string_keys) == 1 and string_keys[0] not in args:
                 args[string_keys[0]] = query
 
-        # 5. Check if all required keys are satisfied and a query string was bound
         has_bound_query = query_key is not None or query in args.values()
         if args and has_bound_query and set(required_keys).issubset(args.keys()):
             arg_model = self.get_argument_model(tool)
@@ -297,12 +286,50 @@ class ToolDispatcher:
             ErrorCodes.CONFIGURATION_ERROR.name,
             msg,
             extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "tool_id": tool.tool_id},
+            exc_info=True,
         )
         raise AppException(
             message=msg,
             status_code=500,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "tool_id": tool.tool_id},
         )
+
+    @staticmethod
+    def _bind_objective_parameter(
+        *,
+        schema: MCPToolInputSchemaDTO,
+        args: dict[str, MCPArgumentValue],
+        query: str,
+        claim_text: str | None,
+        reasoning: str | None,
+        objective: str | None,
+    ) -> None:
+        """Populate the 'objective' property in args when declared by the tool input schema.
+
+        Args:
+            schema: Tool input JSON schema definition.
+            args: Mutable argument dictionary being constructed.
+            query: Search query string.
+            claim_text: Optional claim text being audited.
+            reasoning: Optional reasoning string justifying the search turn.
+            objective: Optional explicit search objective override.
+        """
+        props = schema.properties
+        if "objective" not in props or props["objective"].type != JSONSchemaPropertyType.STRING or "objective" in args:
+            return
+
+        resolved_objective = objective
+        if not resolved_objective and claim_text:
+            resolved_objective = f"Verify factual accuracy for claim: {claim_text}"
+        elif not resolved_objective and reasoning:
+            resolved_objective = reasoning
+        elif not resolved_objective:
+            resolved_objective = f"Find external evidence regarding: {query}"
+
+        prop_def = props["objective"]
+        if prop_def.max_length is not None and len(resolved_objective) > prop_def.max_length:
+            resolved_objective = resolved_objective[: prop_def.max_length]
+        args["objective"] = resolved_objective
 
     @staticmethod
     def _build_jit_synthesis_messages(
@@ -363,14 +390,12 @@ class ToolDispatcher:
         reasoning: str | None = None,
         objective: str | None = None,
         configured_params: Mapping[str, MCPArgumentValue] | None = None,
-        llm_client: Any = None,
-        executor: Any = None,
+        llm_client: LLMClient | None = None,
+        executor: LLMTaskExecutor | None = None,
         mock_identity: str | None = None,
         validation_context: dict[str, JsonValue] | None = None,
     ) -> tuple[dict[str, MCPArgumentValue], TokenUsage]:
         """Resolve MCP tool arguments via 0ms deterministic fast-path or JIT Micro-LLM synthesis.
-
-        # Phase 1, Step 3: JIT Micro-LLM Argument Synthesizer fallback for complex MCP schemas
 
         Args:
             tool: Target search tool descriptor or AllowedMCPTool domain object.
@@ -406,6 +431,54 @@ class ToolDispatcher:
             if llm_client is None or executor is None:
                 raise
 
+        return await self._execute_jit_argument_synthesis(
+            tool=tool,
+            query=query,
+            claim_text=claim_text,
+            reasoning=reasoning,
+            configured_params=configured_params,
+            llm_client=llm_client,
+            executor=executor,
+            mock_identity=mock_identity,
+            validation_context=validation_context,
+            zero_usage=zero_usage,
+        )
+
+    async def _execute_jit_argument_synthesis(
+        self,
+        *,
+        tool: MCPToolDescriptorDTO | AllowedMCPTool,
+        query: str,
+        claim_text: str | None,
+        reasoning: str | None,
+        configured_params: Mapping[str, MCPArgumentValue] | None,
+        llm_client: LLMClient,
+        executor: LLMTaskExecutor,
+        mock_identity: str | None,
+        validation_context: dict[str, JsonValue] | None,
+        zero_usage: TokenUsage,
+    ) -> tuple[dict[str, MCPArgumentValue], TokenUsage]:
+        """Invoke JIT Micro-LLM structured synthesis and apply Studio parameter overrides.
+
+        Args:
+            tool: Target search tool descriptor or AllowedMCPTool domain object.
+            query: Search query string to bind.
+            claim_text: Optional claim text being factually audited.
+            reasoning: Optional reasoning string justifying the search turn.
+            configured_params: Optional static parameter overrides configured in Studio.
+            llm_client: Fast-tier LLMClient for JIT argument synthesis.
+            executor: LLMTaskExecutor for structured schema generation.
+            mock_identity: Optional mock identity string for deterministic unit tests.
+            validation_context: Optional validation context dictionary for executor.
+            zero_usage: Baseline zero TokenUsage fallback instance.
+
+        Returns:
+            Tuple of validated argument dictionary and TokenUsage consumed during synthesis.
+
+        Raises:
+            AppException: If micro-LLM synthesis or post-override validation fails
+                (ErrorCodes.CONFIGURATION_ERROR).
+        """
         arg_model = self.get_argument_model(tool)
         synth_messages = self._build_jit_synthesis_messages(
             tool,
@@ -465,8 +538,6 @@ class ToolDispatcher:
     ) -> MCPAuditTrace:
         """Validate permissions and arguments, then dispatch tool execution via GenericMCPClient.
 
-        # Phase 3, Step 3.2: Dynamic ToolDispatcher execution with positive ID-set whitelist and Pydantic validation
-
         Args:
             tool_id: Namespaced tool alias ('{gateway_slug}__{tool_name}') to execute.
             raw_arguments: Raw tool arguments mapping provided by the caller or LLM.
@@ -483,68 +554,15 @@ class ToolDispatcher:
                 disabled tool or invalid arguments (ErrorCodes.VALIDATION_FAILED),
                 unknown tool (ErrorCodes.RESOURCE_NOT_FOUND), or timeout (ErrorCodes.SERVICE_UNAVAILABLE).
         """
-        if tool_id not in allowed_step_tools:
-            msg = f"MCP tool '{tool_id}' is not authorized in allowed_step_tools for step '{step_name}'."
-            logger.error(
-                "[ToolDispatcher] %s: %s",
-                ErrorCodes.PERMISSION_DENIED.name,
-                msg,
-                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value, "tool_id": tool_id},
-            )
-            raise AppException(
-                message=msg,
-                status_code=403,
-                details={"error_code": ErrorCodes.PERMISSION_DENIED.value, "tool_id": tool_id},
-            )
-
-        if tool_id in self._disabled_tools:
-            msg = f"MCP tool '{tool_id}' is disabled on its gateway."
-            logger.error(
-                "[ToolDispatcher] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tool_id": tool_id},
-            )
-            raise AppException(
-                message=msg,
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tool_id": tool_id},
-            )
-
-        if tool_id not in self._descriptors:
-            msg = f"MCP tool '{tool_id}' not found in active gateway registry."
-            logger.error(
-                "[ToolDispatcher] %s: %s",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                msg,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "tool_id": tool_id},
-            )
-            raise AppException(
-                message=msg,
-                status_code=404,
-                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "tool_id": tool_id},
-            )
+        self._validate_tool_execution_request(
+            tool_id=tool_id,
+            raw_arguments=raw_arguments,
+            allowed_step_tools=allowed_step_tools,
+            step_name=step_name,
+        )
 
         descriptor = self._descriptors[tool_id]
         gateway = self._gateways[tool_id]
-        arg_model = self._arg_models[tool_id]
-
-        try:
-            arg_model.model_validate(dict(raw_arguments))
-        except ValidationError as val_err:
-            msg = f"Invalid arguments for MCP tool '{tool_id}': {val_err}"
-            logger.error(
-                "[ToolDispatcher] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tool_id": tool_id},
-            )
-            raise AppException(
-                message=msg,
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tool_id": tool_id},
-            ) from val_err
-
         invocation_dto = MCPToolInvocationDTO(
             gateway_id=gateway.id,
             gateway_slug=gateway.slug,
@@ -552,16 +570,7 @@ class ToolDispatcher:
             namespaced_alias=descriptor.namespaced_alias,
             arguments=dict(raw_arguments),
         )
-
-        query_str = ""
-        if "query" in raw_arguments and isinstance(raw_arguments["query"], str):
-            query_str = raw_arguments["query"]
-        else:
-            for val in raw_arguments.values():
-                if isinstance(val, str):
-                    query_str = val
-                    break
-
+        query_str = self._extract_primary_query_string(raw_arguments)
         timeout_sec = float(gateway.timeout_seconds)
         tracer = get_tracer(__name__)
 
@@ -616,3 +625,104 @@ class ToolDispatcher:
             timestamp=datetime.now(UTC),
             duration_ms=duration_ms,
         )
+
+    def _validate_tool_execution_request(
+        self,
+        *,
+        tool_id: str,
+        raw_arguments: Mapping[str, MCPArgumentValue],
+        allowed_step_tools: set[str],
+        step_name: str,
+    ) -> None:
+        """Enforce positive whitelist authorization, enabled state, registry presence, and schema validation.
+
+        Args:
+            tool_id: Namespaced tool alias ('{gateway_slug}__{tool_name}') to execute.
+            raw_arguments: Raw tool arguments mapping provided by the caller or LLM.
+            allowed_step_tools: Positive whitelist set of namespaced tool aliases permitted for the step.
+            step_name: Identifier of the executing step or hook.
+
+        Raises:
+            AppException: On unauthorized tool (ErrorCodes.PERMISSION_DENIED),
+                disabled tool or invalid arguments (ErrorCodes.VALIDATION_FAILED),
+                or unknown tool (ErrorCodes.RESOURCE_NOT_FOUND).
+        """
+        if tool_id not in allowed_step_tools:
+            msg = f"MCP tool '{tool_id}' is not authorized in allowed_step_tools for step '{step_name}'."
+            logger.error(
+                "[ToolDispatcher] %s: %s",
+                ErrorCodes.PERMISSION_DENIED.name,
+                msg,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value, "tool_id": tool_id},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=403,
+                details={"error_code": ErrorCodes.PERMISSION_DENIED.value, "tool_id": tool_id},
+            )
+
+        if tool_id in self._disabled_tools:
+            msg = f"MCP tool '{tool_id}' is disabled on its gateway."
+            logger.error(
+                "[ToolDispatcher] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tool_id": tool_id},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tool_id": tool_id},
+            )
+
+        if tool_id not in self._descriptors:
+            msg = f"MCP tool '{tool_id}' not found in active gateway registry."
+            logger.error(
+                "[ToolDispatcher] %s: %s",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                msg,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "tool_id": tool_id},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=404,
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "tool_id": tool_id},
+            )
+
+        arg_model = self._arg_models[tool_id]
+        try:
+            arg_model.model_validate(dict(raw_arguments))
+        except ValidationError as val_err:
+            msg = f"Invalid arguments for MCP tool '{tool_id}': {val_err}"
+            logger.error(
+                "[ToolDispatcher] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tool_id": tool_id},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tool_id": tool_id},
+            ) from val_err
+
+    @staticmethod
+    def _extract_primary_query_string(raw_arguments: Mapping[str, MCPArgumentValue]) -> str:
+        """Extract the primary search query string from raw tool arguments for audit tracing.
+
+        Args:
+            raw_arguments: Validated mapping of tool argument keys to values.
+
+        Returns:
+            Primary query string if present, or empty string.
+        """
+        if "query" in raw_arguments and isinstance(raw_arguments["query"], str):
+            return raw_arguments["query"]
+        for val in raw_arguments.values():
+            if isinstance(val, str):
+                return val
+        return ""

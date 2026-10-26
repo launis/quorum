@@ -36,7 +36,7 @@
   - [x] @[backend_v2/models/prompts/execution/mcp_prompts.py]
   - [x] @[backend_v2/models/prompts/execution/__init__.py]
   - [x] @[backend_v2/models/prompts/__init__.py]
-  - [ ] @[backend_v2/services/mcp/dispatcher.py]
+  - [x] @[backend_v2/services/mcp/dispatcher.py]
   - [ ] @[backend_v2/services/mcp/mcp_tool_loop.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [ ] @[backend_v2/services/studio/workflow_service.py]
