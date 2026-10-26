@@ -11,7 +11,7 @@ from typing import Annotated, Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
-from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO
+from backend_v2.models.dtos.mcp import MCPToolExecutionDTO, MCPToolInputSchemaDTO
 from backend_v2.models.enums import (
     CognitiveTier,
     LaxCognitiveTier,
@@ -285,13 +285,17 @@ class AllowedMCPTool(V2CoreBase):
     name: Annotated[I18nText, Field(description="Localized display name.")]
     description: Annotated[str, Field(description="English-only LLM description for function calling schema.")]
     input_schema: MCPToolInputSchemaDTO = Field(
-        default_factory=MCPToolInputSchemaDTO,
+        default_factory=lambda: MCPToolInputSchemaDTO(properties={}, required=[]),
         description="Strict recursive JSON Schema for tool parameters.",
     )
     enabled: Annotated[
         bool,
         Field(default=True, description="Whether this discovered tool is enabled for agent execution."),
     ] = True
+    execution: Annotated[
+        MCPToolExecutionDTO | None,
+        Field(default=None, description="Optional tool execution configuration and task support policy."),
+    ] = None
 
 
 class MCPAuditTrace(V2CoreBase):

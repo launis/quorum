@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$McpToolSchemaPropertyDto {
 
- JsonSchemaPropertyType? get type; String? get title; String get description;@JsonKey(name: 'enum_values') List<String>? get enumValues; McpToolSchemaPropertyDto? get items; Map<String, McpToolSchemaPropertyDto>? get properties;@JsonKey(name: 'required') List<String>? get requiredFields;@JsonKey(name: 'additional_properties') bool? get additionalProperties;@JsonKey(name: 'default') Object? get defaultValue; num? get minimum; num? get maximum;@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? get anyOf;
+ JsonSchemaPropertyType? get type; String? get title; String get description;@JsonKey(name: 'enum_values') List<String>? get enumValues; McpToolSchemaPropertyDto? get items; Map<String, McpToolSchemaPropertyDto>? get properties;@JsonKey(name: 'required') List<String>? get requiredFields;@JsonKey(name: 'additional_properties') bool? get additionalProperties;@JsonKey(name: 'default') Object? get defaultValue; num? get minimum; num? get maximum;@JsonKey(name: 'min_length') int? get minLength;@JsonKey(name: 'max_length') int? get maxLength;@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? get anyOf;
 /// Create a copy of McpToolSchemaPropertyDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +30,7 @@ $McpToolSchemaPropertyDtoCopyWith<McpToolSchemaPropertyDto> get copyWith => _$Mc
 
 @override
 String toString() {
-  return 'McpToolSchemaPropertyDto(type: $type, title: $title, description: $description, enumValues: $enumValues, items: $items, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, defaultValue: $defaultValue, minimum: $minimum, maximum: $maximum, anyOf: $anyOf)';
+  return 'McpToolSchemaPropertyDto(type: $type, title: $title, description: $description, enumValues: $enumValues, items: $items, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, defaultValue: $defaultValue, minimum: $minimum, maximum: $maximum, minLength: $minLength, maxLength: $maxLength, anyOf: $anyOf)';
 }
 
 
@@ -41,7 +41,7 @@ abstract mixin class $McpToolSchemaPropertyDtoCopyWith<$Res>  {
   factory $McpToolSchemaPropertyDtoCopyWith(McpToolSchemaPropertyDto value, $Res Function(McpToolSchemaPropertyDto) _then) = _$McpToolSchemaPropertyDtoCopyWithImpl;
 @useResult
 $Res call({
- JsonSchemaPropertyType? type, String? title, String description,@JsonKey(name: 'enum_values') List<String>? enumValues, McpToolSchemaPropertyDto? items, Map<String, McpToolSchemaPropertyDto>? properties,@JsonKey(name: 'required') List<String>? requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'default') Object? defaultValue, num? minimum, num? maximum,@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? anyOf
+ JsonSchemaPropertyType? type, String? title, String description,@JsonKey(name: 'enum_values') List<String>? enumValues, McpToolSchemaPropertyDto? items, Map<String, McpToolSchemaPropertyDto>? properties,@JsonKey(name: 'required') List<String>? requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'default') Object? defaultValue, num? minimum, num? maximum,@JsonKey(name: 'min_length') int? minLength,@JsonKey(name: 'max_length') int? maxLength,@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? anyOf
 });
 
 
@@ -58,7 +58,7 @@ class _$McpToolSchemaPropertyDtoCopyWithImpl<$Res>
 
 /// Create a copy of McpToolSchemaPropertyDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? type = freezed,Object? title = freezed,Object? description = null,Object? enumValues = freezed,Object? items = freezed,Object? properties = freezed,Object? requiredFields = freezed,Object? additionalProperties = freezed,Object? defaultValue = freezed,Object? minimum = freezed,Object? maximum = freezed,Object? anyOf = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? type = freezed,Object? title = freezed,Object? description = null,Object? enumValues = freezed,Object? items = freezed,Object? properties = freezed,Object? requiredFields = freezed,Object? additionalProperties = freezed,Object? defaultValue = freezed,Object? minimum = freezed,Object? maximum = freezed,Object? minLength = freezed,Object? maxLength = freezed,Object? anyOf = freezed,}) {
   return _then(_self.copyWith(
 type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as JsonSchemaPropertyType?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -70,7 +70,9 @@ as Map<String, McpToolSchemaPropertyDto>?,requiredFields: freezed == requiredFie
 as List<String>?,additionalProperties: freezed == additionalProperties ? _self.additionalProperties : additionalProperties // ignore: cast_nullable_to_non_nullable
 as bool?,defaultValue: freezed == defaultValue ? _self.defaultValue : defaultValue ,minimum: freezed == minimum ? _self.minimum : minimum // ignore: cast_nullable_to_non_nullable
 as num?,maximum: freezed == maximum ? _self.maximum : maximum // ignore: cast_nullable_to_non_nullable
-as num?,anyOf: freezed == anyOf ? _self.anyOf : anyOf // ignore: cast_nullable_to_non_nullable
+as num?,minLength: freezed == minLength ? _self.minLength : minLength // ignore: cast_nullable_to_non_nullable
+as int?,maxLength: freezed == maxLength ? _self.maxLength : maxLength // ignore: cast_nullable_to_non_nullable
+as int?,anyOf: freezed == anyOf ? _self.anyOf : anyOf // ignore: cast_nullable_to_non_nullable
 as List<McpToolSchemaPropertyDto>?,
   ));
 }
@@ -168,10 +170,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( JsonSchemaPropertyType? type,  String? title,  String description, @JsonKey(name: 'enum_values')  List<String>? enumValues,  McpToolSchemaPropertyDto? items,  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required')  List<String>? requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'default')  Object? defaultValue,  num? minimum,  num? maximum, @JsonKey(name: 'any_of')  List<McpToolSchemaPropertyDto>? anyOf)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( JsonSchemaPropertyType? type,  String? title,  String description, @JsonKey(name: 'enum_values')  List<String>? enumValues,  McpToolSchemaPropertyDto? items,  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required')  List<String>? requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'default')  Object? defaultValue,  num? minimum,  num? maximum, @JsonKey(name: 'min_length')  int? minLength, @JsonKey(name: 'max_length')  int? maxLength, @JsonKey(name: 'any_of')  List<McpToolSchemaPropertyDto>? anyOf)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _McpToolSchemaPropertyDto() when $default != null:
-return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.items,_that.properties,_that.requiredFields,_that.additionalProperties,_that.defaultValue,_that.minimum,_that.maximum,_that.anyOf);case _:
+return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.items,_that.properties,_that.requiredFields,_that.additionalProperties,_that.defaultValue,_that.minimum,_that.maximum,_that.minLength,_that.maxLength,_that.anyOf);case _:
   return orElse();
 
 }
@@ -189,10 +191,10 @@ return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( JsonSchemaPropertyType? type,  String? title,  String description, @JsonKey(name: 'enum_values')  List<String>? enumValues,  McpToolSchemaPropertyDto? items,  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required')  List<String>? requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'default')  Object? defaultValue,  num? minimum,  num? maximum, @JsonKey(name: 'any_of')  List<McpToolSchemaPropertyDto>? anyOf)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( JsonSchemaPropertyType? type,  String? title,  String description, @JsonKey(name: 'enum_values')  List<String>? enumValues,  McpToolSchemaPropertyDto? items,  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required')  List<String>? requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'default')  Object? defaultValue,  num? minimum,  num? maximum, @JsonKey(name: 'min_length')  int? minLength, @JsonKey(name: 'max_length')  int? maxLength, @JsonKey(name: 'any_of')  List<McpToolSchemaPropertyDto>? anyOf)  $default,) {final _that = this;
 switch (_that) {
 case _McpToolSchemaPropertyDto():
-return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.items,_that.properties,_that.requiredFields,_that.additionalProperties,_that.defaultValue,_that.minimum,_that.maximum,_that.anyOf);case _:
+return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.items,_that.properties,_that.requiredFields,_that.additionalProperties,_that.defaultValue,_that.minimum,_that.maximum,_that.minLength,_that.maxLength,_that.anyOf);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -209,10 +211,10 @@ return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( JsonSchemaPropertyType? type,  String? title,  String description, @JsonKey(name: 'enum_values')  List<String>? enumValues,  McpToolSchemaPropertyDto? items,  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required')  List<String>? requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'default')  Object? defaultValue,  num? minimum,  num? maximum, @JsonKey(name: 'any_of')  List<McpToolSchemaPropertyDto>? anyOf)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( JsonSchemaPropertyType? type,  String? title,  String description, @JsonKey(name: 'enum_values')  List<String>? enumValues,  McpToolSchemaPropertyDto? items,  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required')  List<String>? requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'default')  Object? defaultValue,  num? minimum,  num? maximum, @JsonKey(name: 'min_length')  int? minLength, @JsonKey(name: 'max_length')  int? maxLength, @JsonKey(name: 'any_of')  List<McpToolSchemaPropertyDto>? anyOf)?  $default,) {final _that = this;
 switch (_that) {
 case _McpToolSchemaPropertyDto() when $default != null:
-return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.items,_that.properties,_that.requiredFields,_that.additionalProperties,_that.defaultValue,_that.minimum,_that.maximum,_that.anyOf);case _:
+return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.items,_that.properties,_that.requiredFields,_that.additionalProperties,_that.defaultValue,_that.minimum,_that.maximum,_that.minLength,_that.maxLength,_that.anyOf);case _:
   return null;
 
 }
@@ -224,7 +226,7 @@ return $default(_that.type,_that.title,_that.description,_that.enumValues,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _McpToolSchemaPropertyDto implements McpToolSchemaPropertyDto {
-  const _McpToolSchemaPropertyDto({this.type, this.title, this.description = '', @JsonKey(name: 'enum_values') final  List<String>? enumValues, this.items, final  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required') final  List<String>? requiredFields, @JsonKey(name: 'additional_properties') this.additionalProperties, @JsonKey(name: 'default') this.defaultValue, this.minimum, this.maximum, @JsonKey(name: 'any_of') final  List<McpToolSchemaPropertyDto>? anyOf}): _enumValues = enumValues,_properties = properties,_requiredFields = requiredFields,_anyOf = anyOf;
+  const _McpToolSchemaPropertyDto({this.type, this.title, this.description = '', @JsonKey(name: 'enum_values') final  List<String>? enumValues, this.items, final  Map<String, McpToolSchemaPropertyDto>? properties, @JsonKey(name: 'required') final  List<String>? requiredFields, @JsonKey(name: 'additional_properties') this.additionalProperties, @JsonKey(name: 'default') this.defaultValue, this.minimum, this.maximum, @JsonKey(name: 'min_length') this.minLength, @JsonKey(name: 'max_length') this.maxLength, @JsonKey(name: 'any_of') final  List<McpToolSchemaPropertyDto>? anyOf}): _enumValues = enumValues,_properties = properties,_requiredFields = requiredFields,_anyOf = anyOf;
   factory _McpToolSchemaPropertyDto.fromJson(Map<String, dynamic> json) => _$McpToolSchemaPropertyDtoFromJson(json);
 
 @override final  JsonSchemaPropertyType? type;
@@ -262,6 +264,8 @@ class _McpToolSchemaPropertyDto implements McpToolSchemaPropertyDto {
 @override@JsonKey(name: 'default') final  Object? defaultValue;
 @override final  num? minimum;
 @override final  num? maximum;
+@override@JsonKey(name: 'min_length') final  int? minLength;
+@override@JsonKey(name: 'max_length') final  int? maxLength;
  final  List<McpToolSchemaPropertyDto>? _anyOf;
 @override@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? get anyOf {
   final value = _anyOf;
@@ -287,7 +291,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'McpToolSchemaPropertyDto(type: $type, title: $title, description: $description, enumValues: $enumValues, items: $items, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, defaultValue: $defaultValue, minimum: $minimum, maximum: $maximum, anyOf: $anyOf)';
+  return 'McpToolSchemaPropertyDto(type: $type, title: $title, description: $description, enumValues: $enumValues, items: $items, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, defaultValue: $defaultValue, minimum: $minimum, maximum: $maximum, minLength: $minLength, maxLength: $maxLength, anyOf: $anyOf)';
 }
 
 
@@ -298,7 +302,7 @@ abstract mixin class _$McpToolSchemaPropertyDtoCopyWith<$Res> implements $McpToo
   factory _$McpToolSchemaPropertyDtoCopyWith(_McpToolSchemaPropertyDto value, $Res Function(_McpToolSchemaPropertyDto) _then) = __$McpToolSchemaPropertyDtoCopyWithImpl;
 @override @useResult
 $Res call({
- JsonSchemaPropertyType? type, String? title, String description,@JsonKey(name: 'enum_values') List<String>? enumValues, McpToolSchemaPropertyDto? items, Map<String, McpToolSchemaPropertyDto>? properties,@JsonKey(name: 'required') List<String>? requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'default') Object? defaultValue, num? minimum, num? maximum,@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? anyOf
+ JsonSchemaPropertyType? type, String? title, String description,@JsonKey(name: 'enum_values') List<String>? enumValues, McpToolSchemaPropertyDto? items, Map<String, McpToolSchemaPropertyDto>? properties,@JsonKey(name: 'required') List<String>? requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'default') Object? defaultValue, num? minimum, num? maximum,@JsonKey(name: 'min_length') int? minLength,@JsonKey(name: 'max_length') int? maxLength,@JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? anyOf
 });
 
 
@@ -315,7 +319,7 @@ class __$McpToolSchemaPropertyDtoCopyWithImpl<$Res>
 
 /// Create a copy of McpToolSchemaPropertyDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? type = freezed,Object? title = freezed,Object? description = null,Object? enumValues = freezed,Object? items = freezed,Object? properties = freezed,Object? requiredFields = freezed,Object? additionalProperties = freezed,Object? defaultValue = freezed,Object? minimum = freezed,Object? maximum = freezed,Object? anyOf = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? type = freezed,Object? title = freezed,Object? description = null,Object? enumValues = freezed,Object? items = freezed,Object? properties = freezed,Object? requiredFields = freezed,Object? additionalProperties = freezed,Object? defaultValue = freezed,Object? minimum = freezed,Object? maximum = freezed,Object? minLength = freezed,Object? maxLength = freezed,Object? anyOf = freezed,}) {
   return _then(_McpToolSchemaPropertyDto(
 type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as JsonSchemaPropertyType?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -327,7 +331,9 @@ as Map<String, McpToolSchemaPropertyDto>?,requiredFields: freezed == requiredFie
 as List<String>?,additionalProperties: freezed == additionalProperties ? _self.additionalProperties : additionalProperties // ignore: cast_nullable_to_non_nullable
 as bool?,defaultValue: freezed == defaultValue ? _self.defaultValue : defaultValue ,minimum: freezed == minimum ? _self.minimum : minimum // ignore: cast_nullable_to_non_nullable
 as num?,maximum: freezed == maximum ? _self.maximum : maximum // ignore: cast_nullable_to_non_nullable
-as num?,anyOf: freezed == anyOf ? _self._anyOf : anyOf // ignore: cast_nullable_to_non_nullable
+as num?,minLength: freezed == minLength ? _self.minLength : minLength // ignore: cast_nullable_to_non_nullable
+as int?,maxLength: freezed == maxLength ? _self.maxLength : maxLength // ignore: cast_nullable_to_non_nullable
+as int?,anyOf: freezed == anyOf ? _self._anyOf : anyOf // ignore: cast_nullable_to_non_nullable
 as List<McpToolSchemaPropertyDto>?,
   ));
 }
@@ -351,7 +357,7 @@ $McpToolSchemaPropertyDtoCopyWith<$Res>? get items {
 /// @nodoc
 mixin _$McpToolInputSchemaDto {
 
- String get type; String? get title; String get description; Map<String, McpToolSchemaPropertyDto> get properties;@JsonKey(name: 'required') List<String> get requiredFields;@JsonKey(name: 'additional_properties') bool? get additionalProperties;
+ String get type; String? get title; String get description; Map<String, McpToolSchemaPropertyDto> get properties;@JsonKey(name: 'required') List<String> get requiredFields;@JsonKey(name: 'additional_properties') bool? get additionalProperties;@JsonKey(name: 'schema_uri') String? get schemaUri;
 /// Create a copy of McpToolInputSchemaDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -366,7 +372,7 @@ $McpToolInputSchemaDtoCopyWith<McpToolInputSchemaDto> get copyWith => _$McpToolI
 
 @override
 String toString() {
-  return 'McpToolInputSchemaDto(type: $type, title: $title, description: $description, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties)';
+  return 'McpToolInputSchemaDto(type: $type, title: $title, description: $description, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, schemaUri: $schemaUri)';
 }
 
 
@@ -377,7 +383,7 @@ abstract mixin class $McpToolInputSchemaDtoCopyWith<$Res>  {
   factory $McpToolInputSchemaDtoCopyWith(McpToolInputSchemaDto value, $Res Function(McpToolInputSchemaDto) _then) = _$McpToolInputSchemaDtoCopyWithImpl;
 @useResult
 $Res call({
- String type, String? title, String description, Map<String, McpToolSchemaPropertyDto> properties,@JsonKey(name: 'required') List<String> requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties
+ String type, String? title, String description, Map<String, McpToolSchemaPropertyDto> properties,@JsonKey(name: 'required') List<String> requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'schema_uri') String? schemaUri
 });
 
 
@@ -394,7 +400,7 @@ class _$McpToolInputSchemaDtoCopyWithImpl<$Res>
 
 /// Create a copy of McpToolInputSchemaDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? title = freezed,Object? description = null,Object? properties = null,Object? requiredFields = null,Object? additionalProperties = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? title = freezed,Object? description = null,Object? properties = null,Object? requiredFields = null,Object? additionalProperties = freezed,Object? schemaUri = freezed,}) {
   return _then(_self.copyWith(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -402,7 +408,8 @@ as String?,description: null == description ? _self.description : description //
 as String,properties: null == properties ? _self.properties : properties // ignore: cast_nullable_to_non_nullable
 as Map<String, McpToolSchemaPropertyDto>,requiredFields: null == requiredFields ? _self.requiredFields : requiredFields // ignore: cast_nullable_to_non_nullable
 as List<String>,additionalProperties: freezed == additionalProperties ? _self.additionalProperties : additionalProperties // ignore: cast_nullable_to_non_nullable
-as bool?,
+as bool?,schemaUri: freezed == schemaUri ? _self.schemaUri : schemaUri // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -487,10 +494,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String type,  String? title,  String description,  Map<String, McpToolSchemaPropertyDto> properties, @JsonKey(name: 'required')  List<String> requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String type,  String? title,  String description,  Map<String, McpToolSchemaPropertyDto> properties, @JsonKey(name: 'required')  List<String> requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'schema_uri')  String? schemaUri)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _McpToolInputSchemaDto() when $default != null:
-return $default(_that.type,_that.title,_that.description,_that.properties,_that.requiredFields,_that.additionalProperties);case _:
+return $default(_that.type,_that.title,_that.description,_that.properties,_that.requiredFields,_that.additionalProperties,_that.schemaUri);case _:
   return orElse();
 
 }
@@ -508,10 +515,10 @@ return $default(_that.type,_that.title,_that.description,_that.properties,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String type,  String? title,  String description,  Map<String, McpToolSchemaPropertyDto> properties, @JsonKey(name: 'required')  List<String> requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String type,  String? title,  String description,  Map<String, McpToolSchemaPropertyDto> properties, @JsonKey(name: 'required')  List<String> requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'schema_uri')  String? schemaUri)  $default,) {final _that = this;
 switch (_that) {
 case _McpToolInputSchemaDto():
-return $default(_that.type,_that.title,_that.description,_that.properties,_that.requiredFields,_that.additionalProperties);case _:
+return $default(_that.type,_that.title,_that.description,_that.properties,_that.requiredFields,_that.additionalProperties,_that.schemaUri);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -528,10 +535,10 @@ return $default(_that.type,_that.title,_that.description,_that.properties,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String type,  String? title,  String description,  Map<String, McpToolSchemaPropertyDto> properties, @JsonKey(name: 'required')  List<String> requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String type,  String? title,  String description,  Map<String, McpToolSchemaPropertyDto> properties, @JsonKey(name: 'required')  List<String> requiredFields, @JsonKey(name: 'additional_properties')  bool? additionalProperties, @JsonKey(name: 'schema_uri')  String? schemaUri)?  $default,) {final _that = this;
 switch (_that) {
 case _McpToolInputSchemaDto() when $default != null:
-return $default(_that.type,_that.title,_that.description,_that.properties,_that.requiredFields,_that.additionalProperties);case _:
+return $default(_that.type,_that.title,_that.description,_that.properties,_that.requiredFields,_that.additionalProperties,_that.schemaUri);case _:
   return null;
 
 }
@@ -543,7 +550,7 @@ return $default(_that.type,_that.title,_that.description,_that.properties,_that.
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _McpToolInputSchemaDto implements McpToolInputSchemaDto {
-  const _McpToolInputSchemaDto({this.type = 'object', this.title, this.description = '', final  Map<String, McpToolSchemaPropertyDto> properties = const <String, McpToolSchemaPropertyDto>{}, @JsonKey(name: 'required') final  List<String> requiredFields = const <String>[], @JsonKey(name: 'additional_properties') this.additionalProperties}): _properties = properties,_requiredFields = requiredFields;
+  const _McpToolInputSchemaDto({this.type = 'object', this.title, this.description = '', final  Map<String, McpToolSchemaPropertyDto> properties = const <String, McpToolSchemaPropertyDto>{}, @JsonKey(name: 'required') final  List<String> requiredFields = const <String>[], @JsonKey(name: 'additional_properties') this.additionalProperties, @JsonKey(name: 'schema_uri') this.schemaUri}): _properties = properties,_requiredFields = requiredFields;
   factory _McpToolInputSchemaDto.fromJson(Map<String, dynamic> json) => _$McpToolInputSchemaDtoFromJson(json);
 
 @override@JsonKey() final  String type;
@@ -564,6 +571,7 @@ class _McpToolInputSchemaDto implements McpToolInputSchemaDto {
 }
 
 @override@JsonKey(name: 'additional_properties') final  bool? additionalProperties;
+@override@JsonKey(name: 'schema_uri') final  String? schemaUri;
 
 /// Create a copy of McpToolInputSchemaDto
 /// with the given fields replaced by the non-null parameter values.
@@ -580,7 +588,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'McpToolInputSchemaDto(type: $type, title: $title, description: $description, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties)';
+  return 'McpToolInputSchemaDto(type: $type, title: $title, description: $description, properties: $properties, requiredFields: $requiredFields, additionalProperties: $additionalProperties, schemaUri: $schemaUri)';
 }
 
 
@@ -591,7 +599,7 @@ abstract mixin class _$McpToolInputSchemaDtoCopyWith<$Res> implements $McpToolIn
   factory _$McpToolInputSchemaDtoCopyWith(_McpToolInputSchemaDto value, $Res Function(_McpToolInputSchemaDto) _then) = __$McpToolInputSchemaDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String type, String? title, String description, Map<String, McpToolSchemaPropertyDto> properties,@JsonKey(name: 'required') List<String> requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties
+ String type, String? title, String description, Map<String, McpToolSchemaPropertyDto> properties,@JsonKey(name: 'required') List<String> requiredFields,@JsonKey(name: 'additional_properties') bool? additionalProperties,@JsonKey(name: 'schema_uri') String? schemaUri
 });
 
 
@@ -608,7 +616,7 @@ class __$McpToolInputSchemaDtoCopyWithImpl<$Res>
 
 /// Create a copy of McpToolInputSchemaDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? title = freezed,Object? description = null,Object? properties = null,Object? requiredFields = null,Object? additionalProperties = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? title = freezed,Object? description = null,Object? properties = null,Object? requiredFields = null,Object? additionalProperties = freezed,Object? schemaUri = freezed,}) {
   return _then(_McpToolInputSchemaDto(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -616,7 +624,257 @@ as String?,description: null == description ? _self.description : description //
 as String,properties: null == properties ? _self._properties : properties // ignore: cast_nullable_to_non_nullable
 as Map<String, McpToolSchemaPropertyDto>,requiredFields: null == requiredFields ? _self._requiredFields : requiredFields // ignore: cast_nullable_to_non_nullable
 as List<String>,additionalProperties: freezed == additionalProperties ? _self.additionalProperties : additionalProperties // ignore: cast_nullable_to_non_nullable
-as bool?,
+as bool?,schemaUri: freezed == schemaUri ? _self.schemaUri : schemaUri // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$McpToolExecutionDto {
+
+@JsonKey(name: 'task_support') String? get taskSupport;
+/// Create a copy of McpToolExecutionDto
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$McpToolExecutionDtoCopyWith<McpToolExecutionDto> get copyWith => _$McpToolExecutionDtoCopyWithImpl<McpToolExecutionDto>(this as McpToolExecutionDto, _$identity);
+
+  /// Serializes this McpToolExecutionDto to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+
+
+@override
+String toString() {
+  return 'McpToolExecutionDto(taskSupport: $taskSupport)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $McpToolExecutionDtoCopyWith<$Res>  {
+  factory $McpToolExecutionDtoCopyWith(McpToolExecutionDto value, $Res Function(McpToolExecutionDto) _then) = _$McpToolExecutionDtoCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(name: 'task_support') String? taskSupport
+});
+
+
+
+
+}
+/// @nodoc
+class _$McpToolExecutionDtoCopyWithImpl<$Res>
+    implements $McpToolExecutionDtoCopyWith<$Res> {
+  _$McpToolExecutionDtoCopyWithImpl(this._self, this._then);
+
+  final McpToolExecutionDto _self;
+  final $Res Function(McpToolExecutionDto) _then;
+
+/// Create a copy of McpToolExecutionDto
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? taskSupport = freezed,}) {
+  return _then(_self.copyWith(
+taskSupport: freezed == taskSupport ? _self.taskSupport : taskSupport // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [McpToolExecutionDto].
+extension McpToolExecutionDtoPatterns on McpToolExecutionDto {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _McpToolExecutionDto value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _McpToolExecutionDto() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _McpToolExecutionDto value)  $default,){
+final _that = this;
+switch (_that) {
+case _McpToolExecutionDto():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _McpToolExecutionDto value)?  $default,){
+final _that = this;
+switch (_that) {
+case _McpToolExecutionDto() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'task_support')  String? taskSupport)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _McpToolExecutionDto() when $default != null:
+return $default(_that.taskSupport);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'task_support')  String? taskSupport)  $default,) {final _that = this;
+switch (_that) {
+case _McpToolExecutionDto():
+return $default(_that.taskSupport);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'task_support')  String? taskSupport)?  $default,) {final _that = this;
+switch (_that) {
+case _McpToolExecutionDto() when $default != null:
+return $default(_that.taskSupport);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class _McpToolExecutionDto implements McpToolExecutionDto {
+  const _McpToolExecutionDto({@JsonKey(name: 'task_support') this.taskSupport});
+  factory _McpToolExecutionDto.fromJson(Map<String, dynamic> json) => _$McpToolExecutionDtoFromJson(json);
+
+@override@JsonKey(name: 'task_support') final  String? taskSupport;
+
+/// Create a copy of McpToolExecutionDto
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$McpToolExecutionDtoCopyWith<_McpToolExecutionDto> get copyWith => __$McpToolExecutionDtoCopyWithImpl<_McpToolExecutionDto>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$McpToolExecutionDtoToJson(this, );
+}
+
+
+
+@override
+String toString() {
+  return 'McpToolExecutionDto(taskSupport: $taskSupport)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$McpToolExecutionDtoCopyWith<$Res> implements $McpToolExecutionDtoCopyWith<$Res> {
+  factory _$McpToolExecutionDtoCopyWith(_McpToolExecutionDto value, $Res Function(_McpToolExecutionDto) _then) = __$McpToolExecutionDtoCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(name: 'task_support') String? taskSupport
+});
+
+
+
+
+}
+/// @nodoc
+class __$McpToolExecutionDtoCopyWithImpl<$Res>
+    implements _$McpToolExecutionDtoCopyWith<$Res> {
+  __$McpToolExecutionDtoCopyWithImpl(this._self, this._then);
+
+  final _McpToolExecutionDto _self;
+  final $Res Function(_McpToolExecutionDto) _then;
+
+/// Create a copy of McpToolExecutionDto
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? taskSupport = freezed,}) {
+  return _then(_McpToolExecutionDto(
+taskSupport: freezed == taskSupport ? _self.taskSupport : taskSupport // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -627,7 +885,7 @@ as bool?,
 /// @nodoc
 mixin _$AllowedMcpTool {
 
-@JsonKey(name: 'tool_id') String get toolId; ToolCapability get capability; I18nText get name; String get description;@JsonKey(name: 'input_schema') McpToolInputSchemaDto get inputSchema; bool get enabled;
+@JsonKey(name: 'tool_id') String get toolId; ToolCapability get capability; I18nText get name; String get description;@JsonKey(name: 'input_schema') McpToolInputSchemaDto get inputSchema; McpToolExecutionDto? get execution; bool get enabled;
 /// Create a copy of AllowedMcpTool
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -642,7 +900,7 @@ $AllowedMcpToolCopyWith<AllowedMcpTool> get copyWith => _$AllowedMcpToolCopyWith
 
 @override
 String toString() {
-  return 'AllowedMcpTool(toolId: $toolId, capability: $capability, name: $name, description: $description, inputSchema: $inputSchema, enabled: $enabled)';
+  return 'AllowedMcpTool(toolId: $toolId, capability: $capability, name: $name, description: $description, inputSchema: $inputSchema, execution: $execution, enabled: $enabled)';
 }
 
 
@@ -653,11 +911,11 @@ abstract mixin class $AllowedMcpToolCopyWith<$Res>  {
   factory $AllowedMcpToolCopyWith(AllowedMcpTool value, $Res Function(AllowedMcpTool) _then) = _$AllowedMcpToolCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'tool_id') String toolId, ToolCapability capability, I18nText name, String description,@JsonKey(name: 'input_schema') McpToolInputSchemaDto inputSchema, bool enabled
+@JsonKey(name: 'tool_id') String toolId, ToolCapability capability, I18nText name, String description,@JsonKey(name: 'input_schema') McpToolInputSchemaDto inputSchema, McpToolExecutionDto? execution, bool enabled
 });
 
 
-$I18nTextCopyWith<$Res> get name;$McpToolInputSchemaDtoCopyWith<$Res> get inputSchema;
+$I18nTextCopyWith<$Res> get name;$McpToolInputSchemaDtoCopyWith<$Res> get inputSchema;$McpToolExecutionDtoCopyWith<$Res>? get execution;
 
 }
 /// @nodoc
@@ -670,14 +928,15 @@ class _$AllowedMcpToolCopyWithImpl<$Res>
 
 /// Create a copy of AllowedMcpTool
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? toolId = null,Object? capability = null,Object? name = null,Object? description = null,Object? inputSchema = null,Object? enabled = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? toolId = null,Object? capability = null,Object? name = null,Object? description = null,Object? inputSchema = null,Object? execution = freezed,Object? enabled = null,}) {
   return _then(_self.copyWith(
 toolId: null == toolId ? _self.toolId : toolId // ignore: cast_nullable_to_non_nullable
 as String,capability: null == capability ? _self.capability : capability // ignore: cast_nullable_to_non_nullable
 as ToolCapability,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,inputSchema: null == inputSchema ? _self.inputSchema : inputSchema // ignore: cast_nullable_to_non_nullable
-as McpToolInputSchemaDto,enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
+as McpToolInputSchemaDto,execution: freezed == execution ? _self.execution : execution // ignore: cast_nullable_to_non_nullable
+as McpToolExecutionDto?,enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -698,6 +957,18 @@ $McpToolInputSchemaDtoCopyWith<$Res> get inputSchema {
   
   return $McpToolInputSchemaDtoCopyWith<$Res>(_self.inputSchema, (value) {
     return _then(_self.copyWith(inputSchema: value));
+  });
+}/// Create a copy of AllowedMcpTool
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$McpToolExecutionDtoCopyWith<$Res>? get execution {
+    if (_self.execution == null) {
+    return null;
+  }
+
+  return $McpToolExecutionDtoCopyWith<$Res>(_self.execution!, (value) {
+    return _then(_self.copyWith(execution: value));
   });
 }
 }
@@ -781,10 +1052,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tool_id')  String toolId,  ToolCapability capability,  I18nText name,  String description, @JsonKey(name: 'input_schema')  McpToolInputSchemaDto inputSchema,  bool enabled)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tool_id')  String toolId,  ToolCapability capability,  I18nText name,  String description, @JsonKey(name: 'input_schema')  McpToolInputSchemaDto inputSchema,  McpToolExecutionDto? execution,  bool enabled)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AllowedMcpTool() when $default != null:
-return $default(_that.toolId,_that.capability,_that.name,_that.description,_that.inputSchema,_that.enabled);case _:
+return $default(_that.toolId,_that.capability,_that.name,_that.description,_that.inputSchema,_that.execution,_that.enabled);case _:
   return orElse();
 
 }
@@ -802,10 +1073,10 @@ return $default(_that.toolId,_that.capability,_that.name,_that.description,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tool_id')  String toolId,  ToolCapability capability,  I18nText name,  String description, @JsonKey(name: 'input_schema')  McpToolInputSchemaDto inputSchema,  bool enabled)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tool_id')  String toolId,  ToolCapability capability,  I18nText name,  String description, @JsonKey(name: 'input_schema')  McpToolInputSchemaDto inputSchema,  McpToolExecutionDto? execution,  bool enabled)  $default,) {final _that = this;
 switch (_that) {
 case _AllowedMcpTool():
-return $default(_that.toolId,_that.capability,_that.name,_that.description,_that.inputSchema,_that.enabled);case _:
+return $default(_that.toolId,_that.capability,_that.name,_that.description,_that.inputSchema,_that.execution,_that.enabled);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -822,10 +1093,10 @@ return $default(_that.toolId,_that.capability,_that.name,_that.description,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tool_id')  String toolId,  ToolCapability capability,  I18nText name,  String description, @JsonKey(name: 'input_schema')  McpToolInputSchemaDto inputSchema,  bool enabled)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tool_id')  String toolId,  ToolCapability capability,  I18nText name,  String description, @JsonKey(name: 'input_schema')  McpToolInputSchemaDto inputSchema,  McpToolExecutionDto? execution,  bool enabled)?  $default,) {final _that = this;
 switch (_that) {
 case _AllowedMcpTool() when $default != null:
-return $default(_that.toolId,_that.capability,_that.name,_that.description,_that.inputSchema,_that.enabled);case _:
+return $default(_that.toolId,_that.capability,_that.name,_that.description,_that.inputSchema,_that.execution,_that.enabled);case _:
   return null;
 
 }
@@ -837,7 +1108,7 @@ return $default(_that.toolId,_that.capability,_that.name,_that.description,_that
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _AllowedMcpTool implements AllowedMcpTool {
-  const _AllowedMcpTool({@JsonKey(name: 'tool_id') required this.toolId, this.capability = ToolCapability.search, required this.name, required this.description, @JsonKey(name: 'input_schema') this.inputSchema = const McpToolInputSchemaDto(), this.enabled = true});
+  const _AllowedMcpTool({@JsonKey(name: 'tool_id') required this.toolId, this.capability = ToolCapability.search, required this.name, required this.description, @JsonKey(name: 'input_schema') this.inputSchema = const McpToolInputSchemaDto(), this.execution, this.enabled = true});
   factory _AllowedMcpTool.fromJson(Map<String, dynamic> json) => _$AllowedMcpToolFromJson(json);
 
 @override@JsonKey(name: 'tool_id') final  String toolId;
@@ -845,6 +1116,7 @@ class _AllowedMcpTool implements AllowedMcpTool {
 @override final  I18nText name;
 @override final  String description;
 @override@JsonKey(name: 'input_schema') final  McpToolInputSchemaDto inputSchema;
+@override final  McpToolExecutionDto? execution;
 @override@JsonKey() final  bool enabled;
 
 /// Create a copy of AllowedMcpTool
@@ -862,7 +1134,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'AllowedMcpTool(toolId: $toolId, capability: $capability, name: $name, description: $description, inputSchema: $inputSchema, enabled: $enabled)';
+  return 'AllowedMcpTool(toolId: $toolId, capability: $capability, name: $name, description: $description, inputSchema: $inputSchema, execution: $execution, enabled: $enabled)';
 }
 
 
@@ -873,11 +1145,11 @@ abstract mixin class _$AllowedMcpToolCopyWith<$Res> implements $AllowedMcpToolCo
   factory _$AllowedMcpToolCopyWith(_AllowedMcpTool value, $Res Function(_AllowedMcpTool) _then) = __$AllowedMcpToolCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'tool_id') String toolId, ToolCapability capability, I18nText name, String description,@JsonKey(name: 'input_schema') McpToolInputSchemaDto inputSchema, bool enabled
+@JsonKey(name: 'tool_id') String toolId, ToolCapability capability, I18nText name, String description,@JsonKey(name: 'input_schema') McpToolInputSchemaDto inputSchema, McpToolExecutionDto? execution, bool enabled
 });
 
 
-@override $I18nTextCopyWith<$Res> get name;@override $McpToolInputSchemaDtoCopyWith<$Res> get inputSchema;
+@override $I18nTextCopyWith<$Res> get name;@override $McpToolInputSchemaDtoCopyWith<$Res> get inputSchema;@override $McpToolExecutionDtoCopyWith<$Res>? get execution;
 
 }
 /// @nodoc
@@ -890,14 +1162,15 @@ class __$AllowedMcpToolCopyWithImpl<$Res>
 
 /// Create a copy of AllowedMcpTool
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? toolId = null,Object? capability = null,Object? name = null,Object? description = null,Object? inputSchema = null,Object? enabled = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? toolId = null,Object? capability = null,Object? name = null,Object? description = null,Object? inputSchema = null,Object? execution = freezed,Object? enabled = null,}) {
   return _then(_AllowedMcpTool(
 toolId: null == toolId ? _self.toolId : toolId // ignore: cast_nullable_to_non_nullable
 as String,capability: null == capability ? _self.capability : capability // ignore: cast_nullable_to_non_nullable
 as ToolCapability,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as I18nText,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,inputSchema: null == inputSchema ? _self.inputSchema : inputSchema // ignore: cast_nullable_to_non_nullable
-as McpToolInputSchemaDto,enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
+as McpToolInputSchemaDto,execution: freezed == execution ? _self.execution : execution // ignore: cast_nullable_to_non_nullable
+as McpToolExecutionDto?,enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -919,6 +1192,18 @@ $McpToolInputSchemaDtoCopyWith<$Res> get inputSchema {
   
   return $McpToolInputSchemaDtoCopyWith<$Res>(_self.inputSchema, (value) {
     return _then(_self.copyWith(inputSchema: value));
+  });
+}/// Create a copy of AllowedMcpTool
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$McpToolExecutionDtoCopyWith<$Res>? get execution {
+    if (_self.execution == null) {
+    return null;
+  }
+
+  return $McpToolExecutionDtoCopyWith<$Res>(_self.execution!, (value) {
+    return _then(_self.copyWith(execution: value));
   });
 }
 }

@@ -22,6 +22,7 @@ from backend_v2.models.dtos.mcp import (
     MCPToolCallResultDTO,
     MCPToolDeclarationDTO,
     MCPToolDescriptorDTO,
+    MCPToolExecutionDTO,
     MCPToolInputSchemaDTO,
     MCPToolInvocationDTO,
     MCPToolSchemaPropertyDTO,
@@ -106,7 +107,7 @@ def test_parsed_mcp_tool_alias_and_invocation_dtos() -> None:
         tool_id="search",
         description="Web search",
         capability=ToolCapability.SEARCH,
-        input_schema=MCPToolInputSchemaDTO(),
+        input_schema=MCPToolInputSchemaDTO(properties={}, required=[]),
         enabled=True,
     )
     assert descriptor.capability == ToolCapability.SEARCH
@@ -180,7 +181,11 @@ def test_mcp_json_rpc_wire_dtos_roundtrip() -> None:
     block: MCPContentBlockDTO = parsed_call_resp.result.content[0]
     assert block.mime_type == "text/plain"
 
-    init_res = MCPInitializeResultDTO(protocol_version="2025-03-26")
+    init_res = MCPInitializeResultDTO(
+        protocol_version="2025-03-26",
+        server_info=MCPServerInfoDTO(icons=[]),
+        capabilities={},
+    )
     assert init_res.protocol_version == "2025-03-26"
 
     err_dto = MCPJsonRpcErrorDTO(code=-32601, message="Method not found")
@@ -325,3 +330,112 @@ def test_mcp_initialize_result_dto_with_complex_server_info_metadata() -> None:
         MCPIconDTO.model_validate({"src": 12345})
 
 
+def test_mcp_tools_list_result_dto_with_exa_metadata() -> None:
+    """Regression test for Exa AI tools/list response frame validation.
+
+    Verify MCPToolsListResultDTO and MCPJsonRpcResponseDTO validate tool entries
+    containing $schema, minLength, maxLength, and execution metadata without failing
+    with extra_forbidden validation errors.
+    """
+    raw_response = {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "result": {
+            "tools": [
+                {
+                    "name": "web_search_exa",
+                    "title": "Web Search",
+                    "description": "Search the web for any topic.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "minLength": 1,
+                                "description": "Natural language search query.",
+                            },
+                            "numResults": {
+                                "type": "number",
+                                "description": "Number of search results.",
+                            },
+                            "objective": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 4096,
+                                "description": "Goal for this search turn.",
+                            },
+                        },
+                        "required": ["query", "objective"],
+                        "additionalProperties": False,
+                        "$schema": "http://json-schema.org/draft-07/schema#",
+                    },
+                    "annotations": {
+                        "readOnlyHint": True,
+                        "destructiveHint": False,
+                        "openWorldHint": True,
+                        "idempotentHint": True,
+                    },
+                    "execution": {"taskSupport": "forbidden"},
+                },
+                {
+                    "name": "web_fetch_exa",
+                    "title": "Fetch Web Pages",
+                    "description": "Read a webpage's full content as clean markdown.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "urls": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "URLs to read.",
+                            },
+                            "maxCharacters": {
+                                "type": "number",
+                                "minimum": 1,
+                                "description": "Maximum characters to extract.",
+                            },
+                        },
+                        "required": ["urls"],
+                        "additionalProperties": False,
+                        "$schema": "http://json-schema.org/draft-07/schema#",
+                    },
+                    "annotations": {
+                        "readOnlyHint": True,
+                        "destructiveHint": False,
+                        "openWorldHint": True,
+                        "idempotentHint": True,
+                    },
+                    "execution": {"taskSupport": "forbidden"},
+                },
+            ]
+        },
+    }
+    parsed = MCPJsonRpcResponseDTO.model_validate(raw_response)
+    assert isinstance(parsed.result, MCPToolsListResultDTO)
+    assert len(parsed.result.tools) == 2
+
+    tool_0 = parsed.result.tools[0]
+    assert tool_0.name == "web_search_exa"
+    assert tool_0.input_schema.schema_uri == "http://json-schema.org/draft-07/schema#"
+    assert tool_0.input_schema.properties["query"].min_length == 1
+    assert tool_0.input_schema.properties["objective"].max_length == 4096
+    assert tool_0.execution is not None
+    assert tool_0.execution.task_support == "forbidden"
+
+    tool_1 = parsed.result.tools[1]
+    assert tool_1.name == "web_fetch_exa"
+    assert tool_1.input_schema.schema_uri == "http://json-schema.org/draft-07/schema#"
+    assert tool_1.execution is not None
+    assert tool_1.execution.task_support == "forbidden"
+
+    with pytest.raises(ValidationError):
+        MCPToolExecutionDTO.model_validate({"taskSupport": "forbidden", "unknownField": "invalid"})
+
+    with pytest.raises(ValidationError):
+        MCPToolInputSchemaDTO.model_validate({"type": "object", "unexpectedSchemaField": True})
+
+    with pytest.raises(ValidationError):
+        MCPToolSchemaPropertyDTO.model_validate({"type": "string", "minLength": -1})
+
+    with pytest.raises(ValidationError):
+        MCPToolSchemaPropertyDTO.model_validate({"type": "string", "maxLength": -5})

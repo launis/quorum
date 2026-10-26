@@ -25,10 +25,12 @@ from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.system_config import AllowedMCPTool, SystemConfigMCPGateways
 from backend_v2.models.dtos.mcp import (
+    MCPInitializeClientInfoDTO,
     MCPInitializeParamsDTO,
     MCPInitializeResultDTO,
     MCPJsonRpcRequestDTO,
     MCPJsonRpcResponseDTO,
+    MCPServerInfoDTO,
     MCPToolCallParamsDTO,
     MCPToolCallResultDTO,
     MCPToolInvocationDTO,
@@ -360,7 +362,10 @@ class GenericMCPClient:
         init_req = MCPJsonRpcRequestDTO(
             id=1,
             method="initialize",
-            params=MCPInitializeParamsDTO(),
+            params=MCPInitializeParamsDTO(
+                capabilities={},
+                client_info=MCPInitializeClientInfoDTO(),
+            ),
         )
         http_response = await self._execute_http_with_retry(
             client=client,
@@ -385,7 +390,10 @@ class GenericMCPClient:
                 error_code=ErrorCodes.SEARCH_EXECUTION_FAILED,
             )
 
-        init_result = MCPInitializeResultDTO()
+        init_result = MCPInitializeResultDTO(
+            server_info=MCPServerInfoDTO(icons=[]),
+            capabilities={},
+        )
         if isinstance(rpc_response.result, MCPInitializeResultDTO):
             init_result = rpc_response.result
 
@@ -710,6 +718,7 @@ class GenericMCPClient:
                     description=description_text,
                     input_schema=wire_tool.input_schema,
                     enabled=True,
+                    execution=wire_tool.execution,
                 )
             )
         return discovered

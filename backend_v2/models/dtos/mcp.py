@@ -35,6 +35,7 @@ __all__ = [
     "MCPToolCallResultDTO",
     "MCPToolDeclarationDTO",
     "MCPToolDescriptorDTO",
+    "MCPToolExecutionDTO",
     "MCPToolInputSchemaDTO",
     "MCPToolInvocationDTO",
     "MCPToolMetaDTO",
@@ -151,6 +152,24 @@ class MCPToolSchemaPropertyDTO(V2CoreBase):
         int | float | None,
         Field(default=None, description="Optional maximum numeric value."),
     ] = None
+    min_length: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=0,
+            validation_alias=AliasChoices("minLength", "min_length"),
+            description="Minimum string length constraint.",
+        ),
+    ] = None
+    max_length: Annotated[
+        int | None,
+        Field(
+            default=None,
+            ge=0,
+            validation_alias=AliasChoices("maxLength", "max_length"),
+            description="Maximum string length constraint.",
+        ),
+    ] = None
     any_of: Annotated[
         list[MCPToolSchemaPropertyDTO] | None,
         Field(
@@ -198,6 +217,14 @@ class MCPToolInputSchemaDTO(V2CoreBase):
             default=None,
             validation_alias=AliasChoices("additionalProperties", "additional_properties"),
             description="Whether additional top-level properties are permitted.",
+        ),
+    ] = None
+    schema_uri: Annotated[
+        str | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("$schema", "schema_uri", "schema"),
+            description="JSON Schema Draft URI specification.",
         ),
     ] = None
 
@@ -625,6 +652,25 @@ class MCPToolAnnotationsDTO(V2CoreBase):
     ] = None
 
 
+class MCPToolExecutionDTO(V2CoreBase):
+    """Execution control metadata for an MCP tool.
+
+    Attributes:
+        task_support: Task execution support policy (e.g., 'forbidden', 'optional', 'required').
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
+
+    task_support: Annotated[
+        str | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("taskSupport", "task_support"),
+            description="Task execution support policy for MCP background tasks.",
+        ),
+    ] = None
+
+
 class MCPDiscoveredToolWireDTO(V2CoreBase):
     """Single tool entry returned inside 'tools/list' response from an MCP server.
 
@@ -636,6 +682,7 @@ class MCPDiscoveredToolWireDTO(V2CoreBase):
         output_schema: Optional recursive JSON Schema for the tool's output.
         annotations: Optional behavioral annotations and hints.
         meta: Optional server framework metadata container.
+        execution: Optional tool execution configuration and task support policy.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
@@ -670,6 +717,10 @@ class MCPDiscoveredToolWireDTO(V2CoreBase):
             validation_alias=AliasChoices("_meta", "meta"),
             description="Optional server framework metadata.",
         ),
+    ] = None
+    execution: Annotated[
+        MCPToolExecutionDTO | None,
+        Field(default=None, description="Optional tool execution configuration and task support policy."),
     ] = None
 
 

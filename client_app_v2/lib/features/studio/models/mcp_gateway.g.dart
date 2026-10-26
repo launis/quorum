@@ -26,6 +26,8 @@ _McpToolSchemaPropertyDto _$McpToolSchemaPropertyDtoFromJson(
         'default',
         'minimum',
         'maximum',
+        'min_length',
+        'max_length',
         'any_of',
       ],
     );
@@ -66,6 +68,8 @@ _McpToolSchemaPropertyDto _$McpToolSchemaPropertyDtoFromJson(
       defaultValue: $checkedConvert('default', (v) => v),
       minimum: $checkedConvert('minimum', (v) => v as num?),
       maximum: $checkedConvert('maximum', (v) => v as num?),
+      minLength: $checkedConvert('min_length', (v) => (v as num?)?.toInt()),
+      maxLength: $checkedConvert('max_length', (v) => (v as num?)?.toInt()),
       anyOf: $checkedConvert(
         'any_of',
         (v) => (v as List<dynamic>?)
@@ -83,6 +87,8 @@ _McpToolSchemaPropertyDto _$McpToolSchemaPropertyDtoFromJson(
     'requiredFields': 'required',
     'additionalProperties': 'additional_properties',
     'defaultValue': 'default',
+    'minLength': 'min_length',
+    'maxLength': 'max_length',
     'anyOf': 'any_of',
   },
 );
@@ -101,6 +107,8 @@ Map<String, dynamic> _$McpToolSchemaPropertyDtoToJson(
   'default': instance.defaultValue,
   'minimum': instance.minimum,
   'maximum': instance.maximum,
+  'min_length': instance.minLength,
+  'max_length': instance.maxLength,
   'any_of': instance.anyOf?.map((e) => e.toJson()).toList(),
 };
 
@@ -129,6 +137,7 @@ _McpToolInputSchemaDto _$McpToolInputSchemaDtoFromJson(
         'properties',
         'required',
         'additional_properties',
+        'schema_uri',
       ],
     );
     final val = _McpToolInputSchemaDto(
@@ -156,12 +165,14 @@ _McpToolInputSchemaDto _$McpToolInputSchemaDtoFromJson(
         'additional_properties',
         (v) => v as bool?,
       ),
+      schemaUri: $checkedConvert('schema_uri', (v) => v as String?),
     );
     return val;
   },
   fieldKeyMap: const {
     'requiredFields': 'required',
     'additionalProperties': 'additional_properties',
+    'schemaUri': 'schema_uri',
   },
 );
 
@@ -174,7 +185,21 @@ Map<String, dynamic> _$McpToolInputSchemaDtoToJson(
   'properties': instance.properties.map((k, e) => MapEntry(k, e.toJson())),
   'required': instance.requiredFields,
   'additional_properties': instance.additionalProperties,
+  'schema_uri': instance.schemaUri,
 };
+
+_McpToolExecutionDto _$McpToolExecutionDtoFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('_McpToolExecutionDto', json, ($checkedConvert) {
+      $checkKeys(json, allowedKeys: const ['task_support']);
+      final val = _McpToolExecutionDto(
+        taskSupport: $checkedConvert('task_support', (v) => v as String?),
+      );
+      return val;
+    }, fieldKeyMap: const {'taskSupport': 'task_support'});
+
+Map<String, dynamic> _$McpToolExecutionDtoToJson(
+  _McpToolExecutionDto instance,
+) => <String, dynamic>{'task_support': instance.taskSupport};
 
 _AllowedMcpTool _$AllowedMcpToolFromJson(Map<String, dynamic> json) =>
     $checkedCreate(
@@ -189,6 +214,7 @@ _AllowedMcpTool _$AllowedMcpToolFromJson(Map<String, dynamic> json) =>
             'name',
             'description',
             'input_schema',
+            'execution',
             'enabled',
           ],
         );
@@ -211,6 +237,12 @@ _AllowedMcpTool _$AllowedMcpToolFromJson(Map<String, dynamic> json) =>
                 ? const McpToolInputSchemaDto()
                 : McpToolInputSchemaDto.fromJson(v as Map<String, dynamic>),
           ),
+          execution: $checkedConvert(
+            'execution',
+            (v) => v == null
+                ? null
+                : McpToolExecutionDto.fromJson(v as Map<String, dynamic>),
+          ),
           enabled: $checkedConvert('enabled', (v) => v as bool? ?? true),
         );
         return val;
@@ -225,6 +257,7 @@ Map<String, dynamic> _$AllowedMcpToolToJson(_AllowedMcpTool instance) =>
       'name': instance.name.toJson(),
       'description': instance.description,
       'input_schema': instance.inputSchema.toJson(),
+      'execution': instance.execution?.toJson(),
       'enabled': instance.enabled,
     };
 

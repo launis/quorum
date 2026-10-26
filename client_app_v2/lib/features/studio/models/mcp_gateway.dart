@@ -24,6 +24,8 @@ abstract class McpToolSchemaPropertyDto with _$McpToolSchemaPropertyDto {
     @JsonKey(name: 'default') Object? defaultValue,
     num? minimum,
     num? maximum,
+    @JsonKey(name: 'min_length') int? minLength,
+    @JsonKey(name: 'max_length') int? maxLength,
     @JsonKey(name: 'any_of') List<McpToolSchemaPropertyDto>? anyOf,
   }) = _McpToolSchemaPropertyDto;
 
@@ -45,10 +47,25 @@ abstract class McpToolInputSchemaDto with _$McpToolInputSchemaDto {
     Map<String, McpToolSchemaPropertyDto> properties,
     @Default(<String>[]) @JsonKey(name: 'required') List<String> requiredFields,
     @JsonKey(name: 'additional_properties') bool? additionalProperties,
+    @JsonKey(name: 'schema_uri') String? schemaUri,
   }) = _McpToolInputSchemaDto;
 
   factory McpToolInputSchemaDto.fromJson(Map<String, dynamic> json) =>
       _$McpToolInputSchemaDtoFromJson(json);
+}
+
+/// Execution control metadata for an MCP tool.
+///
+/// Matches backend SSOT `MCPToolExecutionDTO` in `backend_v2/models/dtos/mcp.py`.
+@Freezed(equal: false)
+abstract class McpToolExecutionDto with _$McpToolExecutionDto {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory McpToolExecutionDto({
+    @JsonKey(name: 'task_support') String? taskSupport,
+  }) = _McpToolExecutionDto;
+
+  factory McpToolExecutionDto.fromJson(Map<String, dynamic> json) =>
+      _$McpToolExecutionDtoFromJson(json);
 }
 
 /// Declares a single MCP tool available for LLM function calling.
@@ -65,6 +82,7 @@ abstract class AllowedMcpTool with _$AllowedMcpTool {
     @JsonKey(name: 'input_schema')
     @Default(McpToolInputSchemaDto())
     McpToolInputSchemaDto inputSchema,
+    McpToolExecutionDto? execution,
     @Default(true) bool enabled,
   }) = _AllowedMcpTool;
 
