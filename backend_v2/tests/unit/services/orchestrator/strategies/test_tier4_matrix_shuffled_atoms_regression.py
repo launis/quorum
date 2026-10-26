@@ -21,7 +21,7 @@ from backend_v2.models.dtos.engine import EngineExecutionResult, FlattenedAtom
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
-from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
+from backend_v2.services.orchestrator.strategies.llm_strategy import LLMNodeStrategy
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -224,8 +224,8 @@ async def test_matrix_step_resolves_shuffled_atoms_from_global_context_vars(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest") as mock_req,
         patch("litellm.token_counter", return_value=10),
     ):
         mock_req.side_effect = lambda **kwargs: MagicMock(**kwargs)

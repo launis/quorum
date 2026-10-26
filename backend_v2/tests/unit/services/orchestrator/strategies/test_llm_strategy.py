@@ -18,8 +18,8 @@ from backend_v2.models.enums import BlockDataType, CognitiveTier, ExecutionStatu
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.strategies.base import StrategyContext, StrategyDependencies
-from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
+from backend_v2.services.orchestrator.strategies.llm_strategy import LLMNodeStrategy
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 

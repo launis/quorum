@@ -110,7 +110,6 @@ convention = "google"
 "backend_v2/services/orchestrator/extractive_sensor_service.py" = ["E501"]
 "backend_v2/services/orchestrator/localization_compiler.py" = ["E501"]
 "backend_v2/services/orchestrator/prompt_compiler_adapter.py" = ["E501"]
-"backend_v2/services/orchestrator/strategies/llm.py" = ["E501"]
 "backend_v2/services/source_verification_service.py" = ["E501"]
 "backend_v2/tests/unit/hooks/test_scoring.py" = ["E501"]
 "backend_v2/tests/unit/services/orchestrator/strategies/test_fail_fast_inputs_resolution.py" = ["E501"]

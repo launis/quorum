@@ -158,7 +158,6 @@ RESIDUAL_FUTURE_PHASE_QGR028_FILES: frozenset[str] = frozenset(
         "backend_v2/services/execution/resumption_service.py",
         "backend_v2/services/orchestrator/dag_executor.py",
         "backend_v2/services/orchestrator/strategies/logic.py",
-        "backend_v2/services/orchestrator/strategies/llm.py",
         "backend_v2/services/orchestrator/strategies/llm_strategy/blueprint_and_metadata_stage.py",
         "backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py",
         "backend_v2/services/orchestrator/strategies/llm_strategy/prompt_and_schema_stage.py",
@@ -1967,6 +1966,17 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Import report services from canonical package `backend_v2.services.report`.",
                     severity=GuardrailSeverity.FATAL,
                 )
+            elif alias.name == "backend_v2.services.orchestrator.strategies.llm" or alias.name.endswith(
+                ".strategies.llm"
+            ):
+                # Phase 4, Step 3: Lock retired strategies.llm path in QGR017
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import of eradicated legacy module `{alias.name}`.",
+                    "Import from canonical package `backend_v2.services.orchestrator.strategies.llm_strategy`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
             elif alias.name in (
                 "backend_v2.services.mcp.tools.tavily",
                 "backend_v2.services.mcp.tools.wikipedia",
@@ -2144,6 +2154,35 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "QGR017",
                             f"Banned import of eradicated legacy module symbol `{alias.name}` from `{node.module}`.",
                             "Import report services from canonical package `backend_v2.services.report`.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+            elif (
+                node.module == "backend_v2.services.orchestrator.strategies.llm"
+                or node.module.endswith(".strategies.llm")
+                or (node.level > 0 and node.module == "llm")
+            ):
+                # Phase 4, Step 3: Lock retired strategies.llm path in QGR017
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import from eradicated legacy module `{node.module}`.",
+                    "Import from canonical package `backend_v2.services.orchestrator.strategies.llm_strategy`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            elif node.module in (
+                "backend_v2.services.orchestrator.strategies",
+                "services.orchestrator.strategies",
+                "orchestrator.strategies",
+                "strategies",
+            ):
+                for alias in node.names:
+                    if alias.name == "llm":
+                        # Phase 4, Step 3: Lock retired strategies.llm symbol in QGR017
+                        self._add_violation(
+                            node,
+                            "QGR017",
+                            f"Banned import of eradicated legacy module symbol `{alias.name}` from `{node.module}`.",
+                            "Import from canonical package `backend_v2.services.orchestrator.strategies.llm_strategy`.",
                             severity=GuardrailSeverity.FATAL,
                         )
 

@@ -564,7 +564,7 @@ async def test_prompt_and_schema_stage_execution_record_and_serialization_errors
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Verify negative error paths for ExecutionRecord lookup, hydration, and group serialization."""
-    test_logger = logging.getLogger("backend_v2.services.orchestrator.strategies.llm")
+    test_logger = logging.getLogger("backend_v2.services.orchestrator.strategies.llm_strategy")
     rule_block = _create_rule_block("blk_0123456789abcdef")
     profile = OutputProfile(
         id="prf_0123456789abcdef",
@@ -599,9 +599,10 @@ async def test_prompt_and_schema_stage_execution_record_and_serialization_errors
     ctx = _create_ctx(output_profile_id=profile.id)
 
     # 1. Serialization failure in json.dumps -> VALIDATION_FAILED
-    with patch(
-        "backend_v2.services.orchestrator.strategies.llm_strategy.prompt_and_schema_stage.json.dumps",
-        side_effect=TypeError("unserializable group"),
+    with patch.object(
+        MatrixSynthesisGroup,
+        "model_dump",
+        return_value={"unserializable": object()},
     ):
         with pytest.raises(AppException, match="VALIDATION_FAILED") as exc_info:
             await execute_prompt_and_schema_stage(
@@ -616,7 +617,7 @@ async def test_prompt_and_schema_stage_execution_record_and_serialization_errors
     # 2. Corrupted ExecutionRecord in DB -> VALIDATION_FAILED
     in_memory_repo.set_execution({"id": "exe_corrupt01234567", "bad_field": 123})
     ctx_corrupt = ctx.model_copy(update={"execution_id": "exe_corrupt01234567"})
-    with caplog.at_level(logging.ERROR, logger="backend_v2.services.orchestrator.strategies.llm"):
+    with caplog.at_level(logging.ERROR, logger="backend_v2.services.orchestrator.strategies.llm_strategy"):
         with pytest.raises(
             AppException, match="Failed to parse execution record for source documents context"
         ) as exc_info:
@@ -631,14 +632,16 @@ async def test_prompt_and_schema_stage_execution_record_and_serialization_errors
 
     # 3. Repository get_execution fault -> RESOURCE_NOT_FOUND
     in_memory_repo.inject_fault("get_execution", RuntimeError("DB offline"))
-    with pytest.raises(AppException, match="Execution record 'exe_0123456789abcdef' not found") as exc_info:
-        await execute_prompt_and_schema_stage(
-            stage1=stage1,
-            step=step,
-            context=ctx,
-            deps=strategy_deps,
-            step_logger=test_logger,
-        )
-    assert exc_info.value.status_code == 404
-    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
-    in_memory_repo.clear_faults()
+    try:
+        with pytest.raises(AppException, match="Execution record 'exe_0123456789abcdef' not found") as exc_info:
+            await execute_prompt_and_schema_stage(
+                stage1=stage1,
+                step=step,
+                context=ctx,
+                deps=strategy_deps,
+                step_logger=test_logger,
+            )
+        assert exc_info.value.status_code == 404
+        assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+    finally:
+        in_memory_repo.clear_faults()

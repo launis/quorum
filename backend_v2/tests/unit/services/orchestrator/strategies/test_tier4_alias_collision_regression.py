@@ -1,24 +1,32 @@
 """Regression test: Verify no parallel alias system exists in LLMNodeStrategy.
 
-Tier 4 RCA proved that llm.py had a parallel alias system (_apply_alias_chunks_and_audit)
+Tier 4 RCA proved that llm_strategy had a parallel alias system (_apply_alias_chunks_and_audit)
 that created conflicting doc IDs (doc1..docN starting from 1) and <source ID="..." label="...">
 XML wrappers inside the data, bypassing AliasEngine entirely. This caused:
 1. literal_error: LLM used label attribute instead of ID
 2. doc0 vs doc1 numbering mismatch between AliasEngine and the parallel system
 
-This test ensures the parallel system is never reintroduced.
+This test ensures the parallel system is never reintroduced across the llm_strategy package.
 """
 
 from pathlib import Path
 
-# Read source directly from disk to avoid .pyc cache issues with inspect.getsource
-_LLM_PY_PATH = Path(__file__).resolve().parents[5] / "services" / "orchestrator" / "strategies" / "llm.py"
+# Read source directly from disk across all sub-modules in strategies/llm_strategy/
+_LLM_STRATEGY_DIR = Path(__file__).resolve().parents[5] / "services" / "orchestrator" / "strategies" / "llm_strategy"
 _REGISTRY_PATH = Path(__file__).resolve().parents[5] / "core" / "registry.py"
 
 
+def _read_llm_strategy_sources() -> str:
+    """Concatenate source code of all Python modules in the llm_strategy package."""
+    assert _LLM_STRATEGY_DIR.is_dir(), f"Missing strategy directory: {_LLM_STRATEGY_DIR}"
+    py_files = sorted(_LLM_STRATEGY_DIR.glob("*.py"))
+    assert py_files, f"No Python files found in {_LLM_STRATEGY_DIR}"
+    return "\n".join(p.read_text(encoding="utf-8") for p in py_files)
+
+
 def test_no_parallel_alias_system_in_llm_strategy() -> None:
-    """Verify _apply_alias_chunks_and_audit and src_counter are absent from llm.py code."""
-    raw_source = _LLM_PY_PATH.read_text(encoding="utf-8")
+    """Verify _apply_alias_chunks_and_audit and src_counter are absent from llm_strategy code."""
+    raw_source = _read_llm_strategy_sources()
 
     # Filter out comment lines to avoid false positives from removal notes
     code_lines = [line for line in raw_source.splitlines() if line.strip() and not line.strip().startswith("#")]
@@ -26,24 +34,24 @@ def test_no_parallel_alias_system_in_llm_strategy() -> None:
 
     # The parallel alias function must not exist in actual code
     assert "_apply_alias_chunks_and_audit" not in source, (
-        "REGRESSION: _apply_alias_chunks_and_audit() was reintroduced in llm.py. "
+        "REGRESSION: _apply_alias_chunks_and_audit() was reintroduced in llm_strategy. "
         "This function creates a parallel alias system that conflicts with AliasEngine."
     )
 
     # The src_counter pattern must not exist in actual code
     assert "src_counter" not in source, (
-        "REGRESSION: src_counter was reintroduced in llm.py. "
+        "REGRESSION: src_counter was reintroduced in llm_strategy. "
         "Source document aliasing must go through AliasEngine exclusively."
     )
 
 
 def test_no_source_xml_wrapping_in_llm_strategy() -> None:
-    """Verify llm.py does not inject <source ID=... label=...> XML tags into data."""
-    source = _LLM_PY_PATH.read_text(encoding="utf-8")
+    """Verify llm_strategy does not inject <source ID=... label=...> XML tags into data."""
+    source = _read_llm_strategy_sources()
 
     # The f-string pattern that injected <source ID="..." label="..."> wrappers
     assert 'label=\\"{k}\\"' not in source, (
-        'REGRESSION: <source ID="..."> XML wrapping was reintroduced in llm.py. '
+        'REGRESSION: <source ID="..."> XML wrapping was reintroduced in llm_strategy. '
         "Data must remain unwrapped; prompt_compiler.build_xml_context() handles XML wrapping."
     )
 
@@ -51,13 +59,13 @@ def test_no_source_xml_wrapping_in_llm_strategy() -> None:
     non_comment_lines = [line for line in source.splitlines() if line.strip() and not line.strip().startswith("#")]
     non_comment_source = "\n".join(non_comment_lines)
     assert '<source ID="' not in non_comment_source, (
-        'REGRESSION: <source ID="..."> XML wrapping found in non-comment code in llm.py.'
+        'REGRESSION: <source ID="..."> XML wrapping found in non-comment code in llm_strategy.'
     )
 
 
 def test_alias_engine_initialized_clean() -> None:
     """Verify AliasEngine is initialized without pre-populated alias_map from metadata."""
-    source = _LLM_PY_PATH.read_text(encoding="utf-8")
+    source = _read_llm_strategy_sources()
 
     # Must not read alias_map from hook_state.metadata to initialize AliasEngine
     assert 'metadata.get("alias_map"' not in source, (

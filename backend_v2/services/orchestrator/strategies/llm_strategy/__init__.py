@@ -1,7 +1,10 @@
-"""LLM Node Strategy for DAG-based workflow execution.
+"""LLM Node Strategy package facade for DAG-based workflow execution.
 
-Orchestrates AI/LLM step execution including dynamic schema compilation,
-chunked map-reduce evaluation, DLQ graceful degradation, and anomaly retry logic.
+Orchestrates AI/LLM step execution across the 4-stage pipeline:
+1. Blueprint resolution, pre-hooks, and OutputProfile resolution (`blueprint_and_metadata_stage.py`)
+2. Context building, prompt compilation, chunking, and dynamic schema resolution (`prompt_and_schema_stage.py`)
+3. LLMClient binding, MCP tool retrieval, and bounded engine retry loop (`engine_retry_stage.py`)
+4. Telemetry metric merging and TraceEvent assembly (`trace_event_stage.py`)
 """
 
 from __future__ import annotations
@@ -24,49 +27,24 @@ from backend_v2.services.mcp.mcp_tool_loop import execute_mcp_retrieval as execu
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder as ContextBuilder
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory as PromptFactory
-from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
-    _SCHEMA_BLOCK_EXTENSION as _SCHEMA_BLOCK_EXTENSION,
-)
-from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
-    _SCHEMA_BLOCK_MATRIX as _SCHEMA_BLOCK_MATRIX,
-)
-from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
-    _SCHEMA_BLOCK_SYSTEM as _SCHEMA_BLOCK_SYSTEM,
-)
-from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
-    _SCHEMA_BLOCK_TEXT as _SCHEMA_BLOCK_TEXT,
-)
-from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
-    BlueprintStageResult as BlueprintStageResult,
-)
-from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
-    NodeStatePayload as NodeStatePayload,
-)
-from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
-    dlq_handle_debug_log_error as dlq_handle_debug_log_error,
-)
-from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
+from backend_v2.settings import get_settings as get_settings
+
+from .blueprint_and_metadata_stage import _SCHEMA_BLOCK_EXTENSION as _SCHEMA_BLOCK_EXTENSION
+from .blueprint_and_metadata_stage import _SCHEMA_BLOCK_MATRIX as _SCHEMA_BLOCK_MATRIX
+from .blueprint_and_metadata_stage import _SCHEMA_BLOCK_SYSTEM as _SCHEMA_BLOCK_SYSTEM
+from .blueprint_and_metadata_stage import _SCHEMA_BLOCK_TEXT as _SCHEMA_BLOCK_TEXT
+from .blueprint_and_metadata_stage import BlueprintStageResult as BlueprintStageResult
+from .blueprint_and_metadata_stage import NodeStatePayload as NodeStatePayload
+from .blueprint_and_metadata_stage import dlq_handle_debug_log_error as dlq_handle_debug_log_error
+from .blueprint_and_metadata_stage import (
     execute_blueprint_and_pre_hooks_stage as execute_blueprint_and_pre_hooks_stage,
 )
-from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
-    extract_step_context_metadata as extract_step_context_metadata,
-)
-from backend_v2.services.orchestrator.strategies.llm_strategy.engine_retry_stage import (
-    EngineRetryStageResult as EngineRetryStageResult,
-)
-from backend_v2.services.orchestrator.strategies.llm_strategy.engine_retry_stage import (
-    execute_engine_retry_stage as execute_engine_retry_stage,
-)
-from backend_v2.services.orchestrator.strategies.llm_strategy.prompt_and_schema_stage import (
-    PromptAndSchemaStageResult as PromptAndSchemaStageResult,
-)
-from backend_v2.services.orchestrator.strategies.llm_strategy.prompt_and_schema_stage import (
-    execute_prompt_and_schema_stage as execute_prompt_and_schema_stage,
-)
-from backend_v2.services.orchestrator.strategies.llm_strategy.trace_event_stage import (
-    build_llm_step_trace_events as build_llm_step_trace_events,
-)
-from backend_v2.settings import get_settings as get_settings
+from .blueprint_and_metadata_stage import extract_step_context_metadata as extract_step_context_metadata
+from .engine_retry_stage import EngineRetryStageResult as EngineRetryStageResult
+from .engine_retry_stage import execute_engine_retry_stage as execute_engine_retry_stage
+from .prompt_and_schema_stage import PromptAndSchemaStageResult as PromptAndSchemaStageResult
+from .prompt_and_schema_stage import execute_prompt_and_schema_stage as execute_prompt_and_schema_stage
+from .trace_event_stage import build_llm_step_trace_events as build_llm_step_trace_events
 
 __all__ = [
     "BlueprintStageResult",
@@ -124,7 +102,7 @@ class LLMNodeStrategy(NodeStrategy):
         Args:
             exc: Exception encountered during debug prompt logging.
         """
-        # Phase 1, Step 2: Delegate debug log error handler to blueprint_and_metadata_stage
+        # Phase 4, Step 2: Delegate debug log error handler to blueprint_and_metadata_stage
         dlq_handle_debug_log_error(exc, step_logger=logger)
 
     def _extract_step_context_metadata(
@@ -141,7 +119,7 @@ class LLMNodeStrategy(NodeStrategy):
         Returns:
             StepContextMetadataDTO containing gvars, doc_aliases, and dag_results.
         """
-        # Phase 1, Step 2: Delegate step context metadata extraction to blueprint_and_metadata_stage
+        # Phase 4, Step 2: Delegate step context metadata extraction to blueprint_and_metadata_stage
         return extract_step_context_metadata(hook_state, context)
 
     @override
@@ -172,7 +150,7 @@ class LLMNodeStrategy(NodeStrategy):
                 or ErrorCodes.RESOURCE_NOT_FOUND upon missing configuration, invalid models, or missing records.
             ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR upon missing mandatory step/profile blocks.
         """
-        # Phase 1, Step 2: Delegate Stage 1 blueprint resolution and pre-hooks to blueprint_and_metadata_stage
+        # Phase 4, Step 2: Stage 1 blueprint resolution and pre-hooks
         stage1 = await execute_blueprint_and_pre_hooks_stage(
             step=step,
             projector=projector,
@@ -182,7 +160,7 @@ class LLMNodeStrategy(NodeStrategy):
             step_logger=logger,
         )
 
-        # Phase 2, Step 2: Delegate Stage 2 context building, prompt compilation, and dynamic schema resolution
+        # Phase 4, Step 2: Stage 2 context building, prompt compilation, and dynamic schema resolution
         stage2 = await execute_prompt_and_schema_stage(
             stage1=stage1,
             step=step,
@@ -194,7 +172,7 @@ class LLMNodeStrategy(NodeStrategy):
             step_logger=logger,
         )
 
-        # Phase 3, Step 2: Delegate Stage 3 LLMClient binding, MCP tool loop, and engine retry loop
+        # Phase 4, Step 2: Stage 3 LLMClient binding, MCP tool loop, and engine retry loop
         stage3 = await execute_engine_retry_stage(
             stage1=stage1,
             stage2=stage2,
@@ -211,7 +189,7 @@ class LLMNodeStrategy(NodeStrategy):
             step_logger=logger,
         )
 
-        # Phase 3, Step 2: Delegate Stage 4 telemetry merging and TraceEvent assembly
+        # Phase 4, Step 2: Stage 4 telemetry merging and TraceEvent assembly
         return build_llm_step_trace_events(
             stage1=stage1,
             stage2=stage2,

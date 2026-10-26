@@ -8,7 +8,7 @@ from backend_v2.exceptions import AppException
 from backend_v2.models.enums import StepType
 from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
-from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
+from backend_v2.services.orchestrator.strategies.llm_strategy import LLMNodeStrategy
 from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 from backend_v2.services.orchestrator.strategies.registry import (
     NODE_STRATEGY_REGISTRY,
@@ -43,6 +43,16 @@ def test_node_strategy_registry_resolves_logic_strategy(mock_deps: StrategyDepen
 
 def test_node_strategy_registry_resolves_llm_strategy(mock_deps: StrategyDependencies) -> None:
     """Test factory creates LLMNodeStrategy for StepType.LLM with non-null ExecutionEngine."""
+    mock_engine = MagicMock(spec=ExecutionEngine)
+    strategy = NodeStrategyFactory.create_strategy(StepType.LLM, deps=mock_deps, engine=mock_engine)
+    assert isinstance(strategy, LLMNodeStrategy)
+    assert strategy.deps is mock_deps
+    assert strategy._engine is mock_engine
+
+
+def test_registry_creates_llm_strategy_with_engine(mock_deps: StrategyDependencies) -> None:
+    """Contract test: verify NodeStrategyFactory resolves LLMNodeStrategy from strategies.llm_strategy."""
+    # Phase 4, Step 2: Contract test for llm_strategy package resolution
     mock_engine = MagicMock(spec=ExecutionEngine)
     strategy = NodeStrategyFactory.create_strategy(StepType.LLM, deps=mock_deps, engine=mock_engine)
     assert isinstance(strategy, LLMNodeStrategy)

@@ -7,7 +7,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import StepType
 from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyDependencies
-from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
+from backend_v2.services.orchestrator.strategies.llm_strategy import LLMNodeStrategy
 from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 
 logger = logging.getLogger(__name__)

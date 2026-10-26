@@ -16,7 +16,9 @@ from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMProviderConfig
-from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
+
+# Phase 4, Step 1: Migrate unit tests to llm_strategy package facade
+from backend_v2.services.orchestrator.strategies.llm_strategy import LLMNodeStrategy
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -425,8 +427,8 @@ async def test_execute_success_path_structured_output(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -792,8 +794,8 @@ async def test_execute_with_role_and_persona_and_protocol(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -917,8 +919,8 @@ async def test_execute_synthesis_engine_path(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -1035,11 +1037,11 @@ async def test_execute_anomaly_retry_flow(
 
     mock_settings = get_settings().model_copy(update={"llm_max_retries": 2})
     with (
-        patch("backend_v2.services.orchestrator.strategies.llm.get_settings", return_value=mock_settings),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.get_settings", return_value=mock_settings),
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", side_effect=_post_hooks_side_effect),
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -1310,7 +1312,7 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
 
     with (
         patch.object(strategy_no_engine, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -1605,16 +1607,19 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
 
     from unittest.mock import AsyncMock, patch
 
-    with patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre:
-        mock_pre.return_value = (mock_hook_state, [])
-        with pytest.raises(AppException) as exc_info:
-            await llm_strategy.execute(
-                step=step,
-                projector=projector,
-                context=context,
-                frozen_ctx=None,
-                trace=[],
-            )
+    try:
+        with patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre:
+            mock_pre.return_value = (mock_hook_state, [])
+            with pytest.raises(AppException) as exc_info:
+                await llm_strategy.execute(
+                    step=step,
+                    projector=projector,
+                    context=context,
+                    frozen_ctx=None,
+                    trace=[],
+                )
+    finally:
+        mock_repo.clear_faults()
 
     assert exc_info.value.status_code == 404
     assert "Execution record 'exec_1' not found" in exc_info.value.message
@@ -1753,8 +1758,8 @@ async def test_execute_matrix_chunking_flow(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -1918,10 +1923,10 @@ async def test_execute_with_allowed_mcp_tools_enriches_prompt_and_emits_traces(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest"),
         patch(
-            "backend_v2.services.orchestrator.strategies.llm.execute_mcp_retrieval", new_callable=AsyncMock
+            "backend_v2.services.orchestrator.strategies.llm_strategy.execute_mcp_retrieval", new_callable=AsyncMock
         ) as mock_retrieve,
         patch("litellm.token_counter", return_value=10),
     ):
@@ -2074,10 +2079,10 @@ async def test_execute_with_empty_mcp_tools_bypasses_retrieval(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest"),
         patch(
-            "backend_v2.services.orchestrator.strategies.llm.execute_mcp_retrieval", new_callable=AsyncMock
+            "backend_v2.services.orchestrator.strategies.llm_strategy.execute_mcp_retrieval", new_callable=AsyncMock
         ) as mock_retrieve,
         patch("litellm.token_counter", return_value=10),
     ):
@@ -2214,9 +2219,9 @@ async def test_execute_mcp_retrieval_failure_propagates_app_exception(
 
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
         patch(
-            "backend_v2.services.orchestrator.strategies.llm.execute_mcp_retrieval", new_callable=AsyncMock
+            "backend_v2.services.orchestrator.strategies.llm_strategy.execute_mcp_retrieval", new_callable=AsyncMock
         ) as mock_retrieve,
         patch("litellm.token_counter", return_value=10),
     ):
@@ -2314,8 +2319,8 @@ async def test_execute_anomaly_retry_exceeded_limit(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", side_effect=_always_retry_post_hooks),
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -2548,8 +2553,8 @@ async def test_llm_node_strategy_execute_without_concurrency(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -2769,8 +2774,8 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest") as mock_req,
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -2917,8 +2922,8 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest") as mock_req,
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -2953,8 +2958,8 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest") as mock_req,
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -2985,8 +2990,8 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest") as mock_req,
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -3134,8 +3139,8 @@ async def test_execute_fails_fast_on_missing_cognitive_tier(
 
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
-        patch("backend_v2.services.orchestrator.strategies.llm.ContextBuilder.build", return_value=({}, {})),
-        patch("backend_v2.services.orchestrator.strategies.llm.PromptFactory.build") as mock_pf,
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.ContextBuilder.build", return_value=({}, {})),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.PromptFactory.build") as mock_pf,
     ):
         mock_pre.return_value = (mock_hook_state, [])
         mock_payload = MagicMock()
@@ -3261,8 +3266,7 @@ def test_extract_step_context_metadata_mapping_and_results_branches(llm_strategy
 
 def test_dlq_handle_debug_log_error() -> None:
     """Verify _dlq_handle_debug_log_error logs warning without raising."""
-    from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
-
+    # Phase 4, Step 1: Migrate unit tests to llm_strategy package facade
     LLMNodeStrategy._dlq_handle_debug_log_error(RuntimeError("Sample debug prompt error"))
 
 
@@ -3436,8 +3440,8 @@ async def test_llm_strategy_resolve_schema_map_workflow_steps(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
-        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -3506,7 +3510,7 @@ async def test_execute_configuration_errors_emit_rfc7807_dual_logs(
     mock_hook_state = _make_mock_hook_state({})
 
     with (
-        caplog.at_level(logging.ERROR, logger="backend_v2.services.orchestrator.strategies.llm"),
+        caplog.at_level(logging.ERROR, logger="backend_v2.services.orchestrator.strategies.llm_strategy"),
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
     ):
         mock_pre.return_value = (mock_hook_state, [])

@@ -111,7 +111,7 @@ def test_ast_semaphore_guardrail() -> None:
         base / "services" / "orchestrator" / "sliding_window_linker.py",
         base / "services" / "orchestrator" / "strategies" / "base.py",
         base / "services" / "orchestrator" / "strategies" / "logic.py",
-        base / "services" / "orchestrator" / "strategies" / "llm.py",
+        *sorted((base / "services" / "orchestrator" / "strategies" / "llm_strategy").glob("*.py")),
     ]
     for path in decoupled_modules:
         assert path.exists(), f"Target missing: {path}"

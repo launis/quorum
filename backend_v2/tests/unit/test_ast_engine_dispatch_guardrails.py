@@ -410,14 +410,18 @@ def test_node_strategy_registry_ast_has_no_procedural_string_routing() -> None:
 
 
 def test_llm_strategy_ast_has_no_frozen_ctx_generated_schemas_mutation() -> None:
-    """Verify LLMNodeStrategy in llm.py contains zero in-place mutations of frozen_ctx.generated_schemas."""
-    strategy_file = Path("backend_v2/services/orchestrator/strategies/llm.py")
-    assert strategy_file.exists(), f"Missing strategy file: {strategy_file}"
+    """Verify LLMNodeStrategy package contains zero in-place mutations of frozen_ctx.generated_schemas."""
+    # Phase 4, Step 2: Scan all sub-modules in backend_v2/services/orchestrator/strategies/llm_strategy/
+    strategy_dir = Path("backend_v2/services/orchestrator/strategies/llm_strategy")
+    assert strategy_dir.is_dir(), f"Missing strategy package directory: {strategy_dir}"
+    py_files = sorted(strategy_dir.glob("*.py"))
+    assert py_files, f"No Python files found in {strategy_dir}"
 
-    res = scan_file_for_frozen_ctx_mutations(strategy_file)
-    assert res.has_frozen_ctx_generated_schemas_mutation is False, (
-        f"Forbidden in-place mutation of frozen_ctx.generated_schemas found in {strategy_file}"
-    )
+    for strategy_file in py_files:
+        res = scan_file_for_frozen_ctx_mutations(strategy_file)
+        assert res.has_frozen_ctx_generated_schemas_mutation is False, (
+            f"Forbidden in-place mutation of frozen_ctx.generated_schemas found in {strategy_file}"
+        )
 
 
 def test_prompt_block_repo_ast_strict_missing_parity() -> None:
@@ -435,11 +439,16 @@ def test_prompt_block_repo_ast_strict_missing_parity() -> None:
 
 
 def test_hook_state_immutability_and_no_inplace_metadata_mutation() -> None:
-    """Verify strategies/llm.py and hooks/ contain zero in-place mutations of hook_state.metadata/inputs."""
-    strategy_file = Path("backend_v2/services/orchestrator/strategies/llm.py")
-    res_strategy = scan_file_for_hook_state_immutability(strategy_file)
-    assert res_strategy.has_inplace_metadata_mutation is False, f"In-place metadata mutation found in {strategy_file}"
-    assert res_strategy.has_inplace_inputs_mutation is False, f"In-place inputs mutation found in {strategy_file}"
+    """Verify strategies/llm_strategy/ and hooks/ contain zero in-place mutations of hook_state.metadata/inputs."""
+    # Phase 4, Step 2: Scan all sub-modules in backend_v2/services/orchestrator/strategies/llm_strategy/
+    strategy_dir = Path("backend_v2/services/orchestrator/strategies/llm_strategy")
+    assert strategy_dir.is_dir(), f"Missing strategy package directory: {strategy_dir}"
+    for strategy_file in sorted(strategy_dir.glob("*.py")):
+        res_strategy = scan_file_for_hook_state_immutability(strategy_file)
+        assert res_strategy.has_inplace_metadata_mutation is False, (
+            f"In-place metadata mutation found in {strategy_file}"
+        )
+        assert res_strategy.has_inplace_inputs_mutation is False, f"In-place inputs mutation found in {strategy_file}"
 
     hooks_dir = Path("backend_v2/hooks")
     if hooks_dir.exists():

@@ -403,7 +403,7 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
     with (
         patch("backend_v2.services.orchestrator.engines.registry.SynthesisEngine") as mock_engine_class,
         patch(
-            "backend_v2.services.orchestrator.strategies.llm.LLMNodeStrategy.execute", new_callable=AsyncMock
+            "backend_v2.services.orchestrator.strategies.llm_strategy.LLMNodeStrategy.execute", new_callable=AsyncMock
         ) as mock_strategy_execute,
     ):
         mock_strategy_execute.return_value = []

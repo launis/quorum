@@ -179,8 +179,8 @@ async def _noop_pre_hooks(
 
 def test_dlq_handle_debug_log_error_emits_warning(caplog: pytest.LogCaptureFixture) -> None:
     """Verify dlq_handle_debug_log_error logs a structured warning message."""
-    test_logger = logging.getLogger("backend_v2.services.orchestrator.strategies.llm")
-    with caplog.at_level(logging.WARNING, logger="backend_v2.services.orchestrator.strategies.llm"):
+    test_logger = logging.getLogger("backend_v2.services.orchestrator.strategies.llm_strategy")
+    with caplog.at_level(logging.WARNING, logger="backend_v2.services.orchestrator.strategies.llm_strategy"):
         dlq_handle_debug_log_error(RuntimeError("disk full"), step_logger=test_logger)
 
     assert any("Failed to write debug prompt log: disk full" in r.message for r in caplog.records)
@@ -366,7 +366,7 @@ async def test_execute_fails_fast_on_missing_prompt_block(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Verify execute_blueprint_and_pre_hooks_stage logs RFC 7807 error and raises on missing prompt blocks."""
-    test_logger = logging.getLogger("backend_v2.services.orchestrator.strategies.llm")
+    test_logger = logging.getLogger("backend_v2.services.orchestrator.strategies.llm_strategy")
     projector = StateProjector(
         [
             TraceEvent(
@@ -393,7 +393,7 @@ async def test_execute_fails_fast_on_missing_prompt_block(
     )
     in_memory_repo.seed_raw_step(step_role.id, step_role)
 
-    with caplog.at_level(logging.ERROR, logger="backend_v2.services.orchestrator.strategies.llm"):
+    with caplog.at_level(logging.ERROR, logger="backend_v2.services.orchestrator.strategies.llm_strategy"):
         with pytest.raises(ConfigurationError, match="Role Block 'blk_b000000000000001' not found"):
             await execute_blueprint_and_pre_hooks_stage(
                 step=StepRule(id="sr_0000000000000001", task_blueprint=step_role.id),
