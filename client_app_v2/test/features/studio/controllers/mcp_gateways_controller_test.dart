@@ -436,16 +436,15 @@ void main() {
           1,
         );
 
-        // Add tool
+        // Add tool verifies English-only default I18nText without hardcoded Finnish
         formNotifier.addTool();
-        expect(
-          container
-              .read(mcpGatewayFormProvider('mcp_0123456789abcdef'))
-              .value
-              ?.tools
-              .length,
-          2,
-        );
+        final addedTools = container
+            .read(mcpGatewayFormProvider('mcp_0123456789abcdef'))
+            .value
+            ?.tools;
+        expect(addedTools?.length, 2);
+        expect(addedTools?.last.name.translations, {'en': 'New Tool'});
+        expect(addedTools?.last.name.translations.containsKey('fi'), isFalse);
 
         // Remove tool
         formNotifier.removeTool(1);
@@ -524,6 +523,19 @@ void main() {
       expect(errFormState.hasError, isTrue);
       expect(errFormState.hasValue, isTrue);
       expect(errFormState.value?.slug, 'unsaved-edit');
+
+      // Negative boundary: empty gateway ID on both payload and provider throws AppException
+      when(
+        () => mockClient.getMcpGateway(''),
+      ).thenAnswer((_) async => validGateway.copyWith(id: ''));
+      final emptyIdNotifier = container.read(
+        mcpGatewayFormProvider('').notifier,
+      );
+      await container.read(mcpGatewayFormProvider('').future);
+      await expectLater(
+        () => emptyIdNotifier.submit(validGateway.copyWith(id: '')),
+        throwsA(isA<AppException>()),
+      );
     });
 
     test(
@@ -594,6 +606,21 @@ void main() {
         );
         await expectLater(
           () => uninitializedNotifier.discoverTools(),
+          throwsA(isA<AppException>()),
+        );
+
+        // Negative 3: empty gateway ID on both payload and provider throws validation error
+        when(
+          () => mockClient.getMcpGateway(''),
+        ).thenAnswer((_) async => validGateway.copyWith(id: ''));
+        final emptyIdDiscoverNotifier = container.read(
+          mcpGatewayFormProvider('').notifier,
+        );
+        await container.read(mcpGatewayFormProvider('').future);
+        await expectLater(
+          () => emptyIdDiscoverNotifier.discoverTools(
+            validGateway.copyWith(id: ''),
+          ),
           throwsA(isA<AppException>()),
         );
       },

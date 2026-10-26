@@ -40,7 +40,7 @@ final class McpGatewaysControllerProvider
 }
 
 String _$mcpGatewaysControllerHash() =>
-    r'c446b6f1d75dffa50a51ef00d8641c2ca40d7529';
+    r'd429ca6533851f8028e215957df8a2c51159463a';
 
 /// Controller managing the MCP Gateways strictly using immutable Freezed models.
 /// Implements Optimistic UI principles where possible.
@@ -65,12 +65,12 @@ abstract class _$McpGatewaysController
   }
 }
 
-/// Fetches a single MCP Gateway natively by ID
+/// Fetches a single MCP Gateway natively by ID.
 
 @ProviderFor(mcpGatewayById)
 final mcpGatewayByIdProvider = McpGatewayByIdFamily._();
 
-/// Fetches a single MCP Gateway natively by ID
+/// Fetches a single MCP Gateway natively by ID.
 
 final class McpGatewayByIdProvider
     extends
@@ -80,7 +80,7 @@ final class McpGatewayByIdProvider
           FutureOr<McpGateway>
         >
     with $FutureModifier<McpGateway>, $FutureProvider<McpGateway> {
-  /// Fetches a single MCP Gateway natively by ID
+  /// Fetches a single MCP Gateway natively by ID.
   McpGatewayByIdProvider._({
     required McpGatewayByIdFamily super.from,
     required String super.argument,
@@ -126,7 +126,7 @@ final class McpGatewayByIdProvider
 
 String _$mcpGatewayByIdHash() => r'7132534f0c48cc702979df5800d26a0484f00634';
 
-/// Fetches a single MCP Gateway natively by ID
+/// Fetches a single MCP Gateway natively by ID.
 
 final class McpGatewayByIdFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<McpGateway>, String> {
@@ -139,7 +139,7 @@ final class McpGatewayByIdFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Fetches a single MCP Gateway natively by ID
+  /// Fetches a single MCP Gateway natively by ID.
 
   McpGatewayByIdProvider call(String id) =>
       McpGatewayByIdProvider._(argument: id, from: this);
@@ -189,7 +189,7 @@ final class McpGatewayFormProvider
   }
 }
 
-String _$mcpGatewayFormHash() => r'522c6e92988e1dfdd2faba7902dcc0a3ae08f98d';
+String _$mcpGatewayFormHash() => r'4e55a89b3f592b01c1a742445de6c6d2a51968d6';
 
 final class McpGatewayFormFamily extends $Family
     with
