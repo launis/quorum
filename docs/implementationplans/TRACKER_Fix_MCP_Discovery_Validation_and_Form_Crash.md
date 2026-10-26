@@ -28,9 +28,9 @@
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
 - [x] **[OK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Fix_MCP_Discovery_Validation_and_Form_Crash.md] --gate backend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"`
   - [x] @[backend_v2/models/dtos/mcp.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Fix_MCP_Discovery_Validation_and_Form_Crash.md] --gate frontend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker @[docs/implementationplans/TRACKER_Fix_MCP_Discovery_Validation_and_Form_Crash.md] --gate frontend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
   - [x] @[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
@@ -88,18 +88,20 @@
   * Synchronized timeless architecture pillars in `@[docs/architecture/03_cognitive_orchestration_engine.md]` and `@[docs/architecture/04_server_driven_ui_and_presentation.md]`.
 - Completed Tier 2 Hardening (Backend) (`/tier2-hardening-backend`) for `@[backend_v2/models/dtos/mcp.py]` (standardized PEP 593 `Annotated` fields, cleaned docstrings, verified 182/182 rules via `audit_matrix_manager.py`, 54/54 DTO parity, and 100% test coverage via `backend_audit_loop.py`), committed atomically (`4cae1bbfd`).
 - Completed Tier 2 Hardening (Frontend) (`/tier2-hardening-frontend`) for `@[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]` (replaced `.hasValue`/`.value!`/`.error!` unwrapping with Dart 3 pattern matching, removed hardcoded Finnish default tool text, added fail-fast empty ID validation and unit tests in `@[client_app_v2/test/features/studio/controllers/mcp_gateways_controller_test.dart]`, verified 107/107 rules via `audit_matrix_manager.py`, 54/54 DTO parity, and passed `flutter_audit_loop.py --build`), committed atomically (`d6b7b6a95`).
+- Completed Tier 2 Hardening (Frontend) (`/tier2-hardening-frontend`) for `@[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]` (verified 107/107 rules via `audit_matrix_manager.py`, 0 Dart AST violations via `flutter_audit_loop.py`, 8/8 tests passed in `@[client_app_v2/test/features/studio/views/mcp_gateway_view_test.dart]`, and 54/54 DTO parity via `audit_dto_parity.py`).
 
 ## Learned
 - In `scripts/_dart_guardrails.py`, rule `DGR010` flags any direct `.requireValue` access on `AsyncValue`. Using Dart 3 object pattern destructuring `AsyncValue(value: final payload?) when formState.hasValue` extracts the non-null `McpGateway` payload cleanly when `hasValue == true` without invoking `.requireValue`, satisfying both Riverpod 3.1.0 state retention and `_dart_guardrails.py --strict` with 0 violations.
 - When `mcpGatewayByIdProvider` is invalidated during `saveGateway` inside `McpGatewayForm.discoverTools`, Riverpod transitions the form provider state to `AsyncLoading` while retaining the caught error; pattern matching with `if (state case AsyncValue(error: final Object error))` cleanly matches both `AsyncError` and `AsyncLoading` states carrying an error without `.error!` bang operators.
 
 ## Remaining
-- Complete Tier 2 Hardening (Frontend) for remaining frontend target file (`@[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]`).
+- None. All implementation steps, quality gates, Tier 8 audits, Tier 7 architectural syncs, Tier 2 Backend Hardening, and Tier 2 Frontend Hardening targets are 100% complete.
 
 ### Hardening State Snapshot (Frontend)
 - **TARGETS:** `@[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]`, `@[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]`
-- **DONE:** `@[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]`
-- **REMAINING:** `@[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]`
+- **DONE:** `@[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]`, `@[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]`
+- **REMAINING:** None
 
 ## Status
-All implementation steps, quality gates, Tier 8 audits, Tier 7 architectural syncs, Tier 2 Backend Hardening, and 1/2 Tier 2 Frontend Hardening targets are complete.
+All implementation steps, quality gates, Tier 8 audits, Tier 7 architectural syncs, Tier 2 Backend Hardening, and Tier 2 Frontend Hardening targets are 100% complete.
+
