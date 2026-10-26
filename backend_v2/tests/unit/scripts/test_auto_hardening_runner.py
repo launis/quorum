@@ -1134,4 +1134,3 @@ def test_resilient_backtick_tracker_parsing_and_marking(tmp_path: Path) -> None:
     assert "- [x] [NEW] `@[backend_v2/services/file2.py]`" in updated
     assert "- [x] `[MODIFY] @[backend_v2/services/file3.py#L1-L10]`" in updated
     assert "- [x] **[OK] Tier 2 Hardening (Backend)**" in updated
-

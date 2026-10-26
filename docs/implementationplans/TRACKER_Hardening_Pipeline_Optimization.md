@@ -16,7 +16,7 @@
   - [x] Step 2: Add Model Selection and Two-Tier Auditing to auto_hardening_runner.py
   - [x] Step 3: Make Tracker Target Parsing Resilient to Backticks and Quoting
   - [x] Step 4: Expand Unit Test Suites in test_auto_hardening_runner.py and test_backend_audit_loop.py
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_Pipeline_Optimization.md] @[docs/implementationplans/TRACKER_Hardening_Pipeline_Optimization.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_Pipeline_Optimization.md] @[docs/implementationplans/TRACKER_Hardening_Pipeline_Optimization.md]`
 
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Verify zero skipped or disabled tests across the workspace.
@@ -82,10 +82,10 @@
 - In `run_hardening_pipeline`, `--dry-run` with explicit `--targets` defaults to `HardeningGate.ALL` unless `--gate` is specified; checking `args.gate == HardeningGate.BACKEND or (args.gate == HardeningGate.ALL and not target.endswith(".dart"))` ensures `.py` targets display the planned `backend_audit_loop.py ... --micro --no-logfire` command accurately.
 
 ## Remaining
-- Post-Implementation Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_Pipeline_Optimization.md] @[docs/implementationplans/TRACKER_Hardening_Pipeline_Optimization.md]`.
 - Tier 2 Hardening (Backend): Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Hardening_Pipeline_Optimization.md]" --gate backend`.
+- As-Built Architectural Sync: Run `/tier7-describe-architecture @[docs/implementationplans/TRACKER_Hardening_Pipeline_Optimization.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_Pipeline_Optimization.md] @[ki_deterministic_hardening_state.md] @[ki_epic_lifecycle_workflow.md]`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_Pipeline_Optimization.md] @[docs/implementationplans/TRACKER_Hardening_Pipeline_Optimization.md]
+uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Hardening_Pipeline_Optimization.md]" --gate backend
 ```

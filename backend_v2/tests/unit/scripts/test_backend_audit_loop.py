@@ -700,4 +700,3 @@ def test_backend_audit_loop_micro_mode_explicit_logfire_override(
     main(["scripts/backend_audit_loop.py", "--fast", "--logfire", "--test"])
     assert mock_scan.called
     mock_run_tests.assert_called_once_with("scripts/backend_audit_loop.py", logfire=True)
-
