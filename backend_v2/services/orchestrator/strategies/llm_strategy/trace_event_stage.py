@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataDTO
 from backend_v2.models.enums import CognitiveTier, VirtualSystemStepID
@@ -23,29 +25,78 @@ if TYPE_CHECKING:
 
 __all__ = ["build_llm_step_trace_events"]
 
+logger = logging.getLogger(__name__)
 
-def build_llm_step_trace_events(
-    *,
+
+def _resolve_initial_step_metadata(
     stage1: BlueprintStageResult,
-    stage2: PromptAndSchemaStageResult,
     stage3: EngineRetryStageResult,
-    step: StepRule,
-    engine: ExecutionEngine | None = None,
-) -> list[TraceEvent]:
-    """Assemble final step TraceEvent list from Stage 1, Stage 2, and Stage 3 results.
+    step_id: str,
+    step_logger: logging.Logger,
+) -> StepTraceMetadataDTO:
+    """Hydrate initial StepTraceMetadataDTO from Stage 1 state_data or Stage 3 final_dict.
 
     Args:
         stage1: Resolved Stage 1 blueprint and pre-hook output container.
-        stage2: Resolved Stage 2 prompt compilation and chunking output container.
+        stage3: Resolved Stage 3 engine retry loop and MCP retrieval output container.
+        step_id: Active StepRule identifier for structured RFC 7807 error logging.
+        step_logger: Logger instance used to emit structured RFC 7807 error logs.
+
+    Returns:
+        Validated StepTraceMetadataDTO instance.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED when step metadata payload fails validation.
+    """
+    raw_meta: object | None = None
+    if VirtualSystemStepID.STEP_METADATA.value in stage1.state_data:
+        raw_meta = stage1.state_data[VirtualSystemStepID.STEP_METADATA.value]
+    elif VirtualSystemStepID.STEP_METADATA.value in stage3.final_dict:
+        raw_meta = stage3.final_dict[VirtualSystemStepID.STEP_METADATA.value]
+
+    if raw_meta is None:
+        return StepTraceMetadataDTO()
+
+    try:
+        return StepTraceMetadataDTO.model_validate(raw_meta)
+    except Exception as e:
+        step_logger.error(
+            "[LLMStrategy] %s: Malformed _step_metadata in step '%s'",
+            ErrorCodes.VALIDATION_FAILED.name,
+            step_id,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step_id},
+        )
+        raise AppException(
+            message=f"Malformed _step_metadata for step '{step_id}'.",
+            status_code=500,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        ) from e
+
+
+def _build_step_trace_metadata(
+    *,
+    stage1: BlueprintStageResult,
+    stage3: EngineRetryStageResult,
+    step: StepRule,
+    engine: ExecutionEngine | None,
+    step_logger: logging.Logger,
+) -> StepTraceMetadataDTO:
+    """Merge Stage 1 and Stage 3 telemetry into a validated StepTraceMetadataDTO.
+
+    Args:
+        stage1: Resolved Stage 1 blueprint and pre-hook output container.
         stage3: Resolved Stage 3 engine retry loop and MCP retrieval output container.
         step: Rule defining the workflow execution block configuration.
         engine: Optional configured ExecutionEngine instance for telemetry_strategy_label resolution.
+        step_logger: Logger instance used to emit structured RFC 7807 error logs.
 
     Returns:
-        Ordered list of pre-hook, post-hook, and step output TraceEvents.
+        Populated StepTraceMetadataDTO with merged token usage and model telemetry.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED when step metadata payload fails validation.
     """
-    # Phase 3, Step 1: Merge state_data keys, hydrate StepTraceMetadataDTO, and emit TraceEvents
-    state_data = stage1.state_data
     step_obj = stage1.step_obj
     retrieval_usage = stage3.retrieval_usage
     usage_agg = stage3.usage_agg
@@ -58,12 +109,12 @@ def build_llm_step_trace_events(
     ):
         usage_agg = retrieval_usage + stage3.engine_result.usage
 
-    if VirtualSystemStepID.STEP_METADATA.value in state_data:
-        meta_dto = StepTraceMetadataDTO.model_validate(state_data[VirtualSystemStepID.STEP_METADATA.value])
-    elif "_step_metadata" in stage3.final_dict:
-        meta_dto = StepTraceMetadataDTO.model_validate(stage3.final_dict["_step_metadata"])
-    else:
-        meta_dto = StepTraceMetadataDTO()
+    meta_dto = _resolve_initial_step_metadata(
+        stage1=stage1,
+        stage3=stage3,
+        step_id=step.id,
+        step_logger=step_logger,
+    )
 
     model_strategy = "unknown"
     if engine is not None:
@@ -90,7 +141,7 @@ def build_llm_step_trace_events(
     elif retrieval_usage.total_tokens > 0 or retrieval_usage.cost_usd > 0.0:
         effective_token_usage = effective_token_usage + retrieval_usage
 
-    meta_dto = StepTraceMetadataDTO(
+    return StepTraceMetadataDTO(
         task_blueprint=step.task_blueprint,
         model_strategy=model_strategy,
         cognitive_tier=cognitive_tier_val,
@@ -105,6 +156,57 @@ def build_llm_step_trace_events(
         unix_time=meta_dto.unix_time,
         v2_engine=meta_dto.v2_engine,
         system_fingerprint=meta_dto.system_fingerprint,
+    )
+
+
+def build_llm_step_trace_events(
+    *,
+    stage1: BlueprintStageResult,
+    stage2: PromptAndSchemaStageResult,
+    stage3: EngineRetryStageResult,
+    step: StepRule,
+    engine: ExecutionEngine | None = None,
+    step_logger: logging.Logger = logger,
+) -> list[TraceEvent]:
+    """Assemble final step TraceEvent list from Stage 1, Stage 2, and Stage 3 results.
+
+    Args:
+        stage1: Resolved Stage 1 blueprint and pre-hook output container.
+        stage2: Resolved Stage 2 prompt compilation and chunking output container.
+        stage3: Resolved Stage 3 engine retry loop and MCP retrieval output container.
+        step: Rule defining the workflow execution block configuration.
+        engine: Optional configured ExecutionEngine instance for telemetry_strategy_label resolution.
+        step_logger: Logger instance used to emit structured RFC 7807 error logs.
+
+    Returns:
+        Ordered list of pre-hook, post-hook, and step output TraceEvents.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED when step.id is empty or step metadata is malformed.
+    """
+    if not isinstance(step.id, str) or not step.id.strip():
+        msg = "StepRule has empty or invalid step.id in Stage 4 trace event assembly."
+        step_logger.error(
+            "[LLMStrategy] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+        )
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
+    # Phase 3, Step 1: Merge state_data keys, hydrate StepTraceMetadataDTO, and emit TraceEvents
+    state_data = stage1.state_data
+    meta_dto = _build_step_trace_metadata(
+        stage1=stage1,
+        stage3=stage3,
+        step=step,
+        engine=engine,
+        step_logger=step_logger,
     )
     serialized_meta = meta_dto.model_dump(exclude_none=True)
     final_dict = serialized_meta.copy()

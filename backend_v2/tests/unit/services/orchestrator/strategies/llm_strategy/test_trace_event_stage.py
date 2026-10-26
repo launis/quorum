@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 from unittest.mock import MagicMock
 
+import pytest
 from pydantic import BaseModel, ConfigDict
 
 from backend_v2.core.hook_registry import ExecutionInputsDTO, GlobalContextVarsDTO, HookDependencies, HookState
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -156,7 +159,7 @@ def _build_stages_for_trace(
             atom_to_block_ids={},
         ),
         user_payload="Dynamic user.",
-        target_chunks=[["chunk_0"], ["chunk_1"]],
+        target_chunks=[None, None],
         dynamic_schema=dynamic_schema,
         is_synthesis_step=False,
         source_doc_ctx=[],
@@ -285,3 +288,108 @@ def test_trace_event_stage_combines_existing_step_metadata_usage_with_retrieval_
     assert abs(step_meta.token_usage.cost_usd - 0.012) < 1e-6
     assert output_trace.metadata is not None
     assert output_trace.metadata.generated_schema is None
+
+
+def test_trace_event_stage_hydrates_step_metadata_from_stage3_final_dict() -> None:
+    """Verify _step_metadata is hydrated from stage3.final_dict when absent from stage1.state_data."""
+    zero_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0, cost_usd=0.0)
+    raw_meta: Any = {
+        "execution_id": "exe_0123456789abcdef",
+        "workflow_id": "wf_0123456789abcdef",
+        "step_id": "sr_0123456789abcdef",
+        "chunk_size": 3,
+    }
+    stage1, stage2, stage3 = _build_stages_for_trace(
+        state_data={},
+        final_dict={
+            "output": "ok",
+            "_step_metadata": raw_meta,
+        },
+        engine_result=None,
+        retrieval_usage=zero_usage,
+        usage_agg=zero_usage,
+        dynamic_schema=None,
+        cognitive_tier=None,
+    )
+    step = StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef", input_mappings={})
+
+    traces = build_llm_step_trace_events(
+        stage1=stage1,
+        stage2=stage2,
+        stage3=stage3,
+        step=step,
+        engine=None,
+    )
+
+    output_trace = traces[-1]
+    content_map: Any = output_trace.content
+    step_meta = StepTraceMetadataDTO.model_validate(content_map["_step_metadata"])
+    assert step_meta.model_strategy == "unknown"
+    assert step_meta.cognitive_tier is None
+    assert step_meta.chunk_size == 3
+    assert step_meta.token_usage is None
+
+
+def test_trace_event_stage_fails_fast_on_empty_or_whitespace_step_id(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify build_llm_step_trace_events logs RFC 7807 error and raises AppException on blank step.id."""
+    zero_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0, cost_usd=0.0)
+    stage1, stage2, stage3 = _build_stages_for_trace(
+        state_data={},
+        final_dict={"output": "ok"},
+        engine_result=None,
+        retrieval_usage=zero_usage,
+        usage_agg=zero_usage,
+    )
+    test_logger = logging.getLogger("backend_v2.services.orchestrator.strategies.llm_strategy.trace_event_stage")
+
+    for invalid_id in ("", "   "):
+        invalid_step = StepRule.model_construct(
+            id=invalid_id,
+            task_blueprint="stp_0123456789abcdef",
+            input_mappings={},
+        )
+        with caplog.at_level(logging.ERROR, logger=test_logger.name):
+            with pytest.raises(AppException, match=r"empty or invalid step\.id") as exc_info:
+                build_llm_step_trace_events(
+                    stage1=stage1,
+                    stage2=stage2,
+                    stage3=stage3,
+                    step=invalid_step,
+                    engine=None,
+                    step_logger=test_logger,
+                )
+        assert exc_info.value.status_code == 500
+        assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_trace_event_stage_fails_fast_on_malformed_step_metadata(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify build_llm_step_trace_events logs RFC 7807 error and raises AppException on invalid _step_metadata."""
+    zero_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0, cost_usd=0.0)
+    stage1, stage2, stage3 = _build_stages_for_trace(
+        state_data={"_step_metadata": {"chunk_size": "not_an_int", "forbidden_extra": "boom"}},
+        final_dict={"output": "ok"},
+        engine_result=None,
+        retrieval_usage=zero_usage,
+        usage_agg=zero_usage,
+    )
+    step = StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef", input_mappings={})
+    test_logger = logging.getLogger("backend_v2.services.orchestrator.strategies.llm_strategy.trace_event_stage")
+
+    with caplog.at_level(logging.ERROR, logger=test_logger.name):
+        with pytest.raises(AppException, match="Malformed _step_metadata") as exc_info:
+            build_llm_step_trace_events(
+                stage1=stage1,
+                stage2=stage2,
+                stage3=stage3,
+                step=step,
+                engine=None,
+                step_logger=test_logger,
+            )
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert any("Malformed _step_metadata" in r.message for r in caplog.records)
