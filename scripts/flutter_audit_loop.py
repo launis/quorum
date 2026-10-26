@@ -131,7 +131,16 @@ Executes a five-stage code hygiene and validation sequence:
 
     print(f"\n⏳ 2/{total_steps}: Checking Dart Codebase Guardrails (scripts/_dart_guardrails.py)...")
     dart_guardrails_script = root_dir / "scripts" / "_dart_guardrails.py"
-    target_scan_dir = root_dir / "client_app_v2" / "lib"
+    raw_target = Path(target_dir)
+    if raw_target.is_absolute():
+        target_scan_dir = raw_target
+    elif cmd_dir == ".":
+        target_scan_dir = root_dir / "client_app_v2" / "lib"
+    else:
+        target_scan_dir = root_dir / "client_app_v2" / cmd_dir
+        if not target_scan_dir.exists():
+            target_scan_dir = root_dir / "client_app_v2" / "lib"
+
     guardrail_cmd = [sys.executable, str(dart_guardrails_script), str(target_scan_dir)]
     if run_strict:
         guardrail_cmd.append("--strict")

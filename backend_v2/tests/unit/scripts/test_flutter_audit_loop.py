@@ -177,6 +177,26 @@ def test_cli_strict_flag_propagates_to_dart_guardrails(mock_sub: MagicMock, tmp_
             assert "--strict" in guardrail_calls[0]
 
 
+@patch("subprocess.run")
+def test_cli_guardrails_targets_specific_file_when_provided(mock_sub: MagicMock, tmp_path: Path) -> None:
+    """Verify that providing a specific target file passes that specific file to _dart_guardrails."""
+    client_app = tmp_path / "client_app_v2"
+    models_dir = client_app / "lib" / "features" / "studio" / "models"
+    models_dir.mkdir(parents=True)
+    target_file = models_dir / "workflow.dart"
+    target_file.write_text("// test", encoding="utf-8")
+    mock_sub.return_value = _mock_completed_process(0)
+
+    with patch("os.getcwd", return_value=str(tmp_path)):
+        with patch.object(
+            sys, "argv", ["flutter_audit_loop.py", "client_app_v2/lib/features/studio/models/workflow.dart", "--strict"]
+        ):
+            main()
+            guardrail_calls = [c[0][0] for c in mock_sub.call_args_list if "_dart_guardrails.py" in str(c[0][0])]
+            assert len(guardrail_calls) == 1
+            assert str(target_file) in guardrail_calls[0]
+
+
 @patch("sys.exit")
 @patch("subprocess.run")
 def test_cli_guardrail_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
