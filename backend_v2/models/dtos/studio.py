@@ -1,7 +1,6 @@
 """Data Transfer Objects for Studio domain.
 
-These models define API Response boundaries enforcing Data Sovereignty.
-Verified Phase 1 Decoupled TDA schema propagation.
+These models define API Request and Response boundaries enforcing Data Sovereignty.
 """
 
 from typing import Annotated, Any, Literal
@@ -99,6 +98,20 @@ class WorkflowCreateDTO(V2CoreBase):
         historical_context_mode: Historical context retention mode.
         organization_id: Optional tenant organization scope.
         default_profile_id: Optional default output profile ID.
+        status: Workflow lifecycle status.
+        version: Workflow schema version.
+        is_public: Public visibility flag.
+        mcp_gateway_id: Optional MCP gateway system config ID.
+        model_registry_id: Optional model registry system config ID.
+        default_strictness_level: Sovereign workflow strictness level.
+        default_lexical_strictness_level: Sovereign workflow lexical strictness level.
+        security_penalty: Security threat penalty ratio.
+        post_hoc_penalty: Post-hoc rationalization penalty ratio.
+        passivity_penalty: Passivity penalty ratio.
+        enable_contextual_overrides: Whether contextual overrides are enabled.
+        enable_semantic_smoothing: Whether semantic smoothing is enabled.
+        enable_eager_anonymization: Whether eager anonymization is enabled.
+        system_audit_trail: Whether system audit trail is enabled.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -150,6 +163,7 @@ class StepCreateDTO(V2CoreBase):
         name: Localized step name.
         description: Detailed step context.
         type: Step execution type.
+        hook: Optional native hook name if type is logic.
         role_block_id: Optional role block reference.
         extraction_protocol_block_id: Optional extraction protocol block reference.
         execution_persona_block_id: Optional execution persona block reference.
@@ -159,8 +173,7 @@ class StepCreateDTO(V2CoreBase):
         safety: Safety execution rating.
         allowed_mcp_tools: List of allowed MCP tools.
         mcp_tool_params: Per-tool static parameter overrides keyed by namespaced MCP tool alias.
-        model_strategy: Optional cognitive strategy profile override.
-        hook: Optional native hook name if type is logic.
+        cognitive_tier: Cognitive tier strategy profile.
         expected_inputs: List of expected input keys.
         is_system_core: Whether the step is protected system core.
         organization_id: Tenant organization scope.
@@ -204,7 +217,6 @@ class StepCreateDTO(V2CoreBase):
     post_hooks: Annotated[list[str], Field(default_factory=list, description="Post-execution hooks")]
     safety: Annotated[Literal["safe", "unsafe"], Field(default="safe", description="Safety execution rating")] = "safe"
     allowed_mcp_tools: Annotated[list[str], Field(default_factory=list, description="Allowed MCP tools")]
-    # Phase 1, Step 1: Per-tool static parameter overrides in StepCreateDTO
     mcp_tool_params: Annotated[
         dict[str, MCPToolParamOverrides],
         Field(
@@ -283,6 +295,7 @@ class WorkflowResponseDTO(BaseResponseDTO, Workflow):
 
     Attributes:
         organization_id: Explicitly exposed for Admin Studio UI routing.
+        output_profiles: Dictionary of fully hydrated OutputProfiles attached to this workflow.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -326,8 +339,8 @@ class MCPGatewayDeleteResponse(BaseResponseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    status: str
-    deleted_id: str
+    status: Annotated[str, Field(description="Action outcome status message.")]
+    deleted_id: Annotated[str, Field(description="Opaque ID of the deleted gateway.")]
 
 
 class ModelRegistryDeleteResponse(BaseResponseDTO):
@@ -340,8 +353,8 @@ class ModelRegistryDeleteResponse(BaseResponseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    status: str
-    deleted_id: str
+    status: Annotated[str, Field(description="Action outcome status message.")]
+    deleted_id: Annotated[str, Field(description="Opaque ID of the deleted model registry.")]
 
 
 class StepSimulationTraceDTO(BaseDTO):
@@ -366,6 +379,7 @@ class PromptBlockSimulationResponse(BaseResponseDTO):
         errors: Compiled structural parsing errors list.
         rendered_prompt: Raw text output containing the rendered prompt block template.
         trace: Metadata containing state execution variables.
+        prompt_context: XAI compiled prompt structure.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -393,8 +407,8 @@ class PromptBlockDeleteResponse(BaseResponseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    status: str
-    deleted_id: str
+    status: Annotated[str, Field(description="Status code or textual message.")]
+    deleted_id: Annotated[str, Field(description="Opaque ID of the deleted prompt block.")]
 
 
 class PromptBlockSimulationRequest(BaseDTO):
@@ -410,8 +424,11 @@ class PromptBlockSimulationRequest(BaseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    block: PromptBlock
-    mock_inputs: Annotated[dict[str, DomainInputValue], Field(default_factory=dict)]
+    block: Annotated[PromptBlock, Field(description="The source PromptBlock domain object.")]
+    mock_inputs: Annotated[
+        dict[str, DomainInputValue],
+        Field(default_factory=dict, description="Mock input variables mimicking workflow execution parameters."),
+    ]
     target_scale_score: Annotated[
         int | None, Field(default=None, description="Optional specific scale score to simulate.")
     ] = None
@@ -429,7 +446,14 @@ class PromptBlockSimulationRequest(BaseDTO):
     @field_validator("target_locale", mode="before")
     @classmethod
     def normalize_target_locale(cls, v: Any) -> str:
-        """Normalize None or blank target locale to canonical default."""
+        """Normalize None or blank target locale to canonical default.
+
+        Args:
+            v: Raw target locale input value.
+
+        Returns:
+            Normalized target locale string defaulting to 'en'.
+        """
         if v is None or (isinstance(v, str) and not v.strip()):
             return "en"
         return str(v)
@@ -437,7 +461,14 @@ class PromptBlockSimulationRequest(BaseDTO):
     @field_validator("context_text", mode="before")
     @classmethod
     def normalize_context_text(cls, v: Any) -> str:
-        """Normalize None or blank context text to canonical simulation placeholder."""
+        """Normalize None or blank context text to canonical simulation placeholder.
+
+        Args:
+            v: Raw context text input value.
+
+        Returns:
+            Normalized context text string defaulting to '[SIMULATED CONTEXT DOCUMENT]'.
+        """
         if v is None or (isinstance(v, str) and not v.strip()):
             return "[SIMULATED CONTEXT DOCUMENT]"
         return str(v)
@@ -477,8 +508,8 @@ class StepDeleteResponse(BaseResponseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    status: str
-    deleted_id: str
+    status: Annotated[str, Field(description="Lifecycle state mapping indicating deletion complete.")]
+    deleted_id: Annotated[str, Field(description="Relational tracking code representing deleted target.")]
 
 
 class StepSimulationRequest(BaseDTO):
@@ -493,9 +524,12 @@ class StepSimulationRequest(BaseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    step: Step
+    step: Annotated[Step, Field(description="Domain step blueprint context containing prompt configurations.")]
     # External boundary: key schema defined dynamically by step.expected_inputs
-    mock_inputs: Annotated[dict[str, DomainInputValue], Field(default_factory=dict)]
+    mock_inputs: Annotated[
+        dict[str, DomainInputValue],
+        Field(default_factory=dict, description="Static evaluation anchors containing environment variables."),
+    ]
     target_locale: Annotated[
         str,
         Field(default="en", min_length=2, description="Target locale for prompt compilation."),
@@ -511,7 +545,14 @@ class StepSimulationRequest(BaseDTO):
     @field_validator("target_locale", mode="before")
     @classmethod
     def normalize_target_locale(cls, v: Any) -> str:
-        """Normalize None or blank target locale to canonical default."""
+        """Normalize None or blank target locale to canonical default.
+
+        Args:
+            v: Raw target locale input value.
+
+        Returns:
+            Normalized target locale string defaulting to 'en'.
+        """
         if v is None or (isinstance(v, str) and not v.strip()):
             return "en"
         return str(v)
@@ -519,7 +560,14 @@ class StepSimulationRequest(BaseDTO):
     @field_validator("context_text", mode="before")
     @classmethod
     def normalize_context_text(cls, v: Any) -> str:
-        """Normalize None or blank context text to canonical simulation placeholder."""
+        """Normalize None or blank context text to canonical simulation placeholder.
+
+        Args:
+            v: Raw context text input value.
+
+        Returns:
+            Normalized context text string defaulting to '[SIMULATED CONTEXT DOCUMENT]'.
+        """
         if v is None or (isinstance(v, str) and not v.strip()):
             return "[SIMULATED CONTEXT DOCUMENT]"
         return str(v)
@@ -561,8 +609,8 @@ class WorkflowDeleteResponse(BaseResponseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    status: str
-    deleted_id: str
+    status: Annotated[str, Field(description="Action status string.")]
+    deleted_id: Annotated[str, Field(description="Opaque ID representing the deleted workflow resource.")]
 
 
 class WorkflowAvailableExtensionsResponse(BaseResponseDTO):
@@ -574,7 +622,13 @@ class WorkflowAvailableExtensionsResponse(BaseResponseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    available_extensions: Annotated[list[str], Field(default_factory=list)]
+    available_extensions: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Union of all output_extensions defined across all Target Matrices.",
+        ),
+    ]
 
 
 class OutputProfileListResponse(BaseResponseDTO):
@@ -586,11 +640,28 @@ class OutputProfileListResponse(BaseResponseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    items: list[OutputProfileResponseDTO]
+    items: Annotated[list[OutputProfileResponseDTO], Field(description="List of OutputProfile response DTOs.")]
 
 
 class WorkflowUpdateDTO(BaseDTO):
-    """DTO for updating an existing Workflow definition."""
+    """DTO for updating an existing Workflow definition.
+
+    Attributes:
+        name: Updated localized workflow name.
+        description: Updated workflow description.
+        slug: Updated routing slug.
+        expected_inputs: Updated expected inputs list.
+        steps: Updated step rules sequence.
+        historical_context_mode: Updated historical context mode.
+        default_profile_id: Updated default output profile ID.
+        default_strictness_level: Updated sovereign workflow strictness level.
+        default_lexical_strictness_level: Updated sovereign workflow lexical strictness level.
+        security_penalty: Updated security threat penalty ratio.
+        post_hoc_penalty: Updated post-hoc rationalization penalty ratio.
+        passivity_penalty: Updated passivity penalty ratio.
+        status: Updated workflow status.
+        model_registry_id: Updated model registry ID.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -603,8 +674,12 @@ class WorkflowUpdateDTO(BaseDTO):
         list[ExpectedInput] | None, Field(default=None, description="Updated expected inputs")
     ] = None
     steps: Annotated[list[StepRule] | None, Field(default=None, description="Updated step rules")] = None
-    historical_context_mode: Annotated[LaxHistoricalContextMode | None, Field(default=None)] = None
-    default_profile_id: Annotated[str | None, Field(default=None)] = None
+    historical_context_mode: Annotated[
+        LaxHistoricalContextMode | None, Field(default=None, description="Updated historical context mode")
+    ] = None
+    default_profile_id: Annotated[str | None, Field(default=None, description="Updated default output profile ID")] = (
+        None
+    )
     default_strictness_level: Annotated[
         int | None, Field(default=None, ge=0, le=100, description="Updated sovereign workflow strictness level")
     ] = None
@@ -620,29 +695,59 @@ class WorkflowUpdateDTO(BaseDTO):
     passivity_penalty: Annotated[
         float | None, Field(default=None, ge=0.0, le=1.0, description="Updated passivity penalty ratio")
     ] = None
-    status: Annotated[str | None, Field(default=None)] = None
+    status: Annotated[str | None, Field(default=None, description="Updated workflow status")] = None
     model_registry_id: Annotated[str | None, Field(default=None, description="Updated model registry ID")] = None
 
 
 class StepUpdateDTO(BaseDTO):
-    """DTO for updating an existing Step blueprint."""
+    """DTO for updating an existing Step blueprint.
+
+    Attributes:
+        name: Updated localized step name.
+        description: Updated localized step description.
+        slug: Updated step routing slug.
+        type: Updated step execution type.
+        hook: Updated native hook identifier.
+        role_block_id: Updated role block reference.
+        extraction_protocol_block_id: Updated extraction protocol block reference.
+        execution_persona_block_id: Updated execution persona block reference.
+        criteria_block_ids: Updated criteria block references.
+        pre_hooks: Updated pre-execution hooks.
+        post_hooks: Updated post-execution hooks.
+        safety: Updated safety execution rating.
+        allowed_mcp_tools: Updated allowed MCP tools list.
+        mcp_tool_params: Optional per-tool static parameter overrides keyed by namespaced MCP tool alias.
+        cognitive_tier: Updated cognitive tier profile.
+        expected_inputs: Updated expected input keys.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    name: Annotated[I18nText | None, Field(default=None)] = None
-    description: Annotated[I18nText | None, Field(default=None)] = None
-    slug: Annotated[str | None, Field(default=None)] = None
-    type: Annotated[LaxStepType | None, Field(default=None)] = None
-    hook: Annotated[str | None, Field(default=None)] = None
-    role_block_id: Annotated[str | None, Field(default=None)] = None
-    extraction_protocol_block_id: Annotated[str | None, Field(default=None)] = None
-    execution_persona_block_id: Annotated[str | None, Field(default=None)] = None
-    criteria_block_ids: Annotated[list[str] | None, Field(default=None)] = None
-    pre_hooks: Annotated[list[str] | None, Field(default=None)] = None
-    post_hooks: Annotated[list[str] | None, Field(default=None)] = None
-    safety: Annotated[Literal["safe", "unsafe"] | None, Field(default=None)] = None
-    allowed_mcp_tools: Annotated[list[str] | None, Field(default=None)] = None
-    # Phase 1, Step 1: Optional per-tool static parameter overrides in StepUpdateDTO
+    name: Annotated[I18nText | None, Field(default=None, description="Updated localized step name")] = None
+    description: Annotated[I18nText | None, Field(default=None, description="Updated localized step description")] = (
+        None
+    )
+    slug: Annotated[str | None, Field(default=None, description="Updated step routing slug")] = None
+    type: Annotated[LaxStepType | None, Field(default=None, description="Updated step execution type")] = None
+    hook: Annotated[str | None, Field(default=None, description="Updated native hook identifier")] = None
+    role_block_id: Annotated[str | None, Field(default=None, description="Updated role block reference")] = None
+    extraction_protocol_block_id: Annotated[
+        str | None, Field(default=None, description="Updated extraction protocol block reference")
+    ] = None
+    execution_persona_block_id: Annotated[
+        str | None, Field(default=None, description="Updated execution persona block reference")
+    ] = None
+    criteria_block_ids: Annotated[
+        list[str] | None, Field(default=None, description="Updated criteria block references")
+    ] = None
+    pre_hooks: Annotated[list[str] | None, Field(default=None, description="Updated pre-execution hooks")] = None
+    post_hooks: Annotated[list[str] | None, Field(default=None, description="Updated post-execution hooks")] = None
+    safety: Annotated[
+        Literal["safe", "unsafe"] | None, Field(default=None, description="Updated safety execution rating")
+    ] = None
+    allowed_mcp_tools: Annotated[
+        list[str] | None, Field(default=None, description="Updated allowed MCP tools list")
+    ] = None
     mcp_tool_params: Annotated[
         dict[str, MCPToolParamOverrides] | None,
         Field(
@@ -650,5 +755,7 @@ class StepUpdateDTO(BaseDTO):
             description="Optional per-tool static parameter overrides keyed by namespaced MCP tool alias.",
         ),
     ] = None
-    cognitive_tier: Annotated[CognitiveTier | None, Field(default=None)] = None
-    expected_inputs: Annotated[list[str] | None, Field(default=None)] = None
+    cognitive_tier: Annotated[
+        CognitiveTier | None, Field(default=None, description="Updated cognitive tier profile")
+    ] = None
+    expected_inputs: Annotated[list[str] | None, Field(default=None, description="Updated expected input keys")] = None

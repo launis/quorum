@@ -1,19 +1,33 @@
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.studio import (
+    GCPLocationDTO,
+    LLMPlatformDTO,
     MCPGatewayDeleteResponse,
     ModelRegistryDeleteResponse,
+    OutputProfileListResponse,
+    PromptBlockCreateDTO,
     PromptBlockDeleteResponse,
+    PromptBlockResponseDTO,
     PromptBlockSimulationRequest,
     PromptBlockSimulationResponse,
+    StepCreateDTO,
     StepDeleteResponse,
+    StepResponseDTO,
     StepSimulationRequest,
     StepSimulationResponse,
     StepSimulationTraceDTO,
+    StepUpdateDTO,
+    WorkflowAvailableExtensionsResponse,
+    WorkflowCreateDTO,
     WorkflowDeleteResponse,
+    WorkflowResponseDTO,
     WorkflowSimulationResponse,
+    WorkflowUpdateDTO,
 )
+from backend_v2.models.enums import PromptBlockCategory
 
 
 def test_mcp_gateway_delete_response_strictness() -> None:
@@ -71,8 +85,6 @@ def test_workflow_responses_strictness() -> None:
 
 
 def test_core_response_dto_strictness() -> None:
-    from backend_v2.models.dtos.studio import PromptBlockResponseDTO, StepResponseDTO, WorkflowResponseDTO
-
     # Need to pass all required fields from the base models (Workflow, Step, PromptBlock)
     # The IDs must match opaque stripe ID regex: ^([a-z]{2,5})_[a-fA-F0-9]{16,32}$
     valid_id_wf = "wf_0123456789abcdef"
@@ -170,8 +182,6 @@ def test_workflow_simulation_response_with_actual_fields() -> None:
 
 def test_workflow_update_dto_negative_partitions() -> None:
     """Test WorkflowUpdateDTO strictness and extra='forbid' validation."""
-    from backend_v2.models.dtos.studio import WorkflowUpdateDTO
-
     # Positive test
     dto = WorkflowUpdateDTO(slug="custom_slug_123", status="DRAFT")
     assert dto.slug == "custom_slug_123"
@@ -189,8 +199,6 @@ def test_workflow_update_dto_negative_partitions() -> None:
 
 def test_step_update_dto_negative_partitions() -> None:
     """Test StepUpdateDTO strictness and extra='forbid' validation."""
-    from backend_v2.models.dtos.studio import StepUpdateDTO
-
     # Positive test
     dto = StepUpdateDTO(slug="step_slug", safety="safe")
     assert dto.slug == "step_slug"
@@ -208,9 +216,8 @@ def test_step_update_dto_negative_partitions() -> None:
 
 def test_prompt_block_simulation_request_strictness() -> None:
     """Test PromptBlockSimulationRequest strictness, field validation, and extra='forbid'."""
-    from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
-    from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+    from backend_v2.models.enums import BlockDataType
 
     block = SystemRulePromptBlock(
         id="blk_11111111111111111111111111111111",
@@ -274,7 +281,6 @@ def test_prompt_block_simulation_request_strictness() -> None:
 
 def test_step_simulation_request_strictness() -> None:
     """Test StepSimulationRequest strictness, field validation, and extra='forbid'."""
-    from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.step import Step
 
     step = Step(
@@ -367,3 +373,66 @@ def test_simulation_responses_trace_strict_types() -> None:
     assert isinstance(wf_res.trace, StepSimulationTraceDTO)
     assert wf_res.trace.execution_time_ms == 8.0
     assert wf_res.trace.estimated_tokens == 80
+
+
+def test_create_dtos_and_metadata_dtos_bva_and_negative_partitions() -> None:
+    """Test Create DTOs and metadata DTOs with ISTQB boundary and negative partitions."""
+    platform = LLMPlatformDTO(id="vertex_ai", label="Vertex AI", has_regions=True)
+    assert platform.id == "vertex_ai"
+    with pytest.raises(ValidationError):
+        LLMPlatformDTO.model_validate({"id": "vertex_ai", "label": "Vertex", "has_regions": "yes"})
+
+    loc = GCPLocationDTO(id="europe-north1", label="Finland", description="EU North")
+    assert loc.id == "europe-north1"
+    with pytest.raises(ValidationError):
+        GCPLocationDTO.model_validate({"id": "europe-north1", "label": "FI", "description": "EU", "extra": 1})
+
+    wf_create = WorkflowCreateDTO(slug="wf_slug_1", name="Test WF", default_strictness_level=100, security_penalty=1.0)
+    assert wf_create.default_strictness_level == 100
+    assert wf_create.security_penalty == 1.0
+    # Boundary violation: default_strictness_level > 100
+    with pytest.raises(ValidationError):
+        WorkflowCreateDTO(slug="wf_slug_1", name="Test WF", default_strictness_level=101)
+    # Boundary violation: security_penalty < 0.0
+    with pytest.raises(ValidationError):
+        WorkflowCreateDTO(slug="wf_slug_1", name="Test WF", security_penalty=-0.01)
+
+    step_create = StepCreateDTO(
+        slug="stp_slug",
+        name=I18nText(translations={"en": "Step"}),
+        role_block_id="blk_0123456789abcdef",
+    )
+    assert step_create.role_block_id == "blk_0123456789abcdef"
+    # Invalid Opaque Stripe ID on role_block_id
+    with pytest.raises(ValidationError):
+        StepCreateDTO(
+            slug="stp_slug",
+            name=I18nText(translations={"en": "Step"}),
+            role_block_id="invalid_id",
+        )
+
+    pb_create = PromptBlockCreateDTO(
+        slug="pb_slug",
+        label=I18nText(translations={"en": "Label"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+    )
+    assert pb_create.slug == "pb_slug"
+    # Empty slug violates min_length=1
+    with pytest.raises(ValidationError):
+        PromptBlockCreateDTO(
+            slug="",
+            label=I18nText(translations={"en": "Label"}),
+            description=I18nText(translations={"en": "Desc"}),
+            category_id=PromptBlockCategory.SYSTEM_RULE,
+        )
+
+    ext_resp = WorkflowAvailableExtensionsResponse(available_extensions=["ext_a"])
+    assert ext_resp.available_extensions == ["ext_a"]
+    with pytest.raises(ValidationError):
+        WorkflowAvailableExtensionsResponse.model_validate({"available_extensions": "not_a_list"})
+
+    prof_list = OutputProfileListResponse(items=[])
+    assert prof_list.items == []
+    with pytest.raises(ValidationError):
+        OutputProfileListResponse.model_validate({"items": "not_a_list"})
