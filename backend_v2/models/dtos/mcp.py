@@ -69,15 +69,18 @@ class MCPValidationContextDTO(V2CoreBase):
         str | None,
         Field(default=None, description="Optional domain-specific rule injected into extraction prompts."),
     ] = None
-    mcp_source_texts: dict[str, str] = Field(
-        default_factory=dict, description="Mapping of MCP source aliases to formatted evidence text."
-    )
-    source_documents: list[SourceDocumentContext] = Field(
-        default_factory=list, description="Optional source document contexts for quote verification."
-    )
-    alias_registry: dict[str, str] = Field(
-        default_factory=dict, description="Optional alias registry mapping short aliases to opaque IDs."
-    )
+    mcp_source_texts: Annotated[
+        dict[str, str],
+        Field(default_factory=dict, description="Mapping of MCP source aliases to formatted evidence text."),
+    ]
+    source_documents: Annotated[
+        list[SourceDocumentContext],
+        Field(default_factory=list, description="Optional source document contexts for quote verification."),
+    ]
+    alias_registry: Annotated[
+        dict[str, str],
+        Field(default_factory=dict, description="Optional alias registry mapping short aliases to opaque IDs."),
+    ]
 
 
 class MCPToolSchemaPropertyDTO(V2CoreBase):
@@ -181,10 +184,14 @@ class MCPToolInputSchemaDTO(V2CoreBase):
         str,
         Field(default="", description="Optional root JSON Schema description."),
     ] = ""
-    properties: dict[str, MCPToolSchemaPropertyDTO] = Field(
-        default_factory=dict, description="Mapping of parameter names to property schemas."
-    )
-    required: list[str] = Field(default_factory=list, description="List of required top-level parameter names.")
+    properties: Annotated[
+        dict[str, MCPToolSchemaPropertyDTO],
+        Field(default_factory=dict, description="Mapping of parameter names to property schemas."),
+    ]
+    required: Annotated[
+        list[str],
+        Field(default_factory=list, description="List of required top-level parameter names."),
+    ]
     additional_properties: Annotated[
         bool | None,
         Field(
@@ -237,9 +244,13 @@ class MCPToolDescriptorDTO(V2CoreBase):
         LaxToolCapability,
         Field(default=ToolCapability.GENERAL, description="Operational capability category of the tool."),
     ] = ToolCapability.GENERAL
-    input_schema: MCPToolInputSchemaDTO = Field(
-        default_factory=MCPToolInputSchemaDTO, description="Strict recursive JSON Schema for tool parameters."
-    )
+    input_schema: Annotated[
+        MCPToolInputSchemaDTO,
+        Field(
+            default_factory=MCPToolInputSchemaDTO,
+            description="Strict recursive JSON Schema for tool parameters.",
+        ),
+    ]
     enabled: Annotated[
         bool,
         Field(default=True, description="Whether this tool is enabled for agent execution."),
@@ -266,9 +277,10 @@ class MCPToolInvocationDTO(V2CoreBase):
     gateway_slug: Annotated[str, Field(min_length=1, description="Namespace slug of the target MCP gateway.")]
     tool_id: Annotated[str, Field(min_length=1, description="Technical identifier of the tool on the MCP server.")]
     namespaced_alias: Annotated[str, Field(min_length=1, description="Full namespaced alias invoked by the LLM.")]
-    arguments: dict[str, MCPArgumentValue] = Field(
-        default_factory=dict, description="Validated tool arguments dictionary."
-    )
+    arguments: Annotated[
+        dict[str, MCPArgumentValue],
+        Field(default_factory=dict, description="Validated tool arguments dictionary."),
+    ]
 
 
 class MCPFunctionDefinitionDTO(V2CoreBase):
@@ -285,9 +297,10 @@ class MCPFunctionDefinitionDTO(V2CoreBase):
 
     name: Annotated[str, Field(description="Tool function identifier name.")]
     description: Annotated[str, Field(description="Detailed tool description for LLM.")]
-    parameters: MCPToolInputSchemaDTO = Field(
-        default_factory=MCPToolInputSchemaDTO, description="JSON schema parameter definitions."
-    )
+    parameters: Annotated[
+        MCPToolInputSchemaDTO,
+        Field(default_factory=MCPToolInputSchemaDTO, description="JSON schema parameter definitions."),
+    ]
     strict: Annotated[bool, Field(default=True, description="Whether schema enforces strict adherence.")] = True
 
 
@@ -366,13 +379,19 @@ class MCPInitializeParamsDTO(V2CoreBase):
             description="MCP protocol specification version.",
         ),
     ] = "2025-03-26"
-    capabilities: dict[str, MCPCapabilityConfigDTO] = Field(default_factory=dict, description="Client capability map.")
-    client_info: MCPInitializeClientInfoDTO = Field(
-        default_factory=MCPInitializeClientInfoDTO,
-        validation_alias=AliasChoices("clientInfo", "client_info"),
-        serialization_alias="clientInfo",
-        description="Client implementation metadata.",
-    )
+    capabilities: Annotated[
+        dict[str, MCPCapabilityConfigDTO],
+        Field(default_factory=dict, description="Client capability map."),
+    ]
+    client_info: Annotated[
+        MCPInitializeClientInfoDTO,
+        Field(
+            default_factory=MCPInitializeClientInfoDTO,
+            validation_alias=AliasChoices("clientInfo", "client_info"),
+            serialization_alias="clientInfo",
+            description="Client implementation metadata.",
+        ),
+    ]
 
 
 class MCPToolCallParamsDTO(V2CoreBase):
@@ -386,7 +405,10 @@ class MCPToolCallParamsDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     name: Annotated[str, Field(min_length=1, description="Remote tool name to execute.")]
-    arguments: dict[str, MCPArgumentValue] = Field(default_factory=dict, description="Tool invocation arguments.")
+    arguments: Annotated[
+        dict[str, MCPArgumentValue],
+        Field(default_factory=dict, description="Tool invocation arguments."),
+    ]
 
 
 class MCPJsonRpcRequestDTO(V2CoreBase):
@@ -429,8 +451,6 @@ class MCPJsonRpcErrorDTO(V2CoreBase):
 class MCPIconDTO(V2CoreBase):
     """Icon descriptor returned in MCP server implementation metadata.
 
-    # Step 2: Implement Typed MCPServerInfoDTO and MCPIconDTO
-
     Attributes:
         src: Icon source URI or data URL.
         mime_type: Optional MIME type of the icon asset.
@@ -448,13 +468,14 @@ class MCPIconDTO(V2CoreBase):
             description="Optional MIME type of the icon asset.",
         ),
     ] = None
-    sizes: list[str] = Field(default_factory=list, description="List of supported icon dimensions or 'any'.")
+    sizes: Annotated[
+        list[str],
+        Field(default_factory=list, description="List of supported icon dimensions or 'any'."),
+    ]
 
 
 class MCPServerInfoDTO(V2CoreBase):
     """Server implementation metadata returned in MCP 'initialize' response.
-
-    # Step 2: Implement Typed MCPServerInfoDTO and MCPIconDTO
 
     Attributes:
         name: Server implementation identifier name.
@@ -481,7 +502,10 @@ class MCPServerInfoDTO(V2CoreBase):
             description="Optional URL to the server documentation or homepage.",
         ),
     ] = None
-    icons: list[MCPIconDTO] = Field(default_factory=list, description="List of server icon descriptors.")
+    icons: Annotated[
+        list[MCPIconDTO],
+        Field(default_factory=list, description="List of server icon descriptors."),
+    ]
 
 
 class MCPInitializeResultDTO(V2CoreBase):
@@ -504,14 +528,18 @@ class MCPInitializeResultDTO(V2CoreBase):
             description="Negotiated MCP protocol version.",
         ),
     ] = "2025-03-26"
-    server_info: MCPServerInfoDTO = Field(
-        default_factory=MCPServerInfoDTO,
-        validation_alias=AliasChoices("serverInfo", "server_info"),
-        description="Server implementation metadata.",
-    )
-    capabilities: dict[str, MCPCapabilityConfigDTO] = Field(
-        default_factory=dict, description="Server capability declarations."
-    )
+    server_info: Annotated[
+        MCPServerInfoDTO,
+        Field(
+            default_factory=MCPServerInfoDTO,
+            validation_alias=AliasChoices("serverInfo", "server_info"),
+            description="Server implementation metadata.",
+        ),
+    ]
+    capabilities: Annotated[
+        dict[str, MCPCapabilityConfigDTO],
+        Field(default_factory=dict, description="Server capability declarations."),
+    ]
     instructions: Annotated[
         str | None,
         Field(default=None, description="Optional server usage instructions."),
@@ -527,7 +555,7 @@ class FastMCPMetaDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    tags: list[str] = Field(default_factory=list, description="FastMCP tags.")
+    tags: Annotated[list[str], Field(default_factory=list, description="FastMCP tags.")]
 
 
 class MCPToolMetaDTO(V2CoreBase):
@@ -615,11 +643,14 @@ class MCPDiscoveredToolWireDTO(V2CoreBase):
     name: Annotated[str, Field(min_length=1, description="Technical tool identifier on the MCP server.")]
     title: Annotated[str | None, Field(default=None, description="Optional human-readable display title.")] = None
     description: Annotated[str, Field(default="", description="Tool description.")] = ""
-    input_schema: MCPToolInputSchemaDTO = Field(
-        default_factory=MCPToolInputSchemaDTO,
-        validation_alias=AliasChoices("inputSchema", "input_schema"),
-        description="Recursive JSON Schema for the tool's input parameters.",
-    )
+    input_schema: Annotated[
+        MCPToolInputSchemaDTO,
+        Field(
+            default_factory=MCPToolInputSchemaDTO,
+            validation_alias=AliasChoices("inputSchema", "input_schema"),
+            description="Recursive JSON Schema for the tool's input parameters.",
+        ),
+    ]
     output_schema: Annotated[
         MCPToolInputSchemaDTO | None,
         Field(
@@ -652,9 +683,10 @@ class MCPToolsListResultDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
 
-    tools: list[MCPDiscoveredToolWireDTO] = Field(
-        default_factory=list, description="List of discovered tool wire descriptors."
-    )
+    tools: Annotated[
+        list[MCPDiscoveredToolWireDTO],
+        Field(default_factory=list, description="List of discovered tool wire descriptors."),
+    ]
     next_cursor: Annotated[
         str | None,
         Field(
@@ -761,8 +793,8 @@ class MCPStructuredContentDTO(V2CoreBase):
     text: Annotated[str | None, Field(default=None, description="Direct text response body.")] = None
     message: Annotated[str | None, Field(default=None, description="Status or informational message.")] = None
     finding: Annotated[str | None, Field(default=None, description="Key factual or analytical finding.")] = None
-    images: list[str] = Field(default_factory=list, description="Image URLs.")
-    results: list[MCPSearchResultItemDTO] = Field(default_factory=list, description="Search results.")
+    images: Annotated[list[str], Field(default_factory=list, description="Image URLs.")]
+    results: Annotated[list[MCPSearchResultItemDTO], Field(default_factory=list, description="Search results.")]
     auth_mode: Annotated[
         str | None,
         Field(
@@ -800,9 +832,10 @@ class MCPToolCallResultDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
 
-    content: list[MCPContentBlockDTO] = Field(
-        default_factory=list, description="List of content blocks produced by the tool call."
-    )
+    content: Annotated[
+        list[MCPContentBlockDTO],
+        Field(default_factory=list, description="List of content blocks produced by the tool call."),
+    ]
     is_error: Annotated[
         bool,
         Field(

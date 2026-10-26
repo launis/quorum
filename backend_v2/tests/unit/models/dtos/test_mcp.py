@@ -312,7 +312,6 @@ def test_mcp_initialize_result_dto_with_complex_server_info_metadata() -> None:
     assert parsed.result.server_info.icons[0].mime_type == "image/svg+xml"
     assert parsed.result.server_info.icons[0].sizes == ["any"]
 
-    # Step 3: ISTQB negative boundary assertions for extra="forbid" and strict=True
     with pytest.raises(ValidationError):
         MCPServerInfoDTO.model_validate({"name": "exa", "unexpected_field": "forbidden"})
 
