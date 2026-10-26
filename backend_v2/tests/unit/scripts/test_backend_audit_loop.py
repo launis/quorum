@@ -666,3 +666,38 @@ def test_coverage_runner_directory_with_parent_glob_and_sub_candidates(mock_sub:
                 ]
                 run_tests_with_strict_coverage("backend_v2/services/auth")
                 assert mock_sub.call_count == 1
+
+
+@patch("scripts.backend_audit_loop.run_tests_with_strict_coverage")
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_backend_audit_loop_micro_mode_skips_stages_5_to_10_and_disables_logfire(
+    mock_sub: MagicMock, mock_scan: MagicMock, mock_run_tests: MagicMock
+) -> None:
+    """Verify --micro executes Stages 1-4 and disables logfire by default while skipping Stages 5-10."""
+    main(["scripts/backend_audit_loop.py", "--micro", "--test"])
+    assert mock_scan.called
+    invoked_cmds = [" ".join(str(c) for c in call[0][0]) for call in mock_sub.call_args_list]
+    assert any("ruff check" in cmd for cmd in invoked_cmds)
+    assert any("ruff format" in cmd for cmd in invoked_cmds)
+    assert any("mypy" in cmd for cmd in invoked_cmds)
+    assert not any("run_seed.py" in cmd for cmd in invoked_cmds)
+    assert not any("audit_database_atoms.py" in cmd for cmd in invoked_cmds)
+    assert not any("audit_clean_imports.py" in cmd for cmd in invoked_cmds)
+    assert not any("audit_dto_parity.py" in cmd for cmd in invoked_cmds)
+    assert not any("audit_warning_baseline.py" in cmd for cmd in invoked_cmds)
+    assert not any("audit_dict_eradication.py" in cmd for cmd in invoked_cmds)
+    mock_run_tests.assert_called_once_with("scripts/backend_audit_loop.py", logfire=False)
+
+
+@patch("scripts.backend_audit_loop.run_tests_with_strict_coverage")
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_backend_audit_loop_micro_mode_explicit_logfire_override(
+    mock_sub: MagicMock, mock_scan: MagicMock, mock_run_tests: MagicMock
+) -> None:
+    """Verify --micro --logfire preserves logfire=True when explicitly requested."""
+    main(["scripts/backend_audit_loop.py", "--fast", "--logfire", "--test"])
+    assert mock_scan.called
+    mock_run_tests.assert_called_once_with("scripts/backend_audit_loop.py", logfire=True)
+

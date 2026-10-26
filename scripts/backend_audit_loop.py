@@ -426,10 +426,19 @@ Optional steps:
         action="store_false",
         help="Enable advisory AST mode for emergency diagnostics only (warn on advisory violations, fail on fatal).",
     )
+    # Step 1: Add Micro-Audit Mode to backend_audit_loop.py
+    parser.add_argument(
+        "--micro",
+        "--fast",
+        dest="micro",
+        action="store_true",
+        default=False,
+        help="Execute fast targeted audit loop for single-file iterations (Stages 1-4 + unit tests), deferring whole-repository scans (Stages 5-10) to the macro completion gate.",
+    )
     parser.add_argument(
         "--logfire",
         action=argparse.BooleanOptionalAction,
-        default=True,
+        default=None,
         help="Enable/disable Logfire distributed tracing in Pytest runs (default: enabled; use --no-logfire to disable).",
     )
 
@@ -445,6 +454,7 @@ Optional steps:
     run_openapi = args.openapi
     run_test = args.test
     ast_strict = args.ast_strict
+    use_logfire: bool = args.logfire if args.logfire is not None else (not args.micro)
 
     # Ensure we are in the project root directory
     current_dir = Path(os.getcwd())
@@ -498,66 +508,72 @@ Optional steps:
     else:
         print("✅ AST Guardrails passed cleanly.")
 
-    print("\n⏳ 5/10: Validating UI templates (Jinja Dumb Painter Enforcement)...")
-    jinja_dir = Path("backend_v2/templates")
-    dumb_painter_pattern = re.compile(r"\|\s*(default|d)\s*\(|\.get\s*\(|\bor\s+(''|\"\"|\[\]|\{\})")
-    if jinja_dir.exists():
-        for jinja_file in jinja_dir.rglob("*.jinja2"):
-            try:
-                content = jinja_file.read_text(encoding="utf-8")
-                if dumb_painter_pattern.search(content):
-                    print(f"\n❌ UI template validation failed in {jinja_file.name}!")
-                    print("   Found forbidden dumb-painter expression: `| default`, `.get`, or fallback `or ''/[]/{}`.")
-                    print("   UI templates must be completely passive (Strict ICU Markdown Parity).")
+    # Step 1: Defer repository-wide scans (Stages 5-10) when --micro is active
+    if not args.micro:
+        print("\n⏳ 5/10: Validating UI templates (Jinja Dumb Painter Enforcement)...")
+        jinja_dir = Path("backend_v2/templates")
+        dumb_painter_pattern = re.compile(r"\|\s*(default|d)\s*\(|\.get\s*\(|\bor\s+(''|\"\"|\[\]|\{\})")
+        if jinja_dir.exists():
+            for jinja_file in jinja_dir.rglob("*.jinja2"):
+                try:
+                    content = jinja_file.read_text(encoding="utf-8")
+                    if dumb_painter_pattern.search(content):
+                        print(f"\n❌ UI template validation failed in {jinja_file.name}!")
+                        print(
+                            "   Found forbidden dumb-painter expression: `| default`, `.get`, or fallback `or ''/[]/{}`."
+                        )
+                        print("   UI templates must be completely passive (Strict ICU Markdown Parity).")
+                        sys.exit(1)
+                except (OSError, UnicodeDecodeError) as e:
+                    print(f"\n❌ Error reading template {jinja_file}: {e}")
                     sys.exit(1)
-            except (OSError, UnicodeDecodeError) as e:
-                print(f"\n❌ Error reading template {jinja_file}: {e}")
-                sys.exit(1)
-    print("✅ UI templates validated.")
+        print("✅ UI templates validated.")
 
-    print("\n⏳ 6/10: Validating Seed Data (Dry-Run & Strict Atom Audit)...")
-    res = subprocess.run(["uv", "run", "python", "backend_v2/seed/run_seed.py", "local", "--dry-run"])
-    if res.returncode != 0:
-        print("\n❌ Seed Data Dry-Run failed! Pydantic model changes broke the SSOT JSON seed file.\n")
-        sys.exit(res.returncode)
+        print("\n⏳ 6/10: Validating Seed Data (Dry-Run & Strict Atom Audit)...")
+        res = subprocess.run(["uv", "run", "python", "backend_v2/seed/run_seed.py", "local", "--dry-run"])
+        if res.returncode != 0:
+            print("\n❌ Seed Data Dry-Run failed! Pydantic model changes broke the SSOT JSON seed file.\n")
+            sys.exit(res.returncode)
 
-    res_audit = subprocess.run(["uv", "run", "python", "scripts/audit_database_atoms.py", "--strict"])
-    if res_audit.returncode != 0:
-        print("\n❌ Database Atom & Prompt Audit failed! Structural or referential errors in seed_data.json.\n")
-        sys.exit(res_audit.returncode)
-    print("✅ Seed Data and Database Atoms integrated and validated.")
+        res_audit = subprocess.run(["uv", "run", "python", "scripts/audit_database_atoms.py", "--strict"])
+        if res_audit.returncode != 0:
+            print("\n❌ Database Atom & Prompt Audit failed! Structural or referential errors in seed_data.json.\n")
+            sys.exit(res_audit.returncode)
+        print("✅ Seed Data and Database Atoms integrated and validated.")
 
-    print("\n⏳ 7/10: Verifying Clean Imports (scripts/audit_clean_imports.py)...")
-    res_imports = subprocess.run(["uv", "run", "python", "scripts/audit_clean_imports.py"])
-    if res_imports.returncode != 0:
-        print("\n❌ Clean import audit failed! Circular dependencies or import errors detected.\n")
-        sys.exit(res_imports.returncode)
-    print("✅ Clean imports verified.")
+        print("\n⏳ 7/10: Verifying Clean Imports (scripts/audit_clean_imports.py)...")
+        res_imports = subprocess.run(["uv", "run", "python", "scripts/audit_clean_imports.py"])
+        if res_imports.returncode != 0:
+            print("\n❌ Clean import audit failed! Circular dependencies or import errors detected.\n")
+            sys.exit(res_imports.returncode)
+        print("✅ Clean imports verified.")
 
-    print("\n⏳ 8/10: Verifying DTO Parity (scripts/audit_dto_parity.py)...")
-    res_dto = subprocess.run(["uv", "run", "python", "scripts/audit_dto_parity.py"])
-    if res_dto.returncode != 0:
-        print(
-            "\n❌ DTO Parity Audit failed! Discrepancies between backend Pydantic models and frontend Freezed models.\n"
+        print("\n⏳ 8/10: Verifying DTO Parity (scripts/audit_dto_parity.py)...")
+        res_dto = subprocess.run(["uv", "run", "python", "scripts/audit_dto_parity.py"])
+        if res_dto.returncode != 0:
+            print(
+                "\n❌ DTO Parity Audit failed! Discrepancies between backend Pydantic models and frontend Freezed models.\n"
+            )
+            sys.exit(res_dto.returncode)
+        print("✅ DTO Parity verified.")
+
+        print("\n⏳ 9/10: Verifying Warning & Residual Debt Baseline Ledger (scripts/audit_warning_baseline.py)...")
+        res_baseline = subprocess.run(["uv", "run", "python", "scripts/audit_warning_baseline.py", "--verify-zero"])
+        if res_baseline.returncode != 0:
+            print("\n❌ Warning baseline or residual debt ceiling exceeded! See ledger report above.\n")
+            sys.exit(res_baseline.returncode)
+        print("✅ Residual debt ceilings and warning baseline verified.")
+
+        print("\n⏳ 10/10: Verifying Dict Eradication and Typed Domain Transit (scripts/audit_dict_eradication.py)...")
+        res_dict = subprocess.run(
+            ["uv", "run", "python", "scripts/audit_dict_eradication.py", "backend_v2", "scripts", "--strict"]
         )
-        sys.exit(res_dto.returncode)
-    print("✅ DTO Parity verified.")
-
-    print("\n⏳ 9/10: Verifying Warning & Residual Debt Baseline Ledger (scripts/audit_warning_baseline.py)...")
-    res_baseline = subprocess.run(["uv", "run", "python", "scripts/audit_warning_baseline.py", "--verify-zero"])
-    if res_baseline.returncode != 0:
-        print("\n❌ Warning baseline or residual debt ceiling exceeded! See ledger report above.\n")
-        sys.exit(res_baseline.returncode)
-    print("✅ Residual debt ceilings and warning baseline verified.")
-
-    print("\n⏳ 10/10: Verifying Dict Eradication and Typed Domain Transit (scripts/audit_dict_eradication.py)...")
-    res_dict = subprocess.run(
-        ["uv", "run", "python", "scripts/audit_dict_eradication.py", "backend_v2", "scripts", "--strict"]
-    )
-    if res_dict.returncode != 0:
-        print("\n❌ Dict eradication audit failed! Eliminate naked dicts/casts.\n")
-        sys.exit(res_dict.returncode)
-    print("✅ Dict eradication and typed domain transit verified.")
+        if res_dict.returncode != 0:
+            print("\n❌ Dict eradication audit failed! Eliminate naked dicts/casts.\n")
+            sys.exit(res_dict.returncode)
+        print("✅ Dict eradication and typed domain transit verified.")
+    else:
+        print("\n⚡ Micro-audit mode active (--micro): Skipping whole-repository Stages 5-10.")
 
     if run_openapi:
         print("\n⏳ Option: Generating OpenAPI documentation (--openapi)...")
@@ -571,7 +587,7 @@ Optional steps:
         print("\n⏳ Option: Running Pytest unit tests and coverage (--test)...")
         for target in targets:
             print(f"\n🏃 Running tests for target: {target}")
-            run_tests_with_strict_coverage(target, logfire=args.logfire)
+            run_tests_with_strict_coverage(target, logfire=use_logfire)
         print("✅ Unit tests passed.")
 
     print("\n🏆 All clean! Targets comply with Universal Quality Gate standards.\n")
