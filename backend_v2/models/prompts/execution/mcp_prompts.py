@@ -4,6 +4,12 @@ Single Source of Truth (SSOT) for external tool extraction, verification,
 and citation self-correction directives.
 """
 
+import logging
+
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
+
 __all__ = [
     "CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION",
     "MCP_EVIDENCE_INJECTION_DIRECTIVE",
@@ -47,7 +53,6 @@ CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION: str = (
     "</system_directive>"
 )
 
-# Phase 1, Step 2: Static XML system instruction for JIT Micro-LLM MCP argument synthesis
 MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION: str = (
     "<system_directive>\n"
     "<objective>Synthesize schema-compliant invocation arguments for an external MCP tool based on the verification claim, search query, and reasoning.</objective>\n"
@@ -82,7 +87,23 @@ def build_mcp_citation_extraction_directive(target_language: str, query_guidance
 
     Returns:
         Structured XML system directive string.
+
+    Raises:
+        AppException: If target_language is empty or whitespace-only (ErrorCodes.VALIDATION_FAILED).
     """
+    normalized_language = target_language.strip()
+    if not normalized_language:
+        logger.error(
+            "Empty target_language provided to build_mcp_citation_extraction_directive.",
+            exc_info=True,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+        raise AppException(
+            message="Target language cannot be empty for MCP citation extraction directive.",
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
     guidance_rule = ""
     if query_guidance and query_guidance.strip():
         guidance_rule = f"  <rule>{query_guidance.strip()}</rule>\n"
@@ -92,7 +113,7 @@ def build_mcp_citation_extraction_directive(target_language: str, query_guidance
         "<objective>Extract factual claims that require external verification.</objective>\n"
         "<rules>\n"
         "  <rule>Return a structured list of citations.</rule>\n"
-        f"  <rule>Provide a short max 100 character reasoning sentence for each extraction in the language code '{target_language}'.</rule>\n"
+        f"  <rule>Provide a short max 100 character reasoning sentence for each extraction in the language code '{normalized_language}'.</rule>\n"
         "  <rule>Formulate 'search_query' strictly as concise entity or topic keywords (1-3 key terms, specifically: proper nouns, organization names, or core subject concepts). Do NOT include natural language questions, conjunctions, multi-entity clauses, or conversational filler phrases (specifically: 'tutkimus tulokset' or 'hybridityö tutkimus').</rule>\n"
         f"{guidance_rule}"
         "</rules>\n"

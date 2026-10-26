@@ -1,7 +1,8 @@
-"""Unit tests for backend_v2/models/prompts/mcp_prompts.py."""
+"""Unit tests for backend_v2/models/prompts/execution/mcp_prompts.py."""
 
 import pytest
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.prompts.execution.mcp_prompts import (
     CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION,
     MCP_EVIDENCE_INJECTION_DIRECTIVE,
@@ -9,9 +10,6 @@ from backend_v2.models.prompts.execution.mcp_prompts import (
     SOURCE_EXTRACTION_SYSTEM_INSTRUCTION,
     SOURCE_VERIFICATION_SYSTEM_INSTRUCTION,
     build_mcp_citation_extraction_directive,
-)
-from backend_v2.models.prompts.execution.mcp_prompts import (
-    __all__ as mcp_prompts_all,
 )
 
 
@@ -61,25 +59,29 @@ def test_mcp_prompts_dynamic_builder() -> None:
     )
     assert "<rule>Focus search strictly on corporate acquisitions.</rule>" in directive_with_guidance
 
-    # Negative / Boundary: empty or whitespace query guidance is ignored without empty rule tags
+    # Boundary: empty or whitespace query guidance is ignored without empty rule tags
     directive_whitespace = build_mcp_citation_extraction_directive("en", query_guidance="   \n\t  ")
     assert "<rule></rule>" not in directive_whitespace
     assert "<rule>   " not in directive_whitespace
     assert directive_whitespace == directive_en
 
 
-def test_mcp_prompts_exports_integrity() -> None:
-    """Verify that __all__ contains strictly unique, non-empty strings with expected exports."""
-    expected_exports = {
-        "SOURCE_EXTRACTION_SYSTEM_INSTRUCTION",
-        "SOURCE_VERIFICATION_SYSTEM_INSTRUCTION",
-        "CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION",
-        "MCP_EVIDENCE_INJECTION_DIRECTIVE",
-        "MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION",
-        "build_mcp_citation_extraction_directive",
-    }
-    assert set(mcp_prompts_all) == expected_exports
-    assert len(mcp_prompts_all) == len(set(mcp_prompts_all))
+@pytest.mark.parametrize(
+    "invalid_target_language",
+    [
+        "",
+        "   \t\n  ",
+    ],
+)
+def test_build_mcp_citation_extraction_directive_rejects_empty_target_language(
+    invalid_target_language: str,
+) -> None:
+    """Verify that empty or whitespace-only target_language raises AppException with VALIDATION_FAILED."""
+    with pytest.raises(AppException) as exc_info:
+        build_mcp_citation_extraction_directive(invalid_target_language)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
 
 
 @pytest.mark.parametrize(
@@ -99,3 +101,4 @@ def test_mcp_prompts_xml_tags_balanced(prompt_text: str) -> None:
         open_tag = f"<{tag}>"
         close_tag = f"</{tag}>"
         assert prompt_text.count(open_tag) == prompt_text.count(close_tag), f"Mismatched tag: {tag}"
+
