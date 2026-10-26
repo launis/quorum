@@ -439,3 +439,27 @@ def test_mcp_tools_list_result_dto_with_exa_metadata() -> None:
 
     with pytest.raises(ValidationError):
         MCPToolSchemaPropertyDTO.model_validate({"type": "string", "maxLength": -5})
+
+
+def test_mcp_tool_call_result_with_content_execution_meta() -> None:
+    """Verify MCPToolCallResultDTO and MCPJsonRpcResponseDTO accept content _meta from search tools."""
+    wire_call_resp = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+            "content": [
+                {
+                    "type": "text",
+                    "text": "Search results from Exa",
+                    "_meta": {"searchTime": 906.5},
+                }
+            ],
+            "isError": False,
+            "_meta": {"searchTime": 906.5},
+        },
+    }
+    parsed = MCPJsonRpcResponseDTO.model_validate(wire_call_resp)
+    assert isinstance(parsed.result, MCPToolCallResultDTO)
+    assert parsed.result.content[0].meta is not None
+    assert parsed.result.content[0].meta.search_time == 906.5
+

@@ -19,6 +19,7 @@ __all__ = [
     "MCPCapabilityConfigDTO",
     "MCPContentBlockDTO",
     "MCPDiscoveredToolWireDTO",
+    "MCPExecutionMetaDTO",
     "MCPFunctionDefinitionDTO",
     "MCPIconDTO",
     "MCPInitializeClientInfoDTO",
@@ -748,6 +749,70 @@ class MCPToolsListResultDTO(V2CoreBase):
     ] = None
 
 
+class MCPExecutionMetaDTO(V2CoreBase):
+    """Server execution metadata container on tool call results and content blocks.
+
+    Complies with MCP 2024-11-05 Annotated._meta and Result._meta specifications.
+
+    Attributes:
+        search_time: Search duration in milliseconds or seconds.
+        response_time: Response latency in milliseconds or seconds.
+        request_id: Remote request identifier.
+        cost: Remote execution or API cost in USD.
+        progress: Execution progress indicator.
+        total: Total item count.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
+
+    search_time: Annotated[
+        float | int | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("searchTime", "search_time"),
+            description="Search duration in milliseconds or seconds.",
+        ),
+    ] = None
+    response_time: Annotated[
+        float | int | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("responseTime", "response_time"),
+            description="Remote response time in milliseconds or seconds.",
+        ),
+    ] = None
+    request_id: Annotated[
+        str | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("requestId", "request_id"),
+            description="Remote request identifier.",
+        ),
+    ] = None
+    cost: Annotated[
+        float | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("cost", "totalCost", "total_cost"),
+            description="Remote execution or API cost in USD.",
+        ),
+    ] = None
+    progress: Annotated[
+        float | int | None,
+        Field(
+            default=None,
+            description="Execution progress indicator.",
+        ),
+    ] = None
+    total: Annotated[
+        int | None,
+        Field(
+            default=None,
+            description="Total item count.",
+        ),
+    ] = None
+
+
 class MCPContentBlockDTO(V2CoreBase):
     """Content item returned inside an MCP 'tools/call' result.
 
@@ -755,6 +820,7 @@ class MCPContentBlockDTO(V2CoreBase):
         type: Content block type (e.g., 'text', 'image', 'resource').
         text: Text content when type is 'text'.
         mime_type: Optional MIME type of the content block.
+        meta: Optional server execution metadata for this content block.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
@@ -767,6 +833,14 @@ class MCPContentBlockDTO(V2CoreBase):
             default=None,
             validation_alias=AliasChoices("mimeType", "mime_type"),
             description="Optional MIME type of the content block.",
+        ),
+    ] = None
+    meta: Annotated[
+        MCPExecutionMetaDTO | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("_meta", "meta"),
+            description="Optional server execution metadata for this content block.",
         ),
     ] = None
 
@@ -901,6 +975,14 @@ class MCPToolCallResultDTO(V2CoreBase):
             default=None,
             validation_alias=AliasChoices("structuredContent", "structured_content"),
             description="Optional structured domain payload returned by the tool.",
+        ),
+    ] = None
+    meta: Annotated[
+        MCPExecutionMetaDTO | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("_meta", "meta"),
+            description="Optional server execution metadata for this tool call result.",
         ),
     ] = None
 
