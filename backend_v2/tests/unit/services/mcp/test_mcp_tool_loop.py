@@ -1141,14 +1141,14 @@ async def test_self_correction_dict_empty_query_and_non_system_synthesis_insert(
         if response_model == CitationExtractionResult:
             citations = [
                 CitationExtractionItemDTO(
-                    claim_text="slightly off claim",
-                    search_query="verified claim",
-                    reasoning="Verify claim.",
-                ),
-                CitationExtractionItemDTO(
                     claim_text="verified claim",
                     search_query="   ",
                     reasoning="Blank query should be skipped.",
+                ),
+                CitationExtractionItemDTO(
+                    claim_text="slightly off claim",
+                    search_query="verified claim",
+                    reasoning="Verify claim.",
                 ),
             ]
             return (
