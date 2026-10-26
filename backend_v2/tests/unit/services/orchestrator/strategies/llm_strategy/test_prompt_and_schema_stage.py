@@ -599,7 +599,10 @@ async def test_prompt_and_schema_stage_execution_record_and_serialization_errors
     ctx = _create_ctx(output_profile_id=profile.id)
 
     # 1. Serialization failure in json.dumps -> VALIDATION_FAILED
-    with patch("json.dumps", side_effect=TypeError("unserializable group")):
+    with patch(
+        "backend_v2.services.orchestrator.strategies.llm_strategy.prompt_and_schema_stage.json.dumps",
+        side_effect=TypeError("unserializable group"),
+    ):
         with pytest.raises(AppException, match="VALIDATION_FAILED") as exc_info:
             await execute_prompt_and_schema_stage(
                 stage1=stage1,
@@ -638,3 +641,4 @@ async def test_prompt_and_schema_stage_execution_record_and_serialization_errors
         )
     assert exc_info.value.status_code == 404
     assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+    in_memory_repo.clear_faults()
