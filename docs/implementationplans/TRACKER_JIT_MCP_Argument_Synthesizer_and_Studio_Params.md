@@ -42,7 +42,7 @@
   - [x] @[backend_v2/services/studio/workflow_service.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]" --gate frontend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`
   - [x] @[client_app_v2/lib/features/studio/models/workflow.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
