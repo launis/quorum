@@ -6,7 +6,6 @@ import logging
 import os
 import time
 import uuid
-from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
@@ -32,7 +31,16 @@ from backend_v2.exceptions import (
 )
 from backend_v2.llm.adapters.base_adapter import apply_provider_pacing
 from backend_v2.llm.caching_service import LLMCachingService
-from backend_v2.llm.mock import MockLLMService
+from backend_v2.llm.mock import MockLLMService as MockLLMService
+from backend_v2.llm.provider.base_and_mock_provider import (
+    LLMProvider as LLMProvider,
+)
+from backend_v2.llm.provider.base_and_mock_provider import (
+    LogfireShieldedClient as LogfireShieldedClient,
+)
+from backend_v2.llm.provider.base_and_mock_provider import (
+    MockProvider as MockProvider,
+)
 from backend_v2.llm.provider.env_and_schema_utils import (
     _INTERNAL_NON_API_KEYS as _INTERNAL_NON_API_KEYS,
 )
@@ -51,6 +59,9 @@ from backend_v2.llm.provider.env_and_schema_utils import (
 from backend_v2.llm.provider.env_and_schema_utils import (
     resolve_env_variables as resolve_env_variables,
 )
+from backend_v2.llm.provider.provider_factory import (
+    LLMFactory as LLMFactory,
+)
 from backend_v2.llm.provider.transient_retry_policy import (
     _RETRY_AFTER_REGEX as _RETRY_AFTER_REGEX,
 )
@@ -68,7 +79,6 @@ from backend_v2.llm.provider.transient_retry_policy import (
 )
 from backend_v2.models.domain.mcp import OpenAIFunctionCallDTO, OpenAIToolCallDTO
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import LLMProviderName
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig, LLMResponse, ProviderMetadataDTO
 from backend_v2.services.usage_service import UsageService
 from backend_v2.settings import get_settings
@@ -78,6 +88,7 @@ __all__ = [
     "LLMProvider",
     "LiteLLMProvider",
     "LogfireShieldedClient",
+    "MockLLMService",
     "MockProvider",
     "_AdaptiveWaitWithRetryAfter",
     "_INTERNAL_NON_API_KEYS",
@@ -94,94 +105,6 @@ __all__ = [
 
 # Configure logging
 logger = logging.getLogger(__name__)
-
-
-class LLMProvider(ABC):
-    """Abstract base class for LLM providers.
-
-    Defines the contract for text generation and structured data extraction.
-    """
-
-    @abstractmethod
-    async def generate(
-        self,
-        prompt: str | None = None,
-        system_instruction: str | None = None,
-        messages: list[LLMMessageDTO] | list[dict[str, Any]] | None = None,
-        response_schema: type[BaseModel] | dict[str, Any] | None = None,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-        top_p: float | None = None,
-        top_k: int | None = None,
-        frequency_penalty: float | None = None,
-        presence_penalty: float | None = None,
-        pass_reasoning_token: str | None = None,
-        validation_context: dict[str, Any] | None = None,
-        mock_identity: str | None = None,
-        **kwargs: Any,
-    ) -> LLMResponse:
-        """Generates content from the LLM.
-
-        Args:
-            prompt: The user prompt.
-            system_instruction: System prompt/context.
-            messages: Fallback context or chat history.
-            response_schema: Pydantic model or JSON Schema.
-            temperature: Sampling temperature.
-            max_tokens: Max tokens to generate.
-            top_p: Nucleus sampling mass.
-            top_k: Top-K sampling count.
-            frequency_penalty: Penalizes tokens based on their frequency.
-            presence_penalty: Penalizes tokens based on their presence.
-            pass_reasoning_token: Encrypted state blob from previous turn.
-            validation_context: Optional context for validation.
-            mock_identity: Optional internal mock identity for unit test routing.
-            **kwargs: Additional provider-specific arguments.
-
-        Returns:
-            LLMResponse: The generated response object.
-
-        Raises:
-            AgentExecutionError: On context bounds exceeded.
-            AppException: On internal generation errors.
-            ConfigurationError: On malformed config.
-            SecurityViolationError: On blocked content.
-            ServiceUnavailableError: On provider network failure.
-        """
-        pass
-
-
-class LogfireShieldedClient:
-    """Proxy class to hide httpx.AsyncClient from Logfire's deep serialization hook.
-
-    Prevents 'RuntimeError: dictionary changed size during iteration' when Logfire
-    iterates over kwargs containing a shared mutating httpx client.
-    """
-
-    __slots__ = ("_client",)
-
-    def __init__(self, client: Any):
-        """Initializes proxy."""
-        self._client = client
-
-    def __getattr__(self, name: str) -> Any:
-        """Forwards attributes to actual client."""
-        return object.__getattribute__(self._client, name)
-
-    async def __aenter__(self) -> Any:
-        """Forwards context manager enter to actual client."""
-        if "__aenter__" in dir(self._client):
-            return await self._client.__aenter__()
-        return self
-
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> Any:
-        """Forwards context manager exit to actual client."""
-        if "__aexit__" in dir(self._client):
-            return await self._client.__aexit__(exc_type, exc_val, exc_tb)
-
-    def __repr__(self) -> str:
-        """Returns safe representation string for Logfire."""
-        return "<LogfireShieldedClient protecting httpx.AsyncClient>"
 
 
 class LiteLLMProvider(LLMProvider):
@@ -1072,415 +995,3 @@ class LiteLLMProvider(LLMProvider):
                     message=f"Unknown upstream LLM error: {error_type}",
                     details={"error_code": ErrorCodes.UNKNOWN_ERROR.value, "original_error": error_msg},
                 ) from e
-
-
-class MockProvider(LLMProvider):
-    """Mock LLM Provider for offline testing and development.
-
-    Uses cached/simulated responses from MockLLMService.
-    """
-
-    def __init__(
-        self,
-        model_name: str = "mock",
-        usage_service: UsageService | None = None,
-        organization_id: str | None = None,
-    ):
-        """Initialize the Mock Provider.
-
-        Args:
-            model_name: Identifier.
-            usage_service: Optional usage tracking.
-            organization_id: Identity.
-
-        Raises:
-            ConfigurationError: If mock environment is completely misconfigured.
-        """
-        self.model_name = model_name
-        self.usage_service = usage_service
-        if organization_id:
-            self.organization_id = organization_id
-        else:
-            self.organization_id = "UNKNOWN_ORG"
-
-    async def generate(
-        self,
-        prompt: str | None = None,
-        system_instruction: str | None = None,
-        messages: list[LLMMessageDTO] | list[dict[str, Any]] | None = None,
-        response_schema: type[BaseModel] | dict[str, Any] | None = None,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-        top_p: float | None = None,
-        top_k: int | None = None,
-        frequency_penalty: float | None = None,
-        presence_penalty: float | None = None,
-        pass_reasoning_token: str | None = None,
-        validation_context: dict[str, Any] | None = None,
-        mock_identity: str | None = None,
-        **kwargs: Any,
-    ) -> LLMResponse:
-        """Simulates generation by invoking the MockLLMService.
-
-        Args:
-            prompt: Text to generate from.
-            system_instruction: System prompt.
-            messages: Fallback conversational state.
-            response_schema: Return type constraints.
-            temperature: (float) sampling value.
-            max_tokens: Limit.
-            top_p: P-sample.
-            top_k: K-sample.
-            frequency_penalty: Penalty for repeated tokens.
-            presence_penalty: Penalty for new topic presence.
-            pass_reasoning_token: Blob.
-            validation_context: Custom dict.
-            mock_identity: Explicit mock fixture identity.
-            **kwargs: Extra parameters.
-
-        Returns:
-            LLMResponse: A mocked success response matching the requested schema.
-
-        Raises:
-            ConfigurationError: If parameters missing or seed not found.
-            AppException: If parsing fails.
-        """
-        logger.info("[MockProvider] Calling Mock Service (Simulating Async)... %s", kwargs)
-
-        # STRICT CONFIGURATION (Jan 2026): Reject defaults in Mock too.
-        if temperature is None:
-            msg = "Strict Mode: 'temperature' must be explicitly provided from configuration. No default allowed."
-            logger.error("[MockProvider] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-            raise ConfigurationError(message=msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
-
-        if max_tokens is None:
-            msg = "Strict Mode: 'max_tokens' must be explicitly provided from configuration. No default allowed."
-            logger.error("[MockProvider] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-            raise ConfigurationError(message=msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
-
-        # --- DIAGNOSTIC DUMP ---
-        dump_file = os.getenv("DUMP_PROMPTS_FILE")
-        if dump_file:
-            try:
-                payload_parts = []
-                if prompt:
-                    payload_parts.append(f"PROMPT:\n{prompt}")
-                if messages:
-                    payload_parts.append(f"MESSAGES:\n{messages}")
-                if system_instruction:
-                    payload_parts.append(f"SYSTEM:\n{system_instruction}")
-                payload = "\n".join(payload_parts)
-                await asyncio.to_thread(_sync_diagnostic_dump, dump_file, f"[MockProvider] {self.model_name}", payload)
-            except Exception as e:
-                logger.error("Failed to schedule diagnostic dump: %s", e)
-                raise ConfigurationError(
-                    message=f"Diagnostic dump dispatch failed: {e}",
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                ) from e
-
-        # Simulate network delay for verification of async behavior
-        mock_pacing_delay = get_settings().pacing_delay_mock_seconds
-        if mock_pacing_delay > 0:
-            await asyncio.sleep(mock_pacing_delay)
-
-        mock = MockLLMService()  # MockLLMService on untyped legacy moduuli
-
-        # Extract explicit identity if provided
-        agent_identity = mock_identity
-
-        prompt_str = ""
-        if prompt:
-            prompt_str = prompt
-        if messages and not prompt_str:
-            # Fallback to serializing messages if prompt is empty
-            prompt_str = json.dumps(
-                [m.model_dump(mode="json", exclude_none=True) if isinstance(m, BaseModel) else m for m in messages]
-            )
-
-        result = mock.generate_content(
-            prompt_str,
-            system_instruction,
-            agent_identity=agent_identity,
-            response_schema=response_schema,
-        )
-
-        # Determine content string and parsed object
-        content_str = ""
-        parsed_result = None
-
-        if isinstance(result, dict) and "message" in result and result["message"] == "Mock data not found for key":
-            # STRICT MANDATE: No mock hydration fallbacks. If seed missing, crash properly.
-            raise ConfigurationError(
-                message=(
-                    f"Fail-Fast: Mock data not found in Seed Vault. Prompt missing mock definition: {prompt[:100]}..."
-                ),
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            )
-        else:
-            if isinstance(result, dict):
-                content_str = json.dumps(result, ensure_ascii=False)
-                parsed_result = result
-            elif isinstance(result, BaseModel):
-                content_str = result.model_dump_json()
-                parsed_result = result.model_dump()
-            else:
-                # Assume it's a string (JSON)
-                content_str = str(result)
-                try:
-                    parsed_result = json.loads(content_str)
-                except Exception as parse_err:
-                    raise AppException(
-                        message=f"Mock response parsing failed: {parse_err}",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.AGENT_RESPONSE_PARSING_FAILED.value},
-                    ) from parse_err
-
-        # Simulated Usage
-
-        # Simulated Usage
-        usage_data = {
-            "prompt_tokens": 100,
-            "completion_tokens": 50,
-            "total_tokens": 150,
-            "total_cost": 0.002,
-        }
-
-        # --- COST TRACKING (Mock) ---
-        if self.usage_service:
-            try:
-                target_org = self.organization_id
-                if "organization_id" in kwargs and kwargs["organization_id"]:
-                    target_org = kwargs["organization_id"]
-                target_user = "system_agent"
-                if "user_id" in kwargs and kwargs["user_id"]:
-                    target_user = kwargs["user_id"]
-
-                await self.usage_service.track_usage(
-                    org_id=target_org,
-                    user_id=target_user,
-                    model=self.model_name,
-                    input_tokens=int(usage_data["prompt_tokens"]),
-                    output_tokens=int(usage_data["completion_tokens"]),
-                    cost_usd=usage_data["total_cost"],
-                )
-            except Exception as e:
-                logger.error("[MockProvider] Usage Tracking Failed: %s", e)
-                raise AppException(
-                    message=f"Usage Tracking Failed: {e}",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.UNKNOWN_ERROR.value},
-                ) from e
-
-        mock_messages: list[LLMMessageDTO] = []
-        if system_instruction:
-            mock_messages.append(LLMMessageDTO(role="system", content=system_instruction))
-        if prompt:
-            mock_messages.append(LLMMessageDTO(role="user", content=prompt))
-
-        return LLMResponse(
-            content=content_str,
-            parsed_content=parsed_result,
-            reasoning_token="mock_thought_signature_123456",
-            token_usage=TokenUsage(
-                prompt_tokens=int(usage_data["prompt_tokens"]),
-                completion_tokens=int(usage_data["completion_tokens"]),
-                total_tokens=int(usage_data["total_tokens"]),
-                cost_usd=float(usage_data["total_cost"]),
-            ),
-            tool_calls=None,
-            provider_metadata=ProviderMetadataDTO(),
-            messages=mock_messages,
-        )
-
-
-class LLMFactory:
-    """Factory class to instantiate the appropriate LLMProvider based on configuration."""
-
-    @staticmethod
-    def create_provider(
-        provider_type: str,
-        model_name: str,
-        context: dict[str, Any] | Any | None = None,
-        organization_id: str | None = None,
-        usage_service: UsageService | None = None,
-        limits: dict[str, int] | None = None,
-        api_key: str | None = None,
-        config: LLMProviderConfig | None = None,
-        **kwargs: Any,
-    ) -> LLMProvider:
-        """Factory method to create an LLM Provider instance.
-
-        Args:
-            provider_type: Type key (e.g. 'litellm', 'mock').
-            model_name: Model identifier.
-            context: Additional context or settings.
-            organization_id: Organization ID for tracking.
-            usage_service: Usage service instance.
-            limits: Usage limits (tpm, rpm).
-            api_key: Explicit API Key override (e.g. for ad-hoc testing).
-            config: Strict configuration object (Database-Driven).
-            **kwargs: Additional arguments.
-
-        Returns:
-            Configured provider instance.
-
-        Raises:
-            ConfigurationError: If provider configuration is invalid or grounding is requested but not supported.
-            ServiceUnavailableError: If the provider is disabled.
-        """
-        settings = get_settings()
-
-        # Resolve Configuration Source
-        # If 'config' is passed, it is the Authority.
-        if config:
-            provider_type = config.provider
-            model_name = config.model_name
-            # If Config says "is_active=False", we should have caught this upstream,
-            # but we can enforce it here too as a fail-safe.
-            if not config.is_active:
-                logger.error(
-                    "[LLMFactory] %s: Provider '%s' is disabled in configuration.",
-                    ErrorCodes.SERVICE_DISABLED.name,
-                    model_name,
-                )
-                raise ServiceUnavailableError(
-                    message=f"Provider '{model_name}' is disabled in configuration.",
-                    details={"error_code": ErrorCodes.SERVICE_DISABLED.value},
-                )
-
-            # Resolve Limits from Config
-            if not limits:
-                limits = {}
-            if config.tpm_limit > 0:
-                limits["tpm"] = config.tpm_limit
-            if config.rpm_limit > 0:
-                limits["rpm"] = config.rpm_limit
-
-            # Resolve API Key
-            if config.api_key:
-                api_key = config.api_key
-
-            # Check Grounding Capability (Strict Mode: Fail Fast)
-            # If caller requests grounding, but config says NO, we RAISE ERROR.
-            # We do NOT fallback to non-grounded generation.
-            tools = []
-            if "tools" in kwargs:
-                tools = kwargs["tools"]
-            enable_grounding = False
-            if "enable_grounding" in kwargs:
-                enable_grounding = kwargs["enable_grounding"]
-
-            # Check for Google Search tool or explicit flag
-            has_search_intent = enable_grounding or (tools and any("google_search" in str(t) for t in tools))
-
-            if has_search_intent:
-                if not config.supports_grounding:
-                    msg = (
-                        f"Grounding/Search requested for '{model_name}' "
-                        "but provider config 'supports_grounding' is False."
-                    )
-                    logger.error("[LLMFactory] %s: %s", ErrorCodes.CAPABILITY_NOT_SUPPORTED.name, msg)
-                raise ConfigurationError(
-                    message=msg,
-                    details={"error_code": ErrorCodes.CAPABILITY_NOT_SUPPORTED.value},
-                )
-
-            # Strict Limits: If limits are missing in config, we do NOT default to empty.
-            # However, logic above extracts them from config if present.
-            # If they are 0 in config, that's explicit "unlimited".
-            # If config was None (legacy path?), we fall through.
-
-        # Placeholder for BYOK (Bring Your Own Key) Logic
-
-        # STRICT EXECUTION AUTHORITY (Jan 19 Update):
-        # GLOBAL SAFETY: If 'settings.use_mock_llm' is True, we FORCE the MockProvider.
-        # This guarantees that 'run_mock.bat' implies 100% offline mode, regardless of
-        # what provider specific agents request (e.g. 'vertex_ai').
-        mock_model_name = "mock"
-        if model_name:
-            mock_model_name = model_name
-
-        if settings.use_mock_llm:
-            logger.warning(
-                "[LLMFactory] Global USE_MOCK_LLM=True. Overriding request for '%s' -> MockProvider.", provider_type
-            )
-            return MockProvider(
-                model_name=mock_model_name,
-                usage_service=usage_service,
-                organization_id=organization_id,
-            )
-
-        # STRICT CONFIGURATION:
-        # If not in global mock mode, we DO NOT allow 'mock' to be implicitly selected
-        # unless explicitly requested. If 'vertex_ai' is requested, we get Vertex (or fail).
-        if provider_type in ("mock", "mock_llm_99"):
-            return MockProvider(
-                model_name=mock_model_name,
-                usage_service=usage_service,
-                organization_id=organization_id,
-            )
-
-        if not model_name:
-            logger.error(
-                "[LLMFactory] %s: Model name is required for LLMProvider creation.", ErrorCodes.CONFIGURATION_ERROR.name
-            )
-            raise ConfigurationError(
-                message="Model name is required for LLMProvider creation.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            )
-
-        resolved_api_key = api_key
-        match provider_type.lower():
-            case LLMProviderName.VERTEX_AI.value | "vertex_ai":
-                # Vertex AI authenticates via GCP Application Default Credentials backed by service-account.json
-                resolved_api_key = None
-            case LLMProviderName.AI_STUDIO.value | "ai_studio":
-                resolved_api_key = resolved_api_key or settings.google_api_key
-                if not resolved_api_key:
-                    logger.error(
-                        "Fail-Fast: GEMINI_API_KEY / GOOGLE_API_KEY is not configured in settings or environment.",
-                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "model_name": model_name},
-                    )
-                    raise ConfigurationError(
-                        message=(
-                            "Fail-Fast: GEMINI_API_KEY / GOOGLE_API_KEY is not configured in settings or environment."
-                        ),
-                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                    )
-            case LLMProviderName.OPENAI.value | "openai":
-                resolved_api_key = resolved_api_key or settings.openai_api_key
-                if not resolved_api_key:
-                    logger.error(
-                        "Fail-Fast: OPENAI_API_KEY is not configured in settings or environment.",
-                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "model_name": model_name},
-                    )
-                    raise ConfigurationError(
-                        message="Fail-Fast: OPENAI_API_KEY is not configured in settings or environment.",
-                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                    )
-            case LLMProviderName.ANTHROPIC.value | "anthropic":
-                resolved_api_key = resolved_api_key or settings.anthropic_api_key
-                if not resolved_api_key:
-                    logger.error(
-                        "Fail-Fast: ANTHROPIC_API_KEY is not configured in settings or environment.",
-                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "model_name": model_name},
-                    )
-                    raise ConfigurationError(
-                        message="Fail-Fast: ANTHROPIC_API_KEY is not configured in settings or environment.",
-                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                    )
-            case "litellm":
-                pass
-            case _:
-                pass
-
-        return LiteLLMProvider(
-            model_name=model_name,
-            api_key=resolved_api_key,
-            settings=settings,
-            usage_service=usage_service,
-            organization_id=organization_id,
-            limits=limits,
-            supports_grounding=config.supports_grounding if config else False,
-            config=config,
-        )
