@@ -6,8 +6,6 @@ chunked map-reduce evaluation, DLQ graceful degradation, and anomaly retry logic
 
 from __future__ import annotations
 
-import inspect
-import json
 import logging
 import time
 from collections.abc import Awaitable, Callable
@@ -22,28 +20,22 @@ if TYPE_CHECKING:
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
-    GlobalContextVarsDTO,
     HookState,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
-from backend_v2.models.chunking import ChunkingRequest
-from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
+from backend_v2.models.domain.execution import FrozenContext
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
-from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.system_config import MCPAuditTrace, SystemConfigMCPGateways
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO
 from backend_v2.models.dtos.engine import EngineExecutionRequest, MatrixEvaluationContext
 from backend_v2.models.dtos.hook_delta import StepContextMetadataDTO
-from backend_v2.models.dtos.prompt import PromptMappingDTO
-from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO, StepTraceMetadataDTO, TraceEventMetadataDTO
 from backend_v2.models.enums import (
     CognitiveTier,
     ExecutionStatus,
-    PromptBlockCategory,
     VirtualSystemStepID,
 )
 from backend_v2.models.llm import LLMMessageDTO
@@ -51,11 +43,14 @@ from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.mcp.dispatcher import ToolDispatcher
 from backend_v2.services.mcp.mcp_tool_loop import execute_mcp_retrieval
-from backend_v2.services.orchestrator.chunking_service import ChunkingService
 from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
-from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
-from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
+from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import (
+    ContextBuilder as ContextBuilder,
+)
+from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import (
+    PromptFactory as PromptFactory,
+)
 from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
     _SCHEMA_BLOCK_EXTENSION as _SCHEMA_BLOCK_EXTENSION,
 )
@@ -83,18 +78,27 @@ from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_meta
 from backend_v2.services.orchestrator.strategies.llm_strategy.blueprint_and_metadata_stage import (
     extract_step_context_metadata as extract_step_context_metadata,
 )
-from backend_v2.utils.alias_engine import AliasEngine
+from backend_v2.services.orchestrator.strategies.llm_strategy.prompt_and_schema_stage import (
+    PromptAndSchemaStageResult as PromptAndSchemaStageResult,
+)
+from backend_v2.services.orchestrator.strategies.llm_strategy.prompt_and_schema_stage import (
+    execute_prompt_and_schema_stage as execute_prompt_and_schema_stage,
+)
 
 __all__ = [
     "BlueprintStageResult",
+    "ContextBuilder",
     "LLMNodeStrategy",
     "NodeStatePayload",
+    "PromptAndSchemaStageResult",
+    "PromptFactory",
     "_SCHEMA_BLOCK_EXTENSION",
     "_SCHEMA_BLOCK_MATRIX",
     "_SCHEMA_BLOCK_SYSTEM",
     "_SCHEMA_BLOCK_TEXT",
     "dlq_handle_debug_log_error",
     "execute_blueprint_and_pre_hooks_stage",
+    "execute_prompt_and_schema_stage",
     "extract_step_context_metadata",
 ]
 
@@ -188,268 +192,34 @@ class LLMNodeStrategy(NodeStrategy):
             step_logger=logger,
         )
         step_obj = stage1.step_obj
-        workflow_obj = stage1.workflow_obj
         hook_state = stage1.hook_state
         hook_deps = stage1.hook_deps
         pre_events = stage1.pre_events
         post_events: list[TraceEvent] = []
-        block_map = stage1.block_map
-        role_block = stage1.role_block
-        protocol_block = stage1.protocol_block
-        execution_persona_block = stage1.execution_persona_block
-        criteria_blocks_models = stage1.criteria_blocks_models
-        output_profile = stage1.output_profile
         target_locale = stage1.target_locale
         global_source_text = stage1.global_source_text
         state_data = stage1.state_data
-        inputs_payload = stage1.inputs_payload.raw_inputs
         blueprint_id = step.task_blueprint
         effective_mcp_tools = step_obj.allowed_mcp_tools
         effective_mcp_tool_params = step_obj.mcp_tool_params
-        input_mappings = PromptMappingDTO(mappings=dict(step.input_mappings))
 
-        schema_map: dict[str, str] = {}
-        blueprint_labels: dict[str, str] = {}
-        if workflow_obj is not None:
-            for s in workflow_obj.steps:
-                is_matrix = False
-                blueprint_def_raw = await self.workflow_repo.get_step(s.task_blueprint)
-                if blueprint_def_raw:
-                    blueprint_obj = V2Step.model_validate(blueprint_def_raw)
-                    if blueprint_obj.name:
-                        blueprint_labels[s.id] = self.compiler.resolve_i18n(blueprint_obj.name, "en")
-                    all_bp_blocks: list[str] = []
-                    if blueprint_obj.role_block_id:
-                        all_bp_blocks.append(blueprint_obj.role_block_id)
-                    if blueprint_obj.extraction_protocol_block_id:
-                        all_bp_blocks.append(blueprint_obj.extraction_protocol_block_id)
-                    if blueprint_obj.execution_persona_block_id:
-                        all_bp_blocks.append(blueprint_obj.execution_persona_block_id)
-                    all_bp_blocks.extend(blueprint_obj.criteria_block_ids)
-
-                    for m_id in all_bp_blocks:
-                        if m_id in block_map:
-                            b = block_map[m_id]
-                            if b.category_id == PromptBlockCategory.MATRIX:
-                                is_matrix = True
-                                schema_map[m_id] = _SCHEMA_BLOCK_MATRIX
-                            else:
-                                schema_map[m_id] = _SCHEMA_BLOCK_TEXT
-
-                            if b.output_extensions:
-                                for ext in b.output_extensions:
-                                    schema_map[ext] = _SCHEMA_BLOCK_EXTENSION
-
-                if is_matrix:
-                    schema_map[s.id] = _SCHEMA_BLOCK_MATRIX
-                else:
-                    schema_map[s.id] = _SCHEMA_BLOCK_TEXT
-
-            schema_map["_step_metadata"] = _SCHEMA_BLOCK_SYSTEM
-            schema_map["_audit_signature"] = _SCHEMA_BLOCK_SYSTEM
-            schema_map["inputs"] = _SCHEMA_BLOCK_TEXT
-            schema_map["raw_inputs"] = _SCHEMA_BLOCK_TEXT
-            schema_map["matrix_reducer"] = _SCHEMA_BLOCK_SYSTEM
-
-        criteria_blocks = sorted(criteria_blocks_models, key=lambda x: str(x.id))
-
-        llm_context_data, new_input_mappings = ContextBuilder.build(
-            input_mappings=input_mappings,
-            state_data=hook_state,
-            output_profile=output_profile,
-            schema_map=schema_map,
-            criteria_blocks=criteria_blocks,
-            blueprint_labels=blueprint_labels,
+        # Phase 2, Step 2: Delegate Stage 2 context building, prompt compilation, and dynamic schema resolution
+        stage2 = await execute_prompt_and_schema_stage(
+            stage1=stage1,
+            step=step,
+            context=context,
+            deps=self.deps,
+            frozen_ctx=frozen_ctx,
+            engine=self._engine,
+            settings_getter=get_settings,
+            step_logger=logger,
         )
-        input_mappings = new_input_mappings
-
-        has_shuffled_atoms = False
-        hydrated_shuffled_atoms = None
-        is_matrix_step = any(b.category_id == PromptBlockCategory.MATRIX for b in criteria_blocks_models)
-        if is_matrix_step:
-            shuffled_atoms = hook_state.global_context_vars.shuffled_atoms
-            if shuffled_atoms is None:
-                logger.error(
-                    "Matrix step missing 'shuffled_atoms' in global_context_vars.",
-                    exc_info=True,
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
-                )
-                raise AppException(
-                    message="Matrix step missing 'shuffled_atoms' in global_context_vars.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-            if not isinstance(shuffled_atoms, list) or len(shuffled_atoms) == 0:
-                msg = f"Strict Fail-Fast Enforced: 'shuffled_atoms' is empty or not a list for step '{step.id}'."
-                logger.error(
-                    "[LLMStrategy] %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    msg,
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step.id},
-                )
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-            hydrated_shuffled_atoms = shuffled_atoms
-            has_shuffled_atoms = True
-
-        # Tier 4 Fix: AliasEngine is initialized with clean state.
-        # prompt_compiler.build_xml_context() will register source doc aliases via .register().
-        alias_engine = AliasEngine()
-
-        prompt_gvars: GlobalContextVarsDTO | None = None
-        if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO):
-            prompt_gvars = hook_state.global_context_vars
-        elif (
-            not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
-            and hook_state.global_context_vars is not None
-        ):
-            prompt_gvars = GlobalContextVarsDTO.model_validate(dict(hook_state.global_context_vars))
-
-        prompt_payload = PromptFactory.build(
-            compiler=self.compiler,
-            role_block=role_block,
-            protocol_block=protocol_block,
-            execution_persona_block=execution_persona_block,
-            criteria_blocks=criteria_blocks,
-            target_locale=target_locale,
-            effective_mcp_tools=effective_mcp_tools,
-            input_mappings=input_mappings,
-            llm_context_data=llm_context_data,
-            expected_inputs=context.expected_inputs,
-            has_shuffled_atoms=has_shuffled_atoms,
-            execution_id=context.execution_id,
-            alias_engine=alias_engine,
-            global_context_vars=prompt_gvars,
-        )
-
-        user_payload = prompt_payload.user_payload
-
-        if output_profile:
-            exec_params = ["\n<execution_parameters>"]
-            if output_profile.tone_instruction:
-                tone = output_profile.tone_instruction.strip()
-                if tone:
-                    exec_params.append(f"  <tone_instruction>{tone}</tone_instruction>")
-            if output_profile.matrix_synthesis_groups:
-                try:
-                    groups_json = json.dumps(
-                        [grp.model_dump(mode="json") for grp in output_profile.matrix_synthesis_groups],
-                        ensure_ascii=False,
-                    )
-                    exec_params.append(f"  <matrix_synthesis_groups>{groups_json}</matrix_synthesis_groups>")
-                except (ValueError, TypeError) as e:
-                    logger.error(
-                        "Failed to serialize matrix_synthesis_groups for prompt injection: %s",
-                        e,
-                        exc_info=True,
-                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step.id},
-                    )
-                    raise AppException(
-                        ErrorCodes.VALIDATION_FAILED,
-                        details={"reason": f"Failed to serialize matrix_synthesis_groups: {e}"},
-                    ) from e
-            exec_params.append("</execution_parameters>")
-
-            if len(exec_params) > 2:
-                user_payload += "\n" + "\n".join(exec_params)
-
-        chunks_list: list[Any] = []
-
-        if is_matrix_step and hydrated_shuffled_atoms:
-            req = ChunkingRequest(
-                parent_id=context.workflow_id,
-                items=hydrated_shuffled_atoms,
-                max_chunk_size=get_settings().schema_max_evaluations,
-            )
-            chunks_list = ChunkingService.chunk_payload(req)
-        else:
-            chunks_list = [None]
-
-        # Use the generated aliases directly instead of resolving real IDs
-        source_doc_ids: list[str] = ["N/A"]
-        if alias_engine.source_document_aliases:
-            source_doc_ids = alias_engine.source_document_aliases
-
-        # Fetch execution record to build SourceDocumentContext for validation context
-        execution_record_raw = None
-        try:
-            res = self.exec_repo.get_execution(context.execution_id)
-            if inspect.isawaitable(res):
-                execution_record_raw = await res
-            else:
-                execution_record_raw = res
-        except Exception as e:
-            logger.error(
-                "[LLMStrategy] %s: Failed to fetch execution record '%s'",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                context.execution_id,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.name, "execution_id": context.execution_id},
-            )
-            raise AppException(
-                message=f"Execution record '{context.execution_id}' not found.",
-                status_code=404,
-                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
-            ) from e
-
-        if execution_record_raw:
-            try:
-                if isinstance(execution_record_raw, ExecutionRecord):
-                    exec_obj = execution_record_raw
-                else:
-                    exec_obj = ExecutionRecord.model_validate(execution_record_raw, strict=False)
-                manifest = {}
-                if exec_obj.source_identity_manifest is not None:
-                    manifest = exec_obj.source_identity_manifest
-
-                source_docs = []
-                inputs_dict: object = inputs_payload
-                if "inputs" in inputs_payload:
-                    inputs_dict = inputs_payload["inputs"]
-                if type(inputs_dict) is dict:
-                    for k, text_content in inputs_dict.items():
-                        if isinstance(text_content, str):
-                            display_name = k
-                            if k in manifest:
-                                display_name = str(manifest[k])
-                            doc_ctx = SourceDocumentContext(
-                                opaque_id=k, text_content=text_content, display_name=display_name
-                            )
-                            source_docs.append(doc_ctx.model_dump(mode="json"))
-            except Exception as e:
-                logger.error(
-                    "[LLMStrategy] %s: Failed to construct source documents context from execution record '%s'",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    context.execution_id,
-                    exc_info=True,
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "execution_id": context.execution_id},
-                )
-                raise AppException(
-                    message="Failed to parse execution record for source documents context.",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-
-        dynamic_schema: Any | None = None
-        if frozen_ctx:
-            dynamic_key_set: set[str] = set(input_mappings.keys())
-            if context.expected_inputs:
-                dynamic_key_set.update(e.input_key for e in context.expected_inputs)
-            allowed_dynamic_keys = sorted(dynamic_key_set)
-
-            global_schema = self.compiler.build_dynamic_schema(
-                schema_name=f"Step_{step.id}_Response",
-                criteria=criteria_blocks,
-                has_shuffled_atoms=has_shuffled_atoms,
-                target_locale=target_locale,
-                strictness_level=context.strictness_level,
-                source_document_ids=source_doc_ids,
-                allowed_dynamic_keys=allowed_dynamic_keys,
-            )
-            dynamic_schema = global_schema
+        criteria_blocks = stage2.criteria_blocks
+        hydrated_shuffled_atoms = stage2.hydrated_shuffled_atoms
+        alias_engine = stage2.alias_engine
+        user_payload = stage2.user_payload
+        chunks_list = stage2.target_chunks
+        dynamic_schema = stage2.dynamic_schema
 
         cognitive_tier = context.cognitive_tier
         if not cognitive_tier:
