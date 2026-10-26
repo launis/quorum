@@ -104,6 +104,8 @@ class MCPToolSchemaPropertyDTO(V2CoreBase):
         default: Optional default value for this property.
         minimum: Optional minimum numeric value.
         maximum: Optional maximum numeric value.
+        min_length: Optional minimum string length constraint.
+        max_length: Optional maximum string length constraint.
         any_of: Optional list of alternative sub-schemas (anyOf).
     """
 
@@ -198,6 +200,7 @@ class MCPToolInputSchemaDTO(V2CoreBase):
         properties: Mapping of parameter names to recursive property schemas.
         required: List of required top-level parameter names.
         additional_properties: Optional flag restricting additional top-level properties.
+        schema_uri: Optional JSON Schema Draft URI specification.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
@@ -765,6 +768,7 @@ class MCPExecutionMetaDTO(V2CoreBase):
         cost: Remote execution or API cost in USD.
         progress: Execution progress indicator.
         total: Total item count.
+        rate_limited: Whether the remote MCP provider reported rate limiting.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
@@ -965,6 +969,7 @@ class MCPToolCallResultDTO(V2CoreBase):
         content: List of content blocks produced by the tool call.
         is_error: Whether the tool execution resulted in an application-level error.
         structured_content: Optional structured domain payload returned by the tool.
+        meta: Optional server execution metadata for this tool call result.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
