@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
+from collections.abc import Callable
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -598,9 +600,20 @@ async def test_prompt_and_schema_stage_execution_record_and_serialization_errors
     ctx = _create_ctx(output_profile_id=profile.id)
 
     # 1. Serialization failure in json.dumps -> VALIDATION_FAILED
+    calls = 0
+    real_dumps: Callable[..., str] = json.dumps
+
+    def _fail_first_dumps(*args: object, **kwargs: object) -> str:
+        """Simulate serialization failure on first invocation while allowing logging serialization."""
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise TypeError("unserializable")
+        return real_dumps(*args, **kwargs)
+
     with patch(
         "backend_v2.services.orchestrator.strategies.llm_strategy.prompt_and_schema_stage.json.dumps",
-        side_effect=TypeError("unserializable"),
+        side_effect=_fail_first_dumps,
     ):
         with pytest.raises(AppException, match="VALIDATION_FAILED") as exc_info:
             await execute_prompt_and_schema_stage(
