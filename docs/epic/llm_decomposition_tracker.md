@@ -65,7 +65,7 @@
   - [ ] `[NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/trace_event_stage.py]`
   - [ ] `[NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/__init__.py]`
   - [x] `@[backend_v2/services/orchestrator/strategies/__init__.py]`
-  - [ ] `@[backend_v2/services/orchestrator/strategies/registry.py#L42-L60]`
+  - [x] `@[backend_v2/services/orchestrator/strategies/registry.py#L42-L60]`
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Pure backend Python decomposition with zero `.dart` changes.
 - [x] **[OK] Pre-Delete Audit**: Verify `git status` and `grep_search` confirm 0 remaining references to `backend_v2.services.orchestrator.strategies.llm` and physical removal of `[DELETE] @[backend_v2/services/orchestrator/strategies/llm.py]`.
 - [x] **[OK] Golden Master & Test Restoration Audit**: Verify all 45 baseline unit tests pass across the modularized test suites (`[NEW] @[backend_v2/tests/unit/services/orchestrator/strategies/llm_strategy/test_blueprint_and_metadata_stage.py]`, `[NEW] @[backend_v2/tests/unit/services/orchestrator/strategies/llm_strategy/test_prompt_and_schema_stage.py]`, `[NEW] @[backend_v2/tests/unit/services/orchestrator/strategies/llm_strategy/test_engine_retry_stage.py]`, `[NEW] @[backend_v2/tests/unit/services/orchestrator/strategies/llm_strategy/test_trace_event_stage.py]`, `[NEW] @[backend_v2/tests/unit/services/orchestrator/strategies/llm_strategy/test_llm_strategy_facade.py]`, `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm_cost_tracking.py#L144-L276]`, and `@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm_strategy.py#L147-L303]`) with `>= 94%` line coverage.
