@@ -1205,3 +1205,100 @@ async def test_self_correction_dict_empty_query_and_non_system_synthesis_insert(
     assert final_call_messages[0].role == "system"
     assert isinstance(final_call_messages[0].content, str)
     assert "<synthesis_preamble>Preamble constraint.</synthesis_preamble>" in final_call_messages[0].content
+
+
+@pytest.mark.asyncio
+async def test_execute_mcp_retrieval_with_mcp_tool_params_and_jit_synthesis() -> None:
+    """Verify execute_mcp_retrieval forwards mcp_tool_params and accumulates JIT synthesis token usage."""
+    from backend_v2.models.domain.system_config import AllowedMCPTool, SystemConfigMCPGateways
+    from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO, MCPToolSchemaPropertyDTO
+    from backend_v2.models.enums import JSONSchemaPropertyType, MCPAuthType, MCPTransportType, ToolCapability
+
+    complex_tool = AllowedMCPTool(
+        tool_id="complex_search",
+        capability=ToolCapability.SEARCH,
+        name=I18nText(translations={"en": "Complex Search"}),
+        description="Complex search tool requiring jurisdiction and category.",
+        input_schema=MCPToolInputSchemaDTO(
+            properties={
+                "query": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+                "country": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+                "category": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+                "numResults": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.INTEGER),
+            },
+            required=["query", "country", "category"],
+        ),
+        enabled=True,
+    )
+    gw = SystemConfigMCPGateways(
+        id="sys_9999888877776666",
+        slug="complex_gw",
+        endpoint_url="https://mcp.example.com/complex",
+        transport_type=MCPTransportType.STREAMABLE_HTTP,
+        auth_type=MCPAuthType.NONE,
+        tools=[complex_tool],
+    )
+    dispatcher = ToolDispatcher([gw])
+    alias = "complex_gw__complex_search"
+    client = _make_mock_llm_client()
+
+    async def mock_structured_task(*args: Any, **kwargs: Any) -> tuple[Any, TokenUsage]:
+        response_model = kwargs["response_model"] if "response_model" in kwargs else None
+        if response_model == CitationExtractionResult:
+            return (
+                CitationExtractionResult(
+                    citations=[
+                        CitationExtractionItemDTO(
+                            claim_text="verified fact",
+                            search_query="verified fact",
+                            reasoning="Check statutory database.",
+                        )
+                    ]
+                ),
+                TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            )
+        # JIT synthesis call for MCPArgs_complex_gw__complex_search
+        return (
+            {"query": "verified fact", "country": "US", "category": "corporate", "numResults": 10},
+            TokenUsage(prompt_tokens=25, completion_tokens=10, total_tokens=35),
+        )
+
+    executor = MagicMock()
+    executor.execute_structured_task = AsyncMock(side_effect=mock_structured_task)
+
+    with patch.object(dispatcher, "execute_tool", new_callable=AsyncMock) as mock_tool:
+        mock_tool.return_value = MCPAuditTrace(
+            id="trc_complex",
+            tool_id="complex_search",
+            namespaced_alias=alias,
+            gateway_slug="complex_gw",
+            step_name="retrieval_step",
+            query="verified fact",
+            response_summary="Verified complex evidence.",
+            source_urls=["https://example.com/complex"],
+            timestamp=datetime.now(timezone.utc),
+            duration_ms=55,
+        )
+
+        result = await execute_mcp_retrieval(
+            llm_client=client,
+            executor=executor,
+            messages=[LLMMessageDTO(role="user", content="Here is a verified fact in text")],
+            allowed_tools=[alias],
+            step_name="retrieval_step",
+            source_context="Here is a verified fact in text",
+            dispatcher=dispatcher,
+            mcp_tool_params={alias: {"country": "FI", "numResults": 5}},
+        )
+
+    assert len(result.audit_traces) == 1
+    # 3 ensemble calls * 15 tokens = 45 tokens + 35 JIT synthesis tokens = 80 tokens
+    assert result.usage.total_tokens == 80
+    mock_tool.assert_awaited_once()
+    dispatched_args = mock_tool.call_args.kwargs["raw_arguments"]
+    assert dispatched_args == {
+        "query": "verified fact",
+        "country": "FI",
+        "category": "corporate",
+        "numResults": 5,
+    }

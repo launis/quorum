@@ -417,6 +417,7 @@ class LLMNodeStrategy(NodeStrategy):
             msg = f"ExecutionContext missing mandatory 'target_locale' for workflow {context.workflow_id}."
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
         effective_mcp_tools = step_obj.allowed_mcp_tools
+        effective_mcp_tool_params = step_obj.mcp_tool_params
 
         input_mappings = PromptMappingDTO(mappings=dict(step.input_mappings))
 
@@ -711,6 +712,7 @@ class LLMNodeStrategy(NodeStrategy):
                 alias_engine=alias_engine,
                 repository=self.system_repo,
                 dispatcher=dispatcher,
+                mcp_tool_params=effective_mcp_tool_params,
             )
             if retrieval_result.audit_traces:
                 if user_payload:

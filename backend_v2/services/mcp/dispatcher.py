@@ -7,23 +7,28 @@ and execution dispatching for MCP tools with OpenTelemetry instrumentation and t
 from __future__ import annotations
 
 import asyncio
+import html
+import json
 import logging
 import re
 import time
 import uuid
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
+from typing import Any
 
 import opentelemetry.trace as trace
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, JsonValue, ValidationError
 
 from backend_v2.core.telemetry import get_tracer
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
     MCPAuditTrace,
     SystemConfigMCPGateways,
 )
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.mcp import (
     MCPArgumentValue,
     MCPToolDeclarationDTO,
@@ -31,6 +36,8 @@ from backend_v2.models.dtos.mcp import (
     MCPToolInvocationDTO,
 )
 from backend_v2.models.enums import JSONSchemaPropertyType, ToolCapability
+from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.prompts import MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION
 from backend_v2.services.mcp.alias_registry import AliasRegistry
 from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
@@ -173,6 +180,25 @@ class ToolDispatcher:
         """
         return len(self.get_tools_by_capability(allowed_tools, capability)) > 0
 
+    def get_argument_model(self, tool: MCPToolDescriptorDTO | AllowedMCPTool) -> type[BaseModel]:
+        """Resolve the dynamically compiled Pydantic argument model for an MCP tool.
+
+        Args:
+            tool: Target MCPToolDescriptorDTO or AllowedMCPTool instance.
+
+        Returns:
+            Compiled Pydantic BaseModel subclass representing tool.input_schema.
+
+        Raises:
+            AppException: If schema compilation fails (ErrorCodes.VALIDATION_FAILED).
+        """
+        if isinstance(tool, MCPToolDescriptorDTO) and tool.namespaced_alias in self._arg_models:
+            return self._arg_models[tool.namespaced_alias]
+        alias_key = tool.tool_id
+        if isinstance(tool, MCPToolDescriptorDTO) and tool.namespaced_alias:
+            alias_key = tool.namespaced_alias
+        return SchemaFactory.create_mcp_tool_argument_model(alias_key, tool.input_schema)
+
     def build_search_arguments(
         self,
         tool: MCPToolDescriptorDTO | AllowedMCPTool,
@@ -181,13 +207,14 @@ class ToolDispatcher:
         claim_text: str | None = None,
         reasoning: str | None = None,
         objective: str | None = None,
+        configured_params: Mapping[str, MCPArgumentValue] | None = None,
     ) -> dict[str, MCPArgumentValue]:
         """Construct a schema-aligned search argument dictionary for a search tool.
 
-        Maps the search query and optional companion context (such as objective or claim)
-        to schema properties declared by the tool.
+        Maps the search query, static Studio parameter overrides, and optional companion
+        context (specifically objective or claim) to schema properties declared by the tool.
 
-        # Phase 1, Step 1: Support multi-parameter search tool schemas (e.g. Exa AI web_search_exa)
+        # Phase 1, Step 3: Support multi-parameter search tool schemas and Studio configured_params
 
         Args:
             tool: Target search tool descriptor or AllowedMCPTool domain object.
@@ -195,6 +222,7 @@ class ToolDispatcher:
             claim_text: Optional claim text being factually audited.
             reasoning: Optional reasoning string justifying the search turn.
             objective: Optional explicit search objective or goal override.
+            configured_params: Optional static parameter overrides configured in Studio.
 
         Returns:
             Validated argument dictionary mapping schema parameter names to argument values.
@@ -207,6 +235,10 @@ class ToolDispatcher:
         required_keys = tool.input_schema.required
 
         args: dict[str, MCPArgumentValue] = {}
+        if configured_params is not None:
+            for param_key, param_val in configured_params.items():
+                if param_key in props and param_val is not None:
+                    args[param_key] = param_val
 
         # 1. Bind query parameter (prefer 'query', then 'q', 'search_query', 'search_term')
         query_key: str | None = None
@@ -218,8 +250,12 @@ class ToolDispatcher:
         if query_key is not None:
             args[query_key] = query
 
-        # 2. Bind objective parameter if declared in properties
-        if "objective" in props and props["objective"].type == JSONSchemaPropertyType.STRING:
+        # 2. Bind objective parameter if declared in properties and not overridden
+        if (
+            "objective" in props
+            and props["objective"].type == JSONSchemaPropertyType.STRING
+            and "objective" not in args
+        ):
             resolved_objective = objective
             if not resolved_objective and claim_text:
                 resolved_objective = f"Verify factual accuracy for claim: {claim_text}"
@@ -234,20 +270,23 @@ class ToolDispatcher:
             args["objective"] = resolved_objective
 
         # 3. Handle single required string property with custom name
-        if len(required_keys) == 1 and not args:
+        if len(required_keys) == 1 and query_key is None:
             req_key = required_keys[0]
-            if req_key in props and props[req_key].type == JSONSchemaPropertyType.STRING:
+            if req_key in props and props[req_key].type == JSONSchemaPropertyType.STRING and req_key not in args:
                 args[req_key] = query
 
         # 4. Handle tool with zero required keys and single string property
-        if not required_keys and not args:
+        if not required_keys and query_key is None:
             string_keys = [k for k, v in props.items() if v.type == JSONSchemaPropertyType.STRING]
-            if len(string_keys) == 1:
+            if len(string_keys) == 1 and string_keys[0] not in args:
                 args[string_keys[0]] = query
 
-        # 5. Check if all required keys are satisfied
-        if args and set(required_keys).issubset(args.keys()):
-            return args
+        # 5. Check if all required keys are satisfied and a query string was bound
+        has_bound_query = query_key is not None or query in args.values()
+        if args and has_bound_query and set(required_keys).issubset(args.keys()):
+            arg_model = self.get_argument_model(tool)
+            validated = arg_model.model_validate(args, strict=False)
+            return validated.model_dump(mode="json", exclude_none=True)
 
         msg = (
             f"MCP search tool '{tool.tool_id}' input_schema does not expose a single deterministic "
@@ -264,6 +303,155 @@ class ToolDispatcher:
             status_code=500,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "tool_id": tool.tool_id},
         )
+
+    @staticmethod
+    def _build_jit_synthesis_messages(
+        tool: MCPToolDescriptorDTO | AllowedMCPTool,
+        query: str,
+        *,
+        claim_text: str | None = None,
+        reasoning: str | None = None,
+        configured_params: Mapping[str, MCPArgumentValue] | None = None,
+    ) -> list[LLMMessageDTO]:
+        """Construct XML-fenced messages for JIT Micro-LLM MCP argument synthesis.
+
+        Args:
+            tool: Target search tool descriptor or AllowedMCPTool domain object.
+            query: Search query string to bind.
+            claim_text: Optional claim text being factually audited.
+            reasoning: Optional reasoning string justifying the search turn.
+            configured_params: Optional static parameter overrides configured in Studio.
+
+        Returns:
+            List of system and user LLMMessageDTO instances.
+        """
+        claim_val = ""
+        if claim_text is not None:
+            claim_val = html.escape(claim_text)
+        reasoning_val = ""
+        if reasoning is not None:
+            reasoning_val = html.escape(reasoning)
+        query_val = html.escape(query)
+        tool_desc = ""
+        if tool.description is not None:
+            tool_desc = html.escape(tool.description)
+        configured_json = "{}"
+        if configured_params is not None:
+            configured_json = json.dumps(dict(configured_params), ensure_ascii=False)
+
+        user_content = TemplateProcessor.render_prompt(
+            t"<user_payload>\n"
+            t"  <tool_id>{tool.tool_id}</tool_id>\n"
+            t"  <tool_description>{tool_desc}</tool_description>\n"
+            t"  <search_query>{query_val}</search_query>\n"
+            t"  <claim_text>{claim_val}</claim_text>\n"
+            t"  <reasoning>{reasoning_val}</reasoning>\n"
+            t"  <studio_configured_parameters>{configured_json}</studio_configured_parameters>\n"
+            t"</user_payload>"
+        )
+        return [
+            LLMMessageDTO(role="system", content=MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION),
+            LLMMessageDTO(role="user", content=user_content),
+        ]
+
+    async def synthesize_search_arguments(
+        self,
+        tool: MCPToolDescriptorDTO | AllowedMCPTool,
+        query: str,
+        *,
+        claim_text: str | None = None,
+        reasoning: str | None = None,
+        objective: str | None = None,
+        configured_params: Mapping[str, MCPArgumentValue] | None = None,
+        llm_client: Any = None,
+        executor: Any = None,
+        mock_identity: str | None = None,
+        validation_context: dict[str, JsonValue] | None = None,
+    ) -> tuple[dict[str, MCPArgumentValue], TokenUsage]:
+        """Resolve MCP tool arguments via 0ms deterministic fast-path or JIT Micro-LLM synthesis.
+
+        # Phase 1, Step 3: JIT Micro-LLM Argument Synthesizer fallback for complex MCP schemas
+
+        Args:
+            tool: Target search tool descriptor or AllowedMCPTool domain object.
+            query: Search query string to bind.
+            claim_text: Optional claim text being factually audited.
+            reasoning: Optional reasoning string justifying the search turn.
+            objective: Optional explicit search objective override.
+            configured_params: Optional static parameter overrides configured in Studio.
+            llm_client: Optional fast-tier LLMClient for JIT argument synthesis.
+            executor: Optional LLMTaskExecutor for structured schema generation.
+            mock_identity: Optional mock identity string for deterministic unit tests.
+            validation_context: Optional validation context dictionary for executor.
+
+        Returns:
+            Tuple of validated argument dictionary and TokenUsage consumed during synthesis.
+
+        Raises:
+            AppException: If deterministic binding fails and either JIT synthesis dependencies
+                are missing or micro-LLM synthesis fails validation (ErrorCodes.CONFIGURATION_ERROR).
+        """
+        zero_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+        try:
+            deterministic_args = self.build_search_arguments(
+                tool,
+                query,
+                claim_text=claim_text,
+                reasoning=reasoning,
+                objective=objective,
+                configured_params=configured_params,
+            )
+            return deterministic_args, zero_usage
+        except AppException:
+            if llm_client is None or executor is None:
+                raise
+
+        arg_model = self.get_argument_model(tool)
+        synth_messages = self._build_jit_synthesis_messages(
+            tool,
+            query,
+            claim_text=claim_text,
+            reasoning=reasoning,
+            configured_params=configured_params,
+        )
+        try:
+            synthesized_raw, synth_usage = await executor.execute_structured_task(
+                client=llm_client,
+                messages=synth_messages,
+                response_model=arg_model,
+                mock_identity=mock_identity,
+                validation_context=validation_context,
+            )
+            if isinstance(synthesized_raw, BaseModel):
+                synthesized_dict = synthesized_raw.model_dump(mode="json", exclude_none=True)
+            else:
+                validated_initial = arg_model.model_validate(synthesized_raw, strict=False)
+                synthesized_dict = validated_initial.model_dump(mode="json", exclude_none=True)
+
+            if configured_params:
+                for param_key, param_val in configured_params.items():
+                    if param_key in tool.input_schema.properties and param_val is not None:
+                        synthesized_dict[param_key] = param_val
+
+            final_validated = arg_model.model_validate(synthesized_dict, strict=False)
+            resolved_usage = zero_usage
+            if synth_usage is not None:
+                resolved_usage = synth_usage
+            return final_validated.model_dump(mode="json", exclude_none=True), resolved_usage
+        except Exception as exc:
+            msg = f"JIT Micro-LLM argument synthesis failed for MCP tool '{tool.tool_id}': {exc}"
+            logger.error(
+                "[ToolDispatcher] %s: %s",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                msg,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "tool_id": tool.tool_id},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "tool_id": tool.tool_id},
+            ) from exc
 
     async def execute_tool(
         self,

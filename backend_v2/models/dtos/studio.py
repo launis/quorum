@@ -15,6 +15,7 @@ from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
+from backend_v2.models.dtos.mcp import MCPToolParamOverrides
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
 from backend_v2.models.enums import (
@@ -157,6 +158,7 @@ class StepCreateDTO(V2CoreBase):
         post_hooks: List of post-execution hooks.
         safety: Safety execution rating.
         allowed_mcp_tools: List of allowed MCP tools.
+        mcp_tool_params: Per-tool static parameter overrides keyed by namespaced MCP tool alias.
         model_strategy: Optional cognitive strategy profile override.
         hook: Optional native hook name if type is logic.
         expected_inputs: List of expected input keys.
@@ -202,6 +204,14 @@ class StepCreateDTO(V2CoreBase):
     post_hooks: Annotated[list[str], Field(default_factory=list, description="Post-execution hooks")]
     safety: Annotated[Literal["safe", "unsafe"], Field(default="safe", description="Safety execution rating")] = "safe"
     allowed_mcp_tools: Annotated[list[str], Field(default_factory=list, description="Allowed MCP tools")]
+    # Phase 1, Step 1: Per-tool static parameter overrides in StepCreateDTO
+    mcp_tool_params: Annotated[
+        dict[str, MCPToolParamOverrides],
+        Field(
+            default_factory=dict,
+            description="Per-tool static parameter overrides keyed by namespaced MCP tool alias.",
+        ),
+    ]
     cognitive_tier: Annotated[
         CognitiveTier, Field(default=CognitiveTier.FAST, description="Cognitive tier profile")
     ] = CognitiveTier.FAST
@@ -632,5 +642,13 @@ class StepUpdateDTO(BaseDTO):
     post_hooks: Annotated[list[str] | None, Field(default=None)] = None
     safety: Annotated[Literal["safe", "unsafe"] | None, Field(default=None)] = None
     allowed_mcp_tools: Annotated[list[str] | None, Field(default=None)] = None
+    # Phase 1, Step 1: Optional per-tool static parameter overrides in StepUpdateDTO
+    mcp_tool_params: Annotated[
+        dict[str, MCPToolParamOverrides] | None,
+        Field(
+            default=None,
+            description="Optional per-tool static parameter overrides keyed by namespaced MCP tool alias.",
+        ),
+    ] = None
     cognitive_tier: Annotated[CognitiveTier | None, Field(default=None)] = None
     expected_inputs: Annotated[list[str] | None, Field(default=None)] = None

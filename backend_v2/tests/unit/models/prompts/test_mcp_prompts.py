@@ -5,6 +5,7 @@ import pytest
 from backend_v2.models.prompts.execution.mcp_prompts import (
     CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION,
     MCP_EVIDENCE_INJECTION_DIRECTIVE,
+    MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION,
     SOURCE_EXTRACTION_SYSTEM_INSTRUCTION,
     SOURCE_VERIFICATION_SYSTEM_INSTRUCTION,
     build_mcp_citation_extraction_directive,
@@ -35,6 +36,11 @@ def test_mcp_prompts_constants_exist_and_non_empty() -> None:
     assert "<system_directive>" in MCP_EVIDENCE_INJECTION_DIRECTIVE
     assert "EVIDENCE INJECTION COMPLETE" in MCP_EVIDENCE_INJECTION_DIRECTIVE
     assert "</system_directive>" in MCP_EVIDENCE_INJECTION_DIRECTIVE
+
+    assert isinstance(MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION, str)
+    assert "<system_directive>" in MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION
+    assert "Deterministic MCP Argument Synthesizer" in MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION
+    assert "</system_directive>" in MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION
 
 
 def test_mcp_prompts_dynamic_builder() -> None:
@@ -69,6 +75,7 @@ def test_mcp_prompts_exports_integrity() -> None:
         "SOURCE_VERIFICATION_SYSTEM_INSTRUCTION",
         "CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION",
         "MCP_EVIDENCE_INJECTION_DIRECTIVE",
+        "MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION",
         "build_mcp_citation_extraction_directive",
     }
     assert set(mcp_prompts_all) == expected_exports
@@ -82,6 +89,7 @@ def test_mcp_prompts_exports_integrity() -> None:
         SOURCE_VERIFICATION_SYSTEM_INSTRUCTION,
         CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION,
         MCP_EVIDENCE_INJECTION_DIRECTIVE,
+        MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION,
     ],
 )
 def test_mcp_prompts_xml_tags_balanced(prompt_text: str) -> None:

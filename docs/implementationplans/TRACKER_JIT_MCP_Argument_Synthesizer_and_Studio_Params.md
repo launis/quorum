@@ -18,10 +18,10 @@
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]
 
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md] @[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]`
-  - [ ] Step 1: Backend DTO & Step Domain Model Extension for mcp_tool_params
-  - [ ] Step 2: JIT Micro-LLM Argument Synthesis Prompt Asset SSOT
-  - [ ] Step 3: ToolDispatcher JIT Micro-LLM Argument Synthesizer & Static Override Support
-  - [ ] Step 4: Wire JIT Argument Synthesis & Step mcp_tool_params into MCP Tool Loop and LLMNodeStrategy
+  - [x] Step 1: Backend DTO & Step Domain Model Extension for mcp_tool_params
+  - [x] Step 2: JIT Micro-LLM Argument Synthesis Prompt Asset SSOT
+  - [x] Step 3: ToolDispatcher JIT Micro-LLM Argument Synthesizer & Static Override Support
+  - [x] Step 4: Wire JIT Argument Synthesis & Step mcp_tool_params into MCP Tool Loop and LLMNodeStrategy
   - [ ] Step 5: Flutter NodeStrategy Model Parity, Localization & Studio McpToolParamsPanel Widget
   - [ ] Step 6: Global Two-Stage Quality Gates & Cross-Language DTO Parity Verification
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md] @[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]`
@@ -80,20 +80,20 @@
 
 | Requirement | Description | Plan Step | Status |
 | :--- | :--- | :--- | :--- |
-| **REQ-001** | Extend `MCPArgumentValue` with `dict[str, MCPArgumentScalar]` and add `mcp_tool_params` to `Step`, `StepCreateDTO`, and `StepUpdateDTO`. | Step 1 | `[ ]` |
-| **REQ-002** | Define static XML constant `MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION` in `mcp_prompts.py` and export in barrels. | Step 2 | `[ ]` |
-| **REQ-003** | Implement `get_argument_model`, `build_search_arguments` parameter overlay, and `synthesize_search_arguments` with fast-path and JIT fallback in `ToolDispatcher`. | Step 3 | `[ ]` |
-| **REQ-004** | Forward `step_obj.mcp_tool_params` from `LLMNodeStrategy` to `execute_mcp_retrieval` and accumulate JIT synthesis token usage. | Step 4 | `[ ]` |
+| **REQ-001** | Extend `MCPArgumentValue` with `dict[str, MCPArgumentScalar]` and add `mcp_tool_params` to `Step`, `StepCreateDTO`, and `StepUpdateDTO`. | Step 1 | `[x]` |
+| **REQ-002** | Define static XML constant `MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION` in `mcp_prompts.py` and export in barrels. | Step 2 | `[x]` |
+| **REQ-003** | Implement `get_argument_model`, `build_search_arguments` parameter overlay, and `synthesize_search_arguments` with fast-path and JIT fallback in `ToolDispatcher`. | Step 3 | `[x]` |
+| **REQ-004** | Forward `step_obj.mcp_tool_params` from `LLMNodeStrategy` to `execute_mcp_retrieval` and accumulate JIT synthesis token usage. | Step 4 | `[x]` |
 | **REQ-005** | Add `mcpToolParams` with `@JsonKey(name: 'mcp_tool_params')` to `NodeStrategy`, create `McpToolParamsPanel` widget, wire in `StepBuilderView`, and add localization. | Step 5 | `[ ]` |
 | **REQ-006** | Pass global quality gates: `audit_dto_parity.py`, `backend_audit_loop.py`, and `flutter_audit_loop.py --build`. | Step 6 | `[ ]` |
 
 # Session Handover Context
 
 ## Achieved
-- Authored and approved Implementation Plan: `IMPLEMENTATION_PLAN_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md`.
-- Completed Tier 0 Research with 0 architectural defects (`CONVERGENCE ACHIEVED: 0 architectural defects found`).
+- Authored and approved Implementation Plan: `@[docs/implementationplans/IMPLEMENTATION_PLAN_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]`.
+- Executed Tier 0 Research & Red-Team Audit (`audit_markdown_boundaries.py`, `audit_technical_debt.py`, `audit_tracker_output.py`) with 0 architectural defects (`CONVERGENCE ACHIEVED: 0 architectural defects found`).
 - Grounded in forensic analysis of live execution `exe_d25ac1ed38614a99` (Exa AI search verified; identified high-value optimization of Studio-configured `numResults`).
-- Created double-entry bookkeeping tracker: `TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md`.
+- Synchronized double-entry bookkeeping tracker: `@[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]`.
 
 ## Learned
 - In `exe_d25ac1ed38614a99`, Exa AI executed search queries deterministically via `build_search_arguments` (2,547 ms latency), but lacked step-level static parameter tuning (`numResults`), defaulting to 10 results.

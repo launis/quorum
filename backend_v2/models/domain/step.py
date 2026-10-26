@@ -14,6 +14,7 @@ from starlette import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
+from backend_v2.models.dtos.mcp import MCPToolParamOverrides
 from backend_v2.models.enums import (
     CognitiveTier,
     EngineType,
@@ -84,6 +85,14 @@ class Step(V2CoreBase):
     allowed_mcp_tools: list[str] = Field(
         default_factory=list, description="List of allowed MCP tools for this step (e.g. ['mcp_tavily_search'])."
     )
+    # Phase 1, Step 1: Step-level static parameter overrides keyed by namespaced MCP tool alias
+    mcp_tool_params: Annotated[
+        dict[str, MCPToolParamOverrides],
+        Field(
+            default_factory=dict,
+            description="Per-tool static parameter overrides keyed by namespaced MCP tool alias.",
+        ),
+    ]
     cognitive_tier: LaxCognitiveTier | None = Field(
         default=CognitiveTier.FAST,
         description="Step-level cognitive tier profile (e.g., 'fast', 'deep', 'reasoning').",

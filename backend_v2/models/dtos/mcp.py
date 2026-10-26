@@ -40,6 +40,7 @@ __all__ = [
     "MCPToolInputSchemaDTO",
     "MCPToolInvocationDTO",
     "MCPToolMetaDTO",
+    "MCPToolParamOverrides",
     "MCPToolSchemaPropertyDTO",
     "MCPToolsListResultDTO",
     "MCPValidationContextDTO",
@@ -47,7 +48,10 @@ __all__ = [
 ]
 
 type MCPArgumentScalar = str | int | float | bool
-type MCPArgumentValue = MCPArgumentScalar | list[str] | list[int] | list[float] | list[bool]
+type MCPArgumentValue = (
+    MCPArgumentScalar | list[str] | list[int] | list[float] | list[bool] | dict[str, MCPArgumentScalar]
+)
+type MCPToolParamOverrides = dict[str, MCPArgumentValue]
 
 
 class MCPValidationContextDTO(V2CoreBase):

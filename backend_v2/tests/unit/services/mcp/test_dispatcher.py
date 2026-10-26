@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.system_config import AllowedMCPTool, SystemConfigMCPGateways
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.mcp import (
     MCPToolInputSchemaDTO,
     MCPToolInvocationDTO,
@@ -477,3 +479,262 @@ def test_tool_dispatcher_build_search_arguments_exa_web_search() -> None:
     assert args_explicit["objective"] == "Custom authoritative search goal"
 
 
+def test_build_search_arguments_with_configured_params() -> None:
+    """Verify build_search_arguments merges Studio configured_params into deterministic arguments (TC-MCP-JIT-01)."""
+    exa_tool = AllowedMCPTool(
+        tool_id="web_search_exa",
+        capability=ToolCapability.SEARCH,
+        name=I18nText(translations={"en": "Web Search"}),
+        description="Search the web for any topic.",
+        input_schema=MCPToolInputSchemaDTO(
+            properties={
+                "query": MCPToolSchemaPropertyDTO(
+                    type=JSONSchemaPropertyType.STRING,
+                    description="Search query.",
+                ),
+                "numResults": MCPToolSchemaPropertyDTO(
+                    type=JSONSchemaPropertyType.INTEGER,
+                    description="Number of results.",
+                ),
+                "objective": MCPToolSchemaPropertyDTO(
+                    type=JSONSchemaPropertyType.STRING,
+                    description="Search objective.",
+                ),
+                "search_depth": MCPToolSchemaPropertyDTO(
+                    type=JSONSchemaPropertyType.STRING,
+                    enum_values=["basic", "advanced"],
+                    description="Search depth.",
+                ),
+            },
+            required=["query", "objective"],
+        ),
+    )
+    gw = _build_gateway(slug="exa_gateway", tools=[exa_tool])
+    dispatcher = ToolDispatcher([gw])
+    resolved = dispatcher.resolve_primary_search_tool(["exa_gateway__web_search_exa"])
+    assert resolved is not None
+
+    args = dispatcher.build_search_arguments(
+        resolved,
+        "Finnish central bank inflation",
+        claim_text="Inflation dropped in Q4",
+        configured_params={"numResults": 5, "search_depth": "advanced", "ignored_unknown_key": "skip"},
+    )
+    assert args["query"] == "Finnish central bank inflation"
+    assert args["objective"] == "Verify factual accuracy for claim: Inflation dropped in Q4"
+    assert args["numResults"] == 5
+    assert args["search_depth"] == "advanced"
+    assert "ignored_unknown_key" not in args
+
+
+@pytest.mark.asyncio
+async def test_synthesize_search_arguments_fast_path_skips_llm() -> None:
+    """Verify synthesize_search_arguments uses 0ms fast-path and skips LLM when required keys are satisfied (TC-MCP-JIT-02)."""
+    gw = _build_gateway()
+    dispatcher = ToolDispatcher([gw])
+    primary = dispatcher.resolve_primary_search_tool(["default_mcp_gateway__mcp_tavily_search"])
+    assert primary is not None
+
+    mock_executor = MagicMock()
+    mock_executor.execute_structured_task = AsyncMock()
+    mock_client = MagicMock()
+
+    args, usage = await dispatcher.synthesize_search_arguments(
+        primary,
+        "GDP statistics",
+        configured_params={"max_results": 5},
+        llm_client=mock_client,
+        executor=mock_executor,
+    )
+    assert args == {"query": "GDP statistics", "max_results": 5}
+    assert usage.total_tokens == 0
+    mock_executor.execute_structured_task.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_synthesize_search_arguments_jit_micro_llm_complex_schema() -> None:
+    """Verify synthesize_search_arguments invokes JIT Micro-LLM for complex schemas with nested objects (TC-MCP-JIT-03)."""
+    complex_tool = AllowedMCPTool(
+        tool_id="legal_case_search",
+        capability=ToolCapability.SEARCH,
+        name=I18nText(translations={"en": "Legal Case Search"}),
+        description="Search statutory and case law databases.",
+        input_schema=MCPToolInputSchemaDTO(
+            properties={
+                "query": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+                "country": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+                "category": MCPToolSchemaPropertyDTO(
+                    type=JSONSchemaPropertyType.STRING,
+                    enum_values=["civil", "corporate", "tax"],
+                ),
+                "date_range": MCPToolSchemaPropertyDTO(
+                    type=JSONSchemaPropertyType.OBJECT,
+                    properties={
+                        "from": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+                        "to": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+                    },
+                    required=["from", "to"],
+                ),
+            },
+            required=["query", "country", "category", "date_range"],
+        ),
+    )
+    gw = _build_gateway(slug="lex_gw", tools=[complex_tool])
+    dispatcher = ToolDispatcher([gw])
+    resolved = dispatcher.resolve_primary_search_tool(["lex_gw__legal_case_search"])
+    assert resolved is not None
+
+    arg_model = dispatcher.get_argument_model(resolved)
+    assert issubclass(arg_model, BaseModel)
+    # Also verify get_argument_model works on AllowedMCPTool directly
+    direct_model = dispatcher.get_argument_model(complex_tool)
+    assert issubclass(direct_model, BaseModel)
+
+    synthesized_instance = arg_model.model_validate(
+        {
+            "query": "corporate tax ruling 2025",
+            "country": "FI",
+            "category": "tax",
+            "date_range": {"from": "2025-01-01", "to": "2026-01-01"},
+        },
+        strict=False,
+    )
+    expected_usage = TokenUsage(prompt_tokens=45, completion_tokens=20, total_tokens=65)
+
+    mock_executor = MagicMock()
+    mock_executor.execute_structured_task = AsyncMock(return_value=(synthesized_instance, expected_usage))
+    mock_client = MagicMock()
+
+    args, usage = await dispatcher.synthesize_search_arguments(
+        resolved,
+        "corporate tax ruling 2025",
+        claim_text="Finnish corporate tax ruling in 2025 changed depreciation rules.",
+        reasoning="Check Finnish tax law database for 2025 rulings.",
+        llm_client=mock_client,
+        executor=mock_executor,
+    )
+    assert args == {
+        "query": "corporate tax ruling 2025",
+        "country": "FI",
+        "category": "tax",
+        "date_range": {"from": "2025-01-01", "to": "2026-01-01"},
+    }
+    assert usage.total_tokens == 65
+    mock_executor.execute_structured_task.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_synthesize_search_arguments_studio_override_precedence() -> None:
+    """Verify Studio configured_params override JIT Micro-LLM synthesized values (TC-MCP-JIT-04)."""
+    complex_tool = AllowedMCPTool(
+        tool_id="financial_search",
+        capability=ToolCapability.SEARCH,
+        name=I18nText(translations={"en": "Financial Search"}),
+        description="Search financial filings.",
+        input_schema=MCPToolInputSchemaDTO(
+            properties={
+                "query": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+                "country": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+                "category": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+                "numResults": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.INTEGER),
+            },
+            required=["query", "country", "category"],
+        ),
+    )
+    gw = _build_gateway(slug="fin_gw", tools=[complex_tool])
+    dispatcher = ToolDispatcher([gw])
+    resolved = dispatcher.resolve_primary_search_tool(["fin_gw__financial_search"])
+    assert resolved is not None
+
+    mock_executor = MagicMock()
+    mock_executor.execute_structured_task = AsyncMock(
+        return_value=(
+            {
+                "query": "Nokia Q4 revenue",
+                "country": "US",
+                "category": "equities",
+                "numResults": 10,
+            },
+            TokenUsage(prompt_tokens=30, completion_tokens=15, total_tokens=45),
+        )
+    )
+
+    args, usage = await dispatcher.synthesize_search_arguments(
+        resolved,
+        "Nokia Q4 revenue",
+        configured_params={"country": "FI", "numResults": 5},
+        llm_client=MagicMock(),
+        executor=mock_executor,
+    )
+    assert args["country"] == "FI"
+    assert args["numResults"] == 5
+    assert args["category"] == "equities"
+    assert usage.total_tokens == 45
+
+
+@pytest.mark.asyncio
+async def test_synthesize_search_arguments_missing_executor_raises_app_exception() -> None:
+    """Verify synthesize_search_arguments raises CONFIGURATION_ERROR when deterministic fails and executor is None (TC-MCP-JIT-05)."""
+    complex_tool = AllowedMCPTool(
+        tool_id="strict_tool",
+        capability=ToolCapability.SEARCH,
+        name=I18nText(translations={"en": "Strict Tool"}),
+        description="Strict tool",
+        input_schema=MCPToolInputSchemaDTO(
+            properties={
+                "query": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+                "country": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+            },
+            required=["query", "country"],
+        ),
+    )
+    gw = _build_gateway(slug="strict_gw", tools=[complex_tool])
+    dispatcher = ToolDispatcher([gw])
+    resolved = dispatcher.resolve_primary_search_tool(["strict_gw__strict_tool"])
+    assert resolved is not None
+
+    with pytest.raises(AppException) as exc_info:
+        await dispatcher.synthesize_search_arguments(
+            resolved,
+            "query text",
+            llm_client=None,
+            executor=None,
+        )
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+@pytest.mark.asyncio
+async def test_synthesize_search_arguments_llm_failure_raises_app_exception() -> None:
+    """Verify synthesize_search_arguments wraps LLM or validation errors in AppException CONFIGURATION_ERROR (TC-MCP-JIT-06)."""
+    complex_tool = AllowedMCPTool(
+        tool_id="strict_tool",
+        capability=ToolCapability.SEARCH,
+        name=I18nText(translations={"en": "Strict Tool"}),
+        description="Strict tool",
+        input_schema=MCPToolInputSchemaDTO(
+            properties={
+                "query": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+                "country": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING),
+            },
+            required=["query", "country"],
+        ),
+    )
+    gw = _build_gateway(slug="strict_gw", tools=[complex_tool])
+    dispatcher = ToolDispatcher([gw])
+    resolved = dispatcher.resolve_primary_search_tool(["strict_gw__strict_tool"])
+    assert resolved is not None
+
+    mock_executor = MagicMock()
+    mock_executor.execute_structured_task = AsyncMock(side_effect=RuntimeError("Micro-LLM timeout"))
+
+    with pytest.raises(AppException) as exc_info:
+        await dispatcher.synthesize_search_arguments(
+            resolved,
+            "query text",
+            llm_client=MagicMock(),
+            executor=mock_executor,
+        )
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+    assert "JIT Micro-LLM argument synthesis failed" in exc_info.value.message

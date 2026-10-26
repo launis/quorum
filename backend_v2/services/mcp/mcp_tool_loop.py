@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from pydantic import BaseModel, JsonValue
@@ -31,7 +31,7 @@ from backend_v2.models.domain.mcp import (
 )
 from backend_v2.models.domain.system_config import MCPAuditTrace, SystemConfigMCPGateways
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.mcp import MCPValidationContextDTO
+from backend_v2.models.dtos.mcp import MCPArgumentValue, MCPToolParamOverrides, MCPValidationContextDTO
 from backend_v2.models.enums import CognitiveTier, SourceSufficiencyThreshold
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts import (
@@ -176,6 +176,7 @@ async def execute_mcp_retrieval(
     alias_engine: AliasEngine | None = None,
     repository: Any = None,
     dispatcher: ToolDispatcher | None = None,
+    mcp_tool_params: Mapping[str, MCPToolParamOverrides] | None = None,
 ) -> MCPRetrievalResultDTO:
     """Execute the MCP retrieval phase — citation extraction, anchoring, and tool dispatch.
 
@@ -195,6 +196,7 @@ async def execute_mcp_retrieval(
         alias_engine: Optional alias engine for registering evidence aliases.
         repository: Optional system config repository for resolving cognitive tier and gateways.
         dispatcher: Optional pre-configured ToolDispatcher instance.
+        mcp_tool_params: Optional per-tool static parameter overrides keyed by namespaced alias.
 
     Returns:
         Structured retrieval result containing audit traces, usage, and assembled evidence payload.
@@ -445,12 +447,23 @@ async def execute_mcp_retrieval(
             },
         )
 
-        search_args = resolved_dispatcher.build_search_arguments(
+        # Phase 1, Step 4: Resolve per-tool static parameter overrides and synthesize arguments
+        tool_configured_params: Mapping[str, MCPArgumentValue] | None = None
+        if mcp_tool_params is not None and active_search_tool.namespaced_alias in mcp_tool_params:
+            tool_configured_params = mcp_tool_params[active_search_tool.namespaced_alias]
+
+        search_args, synth_usage = await resolved_dispatcher.synthesize_search_arguments(
             active_search_tool,
             query,
             claim_text=claim,
             reasoning=citation.reasoning,
+            configured_params=tool_configured_params,
+            llm_client=fast_client,
+            executor=executor,
+            mock_identity=mock_identity,
+            validation_context=val_ctx.model_dump(mode="json"),
         )
+        total_usage += synth_usage
         audit = await resolved_dispatcher.execute_tool(
             tool_id=active_search_tool.namespaced_alias,
             raw_arguments=search_args,
@@ -518,6 +531,7 @@ async def execute_tool_loop[T: BaseModel](
     alias_engine: AliasEngine | None = None,
     repository: Any = None,
     dispatcher: ToolDispatcher | None = None,
+    mcp_tool_params: Mapping[str, MCPToolParamOverrides] | None = None,
 ) -> MCPToolLoopResult:
     """Execute the MCP Tool Loop — 2-phase LLM execution with optional tool calling.
 
@@ -539,6 +553,7 @@ async def execute_tool_loop[T: BaseModel](
         alias_engine: Optional alias engine.
         repository: Optional system config repository.
         dispatcher: Optional pre-configured ToolDispatcher instance.
+        mcp_tool_params: Optional per-tool static parameter overrides keyed by namespaced alias.
 
     Returns:
         Structured tool loop results and audit traces.
@@ -615,6 +630,7 @@ async def execute_tool_loop[T: BaseModel](
         alias_engine=alias_engine,
         repository=repository,
         dispatcher=resolved_dispatcher,
+        mcp_tool_params=mcp_tool_params,
     )
 
     final_messages: list[LLMMessageDTO] = [LLMMessageDTO(role=m.role, content=m.content) for m in typed_messages]

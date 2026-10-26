@@ -637,6 +637,7 @@ class StudioWorkflowService:
             post_hooks=[],
             safety="safe",
             allowed_mcp_tools=[],
+            mcp_tool_params={},
             cognitive_tier=CognitiveTier.FAST,
             organization_id=target_org,
         )

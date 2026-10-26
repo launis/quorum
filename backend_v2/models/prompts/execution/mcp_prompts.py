@@ -7,6 +7,7 @@ and citation self-correction directives.
 __all__ = [
     "CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION",
     "MCP_EVIDENCE_INJECTION_DIRECTIVE",
+    "MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION",
     "SOURCE_EXTRACTION_SYSTEM_INSTRUCTION",
     "SOURCE_VERIFICATION_SYSTEM_INSTRUCTION",
     "build_mcp_citation_extraction_directive",
@@ -42,6 +43,20 @@ CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION: str = (
     "<rules>\n"
     "  <rule>The returned corrected_claim MUST be a 100% exact substring match from the source context (including case, spaces, and diacritics).</rule>\n"
     "  <rule>Do not paraphrase or summarize.</rule>\n"
+    "</rules>\n"
+    "</system_directive>"
+)
+
+# Phase 1, Step 2: Static XML system instruction for JIT Micro-LLM MCP argument synthesis
+MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION: str = (
+    "<system_directive>\n"
+    "<objective>Synthesize schema-compliant invocation arguments for an external MCP tool based on the verification claim, search query, and reasoning.</objective>\n"
+    "<role>Deterministic MCP Argument Synthesizer</role>\n"
+    "<rules>\n"
+    "  <rule>Populate all required fields in the response schema using the semantic context of claim_text, search_query, and reasoning.</rule>\n"
+    "  <rule>When studio_configured_parameters are provided in the user payload, preserve those exact values for the corresponding schema fields.</rule>\n"
+    "  <rule>Infer domain-specific parameters (specifically country codes, categories, jurisdictions, or date bounds) directly from the claim context and language.</rule>\n"
+    "  <rule>Output strictly according to the structured response schema with zero extraneous text.</rule>\n"
     "</rules>\n"
     "</system_directive>"
 )
