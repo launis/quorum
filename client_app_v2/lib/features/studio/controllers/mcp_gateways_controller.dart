@@ -248,6 +248,8 @@ class McpGatewayForm extends _$McpGatewayForm {
   }
 
   Future<void> submit(McpGateway updatedData) async {
+    // Step 4: Harden Flutter MCP Gateway Form Controller State Retention
+    state = AsyncData(updatedData);
     state = const AsyncLoading(); // Side effect isolation
 
     state = await AsyncValue.guard(() async {
@@ -271,6 +273,8 @@ class McpGatewayForm extends _$McpGatewayForm {
       );
     }
 
+    // Step 4: Harden Flutter MCP Gateway Form Controller State Retention
+    state = AsyncData(currentPayload);
     state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {

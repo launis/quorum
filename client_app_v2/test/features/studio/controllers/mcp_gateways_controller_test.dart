@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
@@ -502,6 +503,27 @@ void main() {
             ?.id,
         'mcp_0123456789abcdef',
       );
+
+      // Step 4: Verify submit retains previous form value across error transition
+      final dioSaveErr = DioException(
+        requestOptions: RequestOptions(path: '/api/studio/mcp-gateways'),
+        error: AppException.network('Save failed'),
+      );
+      when(
+        () => mockClient.saveMcpGateway('mcp_0123456789abcdef', any()),
+      ).thenThrow(dioSaveErr);
+
+      final editedGateway = validGateway.copyWith(slug: 'unsaved-edit');
+      await expectLater(
+        () => formNotifier.submit(editedGateway),
+        throwsA(isA<AppException>()),
+      );
+      final errFormState = container.read(
+        mcpGatewayFormProvider('mcp_0123456789abcdef'),
+      );
+      expect(errFormState.hasError, isTrue);
+      expect(errFormState.hasValue, isTrue);
+      expect(errFormState.value?.slug, 'unsaved-edit');
     });
 
     test(
@@ -555,16 +577,23 @@ void main() {
           () => formNotifier.discoverTools(validGateway),
           throwsA(isA<AppException>()),
         );
-        expect(
-          container
-              .read(mcpGatewayFormProvider('mcp_0123456789abcdef'))
-              .hasError,
-          isTrue,
+        final failedDiscoveryState = container.read(
+          mcpGatewayFormProvider('mcp_0123456789abcdef'),
         );
+        expect(failedDiscoveryState.hasError, isTrue);
+        expect(failedDiscoveryState.hasValue, isTrue);
+        expect(failedDiscoveryState.value?.id, 'mcp_0123456789abcdef');
 
         // Negative 2: uninitialized gateway state without explicit payload throws validation error
+        final pendingCompleter = Completer<McpGateway>();
+        when(
+          () => mockClient.getMcpGateway('mcp_uninitialized'),
+        ).thenAnswer((_) => pendingCompleter.future);
+        final uninitializedNotifier = container.read(
+          mcpGatewayFormProvider('mcp_uninitialized').notifier,
+        );
         await expectLater(
-          () => formNotifier.discoverTools(),
+          () => uninitializedNotifier.discoverTools(),
           throwsA(isA<AppException>()),
         );
       },

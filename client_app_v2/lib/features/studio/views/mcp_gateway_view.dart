@@ -22,11 +22,25 @@ class McpGatewayView extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final formKey = useMemoized(() => GlobalKey<FormState>());
+    // Step 5: Harden Flutter MCP Gateway View Hook Registration and Pattern Matching
+    final bannerMessage = useState<String?>(null);
+    final isBannerError = useState<bool>(false);
 
     final formState = ref.watch(mcpGatewayFormProvider(id));
 
     return AppErrorBoundary(
       child: switch (formState) {
+        AsyncValue(value: final payload?) when formState.hasValue =>
+          _buildScaffold(
+            context,
+            ref,
+            l10n,
+            formKey,
+            formState,
+            payload,
+            bannerMessage,
+            isBannerError,
+          ),
         AsyncLoading() => Scaffold(
           appBar: AppBar(title: Text(l10n.studioDashboardGatewaysTitle)),
           body: const Center(child: CircularProgressIndicator()),
@@ -47,6 +61,8 @@ class McpGatewayView extends HookConsumerWidget {
           formKey,
           formState,
           payload,
+          bannerMessage,
+          isBannerError,
         ),
       },
     );
@@ -59,10 +75,9 @@ class McpGatewayView extends HookConsumerWidget {
     GlobalKey<FormState> formKey,
     AsyncValue<McpGateway> formState,
     McpGateway payload,
+    ValueNotifier<String?> bannerMessage,
+    ValueNotifier<bool> isBannerError,
   ) {
-    final bannerMessage = useState<String?>(null);
-    final isBannerError = useState<bool>(false);
-
     Future<void> deleteGateway() async {
       final String idToDelete = payload.id;
       if (idToDelete.isEmpty) return;
@@ -740,7 +755,12 @@ class McpGatewayView extends HookConsumerWidget {
                         ),
                       ),
                     ),
-                    DataCell(Text(propDef.type?.name ?? (propDef.anyOf != null ? 'union' : 'any'))),
+                    DataCell(
+                      Text(
+                        propDef.type?.name ??
+                            (propDef.anyOf != null ? 'union' : 'any'),
+                      ),
+                    ),
                     DataCell(
                       Text(
                         isRequired
