@@ -178,7 +178,10 @@ def test_cli_strict_flag_propagates_to_dart_guardrails(mock_sub: MagicMock, tmp_
 
 
 @patch("subprocess.run")
-def test_cli_guardrails_targets_specific_file_when_provided(mock_sub: MagicMock, tmp_path: Path) -> None:
+@patch("os.chdir")
+def test_cli_guardrails_targets_specific_file_when_provided(
+    mock_chdir: MagicMock, mock_sub: MagicMock, tmp_path: Path
+) -> None:
     """Verify that providing a specific target file passes that specific file to _dart_guardrails."""
     client_app = tmp_path / "client_app_v2"
     models_dir = client_app / "lib" / "features" / "studio" / "models"
@@ -195,6 +198,7 @@ def test_cli_guardrails_targets_specific_file_when_provided(mock_sub: MagicMock,
             guardrail_calls = [c[0][0] for c in mock_sub.call_args_list if "_dart_guardrails.py" in str(c[0][0])]
             assert len(guardrail_calls) == 1
             assert str(target_file) in guardrail_calls[0]
+            mock_chdir.assert_called_once_with(client_app)
 
 
 @patch("sys.exit")

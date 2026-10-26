@@ -22,7 +22,6 @@ from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
-from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.enums import (
     CognitiveTier,
     EngineType,

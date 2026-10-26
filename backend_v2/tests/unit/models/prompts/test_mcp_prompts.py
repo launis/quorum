@@ -101,4 +101,3 @@ def test_mcp_prompts_xml_tags_balanced(prompt_text: str) -> None:
         open_tag = f"<{tag}>"
         close_tag = f"</{tag}>"
         assert prompt_text.count(open_tag) == prompt_text.count(close_tag), f"Mismatched tag: {tag}"
-

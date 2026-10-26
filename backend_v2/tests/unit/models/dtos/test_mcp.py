@@ -550,4 +550,3 @@ def test_mcp_structured_content_and_meta_dtos_positive_and_negative() -> None:
 
     with pytest.raises(ValidationError):
         MCPStructuredContentDTO.model_validate({"unknown_key": "forbidden"})
-

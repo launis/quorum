@@ -1105,6 +1105,10 @@ def run_phase_pipeline(
                 f"\n{ANSIColors.RED}[QUALITY GATE FAILED] Phase {phase.phase_num} audit loops failed "
                 f"with code {qg_res.exit_code}. Halting pipeline immediately.{ANSIColors.RESET}"
             )
+            if qg_res.output:
+                print(f"\n{ANSIColors.YELLOW}--- Quality Gate Output ---{ANSIColors.RESET}")
+                print(qg_res.output)
+                print(f"{ANSIColors.YELLOW}--- End Quality Gate Output ---{ANSIColors.RESET}\n")
             failed_count += 1
             results.append(
                 PhaseExecutionResultDTO(
