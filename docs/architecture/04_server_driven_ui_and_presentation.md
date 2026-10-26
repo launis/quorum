@@ -55,7 +55,7 @@ The adapter cluster comprises 11 canonical hydrators mapped to `TargetBlockType`
 7. `XaiHighlightsAdapter` (`GROUPED_EXTENSIONS_BLOCK`): Curates behavioral claim highlights using fair round-robin interleaving to prevent single-category presentation bias.
 8. `McpAuditAdapter` (`AUDIT_TRAIL_BLOCK`): Serializes immutable MCP tool invocations into an `SduiAuditTrailBlock`.
 9. `MetadataAdapter` (`METADATA_BLOCK`): Emits execution metadata, execution timing, user context, token consumption, and financial costs into `SduiMetadataBlock`.
-10. `PrintableSourcesAdapter` (`PRINTABLE_SOURCES_BLOCK`): Formats bibliographic citations, academic grounding, and extracted source anchors into verifiable citation lists.
+10. `PrintableSourcesAdapter` (`PRINTABLE_SOURCES_BLOCK`): Formats bibliographic citations, academic grounding, and extracted source anchors into verifiable citation lists, routing external findings through `McpPresentationSanitizer` to present clean, sentence-budgeted evidence lines with guaranteed terminal punctuation.
 11. `SynthesisTextAdapter` (`SYNTHESIS_TEXT_BLOCK`): Translates custom markdown prefaces and qualitative narrative sections into `MarkdownBlock`.
 In addition, `WarningCardAdapter` dynamically injects pre-flight system alerts and data starvation warnings at the top of the stream.
 
@@ -161,6 +161,10 @@ Studio matrix and rubric authoring surfaces enforce desktop-class ergonomics, de
   Both sections mutate the single authoritative backend array `payload.visibleBlockExtensions` with zero schema fragmentation, enclosed in bounded `Wrap` widgets guaranteeing hazard-stripe-free rendering down to 360px viewports.
 - **Scalable Master List Browsing & Virtualization Standard**: All master list browsing views utilize virtualized rendering (`ListView.builder` with `prototypeItem` for $O(1)$ layout calculation and 60 FPS scrolling), sticky pinned top headers (`StudioMasterHeader`) integrating real-time search inputs and active item count indicators, and centered 1200px max-width containment (`Bounded Canvas Containment`), preventing unconstrained canvas stretching on high-resolution displays while maintaining responsive usability across compact and split viewports.
 - **Modal Feedback & Submission Guard**: Dialogs eradicate `SnackBar` popups in favor of modal-internal error surfaces, implement in-flight atomic save debouncing (`_isSaving`), auto-scroll to invalid fields, and enforce a robust `PopScope` protocol with serialization-based model dirty checking (`jsonEncode(model.toJson()) != initialJson`) that prevents false-positive discard dialogs on models utilizing reference identity while intercepting all exit triggers with discard confirmation when uncommitted changes exist.
+- **Studio Pro-Tool Form State Retention & Hook Safety (`McpGatewayView`)**:
+  - *Unconditional Hook Registration*: State hooks (such as `useState` for in-form alert banners) are registered unconditionally at the top of the widget's `build()` method, preserving static hook indexing and preventing premature disposal crashes during asynchronous loading and error transitions.
+  - *Form State Retention Pattern*: The view inspects the controller's asynchronous state using Dart 3 pattern matching, prioritizing `AsyncValue(value: final payload?) when formState.hasValue` to keep the active form mounted, interactive, and populated with current form data while displaying in-card error banners whenever background operations fail (specifically dynamic tool discovery or gateway submission). Fullscreen `ErrorView` is reserved strictly for initial cold-load failures (`hasValue == false`).
+  - *Riverpod Asynchronous Transition Standard*: In form controllers (specifically `McpGatewayForm`), background actions update state by re-assigning current data (`state = AsyncData(currentPayload)`) immediately before transitioning to loading (`state = const AsyncLoading()`). This activates Riverpod's native asynchronous transition mechanics, ensuring that `hasValue` remains true and prior state is preserved without calling internal framework methods.
 
 ### 2.12. Matrix Summary Table Architecture & Evaluative Column Mechanics
 The matrix summary table (`MatrixSummaryTableAdapter` / `SduiMatrixTableBlock`) presents a comparative, multi-matrix evaluation breakdown. The table format is composed of three primary columns:
@@ -224,6 +228,15 @@ Presentation of extracted argument graphs integrates an interactive desktop moda
 - **Inspection Detail Drawer**: Selecting an argument node reveals its verbatim text citations, Toulmin backing warrants, parent dependencies, and child reachability cascade.
 - **Theme Sovereignty & Containment**: Renders with 100% `Theme.of(context)` color and typography tokens, wrapped in `AppErrorBoundary` to prevent any visualization anomaly from compromising the primary dashboard.
 
+### 2.17. Deterministic Presentation Sanitization & Dumb Painter Evidence Grounding (`McpPresentationSanitizer`)
+To preserve Dumb Painter parity and prevent raw protocol artifacts, CDATA envelopes, or technical payloads from reaching client views or PDF reports, presentation layers enforce server-side text sanitization:
+- **Presentation Pre-Sanitization Pipeline**: All external tool findings and audit traces rendered in executive reports flow through `McpPresentationSanitizer.sanitize_finding` (`backend_v2/services/sdui/sanitizers/mcp_presentation_sanitizer.py`) before entering SDUI blocks or template payloads (`ReportDataDTO.mcp_audit_data`).
+- **Structured Payload Extraction**: The sanitizer automatically detects and extracts substantive finding text from JSON response payloads using Pydantic V2 Rust deserialization (`MCPStructuredContentDTO.model_validate_json(strict=False)`), inspecting standard content attributes (`content`, `snippet`, `text`, `summary`, `answer`, `description`, `finding`, `message`) without naked dictionary parsing.
+- **Envelope & Markup Stripping**: Envelopes such as XML CDATA wrappers (`<![CDATA[...]]>`) and Markdown code fences (````json`, ````) are cleanly removed, HTML tags are stripped, whitespace is normalized, and surrounding quotes are unwrapped.
+- **Sentence-Boundary Character Budgeting**: Text length is capped strictly at sentence boundaries within configured character budgets (`settings.mcp_presentation_max_chars`, default 300) via `enforce_sentence_boundary_budget`, ensuring excerpts never terminate mid-word or mid-sentence.
+- **Terminal Punctuation Guarantee**: All sanitized findings deterministically conclude on terminal punctuation (`.`, `!`, `?`). Non-extractable, empty, or whitespace-only inputs evaluate to `None`, allowing presentation templates (`report_template.jinja2`) and adapters (`PrintableSourcesAdapter`) to omit empty evidence lines cleanly.
+- **Evidentiary Integrity Preservation**: Sanitization applies exclusively to presentation summaries (`response_summary`). Verbatim claims (`claim_text`), search queries (`query`), source URLs (`source_urls`), and raw forensic audit events remain permanently immutable.
+
 ## 3. Logical Data Flow & Rendering Pipeline
 ```mermaid
 flowchart TB
@@ -236,6 +249,7 @@ flowchart TB
     subgraph BackendPresentation["Backend Presentation Pipeline (BFF)"]
         BT["BlueprintTransformer<br/>(build_report_dto)"]
         AC["AdapterContext<br/>(Frozen Pydantic BaseModel)"]
+        SAN["McpPresentationSanitizer<br/>(Deterministic Finding Sanitization)"]
         
         subgraph Adapters["SDUI Presentation Adapters (11 Target Block Hydrators)"]
             ESA["ExecutiveSummaryAdapter"]
@@ -270,10 +284,13 @@ flowchart TB
     end
 
     OP & RSC & EX --> BT
+    BT --> SAN
     BT --> AC
     AC --> WCA
     AC --> ESA & GSA & MGA & MTA & VRA & PLA & XAA & MAA & MDA & PSA & STA
+    PSA --> SAN
     WCA & ESA & GSA & MGA & MTA & VRA & PLA & XAA & MAA & MDA & PSA & STA --> DTO
+    SAN --> DTO
     
     DTO -->|JSON Transit / API| BR
     DTO -->|Direct In-Memory Payload| JIN
