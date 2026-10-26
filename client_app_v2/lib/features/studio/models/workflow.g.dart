@@ -250,6 +250,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'post_hooks',
         'safety',
         'allowed_mcp_tools',
+        'mcp_tool_params',
         'expected_inputs',
         'cognitive_tier',
         'organization_id',
@@ -316,6 +317,14 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      mcpToolParams: $checkedConvert(
+        'mcp_tool_params',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(k, e as Map<String, dynamic>),
+            ) ??
+            const <String, Map<String, Object?>>{},
+      ),
       expectedInputs: $checkedConvert(
         'expected_inputs',
         (v) =>
@@ -352,6 +361,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
     'preHooks': 'pre_hooks',
     'postHooks': 'post_hooks',
     'allowedMcpTools': 'allowed_mcp_tools',
+    'mcpToolParams': 'mcp_tool_params',
     'expectedInputs': 'expected_inputs',
     'cognitiveTier': 'cognitive_tier',
     'organizationId': 'organization_id',
@@ -385,6 +395,7 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'post_hooks': instance.postHooks,
       'safety': instance.safety,
       'allowed_mcp_tools': instance.allowedMcpTools,
+      'mcp_tool_params': instance.mcpToolParams,
       'expected_inputs': instance.expectedInputs,
       'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
       'organization_id': instance.organizationId,
@@ -446,6 +457,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'post_hooks',
         'safety',
         'allowed_mcp_tools',
+        'mcp_tool_params',
         'expected_inputs',
         'cognitive_tier',
         'organization_id',
@@ -512,6 +524,14 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      mcpToolParams: $checkedConvert(
+        'mcp_tool_params',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(k, e as Map<String, dynamic>),
+            ) ??
+            const <String, Map<String, Object?>>{},
+      ),
       expectedInputs: $checkedConvert(
         'expected_inputs',
         (v) =>
@@ -548,6 +568,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
     'preHooks': 'pre_hooks',
     'postHooks': 'post_hooks',
     'allowedMcpTools': 'allowed_mcp_tools',
+    'mcpToolParams': 'mcp_tool_params',
     'expectedInputs': 'expected_inputs',
     'cognitiveTier': 'cognitive_tier',
     'organizationId': 'organization_id',
@@ -581,6 +602,7 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       'post_hooks': instance.postHooks,
       'safety': instance.safety,
       'allowed_mcp_tools': instance.allowedMcpTools,
+      'mcp_tool_params': instance.mcpToolParams,
       'expected_inputs': instance.expectedInputs,
       'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
       'organization_id': instance.organizationId,
@@ -612,6 +634,7 @@ NodeStrategyCausalDiscovery _$NodeStrategyCausalDiscoveryFromJson(
         'post_hooks',
         'safety',
         'allowed_mcp_tools',
+        'mcp_tool_params',
         'expected_inputs',
         'cognitive_tier',
         'organization_id',
@@ -678,6 +701,14 @@ NodeStrategyCausalDiscovery _$NodeStrategyCausalDiscoveryFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      mcpToolParams: $checkedConvert(
+        'mcp_tool_params',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(k, e as Map<String, dynamic>),
+            ) ??
+            const <String, Map<String, Object?>>{},
+      ),
       expectedInputs: $checkedConvert(
         'expected_inputs',
         (v) =>
@@ -716,6 +747,7 @@ NodeStrategyCausalDiscovery _$NodeStrategyCausalDiscoveryFromJson(
     'preHooks': 'pre_hooks',
     'postHooks': 'post_hooks',
     'allowedMcpTools': 'allowed_mcp_tools',
+    'mcpToolParams': 'mcp_tool_params',
     'expectedInputs': 'expected_inputs',
     'cognitiveTier': 'cognitive_tier',
     'organizationId': 'organization_id',
@@ -750,6 +782,7 @@ Map<String, dynamic> _$NodeStrategyCausalDiscoveryToJson(
   'post_hooks': instance.postHooks,
   'safety': instance.safety,
   'allowed_mcp_tools': instance.allowedMcpTools,
+  'mcp_tool_params': instance.mcpToolParams,
   'expected_inputs': instance.expectedInputs,
   'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
   'organization_id': instance.organizationId,

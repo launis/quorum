@@ -462,4 +462,3 @@ def test_mcp_tool_call_result_with_content_execution_meta() -> None:
     assert isinstance(parsed.result, MCPToolCallResultDTO)
     assert parsed.result.content[0].meta is not None
     assert parsed.result.content[0].meta.search_time == 906.5
-

@@ -2751,6 +2751,17 @@
   "mcpParamRequiredNo": "No",
   "mcpNoParametersDefined": "No input parameters declared in schema.",
   "studioWorkflowMcpToolsBoundBadgeTitle": "Bound MCP Tools:",
+  "mcpToolParamsPanelTitle": "MCP Tool Parameter Overrides",
+  "mcpToolParamsDefaultHint": "Default: {defaultValue}",
+  "@mcpToolParamsDefaultHint": {
+    "placeholders": {
+      "defaultValue": {
+        "type": "String"
+      }
+    }
+  },
+  "mcpToolParamsUseDefaultOption": "Default (Unset)",
+  "mcpToolParamsResetButton": "Reset",
   "causalInspectorLocationPrefix": "Location: ",
   "@causalInspectorLocationPrefix": {
     "description": "Prefix label for location coordinate in citation evidence"

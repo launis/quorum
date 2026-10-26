@@ -2001,6 +2001,17 @@
   "mcpParamRequiredNo": "Ei",
   "mcpNoParametersDefined": "Skeemassa ei ole määritelty syöteparametreja.",
   "studioWorkflowMcpToolsBoundBadgeTitle": "Sidotut MCP-työkalut:",
+  "mcpToolParamsPanelTitle": "MCP-työkalujen parametrien kiinnitys",
+  "mcpToolParamsDefaultHint": "Oletus: {defaultValue}",
+  "@mcpToolParamsDefaultHint": {
+    "placeholders": {
+      "defaultValue": {
+        "type": "String"
+      }
+    }
+  },
+  "mcpToolParamsUseDefaultOption": "Oletus (Ei kiinnitetty)",
+  "mcpToolParamsResetButton": "Palauta",
   "causalInspectorLocationPrefix": "Sijainti: ",
   "@causalInspectorLocationPrefix": {
     "description": "Sijaintikoordinaatin etuliite sitaattitodisteissa"

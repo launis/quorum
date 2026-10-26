@@ -10,6 +10,7 @@ import 'package:client_app/features/studio/controllers/mcp_gateways_controller.d
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/step_simulation_dialog.dart';
+import 'package:client_app/features/studio/views/widgets/mcp_tool_params_panel.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -498,11 +499,23 @@ class StepBuilderView extends HookConsumerWidget {
                                     } else {
                                       allowedMcpTools.remove(namespacedAlias);
                                     }
+                                    final updatedToolParams =
+                                        <String, Map<String, Object?>>{
+                                          for (final entry
+                                              in payload.mcpToolParams.entries)
+                                            if (selected ||
+                                                entry.key != namespacedAlias)
+                                              entry.key:
+                                                  Map<String, Object?>.from(
+                                                    entry.value,
+                                                  ),
+                                        };
                                     ref
                                         .read(stepFormProvider(stepId).notifier)
                                         .forceRebuild(
                                           payload.copyWith(
                                             allowedMcpTools: allowedMcpTools,
+                                            mcpToolParams: updatedToolParams,
                                           ),
                                         );
                                   },
@@ -515,6 +528,20 @@ class StepBuilderView extends HookConsumerWidget {
                     }),
 
                 AppSpacing.h24,
+
+                // Phase 1, Step 5: Schema-driven MCP tool parameter overrides panel
+                McpToolParamsPanel(
+                  allowedMcpTools: payload.allowedMcpTools,
+                  mcpToolParams: payload.mcpToolParams,
+                  mcpGateways: mcpGateways,
+                  onChanged: (updatedParams) {
+                    ref
+                        .read(stepFormProvider(stepId).notifier)
+                        .forceRebuild(
+                          payload.copyWith(mcpToolParams: updatedParams),
+                        );
+                  },
+                ),
 
                 // pre_hooks
                 Row(

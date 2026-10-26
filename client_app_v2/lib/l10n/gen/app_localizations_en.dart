@@ -5474,5 +5474,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get studioWorkflowMcpToolsBoundBadgeTitle => 'Bound MCP Tools:';
 
   @override
+  String get mcpToolParamsPanelTitle => 'MCP Tool Parameter Overrides';
+
+  @override
+  String mcpToolParamsDefaultHint(String defaultValue) {
+    return 'Default: $defaultValue';
+  }
+
+  @override
+  String get mcpToolParamsUseDefaultOption => 'Default (Unset)';
+
+  @override
+  String get mcpToolParamsResetButton => 'Reset';
+
+  @override
   String get causalInspectorLocationPrefix => 'Location: ';
 }

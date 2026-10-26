@@ -91,6 +91,10 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default([]) List<String> postHooks,
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
+    // Phase 1, Step 5: Per-tool static parameter overrides keyed by namespaced MCP tool alias
+    @JsonKey(name: 'mcp_tool_params')
+    @Default(<String, Map<String, Object?>>{})
+    Map<String, Map<String, Object?>> mcpToolParams,
     @Default([]) List<String> expectedInputs,
     @JsonKey(name: 'cognitive_tier')
     @Default(CognitiveTier.fast)
@@ -120,6 +124,10 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default([]) List<String> postHooks,
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
+    // Phase 1, Step 5: Per-tool static parameter overrides keyed by namespaced MCP tool alias
+    @JsonKey(name: 'mcp_tool_params')
+    @Default(<String, Map<String, Object?>>{})
+    Map<String, Map<String, Object?>> mcpToolParams,
     @Default([]) List<String> expectedInputs,
     @JsonKey(name: 'cognitive_tier')
     @Default(CognitiveTier.fast)
@@ -149,6 +157,10 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default([]) List<String> postHooks,
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
+    // Phase 1, Step 5: Per-tool static parameter overrides keyed by namespaced MCP tool alias
+    @JsonKey(name: 'mcp_tool_params')
+    @Default(<String, Map<String, Object?>>{})
+    Map<String, Map<String, Object?>> mcpToolParams,
     @Default([]) List<String> expectedInputs,
     @JsonKey(name: 'cognitive_tier')
     @Default(CognitiveTier.fast)

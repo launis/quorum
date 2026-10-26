@@ -5514,5 +5514,19 @@ class AppLocalizationsFi extends AppLocalizations {
   String get studioWorkflowMcpToolsBoundBadgeTitle => 'Sidotut MCP-työkalut:';
 
   @override
+  String get mcpToolParamsPanelTitle => 'MCP-työkalujen parametrien kiinnitys';
+
+  @override
+  String mcpToolParamsDefaultHint(String defaultValue) {
+    return 'Oletus: $defaultValue';
+  }
+
+  @override
+  String get mcpToolParamsUseDefaultOption => 'Oletus (Ei kiinnitetty)';
+
+  @override
+  String get mcpToolParamsResetButton => 'Palauta';
+
+  @override
   String get causalInspectorLocationPrefix => 'Sijainti: ';
 }

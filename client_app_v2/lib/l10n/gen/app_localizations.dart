@@ -9864,6 +9864,30 @@ abstract class AppLocalizations {
   /// **'Bound MCP Tools:'**
   String get studioWorkflowMcpToolsBoundBadgeTitle;
 
+  /// No description provided for @mcpToolParamsPanelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'MCP Tool Parameter Overrides'**
+  String get mcpToolParamsPanelTitle;
+
+  /// No description provided for @mcpToolParamsDefaultHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Default: {defaultValue}'**
+  String mcpToolParamsDefaultHint(String defaultValue);
+
+  /// No description provided for @mcpToolParamsUseDefaultOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Default (Unset)'**
+  String get mcpToolParamsUseDefaultOption;
+
+  /// No description provided for @mcpToolParamsResetButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get mcpToolParamsResetButton;
+
   /// Prefix label for location coordinate in citation evidence
   ///
   /// In en, this message translates to:

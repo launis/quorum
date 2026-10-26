@@ -815,6 +815,14 @@ class MCPExecutionMetaDTO(V2CoreBase):
             description="Total item count.",
         ),
     ] = None
+    rate_limited: Annotated[
+        bool | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("rateLimited", "rate_limited", "ai.exa/rateLimited"),
+            description="Whether the remote MCP provider reported rate limiting.",
+        ),
+    ] = None
 
 
 class MCPContentBlockDTO(V2CoreBase):
