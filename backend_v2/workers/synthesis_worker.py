@@ -45,6 +45,7 @@ from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
     STATIC_LINGUISTIC_PROTOCOL,
     SYNTHESIS_CITATION_RULES_HARVARD,
+    SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE,
     SYNTHESIS_NO_CITATION_RULES,
     SYNTHESIS_SDUI_MANDATES,
     SYNTHESIS_SYSTEM_PROMPT,
@@ -336,6 +337,7 @@ async def generate_profile_synthesis_and_pdf_task(
             f"{SYNTHESIS_SYSTEM_PROMPT}\n\n"
             f"{SYNTHESIS_SDUI_MANDATES}\n\n"
             f"{ANTI_JARGON_MANDATE_BLOCK}\n\n"
+            f"{SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE}\n\n"
             f"{STATIC_LINGUISTIC_PROTOCOL}"
         )
 

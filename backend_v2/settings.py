@@ -73,6 +73,7 @@ class Settings(BaseSettings):
         mcp_discovery_timeout_seconds: Network timeout in seconds for MCP tools/list discovery handshakes.
         mcp_max_response_chars: Maximum character budget for external MCP tool responses before truncation.
         mcp_allow_private_networks: Whether MCP endpoint URL validator permits loopback and private networks.
+        mcp_presentation_max_chars: Maximum character budget for external findings rendered in SDUI and executive report presentation before sentence-boundary truncation.
         llm_retry_delay: Backoff pause between transient faults.
         llm_default_tpm: Maximum tokens allowed per minute.
         llm_default_rpm: Maximum requests allowed per minute.
@@ -270,6 +271,15 @@ class Settings(BaseSettings):
             description="Whether MCP endpoint URL validator permits loopback and private RFC-1918 networks",
         ),
     ] = False
+    mcp_presentation_max_chars: Annotated[
+        int,
+        Field(
+            default=300,
+            ge=100,
+            le=2000,
+            description="Maximum character budget for external findings rendered in SDUI and executive report presentation before sentence-boundary truncation",
+        ),
+    ] = 300
     rate_limit_cooldown_seconds: Annotated[int, Field(description="Cooldown time after rate limits hit")] = 10
     semaphore_low_rpm_threshold: Annotated[int, Field(description="Threshold for applying strict concurrency")] = 20
     semaphore_low_rpm_limit: Annotated[int, Field(ge=1, description="Concurrency limit for low RPM environments")] = 2

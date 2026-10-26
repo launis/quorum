@@ -297,10 +297,7 @@ def test_build_verified_evidence_mode_with_mcp_traces(valid_output_profile_fixtu
     assert "**Tila:** Vahvistettu tutkimusnäytöllä" in text
     assert "**Todennusmenetelmä:** Tavily Search Gateway" in text
     assert '**Synteesin havainto:** "Yhtiön liikevaihto kasvoi 25 prosenttia."' in text
-    assert (
-        "**Ulkoinen havainto / MCP-haun tulos:** Tilinpäätöstiedotteen mukaan liikevaihto kasvoi 25,4 % vuonna 2024."
-        in text
-    )
+    assert "**Ulkoinen havainto:** Tilinpäätöstiedotteen mukaan liikevaihto kasvoi 25,4 % vuonna 2024." in text
 
 
 def test_build_mcp_traces_unverified_when_no_urls_or_articles_found(
@@ -332,10 +329,7 @@ def test_build_mcp_traces_unverified_when_no_urls_or_articles_found(
     assert len(blocks) == 1
     text = blocks[0].text
     assert "**Tila:** Ei vahvistettu (ei osumia tietokannassa)" in text
-    assert (
-        "**Ulkoinen havainto / MCP-haun tulos:** No Wikipedia articles found for query: "
-        "'Yritys Perustamisvuosi 1888'" in text
-    )
+    assert "**Ulkoinen havainto:** No Wikipedia articles found for query: 'Yritys Perustamisvuosi 1888'" in text
     assert "Vahvistettu tutkimusnäytöllä" not in text
 
 
@@ -495,7 +489,7 @@ def test_build_verified_evidence_with_matrix_quotes_and_custom_tool_gateway(
     assert "- **custom query text without url**" in text
     assert "**Status:** Unverified (no matching records found)" in text
     assert '**Synthesis finding:** "Custom tool verified statement."' in text
-    assert "**External finding / MCP retrieval result:** Summary from custom gateway." in text
+    assert "**External finding:** Summary from custom gateway." in text
     assert "#### Citations in Evaluated Material" in text
     assert "- **Popper, K. (1959). The Logic of Scientific Discovery.**" in text
     # Invariant: Atom quotes from evaluated matrix must NEVER be falsely bound to cited authors

@@ -4,6 +4,7 @@ from backend_v2.models.prompts.synthesis.style_directives import (
     ANTI_JARGON_MANDATE_BLOCK,
     SPARSE_DATA_SYNTHESIS_MANDATE,
     SYNTHESIS_CITATION_RULES_HARVARD,
+    SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE,
     SYNTHESIS_NO_CITATION_RULES,
     __all__,
 )
@@ -15,6 +16,7 @@ def test_style_directives_exports() -> None:
     assert "SYNTHESIS_NO_CITATION_RULES" in __all__
     assert "ANTI_JARGON_MANDATE_BLOCK" in __all__
     assert "SPARSE_DATA_SYNTHESIS_MANDATE" in __all__
+    assert "SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE" in __all__
 
 
 def test_harvard_citation_directive_structure() -> None:
@@ -37,12 +39,22 @@ def test_no_citation_directive_structure() -> None:
     assert "cited_sources" in SYNTHESIS_NO_CITATION_RULES
 
 
+def test_external_evidence_mandate_structure() -> None:
+    """Positive: verify external evidence mandate instructs clean empirical presentation without technical noise."""
+    assert "<external_evidence_mandate>" in SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE
+    assert "</external_evidence_mandate>" in SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE
+    assert "EXTERNAL EVIDENCE PRESENTATION MANDATE" in SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE
+    assert "ZERO TECHNICAL NOISE" in SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE
+    assert "EXECUTIVE RELEVANCE" in SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE
+
+
 def test_style_directives_xml_tag_closure() -> None:
     """Negative / Integrity: verify all directives have balanced XML tags."""
     directives = [
         ANTI_JARGON_MANDATE_BLOCK,
         SPARSE_DATA_SYNTHESIS_MANDATE,
         SYNTHESIS_CITATION_RULES_HARVARD,
+        SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE,
         SYNTHESIS_NO_CITATION_RULES,
     ]
     for directive in directives:

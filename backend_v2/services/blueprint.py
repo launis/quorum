@@ -48,6 +48,7 @@ from backend_v2.services.sdui.adapters.synthesis_text_adapter import SynthesisTe
 from backend_v2.services.sdui.adapters.variance_adapter import VarianceAdapter
 from backend_v2.services.sdui.adapters.warning_card_adapter import WarningCardAdapter
 from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighlightsAdapter
+from backend_v2.services.sdui.sanitizers import McpPresentationSanitizer
 
 logger = logging.getLogger(__name__)
 
@@ -536,13 +537,24 @@ class BlueprintTransformer:
                                 evidence_to_axes.setdefault(src_id, set()).add(matrix_row.block_id)
 
                 for idx, audit in enumerate(mcp_audit_data):
+                    sanitized = McpPresentationSanitizer.sanitize_finding(audit.response_summary)
+                    clean_summary = ""
+                    if sanitized is not None:
+                        clean_summary = sanitized
                     if audit.id in evidence_to_axes:
                         axis_names = {
                             block_to_axis[block_id]
                             for block_id in evidence_to_axes[audit.id]
                             if block_id in block_to_axis
                         }
-                        mcp_audit_data[idx] = audit.model_copy(update={"impacted_axis_names": sorted(list(axis_names))})
+                        mcp_audit_data[idx] = audit.model_copy(
+                            update={
+                                "response_summary": clean_summary,
+                                "impacted_axis_names": sorted(list(axis_names)),
+                            }
+                        )
+                    elif clean_summary != audit.response_summary:
+                        mcp_audit_data[idx] = audit.model_copy(update={"response_summary": clean_summary})
 
             strictness_level = workflow_obj.default_strictness_level
 

@@ -47,7 +47,7 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 
 def _build_tavily_mcp_transport() -> httpx.MockTransport:
-    """Build a JSON-RPC 2.0 MCP transport responder for mcp_tavily_search verification calls.
+    """Build a JSON-RPC 2.0 MCP transport responder for tavily_search verification calls.
 
     Returns:
         Configured httpx.MockTransport instance.
@@ -173,7 +173,7 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
     for typed_trace in raw_traces:
         assert typed_trace.id is not None
         audit_map[typed_trace.id] = typed_trace
-        assert typed_trace.tool_id == "mcp_tavily_search"
+        assert typed_trace.tool_id == "tavily_search"
         assert len(typed_trace.source_urls) >= 1
         assert any(url.startswith("http") for url in typed_trace.source_urls)
 

@@ -9,8 +9,19 @@ __all__ = [
     "ANTI_JARGON_MANDATE_BLOCK",
     "SPARSE_DATA_SYNTHESIS_MANDATE",
     "SYNTHESIS_CITATION_RULES_HARVARD",
+    "SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE",
     "SYNTHESIS_NO_CITATION_RULES",
 ]
+
+SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE: str = (
+    "<external_evidence_mandate>\n"
+    "- EXTERNAL EVIDENCE PRESENTATION MANDATE: When citing or incorporating external verification findings "
+    "(specifically web searches or encyclopedic references), present ONLY clean, substantive empirical statements.\n"
+    "- ZERO TECHNICAL NOISE: You MUST NOT output raw JSON keys, tool protocol tokens, CDATA tags, query strings, "
+    "or search engine scoring metrics into narrative text or citations.\n"
+    "- EXECUTIVE RELEVANCE: Synthesize external evidence directly into fluent, evidence-grounded prose concluding on complete sentences.\n"
+    "</external_evidence_mandate>"
+)
 
 ANTI_JARGON_MANDATE_BLOCK: str = (
     "<anti_jargon_mandate>\n"

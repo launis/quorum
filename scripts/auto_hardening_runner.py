@@ -46,7 +46,7 @@ uv run python scripts/auto_hardening_runner.py --targets backend_v2/services/foo
 uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --dry-run
 
 # 5. AI-driven autonomous hardening with subagent execution per file:
-uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-backend @[{target}]'"
+uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
 """
 
 from __future__ import annotations
@@ -78,10 +78,10 @@ DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 1800
 DEFAULT_SUBAGENT_MAX_RETRIES: Final[int] = 3
 DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS: Final[float] = 3.0
 DEFAULT_BACKEND_AGENT_TEMPLATE: Final[str] = (
-    'agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier2-hardening-backend @[{target}]"'
+    'agy --model gemini-4-argon-high --dangerously-skip-permissions --print "/tier2-hardening-backend @[{target}]"'
 )
 DEFAULT_FRONTEND_AGENT_TEMPLATE: Final[str] = (
-    'agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier2-hardening-frontend @[{target}]"'
+    'agy --model gemini-4-argon-high --dangerously-skip-permissions --print "/tier2-hardening-frontend @[{target}]"'
 )
 
 __all__ = [
@@ -1053,7 +1053,7 @@ Autonomous AI Subagent Execution Examples:
    uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --dry-run
 
 5. AI subagent-driven automated fixing per file:
-   uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --agent-cmd "agy --dangerously-skip-permissions -i '/tier2-hardening-backend @[{target}]'"
+   uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
 
 Key Behavioral Invariants for Autonomous AI Agents:
 - State Synchronization: Supports `hardening_state.json` (TARGETS vs DONE). Safe to interrupt and resume.

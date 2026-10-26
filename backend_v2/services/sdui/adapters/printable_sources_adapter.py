@@ -23,6 +23,7 @@ from backend_v2.models.view.sdui import (
     MarkdownBlock,
 )
 from backend_v2.services.localization import LocalizationService
+from backend_v2.services.sdui.sanitizers import McpPresentationSanitizer
 
 if TYPE_CHECKING:
     from backend_v2.models.domain.system_config import MCPAuditTrace
@@ -290,7 +291,9 @@ class PrintableSourcesAdapter:
                         if trace.claim_text and trace.claim_text.strip():
                             mcp_lines.append(f'  - **{synthesis_label}** "{trace.claim_text.strip()}"')
                         if trace.response_summary and trace.response_summary.strip():
-                            mcp_lines.append(f"  - **{mcp_result_label}** {trace.response_summary.strip()}")
+                            clean_finding = McpPresentationSanitizer.sanitize_finding(trace.response_summary)
+                            if clean_finding:
+                                mcp_lines.append(f"  - **{mcp_result_label}** {clean_finding}")
 
                 evidence_sections.append("\n".join(mcp_lines))
 

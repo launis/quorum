@@ -4,8 +4,8 @@ import json
 import socket
 
 import httpx
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.exceptions import (
     AppException,
