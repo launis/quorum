@@ -78,7 +78,32 @@ def test_node_strategy_registry_unregistered_type_raises_app_exception(mock_deps
     assert "Unsupported step type" in exc_info.value.message
 
 
+def test_node_strategy_registry_resolves_causal_discovery_strategy(mock_deps: StrategyDependencies) -> None:
+    """Test factory creates LLMNodeStrategy for StepType.CAUSAL_DISCOVERY with non-null ExecutionEngine."""
+    mock_engine = MagicMock(spec=ExecutionEngine)
+    strategy = NodeStrategyFactory.create_strategy(
+        StepType.CAUSAL_DISCOVERY,
+        deps=mock_deps,
+        engine=mock_engine,
+    )
+    assert isinstance(strategy, LLMNodeStrategy)
+    assert strategy.deps is mock_deps
+    assert strategy._engine is mock_engine
+
+
+def test_node_strategy_registry_causal_discovery_without_engine_raises_app_exception(
+    mock_deps: StrategyDependencies,
+) -> None:
+    """Test factory raises AppException(CONFIGURATION_ERROR) when StepType.CAUSAL_DISCOVERY has engine=None."""
+    with pytest.raises(AppException) as exc_info:
+        NodeStrategyFactory.create_strategy(StepType.CAUSAL_DISCOVERY, deps=mock_deps, engine=None)
+
+    assert exc_info.value.status_code == 500
+    assert "ExecutionEngine" in exc_info.value.message
+
+
 def test_node_strategy_registry_contains_canonical_step_types() -> None:
     """Test NODE_STRATEGY_REGISTRY contains exact StepType enum keys."""
     assert StepType.LOGIC in NODE_STRATEGY_REGISTRY
     assert StepType.LLM in NODE_STRATEGY_REGISTRY
+    assert StepType.CAUSAL_DISCOVERY in NODE_STRATEGY_REGISTRY

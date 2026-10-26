@@ -27,7 +27,18 @@ class StrategyBuilder(Protocol):
         deps: StrategyDependencies,
         engine: ExecutionEngine | None = None,
     ) -> NodeStrategy:
-        """Instantiate a NodeStrategy using injected dependencies and optional engine."""
+        """Instantiate a NodeStrategy using injected dependencies and optional engine.
+
+        Args:
+            deps: Immutable dependency container holding repositories and services.
+            engine: Optional ExecutionEngine required by LLM-backed node strategies.
+
+        Returns:
+            Instantiated NodeStrategy implementation.
+
+        Raises:
+            AppException: With CONFIGURATION_ERROR if required engine dependency is missing.
+        """
         ...
 
 
@@ -35,7 +46,15 @@ def _build_logic_strategy(
     deps: StrategyDependencies,
     engine: ExecutionEngine | None = None,
 ) -> NodeStrategy:
-    """Build a LogicNodeStrategy instance."""
+    """Build a LogicNodeStrategy instance.
+
+    Args:
+        deps: Immutable dependency container holding repositories and services.
+        engine: Unused optional ExecutionEngine maintained for StrategyBuilder signature parity.
+
+    Returns:
+        Instantiated LogicNodeStrategy bound to the provided dependencies.
+    """
     return LogicNodeStrategy(deps=deps)
 
 
@@ -43,7 +62,18 @@ def _build_llm_strategy(
     deps: StrategyDependencies,
     engine: ExecutionEngine | None = None,
 ) -> NodeStrategy:
-    """Build an LLMNodeStrategy instance enforcing non-null engine."""
+    """Build an LLMNodeStrategy instance enforcing non-null engine.
+
+    Args:
+        deps: Immutable dependency container holding repositories and services.
+        engine: ExecutionEngine instance required to execute LLM tasks.
+
+    Returns:
+        Instantiated LLMNodeStrategy bound to dependencies and engine.
+
+    Raises:
+        AppException: With CONFIGURATION_ERROR if engine is None.
+    """
     if engine is None:
         msg = "LLMNodeStrategy requires a non-null ExecutionEngine instance."
         logger.error(
@@ -51,6 +81,7 @@ def _build_llm_strategy(
             ErrorCodes.CONFIGURATION_ERROR.name,
             msg,
             extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+            exc_info=True,
         )
         raise AppException(
             message=msg,
@@ -76,7 +107,19 @@ class NodeStrategyFactory:
         deps: StrategyDependencies,
         engine: ExecutionEngine | None = None,
     ) -> NodeStrategy:
-        """Resolve and instantiate a NodeStrategy for the given StepType."""
+        """Resolve and instantiate a NodeStrategy for the given StepType.
+
+        Args:
+            step_type: Canonical StepType enum identifying the node execution strategy.
+            deps: Immutable dependency container holding repositories and services.
+            engine: Optional ExecutionEngine required for LLM and causal discovery strategies.
+
+        Returns:
+            Instantiated NodeStrategy corresponding to step_type.
+
+        Raises:
+            AppException: With CONFIGURATION_ERROR if step_type is unregistered or engine is missing.
+        """
         if step_type not in NODE_STRATEGY_REGISTRY:
             msg = f"Unsupported step type '{step_type}'. Must be registered in NODE_STRATEGY_REGISTRY."
             logger.error(
@@ -87,6 +130,7 @@ class NodeStrategyFactory:
                     "error_code": ErrorCodes.CONFIGURATION_ERROR.name,
                     "step_type": str(step_type),
                 },
+                exc_info=True,
             )
             raise AppException(
                 message=msg,
