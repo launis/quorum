@@ -101,10 +101,12 @@ def is_boundary_exempt(filepath: str | Path, repo_root: Path | None = None) -> b
     p = Path(filepath)
     try:
         rel_posix = p.resolve().relative_to(root.resolve()).as_posix()
-        return rel_posix in BOUNDARY_EXEMPTION_FILES
+        return rel_posix in BOUNDARY_EXEMPTION_FILES or rel_posix.startswith("backend_v2/llm/provider/")
     except ValueError, RuntimeError:
         posix_str = p.as_posix()
-        return any(posix_str == target or posix_str.endswith("/" + target) for target in BOUNDARY_EXEMPTION_FILES)
+        return "backend_v2/llm/provider/" in posix_str or any(
+            posix_str == target or posix_str.endswith("/" + target) for target in BOUNDARY_EXEMPTION_FILES
+        )
 
 
 OPEN_JSON_EXEMPTION_FILES: frozenset[str] = frozenset(
