@@ -20,6 +20,7 @@ __all__ = [
     "MCPContentBlockDTO",
     "MCPDiscoveredToolWireDTO",
     "MCPFunctionDefinitionDTO",
+    "MCPIconDTO",
     "MCPInitializeClientInfoDTO",
     "MCPInitializeParamsDTO",
     "MCPInitializeResultDTO",
@@ -27,6 +28,7 @@ __all__ = [
     "MCPJsonRpcRequestDTO",
     "MCPJsonRpcResponseDTO",
     "MCPSearchResultItemDTO",
+    "MCPServerInfoDTO",
     "MCPStructuredContentDTO",
     "MCPToolAnnotationsDTO",
     "MCPToolCallParamsDTO",
@@ -424,6 +426,64 @@ class MCPJsonRpcErrorDTO(V2CoreBase):
     data: Annotated[str | None, Field(default=None, description="Optional error detail string.")] = None
 
 
+class MCPIconDTO(V2CoreBase):
+    """Icon descriptor returned in MCP server implementation metadata.
+
+    # Step 2: Implement Typed MCPServerInfoDTO and MCPIconDTO
+
+    Attributes:
+        src: Icon source URI or data URL.
+        mime_type: Optional MIME type of the icon asset.
+        sizes: List of supported icon dimensions or 'any'.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
+
+    src: Annotated[str, Field(description="Icon source URI or data URL.")]
+    mime_type: Annotated[
+        str | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("mimeType", "mime_type"),
+            description="Optional MIME type of the icon asset.",
+        ),
+    ] = None
+    sizes: list[str] = Field(default_factory=list, description="List of supported icon dimensions or 'any'.")
+
+
+class MCPServerInfoDTO(V2CoreBase):
+    """Server implementation metadata returned in MCP 'initialize' response.
+
+    # Step 2: Implement Typed MCPServerInfoDTO and MCPIconDTO
+
+    Attributes:
+        name: Server implementation identifier name.
+        version: Server implementation version string.
+        title: Optional human-readable server title.
+        description: Optional human-readable server description.
+        website_url: Optional URL to the server documentation or homepage.
+        icons: List of server icon descriptors.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
+
+    name: Annotated[str, Field(default="", description="Server implementation identifier name.")] = ""
+    version: Annotated[str, Field(default="", description="Server implementation version string.")] = ""
+    title: Annotated[str | None, Field(default=None, description="Optional human-readable server title.")] = None
+    description: Annotated[
+        str | None, Field(default=None, description="Optional human-readable server description.")
+    ] = None
+    website_url: Annotated[
+        str | None,
+        Field(
+            default=None,
+            validation_alias=AliasChoices("websiteUrl", "website_url"),
+            description="Optional URL to the server documentation or homepage.",
+        ),
+    ] = None
+    icons: list[MCPIconDTO] = Field(default_factory=list, description="List of server icon descriptors.")
+
+
 class MCPInitializeResultDTO(V2CoreBase):
     """Result payload returned by an MCP server for 'initialize'.
 
@@ -444,8 +504,8 @@ class MCPInitializeResultDTO(V2CoreBase):
             description="Negotiated MCP protocol version.",
         ),
     ] = "2025-03-26"
-    server_info: dict[str, str] = Field(
-        default_factory=dict,
+    server_info: MCPServerInfoDTO = Field(
+        default_factory=MCPServerInfoDTO,
         validation_alias=AliasChoices("serverInfo", "server_info"),
         description="Server implementation metadata.",
     )
@@ -636,6 +696,9 @@ class MCPSearchResultItemDTO(V2CoreBase):
         url: URL of the search result document.
         title: Title of the search result document.
         content: Extracted textual content or snippet.
+        snippet: Search hit snippet or abstract extract.
+        text: Plain text content extract.
+        summary: Encyclopedic or article summary.
         raw_content: Optional raw HTML or unparsed content.
         score: Relevance ranking score.
     """
@@ -646,6 +709,9 @@ class MCPSearchResultItemDTO(V2CoreBase):
     url: Annotated[str | None, Field(default=None, description="URL of the search result.")] = None
     title: Annotated[str | None, Field(default=None, description="Title of the page.")] = None
     content: Annotated[str | None, Field(default=None, description="Extracted content text.")] = None
+    snippet: Annotated[str | None, Field(default=None, description="Search hit snippet or abstract extract.")] = None
+    text: Annotated[str | None, Field(default=None, description="Plain text content extract.")] = None
+    summary: Annotated[str | None, Field(default=None, description="Encyclopedic or article summary.")] = None
     raw_content: Annotated[
         str | None,
         Field(
@@ -664,6 +730,11 @@ class MCPStructuredContentDTO(V2CoreBase):
         query: Search query executed.
         follow_up_questions: Suggested follow-up queries.
         answer: Synthesized direct answer text.
+        summary: Executive summary of structured tool output.
+        description: Descriptive narrative of tool output.
+        text: Direct text response body.
+        message: Status or informational message.
+        finding: Key factual or analytical finding.
         images: List of image URLs discovered.
         results: List of structured search result items.
         auth_mode: Authentication mode used by remote service.
@@ -683,6 +754,13 @@ class MCPStructuredContentDTO(V2CoreBase):
         ),
     ] = None
     answer: Annotated[str | None, Field(default=None, description="Direct synthesized answer.")] = None
+    summary: Annotated[str | None, Field(default=None, description="Executive summary of structured tool output.")] = (
+        None
+    )
+    description: Annotated[str | None, Field(default=None, description="Descriptive narrative of tool output.")] = None
+    text: Annotated[str | None, Field(default=None, description="Direct text response body.")] = None
+    message: Annotated[str | None, Field(default=None, description="Status or informational message.")] = None
+    finding: Annotated[str | None, Field(default=None, description="Key factual or analytical finding.")] = None
     images: list[str] = Field(default_factory=list, description="Image URLs.")
     results: list[MCPSearchResultItemDTO] = Field(default_factory=list, description="Search results.")
     auth_mode: Annotated[

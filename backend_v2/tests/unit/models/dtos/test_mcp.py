@@ -10,12 +10,14 @@ from backend_v2.models.dtos.mcp import (
     MCPContentBlockDTO,
     MCPDiscoveredToolWireDTO,
     MCPFunctionDefinitionDTO,
+    MCPIconDTO,
     MCPInitializeClientInfoDTO,
     MCPInitializeParamsDTO,
     MCPInitializeResultDTO,
     MCPJsonRpcErrorDTO,
     MCPJsonRpcRequestDTO,
     MCPJsonRpcResponseDTO,
+    MCPServerInfoDTO,
     MCPToolCallParamsDTO,
     MCPToolCallResultDTO,
     MCPToolDeclarationDTO,
@@ -258,3 +260,68 @@ def test_mcp_validation_context_dto_positive_and_negative() -> None:
 
     with pytest.raises(ValidationError):
         MCPValidationContextDTO.model_validate({"unexpected_key": True})
+
+
+def test_mcp_initialize_result_dto_with_complex_server_info_metadata() -> None:
+    """Regression test: Verify MCPInitializeResultDTO and MCPJsonRpcResponseDTO validate serverInfo with icons and metadata.
+
+    Exa AI and other MCP servers return serverInfo with lists of icons and strings,
+    which must not fail validation with string_type errors.
+    """
+    raw_response = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {
+                "tools": {"listChanged": True},
+                "prompts": {"listChanged": True},
+                "resources": {"listChanged": True},
+            },
+            "serverInfo": {
+                "name": "exa-search-server",
+                "title": "Exa",
+                "version": "3.5.0",
+                "description": "Exa web search, page fetching and research-agent tools for AI agents over MCP.",
+                "websiteUrl": "https://exa.ai",
+                "icons": [
+                    {
+                        "src": "https://exa.ai/images/logo/exa-logomark-blue.svg",
+                        "mimeType": "image/svg+xml",
+                        "sizes": ["any"],
+                    },
+                    {
+                        "src": "https://exa.ai/images/favicon-32x32.png",
+                        "mimeType": "image/png",
+                        "sizes": ["32x32"],
+                    },
+                ],
+            },
+            "instructions": "Only use tools returned by tools/list.",
+        },
+    }
+    parsed = MCPJsonRpcResponseDTO.model_validate(raw_response)
+    assert isinstance(parsed.result, MCPInitializeResultDTO)
+    assert parsed.result.server_info.name == "exa-search-server"
+    assert parsed.result.server_info.title == "Exa"
+    assert parsed.result.server_info.version == "3.5.0"
+    assert parsed.result.server_info.website_url == "https://exa.ai"
+    assert len(parsed.result.server_info.icons) == 2
+    assert parsed.result.server_info.icons[0].src == "https://exa.ai/images/logo/exa-logomark-blue.svg"
+    assert parsed.result.server_info.icons[0].mime_type == "image/svg+xml"
+    assert parsed.result.server_info.icons[0].sizes == ["any"]
+
+    # Step 3: ISTQB negative boundary assertions for extra="forbid" and strict=True
+    with pytest.raises(ValidationError):
+        MCPServerInfoDTO.model_validate({"name": "exa", "unexpected_field": "forbidden"})
+
+    with pytest.raises(ValidationError):
+        MCPIconDTO.model_validate({"src": "https://exa.ai/icon.png", "unexpected_icon_field": True})
+
+    with pytest.raises(ValidationError):
+        MCPIconDTO.model_validate({"mimeType": "image/png"})
+
+    with pytest.raises(ValidationError):
+        MCPIconDTO.model_validate({"src": 12345})
+
+
