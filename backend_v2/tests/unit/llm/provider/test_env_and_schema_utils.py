@@ -18,12 +18,12 @@ from backend_v2.llm.provider.env_and_schema_utils import (
     resolve_env_variables,
 )
 from backend_v2.models.dtos.mcp import (
-    JSONSchemaPropertyType,
     MCPFunctionDefinitionDTO,
     MCPToolDeclarationDTO,
     MCPToolInputSchemaDTO,
     MCPToolSchemaPropertyDTO,
 )
+from backend_v2.models.enums import JSONSchemaPropertyType
 
 
 class _SampleObject:

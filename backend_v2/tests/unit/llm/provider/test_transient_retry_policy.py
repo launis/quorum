@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-
 import aiohttp
 import httpx
 import pytest
@@ -120,7 +118,7 @@ def test_is_transient_llm_error_recognizes_litellm_and_transport_exceptions() ->
     assert _is_transient_llm_error(APIConnectionError("conn drop", "openai", "gpt-5.1")) is True
     assert _is_transient_llm_error(InternalServerError("500", "openai", "gpt-5.1")) is True
     assert _is_transient_llm_error(BadGatewayError("502", "openai", "gpt-5.1")) is True
-    assert _is_transient_llm_error(asyncio.TimeoutError()) is True
+    assert _is_transient_llm_error(TimeoutError()) is True
     assert _is_transient_llm_error(httpx.ConnectTimeout("connect timed out")) is True
     assert _is_transient_llm_error(aiohttp.ClientError("aiohttp disconnect")) is True
 
