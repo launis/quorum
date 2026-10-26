@@ -28,7 +28,7 @@
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Verify 100% test contract coverage across performance and resilience scenarios.
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_Hardening_Pipeline_Optimization.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_Pipeline_Optimization.md] @[ki_deterministic_hardening_state.md] @[ki_epic_lifecycle_workflow.md]
   ```
@@ -73,17 +73,16 @@
 # Session Handover Context
 ## Achieved
 - Implemented Step 1 in `@[scripts/backend_audit_loop.py]`: added `--micro` (`--fast`) flag, deferred Stages 5–10 during micro-audits, and set `--logfire` `default=None` so `--micro` automatically disables Logfire network telemetry unless `--logfire` is explicitly passed.
-- Implemented Step 2 in `@[scripts/auto_hardening_runner.py]`: parameterized `DEFAULT_BACKEND_AGENT_TEMPLATE` and `DEFAULT_FRONTEND_AGENT_TEMPLATE` with `--model {model}` (defaulting to `gemini-4-argon-medium`), extended `HardeningRunnerArgsDTO` with `model` and `micro_audit`, updated `run_quality_gate(..., micro_audit=args.micro_audit)`, added `run_macro_quality_gate` completion gate at the end of `run_hardening_pipeline`, and exposed `--model` and `--no-micro` CLI flags.
+- Implemented Step 2 in `@[scripts/auto_hardening_runner.py]`: parameterized `DEFAULT_BACKEND_AGENT_TEMPLATE` and `DEFAULT_FRONTEND_AGENT_TEMPLATE` with `--model {model}` (defaulting to `gemini-4-argon-medium`), extended runner CLI arguments DTO (`model` and `micro_audit`), updated `run_quality_gate(..., micro_audit=args.micro_audit)`, added `run_macro_quality_gate` completion gate at the end of `run_hardening_pipeline`, and exposed `--model` and `--no-micro` CLI flags.
 - Implemented Step 3 in `@[scripts/auto_hardening_runner.py]`: updated regex patterns in `parse_tracker_unhardened_targets` and `mark_tracker_target_done` to tolerate optional backticks wrapping `[NEW|MODIFY|DELETE]` tags and target references.
 - Implemented Step 4 in `@[backend_v2/tests/unit/scripts/test_auto_hardening_runner.py]` and `@[backend_v2/tests/unit/scripts/test_backend_audit_loop.py]`: added unit tests for `--micro` mode, explicit `--logfire` override, default model selection, `--model` CLI override, `run_macro_quality_gate` success/failure/timeout, and backtick-wrapped tracker parsing/marking.
 - Verified 100% Universal Quality Gate pass across both scripts (`92%` coverage on `backend_audit_loop.py`, `93%` coverage on `auto_hardening_runner.py`).
 
 ## Learned
-- In `run_hardening_pipeline`, `--dry-run` with explicit `--targets` defaults to `HardeningGate.ALL` unless `--gate` is specified; checking `args.gate == HardeningGate.BACKEND or (args.gate == HardeningGate.ALL and not target.endswith(".dart"))` ensures `.py` targets display the planned `backend_audit_loop.py ... --micro --no-logfire` command accurately.
+- In `run_hardening_pipeline`, `--dry-run` with explicit `--targets` defaults to all gates unless `--gate` is specified; checking whether target is a Python file ensures `.py` targets display the planned `backend_audit_loop.py ... --micro --no-logfire` command accurately.
 
 ## Remaining
 - Tier 2 Hardening (Backend): Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Hardening_Pipeline_Optimization.md]" --gate backend`.
-- As-Built Architectural Sync: Run `/tier7-describe-architecture @[docs/implementationplans/TRACKER_Hardening_Pipeline_Optimization.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Hardening_Pipeline_Optimization.md] @[ki_deterministic_hardening_state.md] @[ki_epic_lifecycle_workflow.md]`.
 
 ## Resume Command
 ```powershell
