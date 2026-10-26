@@ -37,7 +37,7 @@
   - [x] @[backend_v2/models/prompts/execution/__init__.py]
   - [x] @[backend_v2/models/prompts/__init__.py]
   - [x] @[backend_v2/services/mcp/dispatcher.py]
-  - [ ] @[backend_v2/services/mcp/mcp_tool_loop.py]
+  - [x] @[backend_v2/services/mcp/mcp_tool_loop.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [ ] @[backend_v2/services/studio/workflow_service.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]" --gate frontend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`
