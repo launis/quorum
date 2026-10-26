@@ -580,6 +580,33 @@ async def test_execute_blueprint_stage_error_and_boundary_branches(
     assert res.state_data == {"custom_key": "custom_val"}
     assert res.hook_state.global_context_vars.language == "fi"
 
+    # 7b. Context with empty global_context_vars and hook runner returning inputs=None
+    ctx_empty_gvars = _create_context().model_copy(
+        update={
+            "prompt_blocks": [blk, proto_blk],
+            "global_context_vars": None,
+        }
+    )
+
+    async def _none_inputs_hook_runner(
+        step_obj: Step,
+        step_rule: StepRule,
+        hook_state: HookState,
+        hook_deps: HookDependencies,
+    ) -> tuple[HookState, list[TraceEvent]]:
+        mutated = hook_state.model_copy(update={"inputs": None})
+        return mutated, []
+
+    res_empty = await execute_blueprint_and_pre_hooks_stage(
+        step=StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef"),
+        projector=projector,
+        context=ctx_empty_gvars,
+        deps=strategy_deps,
+        run_pre_hooks_fn=_none_inputs_hook_runner,
+    )
+    assert res_empty.state_data == {}
+    assert isinstance(res_empty.hook_state.global_context_vars, GlobalContextVarsDTO)
+
     # 8. Malformed PromptBlock in DB raises VALIDATION_FAILED
     in_memory_repo.seed_raw_prompt_block("blk_bad0123456789abc", {"id": "blk_bad0123456789abc", "category_id": "BAD"})
     with pytest.raises(AppException, match="Malformed PromptBlock in DB"):

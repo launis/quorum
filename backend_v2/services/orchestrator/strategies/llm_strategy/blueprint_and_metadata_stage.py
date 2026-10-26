@@ -40,7 +40,7 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-# Phase 1, Step 1: Relocate schema block constants and NodeStatePayload type alias
+# Schema block category constants and state payload type alias for Stage 1-2 routing.
 _SCHEMA_BLOCK_MATRIX = "MATRIX"
 _SCHEMA_BLOCK_TEXT = "TEXT"
 _SCHEMA_BLOCK_EXTENSION = "EXTENSION"
@@ -130,7 +130,26 @@ def extract_step_context_metadata(
 
 @dataclass(frozen=True)
 class BlueprintStageResult:
-    """Immutable output container for Stage 1 blueprint and pre-hook execution."""
+    """Immutable output container for Stage 1 blueprint and pre-hook execution.
+
+    Attributes:
+        step_obj: Validated V2Step blueprint entity.
+        workflow_obj: Optional validated parent Workflow entity.
+        hook_state: Resulting HookState after executing step pre-hooks.
+        hook_deps: Dependency container injected into step hooks.
+        pre_events: Ordered list of TraceEvents emitted by pre-hooks.
+        block_map: Mapping of PromptBlock IDs to validated PromptBlock models.
+        role_block: Optional resolved Agent Role PromptBlock.
+        protocol_block: Optional resolved Extraction Protocol PromptBlock.
+        execution_persona_block: Optional resolved Execution Persona PromptBlock.
+        criteria_blocks_models: Ordered list of resolved criteria PromptBlock models.
+        output_profile_id: Mandatory target OutputProfile identifier.
+        output_profile: Resolved OutputProfile domain model.
+        target_locale: Target locale code for execution.
+        global_source_text: Packed source document text payload.
+        state_data: Dynamic node state payload mapping after pre-hooks.
+        inputs_payload: Structured ExecutionInputsDTO passed into HookState.
+    """
 
     step_obj: V2Step
     workflow_obj: Workflow | None
@@ -181,6 +200,85 @@ def _resolve_optional_prompt_block(
     raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
 
+async def _resolve_prompt_block_map(
+    context: StrategyContext,
+    deps: StrategyDependencies,
+    step_logger: logging.Logger,
+) -> dict[str, PromptBlock]:
+    """Resolve the active PromptBlock lookup map from StrategyContext or repository.
+
+    Args:
+        context: Strategy configuration parameters holding pre-hydrated prompt_blocks.
+        deps: Strategy dependencies container holding prompt_block_repo.
+        step_logger: Logger instance used to emit RFC 7807 error logs.
+
+    Returns:
+        Mapping of PromptBlock IDs to validated PromptBlock domain models.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if any database PromptBlock is malformed.
+    """
+    if isinstance(context.prompt_blocks, list) and context.prompt_blocks:
+        return {b.id: b for b in context.prompt_blocks if b.id}
+
+    all_prompt_blocks_raw = await deps.prompt_block_repo.get_all_prompt_blocks()
+    all_prompt_blocks: list[PromptBlock] = []
+    for raw in all_prompt_blocks_raw:
+        try:
+            all_prompt_blocks.append(PromptBlockAdapter.validate_python(raw, strict=False))
+        except Exception as e:
+            step_logger.error(
+                "[LLMStrategy] Malformed PromptBlock in DB — Fail-Fast.",
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+            )
+            raise AppException(
+                message="Malformed PromptBlock in DB",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
+    return {b.id: b for b in all_prompt_blocks if b.id}
+
+
+def _resolve_initial_global_context_vars(context: StrategyContext) -> GlobalContextVarsDTO:
+    """Resolve the initial GlobalContextVarsDTO from StrategyContext.
+
+    Args:
+        context: Strategy configuration parameters.
+
+    Returns:
+        Validated GlobalContextVarsDTO instance.
+    """
+    if isinstance(context.global_context_vars, GlobalContextVarsDTO):
+        return context.global_context_vars
+    if not isinstance(context.global_context_vars, (str, int, float, bool, list)) and context.global_context_vars:
+        known_fields = GlobalContextVarsDTO.model_fields.keys()
+        filtered_vars = {k: v for k, v in context.global_context_vars.items() if k in known_fields}
+        return GlobalContextVarsDTO.model_validate(filtered_vars)
+    return GlobalContextVarsDTO()
+
+
+def _extract_state_data(hook_state: HookState) -> dict[str, NodeStatePayload]:
+    """Extract dynamic state_data mapping from HookState after pre-hooks.
+
+    Args:
+        hook_state: HookState resulting from pre-hook execution.
+
+    Returns:
+        Mapping of dynamic state keys to NodeStatePayload values.
+    """
+    state_data: dict[str, NodeStatePayload]
+    if isinstance(hook_state.inputs, ExecutionInputsDTO):
+        state_data = dict(hook_state.inputs.dynamic_inputs)
+        if "inputs" not in state_data and hook_state.inputs.raw_inputs:
+            state_data["inputs"] = hook_state.inputs.raw_inputs
+    elif not isinstance(hook_state.inputs, (str, int, float, bool, list)) and hook_state.inputs is not None:
+        state_data = dict(hook_state.inputs)
+    else:
+        state_data = {}
+    return state_data
+
+
 async def execute_blueprint_and_pre_hooks_stage(
     step: StepRule,
     projector: StateProjector,
@@ -207,7 +305,7 @@ async def execute_blueprint_and_pre_hooks_stage(
             or ErrorCodes.RESOURCE_NOT_FOUND upon missing or malformed database entities.
         ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR upon missing configuration.
     """
-    # Phase 1, Step 1: Unpack inputs and resolve global_source_text
+    # Unpack source document inputs from state projection before running pre-hooks.
     raw_inputs_map = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "inputs"}
     inputs_unwrapped: object = raw_inputs_map["inputs"] if "inputs" in raw_inputs_map else raw_inputs_map
     targets = SourceDocumentPacker.resolve_context_targets(step.input_mappings)
@@ -226,12 +324,13 @@ async def execute_blueprint_and_pre_hooks_stage(
             extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
         )
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
-    step_def_raw = await deps.workflow_repo.get_step_by_id(blueprint_id)
-    if not step_def_raw:
+    step_candidate = await deps.workflow_repo.get_step_by_id(blueprint_id)
+    if not step_candidate:
         msg = f"Configuration error: Step '{blueprint_id}' not found."
         step_logger.error(msg, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id})
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
-    step_obj = V2Step.model_validate(step_def_raw)
+    step_obj = step_candidate if isinstance(step_candidate, V2Step) else V2Step.model_validate(step_candidate)
+
     hook_deps = HookDependencies(
         exec_repo=deps.exec_repo,
         workflow_repo=deps.workflow_repo,
@@ -242,14 +341,7 @@ async def execute_blueprint_and_pre_hooks_stage(
         audit_repo=deps.audit_repo,
         system_repo=deps.system_repo,
     )
-    if isinstance(context.global_context_vars, GlobalContextVarsDTO):
-        initial_gvars = context.global_context_vars
-    elif not isinstance(context.global_context_vars, (str, int, float, bool, list)) and context.global_context_vars:
-        known_fields = GlobalContextVarsDTO.model_fields.keys()
-        filtered_vars = {k: v for k, v in context.global_context_vars.items() if k in known_fields}
-        initial_gvars = GlobalContextVarsDTO.model_validate(filtered_vars)
-    else:
-        initial_gvars = GlobalContextVarsDTO()
+    initial_gvars = _resolve_initial_global_context_vars(context)
     safe_raw_inputs: dict[str, DomainInputValue] = {}
     if type(inputs_unwrapped) is dict:
         safe_raw_inputs = dict(inputs_unwrapped)
@@ -264,36 +356,8 @@ async def execute_blueprint_and_pre_hooks_stage(
         inputs=inputs_dto,
     )
     hook_state, pre_events = await run_pre_hooks_fn(step_obj, step, hook_state, hook_deps)
-    state_data: dict[str, NodeStatePayload]
-    if isinstance(hook_state.inputs, ExecutionInputsDTO):
-        state_data = dict(hook_state.inputs.dynamic_inputs)
-        if "inputs" not in state_data and hook_state.inputs.raw_inputs:
-            state_data["inputs"] = hook_state.inputs.raw_inputs
-    elif not isinstance(hook_state.inputs, (str, int, float, bool, list)) and hook_state.inputs is not None:
-        state_data = dict(hook_state.inputs)
-    else:
-        state_data = {}
-
-    if isinstance(context.prompt_blocks, list) and context.prompt_blocks:
-        block_map = {b.id: b for b in context.prompt_blocks if b.id}
-    else:
-        all_prompt_blocks_raw = await deps.prompt_block_repo.get_all_prompt_blocks()
-        all_prompt_blocks: list[PromptBlock] = []
-        for raw in all_prompt_blocks_raw:
-            try:
-                all_prompt_blocks.append(PromptBlockAdapter.validate_python(raw, strict=False))
-            except Exception as e:
-                step_logger.error(
-                    "[LLMStrategy] Malformed PromptBlock in DB — Fail-Fast.",
-                    exc_info=True,
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
-                )
-                raise AppException(
-                    message="Malformed PromptBlock in DB",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
-        block_map = {b.id: b for b in all_prompt_blocks if b.id}
+    state_data = _extract_state_data(hook_state)
+    block_map = await _resolve_prompt_block_map(context, deps, step_logger)
 
     target_profile = context.output_profile_id
     if not target_profile:
@@ -330,10 +394,12 @@ async def execute_blueprint_and_pre_hooks_stage(
         )
         raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
-    workflow_def_raw = await deps.workflow_repo.get_workflow(context.workflow_id)
+    workflow_candidate = await deps.workflow_repo.get_workflow(context.workflow_id)
     workflow_obj: Workflow | None = None
-    if workflow_def_raw:
-        workflow_obj = Workflow.model_validate(workflow_def_raw)
+    if isinstance(workflow_candidate, Workflow):
+        workflow_obj = workflow_candidate
+    elif workflow_candidate:
+        workflow_obj = Workflow.model_validate(workflow_candidate)
 
     profile_data = await deps.output_profile_repo.get_output_profile_by_id(target_profile)
     if not profile_data:
@@ -346,7 +412,11 @@ async def execute_blueprint_and_pre_hooks_stage(
         )
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value})
 
-    output_profile = OutputProfile.model_validate(profile_data, strict=False)
+    output_profile = (
+        profile_data
+        if isinstance(profile_data, OutputProfile)
+        else OutputProfile.model_validate(profile_data, strict=False)
+    )
 
     return BlueprintStageResult(
         step_obj=step_obj,
