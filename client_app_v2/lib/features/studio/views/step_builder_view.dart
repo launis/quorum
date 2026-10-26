@@ -583,7 +583,7 @@ class StepBuilderView extends HookConsumerWidget {
                       l10n,
                       payload,
                       stepId,
-                      ValueKey('hook_$index\_${hooks[index]}'),
+                      ValueKey('hook_${index}_${hooks[index]}'),
                       index,
                       hooks[index],
                     );
@@ -631,7 +631,7 @@ class StepBuilderView extends HookConsumerWidget {
                       l10n,
                       payload,
                       stepId,
-                      ValueKey('post_hook_$index\_${hooks[index]}'),
+                      ValueKey('post_hook_${index}_${hooks[index]}'),
                       index,
                       hooks[index],
                     );
@@ -899,7 +899,7 @@ class StepBuilderView extends HookConsumerWidget {
                         l10n,
                         payload,
                         stepId,
-                        ValueKey('criteria_block_$index\_${blocks[index]}'),
+                        ValueKey('criteria_block_${index}_${blocks[index]}'),
                         index,
                         blocks[index],
                         promptBlocks,
