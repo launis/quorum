@@ -11,7 +11,7 @@ import json
 import logging
 import time
 from collections.abc import Awaitable, Callable, Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 from pydantic import BaseModel, JsonValue
 
@@ -106,7 +106,11 @@ class LLMNodeStrategy(NodeStrategy):
 
     @staticmethod
     def _dlq_handle_debug_log_error(exc: Exception) -> None:
-        """Handle debug prompt logging failures in development gracefully."""
+        """Handle debug prompt logging failures in development gracefully.
+
+        Args:
+            exc: Exception encountered during debug prompt logging.
+        """
         logger.warning("[LLMStrategy] Failed to write debug prompt log: %s", exc)
 
     def _extract_step_context_metadata(
@@ -213,6 +217,7 @@ class LLMNodeStrategy(NodeStrategy):
             dag_results=dag_results,
         )
 
+    @override
     async def execute(
         self,
         step: StepRule,
@@ -236,8 +241,9 @@ class LLMNodeStrategy(NodeStrategy):
             List containing the computed outputs packed into structured TraceEvents.
 
         Raises:
-            AppException: Triggered upon infrastructure failure, database corruption, or model invalidity.
-            ConfigurationError: Triggered upon incorrect configuration schemas.
+            AppException: With ErrorCodes.CONFIGURATION_ERROR, ErrorCodes.VALIDATION_FAILED,
+                or ErrorCodes.RESOURCE_NOT_FOUND upon missing configuration, invalid models, or missing records.
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR upon missing mandatory step/profile blocks.
         """
         inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "inputs"}
 
@@ -365,6 +371,10 @@ class LLMNodeStrategy(NodeStrategy):
         target_profile = context.output_profile_id
         if not target_profile:
             msg = f"ExecutionContext missing mandatory 'output_profile_id' for workflow {context.workflow_id}."
+            logger.error(
+                msg,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "workflow_id": context.workflow_id},
+            )
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
         role_block = None
@@ -372,6 +382,10 @@ class LLMNodeStrategy(NodeStrategy):
             if step_obj.role_block_id in block_map:
                 role_block = block_map[step_obj.role_block_id]
             else:
+                logger.error(
+                    f"Role Block '{step_obj.role_block_id}' not found.",
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
+                )
                 raise ConfigurationError(
                     f"Role Block '{step_obj.role_block_id}' not found.",
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -382,6 +396,10 @@ class LLMNodeStrategy(NodeStrategy):
             if step_obj.extraction_protocol_block_id in block_map:
                 protocol_block = block_map[step_obj.extraction_protocol_block_id]
             else:
+                logger.error(
+                    f"Extraction Protocol Block '{step_obj.extraction_protocol_block_id}' not found.",
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
+                )
                 raise ConfigurationError(
                     f"Extraction Protocol Block '{step_obj.extraction_protocol_block_id}' not found.",
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -392,6 +410,10 @@ class LLMNodeStrategy(NodeStrategy):
             if step_obj.execution_persona_block_id in block_map:
                 execution_persona_block = block_map[step_obj.execution_persona_block_id]
             else:
+                logger.error(
+                    f"Execution Persona Block '{step_obj.execution_persona_block_id}' not found.",
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
+                )
                 raise ConfigurationError(
                     f"Execution Persona Block '{step_obj.execution_persona_block_id}' not found.",
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -415,6 +437,10 @@ class LLMNodeStrategy(NodeStrategy):
         target_locale = context.target_locale
         if not target_locale:
             msg = f"ExecutionContext missing mandatory 'target_locale' for workflow {context.workflow_id}."
+            logger.error(
+                msg,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "workflow_id": context.workflow_id},
+            )
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
         effective_mcp_tools = step_obj.allowed_mcp_tools
         effective_mcp_tool_params = step_obj.mcp_tool_params
@@ -428,7 +454,12 @@ class LLMNodeStrategy(NodeStrategy):
             profile_data = await self.output_profile_repo.get_output_profile_by_id(target_profile)
             if not profile_data:
                 msg = f"OutputProfile '{target_profile}' not found in database."
-                logger.error("[LLMStrategy] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+                logger.error(
+                    "[LLMStrategy] %s: %s",
+                    ErrorCodes.RESOURCE_NOT_FOUND.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.name, "output_profile_id": target_profile},
+                )
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -512,7 +543,12 @@ class LLMNodeStrategy(NodeStrategy):
                 )
             if not isinstance(shuffled_atoms, list) or len(shuffled_atoms) == 0:
                 msg = f"Strict Fail-Fast Enforced: 'shuffled_atoms' is empty or not a list for step '{step.id}'."
-                logger.error("[LLMStrategy] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                logger.error(
+                    "[LLMStrategy] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step.id},
+                )
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -567,7 +603,12 @@ class LLMNodeStrategy(NodeStrategy):
                     )
                     exec_params.append(f"  <matrix_synthesis_groups>{groups_json}</matrix_synthesis_groups>")
                 except (ValueError, TypeError) as e:
-                    logger.error("Failed to serialize matrix_synthesis_groups for prompt injection: %s", e)
+                    logger.error(
+                        "Failed to serialize matrix_synthesis_groups for prompt injection: %s",
+                        e,
+                        exc_info=True,
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step.id},
+                    )
                     raise AppException(
                         ErrorCodes.VALIDATION_FAILED,
                         details={"reason": f"Failed to serialize matrix_synthesis_groups: {e}"},
@@ -607,6 +648,7 @@ class LLMNodeStrategy(NodeStrategy):
                 "[LLMStrategy] %s: Failed to fetch execution record '%s'",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
                 context.execution_id,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.name, "execution_id": context.execution_id},
             )
             raise AppException(
@@ -644,6 +686,7 @@ class LLMNodeStrategy(NodeStrategy):
                     "[LLMStrategy] %s: Failed to construct source documents context from execution record '%s'",
                     ErrorCodes.VALIDATION_FAILED.name,
                     context.execution_id,
+                    exc_info=True,
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "execution_id": context.execution_id},
                 )
                 raise AppException(
@@ -654,11 +697,10 @@ class LLMNodeStrategy(NodeStrategy):
 
         dynamic_schema: Any | None = None
         if frozen_ctx:
-            allowed_dynamic_keys: list[str] = []
+            dynamic_key_set: set[str] = set(input_mappings.keys())
             if context.expected_inputs:
-                allowed_dynamic_keys = [e.input_key for e in context.expected_inputs]
-            allowed_dynamic_keys.extend(input_mappings.keys())
-            allowed_dynamic_keys = list(set(allowed_dynamic_keys))
+                dynamic_key_set.update(e.input_key for e in context.expected_inputs)
+            allowed_dynamic_keys = sorted(dynamic_key_set)
 
             global_schema = self.compiler.build_dynamic_schema(
                 schema_name=f"Step_{step.id}_Response",
@@ -747,7 +789,12 @@ class LLMNodeStrategy(NodeStrategy):
 
             if self._engine is None:
                 msg = "LLMNodeStrategy has no ExecutionEngine configured."
-                logger.error("[LLMStrategy] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                logger.error(
+                    "[LLMStrategy] %s: %s",
+                    ErrorCodes.CONFIGURATION_ERROR.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
+                )
                 raise AppException(
                     message=msg,
                     status_code=500,
