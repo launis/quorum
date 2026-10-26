@@ -29,7 +29,7 @@
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]" --gate backend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]" --gate backend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [x] @[backend_v2/models/dtos/mcp.py]
   - [x] @[backend_v2/models/domain/step.py]
   - [x] @[backend_v2/models/dtos/studio.py]
@@ -39,7 +39,7 @@
   - [x] @[backend_v2/services/mcp/dispatcher.py]
   - [x] @[backend_v2/services/mcp/mcp_tool_loop.py]
   - [x] @[backend_v2/services/orchestrator/strategies/llm.py]
-  - [ ] @[backend_v2/services/studio/workflow_service.py]
+  - [x] @[backend_v2/services/studio/workflow_service.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]" --gate frontend --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`
   - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart]
