@@ -64,7 +64,7 @@
   - [ ] `[NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py]`
   - [ ] `[NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/trace_event_stage.py]`
   - [ ] `[NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/__init__.py]`
-  - [ ] `@[backend_v2/services/orchestrator/strategies/__init__.py]`
+  - [x] `@[backend_v2/services/orchestrator/strategies/__init__.py]`
   - [ ] `@[backend_v2/services/orchestrator/strategies/registry.py#L42-L60]`
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Pure backend Python decomposition with zero `.dart` changes.
 - [x] **[OK] Pre-Delete Audit**: Verify `git status` and `grep_search` confirm 0 remaining references to `backend_v2.services.orchestrator.strategies.llm` and physical removal of `[DELETE] @[backend_v2/services/orchestrator/strategies/llm.py]`.
