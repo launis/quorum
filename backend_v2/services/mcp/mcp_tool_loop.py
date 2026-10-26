@@ -445,7 +445,12 @@ async def execute_mcp_retrieval(
             },
         )
 
-        search_args = resolved_dispatcher.build_search_arguments(active_search_tool, query)
+        search_args = resolved_dispatcher.build_search_arguments(
+            active_search_tool,
+            query,
+            claim_text=claim,
+            reasoning=citation.reasoning,
+        )
         audit = await resolved_dispatcher.execute_tool(
             tool_id=active_search_tool.namespaced_alias,
             raw_arguments=search_args,

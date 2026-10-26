@@ -132,7 +132,11 @@ class SourceVerificationService:
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
-            search_args = self.dispatcher.build_search_arguments(primary_tool, query)
+            search_args = self.dispatcher.build_search_arguments(
+                primary_tool,
+                query,
+                claim_text=claim.claim_text,
+            )
             audit_trace: MCPAuditTrace = await self.dispatcher.execute_tool(
                 tool_id=primary_tool.namespaced_alias,
                 raw_arguments=search_args,

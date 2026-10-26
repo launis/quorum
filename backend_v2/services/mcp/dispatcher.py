@@ -177,42 +177,77 @@ class ToolDispatcher:
         self,
         tool: MCPToolDescriptorDTO | AllowedMCPTool,
         query: str,
+        *,
+        claim_text: str | None = None,
+        reasoning: str | None = None,
+        objective: str | None = None,
     ) -> dict[str, MCPArgumentValue]:
         """Construct a schema-aligned search argument dictionary for a search tool.
 
-        Maps the search query to 'query' when declared as a STRING property with no other
-        required parameters, or to the single required STRING parameter in tool.input_schema.
+        Maps the search query and optional companion context (such as objective or claim)
+        to schema properties declared by the tool.
+
+        # Phase 1, Step 1: Support multi-parameter search tool schemas (e.g. Exa AI web_search_exa)
 
         Args:
             tool: Target search tool descriptor or AllowedMCPTool domain object.
             query: Search query string to bind.
+            claim_text: Optional claim text being factually audited.
+            reasoning: Optional reasoning string justifying the search turn.
+            objective: Optional explicit search objective or goal override.
 
         Returns:
-            Validated argument dictionary mapping the schema parameter name to query.
+            Validated argument dictionary mapping schema parameter names to argument values.
 
         Raises:
-            AppException: If tool.input_schema cannot deterministically bind a single string search
-                query parameter (ErrorCodes.CONFIGURATION_ERROR).
+            AppException: If tool.input_schema cannot deterministically satisfy all required
+                parameters from the available search query and context (ErrorCodes.CONFIGURATION_ERROR).
         """
         props = tool.input_schema.properties
         required_keys = tool.input_schema.required
 
-        if (
-            "query" in props
-            and props["query"].type == JSONSchemaPropertyType.STRING
-            and set(required_keys).issubset({"query"})
-        ):
-            return {"query": query}
+        args: dict[str, MCPArgumentValue] = {}
 
-        if len(required_keys) == 1:
+        # 1. Bind query parameter (prefer 'query', then 'q', 'search_query', 'search_term')
+        query_key: str | None = None
+        for candidate in ("query", "q", "search_query", "search_term"):
+            if candidate in props and props[candidate].type == JSONSchemaPropertyType.STRING:
+                query_key = candidate
+                break
+
+        if query_key is not None:
+            args[query_key] = query
+
+        # 2. Bind objective parameter if declared in properties
+        if "objective" in props and props["objective"].type == JSONSchemaPropertyType.STRING:
+            resolved_objective = objective
+            if not resolved_objective and claim_text:
+                resolved_objective = f"Verify factual accuracy for claim: {claim_text}"
+            elif not resolved_objective and reasoning:
+                resolved_objective = reasoning
+            elif not resolved_objective:
+                resolved_objective = f"Find external evidence regarding: {query}"
+
+            prop_def = props["objective"]
+            if prop_def.max_length is not None and len(resolved_objective) > prop_def.max_length:
+                resolved_objective = resolved_objective[: prop_def.max_length]
+            args["objective"] = resolved_objective
+
+        # 3. Handle single required string property with custom name
+        if len(required_keys) == 1 and not args:
             req_key = required_keys[0]
             if req_key in props and props[req_key].type == JSONSchemaPropertyType.STRING:
-                return {req_key: query}
+                args[req_key] = query
 
-        if not required_keys:
+        # 4. Handle tool with zero required keys and single string property
+        if not required_keys and not args:
             string_keys = [k for k, v in props.items() if v.type == JSONSchemaPropertyType.STRING]
             if len(string_keys) == 1:
-                return {string_keys[0]: query}
+                args[string_keys[0]] = query
+
+        # 5. Check if all required keys are satisfied
+        if args and set(required_keys).issubset(args.keys()):
+            return args
 
         msg = (
             f"MCP search tool '{tool.tool_id}' input_schema does not expose a single deterministic "

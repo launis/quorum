@@ -402,3 +402,78 @@ async def test_tool_dispatcher_execute_tool_propagates_non_timeout_exception() -
             allowed_step_tools={alias},
             step_name="stp_crash",
         )
+
+
+def test_tool_dispatcher_build_search_arguments_exa_web_search() -> None:
+    """Verify build_search_arguments binds search query and objective for Exa web_search_exa schema."""
+    exa_tool = AllowedMCPTool(
+        tool_id="web_search_exa",
+        capability=ToolCapability.SEARCH,
+        name=I18nText(translations={"en": "Web Search"}),
+        description="Search the web for any topic and get clean, ready-to-use content.",
+        input_schema=MCPToolInputSchemaDTO(
+            properties={
+                "query": MCPToolSchemaPropertyDTO(
+                    type=JSONSchemaPropertyType.STRING,
+                    description="Natural language search query.",
+                    min_length=1,
+                ),
+                "numResults": MCPToolSchemaPropertyDTO(
+                    type=JSONSchemaPropertyType.NUMBER,
+                    description="Number of search results to return.",
+                ),
+                "objective": MCPToolSchemaPropertyDTO(
+                    type=JSONSchemaPropertyType.STRING,
+                    description="Goal for this search turn.",
+                    min_length=1,
+                    max_length=4096,
+                ),
+            },
+            required=["query", "objective"],
+        ),
+    )
+    gw = SystemConfigMCPGateways(
+        id="sys_9c2093907e2d4d24",
+        slug="exa_gateway",
+        endpoint_url="https://mcp.exa.ai/mcp",
+        transport_type=MCPTransportType.STREAMABLE_HTTP,
+        auth_type=MCPAuthType.NONE,
+        tools=[exa_tool],
+    )
+    dispatcher = ToolDispatcher([gw])
+    resolved = dispatcher.resolve_primary_search_tool(["exa_gateway__web_search_exa"])
+    assert resolved is not None
+
+    # 1. Fallback objective from query
+    args = dispatcher.build_search_arguments(resolved, "climate report")
+    assert args["query"] == "climate report"
+    assert args["objective"] == "Find external evidence regarding: climate report"
+
+    # 2. Objective derived from claim_text
+    args_claim = dispatcher.build_search_arguments(
+        resolved,
+        "climate report",
+        claim_text="Global temperatures rose by 1.2C",
+    )
+    assert args_claim["query"] == "climate report"
+    assert args_claim["objective"] == "Verify factual accuracy for claim: Global temperatures rose by 1.2C"
+
+    # 3. Objective derived from reasoning when claim_text is absent
+    args_reasoning = dispatcher.build_search_arguments(
+        resolved,
+        "climate report",
+        reasoning="Evaluate recent IPCC baseline metrics",
+    )
+    assert args_reasoning["objective"] == "Evaluate recent IPCC baseline metrics"
+
+    # 4. Explicit objective override takes precedence
+    args_explicit = dispatcher.build_search_arguments(
+        resolved,
+        "climate report",
+        claim_text="Some claim",
+        reasoning="Some reasoning",
+        objective="Custom authoritative search goal",
+    )
+    assert args_explicit["objective"] == "Custom authoritative search goal"
+
+
