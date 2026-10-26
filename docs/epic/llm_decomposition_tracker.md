@@ -59,7 +59,7 @@
 ### Post-Implementation Gates
 
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker docs/epic/llm_decomposition_tracker.md --gate backend`
-  - [ ] [NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/blueprint_and_metadata_stage.py]
+  - [x] [NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/blueprint_and_metadata_stage.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/prompt_and_schema_stage.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/strategies/llm_strategy/trace_event_stage.py]
