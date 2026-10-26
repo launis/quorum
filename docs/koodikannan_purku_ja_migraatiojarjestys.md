@@ -16,7 +16,8 @@ Ennen seuraavien vaiheiden aloittamista koodikanta tarkistettiin fyysisesti. Alk
 | `backend_v2/services/export_service.py` | 1 123 LOC | **SUORITETTU & POISTETTU** | Purettu pakettiin `backend_v2/services/export/`<br>(`excel_exporter.py`, `csv_exporter.py`, `excel_styler.py`, `atom_row_builder.py`, `metadata_resolver.py`, `summary_builder.py`) |
 | `backend_v2/services/matrix_domain_parser.py` | 732 LOC | **SUORITETTU & POISTETTU** | Purettu pakettiin `backend_v2/services/matrix_parser/`<br>(`scale_and_atom_stage.py`, `row_builder_stage.py`, `distribution_formatter.py`) |
 | `backend_v2/services/ingress/pdf_chat_extractor.py` | 682 LOC | **SUORITETTU & POISTETTU** | Purettu pakettiin `backend_v2/services/ingress/pdf_extractor/`<br>(`bubble_geometry.py`, `turn_assembly_stage.py`, `table_and_card_stage.py`) |
-| `backend_v2/services/report_service.py` | 749 LOC | **VAIHE 4 AJOSSA** | Purettu pakettiin `backend_v2/services/report/`<br>(`lifecycle_service.py`, `compilation_service.py`, `format_reader_service.py`). Parhaillaan ajossa Phase 4 atominen leikkaus (`report/__init__.py`). |
+| `backend_v2/services/report_service.py` | 749 LOC | **SUORITETTU & POISTETTU** | Purettu pakettiin `backend_v2/services/report/`<br>(`lifecycle_service.py`, `compilation_service.py`, `format_reader_service.py`). |
+| `EPIC 159 (Dynamic MCP & JIT Synthesizer)` | - | **SUORITETTU & KOVENNETTU** | Toteutettu `GenericMCPClient`, `SchemaFactory`, `AliasRegistry`, JIT Micro-LLM Argument Synthesizer ja `McpToolParamsPanel`. |
 
 ---
 
@@ -58,40 +59,22 @@ Koodikannassa jäljellä olevat suuret tiedostot mitattuna nykyisestä tilasta:
 
 ```mermaid
 flowchart TD
-    W1["AALTO 1 (KÄYNNISSÄ): Raportointi & Esityskerros\n(report_service Phase 4 cutover)"] --> W2["AALTO 2: EPIC 159 - Dynamic MCP Architecture\n(Protokolla-agnostinen asiakas, SchemaFactory, URL-validaattori)"]
-    W2 --> W3["AALTO 3: LLM-Infrastruktuurin Monoliittien Purku\n(strategies/llm.py, llm/provider.py, llm/handler.py)"]
+    W1["AALTO 1 (SUORITETTU): Raportointi & Esityskerros\n(report_service purettu)"] --> W2["AALTO 2 (SUORITETTU): EPIC 159 - Dynamic MCP Architecture\n(Protokolla-agnostinen asiakas, SchemaFactory, JIT-syntetisoija)"]
+    W2 --> W3["AALTO 3 (SEURAAVAKSI): LLM-Infrastruktuurin Monoliittien Purku\n(strategies/llm.py, llm/provider.py, llm/handler.py)"]
     W3 --> W4["AALTO 4: PostgreSQL 18 Clean Slate Migration (EPIC 151)\n& dag_executor.py Purku Event Sourcing -malliin"]
 ```
 
 ---
 
-### AALTO 1: Raportoinnin Viimeistely (Parhaillaan käynnissä)
+### AALTO 1: Raportoinnin Viimeistely (SUORITETTU)
 - **Kohde**: `backend_v2/services/report_service.py`
-- **Seuranta**: `docs/epic/report_service_decomposition_tracker.md`
-- **Tavoite**: Phase 4 Cutover (1-hop kutsujien uudelleenohjaus `backend_v2/services/report/__init__.py`:hyn ja vanhan tiedoston poisto).
-- **Tarkistus**:
-  ```powershell
-  uv run python scripts/backend_audit_loop.py backend_v2/services/report/ --test
-  ```
+- **Tila**: Purettu onnistuneesti pakettiin `backend_v2/services/report/`.
 
 ---
 
-### AALTO 2: Dynaaminen MCP ja Työkalukerroksen Modernisointi (EPIC 159)
-- **Kohde**: `docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md` (Audit: `EPIC_159_audit_report.md`)
-- **Tavoite**:
-  1. Poistetaan vanhat staattiset kääreet: `tavily.py`, `wikipedia.py`, `tavily_search_client.py`, `wikipedia_client.py`, `models/domain/tools.py`.
-  2. Toteutetaan `GenericMCPClient` (Streamable HTTP & SSE) ja `MCPUrlValidator` (SSRF-suojaus).
-  3. Korvataan `dict[str, JsonValue]` rekursiivisilla malleilla `MCPToolInputSchemaDTO` ja `MCPToolSchemaPropertyDTO`.
-  4. Otetaan käyttöön ajonaikainen `SchemaFactory` (`pydantic.create_model`) ja nimiavaruusreititys (`{gateway_slug}__{tool_id}`).
-  5. Integroidaan Quorum Studio UI (`McpGatewayView`, `StepBuilderView`).
-- **Suorituskomento**:
-  ```powershell
-  # 1. Luodaan suoritustrackeri valmiille auditoidulle eepokselle
-  /tier1-tracker-generator docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md
-
-  # 2. Ajetaan autonomisesti monivaiheinen toteutus (vaiheet 1-4)
-  uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_159_tracker.md
-  ```
+### AALTO 2: Dynaaminen MCP ja Työkalukerroksen Modernisointi (EPIC 159) (SUORITETTU)
+- **Kohde**: `docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md` ja `docs/implementationplans/IMPLEMENTATION_PLAN_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md`
+- **Tila**: Suoritettu, kovennettu ja arkkitehtuuridokumentoitu. Vanhat staattiset työkalut poistettu, `GenericMCPClient`, `SchemaFactory`, JIT Micro-LLM Argument Synthesizer ja `McpToolParamsPanel` tuotantovalmiina.
 
 ---
 
