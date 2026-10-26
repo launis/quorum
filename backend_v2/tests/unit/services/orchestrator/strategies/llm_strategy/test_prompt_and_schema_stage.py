@@ -358,8 +358,7 @@ async def test_matrix_step_succeeds_when_shuffled_atoms_only_in_dynamic_inputs(
     step = StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef", input_mappings={})
     ctx = _create_ctx(output_profile_id=profile.id)
 
-    with patch("litellm.token_counter", return_value=10):
-        res = await execute_prompt_and_schema_stage(stage1=stage1, step=step, context=ctx, deps=strategy_deps)
+    res = await execute_prompt_and_schema_stage(stage1=stage1, step=step, context=ctx, deps=strategy_deps)
 
     assert isinstance(res, PromptAndSchemaStageResult)
     assert res.matrix_block is not None and res.matrix_block.id == matrix_blk.id
@@ -599,10 +598,9 @@ async def test_prompt_and_schema_stage_execution_record_and_serialization_errors
     ctx = _create_ctx(output_profile_id=profile.id)
 
     # 1. Serialization failure in json.dumps -> VALIDATION_FAILED
-    with patch.object(
-        MatrixSynthesisGroup,
-        "model_dump",
-        return_value={"unserializable": object()},
+    with patch(
+        "backend_v2.services.orchestrator.strategies.llm_strategy.prompt_and_schema_stage.json.dumps",
+        side_effect=TypeError("unserializable"),
     ):
         with pytest.raises(AppException, match="VALIDATION_FAILED") as exc_info:
             await execute_prompt_and_schema_stage(

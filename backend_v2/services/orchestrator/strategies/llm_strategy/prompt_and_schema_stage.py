@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
-import inspect
 import json
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+
+from pydantic import BaseModel
 
 from backend_v2.core.hook_registry import GlobalContextVarsDTO, HookState
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.chunking import ChunkingRequest
+from backend_v2.models.chunking import Chunk, ChunkingRequest
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
+from backend_v2.models.domain.inputs import DomainInputValue
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
-from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.dtos.engine import FlattenedAtom
 from backend_v2.models.dtos.prompt import PromptMappingDTO
@@ -45,7 +47,24 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class PromptAndSchemaStageResult:
-    """Immutable output container for Stage 2 context building, prompt compilation, and schema resolution."""
+    """Immutable output container for Stage 2 context building, prompt compilation, and schema resolution.
+
+    Attributes:
+        hook_state: Ingress HookState passed through Stage 2.
+        prompt_payload: Compiled static system prompt and dynamic user payload container.
+        user_payload: Final user payload string including OutputProfile execution parameters.
+        criteria_blocks: Deterministically sorted list of criteria PromptBlock models.
+        matrix_block: Resolved MatrixPromptBlock when the step evaluates a matrix, else None.
+        hydrated_shuffled_atoms: Non-empty list of FlattenedAtom items for matrix steps, else None.
+        target_chunks: List of atom Chunk envelopes for matrix steps, or `[None]` for non-matrix steps.
+        dynamic_schema: Upfront-compiled Pydantic response schema when frozen_ctx is present, else None.
+        is_synthesis_step: True when the configured ExecutionEngine is a SynthesisEngine.
+        source_doc_ctx: Validated SourceDocumentContext models for source quote verification.
+        alias_engine: AliasEngine instance holding registered document and atom aliases.
+        input_mappings: Effective PromptMappingDTO resolved by ContextBuilder.
+        schema_map: Mapping of step and block IDs to schema block category constants.
+        blueprint_labels: Mapping of step rule IDs to English blueprint display labels.
+    """
 
     hook_state: HookState
     prompt_payload: PromptPayload
@@ -53,8 +72,8 @@ class PromptAndSchemaStageResult:
     criteria_blocks: list[PromptBlock]
     matrix_block: MatrixPromptBlock | None
     hydrated_shuffled_atoms: list[FlattenedAtom] | None
-    target_chunks: list[Any]
-    dynamic_schema: Any | None
+    target_chunks: list[Chunk[FlattenedAtom] | None]
+    dynamic_schema: type[BaseModel] | None
     is_synthesis_step: bool
     source_doc_ctx: list[SourceDocumentContext]
     alias_engine: AliasEngine
@@ -83,9 +102,8 @@ async def _resolve_schema_map_and_labels(
 
     for s in stage1.workflow_obj.steps:
         is_matrix = False
-        blueprint_def_raw = await deps.workflow_repo.get_step(s.task_blueprint)
-        if blueprint_def_raw:
-            blueprint_obj = V2Step.model_validate(blueprint_def_raw)
+        blueprint_obj = await deps.workflow_repo.get_step(s.task_blueprint)
+        if blueprint_obj is not None:
             if blueprint_obj.name:
                 blueprint_labels[s.id] = deps.prompt_compiler.resolve_i18n(blueprint_obj.name, "en")
             all_bp_blocks: list[str] = []
@@ -122,9 +140,113 @@ async def _resolve_schema_map_and_labels(
     return schema_map, blueprint_labels
 
 
+def _resolve_matrix_shuffled_atoms(
+    criteria_blocks_models: list[PromptBlock],
+    hook_state: HookState,
+    step: StepRule,
+    step_logger: logging.Logger,
+) -> list[FlattenedAtom] | None:
+    """Validate and extract non-empty shuffled_atoms when the step evaluates a MatrixPromptBlock.
+
+    Args:
+        criteria_blocks_models: Resolved criteria PromptBlock models for the active step.
+        hook_state: Ingress HookState containing global_context_vars.
+        step: Active workflow StepRule identifier container.
+        step_logger: Logger instance used to emit structured RFC 7807 error logs.
+
+    Returns:
+        Non-empty list of FlattenedAtom instances for matrix steps, or None for non-matrix steps.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED when a matrix step has missing or empty shuffled_atoms.
+    """
+    is_matrix_step = any(b.category_id == PromptBlockCategory.MATRIX for b in criteria_blocks_models)
+    if not is_matrix_step:
+        return None
+
+    shuffled_atoms = hook_state.global_context_vars.shuffled_atoms
+    if shuffled_atoms is None:
+        step_logger.error(
+            "Matrix step missing 'shuffled_atoms' in global_context_vars.",
+            exc_info=True,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+        )
+        raise AppException(
+            message="Matrix step missing 'shuffled_atoms' in global_context_vars.",
+            status_code=500,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+    if not isinstance(shuffled_atoms, list) or len(shuffled_atoms) == 0:
+        msg = f"Strict Fail-Fast Enforced: 'shuffled_atoms' is empty or not a list for step '{step.id}'."
+        step_logger.error(
+            "[LLMStrategy] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step.id},
+        )
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+    return shuffled_atoms
+
+
+def _append_output_profile_execution_parameters(
+    user_payload: str,
+    output_profile: OutputProfile | None,
+    step_id: str,
+    step_logger: logging.Logger,
+) -> str:
+    """Append OutputProfile tone_instruction and matrix_synthesis_groups to the user_payload tail.
+
+    Args:
+        user_payload: Base compiled user payload string from PromptFactory.
+        output_profile: Optional resolved OutputProfile domain model.
+        step_id: StepRule identifier for structured RFC 7807 error logging.
+        step_logger: Logger instance used to emit structured RFC 7807 error logs.
+
+    Returns:
+        User payload string with `<execution_parameters>` appended when profile directives exist.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED when matrix_synthesis_groups fails JSON serialization.
+    """
+    if output_profile is None:
+        return user_payload
+
+    exec_params = ["\n<execution_parameters>"]
+    if output_profile.tone_instruction:
+        tone = output_profile.tone_instruction.strip()
+        if tone:
+            exec_params.append(f"  <tone_instruction>{tone}</tone_instruction>")
+    if output_profile.matrix_synthesis_groups:
+        try:
+            groups_json = json.dumps(
+                [grp.model_dump(mode="json") for grp in output_profile.matrix_synthesis_groups],
+                ensure_ascii=False,
+            )
+            exec_params.append(f"  <matrix_synthesis_groups>{groups_json}</matrix_synthesis_groups>")
+        except (ValueError, TypeError) as e:
+            step_logger.error(
+                "Failed to serialize matrix_synthesis_groups for prompt injection: %s",
+                e,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step_id},
+            )
+            raise AppException(
+                ErrorCodes.VALIDATION_FAILED,
+                details={"reason": f"Failed to serialize matrix_synthesis_groups: {e}"},
+            ) from e
+    exec_params.append("</execution_parameters>")
+    if len(exec_params) > 2:
+        return user_payload + "\n" + "\n".join(exec_params)
+    return user_payload
+
+
 async def _validate_execution_source_documents(
     execution_id: str,
-    inputs_payload: Any,
+    inputs_payload: Mapping[str, DomainInputValue],
     deps: StrategyDependencies,
     step_logger: logging.Logger,
 ) -> list[SourceDocumentContext]:
@@ -141,15 +263,10 @@ async def _validate_execution_source_documents(
 
     Raises:
         AppException: With ErrorCodes.RESOURCE_NOT_FOUND or ErrorCodes.VALIDATION_FAILED
-            when the execution record cannot be fetched or hydrated.
+            when the execution record cannot be fetched or source document context fails validation.
     """
-    execution_record_raw = None
     try:
-        res = deps.exec_repo.get_execution(execution_id)
-        if inspect.isawaitable(res):
-            execution_record_raw = await res
-        else:
-            execution_record_raw = res
+        exec_obj = await deps.exec_repo.get_execution(execution_id)
     except Exception as e:
         step_logger.error(
             "[LLMStrategy] %s: Failed to fetch execution record '%s'",
@@ -165,12 +282,10 @@ async def _validate_execution_source_documents(
         ) from e
 
     source_docs: list[SourceDocumentContext] = []
-    if execution_record_raw:
+    if exec_obj is not None:
         try:
-            if isinstance(execution_record_raw, ExecutionRecord):
-                exec_obj = execution_record_raw
-            else:
-                exec_obj = ExecutionRecord.model_validate(execution_record_raw, strict=False)
+            if not isinstance(exec_obj, ExecutionRecord):
+                raise TypeError("Repository returned invalid execution record type.")
             manifest: dict[str, str] = {}
             if exec_obj.source_identity_manifest is not None:
                 manifest = exec_obj.source_identity_manifest
@@ -236,69 +351,30 @@ async def execute_prompt_and_schema_stage(
         AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.RESOURCE_NOT_FOUND
             upon missing shuffled_atoms, invalid synthesis groups, or corrupted execution records.
     """
-    # Phase 2, Step 1: Resolve schema_map, ContextBuilder, PromptFactory, chunking, and dynamic schema
     hook_state = stage1.hook_state
     output_profile = stage1.output_profile
     target_locale = stage1.target_locale
-    criteria_blocks_models = stage1.criteria_blocks_models
-    inputs_payload = stage1.inputs_payload.raw_inputs
-    effective_mcp_tools = stage1.step_obj.allowed_mcp_tools
-    input_mappings = PromptMappingDTO(mappings=dict(step.input_mappings))
-
+    criteria_blocks = sorted(stage1.criteria_blocks_models, key=lambda x: str(x.id))
     schema_map, blueprint_labels = await _resolve_schema_map_and_labels(stage1, deps)
-    criteria_blocks = sorted(criteria_blocks_models, key=lambda x: str(x.id))
 
-    llm_context_data, new_input_mappings = ContextBuilder.build(
-        input_mappings=input_mappings,
+    llm_context_data, input_mappings = ContextBuilder.build(
+        input_mappings=PromptMappingDTO(mappings=dict(step.input_mappings)),
         state_data=hook_state,
         output_profile=output_profile,
         schema_map=schema_map,
         criteria_blocks=criteria_blocks,
         blueprint_labels=blueprint_labels,
     )
-    input_mappings = new_input_mappings
 
-    has_shuffled_atoms = False
-    hydrated_shuffled_atoms: list[FlattenedAtom] | None = None
-    is_matrix_step = any(b.category_id == PromptBlockCategory.MATRIX for b in criteria_blocks_models)
-    if is_matrix_step:
-        shuffled_atoms = hook_state.global_context_vars.shuffled_atoms
-        if shuffled_atoms is None:
-            step_logger.error(
-                "Matrix step missing 'shuffled_atoms' in global_context_vars.",
-                exc_info=True,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
-            )
-            raise AppException(
-                message="Matrix step missing 'shuffled_atoms' in global_context_vars.",
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-        if not isinstance(shuffled_atoms, list) or len(shuffled_atoms) == 0:
-            msg = f"Strict Fail-Fast Enforced: 'shuffled_atoms' is empty or not a list for step '{step.id}'."
-            step_logger.error(
-                "[LLMStrategy] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step.id},
-            )
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-        hydrated_shuffled_atoms = shuffled_atoms
-        has_shuffled_atoms = True
-
+    hydrated_shuffled_atoms = _resolve_matrix_shuffled_atoms(
+        criteria_blocks_models=stage1.criteria_blocks_models,
+        hook_state=hook_state,
+        step=step,
+        step_logger=step_logger,
+    )
+    has_shuffled_atoms = hydrated_shuffled_atoms is not None
     alias_engine = AliasEngine()
-    prompt_gvars: GlobalContextVarsDTO | None = None
-    if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO):
-        prompt_gvars = hook_state.global_context_vars
-    elif (
-        not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
-        and hook_state.global_context_vars is not None
-    ):
-        prompt_gvars = GlobalContextVarsDTO.model_validate(dict(hook_state.global_context_vars))
+    prompt_gvars: GlobalContextVarsDTO = hook_state.global_context_vars
 
     prompt_payload = PromptFactory.build(
         compiler=deps.prompt_compiler,
@@ -307,7 +383,7 @@ async def execute_prompt_and_schema_stage(
         execution_persona_block=stage1.execution_persona_block,
         criteria_blocks=criteria_blocks,
         target_locale=target_locale,
-        effective_mcp_tools=effective_mcp_tools,
+        effective_mcp_tools=stage1.step_obj.allowed_mcp_tools,
         input_mappings=input_mappings,
         llm_context_data=llm_context_data,
         expected_inputs=context.expected_inputs,
@@ -317,61 +393,37 @@ async def execute_prompt_and_schema_stage(
         global_context_vars=prompt_gvars,
     )
 
-    user_payload = prompt_payload.user_payload
-    if output_profile:
-        exec_params = ["\n<execution_parameters>"]
-        if output_profile.tone_instruction:
-            tone = output_profile.tone_instruction.strip()
-            if tone:
-                exec_params.append(f"  <tone_instruction>{tone}</tone_instruction>")
-        if output_profile.matrix_synthesis_groups:
-            try:
-                groups_json = json.dumps(
-                    [grp.model_dump(mode="json") for grp in output_profile.matrix_synthesis_groups],
-                    ensure_ascii=False,
-                )
-                exec_params.append(f"  <matrix_synthesis_groups>{groups_json}</matrix_synthesis_groups>")
-            except (ValueError, TypeError) as e:
-                step_logger.error(
-                    "Failed to serialize matrix_synthesis_groups for prompt injection: %s",
-                    e,
-                    exc_info=True,
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": step.id},
-                )
-                raise AppException(
-                    ErrorCodes.VALIDATION_FAILED,
-                    details={"reason": f"Failed to serialize matrix_synthesis_groups: {e}"},
-                ) from e
-        exec_params.append("</execution_parameters>")
-        if len(exec_params) > 2:
-            user_payload += "\n" + "\n".join(exec_params)
+    user_payload = _append_output_profile_execution_parameters(
+        user_payload=prompt_payload.user_payload,
+        output_profile=output_profile,
+        step_id=step.id,
+        step_logger=step_logger,
+    )
 
-    chunks_list: list[Any] = [None]
-    if is_matrix_step and hydrated_shuffled_atoms:
+    chunks_list: list[Chunk[FlattenedAtom] | None] = [None]
+    if hydrated_shuffled_atoms is not None:
         req = ChunkingRequest(
             parent_id=context.workflow_id,
             items=hydrated_shuffled_atoms,
             max_chunk_size=settings_getter().schema_max_evaluations,
         )
-        chunks_list = ChunkingService.chunk_payload(req)
+        chunks_list = list(ChunkingService.chunk_payload(req))
 
     source_doc_ids: list[str] = ["N/A"]
     if alias_engine.source_document_aliases:
         source_doc_ids = alias_engine.source_document_aliases
-
     source_doc_ctx = await _validate_execution_source_documents(
         execution_id=context.execution_id,
-        inputs_payload=inputs_payload,
+        inputs_payload=stage1.inputs_payload.raw_inputs,
         deps=deps,
         step_logger=step_logger,
     )
 
-    dynamic_schema: Any | None = None
-    if frozen_ctx:
+    dynamic_schema: type[BaseModel] | None = None
+    if frozen_ctx is not None:
         dynamic_key_set: set[str] = set(input_mappings.keys())
         if context.expected_inputs:
             dynamic_key_set.update(e.input_key for e in context.expected_inputs)
-        allowed_dynamic_keys = sorted(dynamic_key_set)
         dynamic_schema = deps.prompt_compiler.build_dynamic_schema(
             schema_name=f"Step_{step.id}_Response",
             criteria=criteria_blocks,
@@ -379,22 +431,19 @@ async def execute_prompt_and_schema_stage(
             target_locale=target_locale,
             strictness_level=context.strictness_level,
             source_document_ids=source_doc_ids,
-            allowed_dynamic_keys=allowed_dynamic_keys,
+            allowed_dynamic_keys=sorted(dynamic_key_set),
         )
-
-    matrix_block = next((b for b in criteria_blocks if isinstance(b, MatrixPromptBlock)), None)
-    is_synthesis_step = isinstance(engine, SynthesisEngine)
 
     return PromptAndSchemaStageResult(
         hook_state=hook_state,
         prompt_payload=prompt_payload,
         user_payload=user_payload,
         criteria_blocks=criteria_blocks,
-        matrix_block=matrix_block,
+        matrix_block=next((b for b in criteria_blocks if isinstance(b, MatrixPromptBlock)), None),
         hydrated_shuffled_atoms=hydrated_shuffled_atoms,
         target_chunks=chunks_list,
         dynamic_schema=dynamic_schema,
-        is_synthesis_step=is_synthesis_step,
+        is_synthesis_step=isinstance(engine, SynthesisEngine),
         source_doc_ctx=source_doc_ctx,
         alias_engine=alias_engine,
         input_mappings=input_mappings,
