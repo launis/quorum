@@ -901,7 +901,9 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
       ),
       historicalContextMode: $checkedConvert(
         'historical_context_mode',
-        (v) => v as String? ?? 'DISABLED',
+        (v) =>
+            $enumDecodeNullable(_$HistoricalContextModeEnumMap, v) ??
+            HistoricalContextMode.disabled,
       ),
       expectedInputs: $checkedConvert(
         'expected_inputs',
@@ -967,7 +969,13 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
   'enable_semantic_smoothing': instance.enableSemanticSmoothing,
   'enable_eager_anonymization': instance.enableEagerAnonymization,
   'system_audit_trail': instance.systemAuditTrail,
-  'historical_context_mode': instance.historicalContextMode,
+  'historical_context_mode':
+      _$HistoricalContextModeEnumMap[instance.historicalContextMode]!,
   'expected_inputs': instance.expectedInputs.map((e) => e.toJson()).toList(),
   'steps': instance.steps.map((e) => e.toJson()).toList(),
+};
+
+const _$HistoricalContextModeEnumMap = {
+  HistoricalContextMode.disabled: 'DISABLED',
+  HistoricalContextMode.slidingWindow3: 'SLIDING_WINDOW_3',
 };

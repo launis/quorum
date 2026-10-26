@@ -61,7 +61,6 @@ abstract class StepRule with _$StepRule {
     @JsonKey(name: 'expected_sdui_type') SduiBlockType? expectedSduiType,
     @Default(0.0) double uiPosX,
     @Default(0.0) double uiPosY,
-    // Phase 1, Step 3: Synthesis context governance field
     @Default(true) @JsonKey(name: 'is_synthesis_source') bool isSynthesisSource,
     @JsonKey(name: 'causal_source_step_id') String? causalSourceStepId,
   }) = _StepRule;
@@ -71,7 +70,7 @@ abstract class StepRule with _$StepRule {
 }
 
 /// Sealed Classes Mandate: Unknown/Fallback union types are strictly forbidden.
-@Freezed(unionKey: 'type')
+@Freezed(unionKey: 'type', equal: false)
 sealed class NodeStrategy with _$NodeStrategy {
   const NodeStrategy._();
 
@@ -91,7 +90,6 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default([]) List<String> postHooks,
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
-    // Phase 1, Step 5: Per-tool static parameter overrides keyed by namespaced MCP tool alias
     @JsonKey(name: 'mcp_tool_params')
     @Default(<String, Map<String, Object?>>{})
     Map<String, Map<String, Object?>> mcpToolParams,
@@ -100,7 +98,6 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default(CognitiveTier.fast)
     CognitiveTier cognitiveTier,
     String? organizationId,
-    // Phase 1, Step 3: System core protection governance field
     @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
     @JsonKey(name: 'engine_type')
     @Default(EngineType.prompt)
@@ -124,7 +121,6 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default([]) List<String> postHooks,
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
-    // Phase 1, Step 5: Per-tool static parameter overrides keyed by namespaced MCP tool alias
     @JsonKey(name: 'mcp_tool_params')
     @Default(<String, Map<String, Object?>>{})
     Map<String, Map<String, Object?>> mcpToolParams,
@@ -133,7 +129,6 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default(CognitiveTier.fast)
     CognitiveTier cognitiveTier,
     String? organizationId,
-    // Phase 1, Step 3: System core protection governance field
     @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
     @JsonKey(name: 'engine_type')
     @Default(EngineType.prompt)
@@ -157,7 +152,6 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default([]) List<String> postHooks,
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
-    // Phase 1, Step 5: Per-tool static parameter overrides keyed by namespaced MCP tool alias
     @JsonKey(name: 'mcp_tool_params')
     @Default(<String, Map<String, Object?>>{})
     Map<String, Map<String, Object?>> mcpToolParams,
@@ -166,7 +160,6 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default(CognitiveTier.fast)
     CognitiveTier cognitiveTier,
     String? organizationId,
-    // Phase 1, Step 3: System core protection governance field
     @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
     @JsonKey(name: 'engine_type')
     @Default(EngineType.causalDiscovery)
@@ -218,8 +211,8 @@ abstract class Workflow with _$Workflow {
     bool enableEagerAnonymization,
     @JsonKey(name: 'system_audit_trail') @Default(false) bool systemAuditTrail,
     @JsonKey(name: 'historical_context_mode')
-    @Default('DISABLED')
-    String historicalContextMode,
+    @Default(HistoricalContextMode.disabled)
+    HistoricalContextMode historicalContextMode,
     @Default([]) List<ExpectedInput> expectedInputs,
     @Default([]) List<StepRule> steps,
   }) = _Workflow;

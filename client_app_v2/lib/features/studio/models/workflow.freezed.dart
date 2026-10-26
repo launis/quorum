@@ -612,8 +612,7 @@ $I18nTextCopyWith<$Res> get description {
 /// @nodoc
 mixin _$StepRule {
 
-@StrictOpaqueIdConverter() String get id;@StrictOpaqueIdConverter() String get taskBlueprint; List<String> get dependsOn; Map<String, String> get inputMappings;@JsonKey(name: 'expected_sdui_type') SduiBlockType? get expectedSduiType; double get uiPosX; double get uiPosY;// Phase 1, Step 3: Synthesis context governance field
-@JsonKey(name: 'is_synthesis_source') bool get isSynthesisSource;@JsonKey(name: 'causal_source_step_id') String? get causalSourceStepId;
+@StrictOpaqueIdConverter() String get id;@StrictOpaqueIdConverter() String get taskBlueprint; List<String> get dependsOn; Map<String, String> get inputMappings;@JsonKey(name: 'expected_sdui_type') SduiBlockType? get expectedSduiType; double get uiPosX; double get uiPosY;@JsonKey(name: 'is_synthesis_source') bool get isSynthesisSource;@JsonKey(name: 'causal_source_step_id') String? get causalSourceStepId;
 /// Create a copy of StepRule
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -830,7 +829,6 @@ class _StepRule extends StepRule {
 @override@JsonKey(name: 'expected_sdui_type') final  SduiBlockType? expectedSduiType;
 @override@JsonKey() final  double uiPosX;
 @override@JsonKey() final  double uiPosY;
-// Phase 1, Step 3: Synthesis context governance field
 @override@JsonKey(name: 'is_synthesis_source') final  bool isSynthesisSource;
 @override@JsonKey(name: 'causal_source_step_id') final  String? causalSourceStepId;
 
@@ -926,9 +924,7 @@ NodeStrategy _$NodeStrategyFromJson(
 /// @nodoc
 mixin _$NodeStrategy {
 
-@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText? get description; String? get hook;@StrictOpaqueIdConverter() String? get roleBlockId;@StrictOpaqueIdConverter() String? get extractionProtocolBlockId;@StrictOpaqueIdConverter() String? get executionPersonaBlockId; List<String> get criteriaBlockIds; List<String> get preHooks; List<String> get postHooks; String get safety; List<String> get allowedMcpTools;// Phase 1, Step 5: Per-tool static parameter overrides keyed by namespaced MCP tool alias
-@JsonKey(name: 'mcp_tool_params') Map<String, Map<String, Object?>> get mcpToolParams; List<String> get expectedInputs;@JsonKey(name: 'cognitive_tier') CognitiveTier get cognitiveTier; String? get organizationId;// Phase 1, Step 3: System core protection governance field
-@JsonKey(name: 'is_system_core') bool get isSystemCore;@JsonKey(name: 'engine_type') EngineType get engineType;@JsonKey(name: 'zone') StepZone get zone;
+@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText? get description; String? get hook;@StrictOpaqueIdConverter() String? get roleBlockId;@StrictOpaqueIdConverter() String? get extractionProtocolBlockId;@StrictOpaqueIdConverter() String? get executionPersonaBlockId; List<String> get criteriaBlockIds; List<String> get preHooks; List<String> get postHooks; String get safety; List<String> get allowedMcpTools;@JsonKey(name: 'mcp_tool_params') Map<String, Map<String, Object?>> get mcpToolParams; List<String> get expectedInputs;@JsonKey(name: 'cognitive_tier') CognitiveTier get cognitiveTier; String? get organizationId;@JsonKey(name: 'is_system_core') bool get isSystemCore;@JsonKey(name: 'engine_type') EngineType get engineType;@JsonKey(name: 'zone') StepZone get zone;
 /// Create a copy of NodeStrategy
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -939,14 +935,7 @@ $NodeStrategyCopyWith<NodeStrategy> get copyWith => _$NodeStrategyCopyWithImpl<N
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategy&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other.criteriaBlockIds, criteriaBlockIds)&&const DeepCollectionEquality().equals(other.preHooks, preHooks)&&const DeepCollectionEquality().equals(other.postHooks, postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other.allowedMcpTools, allowedMcpTools)&&const DeepCollectionEquality().equals(other.mcpToolParams, mcpToolParams)&&const DeepCollectionEquality().equals(other.expectedInputs, expectedInputs)&&(identical(other.cognitiveTier, cognitiveTier) || other.cognitiveTier == cognitiveTier)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isSystemCore, isSystemCore) || other.isSystemCore == isSystemCore)&&(identical(other.engineType, engineType) || other.engineType == engineType)&&(identical(other.zone, zone) || other.zone == zone));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hashAll([runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(criteriaBlockIds),const DeepCollectionEquality().hash(preHooks),const DeepCollectionEquality().hash(postHooks),safety,const DeepCollectionEquality().hash(allowedMcpTools),const DeepCollectionEquality().hash(mcpToolParams),const DeepCollectionEquality().hash(expectedInputs),cognitiveTier,organizationId,isSystemCore,engineType,zone]);
 
 @override
 String toString() {
@@ -1208,9 +1197,7 @@ class NodeStrategyLlm extends NodeStrategy {
   return EqualUnmodifiableListView(_allowedMcpTools);
 }
 
-// Phase 1, Step 5: Per-tool static parameter overrides keyed by namespaced MCP tool alias
  final  Map<String, Map<String, Object?>> _mcpToolParams;
-// Phase 1, Step 5: Per-tool static parameter overrides keyed by namespaced MCP tool alias
 @override@JsonKey(name: 'mcp_tool_params') Map<String, Map<String, Object?>> get mcpToolParams {
   if (_mcpToolParams is EqualUnmodifiableMapView) return _mcpToolParams;
   // ignore: implicit_dynamic_type
@@ -1226,7 +1213,6 @@ class NodeStrategyLlm extends NodeStrategy {
 
 @override@JsonKey(name: 'cognitive_tier') final  CognitiveTier cognitiveTier;
 @override final  String? organizationId;
-// Phase 1, Step 3: System core protection governance field
 @override@JsonKey(name: 'is_system_core') final  bool isSystemCore;
 @override@JsonKey(name: 'engine_type') final  EngineType engineType;
 @override@JsonKey(name: 'zone') final  StepZone zone;
@@ -1246,14 +1232,7 @@ Map<String, dynamic> toJson() {
   return _$NodeStrategyLlmToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLlm&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other._criteriaBlockIds, _criteriaBlockIds)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._mcpToolParams, _mcpToolParams)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&(identical(other.cognitiveTier, cognitiveTier) || other.cognitiveTier == cognitiveTier)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isSystemCore, isSystemCore) || other.isSystemCore == isSystemCore)&&(identical(other.engineType, engineType) || other.engineType == engineType)&&(identical(other.zone, zone) || other.zone == zone));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hashAll([runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(_criteriaBlockIds),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_mcpToolParams),const DeepCollectionEquality().hash(_expectedInputs),cognitiveTier,organizationId,isSystemCore,engineType,zone]);
 
 @override
 String toString() {
@@ -1379,9 +1358,7 @@ class NodeStrategyLogic extends NodeStrategy {
   return EqualUnmodifiableListView(_allowedMcpTools);
 }
 
-// Phase 1, Step 5: Per-tool static parameter overrides keyed by namespaced MCP tool alias
  final  Map<String, Map<String, Object?>> _mcpToolParams;
-// Phase 1, Step 5: Per-tool static parameter overrides keyed by namespaced MCP tool alias
 @override@JsonKey(name: 'mcp_tool_params') Map<String, Map<String, Object?>> get mcpToolParams {
   if (_mcpToolParams is EqualUnmodifiableMapView) return _mcpToolParams;
   // ignore: implicit_dynamic_type
@@ -1397,7 +1374,6 @@ class NodeStrategyLogic extends NodeStrategy {
 
 @override@JsonKey(name: 'cognitive_tier') final  CognitiveTier cognitiveTier;
 @override final  String? organizationId;
-// Phase 1, Step 3: System core protection governance field
 @override@JsonKey(name: 'is_system_core') final  bool isSystemCore;
 @override@JsonKey(name: 'engine_type') final  EngineType engineType;
 @override@JsonKey(name: 'zone') final  StepZone zone;
@@ -1417,14 +1393,7 @@ Map<String, dynamic> toJson() {
   return _$NodeStrategyLogicToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyLogic&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other._criteriaBlockIds, _criteriaBlockIds)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._mcpToolParams, _mcpToolParams)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&(identical(other.cognitiveTier, cognitiveTier) || other.cognitiveTier == cognitiveTier)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isSystemCore, isSystemCore) || other.isSystemCore == isSystemCore)&&(identical(other.engineType, engineType) || other.engineType == engineType)&&(identical(other.zone, zone) || other.zone == zone));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hashAll([runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(_criteriaBlockIds),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_mcpToolParams),const DeepCollectionEquality().hash(_expectedInputs),cognitiveTier,organizationId,isSystemCore,engineType,zone]);
 
 @override
 String toString() {
@@ -1550,9 +1519,7 @@ class NodeStrategyCausalDiscovery extends NodeStrategy {
   return EqualUnmodifiableListView(_allowedMcpTools);
 }
 
-// Phase 1, Step 5: Per-tool static parameter overrides keyed by namespaced MCP tool alias
  final  Map<String, Map<String, Object?>> _mcpToolParams;
-// Phase 1, Step 5: Per-tool static parameter overrides keyed by namespaced MCP tool alias
 @override@JsonKey(name: 'mcp_tool_params') Map<String, Map<String, Object?>> get mcpToolParams {
   if (_mcpToolParams is EqualUnmodifiableMapView) return _mcpToolParams;
   // ignore: implicit_dynamic_type
@@ -1568,7 +1535,6 @@ class NodeStrategyCausalDiscovery extends NodeStrategy {
 
 @override@JsonKey(name: 'cognitive_tier') final  CognitiveTier cognitiveTier;
 @override final  String? organizationId;
-// Phase 1, Step 3: System core protection governance field
 @override@JsonKey(name: 'is_system_core') final  bool isSystemCore;
 @override@JsonKey(name: 'engine_type') final  EngineType engineType;
 @override@JsonKey(name: 'zone') final  StepZone zone;
@@ -1588,14 +1554,7 @@ Map<String, dynamic> toJson() {
   return _$NodeStrategyCausalDiscoveryToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is NodeStrategyCausalDiscovery&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.hook, hook) || other.hook == hook)&&(identical(other.roleBlockId, roleBlockId) || other.roleBlockId == roleBlockId)&&(identical(other.extractionProtocolBlockId, extractionProtocolBlockId) || other.extractionProtocolBlockId == extractionProtocolBlockId)&&(identical(other.executionPersonaBlockId, executionPersonaBlockId) || other.executionPersonaBlockId == executionPersonaBlockId)&&const DeepCollectionEquality().equals(other._criteriaBlockIds, _criteriaBlockIds)&&const DeepCollectionEquality().equals(other._preHooks, _preHooks)&&const DeepCollectionEquality().equals(other._postHooks, _postHooks)&&(identical(other.safety, safety) || other.safety == safety)&&const DeepCollectionEquality().equals(other._allowedMcpTools, _allowedMcpTools)&&const DeepCollectionEquality().equals(other._mcpToolParams, _mcpToolParams)&&const DeepCollectionEquality().equals(other._expectedInputs, _expectedInputs)&&(identical(other.cognitiveTier, cognitiveTier) || other.cognitiveTier == cognitiveTier)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isSystemCore, isSystemCore) || other.isSystemCore == isSystemCore)&&(identical(other.engineType, engineType) || other.engineType == engineType)&&(identical(other.zone, zone) || other.zone == zone));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hashAll([runtimeType,id,slug,name,description,hook,roleBlockId,extractionProtocolBlockId,executionPersonaBlockId,const DeepCollectionEquality().hash(_criteriaBlockIds),const DeepCollectionEquality().hash(_preHooks),const DeepCollectionEquality().hash(_postHooks),safety,const DeepCollectionEquality().hash(_allowedMcpTools),const DeepCollectionEquality().hash(_mcpToolParams),const DeepCollectionEquality().hash(_expectedInputs),cognitiveTier,organizationId,isSystemCore,engineType,zone]);
 
 @override
 String toString() {
@@ -1681,7 +1640,7 @@ $I18nTextCopyWith<$Res>? get description {
 /// @nodoc
 mixin _$Workflow {
 
-@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText get description; String get status; int get version; bool get isPublic; String? get organizationId; Map<String, OutputProfile> get outputProfiles; String get defaultProfileId;@JsonKey(name: 'mcp_gateway_id') String? get mcpGatewayId;@JsonKey(name: 'model_registry_id') String get modelRegistryId;@JsonKey(name: 'default_strictness_level') int get defaultStrictnessLevel;@JsonKey(name: 'default_lexical_strictness_level') int get defaultLexicalStrictnessLevel;@JsonKey(name: 'security_penalty') double get securityPenalty;@JsonKey(name: 'post_hoc_penalty') double get postHocPenalty;@JsonKey(name: 'passivity_penalty') double get passivityPenalty;@JsonKey(name: 'enable_contextual_overrides') bool get enableContextualOverrides;@JsonKey(name: 'enable_semantic_smoothing') bool get enableSemanticSmoothing;@JsonKey(name: 'enable_eager_anonymization') bool get enableEagerAnonymization;@JsonKey(name: 'system_audit_trail') bool get systemAuditTrail;@JsonKey(name: 'historical_context_mode') String get historicalContextMode; List<ExpectedInput> get expectedInputs; List<StepRule> get steps;
+@StrictOpaqueIdConverter() String get id; String get slug; I18nText get name; I18nText get description; String get status; int get version; bool get isPublic; String? get organizationId; Map<String, OutputProfile> get outputProfiles; String get defaultProfileId;@JsonKey(name: 'mcp_gateway_id') String? get mcpGatewayId;@JsonKey(name: 'model_registry_id') String get modelRegistryId;@JsonKey(name: 'default_strictness_level') int get defaultStrictnessLevel;@JsonKey(name: 'default_lexical_strictness_level') int get defaultLexicalStrictnessLevel;@JsonKey(name: 'security_penalty') double get securityPenalty;@JsonKey(name: 'post_hoc_penalty') double get postHocPenalty;@JsonKey(name: 'passivity_penalty') double get passivityPenalty;@JsonKey(name: 'enable_contextual_overrides') bool get enableContextualOverrides;@JsonKey(name: 'enable_semantic_smoothing') bool get enableSemanticSmoothing;@JsonKey(name: 'enable_eager_anonymization') bool get enableEagerAnonymization;@JsonKey(name: 'system_audit_trail') bool get systemAuditTrail;@JsonKey(name: 'historical_context_mode') HistoricalContextMode get historicalContextMode; List<ExpectedInput> get expectedInputs; List<StepRule> get steps;
 /// Create a copy of Workflow
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1707,7 +1666,7 @@ abstract mixin class $WorkflowCopyWith<$Res>  {
   factory $WorkflowCopyWith(Workflow value, $Res Function(Workflow) _then) = _$WorkflowCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText description, String status, int version, bool isPublic, String? organizationId, Map<String, OutputProfile> outputProfiles, String defaultProfileId,@JsonKey(name: 'mcp_gateway_id') String? mcpGatewayId,@JsonKey(name: 'model_registry_id') String modelRegistryId,@JsonKey(name: 'default_strictness_level') int defaultStrictnessLevel,@JsonKey(name: 'default_lexical_strictness_level') int defaultLexicalStrictnessLevel,@JsonKey(name: 'security_penalty') double securityPenalty,@JsonKey(name: 'post_hoc_penalty') double postHocPenalty,@JsonKey(name: 'passivity_penalty') double passivityPenalty,@JsonKey(name: 'enable_contextual_overrides') bool enableContextualOverrides,@JsonKey(name: 'enable_semantic_smoothing') bool enableSemanticSmoothing,@JsonKey(name: 'enable_eager_anonymization') bool enableEagerAnonymization,@JsonKey(name: 'system_audit_trail') bool systemAuditTrail,@JsonKey(name: 'historical_context_mode') String historicalContextMode, List<ExpectedInput> expectedInputs, List<StepRule> steps
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText description, String status, int version, bool isPublic, String? organizationId, Map<String, OutputProfile> outputProfiles, String defaultProfileId,@JsonKey(name: 'mcp_gateway_id') String? mcpGatewayId,@JsonKey(name: 'model_registry_id') String modelRegistryId,@JsonKey(name: 'default_strictness_level') int defaultStrictnessLevel,@JsonKey(name: 'default_lexical_strictness_level') int defaultLexicalStrictnessLevel,@JsonKey(name: 'security_penalty') double securityPenalty,@JsonKey(name: 'post_hoc_penalty') double postHocPenalty,@JsonKey(name: 'passivity_penalty') double passivityPenalty,@JsonKey(name: 'enable_contextual_overrides') bool enableContextualOverrides,@JsonKey(name: 'enable_semantic_smoothing') bool enableSemanticSmoothing,@JsonKey(name: 'enable_eager_anonymization') bool enableEagerAnonymization,@JsonKey(name: 'system_audit_trail') bool systemAuditTrail,@JsonKey(name: 'historical_context_mode') HistoricalContextMode historicalContextMode, List<ExpectedInput> expectedInputs, List<StepRule> steps
 });
 
 
@@ -1748,7 +1707,7 @@ as bool,enableSemanticSmoothing: null == enableSemanticSmoothing ? _self.enableS
 as bool,enableEagerAnonymization: null == enableEagerAnonymization ? _self.enableEagerAnonymization : enableEagerAnonymization // ignore: cast_nullable_to_non_nullable
 as bool,systemAuditTrail: null == systemAuditTrail ? _self.systemAuditTrail : systemAuditTrail // ignore: cast_nullable_to_non_nullable
 as bool,historicalContextMode: null == historicalContextMode ? _self.historicalContextMode : historicalContextMode // ignore: cast_nullable_to_non_nullable
-as String,expectedInputs: null == expectedInputs ? _self.expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
+as HistoricalContextMode,expectedInputs: null == expectedInputs ? _self.expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
 as List<ExpectedInput>,steps: null == steps ? _self.steps : steps // ignore: cast_nullable_to_non_nullable
 as List<StepRule>,
   ));
@@ -1853,7 +1812,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, OutputProfile> outputProfiles,  String defaultProfileId, @JsonKey(name: 'mcp_gateway_id')  String? mcpGatewayId, @JsonKey(name: 'model_registry_id')  String modelRegistryId, @JsonKey(name: 'default_strictness_level')  int defaultStrictnessLevel, @JsonKey(name: 'default_lexical_strictness_level')  int defaultLexicalStrictnessLevel, @JsonKey(name: 'security_penalty')  double securityPenalty, @JsonKey(name: 'post_hoc_penalty')  double postHocPenalty, @JsonKey(name: 'passivity_penalty')  double passivityPenalty, @JsonKey(name: 'enable_contextual_overrides')  bool enableContextualOverrides, @JsonKey(name: 'enable_semantic_smoothing')  bool enableSemanticSmoothing, @JsonKey(name: 'enable_eager_anonymization')  bool enableEagerAnonymization, @JsonKey(name: 'system_audit_trail')  bool systemAuditTrail, @JsonKey(name: 'historical_context_mode')  String historicalContextMode,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, OutputProfile> outputProfiles,  String defaultProfileId, @JsonKey(name: 'mcp_gateway_id')  String? mcpGatewayId, @JsonKey(name: 'model_registry_id')  String modelRegistryId, @JsonKey(name: 'default_strictness_level')  int defaultStrictnessLevel, @JsonKey(name: 'default_lexical_strictness_level')  int defaultLexicalStrictnessLevel, @JsonKey(name: 'security_penalty')  double securityPenalty, @JsonKey(name: 'post_hoc_penalty')  double postHocPenalty, @JsonKey(name: 'passivity_penalty')  double passivityPenalty, @JsonKey(name: 'enable_contextual_overrides')  bool enableContextualOverrides, @JsonKey(name: 'enable_semantic_smoothing')  bool enableSemanticSmoothing, @JsonKey(name: 'enable_eager_anonymization')  bool enableEagerAnonymization, @JsonKey(name: 'system_audit_trail')  bool systemAuditTrail, @JsonKey(name: 'historical_context_mode')  HistoricalContextMode historicalContextMode,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Workflow() when $default != null:
 return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_that.version,_that.isPublic,_that.organizationId,_that.outputProfiles,_that.defaultProfileId,_that.mcpGatewayId,_that.modelRegistryId,_that.defaultStrictnessLevel,_that.defaultLexicalStrictnessLevel,_that.securityPenalty,_that.postHocPenalty,_that.passivityPenalty,_that.enableContextualOverrides,_that.enableSemanticSmoothing,_that.enableEagerAnonymization,_that.systemAuditTrail,_that.historicalContextMode,_that.expectedInputs,_that.steps);case _:
@@ -1874,7 +1833,7 @@ return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, OutputProfile> outputProfiles,  String defaultProfileId, @JsonKey(name: 'mcp_gateway_id')  String? mcpGatewayId, @JsonKey(name: 'model_registry_id')  String modelRegistryId, @JsonKey(name: 'default_strictness_level')  int defaultStrictnessLevel, @JsonKey(name: 'default_lexical_strictness_level')  int defaultLexicalStrictnessLevel, @JsonKey(name: 'security_penalty')  double securityPenalty, @JsonKey(name: 'post_hoc_penalty')  double postHocPenalty, @JsonKey(name: 'passivity_penalty')  double passivityPenalty, @JsonKey(name: 'enable_contextual_overrides')  bool enableContextualOverrides, @JsonKey(name: 'enable_semantic_smoothing')  bool enableSemanticSmoothing, @JsonKey(name: 'enable_eager_anonymization')  bool enableEagerAnonymization, @JsonKey(name: 'system_audit_trail')  bool systemAuditTrail, @JsonKey(name: 'historical_context_mode')  String historicalContextMode,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, OutputProfile> outputProfiles,  String defaultProfileId, @JsonKey(name: 'mcp_gateway_id')  String? mcpGatewayId, @JsonKey(name: 'model_registry_id')  String modelRegistryId, @JsonKey(name: 'default_strictness_level')  int defaultStrictnessLevel, @JsonKey(name: 'default_lexical_strictness_level')  int defaultLexicalStrictnessLevel, @JsonKey(name: 'security_penalty')  double securityPenalty, @JsonKey(name: 'post_hoc_penalty')  double postHocPenalty, @JsonKey(name: 'passivity_penalty')  double passivityPenalty, @JsonKey(name: 'enable_contextual_overrides')  bool enableContextualOverrides, @JsonKey(name: 'enable_semantic_smoothing')  bool enableSemanticSmoothing, @JsonKey(name: 'enable_eager_anonymization')  bool enableEagerAnonymization, @JsonKey(name: 'system_audit_trail')  bool systemAuditTrail, @JsonKey(name: 'historical_context_mode')  HistoricalContextMode historicalContextMode,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)  $default,) {final _that = this;
 switch (_that) {
 case _Workflow():
 return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_that.version,_that.isPublic,_that.organizationId,_that.outputProfiles,_that.defaultProfileId,_that.mcpGatewayId,_that.modelRegistryId,_that.defaultStrictnessLevel,_that.defaultLexicalStrictnessLevel,_that.securityPenalty,_that.postHocPenalty,_that.passivityPenalty,_that.enableContextualOverrides,_that.enableSemanticSmoothing,_that.enableEagerAnonymization,_that.systemAuditTrail,_that.historicalContextMode,_that.expectedInputs,_that.steps);case _:
@@ -1894,7 +1853,7 @@ return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, OutputProfile> outputProfiles,  String defaultProfileId, @JsonKey(name: 'mcp_gateway_id')  String? mcpGatewayId, @JsonKey(name: 'model_registry_id')  String modelRegistryId, @JsonKey(name: 'default_strictness_level')  int defaultStrictnessLevel, @JsonKey(name: 'default_lexical_strictness_level')  int defaultLexicalStrictnessLevel, @JsonKey(name: 'security_penalty')  double securityPenalty, @JsonKey(name: 'post_hoc_penalty')  double postHocPenalty, @JsonKey(name: 'passivity_penalty')  double passivityPenalty, @JsonKey(name: 'enable_contextual_overrides')  bool enableContextualOverrides, @JsonKey(name: 'enable_semantic_smoothing')  bool enableSemanticSmoothing, @JsonKey(name: 'enable_eager_anonymization')  bool enableEagerAnonymization, @JsonKey(name: 'system_audit_trail')  bool systemAuditTrail, @JsonKey(name: 'historical_context_mode')  String historicalContextMode,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  I18nText name,  I18nText description,  String status,  int version,  bool isPublic,  String? organizationId,  Map<String, OutputProfile> outputProfiles,  String defaultProfileId, @JsonKey(name: 'mcp_gateway_id')  String? mcpGatewayId, @JsonKey(name: 'model_registry_id')  String modelRegistryId, @JsonKey(name: 'default_strictness_level')  int defaultStrictnessLevel, @JsonKey(name: 'default_lexical_strictness_level')  int defaultLexicalStrictnessLevel, @JsonKey(name: 'security_penalty')  double securityPenalty, @JsonKey(name: 'post_hoc_penalty')  double postHocPenalty, @JsonKey(name: 'passivity_penalty')  double passivityPenalty, @JsonKey(name: 'enable_contextual_overrides')  bool enableContextualOverrides, @JsonKey(name: 'enable_semantic_smoothing')  bool enableSemanticSmoothing, @JsonKey(name: 'enable_eager_anonymization')  bool enableEagerAnonymization, @JsonKey(name: 'system_audit_trail')  bool systemAuditTrail, @JsonKey(name: 'historical_context_mode')  HistoricalContextMode historicalContextMode,  List<ExpectedInput> expectedInputs,  List<StepRule> steps)?  $default,) {final _that = this;
 switch (_that) {
 case _Workflow() when $default != null:
 return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_that.version,_that.isPublic,_that.organizationId,_that.outputProfiles,_that.defaultProfileId,_that.mcpGatewayId,_that.modelRegistryId,_that.defaultStrictnessLevel,_that.defaultLexicalStrictnessLevel,_that.securityPenalty,_that.postHocPenalty,_that.passivityPenalty,_that.enableContextualOverrides,_that.enableSemanticSmoothing,_that.enableEagerAnonymization,_that.systemAuditTrail,_that.historicalContextMode,_that.expectedInputs,_that.steps);case _:
@@ -1909,7 +1868,7 @@ return $default(_that.id,_that.slug,_that.name,_that.description,_that.status,_t
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _Workflow extends Workflow {
-  const _Workflow({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, required this.description, this.status = "draft", this.version = 1, this.isPublic = false, this.organizationId, final  Map<String, OutputProfile> outputProfiles = const {}, this.defaultProfileId = "default", @JsonKey(name: 'mcp_gateway_id') this.mcpGatewayId = "sys_8172bda70c8641c5", @JsonKey(name: 'model_registry_id') required this.modelRegistryId, @JsonKey(name: 'default_strictness_level') this.defaultStrictnessLevel = 50, @JsonKey(name: 'default_lexical_strictness_level') this.defaultLexicalStrictnessLevel = 50, @JsonKey(name: 'security_penalty') this.securityPenalty = 0.0, @JsonKey(name: 'post_hoc_penalty') this.postHocPenalty = 0.0, @JsonKey(name: 'passivity_penalty') this.passivityPenalty = 0.0, @JsonKey(name: 'enable_contextual_overrides') this.enableContextualOverrides = false, @JsonKey(name: 'enable_semantic_smoothing') this.enableSemanticSmoothing = false, @JsonKey(name: 'enable_eager_anonymization') this.enableEagerAnonymization = false, @JsonKey(name: 'system_audit_trail') this.systemAuditTrail = false, @JsonKey(name: 'historical_context_mode') this.historicalContextMode = 'DISABLED', final  List<ExpectedInput> expectedInputs = const [], final  List<StepRule> steps = const []}): _outputProfiles = outputProfiles,_expectedInputs = expectedInputs,_steps = steps,super._();
+  const _Workflow({@StrictOpaqueIdConverter() required this.id, required this.slug, required this.name, required this.description, this.status = "draft", this.version = 1, this.isPublic = false, this.organizationId, final  Map<String, OutputProfile> outputProfiles = const {}, this.defaultProfileId = "default", @JsonKey(name: 'mcp_gateway_id') this.mcpGatewayId = "sys_8172bda70c8641c5", @JsonKey(name: 'model_registry_id') required this.modelRegistryId, @JsonKey(name: 'default_strictness_level') this.defaultStrictnessLevel = 50, @JsonKey(name: 'default_lexical_strictness_level') this.defaultLexicalStrictnessLevel = 50, @JsonKey(name: 'security_penalty') this.securityPenalty = 0.0, @JsonKey(name: 'post_hoc_penalty') this.postHocPenalty = 0.0, @JsonKey(name: 'passivity_penalty') this.passivityPenalty = 0.0, @JsonKey(name: 'enable_contextual_overrides') this.enableContextualOverrides = false, @JsonKey(name: 'enable_semantic_smoothing') this.enableSemanticSmoothing = false, @JsonKey(name: 'enable_eager_anonymization') this.enableEagerAnonymization = false, @JsonKey(name: 'system_audit_trail') this.systemAuditTrail = false, @JsonKey(name: 'historical_context_mode') this.historicalContextMode = HistoricalContextMode.disabled, final  List<ExpectedInput> expectedInputs = const [], final  List<StepRule> steps = const []}): _outputProfiles = outputProfiles,_expectedInputs = expectedInputs,_steps = steps,super._();
   factory _Workflow.fromJson(Map<String, dynamic> json) => _$WorkflowFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
@@ -1939,7 +1898,7 @@ class _Workflow extends Workflow {
 @override@JsonKey(name: 'enable_semantic_smoothing') final  bool enableSemanticSmoothing;
 @override@JsonKey(name: 'enable_eager_anonymization') final  bool enableEagerAnonymization;
 @override@JsonKey(name: 'system_audit_trail') final  bool systemAuditTrail;
-@override@JsonKey(name: 'historical_context_mode') final  String historicalContextMode;
+@override@JsonKey(name: 'historical_context_mode') final  HistoricalContextMode historicalContextMode;
  final  List<ExpectedInput> _expectedInputs;
 @override@JsonKey() List<ExpectedInput> get expectedInputs {
   if (_expectedInputs is EqualUnmodifiableListView) return _expectedInputs;
@@ -1981,7 +1940,7 @@ abstract mixin class _$WorkflowCopyWith<$Res> implements $WorkflowCopyWith<$Res>
   factory _$WorkflowCopyWith(_Workflow value, $Res Function(_Workflow) _then) = __$WorkflowCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText description, String status, int version, bool isPublic, String? organizationId, Map<String, OutputProfile> outputProfiles, String defaultProfileId,@JsonKey(name: 'mcp_gateway_id') String? mcpGatewayId,@JsonKey(name: 'model_registry_id') String modelRegistryId,@JsonKey(name: 'default_strictness_level') int defaultStrictnessLevel,@JsonKey(name: 'default_lexical_strictness_level') int defaultLexicalStrictnessLevel,@JsonKey(name: 'security_penalty') double securityPenalty,@JsonKey(name: 'post_hoc_penalty') double postHocPenalty,@JsonKey(name: 'passivity_penalty') double passivityPenalty,@JsonKey(name: 'enable_contextual_overrides') bool enableContextualOverrides,@JsonKey(name: 'enable_semantic_smoothing') bool enableSemanticSmoothing,@JsonKey(name: 'enable_eager_anonymization') bool enableEagerAnonymization,@JsonKey(name: 'system_audit_trail') bool systemAuditTrail,@JsonKey(name: 'historical_context_mode') String historicalContextMode, List<ExpectedInput> expectedInputs, List<StepRule> steps
+@StrictOpaqueIdConverter() String id, String slug, I18nText name, I18nText description, String status, int version, bool isPublic, String? organizationId, Map<String, OutputProfile> outputProfiles, String defaultProfileId,@JsonKey(name: 'mcp_gateway_id') String? mcpGatewayId,@JsonKey(name: 'model_registry_id') String modelRegistryId,@JsonKey(name: 'default_strictness_level') int defaultStrictnessLevel,@JsonKey(name: 'default_lexical_strictness_level') int defaultLexicalStrictnessLevel,@JsonKey(name: 'security_penalty') double securityPenalty,@JsonKey(name: 'post_hoc_penalty') double postHocPenalty,@JsonKey(name: 'passivity_penalty') double passivityPenalty,@JsonKey(name: 'enable_contextual_overrides') bool enableContextualOverrides,@JsonKey(name: 'enable_semantic_smoothing') bool enableSemanticSmoothing,@JsonKey(name: 'enable_eager_anonymization') bool enableEagerAnonymization,@JsonKey(name: 'system_audit_trail') bool systemAuditTrail,@JsonKey(name: 'historical_context_mode') HistoricalContextMode historicalContextMode, List<ExpectedInput> expectedInputs, List<StepRule> steps
 });
 
 
@@ -2022,7 +1981,7 @@ as bool,enableSemanticSmoothing: null == enableSemanticSmoothing ? _self.enableS
 as bool,enableEagerAnonymization: null == enableEagerAnonymization ? _self.enableEagerAnonymization : enableEagerAnonymization // ignore: cast_nullable_to_non_nullable
 as bool,systemAuditTrail: null == systemAuditTrail ? _self.systemAuditTrail : systemAuditTrail // ignore: cast_nullable_to_non_nullable
 as bool,historicalContextMode: null == historicalContextMode ? _self.historicalContextMode : historicalContextMode // ignore: cast_nullable_to_non_nullable
-as String,expectedInputs: null == expectedInputs ? _self._expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
+as HistoricalContextMode,expectedInputs: null == expectedInputs ? _self._expectedInputs : expectedInputs // ignore: cast_nullable_to_non_nullable
 as List<ExpectedInput>,steps: null == steps ? _self._steps : steps // ignore: cast_nullable_to_non_nullable
 as List<StepRule>,
   ));

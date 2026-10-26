@@ -6,7 +6,6 @@ import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 
 void main() {
-  // Phase 1, Step 4: Renamed from 'Epic 11 Phase B: NodeStrategy Strict Parsing'
   group('NodeStrategy Strict Parsing', () {
     test('Successfully parses valid expectedInputs via Isolate', () async {
       final payload = {
@@ -101,7 +100,6 @@ void main() {
           'scan_for_performative_patterns': true,
         };
 
-        // This is expected to throw a CheckedFromJsonException due to unrecognized keys
         expect(() => ExpectedInput.fromJson(payload), returnsNormally);
       },
     );
@@ -129,7 +127,6 @@ void main() {
     );
   });
 
-  // Phase 1, Step 4: Governance field deserialization tests
   group('StepRule Governance Fields', () {
     test('test_step_rule_deserializes_is_synthesis_source_default_true', () {
       final json = {
@@ -351,7 +348,7 @@ void main() {
         json.containsKey('ui_schema'),
         isFalse,
         reason:
-            'ui_schema was purged in Epic 150 and causes 422 extra_forbidden on backend PUT',
+            'ui_schema is purged and causes 422 extra_forbidden on backend PUT',
       );
     });
 
@@ -370,10 +367,101 @@ void main() {
           json.containsKey('output_schema'),
           isFalse,
           reason:
-              'output_schema was purged in Epic 150 and causes 422 extra_forbidden on backend PUT',
+              'output_schema is purged and causes 422 extra_forbidden on backend PUT',
         );
       },
     );
+
+    test(
+      'NodeStrategy enforces reference equality (equal: false) to prevent O(N^2) list comparison',
+      () {
+        final nodeA = NodeStrategy.llm(
+          id: 'st_0123456789abcdef',
+          slug: 'test_step',
+          name: const I18nText(translations: {'en': 'Test Step'}),
+          criteriaBlockIds: ['blk_0123456789abcdef'],
+        );
+        final nodeB = NodeStrategy.llm(
+          id: 'st_0123456789abcdef',
+          slug: 'test_step',
+          name: const I18nText(translations: {'en': 'Test Step'}),
+          criteriaBlockIds: ['blk_0123456789abcdef'],
+        );
+
+        expect(nodeA == nodeB, isFalse);
+      },
+    );
+
+    test(
+      'Workflow deserializes and serializes HistoricalContextMode enum strictly',
+      () {
+        final json = {
+          'id': 'wf_0123456789abcdef',
+          'slug': 'test_wf',
+          'name': {
+            'translations': {'en': 'Workflow'},
+          },
+          'description': {
+            'translations': {'en': 'Description'},
+          },
+          'model_registry_id': 'sys_b1c2d3e4f5a60718',
+          'historical_context_mode': 'SLIDING_WINDOW_3',
+        };
+
+        final workflow = Workflow.fromJson(json);
+        expect(
+          workflow.historicalContextMode,
+          equals(HistoricalContextMode.slidingWindow3),
+        );
+        expect(
+          workflow.toJson()['historical_context_mode'],
+          equals('SLIDING_WINDOW_3'),
+        );
+      },
+    );
+
+    test(
+      'Workflow rejects invalid historical_context_mode enum value fail-fast (negative)',
+      () {
+        final json = {
+          'id': 'wf_0123456789abcdef',
+          'slug': 'test_wf',
+          'name': {
+            'translations': {'en': 'Workflow'},
+          },
+          'description': {
+            'translations': {'en': 'Description'},
+          },
+          'model_registry_id': 'sys_b1c2d3e4f5a60718',
+          'historical_context_mode': 'INVALID_MODE',
+        };
+
+        expect(
+          () => Workflow.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
+
+    test('Workflow rejects unrecognized keys fail-fast (negative)', () {
+      final json = {
+        'id': 'wf_0123456789abcdef',
+        'slug': 'test_wf',
+        'name': {
+          'translations': {'en': 'Workflow'},
+        },
+        'description': {
+          'translations': {'en': 'Description'},
+        },
+        'model_registry_id': 'sys_b1c2d3e4f5a60718',
+        'unrecognized_extra_field': true,
+      };
+
+      expect(
+        () => Workflow.fromJson(json),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
 
     test('StepRule correctly parses causal_source_step_id', () {
       final json = {
