@@ -263,10 +263,11 @@ def test_mcp_validation_context_dto_positive_and_negative() -> None:
 
 
 def test_mcp_initialize_result_dto_with_complex_server_info_metadata() -> None:
-    """Regression test: Verify MCPInitializeResultDTO and MCPJsonRpcResponseDTO validate serverInfo with icons and metadata.
+    """Regression test for serverInfo metadata with icons.
 
-    Exa AI and other MCP servers return serverInfo with lists of icons and strings,
-    which must not fail validation with string_type errors.
+    Verify MCPInitializeResultDTO and MCPJsonRpcResponseDTO validate serverInfo
+    with icons and metadata. Exa AI and other MCP servers return serverInfo with
+    lists of icons and strings, which must not fail validation with string_type errors.
     """
     raw_response = {
         "jsonrpc": "2.0",
