@@ -26,6 +26,10 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <mandatory_pattern>When updating tests or refactoring repositories, you MUST ensure that all mock data (e.g., dicts returned by AsyncMock) EXACTLY matches the strict Pydantic models. You are forbidden from passing naked, incomplete dictionaries if the underlying code uses `model_validate` with `ConfigDict(strict=True)`.</mandatory_pattern>
       <catastrophic_reason>Incomplete mock data triggers violent `ValidationError` crashes, wasting excessive debug cycles and blocking deployment.</catastrophic_reason>
     </rule_block>
+    <rule_block id="scoped_mock_and_fault_isolation_mandate">
+      <mandatory_pattern>In unit tests, NEVER patch standard library functions (specifically and exhaustively: `json.dumps`, `json.loads`, `os.environ`, `time.sleep`, `open`) or global utilities via naked root paths (`patch("json.dumps", ...)`). ALL `unittest.mock.patch` and `monkeypatch` calls targeting standard library or utility functions MUST be explicitly scoped to the specific target module under test (specifically: `patch("backend_v2.services.orchestrator.strategies.llm_strategy.prompt_and_schema_stage.json.dumps", ...)`). Injected faults on repository fakes (`repo.inject_fault(...)`) MUST be cleaned up via `repo.clear_faults()` in a `try...finally` block or fixture teardown to prevent test pollution across concurrent tasks and Logfire OpenTelemetry telemetry.</mandatory_pattern>
+      <catastrophic_reason>Patching standard library functions globally leaks into other test suites, Logfire span telemetry serialization, and async worker loops, causing intermittent and non-deterministic test suite failures.</catastrophic_reason>
+    </rule_block>
     <rule_block id="modernity_and_best_practices_2026">
       <mandatory_pattern>You MUST ruthlessly evaluate the code you write against these specific Quorum anti-patterns. If ANY are detected in your proposed code, you MUST rewrite it using the mandated replacement:
         * `asyncio.gather` → `asyncio.TaskGroup` (Python 3.14+ Fail-Fast cancellation)

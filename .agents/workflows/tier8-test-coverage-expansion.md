@@ -46,6 +46,12 @@ description: Tier 8 (Test Coverage Expansion) - ISTQB-based iterative loop for e
       <catastrophic_reason>Manual mock data drifts from strict Pydantic schemas, causing silent test rot. Live network calls during testing are forbidden to prevent flaky, slow, and expensive test suites.</catastrophic_reason>
     </rule_block>
     
+    <rule_block id="scoped_mock_and_fault_isolation_mandate">
+      <banned_pattern>Patching standard library functions globally via root paths or leaving injected faults on stateful fixtures/repositories.</banned_pattern>
+      <mandatory_pattern>In unit tests, NEVER patch standard library functions (specifically and exhaustively: `json.dumps`, `json.loads`, `os.environ`, `time.sleep`, `open`) or global utilities via naked root paths (`patch("json.dumps", ...)`). ALL `unittest.mock.patch` and `monkeypatch` calls targeting standard library or utility functions MUST be explicitly scoped to the specific target module under test (specifically: `patch("backend_v2.services.orchestrator.strategies.llm_strategy.prompt_and_schema_stage.json.dumps", ...)`). Injected faults on repository fakes (`repo.inject_fault(...)`) MUST be cleaned up via `repo.clear_faults()` in a `try...finally` block or fixture teardown to prevent test pollution across concurrent tasks and Logfire OpenTelemetry telemetry.</mandatory_pattern>
+      <catastrophic_reason>Patching standard library functions globally leaks into other test suites, Logfire span telemetry serialization, and async worker loops, causing intermittent and non-deterministic test suite failures.</catastrophic_reason>
+    </rule_block>
+    
     <rule_block id="context_amnesia_prevention">
       <banned_pattern>Outputting file paths without wrapping them in @-reference syntax.</banned_pattern>
       <mandatory_pattern>Whenever you generate a handover command, tracker file, or instructions, you MUST explicitly wrap all target file paths in `@-reference` syntax (e.g., `@[backend_v2\target.py]`).</mandatory_pattern>

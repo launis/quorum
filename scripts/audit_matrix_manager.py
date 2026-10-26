@@ -59,6 +59,7 @@ RULE_ID_AST_MAP: dict[str, set[str]] = {
     "modern_type_aliases_pep695": {"QGR013"},
     "deceptive_persistence_mocking_ban": {"QGR014"},
     "tautological_mocking_ban": {"QGR014"},
+    "scoped_mock_and_fault_isolation_mandate": {"QGR014"},
     "backend_router_vs_service_separation": {"QGR015"},
     "anemic_routers": {"QGR015"},
     "positive_id_set_filtering_mandate": {"QGR016"},
