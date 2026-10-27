@@ -8,7 +8,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
 from scripts.audit_zero_orm_strictness import (
+    ZeroOrmAuditReportDTO,
+    ZeroOrmFindingDTO,
     ZeroOrmRuleCode,
     audit_python_file,
     audit_sql_migration_file,
@@ -123,3 +128,36 @@ def test_syntax_error_and_nonexistent_explicit_path(tmp_path: Path) -> None:
     report = run_zero_orm_audit(target_paths=[missing])
     assert not report.is_clean
     assert report.findings[0].rule_code == ZeroOrmRuleCode.ZORM001
+
+
+def test_try_else_traversal_and_dto_boundary_validation(tmp_path: Path) -> None:
+    """Verify try/else AST traversal and ISTQB BVA negative bounds on ZeroOrm DTOs."""
+    try_else_py = tmp_path / "try_else.py"
+    try_else_py.write_text(
+        "def run_check() -> None:\n"
+        "    try:\n"
+        "        x = 1\n"
+        "    except ValueError:\n"
+        "        raise\n"
+        "    else:\n"
+        "        execute_chat_task()\n",
+        encoding="utf-8",
+    )
+    findings = audit_python_file(try_else_py)
+    assert len(findings) == 1
+    assert findings[0].rule_code == ZeroOrmRuleCode.ZORM005
+
+    with pytest.raises(ValidationError):
+        ZeroOrmFindingDTO(
+            filepath="test.py",
+            lineno=0,
+            rule_code=ZeroOrmRuleCode.ZORM001,
+            message="Boundary violation lineno < 1",
+        )
+
+    with pytest.raises(ValidationError):
+        ZeroOrmAuditReportDTO(
+            scanned_files=-1,
+            findings=(),
+        )
+

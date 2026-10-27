@@ -35,6 +35,21 @@ from scripts._script_base import (
 
 setup_script_environment()
 
+__all__ = [
+    "APPROVED_ADAPTER_RECORD_COLUMNS",
+    "BANNED_LLM_IDENTIFIERS",
+    "BANNED_ORM_IMPORTS",
+    "CLOSED_POSTGRES_TABLES",
+    "ZeroOrmAuditReportDTO",
+    "ZeroOrmFindingDTO",
+    "ZeroOrmRuleCode",
+    "audit_python_file",
+    "audit_sql_migration_file",
+    "build_arg_parser",
+    "main",
+    "run_zero_orm_audit",
+]
+
 # Step 1: Closed 12-table topology and banned symbol sets
 CLOSED_POSTGRES_TABLES: frozenset[str] = frozenset(
     {
@@ -143,7 +158,16 @@ _CREATE_TABLE_REGEX = re.compile(
 
 
 class ZeroOrmRuleCode(StrEnum):
-    """Rule codes for Zero-ORM architectural strictness checks."""
+    """Rule codes for Zero-ORM architectural strictness checks.
+
+    Attributes:
+        ZORM001: Bans imports of sqlalchemy, alembic, or orjson.
+        ZORM002: Bans untyped mapping annotations and dict(r) record unpacking.
+        ZORM003: Bans broad except Exception handlers without AppException re-raise.
+        ZORM004: Enforces closed 12-table PostgreSQL DDL topology.
+        ZORM005: Bans LLM client or task execution calls inside database/UoW modules.
+        ZORM006: Enforces 1:1 column subscript parity in database adapters.
+    """
 
     ZORM001 = "ZORM001"
     ZORM002 = "ZORM002"
