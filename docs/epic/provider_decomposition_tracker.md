@@ -67,7 +67,7 @@
   - [x] [NEW] @[backend_v2/llm/provider/litellm_provider.py]
   - [x] [NEW] @[backend_v2/llm/provider/__init__.py]
   - [x] `@[backend_v2/llm/client.py#L46-L58]`
-  - [ ] `@[backend_v2/llm/handler.py#L878-L1057]`
+  - [x] `@[backend_v2/llm/handler.py#L878-L1057]`
   - [ ] `@[backend_v2/services/mcp/generic_mcp_client.py#L447-L509]`
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Pure backend Python decomposition with zero `.dart` changes.
 - [ ] **[NOK] Pre-Delete Audit**: Verify `git status` and `grep_search` confirm physical removal of `[DELETE] @[backend_v2/llm/provider.py]` and `[DELETE] @[backend_v2/tests/unit/llm/test_provider.py]`, with `QGR017` blocking re-creation of `backend_v2/llm/provider.py`.
