@@ -246,7 +246,6 @@ async def test_mock_provider_lifecycle_branches_and_negative_paths(
     assert "Diagnostic dump dispatch failed" in str(dump_exc.value)
 
 
-# Phase 4, Step 1: Migrate MockProvider and LogfireShieldedClient tests from test_provider.py
 @pytest.mark.asyncio
 async def test_mock_provider_defaults_to_none_mock_identity() -> None:
     """Verify MockProvider defaults mock_identity to None cleanly."""
