@@ -36,6 +36,13 @@ from backend_v2.database.postgres.entity_adapter import (
     _coerce_uuid_or_str,
     _decode_jsonb_column,
 )
+from backend_v2.database.postgres.graph_adapter import (
+    _coerce_uuid_or_str as _graph_coerce_uuid_or_str,
+)
+from backend_v2.database.postgres.graph_adapter import (
+    _extract_cycle_node_ids,
+    _hydrate_payload_dto,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import Organization, User
 from backend_v2.models.core_base import (
@@ -1106,10 +1113,15 @@ async def test_istqb_boundary_value_and_wire_header_failures(
 
 
 @pytest.mark.asyncio
-async def test_adapter_database_driver_fault_translation() -> None:
+async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify PostgresGraphAdapter, CteReasoningStrategy, and PostgresEntityAdapter translate driver errors."""
     pool = InMemoryAsyncPgPool()
-    settings = Settings(storage_backend=StorageBackend.POSTGRES)
+    settings = Settings(storage_backend=StorageBackend.POSTGRES, postgres_command_timeout_seconds=22.5)
+    monkeypatch.setattr(
+        "backend_v2.database.postgres.graph_adapter.get_settings",
+        lambda: settings,
+        raising=False,
+    )
     manager = PostgresPoolManager(settings=settings, pool=pool)
     run_id = generate_uuid7_opaque_id(EntityPrefix.EXECUTION)
     node_id_1 = generate_uuid7_opaque_id(EntityPrefix.NODE)
@@ -1117,6 +1129,26 @@ async def test_adapter_database_driver_fault_translation() -> None:
     edge_id = generate_uuid7_opaque_id(EntityPrefix.EDGE)
     report_id = generate_uuid7_opaque_id(EntityPrefix.REPORT)
     now_utc = datetime.now(timezone.utc)
+
+    # Verify column coercion and graph adapter helpers
+    assert _graph_coerce_uuid_or_str(12345) == "12345"
+    sample_payload = PropositionPayloadDTO(statement="Already hydrated", metadata={})
+    assert _hydrate_payload_dto(sample_payload) is sample_payload
+    assert _hydrate_payload_dto(b'{"statement": "From bytes", "metadata": {}}').statement == "From bytes"
+    assert _hydrate_payload_dto(memoryview(b'{"statement": "From memoryview", "metadata": {}}')).statement == (
+        "From memoryview"
+    )
+    assert _hydrate_payload_dto({"statement": "From mapping", "metadata": {}}).statement == "From mapping"
+    assert _extract_cycle_node_ids("not_a_sequence") == ()
+    raw_u1 = parse_prefixed_uuid7(node_id_1, EntityPrefix.NODE)
+    raw_u2 = parse_prefixed_uuid7(node_id_2, EntityPrefix.NODE)
+    assert _extract_cycle_node_ids([[raw_u1, raw_u2]]) == (node_id_1, node_id_2)
+
+    async with manager.acquire_connection() as default_conn:
+        default_graph = PostgresGraphAdapter(connection=default_conn)
+        default_reasoning = CteReasoningStrategy(connection=default_conn)
+        assert default_graph.command_timeout_seconds == 22.5
+        assert default_reasoning.command_timeout_seconds == 22.5
 
     # Verify calling UoW ports outside 'async with uow:' fails fast with STORAGE_ACCESS_FAILED
     unbound_uow = PostgresUnitOfWork(pool_manager=manager)
@@ -1224,6 +1256,21 @@ async def test_adapter_database_driver_fault_translation() -> None:
             with pytest.raises(AppException) as exc_fals:
                 await reasoning.find_falsified_claims(run_id, min_confidence=0.7)
             assert exc_fals.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+            # Verify pre-existing AppException from driver is re-raised directly without re-wrapping
+            app_err = AppException(
+                message="Direct AppException from connection",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+            pool.inject_fault("fetch", app_err)
+            with pytest.raises(AppException) as exc_direct_fetch:
+                await graph.materialize_wave(run_id, (draft,), ())
+            assert exc_direct_fetch.value is app_err
+
+            with pytest.raises(AppException) as exc_direct_fals:
+                await reasoning.find_falsified_claims(run_id, min_confidence=0.7)
+            assert exc_direct_fals.value is app_err
         finally:
             pool.clear_faults()
 
@@ -1240,6 +1287,18 @@ async def test_adapter_database_driver_fault_translation() -> None:
             with pytest.raises(AppException) as exc_acyclic:
                 await graph.assert_acyclic(run_id)
             assert exc_acyclic.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+            app_row_err = AppException(
+                message="Direct AppException from fetchrow",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+            pool.inject_fault("fetchrow", app_row_err)
+            with pytest.raises(AppException) as exc_direct_acyclic:
+                await graph.assert_acyclic(run_id)
+            assert exc_direct_acyclic.value is app_row_err
+
+            pool.inject_fault("fetchrow", RuntimeError("fetchrow timeout"))
 
             with pytest.raises(AppException) as exc_get_bin:
                 await entities.get_report_binary(report_id)

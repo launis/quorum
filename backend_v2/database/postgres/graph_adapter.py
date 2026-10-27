@@ -43,6 +43,7 @@ from backend_v2.models.enums import (
     EntityPrefix,
     PropositionNodeType,
 )
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -327,16 +328,21 @@ class CteReasoningStrategy:
     def __init__(
         self,
         connection: AsyncPgConnectionProtocol,
-        command_timeout_seconds: float = 15.0,
+        command_timeout_seconds: float | None = None,
     ) -> None:
         """Initialize the CTE reasoning strategy over an active connection.
 
         Args:
             connection: Active database connection conforming to AsyncPgConnectionProtocol.
-            command_timeout_seconds: Explicit command timeout in seconds.
+            command_timeout_seconds: Explicit command timeout in seconds, or None to use settings.py.
         """
+        resolved_timeout = (
+            command_timeout_seconds
+            if command_timeout_seconds is not None
+            else get_settings().postgres_command_timeout_seconds
+        )
         self._conn: AsyncPgConnectionProtocol = connection
-        self.command_timeout_seconds: float = command_timeout_seconds
+        self.command_timeout_seconds: float = resolved_timeout
 
     async def find_falsified_claims(
         self,
@@ -387,6 +393,7 @@ class CteReasoningStrategy:
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "run_id": run_id},
+                exc_info=True,
             )
             raise AppException(
                 message=msg,
@@ -434,19 +441,24 @@ class PostgresGraphAdapter:
     def __init__(
         self,
         connection: AsyncPgConnectionProtocol,
-        command_timeout_seconds: float = 15.0,
+        command_timeout_seconds: float | None = None,
     ) -> None:
         """Initialize the PostgreSQL graph adapter over an active connection.
 
         Args:
             connection: Active database connection conforming to AsyncPgConnectionProtocol.
-            command_timeout_seconds: Explicit command timeout in seconds.
+            command_timeout_seconds: Explicit command timeout in seconds, or None to use settings.py.
         """
+        resolved_timeout = (
+            command_timeout_seconds
+            if command_timeout_seconds is not None
+            else get_settings().postgres_command_timeout_seconds
+        )
         self._conn: AsyncPgConnectionProtocol = connection
-        self.command_timeout_seconds: float = command_timeout_seconds
+        self.command_timeout_seconds: float = resolved_timeout
         self._reasoning: CteReasoningStrategy = CteReasoningStrategy(
             connection=connection,
-            command_timeout_seconds=command_timeout_seconds,
+            command_timeout_seconds=resolved_timeout,
         )
 
     def _validate_wave_drafts(
@@ -545,6 +557,7 @@ class PostgresGraphAdapter:
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "run_id": run_id},
+                exc_info=True,
             )
             raise AppException(
                 message=msg,
@@ -624,6 +637,7 @@ class PostgresGraphAdapter:
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+                exc_info=True,
             )
             raise AppException(
                 message=msg,
@@ -660,6 +674,7 @@ class PostgresGraphAdapter:
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "run_id": run_id},
+                exc_info=True,
             )
             raise AppException(
                 message=msg,
@@ -710,6 +725,7 @@ class PostgresGraphAdapter:
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "run_id": run_id},
+                exc_info=True,
             )
             raise AppException(
                 message=msg,
