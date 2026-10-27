@@ -628,6 +628,10 @@ uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
 
 ### Askel 6: Suorita GCP-tuotantopystytys & `quorum.ai` Domain (Vaihe 5)
 * **Tavoite:** Provisioi GCP europe-north1 -resurssit (Cloud SQL PG19, Cloud Run API & Worker, Memorystore Redis, Secret Manager, Cloud Armor, Cloud Load Balancer) ja kytke Google-Managed SAN SSL `api.quorum.ai`-, `app.quorum.ai`- ja `quorum.fi`-osoitteille.
+* **Tuotantokriittiset Invariantit (Disaster Recovery & Zero-Downtime):**
+  1. **Cloud SQL PostgreSQL 19 PITR & Varmuuskopiot:** Automaattiset päivittäiset varmuuskopiot, transaktiologit (WAL) ja Point-in-Time Recovery (PITR) 14 päivän palautusikkunalla (täysi Disaster Recovery -suoja inhimillisiä tai laitteistovikoja vastaan).
+  2. **Nollakatkon Elossapito- ja Valmiustarkistukset (`/healthz` & `/ready`):** Cloud Run liveness probe (`/healthz`: Uvicorn elää) ja readiness probe (`/ready`: nopea <10 ms asynkroninen PostgreSQL- ja Redis-ping ennen liikenteen ohjausta konttiin) takaamaan virheettömät nollakatkon päivitykset (Zero-Downtime Rolling Deployments).
+  3. **Idempotentti Tuotantomigraatio (Zero-Downtime Migration Runner):** Cloud Run -konttien käynnistyksessä ajettava automaattinen `run_migrations`-tarkistus (`backend_v2/database/postgres/pool.py`), joka verifioi DDL-taulujen tilan ilman manuaalisia toimenpiteitä tai seisokkeja.
 * **Virallinen Eepos:** `@[docs/epic/EPIC_74_Production_Deployment_GCP.md]`
 * **Toteutussuunnitelma:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]`
 * **Seurantadokumentti (Tracker):** `@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]`
@@ -648,7 +652,7 @@ uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
 
 ### Askel 6.1: Cloud Security & FinOps Infrastructure Hardening (GCP europe-north1) (Vaihe 5b)
 * **Tavoite ja Arkkitehtoninen Rooli:**
-  Ennen julkisen verkkoliikenteen avaamista `quorum.ai`-osoitteelle karkaistaan GCP europe-north1 -tuotantoympäristön verkkoturvallisuus, WAF-säännöt, pienimmät riittävät käyttöoikeudet (Least Privilege IAM), VPC-eristys ja kustannuskatot (FinOps Circuit Breakers).
+  Ennen julkisen verkkoliikenteen avaamista `quorum.ai`-osoitteelle karkaistaan GCP europe-north1 -tuotantoympäristön verkkoturvallisuus, WAF-säännöt, pienimmät riittävät käyttöoikeudet (Least Privilege IAM), VPC-eristys, hälytyskanavat ja kustannuskatot (FinOps Circuit Breakers).
 * **Laajuus & Kesto:** Pilvi-infrastruktuurin auditointi ja verifiointi, kestoarvio **~1 h**.
 * **Karkaisualueet:**
   1. **Cloud Armor WAF & Rate Limiting:** Konfiguroidaan DDoS-suojaus, HTTP Flood -rajoittimet ja SQLi/XSS-suodattimet kuormantasaajassa (`quorum-lb`).
@@ -659,6 +663,7 @@ uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
      * 0 kpl laajoja projektitason ylläpito-oikeuksia.
   3. **VPC Private IP Firewall -sulku:** Varmistetaan, että Cloud SQL PostgreSQL 19 ja Memorystore Redis eivät omaa julkista IP-osoitetta (`public_ip = false`) ja sallivat yhteydet ainoastaan sisäisen `quorum-vpc-connector`:in kautta.
   4. **FinOps Token & Cost Circuit Breakers:** Verifioidaan Redis-pohjaiset TPM/RPM-katot ja hälytysrajat GCP Billing Alertseissa estämään hallitsemattomat tekoälykulut.
+  5. **Cloud Monitoring & Error Reporting -hälytyskanavat:** Konfiguroidaan reaaliaikaiset hälytykset kehitystiimin sähköpostiin/Slackiin odottamattomista HTTP 5xx -virhepiikeistä, Cloud SQL CPU/tallennustilahälytyksistä (>80%) sekä LLM-kiintiöiden lähestymisestä OpenTelemetry / Logfire -integraation rinnalle.
 * **Todennuskomento:**
   ```powershell
   gcloud compute security-policies describe quorum-armor-policy --project=quorum-prod
