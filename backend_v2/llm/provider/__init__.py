@@ -2,7 +2,7 @@
 
 import opentelemetry.trace as otel_trace
 
-# Phase 4, Step 2: Explicit redundant re-exports for backend_v2.llm.provider package facade
+# Re-export provider sub-module symbols explicitly to satisfy PEP 484 package facade contracts
 from backend_v2.llm.adapters.base_adapter import (
     apply_provider_pacing as apply_provider_pacing,
 )
