@@ -111,49 +111,59 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
 
         test_paths: list[str] = []
         if "tests" in parts:
-            test_paths = [target_clean]
-            clean_name = filename.replace("test_", "", 1).removesuffix(".py")
-            if "scripts" in parts:
-                if (Path("scripts") / f"_{clean_name}.py").exists():
-                    cov_target = f"scripts._{clean_name}"
-                    cov_filter_name = f"_{clean_name}.py"
-                elif (Path("scripts") / f"{clean_name}.py").exists():
-                    cov_target = f"scripts.{clean_name}"
-                    cov_filter_name = f"{clean_name}.py"
-                else:
-                    cov_target = f"scripts.{clean_name}"
-                    cov_filter_name = f"{clean_name}.py"
-            elif parts[0] == "backend_v2" and "unit" in parts:
-                unit_idx = parts.index("unit")
-                rel_parts = parts[unit_idx + 1 : -1] + [clean_name]
-                expected_src = Path("backend_v2") / ("/".join(rel_parts) + ".py")
-                if not expected_src.exists():
-                    sub_parts = parts[unit_idx + 1 : -1]
-                    prefix = "/".join(sub_parts) + "/" if sub_parts else ""
-                    glob_pattern = f"{prefix}**/{clean_name}.py"
-                    found = list(Path("backend_v2").glob(glob_pattern))
-                    if not found and not sub_parts:
-                        found = list(Path("scripts").glob(f"**/{clean_name}.py"))
-                    if not found:
-                        found = list(Path("backend_v2").glob(f"**/{clean_name}.py"))
-                    if found:
-                        if found[0].is_relative_to(Path("backend_v2")):
-                            rel_found = found[0].relative_to("backend_v2")
-                            cov_target = "backend_v2." + str(rel_found).removesuffix(".py").replace("\\", ".").replace(
-                                "/", "."
-                            )
-                        else:
-                            cov_target = str(found[0]).removesuffix(".py").replace("\\", ".").replace("/", ".")
-                        cov_filter_name = f"{clean_name}.py"
-                    else:
-                        cov_target = "backend_v2"
-                        cov_filter_name = None
-                else:
-                    cov_target = "backend_v2." + ".".join(rel_parts)
-                    cov_filter_name = f"{clean_name}.py"
-            else:
+            sibling_test = Path("/".join(parts[:-1])) / f"test_{filename}"
+            if not filename.startswith("test_") and sibling_test.exists():
+                test_paths = [str(sibling_test).replace("\\", "/")]
                 cov_target = target_clean.removesuffix(".py").replace("/", ".")
                 cov_filter_name = filename
+            else:
+                test_paths = [target_clean]
+                clean_name = filename.replace("test_", "", 1).removesuffix(".py")
+                sibling_src = Path("/".join(parts[:-1])) / f"{clean_name}.py"
+                if "scripts" in parts:
+                    if (Path("scripts") / f"_{clean_name}.py").exists():
+                        cov_target = f"scripts._{clean_name}"
+                        cov_filter_name = f"_{clean_name}.py"
+                    elif (Path("scripts") / f"{clean_name}.py").exists():
+                        cov_target = f"scripts.{clean_name}"
+                        cov_filter_name = f"{clean_name}.py"
+                    else:
+                        cov_target = f"scripts.{clean_name}"
+                        cov_filter_name = f"{clean_name}.py"
+                elif filename.startswith("test_") and sibling_src.exists():
+                    cov_target = str(sibling_src).removesuffix(".py").replace("\\", ".").replace("/", ".")
+                    cov_filter_name = f"{clean_name}.py"
+                elif parts[0] == "backend_v2" and "unit" in parts:
+                    unit_idx = parts.index("unit")
+                    rel_parts = parts[unit_idx + 1 : -1] + [clean_name]
+                    expected_src = Path("backend_v2") / ("/".join(rel_parts) + ".py")
+                    if not expected_src.exists():
+                        sub_parts = parts[unit_idx + 1 : -1]
+                        prefix = "/".join(sub_parts) + "/" if sub_parts else ""
+                        glob_pattern = f"{prefix}**/{clean_name}.py"
+                        found = list(Path("backend_v2").glob(glob_pattern))
+                        if not found and not sub_parts:
+                            found = list(Path("scripts").glob(f"**/{clean_name}.py"))
+                        if not found:
+                            found = list(Path("backend_v2").glob(f"**/{clean_name}.py"))
+                        if found:
+                            if found[0].is_relative_to(Path("backend_v2")):
+                                rel_found = found[0].relative_to("backend_v2")
+                                cov_target = "backend_v2." + str(rel_found).removesuffix(".py").replace(
+                                    "\\", "."
+                                ).replace("/", ".")
+                            else:
+                                cov_target = str(found[0]).removesuffix(".py").replace("\\", ".").replace("/", ".")
+                            cov_filter_name = f"{clean_name}.py"
+                        else:
+                            cov_target = "backend_v2"
+                            cov_filter_name = None
+                    else:
+                        cov_target = "backend_v2." + ".".join(rel_parts)
+                        cov_filter_name = f"{clean_name}.py"
+                else:
+                    cov_target = target_clean.removesuffix(".py").replace("/", ".")
+                    cov_filter_name = filename
         else:
             if target_clean.endswith("/__init__.py"):
                 cov_target = target_clean.removesuffix("/__init__.py").replace("/", ".")

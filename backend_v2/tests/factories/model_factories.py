@@ -7,7 +7,7 @@ from typing import Any, Literal
 
 from polyfactory.factories.pydantic_factory import ModelFactory
 
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.execution import (
     ExecutionRecord,
     ExecutionStep,
@@ -25,6 +25,7 @@ from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     SystemRulePromptBlock,
 )
+from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.scoring import StepPanelDTO
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.domain.workflow import Workflow
@@ -35,11 +36,17 @@ from backend_v2.models.dtos.causal_discovery import (
 )
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
+from backend_v2.models.dtos.report_artifact import (
+    ReportMetadataDTO,
+    ReportStatus,
+    ReportStoragePathsDTO,
+)
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
 from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.enums import (
     BlockDataType,
     DisplayScale,
+    EntityPrefix,
     ExecutionStatus,
     FidelityLevel,
     PromptBlockCategory,
@@ -55,6 +62,7 @@ __all__ = [
     "I18nTextFactory",
     "MatrixPromptBlockFactory",
     "OutputProfileFactory",
+    "ReportArtifactFactory",
     "StepPanelDTOFactory",
     "SystemRulePromptBlockFactory",
     "WorkflowFactory",
@@ -82,8 +90,12 @@ class WorkflowFactory(ModelFactory[Workflow]):
     status: str = "draft"
     version: int = 1
     is_public: bool = False
-    organization_id: str | None = "org_testorg123"
     historical_context_mode: Literal["DISABLED"] = "DISABLED"
+
+    @classmethod
+    def organization_id(cls) -> str:
+        """Phase 5, Step 5: Generates a valid organization Opaque Stripe ID."""
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
 
     @classmethod
     def expected_inputs(cls) -> list[Any]:
@@ -98,7 +110,7 @@ class WorkflowFactory(ModelFactory[Workflow]):
     @classmethod
     def id(cls) -> str:
         """Generates a valid Opaque Stripe ID with 'wf_' prefix."""
-        return f"wf_{uuid.uuid4().hex[:16]}"
+        return generate_opaque_id(EntityPrefix.WORKFLOW)
 
     @classmethod
     def slug(cls) -> str:
@@ -118,7 +130,7 @@ class WorkflowFactory(ModelFactory[Workflow]):
     @classmethod
     def default_profile_id(cls) -> str:
         """Generates a valid default profile Opaque Stripe ID."""
-        return f"prof_{uuid.uuid4().hex[:16]}"
+        return generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
 
 
 class SystemRulePromptBlockFactory(ModelFactory[SystemRulePromptBlock]):
@@ -132,8 +144,12 @@ class SystemRulePromptBlockFactory(ModelFactory[SystemRulePromptBlock]):
     is_evaluative: bool = False
     allow_decimals: bool = False
     is_lightweight_protocol: bool = False
-    organization_id: str | None = "org_testorg123"
     instruction_text: str | None = "System instruction text for test execution."
+
+    @classmethod
+    def organization_id(cls) -> str:
+        """Phase 5, Step 5: Generates a valid organization Opaque Stripe ID."""
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
 
     @classmethod
     def output_extensions(cls) -> list[str]:
@@ -143,7 +159,7 @@ class SystemRulePromptBlockFactory(ModelFactory[SystemRulePromptBlock]):
     @classmethod
     def id(cls) -> str:
         """Generates a valid Opaque Stripe ID with 'blk_' prefix."""
-        return f"blk_{uuid.uuid4().hex[:16]}"
+        return generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
 
     @classmethod
     def slug(cls) -> str:
@@ -167,8 +183,12 @@ class OutputProfileFactory(ModelFactory[OutputProfile]):
     __model__ = OutputProfile
     __set_as_default_factory_for_type__ = True
 
-    organization_id: str | None = "org_testorg123"
     display_scale: DisplayScale = DisplayScale.ORIGINAL
+
+    @classmethod
+    def organization_id(cls) -> str:
+        """Phase 5, Step 5: Generates a valid organization Opaque Stripe ID."""
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
 
     @classmethod
     def target_block_order(cls) -> list[TargetBlockType]:
@@ -202,8 +222,8 @@ class OutputProfileFactory(ModelFactory[OutputProfile]):
 
     @classmethod
     def id(cls) -> str:
-        """Generates a valid Opaque Stripe ID with 'prof_' prefix."""
-        return f"prof_{uuid.uuid4().hex[:16]}"
+        """Generates a valid Opaque Stripe ID with 'prf_' prefix."""
+        return generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
 
     @classmethod
     def slug(cls) -> str:
@@ -213,7 +233,7 @@ class OutputProfileFactory(ModelFactory[OutputProfile]):
     @classmethod
     def workflow_id(cls) -> str:
         """Generates an associated workflow Opaque Stripe ID."""
-        return f"wf_{uuid.uuid4().hex[:16]}"
+        return generate_opaque_id(EntityPrefix.WORKFLOW)
 
     @classmethod
     def name(cls) -> I18nText:
@@ -238,14 +258,18 @@ class MatrixPromptBlockFactory(ModelFactory[MatrixPromptBlock]):
     allow_decimals: bool = False
     allow_contextual_override: bool = False
     is_lightweight_protocol: bool = False
-    organization_id: str | None = "org_testorg123"
     ai_description: str | None = "Evaluate target dimension against BARS criteria."
     columns: list[I18nText] | None = None
 
     @classmethod
+    def organization_id(cls) -> str:
+        """Phase 5, Step 5: Generates a valid organization Opaque Stripe ID."""
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
+
+    @classmethod
     def id(cls) -> str:
         """Generates a valid Opaque Stripe ID with 'blk_' prefix."""
-        return f"blk_{uuid.uuid4().hex[:16]}"
+        return generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
 
     @classmethod
     def slug(cls) -> str:
@@ -313,7 +337,7 @@ class ExecutionStepFactory(ModelFactory[ExecutionStep]):
     @classmethod
     def id(cls) -> str:
         """Generates a valid step identifier."""
-        return f"st_{uuid.uuid4().hex[:12]}"
+        return generate_opaque_id(EntityPrefix.STEP)
 
 
 class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
@@ -362,13 +386,23 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
 
     @classmethod
     def id(cls) -> str:
-        """Generates a valid Opaque Stripe ID with 'exec_' prefix."""
-        return f"exec_{uuid.uuid4().hex[:16]}"
+        """Generates a valid Opaque Stripe ID with 'exe_' prefix."""
+        return generate_opaque_id(EntityPrefix.EXECUTION)
 
     @classmethod
     def workflow_id(cls) -> str:
         """Generates an associated workflow ID."""
-        return f"wf_{uuid.uuid4().hex[:16]}"
+        return generate_opaque_id(EntityPrefix.WORKFLOW)
+
+    @classmethod
+    def organization_id(cls) -> str:
+        """Generates a valid organization Opaque Stripe ID."""
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
+
+    @classmethod
+    def initiator_id(cls) -> str:
+        """Generates a valid initiator user Opaque Stripe ID."""
+        return generate_opaque_id(EntityPrefix.USER)
 
     @classmethod
     def raw_inputs(cls) -> WorkflowInputs:
@@ -390,6 +424,49 @@ class ExecutionRecordFactory(ModelFactory[ExecutionRecord]):
             ui_hints_snapshot={},
             mcp_tool_audit=[],
         )
+
+
+class ReportArtifactFactory(ModelFactory[ReportArtifact]):
+    """Phase 5, Step 5: Polyfactory model factory for ReportArtifact materialized report models."""
+
+    __model__ = ReportArtifact
+    __set_as_default_factory_for_type__ = True
+
+    locale: str = "en"
+    title: str = "Test Report Artifact"
+    status: ReportStatus = ReportStatus.READY
+    custom_preface_md: str | None = None
+    error_message: str | None = None
+
+    @classmethod
+    def id(cls) -> str:
+        """Generates a valid Opaque Stripe ID with 'rep_' prefix."""
+        return generate_opaque_id(EntityPrefix.REPORT)
+
+    @classmethod
+    def execution_id(cls) -> str:
+        """Generates an associated execution Opaque Stripe ID."""
+        return generate_opaque_id(EntityPrefix.EXECUTION)
+
+    @classmethod
+    def workflow_id(cls) -> str:
+        """Generates an associated workflow Opaque Stripe ID."""
+        return generate_opaque_id(EntityPrefix.WORKFLOW)
+
+    @classmethod
+    def profile_id(cls) -> str:
+        """Generates an associated presentation profile Opaque Stripe ID."""
+        return generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
+
+    @classmethod
+    def storage_paths(cls) -> ReportStoragePathsDTO:
+        """Generates empty report storage paths container."""
+        return ReportStoragePathsDTO()
+
+    @classmethod
+    def metadata(cls) -> ReportMetadataDTO:
+        """Generates empty report telemetry metadata container."""
+        return ReportMetadataDTO()
 
 
 class StepPanelDTOFactory(ModelFactory[StepPanelDTO]):
@@ -531,4 +608,14 @@ class CausalGraphPayloadDTOFactory(ModelFactory[CausalGraphPayloadDTO]):
     @classmethod
     def isolated_node_ids(cls) -> list[str]:
         """Generates an empty isolated node IDs list."""
+        return []
+
+    @classmethod
+    def partition_node_ids(cls) -> dict[str, list[str]]:
+        """Generates an empty partition node IDs mapping."""
+        return {}
+
+    @classmethod
+    def edge_root_causes(cls) -> list[str]:
+        """Generates an empty edge root causes list."""
         return []

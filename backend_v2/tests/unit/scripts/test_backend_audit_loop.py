@@ -734,3 +734,10 @@ def test_subprocess_zero_orm_strictness_failure(mock_exit: MagicMock, mock_scan:
                 main()
             assert exc.value.code == 1
 
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_coverage_runner_tests_factories_sibling_resolution(mock_sub: MagicMock) -> None:
+    """Verify sibling test and source resolution for files under backend_v2/tests/factories/."""
+    run_tests_with_strict_coverage("backend_v2/tests/factories/model_factories.py")
+    run_tests_with_strict_coverage("backend_v2/tests/factories/test_model_factories.py")
+    assert mock_sub.call_count == 4
