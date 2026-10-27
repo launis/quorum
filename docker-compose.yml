@@ -63,6 +63,21 @@ services:
     networks:
       - quorum-net
 
+  postgres:
+    image: postgres:19-rc1
+    container_name: quorum-postgres
+    environment:
+      - POSTGRES_DB=quorum
+      - POSTGRES_USER=quorum
+      - POSTGRES_PASSWORD=quorum
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backend_v2/database/migrations/001_pg19_uuidv7_schema.sql:/docker-entrypoint-initdb.d/001_pg19_uuidv7_schema.sql:ro
+    networks:
+      - quorum-net
+
   frontend:
     build: ./client_app_v2
     container_name: quorum-frontend
@@ -72,6 +87,9 @@ services:
       - backend
     networks:
       - quorum-net
+
+volumes:
+  postgres-data:
 
 networks:
   quorum-net:

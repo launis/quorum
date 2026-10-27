@@ -2,7 +2,6 @@
 
 import logging
 import os
-from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
@@ -14,6 +13,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.dtos.system import SafetySettingDTO
+from backend_v2.models.enums import StorageBackend as StorageBackend
 
 logger = logging.getLogger(__name__)
 
@@ -42,13 +42,6 @@ def strip_whitespace(v: Any) -> Any:
 
 
 type MyBool = Annotated[bool, BeforeValidator(strip_whitespace)]
-
-
-class StorageBackend(StrEnum):
-    """Enumeration for Storage Backends."""
-
-    FIRESTORE = "FIRESTORE"
-    LOCAL = "LOCAL"
 
 
 class Settings(BaseSettings):
@@ -636,8 +629,27 @@ class Settings(BaseSettings):
 
     # --- Storage ---
     storage_backend: Annotated[
-        str | None, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, or FIRESTORE")
+        str | None, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, FIRESTORE, or POSTGRES")
     ] = None
+    # Step 3: Environment-injected PostgreSQL 19 connection, pool, timeout, and TOAST settings
+    postgres_host: Annotated[str, Field(description="PostgreSQL server host address.")] = "127.0.0.1"
+    postgres_port: Annotated[int, Field(ge=1, le=65535, description="PostgreSQL server port.")] = 5432
+    postgres_user: Annotated[str, Field(min_length=1, description="PostgreSQL role username.")] = "quorum"
+    postgres_password: Annotated[
+        str | None, Field(description="PostgreSQL role password injected from environment.")
+    ] = None
+    postgres_db: Annotated[str, Field(min_length=1, description="PostgreSQL database name.")] = "quorum"
+    postgres_dsn: Annotated[str | None, Field(description="Optional environment-injected PostgreSQL DSN override.")] = (
+        None
+    )
+    postgres_min_pool_size: Annotated[int, Field(ge=1, le=50, description="Minimum asyncpg pool connections.")] = 2
+    postgres_max_pool_size: Annotated[int, Field(ge=2, le=200, description="Maximum asyncpg pool connections.")] = 20
+    postgres_command_timeout_seconds: Annotated[
+        float, Field(description="Command timeout in seconds for PostgreSQL queries.")
+    ] = 15.0
+    postgres_toast_compression: Annotated[
+        str, Field(description="PostgreSQL TOAST compression algorithm (lz4 default).")
+    ] = "lz4"
     environment: Annotated[
         Literal["development", "production"],
         Field(description="Runtime environment: 'development' (all fast) or 'production' (all thorough/accurate)"),
@@ -780,10 +792,12 @@ class Settings(BaseSettings):
         value = self.storage_backend.upper()
         if value == "FIRESTORE":
             return StorageBackend.FIRESTORE
+        if value in ("POSTGRES", "POSTGRESQL"):
+            return StorageBackend.POSTGRES
         if value in ("LOCAL", "TINYDB"):
             return StorageBackend.LOCAL
 
-        msg = f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. Must be LOCAL or FIRESTORE."
+        msg = f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. Must be LOCAL, FIRESTORE, or POSTGRES."
         logger.error("[Settings] %s", msg, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}, exc_info=True)
         raise AppException(
             message=msg,
@@ -1049,6 +1063,29 @@ class Settings(BaseSettings):
                 f"Combined linker axioms budget ({self.linker_max_bridge_axioms} bridges + "
                 f"{self.linker_max_root_axioms} roots = {self.linker_max_bridge_axioms + self.linker_max_root_axioms}) "
                 f"exceeds linker_max_global_root_axioms ({self.linker_max_global_root_axioms})."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_postgres_pool_and_timeout_bounds(self) -> Self:
+        """Validate PostgreSQL pool size and command timeout bounds.
+
+        Returns:
+            The validated Settings instance.
+
+        Raises:
+            ValueError: If postgres_command_timeout_seconds is outside [1.0, 120.0]
+                or postgres_min_pool_size exceeds postgres_max_pool_size.
+        """
+        if not 1.0 <= self.postgres_command_timeout_seconds <= 120.0:
+            raise ValueError(
+                f"postgres_command_timeout_seconds ({self.postgres_command_timeout_seconds}) "
+                "must be within [1.0, 120.0]."
+            )
+        if self.postgres_min_pool_size > self.postgres_max_pool_size:
+            raise ValueError(
+                f"postgres_min_pool_size ({self.postgres_min_pool_size}) cannot exceed "
+                f"postgres_max_pool_size ({self.postgres_max_pool_size})."
             )
         return self
 

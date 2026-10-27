@@ -144,6 +144,12 @@ def test_settings_storage_backend_fallback_and_invalid() -> None:
     s_tinydb = Settings(storage_backend="TINYDB", use_mock_llm=True)
     assert s_tinydb.active_backend == StorageBackend.LOCAL
 
+    s_pg = Settings(storage_backend="POSTGRES", use_mock_llm=True)
+    assert s_pg.active_backend == StorageBackend.POSTGRES
+
+    s_postgresql = Settings(storage_backend="postgresql", use_mock_llm=True)
+    assert s_postgresql.active_backend == StorageBackend.POSTGRES
+
     s_dev = Settings(use_mock_llm=True, environment="development", use_json_logging=False)
     assert s_dev.log_format == "readable"
 
@@ -436,3 +442,49 @@ def test_generic_mcp_settings_invariants() -> None:
         Settings(use_mock_llm=True, mcp_max_response_chars=499)
     with pytest.raises(ValidationError):
         Settings(use_mock_llm=True, mcp_max_response_chars=50001)
+
+
+def test_postgres_settings_and_boundary_invariants() -> None:
+    """Verify PostgreSQL 19 Settings defaults, custom overrides, and ISTQB negative boundaries."""
+    defaults = Settings(use_mock_llm=True)
+    assert defaults.postgres_host == "127.0.0.1"
+    assert defaults.postgres_port == 5432
+    assert defaults.postgres_user == "quorum"
+    assert defaults.postgres_password is None
+    assert defaults.postgres_db == "quorum"
+    assert defaults.postgres_dsn is None
+    assert defaults.postgres_min_pool_size == 2
+    assert defaults.postgres_max_pool_size == 20
+    assert defaults.postgres_command_timeout_seconds == 15.0
+    assert defaults.postgres_toast_compression == "lz4"
+
+    custom = Settings(
+        use_mock_llm=True,
+        postgres_host="db.internal",
+        postgres_port=5433,
+        postgres_user="quorum_app",
+        postgres_password="env_injected_secret",
+        postgres_db="quorum_prod",
+        postgres_min_pool_size=5,
+        postgres_max_pool_size=50,
+        postgres_command_timeout_seconds=30.0,
+        postgres_toast_compression="lz4",
+    )
+    assert custom.postgres_host == "db.internal"
+    assert custom.postgres_port == 5433
+    assert custom.postgres_min_pool_size == 5
+    assert custom.postgres_max_pool_size == 50
+    assert custom.postgres_command_timeout_seconds == 30.0
+
+    # Negative BVA 1: postgres_command_timeout_seconds < 1.0
+    with pytest.raises(ValidationError, match="postgres_command_timeout_seconds"):
+        Settings(use_mock_llm=True, postgres_command_timeout_seconds=0.999)
+
+    # Negative BVA 2: postgres_command_timeout_seconds > 120.0
+    with pytest.raises(ValidationError, match="postgres_command_timeout_seconds"):
+        Settings(use_mock_llm=True, postgres_command_timeout_seconds=120.001)
+
+    # Negative BVA 3: postgres_min_pool_size > postgres_max_pool_size
+    with pytest.raises(ValidationError, match="postgres_min_pool_size"):
+        Settings(use_mock_llm=True, postgres_min_pool_size=25, postgres_max_pool_size=10)
+
