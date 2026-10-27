@@ -32,7 +32,7 @@
   - [x] @[backend_v2/database/driver.py]
   - [x] @[backend_v2/database/factory.py]
   - [x] @[backend_v2/database/interfaces.py]
-  - [ ] @[backend_v2/database/postgres/entity_adapter.py]
+  - [x] @[backend_v2/database/postgres/entity_adapter.py]
   - [ ] @[backend_v2/database/postgres/pool.py]
   - [ ] @[backend_v2/database/postgres/storage_driver.py]
   - [ ] @[backend_v2/main.py]
