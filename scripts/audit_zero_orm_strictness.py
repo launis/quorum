@@ -8,7 +8,8 @@ and backend_v2/database/migrations/001_pg19_uuidv7_schema.sql:
 - ZORM003: Bans broad except Exception handlers lacking explicit AppException re-raise.
 - ZORM004: Enforces that SQL CREATE TABLE identifiers belong strictly to the closed 12-table set.
 - ZORM005: Bans calling llm_client, execute_structured_task, or execute_chat_task inside database/UoW modules.
-- ZORM006: Enforces that record subscript column keys in graph_adapter.py and entity_adapter.py map 1:1 to declared domain model fields.
+- ZORM006: Enforces that record subscript column keys in graph_adapter.py and entity_adapter.py map 1:1
+  to declared domain model fields.
 """
 
 from __future__ import annotations

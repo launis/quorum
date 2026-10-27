@@ -798,7 +798,7 @@ def execute_circuit_breaker_rollback(
     target_file: str,
     repo_root: Path | None = None,
 ) -> None:
-    """Roll back working directory modifications, strictly preserving db_v2.json and hardening_state.json.
+    """Roll back working directory modifications, strictly preserving hardening_state.json.
 
     Args:
         snapshot: Pre-attempt baseline workspace snapshot.
@@ -809,12 +809,12 @@ def execute_circuit_breaker_rollback(
     current = capture_workspace_snapshot(root)
     norm_target = target_file.replace("\\", "/")
 
-    excluded = {"data/db_v2.json", "hardening_state.json"}
+    excluded = {"hardening_state.json"}
 
     to_restore: list[str] = []
     for f in current.modified_files:
         norm_f = f.replace("\\", "/")
-        if norm_f in excluded or norm_f.endswith("/hardening_state.json") or norm_f.endswith("/db_v2.json"):
+        if norm_f in excluded or norm_f.endswith("/hardening_state.json"):
             continue
         if norm_f == norm_target or norm_f not in snapshot.modified_files:
             to_restore.append(norm_f)
@@ -834,7 +834,7 @@ def execute_circuit_breaker_rollback(
 
     for u in current.untracked_files:
         norm_u = u.replace("\\", "/")
-        if norm_u in excluded or norm_u.endswith("/hardening_state.json") or norm_u.endswith("/db_v2.json"):
+        if norm_u in excluded or norm_u.endswith("/hardening_state.json"):
             continue
         if norm_u not in snapshot.untracked_files:
             file_path = root / norm_u

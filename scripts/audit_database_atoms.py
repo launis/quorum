@@ -10,19 +10,7 @@ WORKFLOW AND USAGE:
    - Validates that all prompt_blocks (matrices), steps, workflows, and output_profiles
      are 100% Pydantic V2 compliant without schema errors or empty criteria.
 
-2. Matrix and Atom Hardening Loop:
-   `uv run python scripts/matrix_hardening_loop.py --status`
-   - Checks atom density per scale level (warns if a cell contains < 3 atoms).
-   - Inspects a single matrix:
-     `uv run python scripts/matrix_hardening_loop.py --inspect <matrix_id>`
-   - Marks a matrix as audited:
-     `uv run python scripts/matrix_hardening_loop.py --done <matrix_id>`
-
-3. Automated Gap Identification and Generation:
-   `uv run python scripts/matrix_hardening_generator.py --all-gaps`
-   `uv run python scripts/matrix_hardening_generator.py --plan <matrix_id>`
-
-4. Local Database Reseeding After Validation:
+2. Local Database Reseeding After Validation:
    `uv run python backend_v2/seed/run_seed.py local`
 
 AUDITED COLLECTIONS:

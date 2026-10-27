@@ -1506,35 +1506,56 @@ def poll_database_for_execution(
     target_db_path: Path,
     exec_id: str,
     timeout_seconds: int = 1800,
+    base_url: str = "http://127.0.0.1:8000/api/v2",
 ) -> Mapping[str, JsonValue] | None:
-    """Poll database until execution reaches a terminal status or timeout expires.
+    """Poll execution endpoint or local database until execution reaches terminal status.
 
     Args:
-        target_db_path: Path to runtime database json file.
+        target_db_path: Path to runtime database json file (offline fallback).
         exec_id: Execution ID string to monitor.
         timeout_seconds: Maximum seconds to wait.
+        base_url: Base API endpoint URL.
 
     Returns:
         Execution dictionary if terminal status reached, otherwise None.
     """
     print(f"Polling database for execution {exec_id} completion (max {timeout_seconds // 60} mins)...")
+    from backend_v2.settings import get_settings
+
+    settings = get_settings()
+    headers = {"Authorization": f"Bearer mock-token:{settings.mock_admin_user_id}"}
+    endpoint = f"{base_url}/execution/executions/{exec_id}"
+
     start = time.time()
     while time.time() - start < timeout_seconds:
         poll_interval: float = 5.0
         time.sleep(poll_interval)
         try:
-            with target_db_path.open("r", encoding="utf-8") as f:
-                db_data = json.load(f)
-            execs = list(db_data.get("executions", {}).values())
-            if execs:
-                found_exec = next((e for e in execs if e.get("id") == exec_id), None)
-                if found_exec:
+            resp = requests.get(endpoint, headers=headers, timeout=settings.mcp_default_timeout_seconds)
+            if resp.status_code == 200:
+                found_exec = resp.json()
+                if isinstance(found_exec, dict):
                     status = str(found_exec.get("status")).upper()
-                    if status in ["PASSED", "FAILED", "SYSTEM_ERROR"] and type(found_exec) is dict:
+                    if status in ["PASSED", "FAILED", "SYSTEM_ERROR"]:
                         print(f"Execution {exec_id} finished with status: {status}")
                         return found_exec
-        except (json.JSONDecodeError, OSError) as e:
-            print(f"[Polling] Notice while reading database {target_db_path}: {e}")
+        except requests.RequestException:
+            pass
+
+        if target_db_path.exists():
+            try:
+                with target_db_path.open("r", encoding="utf-8") as f:
+                    db_data = json.load(f)
+                execs = list(db_data.get("executions", {}).values())
+                if execs:
+                    found_exec = next((e for e in execs if isinstance(e, dict) and e.get("id") == exec_id), None)
+                    if found_exec:
+                        status = str(found_exec.get("status")).upper()
+                        if status in ["PASSED", "FAILED", "SYSTEM_ERROR"]:
+                            print(f"Execution {exec_id} finished with status: {status}")
+                            return found_exec
+            except (json.JSONDecodeError, OSError) as e:
+                print(f"[Polling] Notice while reading database {target_db_path}: {e}")
     return None
 
 

@@ -2304,7 +2304,8 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     node,
                     "QGR017",
                     f"Banned import from eradicated legacy persistence module `{node.module}`.",
-                    "Use PostgreSQL 19 Zero-ORM persistence (`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                    "Use PostgreSQL 19 Zero-ORM persistence "
+                    "(`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
                     severity=GuardrailSeverity.FATAL,
                 )
             elif node.module in ("backend_v2.database", "database"):
@@ -2321,8 +2322,10 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         self._add_violation(
                             node,
                             "QGR017",
-                            f"Banned import of eradicated legacy persistence symbol `{alias.name}` from `{node.module}`.",
-                            "Use PostgreSQL 19 Zero-ORM persistence (`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                            f"Banned import of eradicated legacy persistence symbol `{alias.name}` "
+                            f"from `{node.module}`.",
+                            "Use PostgreSQL 19 Zero-ORM persistence "
+                            "(`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
                             severity=GuardrailSeverity.FATAL,
                         )
             else:
@@ -2332,7 +2335,8 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             node,
                             "QGR017",
                             f"Banned import of eradicated legacy persistence symbol `{alias.name}`.",
-                            "Use PostgreSQL 19 Zero-ORM persistence (`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                            "Use PostgreSQL 19 Zero-ORM persistence "
+                            "(`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
                             severity=GuardrailSeverity.FATAL,
                         )
 
@@ -2363,7 +2367,8 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 node,
                 "QGR015",
                 "Banned legacy `TypeGuard` type annotation detected.",
-                "Use modern PEP 742 `TypeIs` from `typing` (or `typing_extensions`) instead of `TypeGuard` for narrowing.",
+                "Use modern PEP 742 `TypeIs` from `typing` (or `typing_extensions`) "
+                "instead of `TypeGuard` for narrowing.",
                 severity=GuardrailSeverity.FATAL,
             )
         # QGR017: Banned eradicated persistence symbols
@@ -2372,7 +2377,8 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 node,
                 "QGR017",
                 f"Banned reference to eradicated persistence symbol `{node.id}`.",
-                "Use PostgreSQL 19 Zero-ORM persistence (`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                "Use PostgreSQL 19 Zero-ORM persistence "
+                "(`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
                 severity=GuardrailSeverity.FATAL,
             )
         self.generic_visit(node)

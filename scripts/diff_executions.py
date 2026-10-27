@@ -1692,34 +1692,25 @@ def extract_evidence_distribution(
 
 
 def _ensure_trace_file(trace_file: Path, run_name: str) -> bool:
-    """Ensure trace_file exists on disk, reconstituting from db_v2.json if needed.
+    """Ensure trace_file exists on disk.
 
     Args:
         trace_file: Target path to execution_trace.json.
         run_name: Execution ID (e.g. exe_...).
 
     Returns:
-        True if trace_file exists or was successfully reconstituted, False otherwise.
+        True if trace_file exists or was found, False otherwise.
     """
     if trace_file.exists():
         return True
-    db_path = Path("data/db_v2.json")
-    if not db_path.exists():
-        return False
-    try:
-        with db_path.open("r", encoding="utf-8") as db_f:
-            db_data = json.load(db_f)
-        exec_record = next(
-            (rec for rec in db_data.get("executions", {}).values() if rec.get("id") == run_name),
-            None,
-        )
-        if exec_record and "execution_trace" in exec_record:
+    fallback_candidate = Path("data/files/executions") / run_name / "execution_trace.json"
+    if fallback_candidate.exists() and not trace_file.exists():
+        try:
             trace_file.parent.mkdir(parents=True, exist_ok=True)
-            with trace_file.open("w", encoding="utf-8") as tf:
-                json.dump(exec_record["execution_trace"], tf, indent=2)
+            trace_file.write_bytes(fallback_candidate.read_bytes())
             return True
-    except json.JSONDecodeError, OSError:
-        pass
+        except OSError:
+            pass
     return False
 
 
@@ -2083,14 +2074,6 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         sys_enums = f"Virhe Enumien luvussa: {e}"
 
     db_executions: Mapping[str, JsonValue] = {}
-    db_file_path = Path("data/db_v2.json")
-    if db_file_path.exists():
-        try:
-            with db_file_path.open("r", encoding="utf-8") as db_f:
-                db_json = json.load(db_f)
-                db_executions = db_json.get("executions", {})
-        except (json.JSONDecodeError, OSError) as e:
-            print(f"Warning: db_v2.json read error: {e}")
 
     # Isolation Audit & SHA-256 Hashes
     input_hashes_by_run = {}

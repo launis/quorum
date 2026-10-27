@@ -22,7 +22,7 @@ description: Tier 2 (Matrix & Atom Hardening) - The Supreme AI Prompt & Matrix O
     </rule_block>
 
     <rule_block id="streamlined_execution_mandate">
-      <mandatory_pattern>Do NOT generate an `implementation_plan.md` artifact or pause for approval during `/tier2-hardening-matrix`. Per user mandate, proceed directly with surgical structural updates to `seed_data.json`, verify against automated quality gates (`audit_database_atoms.py --strict`, `matrix_hardening_loop.py --audit-best-practice`, `run_seed.py local --dry-run`), re-seed the local DB, and generate the Opponent Card report.</mandatory_pattern>
+      <mandatory_pattern>Do NOT generate an `implementation_plan.md` artifact or pause for approval during `/tier2-hardening-matrix`. Per user mandate, proceed directly with surgical structural updates to `seed_data.json`, verify against automated quality gates (`audit_database_atoms.py --strict`, `run_seed.py local --dry-run`), re-seed the local DB, and generate the Opponent Card report.</mandatory_pattern>
       <catastrophic_reason>Pausing for interactive plans on each matrix stalls the high-throughput 13-matrix ontological hardening pipeline.</catastrophic_reason>
     </rule_block>
 
@@ -34,10 +34,9 @@ description: Tier 2 (Matrix & Atom Hardening) - The Supreme AI Prompt & Matrix O
   
   <phases>
     <phase id="1" name="Mapping & Status Inspection">
-      <action>Execute the deterministic audit engine: `uv run python scripts/matrix_hardening_loop.py --status`.</action>
-      <action>Run the comprehensive AI Prompt Best Practice scanner: `uv run python scripts/matrix_hardening_loop.py --audit-best-practice`.</action>
-      <action>If a specific matrix ID was given in the command (e.g. `blk_440a5fef9331451b`), select ONLY that matrix. Otherwise, select the first matrix marked `[TODO]` or flagged with best-practice violations.</action>
-      <action>Run deep inspection for the active target: `uv run python scripts/matrix_hardening_loop.py --inspect <target_matrix_id>`.</action>
+      <action>Execute the deterministic audit engine: `uv run python scripts/audit_database_atoms.py --strict`.</action>
+      <action>If a specific matrix ID was given in the command (e.g. `blk_440a5fef9331451b`), select ONLY that matrix. Otherwise, select the first matrix flagged with atom or best-practice violations.</action>
+      <action>Inspect the active target in `@[backend_v2/seed/seed_data.json]` using `grep_search` and bounded `view_file`.</action>
     </phase>
     
     <phase id="2" name="Level-by-Level Audit & Hardening (The 7 Golden Rules)">
@@ -57,7 +56,7 @@ description: Tier 2 (Matrix & Atom Hardening) - The Supreme AI Prompt & Matrix O
         2. `uv run python backend_v2/seed/run_seed.py local --dry-run`
         If any gate fails, revert immediately.
       </constraint>
-      <action>Once validated, mark the matrix as completed: `uv run python scripts/matrix_hardening_loop.py --done <target_matrix_id>`.</action>
+      <action>Once validated, verify full database atom compliance: `uv run python scripts/audit_database_atoms.py --strict`.</action>
       <action>Re-seed the local testing database: `uv run python backend_v2/seed/run_seed.py local`.</action>
       <action name="RED_TEAM_PROMPT_GENERATION">
         For EVERY completed matrix, you MUST output a dedicated, self-contained Markdown Review & Opponent Card containing:
