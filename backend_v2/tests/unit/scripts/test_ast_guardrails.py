@@ -2358,4 +2358,3 @@ short_negative = "wf_invalid1"
 """
     violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
     assert [v for v in violations if v.rule_code == "QGR030"] == []
-

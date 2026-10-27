@@ -23,20 +23,20 @@
   - [x] Step 3: Phase 3: First-Class Scripts Quality Gate & Zero-ORM Strictness Integration (Improvement 4)
   - [x] Step 4: Phase 4: Hermetic Test Fixtures & Pre-Flight Metatest Mapping Mandate (Improvements 1, 2, & 3)
   - [x] Step 5: Phase 5: Polyfactory SSOT & Hexadecimal ID Generation Expansion (Improvement 4)
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md] @[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md] @[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]`
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]" --gate backend --model gemini-4-argon-medium`.
   - [ ] @[backend_v2/database/postgres/storage_driver.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/audit_zero_orm_strictness.py]
   - [ ] @[scripts/backend_audit_loop.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]" --gate frontend --model gemini-4-argon-medium`. (Zero frontend `.dart` production targets in this plan).
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+- [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]" --gate frontend --model gemini-4-argon-medium`. (Zero frontend `.dart` production targets in this plan).
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
 
@@ -58,7 +58,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md] @[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md] @[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors. (PASSED: 6,146 passed tests, 96.86% line coverage, 0 fatal or advisory AST violations).
 
 ## Instructions for the Execution Agent
 
@@ -102,17 +102,17 @@
   - Step 4 (`335d0c28a`): Codified `hermetic_test_fixtures_mandate` in `@[.agents/rules/01-python-backend.md]`, `zero_compromise_cutover_mandate` in `@[.agents/rules/00-antigravity-core.md]`, and `preflight_metatest_and_exemption_mapping_mandate` in `@[.agents/workflows/tier0-research-plan.md]`.
   - Step 5 (`84fb17755`): Updated Polyfactory models in `@[backend_v2/tests/factories/model_factories.py]` (`WorkflowFactory`, `SystemRulePromptBlockFactory`, `OutputProfileFactory`, `MatrixPromptBlockFactory`, `ExecutionStepFactory`, `ExecutionRecordFactory`), added `ReportArtifactFactory`, and verified `OPAQUE_STRIPE_ID_REGEX` compliance and ISTQB negative boundary cases in `@[backend_v2/tests/factories/test_model_factories.py]`.
 - Updated `@[.agents/rules/04_directory_reference.md]` and synchronized AST line boundaries across both the implementation plan and this tracker.
+- Completed `/tier8-audit-plan` (`PASSED` with 0 findings: 6,146 passed tests, 96.86% total line coverage, 0 `QGR001`–`QGR030` violations, 0 `ZORM001`–`ZORM006` violations, 0 technical debt findings across 17 targets and 65 1-hop callers).
 
 ## Learned
 - `CausalGraphPayloadDTOFactory` requires deterministic empty defaults for `partition_node_ids` and `edge_root_causes` so `CausalGraphPayloadDTO.validate_referential_integrity` succeeds on default `.build()` calls.
 - Resolving sibling `test_<filename>` modules in `@[scripts/backend_audit_loop.py]` (`run_tests_with_strict_coverage`) enables direct coverage verification when targeting non-test modules under `backend_v2/tests/factories/`.
 
 ## Remaining
-- Execute `### Final Plan Audit` (`/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md] @[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]`).
 - Execute `### Post-Implementation Gates` (`Tier 2 Hardening (Backend)`).
 - Execute `### Documentation & Knowledge Item Update` (`/tier7-describe-architecture`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md] @[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]
+/tier5-resume --target="@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]" --workflow=/tier2-hardening-backend
 ```
