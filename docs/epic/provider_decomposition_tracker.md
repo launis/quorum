@@ -64,7 +64,7 @@
   - [x] [NEW] @[backend_v2/llm/provider/base_and_mock_provider.py]
   - [x] [NEW] @[backend_v2/llm/provider/provider_factory.py]
   - [x] [NEW] @[backend_v2/llm/provider/litellm_response_stage.py]
-  - [ ] [NEW] @[backend_v2/llm/provider/litellm_provider.py]
+  - [x] [NEW] @[backend_v2/llm/provider/litellm_provider.py]
   - [ ] [NEW] @[backend_v2/llm/provider/__init__.py]
   - [ ] `@[backend_v2/llm/client.py#L46-L58]`
   - [ ] `@[backend_v2/llm/handler.py#L878-L1057]`
