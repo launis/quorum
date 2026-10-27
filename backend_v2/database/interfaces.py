@@ -7,7 +7,9 @@ All methods return strictly typed Pydantic Domain models (ConfigDict(frozen=True
 
 from __future__ import annotations
 
-from typing import Protocol
+from collections.abc import Sequence
+from types import TracebackType
+from typing import Protocol, Self, runtime_checkable
 
 from backend_v2.models.auth import (
     Organization,
@@ -38,6 +40,14 @@ from backend_v2.models.domain.knowledge import (
 )
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.proposition_graph import (
+    DependencyEdge,
+    EdgeDraft,
+    FalsifiedClaimMatch,
+    NodeDraft,
+    PropositionNode,
+    ReportBinaryPayloadDTO,
+)
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.step import Role, Step
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
@@ -62,6 +72,9 @@ from backend_v2.models.dtos.trace import (
 from backend_v2.models.state import TraceEvent
 
 __all__ = [
+    "CausalReasoningPort",
+    "EntityPersistencePort",
+    "GraphMutationPort",
     "IAgentRepository",
     "IAuditRepository",
     "IComponentRepository",
@@ -79,6 +92,8 @@ __all__ = [
     "ITaskBlueprintRepository",
     "IUnifiedWorkflowRepository",
     "IWorkflowRepository",
+    "QuorumUnitOfWork",
+    "TopologyResolutionPort",
 ]
 
 
@@ -334,3 +349,78 @@ class IUnifiedWorkflowRepository(
     """Combined protocol facade for all repository operations."""
 
     ...
+
+
+# Step 2: Hexagonal CQRS Ports & Post-Wave Unit of Work Protocols
+@runtime_checkable
+class GraphMutationPort(Protocol):
+    """Hexagonal CQRS write port for Kahn topological wave graph materialization and cycle checks."""
+
+    async def materialize_wave(
+        self,
+        run_id: str,
+        node_drafts: Sequence[NodeDraft],
+        edge_drafts: Sequence[EdgeDraft],
+    ) -> Sequence[PropositionNode]: ...
+
+    async def upsert_wave_batch(
+        self,
+        nodes: Sequence[PropositionNode],
+        edges: Sequence[DependencyEdge],
+    ) -> None: ...
+
+    async def assert_acyclic(self, run_id: str) -> None: ...
+
+
+@runtime_checkable
+class TopologyResolutionPort(Protocol):
+    """Hexagonal CQRS read port for resolving ready Kahn topological wave roots."""
+
+    async def fetch_next_kahn_wave(self, run_id: str) -> Sequence[PropositionNode]: ...
+
+
+@runtime_checkable
+class CausalReasoningPort(Protocol):
+    """Hexagonal CQRS read port for Toulmin falsification and causal graph queries."""
+
+    async def find_falsified_claims(
+        self,
+        run_id: str,
+        min_confidence: float = 0.70,
+    ) -> Sequence[FalsifiedClaimMatch]: ...
+
+
+@runtime_checkable
+class EntityPersistencePort(Protocol):
+    """Hexagonal CQRS persistence port for core system entities and lz4 TOAST report binaries."""
+
+    async def save_report_binary(self, payload: ReportBinaryPayloadDTO) -> None: ...
+    async def get_report_binary(self, report_id: str) -> ReportBinaryPayloadDTO | None: ...
+    async def save_execution(self, record: ExecutionRecord) -> str: ...
+    async def get_execution(self, execution_id: str) -> ExecutionRecord | None: ...
+
+
+@runtime_checkable
+class QuorumUnitOfWork(Protocol):
+    """Post-Wave Atomic Unit of Work coordinating graph, topology, reasoning, and entity ports."""
+
+    graph: GraphMutationPort
+    topology: TopologyResolutionPort
+    reasoning: CausalReasoningPort
+    entities: EntityPersistencePort
+
+    async def __aenter__(self) -> Self:
+        """Enter the asynchronous Unit of Work transaction context."""
+        ...
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Exit the asynchronous Unit of Work context, committing or rolling back."""
+        ...
+
+    async def commit(self) -> None: ...
+    async def rollback(self) -> None: ...
