@@ -20,23 +20,47 @@ During the PostgreSQL 19 final cutover, four systemic failure modes were identif
 | **1. Zero-Bifurcation Mandate** | Coexistence of `STORAGE_BACKEND=LOCAL` (TinyDB) alongside `POSTGRES` allowed deprecated code and tests to hide in parallel execution paths. | **Phase 1 (`QGR030`) & Phase 3**: <br>1. Implement `QGR030` (`FATAL`) banning deprecated backend references repo-wide.<br>2. Add `zero_compromise_cutover_mandate` to `.agents/rules/00-antigravity-core.md` prohibiting transitional coexistence or backward compatibility shims. |
 | **2. Hermetic Test Isolation & Fixture Sovereignty** | Unit tests unrelated to persistence (specifically `test_token_service.py`) lazily instantiated `Settings(storage_backend="LOCAL")`, exploding when Fail-Fast was activated. | **Phase 1 (`QGR030`) & Phase 3**: <br>1. `QGR030` statically parses `Settings(...)` calls in tests and forbids deprecated backend keywords.<br>2. Add `hermetic_test_fixtures_mandate` to `.agents/rules/01-python-backend.md` requiring pure in-memory fakes (`InMemoryUnitOfWork`, `InMemoryEntityAdapter`). |
 | **3. Pre-Flight Metatest & Exemption Mapping** | Deleting `tinydb_driver.py` and `wrapper.py` broke metatests (`test_ast_guardrails.py`, `test_scripts_cli_help.py`) because `BOUNDARY_EXEMPTION_FILES` was unmapped in the plan. | **Phase 1 & Phase 3**: <br>1. Add automated existence validation in `test_ast_guardrails.py` asserting `Path(f).exists()` for all exemption entries.<br>2. Update `.agents/workflows/tier0-research-plan.md` to mandate pre-flight grep across `scripts/` and `tests/unit/scripts/` whenever files are marked `[DELETE]`. |
-| **4. First-Class Script Strictness & Polyfactory** | `scripts/reconcile_storage.py` contained loose dicts, and tests used non-hex fake IDs (`exe_ghost1234567890`), breaking Pydantic V2 validation. | **Phase 2 & Phase 4**: <br>1. Include `scripts/` in `scripts/backend_audit_loop.py` and `scripts/audit_zero_orm_strictness.py`.<br>2. Expand Polyfactory definitions in `backend_v2/tests/factories/model_factories.py` and enforce regex `^([a-z]{2,5})_[a-fA-F0-9]{16,32}$` via `QGR030`. |
+| **4. First-Class Script Strictness & Polyfactory** | `scripts/reconcile_storage.py` contained loose dicts, and tests used non-hex fake IDs (specifically and exhaustively: `exe_ghost1234567890`, `exe_disk9876543210`), breaking Pydantic V2 validation. | **Phase 2 & Phase 4**: <br>1. Include `scripts/` in `scripts/backend_audit_loop.py` and `scripts/audit_zero_orm_strictness.py`.<br>2. Expand Polyfactory definitions in `backend_v2/tests/factories/model_factories.py` and enforce regex `^([a-z]{2,5})_[a-fA-F0-9]{16,32}$` via `QGR030`. |
 | **Osa 2: Tracker & Requirements Parity** | `TRACKER_PostgreSQL_Final_Cutover.md` and `POSTGRESQL_CUTOVER_REQUIREMENTS.md` needed 100% complete 5-KI alignment and unambiguous Tier 7 directives. | **Verified & Completed**: <br>1. Added `ki_seed_vault_verification_and_sanitization.md` establishing 5 KIs.<br>2. Formulated closed-list Tier 7 synchronization directives obeying `anti_ambiguity_mandate`. |
 
 ---
 
 ## 1. Scope & Target Boundaries
 
-| Target File & AST Span | Planned Action | Architectural Responsibility |
+### 1.1 Complete Unified 18-Target Code & Hardening Scope
+
+This unified list combines all 15 modified/created backend targets from the PostgreSQL 19 Final Cutover with the 3 code/script/test targets from this Systemic Prevention plan into a single authoritative hardening scope (18 files total). Running Tier 2 Hardening (`auto_hardening_runner.py`) against this unified list audits and hardens all cutover and systemic changes in a single comprehensive pass.
+
+| # | Target File & AST Span | Origin & Role | Planned Action | Architectural Responsibility |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | `@[backend_v2/database/driver.py]` | Cutover: Database Core | `[VERIFY/HARDEN]` | Abstract `DatabaseDriver` and `StorageDriver` contracts governing asynchronous persistence across repositories. |
+| 2 | `@[backend_v2/database/factory.py]` | Cutover: Driver Factory | `[VERIFY/HARDEN]` | Authoritative database factory wiring `StorageBackend.POSTGRES` exclusively; raises `ConfigurationError` on legacy backends. |
+| 3 | `@[backend_v2/database/interfaces.py]` | Cutover: Seeding Ports | `[VERIFY/HARDEN]` | `EntityPersistencePort` declaring `seed_collection_batch` and `verify_seed_table_counts` across all 10 PostgreSQL 19 tables. |
+| 4 | `@[backend_v2/database/postgres/entity_adapter.py]` | Cutover: Adapter Implementation | `[VERIFY/HARDEN]` | Asynchronous PostgreSQL 19 entity adapter executing parameterized batch upserts with binary `\x01` JSONB wire codecs. |
+| 5 | `@[backend_v2/database/postgres/pool.py]` | Cutover: Connection Pool | `[VERIFY/HARDEN]` | PostgreSQL 19 asyncpg connection pool manager with health check, retry semantics, and isolation level management. |
+| 6 | `[NEW] @[backend_v2/database/postgres/storage_driver.py]` | Cutover: Sovereign Driver | `[VERIFY/HARDEN]` | Sovereign `PostgresStorageDriver` conforming to `StorageDriver` protocol over `PostgresPoolManager` for all 16 repositories. |
+| 7 | `@[backend_v2/main.py]` | Cutover: Application Lifespan | `[VERIFY/HARDEN]` | FastAPI lifespan preflight checks verifying PostgreSQL 19 connectivity and table row counts at server startup. |
+| 8 | `@[backend_v2/models/core_base.py]` | Cutover: Entity ID Authority | `[VERIFY/HARDEN]` | Monotonic RFC 9562 UUIDv7 opaque ID routing for operational entities (`exe_...`, `rep_...`, `nod_...`, `edg_...`). |
+| 9 | `@[backend_v2/seed/run_seed.py]` | Cutover: Database Seeding | `[VERIFY/HARDEN]` | Authoritative database seeding pipeline ingesting `ValidatedSeedBufferDTO` directly into PostgreSQL 19 with count assertions. |
+| 10 | `@[backend_v2/services/storage.py]` | Cutover: File Storage Router | `[VERIFY/HARDEN]` | File storage driver factory routing `StorageBackend.POSTGRES` to `LocalFileDriver` or cloud bucket storage. |
+| 11 | `@[backend_v2/settings.py]` | Cutover: Centralized Settings | `[VERIFY/HARDEN]` | Centralized Pydantic `Settings` defaulting storage backend to `StorageBackend.POSTGRES` and governing local mock auth tokens. |
+| 12 | `[MODIFY] @[scripts/_ast_guardrails.py#L523-L2576]` | Cutover & Systemic: AST Guardrails | `[MODIFY]` | Implement `QGR030` (`FATAL`) in `QuorumGuardrailVisitor` banning deprecated storage backend references (`LOCAL`, `FIRESTORE`) in function calls and test fixtures, and validate entity ID string literals against canonical hexadecimal format (`^([a-z]{2,5})_[a-fA-F0-9]{16,32}$`). |
+| 13 | `[MODIFY] @[scripts/audit_zero_orm_strictness.py#L581-L633]` | Cutover & Systemic: Zero-ORM Strictness | `[MODIFY]` | Ensure `scripts/reconcile_storage.py` and all operational scripts are systematically verified under `ZORM001`–`ZORM006` Zero-ORM strictness. |
+| 14 | `@[scripts/reconcile_storage.py]` | Cutover: Storage Reconciliation | `[VERIFY/HARDEN]` | Storage reconciliation utility operating on typed snapshots with strict Pydantic V2 models and zero naked dicts. |
+| 15 | `@[scripts/run_e2e_variance_test.py]` | Cutover: End-to-End Variance | `[VERIFY/HARDEN]` | End-to-end variance test runner executing multi-model evaluations against PostgreSQL 19. |
+| 16 | `[MODIFY] @[scripts/backend_audit_loop.py#L73-L356]` | Systemic: Quality Gate Script | `[MODIFY]` | Include `scripts/` as an authoritative, first-class audit target for MyPy, AST guardrails, and test execution in the global completion gate. |
+| 17 | `[MODIFY] @[backend_v2/tests/factories/model_factories.py#L319-L392]` | Systemic: Polyfactory Models | `[MODIFY]` | Expand Polyfactory models to guarantee all mock entity IDs adhere strictly to canonical regex hexadecimal format. |
+| 18 | `[MODIFY] @[backend_v2/tests/unit/scripts/test_ast_guardrails.py#L2247-L2271]` | Systemic: AST Unit Tests | `[MODIFY]` | Add comprehensive unit tests for `QGR030` with >=2 positive violation detections and >=2 negative boundary cases, plus automated existence validation for `BOUNDARY_EXEMPTION_FILES`. |
+
+---
+
+### 1.2 Governance & Workflow Invariant Rules (Step 3)
+
+| Rule File & Section | Planned Action | Invariant Enforced |
 | :--- | :--- | :--- |
-| `[MODIFY] @[scripts/_ast_guardrails.py#L523-L2576]` | `[MODIFY]` | Implement `QGR030` (`FATAL`) in `QuorumGuardrailVisitor` banning deprecated storage backend references (`LOCAL`, `FIRESTORE`) in function calls and test fixtures, and validate entity ID string literals against canonical hexadecimal format (`^([a-z]{2,5})_[a-fA-F0-9]{16,32}$`). |
-| `[MODIFY] @[backend_v2/tests/unit/scripts/test_ast_guardrails.py#L2247-L2271]` | `[MODIFY]` | Add comprehensive unit tests for `QGR030` with >=2 positive violation detections and >=2 negative boundary cases, plus automated existence validation for `BOUNDARY_EXEMPTION_FILES`. |
-| `[MODIFY] @[scripts/backend_audit_loop.py#L73-L356]` | `[MODIFY]` | Include `scripts/` as an authoritative, first-class audit target for MyPy, AST guardrails, and test execution in the global completion gate. |
-| `[MODIFY] @[scripts/audit_zero_orm_strictness.py#L581-L633]` | `[MODIFY]` | Ensure `scripts/reconcile_storage.py` and all operational scripts are systematically verified under `ZORM001`–`ZORM006` Zero-ORM strictness. |
 | `[MODIFY] @[.agents/rules/01-python-backend.md#L10-L60]` | `[MODIFY]` | Formalize `hermetic_test_fixtures_mandate` banning live settings instantiation or storage backend overrides in domain unit tests. |
 | `[MODIFY] @[.agents/rules/00-antigravity-core.md#L87-L105]` | `[MODIFY]` | Formalize `zero_compromise_cutover_mandate` banning transitional dual-backend states during platform migrations. |
 | `[MODIFY] @[.agents/workflows/tier0-research-plan.md#L50-L53]` | `[MODIFY]` | Add `preflight_metatest_and_exemption_mapping_mandate` to research workflow requiring pre-flight grep on `scripts/` and `tests/unit/scripts/` when files are marked `[DELETE]`. |
-| `[MODIFY] @[backend_v2/tests/factories/model_factories.py#L319-L392]` | `[MODIFY]` | Expand Polyfactory models to guarantee all mock entity IDs adhere strictly to canonical regex hexadecimal format. |
 
 ---
 
@@ -116,3 +140,29 @@ To verify that these 4 systemic improvements and Osa 2 alignments are fully effe
 2. **Improvement 3 Verification**: Run `uv run pytest backend_v2/tests/unit/scripts/test_ast_guardrails.py -k "boundary"` to verify automated physical existence testing of `BOUNDARY_EXEMPTION_FILES`.
 3. **Improvement 4 Verification**: Run `uv run python scripts/audit_zero_orm_strictness.py` and `uv run python scripts/backend_audit_loop.py scripts/_ast_guardrails.py --ast-strict` to confirm all `scripts/` pass cleanly.
 4. **Global Quality Gate**: Run `uv run python scripts/backend_audit_loop.py backend_v2/ --test` to confirm 100% pass across all stages.
+
+### 3.1 Unified Post-Implementation Tier 2 Hardening (All 18 Targets)
+
+Upon completing Steps 1–4, a single comprehensive Tier 2 Hardening run audits and hardens all 18 targets in parallel via `scripts/auto_hardening_runner.py`:
+
+```markdown
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "[NEW] @[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]" --gate backend --model gemini-4-argon-medium`.
+  - [ ] @[backend_v2/database/driver.py]
+  - [ ] @[backend_v2/database/factory.py]
+  - [ ] @[backend_v2/database/interfaces.py]
+  - [ ] @[backend_v2/database/postgres/entity_adapter.py]
+  - [ ] @[backend_v2/database/postgres/pool.py]
+  - [ ] [NEW] @[backend_v2/database/postgres/storage_driver.py]
+  - [ ] @[backend_v2/main.py]
+  - [ ] @[backend_v2/models/core_base.py]
+  - [ ] @[backend_v2/seed/run_seed.py]
+  - [ ] @[backend_v2/services/storage.py]
+  - [ ] @[backend_v2/settings.py]
+  - [ ] @[scripts/_ast_guardrails.py]
+  - [ ] @[scripts/audit_zero_orm_strictness.py]
+  - [ ] @[scripts/reconcile_storage.py]
+  - [ ] @[scripts/run_e2e_variance_test.py]
+  - [ ] @[scripts/backend_audit_loop.py]
+  - [ ] @[backend_v2/tests/factories/model_factories.py]
+  - [ ] @[backend_v2/tests/unit/scripts/test_ast_guardrails.py]
+```
