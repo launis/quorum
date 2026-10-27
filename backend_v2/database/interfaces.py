@@ -351,7 +351,7 @@ class IUnifiedWorkflowRepository(
     ...
 
 
-# Step 2: Hexagonal CQRS Ports & Post-Wave Unit of Work Protocols
+# Hexagonal CQRS Ports & Post-Wave Unit of Work Protocols
 @runtime_checkable
 class GraphMutationPort(Protocol):
     """Hexagonal CQRS write port for Kahn topological wave graph materialization and cycle checks."""
@@ -402,7 +402,14 @@ class EntityPersistencePort(Protocol):
 
 @runtime_checkable
 class QuorumUnitOfWork(Protocol):
-    """Post-Wave Atomic Unit of Work coordinating graph, topology, reasoning, and entity ports."""
+    """Post-Wave Atomic Unit of Work coordinating graph, topology, reasoning, and entity ports.
+
+    Attributes:
+        graph: Hexagonal CQRS write port for topological wave graph materialization.
+        topology: Hexagonal CQRS read port for resolving ready Kahn wave roots.
+        reasoning: Hexagonal CQRS read port for Toulmin falsification and causal queries.
+        entities: Hexagonal CQRS persistence port for core entities and report binaries.
+    """
 
     graph: GraphMutationPort
     topology: TopologyResolutionPort
@@ -410,7 +417,11 @@ class QuorumUnitOfWork(Protocol):
     entities: EntityPersistencePort
 
     async def __aenter__(self) -> Self:
-        """Enter the asynchronous Unit of Work transaction context."""
+        """Enter the asynchronous Unit of Work transaction context.
+
+        Returns:
+            Active Unit of Work instance bound to the transaction scope.
+        """
         ...
 
     async def __aexit__(
@@ -419,7 +430,13 @@ class QuorumUnitOfWork(Protocol):
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """Exit the asynchronous Unit of Work context, committing or rolling back."""
+        """Exit the asynchronous Unit of Work context, committing or rolling back.
+
+        Args:
+            exc_type: Exception class if raised within the context block, else None.
+            exc_val: Exception instance if raised within the context block, else None.
+            exc_tb: Traceback object if an exception was raised, else None.
+        """
         ...
 
     async def commit(self) -> None: ...
