@@ -58,7 +58,7 @@
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Tier 2 Hardening (Backend)** (`[NEW]` sub-modules & 1-hop callers): Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/epic/provider_decomposition_tracker.md]" --gate backend --model gemini-4-argon-medium`
+- [x] **[OK] Tier 2 Hardening (Backend)** (`[NEW]` sub-modules & 1-hop callers): Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/epic/provider_decomposition_tracker.md]" --gate backend --model gemini-4-argon-medium`
   - [x] [NEW] @[backend_v2/llm/provider/env_and_schema_utils.py]
   - [x] [NEW] @[backend_v2/llm/provider/transient_retry_policy.py]
   - [x] [NEW] @[backend_v2/llm/provider/base_and_mock_provider.py]
@@ -68,7 +68,7 @@
   - [x] [NEW] @[backend_v2/llm/provider/__init__.py]
   - [x] `@[backend_v2/llm/client.py#L46-L58]`
   - [x] `@[backend_v2/llm/handler.py#L878-L1057]`
-  - [ ] `@[backend_v2/services/mcp/generic_mcp_client.py#L447-L509]`
+  - [x] `@[backend_v2/services/mcp/generic_mcp_client.py#L447-L509]`
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Pure backend Python decomposition with zero `.dart` changes.
 - [ ] **[NOK] Pre-Delete Audit**: Verify `git status` and `grep_search` confirm physical removal of `[DELETE] @[backend_v2/llm/provider.py]` and `[DELETE] @[backend_v2/tests/unit/llm/test_provider.py]`, with `QGR017` blocking re-creation of `backend_v2/llm/provider.py`.
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Verify all 34 baseline unit tests pass across the modularized test suites (`[NEW] @[backend_v2/tests/unit/llm/provider/test_env_and_schema_utils.py]`, `[NEW] @[backend_v2/tests/unit/llm/provider/test_transient_retry_policy.py]`, `[NEW] @[backend_v2/tests/unit/llm/provider/test_base_and_mock_provider.py]`, `[NEW] @[backend_v2/tests/unit/llm/provider/test_provider_factory.py]`, `[NEW] @[backend_v2/tests/unit/llm/provider/test_litellm_response_stage.py]`, `[NEW] @[backend_v2/tests/unit/llm/provider/test_litellm_provider.py]`, `[NEW] @[backend_v2/tests/unit/llm/provider/test_provider_facade.py]`, `@[backend_v2/tests/unit/llm/test_provider_httpx_client.py#L34-L99]`, `@[backend_v2/tests/unit/llm/test_provider_penalties.py#L14-L76]`, `@[backend_v2/tests/unit/llm/test_provider_retry_after.py#L49-L90]`, and `@[backend_v2/tests/unit/llm/test_provider_toolcalls.py#L11-L89]`) with `>= 92%` line coverage.
