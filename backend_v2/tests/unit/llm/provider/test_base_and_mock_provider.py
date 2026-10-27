@@ -244,3 +244,117 @@ async def test_mock_provider_lifecycle_branches_and_negative_paths(
     with pytest.raises(ConfigurationError) as dump_exc:
         await provider.generate(prompt="Dump fail", temperature=0.0, max_tokens=32)
     assert "Diagnostic dump dispatch failed" in str(dump_exc.value)
+
+
+# Phase 4, Step 1: Migrate MockProvider and LogfireShieldedClient tests from test_provider.py
+@pytest.mark.asyncio
+async def test_mock_provider_defaults_to_none_mock_identity() -> None:
+    """Verify MockProvider defaults mock_identity to None cleanly."""
+    provider = MockProvider(model_name="mock-model")
+
+    with patch("backend_v2.llm.provider.MockLLMService") as mock_service_cls:
+        mock_service_instance = MagicMock()
+        mock_service_instance.generate_content.return_value = '{"status": "ok"}'
+        mock_service_cls.return_value = mock_service_instance
+
+        await provider.generate(
+            prompt="Hello mock",
+            temperature=0.0,
+            max_tokens=100,
+        )
+
+        mock_service_instance.generate_content.assert_called_once()
+        call_kwargs = mock_service_instance.generate_content.call_args[1]
+        assert call_kwargs["agent_identity"] is None
+
+
+@pytest.mark.asyncio
+async def test_logfire_shielded_client() -> None:
+    """Test LogfireShieldedClient proxy behavior."""
+    mock_inner = AsyncMock()
+    mock_inner.custom_attr = "hello"
+    mock_inner.__aenter__.return_value = "entered"
+    mock_inner.__aexit__.return_value = None
+
+    proxy = LogfireShieldedClient(mock_inner)
+    assert proxy.custom_attr == "hello"
+    assert repr(proxy) == "<LogfireShieldedClient protecting httpx.AsyncClient>"
+
+    async with proxy as p:
+        assert p == "entered"
+
+    plain_obj = MagicMock(spec=["test"])
+    plain_proxy = LogfireShieldedClient(plain_obj)
+    assert await plain_proxy.__aenter__() is plain_proxy
+    assert await plain_proxy.__aexit__(None, None, None) is None
+
+
+@pytest.mark.asyncio
+async def test_mock_provider_full_lifecycle(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Verify MockProvider parameter checks, prompt dump, and usage tracking."""
+    mock_settings = Settings(
+        pacing_delay_mock_seconds=0,
+        storage_backend="LOCAL",
+    )
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
+
+    usage_service = AsyncMock()
+    mock_prov = MockProvider(
+        model_name="mock-model",
+        usage_service=usage_service,
+        organization_id="org_test123",
+    )
+
+    with pytest.raises(ConfigurationError):
+        await mock_prov.generate("hello", temperature=None, max_tokens=10)
+
+    with pytest.raises(ConfigurationError):
+        await mock_prov.generate("hello", temperature=0.0, max_tokens=None)
+
+    dump_target = str(tmp_path / "mock_dump.txt")
+    monkeypatch.setenv("DUMP_PROMPTS_FILE", dump_target)
+
+    with patch("backend_v2.llm.provider.MockLLMService") as mock_service_cls:
+        mock_inst = MagicMock()
+        mock_inst.generate_content.return_value = {"answer": "mocked_json"}
+        mock_service_cls.return_value = mock_inst
+
+        resp = await mock_prov.generate(
+            prompt="Test prompt",
+            system_instruction="System rule",
+            temperature=0.0,
+            max_tokens=100,
+            organization_id="org_kwarg",
+            user_id="usr_kwarg",
+        )
+
+        assert resp.content == '{"answer": "mocked_json"}'
+        usage_service.track_usage.assert_called_once()
+        dump_content = (tmp_path / "mock_dump.txt").read_text(encoding="utf-8")
+        assert "Test prompt" in dump_content
+
+        resp_msg_only = await mock_prov.generate(
+            prompt=None,
+            messages=[LLMMessageDTO(role="user", content="msg only")],
+            temperature=0.0,
+            max_tokens=50,
+        )
+        assert resp_msg_only.content == '{"answer": "mocked_json"}'
+
+        mock_inst.generate_content.return_value = {"message": "Mock data not found for key"}
+        with pytest.raises(ConfigurationError):
+            await mock_prov.generate("missing seed prompt", temperature=0.0, max_tokens=50)
+
+        mock_inst.generate_content.return_value = _SampleStructuredOutput(status="pydantic-ok", score=1)
+        resp_model = await mock_prov.generate("test model", temperature=0.0, max_tokens=50)
+        assert "pydantic-ok" in resp_model.content
+
+        mock_inst.generate_content.return_value = "invalid-json-{broken"
+        with pytest.raises(AppException):
+            await mock_prov.generate("broken string", temperature=0.0, max_tokens=50)
+
+        mock_inst.generate_content.return_value = {"ok": True}
+        usage_service.track_usage = AsyncMock(side_effect=RuntimeError("track fail"))
+        with pytest.raises(AppException):
+            await mock_prov.generate("track fail prompt", temperature=0.0, max_tokens=50)
+

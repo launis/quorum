@@ -1,13 +1,8 @@
-"""LLM Provider implementations (LiteLLM, Mock, Unconfigured)."""
-
-from pathlib import Path
+"""LLM Provider package facade re-exporting all public and internal provider symbols."""
 
 import opentelemetry.trace as otel_trace
 
-# Phase 1, Step 2: Enable Two-Phase Package Strangler submodule resolution while provider.py acts as proxy
-__path__: list[str] = [str(Path(__file__).resolve().with_suffix(""))]
-
-# Phase 3, Step 2: Re-export all provider symbols with explicit redundant aliases
+# Phase 4, Step 2: Explicit redundant re-exports for backend_v2.llm.provider package facade
 from backend_v2.llm.adapters.base_adapter import (
     apply_provider_pacing as apply_provider_pacing,
 )

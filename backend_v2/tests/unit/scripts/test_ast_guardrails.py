@@ -1165,7 +1165,7 @@ def test_purged_boundary_exemption_files() -> None:
             "backend_v2/database/firestore_driver.py",
             "backend_v2/database/driver.py",
             "backend_v2/database/wrapper.py",
-            "backend_v2/llm/provider.py",
+            "backend_v2/llm/provider/__init__.py",
             "backend_v2/llm/handler.py",
             "backend_v2/logging_config.py",
             "backend_v2/core/telemetry.py",
@@ -1507,6 +1507,29 @@ def test_qgr017_modular_report_package_allowed() -> None:
     violations = _scan_snippet(code, filepath="backend_v2/services/report/__init__.py")
     qgr017 = [v for v in violations if v.rule_code == "QGR017"]
     assert len(qgr017) == 0
+
+
+# Phase 4, Step 3: Test Contracts 2 & 3 for QGR017 on backend_v2/llm/provider
+def test_qgr017_modular_provider_package_allowed() -> None:
+    """QGR017: scanning backend_v2/llm/provider/__init__.py and its submodules produces zero QGR017 violations."""
+    code = "from backend_v2.llm.provider import LiteLLMProvider\n"
+    for pkg_file in (
+        "backend_v2/llm/provider/__init__.py",
+        "backend_v2/llm/provider/litellm_provider.py",
+    ):
+        violations = _scan_snippet(code, filepath=pkg_file)
+        qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+        assert len(qgr017) == 0
+
+
+def test_qgr017_banned_provider_god_file_path_fatal() -> None:
+    """QGR017: scanning retired path backend_v2/llm/provider.py triggers a FATAL QGR017 violation."""
+    code = "x = 1\n"
+    violations = _scan_snippet(code, filepath="backend_v2/llm/provider.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2/llm/provider.py" in qgr017[0].message
 
 
 def test_qgr017_eradicated_mcp_wrappers_fatal() -> None:
@@ -2063,14 +2086,14 @@ class McpToolCall(BaseModel):
 
 
 def test_qgr027_boundary_exempt_file_permitted() -> None:
-    """QGR027: Boundary exempt files (e.g. llm/provider.py) emit zero violations."""
+    """QGR027: Boundary exempt files (e.g. llm/provider/__init__.py) emit zero violations."""
     code = """
 from pydantic import BaseModel, JsonValue
 
 class ProviderPayload(BaseModel):
     raw_payload: dict[str, JsonValue]
 """
-    violations = _scan_snippet(code, filepath="backend_v2/llm/provider.py")
+    violations = _scan_snippet(code, filepath="backend_v2/llm/provider/__init__.py")
     qgr027 = [v for v in violations if v.rule_code == "QGR027"]
     assert len(qgr027) == 0
 

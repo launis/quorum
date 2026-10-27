@@ -80,7 +80,7 @@ BOUNDARY_EXEMPTION_FILES: frozenset[str] = frozenset(
         "backend_v2/database/firestore_driver.py",
         "backend_v2/database/driver.py",
         "backend_v2/database/wrapper.py",
-        "backend_v2/llm/provider.py",
+        "backend_v2/llm/provider/__init__.py",
         "backend_v2/llm/handler.py",
         "backend_v2/logging_config.py",
         "backend_v2/core/telemetry.py",
@@ -656,6 +656,15 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "QGR017",
                 "Banned legacy God file `backend_v2/services/export_service.py` detected.",
                 "Export functionality must reside exclusively in the modular package `backend_v2.services.export` (`backend_v2/services/export/`).",
+                severity=GuardrailSeverity.FATAL,
+            )
+        elif norm_path == "backend_v2/llm/provider.py" or norm_path.endswith("/backend_v2/llm/provider.py"):
+            # Phase 4, Step 3: Lock retired path backend_v2/llm/provider.py under QGR017
+            self._add_violation(
+                node,
+                "QGR017",
+                "Banned legacy God file `backend_v2/llm/provider.py` detected.",
+                "LLM provider functionality must reside exclusively in the modular package `backend_v2.llm.provider` (`backend_v2/llm/provider/`).",
                 severity=GuardrailSeverity.FATAL,
             )
         else:

@@ -21,7 +21,9 @@ from backend_v2.exceptions import (
     ErrorCodes,
     ServiceUnavailableError,
 )
-from backend_v2.llm.provider import _is_transient_llm_error
+
+# Phase 4, Step 2: Import _is_transient_llm_error from transient_retry_policy submodule
+from backend_v2.llm.provider.transient_retry_policy import _is_transient_llm_error
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.system_config import AllowedMCPTool, SystemConfigMCPGateways
 from backend_v2.models.dtos.mcp import (

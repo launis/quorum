@@ -156,3 +156,103 @@ def test_llm_factory_create_provider_config_authority_and_capabilities(
     with pytest.raises(ConfigurationError) as missing_cls_exc:
         LLMFactory.create_provider("openai", "openai/gpt-5.1", limits={"tpm": 1000, "rpm": 10})
     assert "LiteLLMProvider class is not registered" in str(missing_cls_exc.value)
+
+
+# Phase 4, Step 1: Migrate test_llm_factory_create_provider_edge_cases from test_provider.py
+def test_llm_factory_create_provider_edge_cases(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test LLMFactory.create_provider branches and validations via facade patch targets."""
+    settings = Settings(
+        use_mock_llm=False,
+        google_api_key="fake-google-key",
+        openai_api_key="fake-openai-key",
+        anthropic_api_key="fake-anthropic-key",
+        vertex_location="europe-north1",
+        discovery_location="us-central1",
+        storage_backend="LOCAL",
+    )
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: settings)
+
+    inactive_config = LLMProviderConfig(
+        id="prv_inactive",
+        provider="openai",
+        model_name="gpt-4o",
+        is_active=False,
+        tpm_limit=1000,
+        rpm_limit=100,
+    )
+    with pytest.raises(ServiceUnavailableError):
+        LLMFactory.create_provider("openai", "gpt-4o", config=inactive_config)
+
+    no_ground_config = LLMProviderConfig(
+        id="prv_noground",
+        provider="openai",
+        model_name="gpt-4o",
+        supports_grounding=False,
+        tpm_limit=1000,
+        rpm_limit=100,
+    )
+    with pytest.raises(ConfigurationError):
+        LLMFactory.create_provider("openai", "gpt-4o", config=no_ground_config, enable_grounding=True)
+
+    with_key_config = LLMProviderConfig(
+        id="prv_withkey0001",
+        provider="openai",
+        model_name="gpt-4o",
+        api_key="explicit_key",
+        tpm_limit=5000,
+        rpm_limit=500,
+    )
+    prov_key = LLMFactory.create_provider("openai", "gpt-4o", config=with_key_config)
+    assert isinstance(prov_key, LiteLLMProvider)
+    assert prov_key.api_key == "explicit_key"
+
+    mock_settings = Settings(
+        use_mock_llm=True,
+        vertex_location="europe-north1",
+        discovery_location="us-central1",
+        storage_backend="LOCAL",
+    )
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
+    prov = LLMFactory.create_provider("openai", "gpt-4o")
+    assert isinstance(prov, MockProvider)
+
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: settings)
+    prov_mock = LLMFactory.create_provider("mock", "custom-mock")
+    assert isinstance(prov_mock, MockProvider)
+
+    with pytest.raises(ConfigurationError):
+        LLMFactory.create_provider("openai", model_name="")
+
+    prov_vertex = LLMFactory.create_provider("vertex_ai", "vertex_ai/gemini-1.5-pro", limits={"tpm": 1000, "rpm": 100})
+    assert isinstance(prov_vertex, LiteLLMProvider)
+    assert prov_vertex.api_key is None
+
+    for key_field, prov_type, model_id in (
+        ("google_api_key", "ai_studio", "gemini-1.5-pro"),
+        ("openai_api_key", "openai", "gpt-4o"),
+        ("anthropic_api_key", "anthropic", "claude-3-5-sonnet"),
+    ):
+        missing_key_settings = settings.model_copy(update={key_field: None})
+        monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda s=missing_key_settings: s)
+        with pytest.raises(ConfigurationError):
+            LLMFactory.create_provider(prov_type, model_id)
+
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: settings)
+    prov_openai = LLMFactory.create_provider("openai", "gpt-4o", limits={"tpm": 1000, "rpm": 100})
+    assert isinstance(prov_openai, LiteLLMProvider)
+    assert prov_openai.api_key == "fake-openai-key"
+
+    prov_anthropic = LLMFactory.create_provider(
+        "anthropic", "anthropic/claude-3-5-sonnet", limits={"tpm": 1000, "rpm": 100}
+    )
+    assert isinstance(prov_anthropic, LiteLLMProvider)
+    assert prov_anthropic.api_key == "fake-anthropic-key"
+
+    prov_ai_studio = LLMFactory.create_provider("ai_studio", "gemini/gemini-1.5-pro", limits={"tpm": 1000, "rpm": 100})
+    assert isinstance(prov_ai_studio, LiteLLMProvider)
+    assert prov_ai_studio.api_key == "fake-google-key"
+
+    prov_litellm = LLMFactory.create_provider("litellm", "ollama/llama3", limits={"tpm": 1000, "rpm": 100})
+    assert isinstance(prov_litellm, LiteLLMProvider)
+    assert prov_litellm.model_name == "ollama/llama3"
+

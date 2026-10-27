@@ -207,3 +207,69 @@ def test_extract_retry_after_recursive_and_format_attempt_error() -> None:
     rs_failed = RetryCallState(retry_object=None, fn=None, args=(), kwargs={})
     rs_failed.outcome = outcome_err
     assert _format_attempt_error(rs_failed) == "TimeoutError"
+
+
+# Phase 4, Step 1: Migrate test_extract_retry_after_and_transient_advanced from test_provider.py
+def test_extract_retry_after_and_transient_advanced() -> None:
+    """Test corner cases in retry-after extraction and transient error detection."""
+    from unittest.mock import MagicMock
+
+    e_cycle = ValueError("cycle")
+    visited = {id(e_cycle)}
+    assert _extract_retry_after_seconds(e_cycle, visited) is None
+
+    parent_cause = ValueError("outer")
+    parent_cause.__cause__ = ValueError("Please try again in 3.5s")
+    assert _extract_retry_after_seconds(parent_cause) == 3.5
+
+    parent_ctx = ValueError("outer")
+    parent_ctx.__context__ = ValueError("Please try again in 4.2s")
+    parent_ctx.__suppress_context__ = False
+    assert _extract_retry_after_seconds(parent_ctx) == 4.2
+
+    bad_match = ValueError("Please try again in notafloat seconds")
+    assert _extract_retry_after_seconds(bad_match) is None
+
+    mock_retry_state = MagicMock()
+    mock_retry_state.outcome = MagicMock()
+    mock_retry_state.outcome.failed = False
+    assert _format_attempt_error(mock_retry_state) == "Unknown"
+
+    mock_retry_state_none = MagicMock()
+    mock_retry_state_none.outcome = None
+    assert _format_attempt_error(mock_retry_state_none) == "Unknown"
+
+    app_exc_timeout = AppException(
+        message="timeout",
+        status_code=504,
+        details={"error_code": ErrorCodes.UPSTREAM_TIMEOUT.value},
+    )
+    assert _is_transient_llm_error(app_exc_timeout) is True
+
+    app_exc_rate = AppException(
+        message="rate",
+        status_code=429,
+        details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
+    )
+    assert _is_transient_llm_error(app_exc_rate) is True
+
+    app_exc_service = AppException(
+        message="service",
+        status_code=503,
+        details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.name},
+    )
+    assert _is_transient_llm_error(app_exc_service) is True
+
+    outer_cause = Exception("outer")
+    outer_cause.__cause__ = ConnectionResetError("connection reset")
+    assert _is_transient_llm_error(outer_cause) is True
+
+    outer_ctx = Exception("outer")
+    outer_ctx.__context__ = ConnectionResetError("connection reset")
+    outer_ctx.__suppress_context__ = False
+    assert _is_transient_llm_error(outer_ctx) is True
+
+    e_cycle_trans = ValueError("transient-cycle")
+    visited_trans = {id(e_cycle_trans)}
+    assert _is_transient_llm_error(e_cycle_trans, visited_trans) is False
+

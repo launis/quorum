@@ -5,7 +5,9 @@ import httpx
 import pytest
 from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler
 
-from backend_v2.llm.provider import LiteLLMProvider, LogfireShieldedClient
+# Phase 4, Step 1: Import from modular provider submodules
+from backend_v2.llm.provider.base_and_mock_provider import LogfireShieldedClient
+from backend_v2.llm.provider.litellm_provider import LiteLLMProvider
 
 
 @pytest.fixture

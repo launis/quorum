@@ -5,7 +5,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend_v2.llm.provider import LiteLLMProvider
+# Phase 4, Step 1: Import LiteLLMProvider from modular provider submodule
+from backend_v2.llm.provider.litellm_provider import LiteLLMProvider
 from backend_v2.models.llm import LLMProviderConfig
 
 pytestmark = pytest.mark.asyncio

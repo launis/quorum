@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import JsonValue
 
-from backend_v2.llm.provider import LiteLLMProvider
+# Phase 4, Step 1: Import LiteLLMProvider from modular provider submodule
+from backend_v2.llm.provider.litellm_provider import LiteLLMProvider
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.settings import get_settings
 

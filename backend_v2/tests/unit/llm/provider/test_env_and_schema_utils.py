@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
+from unittest.mock import AsyncMock
 
+import litellm
 import pytest
 from pydantic import BaseModel, ConfigDict
 
 from backend_v2.exceptions import ConfigurationError
+from backend_v2.llm.provider import LiteLLMProvider, get_settings
 from backend_v2.llm.provider.env_and_schema_utils import (
     _INTERNAL_NON_API_KEYS,
     _normalize_mcp_tool_schema_for_llm,
@@ -63,6 +67,31 @@ class _DummySchemaModel(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     title: str
+
+
+class _MockMessage:
+    content = "test response"
+    tool_calls: list[Any] = []
+
+
+class _MockChoice:
+    message = _MockMessage()
+    finish_reason = "stop"
+
+
+class _MockUsage:
+    prompt_tokens = 10
+    completion_tokens = 5
+    total_tokens = 15
+
+
+class _MockLiteLLMResponse:
+    choices = [_MockChoice()]
+    model_extra: Any = {}
+    usage = _MockUsage()
+
+    def model_dump(self) -> Any:
+        return {}
 
 
 def test_resolve_env_variables_and_mcp_schema_normalization(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -169,3 +198,137 @@ def test_sync_diagnostic_dump_writes_and_handles_os_error(
     with caplog.at_level(logging.ERROR):
         _sync_diagnostic_dump(str(tmp_path), "openai/gpt-5.1", "payload")
     assert "Failed to dump prompt" in caplog.text
+
+
+# Phase 4, Step 1: Migrate test_resolve_env_variables, test_sync_diagnostic_dump, and schema/key tests from test_provider.py
+def test_resolve_env_variables(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test resolving env variables with ${ENV_VAR} structure."""
+    monkeypatch.setenv("TEST_REGION_VAR", "europe-west3")
+    params = {"location": "${TEST_REGION_VAR}", "other": "constant"}
+    resolved = resolve_env_variables(params)
+    assert resolved["location"] == "europe-west3"
+    assert resolved["other"] == "constant"
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        resolve_env_variables({"location": "${MISSING_ENV_VAR_COGNITIVE}"})
+    assert "MISSING_ENV_VAR_COGNITIVE" in str(exc_info.value)
+
+
+def test_sync_diagnostic_dump(tmp_path: Path) -> None:
+    """Test _sync_diagnostic_dump file writing and error handling."""
+    dump_file = str(tmp_path / "dump.txt")
+    _sync_diagnostic_dump(dump_file, "gemini-pro", "test prompt payload")
+
+    content = (tmp_path / "dump.txt").read_text(encoding="utf-8")
+    assert "--- gemini-pro ---" in content
+    assert "test prompt payload" in content
+
+    bad_path = str(tmp_path / "non_existent_folder" / "sub" / "dump.txt")
+    _sync_diagnostic_dump(bad_path, "gemini-pro", "test prompt payload")
+
+
+@pytest.mark.asyncio
+async def test_lite_llm_provider_strips_internal_mock_identity_from_call_kwargs() -> None:
+    """Verify LiteLLMProvider does not leak internal mock_identity into litellm router call_kwargs."""
+    LiteLLMProvider._router_cache.clear()
+    provider = LiteLLMProvider(
+        model_name="openai/gpt-5.1",
+        api_key="test-key",
+        limits={"tpm": 100, "rpm": 10},
+        settings=get_settings(),
+    )
+    provider.router.acompletion = AsyncMock(return_value=_MockLiteLLMResponse())
+    await provider.generate(
+        prompt="Hello",
+        temperature=0.0,
+        max_tokens=100,
+        mock_identity="ExecutiveSummaryTask",
+    )
+    called_kwargs = provider.router.acompletion.call_args[1]
+    assert "mock_identity" not in called_kwargs
+
+
+@pytest.mark.asyncio
+async def test_lite_llm_provider_strips_unpacked_internal_keys_from_call_kwargs() -> None:
+    """Verify LiteLLMProvider purges unpacked internal keys from call_kwargs."""
+    LiteLLMProvider._router_cache.clear()
+    provider = LiteLLMProvider(
+        model_name="openai/gpt-5.1",
+        api_key="test-key",
+        limits={"tpm": 100, "rpm": 10},
+        settings=get_settings(),
+    )
+    provider.router.acompletion = AsyncMock(return_value=_MockLiteLLMResponse())
+    unpacked_kwargs: Any = {
+        "mock_identity": "DynamicTask",
+        "validation_context": {"rule": 1},
+    }
+    await provider.generate(
+        prompt="Hello",
+        temperature=0.0,
+        max_tokens=100,
+        **unpacked_kwargs,
+    )
+    called_kwargs = provider.router.acompletion.call_args[1]
+    assert "mock_identity" not in called_kwargs
+    assert "validation_context" not in called_kwargs
+
+
+@pytest.mark.asyncio
+async def test_lite_llm_provider_serializes_mcp_tool_declarations_to_standard_json_schema(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Positive & Negative: Verify LiteLLMProvider.generate maps enum_values and additional_properties to JSON Schema."""
+    monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.001)
+    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
+
+    LiteLLMProvider._router_cache.clear()
+    provider = LiteLLMProvider(
+        model_name="openai/gpt-5.4",
+        api_key="test-key",
+        limits={"tpm": 100, "rpm": 10},
+        settings=get_settings(),
+    )
+    provider.router.acompletion = AsyncMock(return_value=_MockLiteLLMResponse())
+
+    tool_decl = MCPToolDeclarationDTO(
+        type="function",
+        function=MCPFunctionDefinitionDTO(
+            name="default_mcp_gateway__mcp_tavily_search",
+            description="Search web via MCP",
+            parameters=MCPToolInputSchemaDTO(
+                properties={
+                    "query": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING, description="Search query"),
+                    "search_depth": MCPToolSchemaPropertyDTO(
+                        type=JSONSchemaPropertyType.STRING,
+                        description="Depth",
+                        enum_values=["basic", "advanced"],
+                    ),
+                    "filter_obj": MCPToolSchemaPropertyDTO(
+                        type=JSONSchemaPropertyType.OBJECT,
+                        properties={
+                            "mode": MCPToolSchemaPropertyDTO(
+                                type=JSONSchemaPropertyType.STRING,
+                                enum_values=["strict", "relaxed"],
+                            ),
+                        },
+                        additional_properties=False,
+                    ),
+                },
+                required=["query"],
+                additional_properties=False,
+            ),
+            strict=True,
+        ),
+    )
+
+    await provider.generate(prompt="Run search", temperature=0.0, max_tokens=100, tools=[tool_decl])
+    called_kwargs = provider.router.acompletion.call_args[1]
+    params = called_kwargs["tools"][0]["function"]["parameters"]
+    assert params["additionalProperties"] is False
+    assert params["properties"]["search_depth"]["enum"] == ["basic", "advanced"]
+    nested_obj = params["properties"]["filter_obj"]
+    assert nested_obj["additionalProperties"] is False
+    assert nested_obj["properties"]["mode"]["enum"] == ["strict", "relaxed"]
+    assert _normalize_mcp_tool_schema_for_llm(None) is None
+    assert _normalize_mcp_tool_schema_for_llm(42) == 42
