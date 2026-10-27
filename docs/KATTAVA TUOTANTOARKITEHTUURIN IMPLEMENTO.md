@@ -535,12 +535,18 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
 * **Kokonaislaajuus & Kesto:** 36 tiedostoa, kestoarvio **~3,5 – 4 h**.
 * **Kaikkien 36 tiedoston YHTEINEN suorituskomento (Yön yli / Tausta-ajo):**
   ```powershell
-  uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md --gate backend --model gemini-4-argon-medium
+  uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md --gate backend --model gemini-4-argon-medium --continue-on-failure
   ```
   *tai itsenäisenä Antigravity CLI -tausta-ajona:*
   ```powershell
-  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md --gate backend --model gemini-4-argon-medium"
+  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md --gate backend --model gemini-4-argon-medium --continue-on-failure"
   ```
+* **Yöajon Vikaturvallisuus & Aikarajojen Hallinta (Overnight Run Resilience):**
+  1. **Ei Globaalia Kokonaisaikaleikkuria:** Runnerissa ei ole keinotekoista 2–3 h kokonaisaikaa; kaikki 36 tiedostoa ajetaan läpi puhtaina itsenäisinä aliprosesseina.
+  2. **Tiedostokohtainen Aikaleikkuri (30 min / tiedosto):** Oletusasetus `timeout_seconds = 1800` antaa 6-kertaisen turvamarginaalin normaaliin 2–5 minuutin tiedostokarkaisuun nähden.
+  3. **Lippu `--continue-on-failure`:** Varmistaa, että jos yksittäinen haastava tiedosto epäonnistuisi kahdenkaan yrityksen jälkeen, runner suorittaa automaattisen git-rollbackin työtilan suojaamiseksi ja jatkaa keskeytyksettä jonon seuraavaan tiedostoon.
+  4. **Pysyvä Tilanmuisti (`hardening_state.json` & Git Checkpoints):** Jokainen valmistunut tiedosto rastitaan livenä trackerissa (`- [x]`), kirjataan tilatiedostoon ja commitoidaan atomisesti gitiin (`chore(hardening): complete <target>`). Jos ajo jostain ulkoisesta syystä keskeytyisi (esim. sähkökatko), sama komento jatkaa aamulla suoraan seuraavasta tekemättömästä tiedostosta (`REMAINING = TARGETS - DONE`).
+  5. **Windows 11 Lepotilan (Sleep) Esto:** Ennen yön yli kestävää ajoa on varmistettava, että Windows ei mene verkkovirralla lepotilaan (*Settings -> System -> Power & Battery -> Screen and sleep -> When plugged in, put my device to sleep after: Never*).
 
 #### Paketti 1: Asynkroniset Taustatyöntekijät (`backend_v2/workers/`)
 * **Laajuus & Kesto:** 6 tiedostoa, kestoarvio **~40 min**.

@@ -15,11 +15,11 @@
 
 **Plan:** @[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md] (Askel 3.2: Vaihe 2b-3)
 
-- [ ] **[NOK] Execution:** `uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md --gate backend --model gemini-4-argon-medium`
+- [ ] **[NOK] Execution:** `uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md --gate backend --model gemini-4-argon-medium --continue-on-failure`
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]" --gate backend --model gemini-4-argon-medium`
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`
   - [ ] @[backend_v2/workers/execution_worker.py]
   - [ ] @[backend_v2/workers/report_worker.py]
   - [ ] @[backend_v2/workers/synthesis_reducers.py]
