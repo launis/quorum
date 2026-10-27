@@ -39,7 +39,11 @@ __all__ = [
 
 
 def _raise_unbound_uow_error() -> Never:
-    """Raise an explicit AppException when a UoW port is invoked outside 'async with uow:'."""
+    """Raise an explicit AppException when a UoW port is invoked outside 'async with uow:'.
+
+    Raises:
+        AppException: Always raised with STORAGE_ACCESS_FAILED when no transaction is active.
+    """
     msg = "PostgresUnitOfWork has no active transaction; enter 'async with uow:' before executing queries."
     logger.error(
         "[PostgresUnitOfWork] %s: %s",
@@ -58,7 +62,19 @@ class _UnboundAsyncPgConnection:
     """Fail-fast connection sentinel bound to PostgresUnitOfWork outside active transaction contexts."""
 
     async def execute(self, query: str, *args: object, timeout: float | None = None) -> str:
-        """Fail fast when execute is called outside an active Unit of Work transaction."""
+        """Fail fast when execute is called outside an active Unit of Work transaction.
+
+        Args:
+            query: SQL statement string.
+            *args: Positional SQL bind arguments.
+            timeout: Command execution timeout in seconds.
+
+        Returns:
+            Never returns; always raises AppException.
+
+        Raises:
+            AppException: Always raised with STORAGE_ACCESS_FAILED outside an active transaction.
+        """
         _ = (query, args, timeout)
         _raise_unbound_uow_error()
 
@@ -69,7 +85,16 @@ class _UnboundAsyncPgConnection:
         *,
         timeout: float | None = None,
     ) -> None:
-        """Fail fast when executemany is called outside an active Unit of Work transaction."""
+        """Fail fast when executemany is called outside an active Unit of Work transaction.
+
+        Args:
+            command: SQL statement template string.
+            args: Sequence of positional parameter tuples.
+            timeout: Command execution timeout in seconds.
+
+        Raises:
+            AppException: Always raised with STORAGE_ACCESS_FAILED outside an active transaction.
+        """
         _ = (command, args, timeout)
         _raise_unbound_uow_error()
 
@@ -79,7 +104,19 @@ class _UnboundAsyncPgConnection:
         *args: object,
         timeout: float | None = None,
     ) -> Sequence[AsyncPgRecordProtocol]:
-        """Fail fast when fetch is called outside an active Unit of Work transaction."""
+        """Fail fast when fetch is called outside an active Unit of Work transaction.
+
+        Args:
+            query: SQL query string.
+            *args: Positional SQL bind arguments.
+            timeout: Command execution timeout in seconds.
+
+        Returns:
+            Never returns; always raises AppException.
+
+        Raises:
+            AppException: Always raised with STORAGE_ACCESS_FAILED outside an active transaction.
+        """
         _ = (query, args, timeout)
         _raise_unbound_uow_error()
 
@@ -89,7 +126,19 @@ class _UnboundAsyncPgConnection:
         *args: object,
         timeout: float | None = None,
     ) -> AsyncPgRecordProtocol | None:
-        """Fail fast when fetchrow is called outside an active Unit of Work transaction."""
+        """Fail fast when fetchrow is called outside an active Unit of Work transaction.
+
+        Args:
+            query: SQL query string.
+            *args: Positional SQL bind arguments.
+            timeout: Command execution timeout in seconds.
+
+        Returns:
+            Never returns; always raises AppException.
+
+        Raises:
+            AppException: Always raised with STORAGE_ACCESS_FAILED outside an active transaction.
+        """
         _ = (query, args, timeout)
         _raise_unbound_uow_error()
 
@@ -102,12 +151,33 @@ class _UnboundAsyncPgConnection:
         schema: str = "pg_catalog",
         format: str = "binary",
     ) -> None:
-        """Fail fast when set_type_codec is called outside an active Unit of Work transaction."""
+        """Fail fast when set_type_codec is called outside an active Unit of Work transaction.
+
+        Args:
+            typename: PostgreSQL data type name.
+            encoder: Binary payload encoder callable.
+            decoder: Binary payload decoder callable.
+            schema: Database schema name.
+            format: Wire transfer format identifier.
+
+        Raises:
+            AppException: Always raised with STORAGE_ACCESS_FAILED outside an active transaction.
+        """
         _ = (typename, encoder, decoder, schema, format)
         _raise_unbound_uow_error()
 
     def transaction(self, *, isolation: str = "repeatable_read") -> AsyncPgTransactionProtocol:
-        """Fail fast when transaction is called outside an active Unit of Work transaction."""
+        """Fail fast when transaction is called outside an active Unit of Work transaction.
+
+        Args:
+            isolation: PostgreSQL transaction isolation level.
+
+        Returns:
+            Never returns; always raises AppException.
+
+        Raises:
+            AppException: Always raised with STORAGE_ACCESS_FAILED outside an active transaction.
+        """
         _ = isolation
         _raise_unbound_uow_error()
 
@@ -186,6 +256,7 @@ class PostgresUnitOfWork:
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+                exc_info=True,
             )
             raise AppException(
                 message=msg,
@@ -211,6 +282,7 @@ class PostgresUnitOfWork:
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+                exc_info=True,
             )
             raise AppException(
                 message=msg,
@@ -299,6 +371,7 @@ class PostgresUnitOfWork:
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+                exc_info=True,
             )
             raise AppException(
                 message=msg,
@@ -339,6 +412,7 @@ class PostgresUnitOfWork:
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+                exc_info=True,
             )
             raise AppException(
                 message=msg,

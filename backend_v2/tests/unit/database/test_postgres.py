@@ -32,6 +32,7 @@ from backend_v2.database.postgres import (
     PostgresUnitOfWork,
     decode_jsonb_binary,
     encode_jsonb_binary,
+    init_connection,
 )
 from backend_v2.database.postgres.entity_adapter import (
     _coerce_float,
@@ -1018,6 +1019,12 @@ async def test_istqb_boundary_value_and_wire_header_failures(
             async with PostgresUnitOfWork(pool_manager=manager_pw):
                 pass
         assert exc_uow_acq.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        pool.inject_fault("acquire", pre_existing_app_err)
+        with pytest.raises(AppException) as exc_uow_acq_direct:
+            async with PostgresUnitOfWork(pool_manager=manager_pw):
+                pass
+        assert exc_uow_acq_direct.value is pre_existing_app_err
     finally:
         pool.clear_faults()
 
@@ -1054,6 +1061,12 @@ async def test_istqb_boundary_value_and_wire_header_failures(
             async with PostgresUnitOfWork(pool_manager=manager_pw):
                 pass
         assert exc_tx_commit.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        pool.inject_fault("tx_commit", pre_existing_app_err)
+        with pytest.raises(AppException) as exc_tx_commit_direct:
+            async with PostgresUnitOfWork(pool_manager=manager_pw):
+                pass
+        assert exc_tx_commit_direct.value is pre_existing_app_err
     finally:
         pool.clear_faults()
 
@@ -1063,6 +1076,12 @@ async def test_istqb_boundary_value_and_wire_header_failures(
             async with PostgresUnitOfWork(pool_manager=manager_pw) as rb_uow:
                 await rb_uow.rollback()
         assert exc_tx_rb.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        pool.inject_fault("tx_rollback", pre_existing_app_err)
+        with pytest.raises(AppException) as exc_tx_rb_direct:
+            async with PostgresUnitOfWork(pool_manager=manager_pw) as rb_uow_direct:
+                await rb_uow_direct.rollback()
+        assert exc_tx_rb_direct.value is pre_existing_app_err
     finally:
         pool.clear_faults()
 
@@ -1239,6 +1258,13 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
     with pytest.raises(AppException) as exc_unbound_get_exec:
         await unbound_uow.entities.get_execution(run_id)
     assert exc_unbound_get_exec.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+    assert isinstance(unbound_uow.graph, PostgresGraphAdapter)
+    with pytest.raises(AppException) as exc_unbound_codec:
+        await init_connection(unbound_uow.graph._conn)
+    assert exc_unbound_codec.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+    with pytest.raises(AppException) as exc_unbound_tx:
+        unbound_uow.graph._conn.transaction(isolation="repeatable_read")
+    assert exc_unbound_tx.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
 
     # Verify column coercion helpers handle non-UUID/str, memoryview, already-decoded objects, and str floats
     assert _coerce_uuid_or_str(12345) == "12345"
