@@ -37,7 +37,7 @@
   - [x] [NEW] @[backend_v2/database/postgres/pool.py]
   - [x] [NEW] @[backend_v2/database/postgres/uow.py]
   - [x] @[backend_v2/models/core_base.py]
-  - [ ] [NEW] @[backend_v2/models/domain/proposition_graph.py]
+  - [x] [NEW] @[backend_v2/models/domain/proposition_graph.py]
   - [ ] @[backend_v2/models/enums.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] [NEW] @[scripts/audit_zero_orm_strictness.py]
