@@ -65,7 +65,7 @@
   - [x] [NEW] @[backend_v2/llm/provider/provider_factory.py]
   - [x] [NEW] @[backend_v2/llm/provider/litellm_response_stage.py]
   - [x] [NEW] @[backend_v2/llm/provider/litellm_provider.py]
-  - [ ] [NEW] @[backend_v2/llm/provider/__init__.py]
+  - [x] [NEW] @[backend_v2/llm/provider/__init__.py]
   - [ ] `@[backend_v2/llm/client.py#L46-L58]`
   - [ ] `@[backend_v2/llm/handler.py#L878-L1057]`
   - [ ] `@[backend_v2/services/mcp/generic_mcp_client.py#L447-L509]`
