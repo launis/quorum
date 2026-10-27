@@ -31,7 +31,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[backend_v2/database/factory.py]
   - [x] @[backend_v2/database/interfaces.py]
-  - [ ] [NEW] @[backend_v2/database/postgres/__init__.py]
+  - [x] [NEW] @[backend_v2/database/postgres/__init__.py]
   - [ ] [NEW] @[backend_v2/database/postgres/entity_adapter.py]
   - [ ] [NEW] @[backend_v2/database/postgres/graph_adapter.py]
   - [ ] [NEW] @[backend_v2/database/postgres/pool.py]
