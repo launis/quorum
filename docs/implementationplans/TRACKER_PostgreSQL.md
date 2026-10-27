@@ -17,7 +17,7 @@
 
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]
 
-- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] @[docs/implementationplans/TRACKER_PostgreSQL.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] @[docs/implementationplans/TRACKER_PostgreSQL.md]` (`33f4d4328`)
   - [x] Step 1: PHASE_1_CLEANUPS_AST_GUARDRAIL_AND_ENUM_FOUNDATION
   - [x] Step 2: PROPOSITION_GRAPH_DOMAIN_MODELS_AND_HEXAGONAL_CQRS_PORTS
   - [x] Step 3: POSTGRESQL_19_UUIDV7_SCHEMA_AND_POOL_INFRASTRUCTURE
@@ -28,7 +28,7 @@
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate backend --model gemini-4-argon-medium`.
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[backend_v2/database/factory.py]
   - [ ] @[backend_v2/database/interfaces.py]
   - [ ] [NEW] @[backend_v2/database/postgres/__init__.py]
@@ -41,7 +41,7 @@
   - [ ] @[backend_v2/models/enums.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] [NEW] @[scripts/audit_zero_orm_strictness.py]
-- [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate frontend --model gemini-4-argon-medium`. (Zero frontend `.dart` production targets in this plan).
+- [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate frontend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`. (Zero frontend `.dart` production targets in this plan).
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
@@ -81,7 +81,7 @@
    - Exclusively use workspace-relative `@[...]` paths across all documentation, trackers, and handover blocks.
 5. **Post-Implementation Hardening Execution Options**:
    - Run interactive file-by-file hardening in chat via `/tier2-hardening-backend @[docs/implementationplans/TRACKER_PostgreSQL.md]`, OR
-   - Run autonomous unattended CLI hardening via `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate backend --model gemini-4-argon-medium`.
+   - Run autonomous unattended CLI hardening via `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
 
 ## Requirements Traceability Matrix
 
@@ -115,7 +115,7 @@
 - In `generate_uuid7_opaque_id`, clamping `resolved_ms < _UUID7_STATE.last_timestamp_ms` strictly when `timestamp_ms is None` while resetting `_UUID7_STATE.last_timestamp_ms = resolved_ms` whenever `resolved_ms != _UUID7_STATE.last_timestamp_ms` guarantees monotonic sub-millisecond `rand_a` ordering for both live wall-clock timestamps and deterministic fixed-timestamp unit tests regardless of test execution order.
 
 ## Remaining
-- Execute `Tier 2 Hardening (Backend)` (`uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate backend --model gemini-4-argon-medium`).
+- Execute `Tier 2 Hardening (Backend)` (`uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`).
 - Execute `As-Built Architectural Sync` (`/tier7-describe-architecture @[docs/implementationplans/TRACKER_PostgreSQL.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] @[ki_god_code_prevention.md] @[ki_python_314_concurrency_strictness.md] @[ki_zero_permissive_typing.md] @[ki_mcp_tool_protocol.md]`).
 - Execute `System 2 Red-Team Audit` (`/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] @[docs/implementationplans/TRACKER_PostgreSQL.md]`).
 
