@@ -954,6 +954,14 @@ Decoupling workflow scheduling from provider throttling prevents priority invers
 ### 7.5 Provider Adapter Encapsulation & Lazy Dependency Loading
 * All vendor-specific behaviors (such as Google Vertex AI location parameters, Anthropic prompt-caching headers, and OpenAI function calling formats) are strictly encapsulated inside concrete provider adapters.
 * Provider adapters are resolved dynamically via the cache adapter factory, maintaining an open-closed boundary where adding or upgrading a provider requires zero modifications to service orchestration logic.
+* The model provider implementation itself is partitioned into a single-responsibility package (`backend_v2/llm/provider/`):
+  - `provider_factory.py`: Resolves provider instances deterministically from typed `LLMProvider` enums without heuristic parsing.
+  - `litellm_provider.py`: Implements foundational LiteLLM dispatching with dynamic semaphore pooling.
+  - `litellm_response_stage.py`: Encapsulates LiteLLM response parsing, token usage extraction, and structured exception mapping to domain `AppException` types.
+  - `transient_retry_policy.py`: Governs transient error detection, `Retry-After` header extraction, and adaptive exponential backoff waiting.
+  - `env_and_schema_utils.py`: Manages safe environment resolution and tool schema normalization.
+  - `base_and_mock_provider.py`: Declares abstract `LLMProvider` base contracts and provides offline simulation mocks.
+  - `__init__.py`: Provides a clean package facade with explicit `__all__` exports and PEP 484 redundant import aliases.
 * Heavy vendor SDKs and Rust/PyO3-based acceleration libraries are lazily loaded inside execution methods or guarded behind static typing checks, preventing import-time crashes and keeping CLI tooling and unit test startup instantaneous.
 
 ---

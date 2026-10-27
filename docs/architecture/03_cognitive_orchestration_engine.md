@@ -27,6 +27,14 @@ Domain services do not hardcode specific model strings, provider SDKs, or vendor
 - **Pricing Registry SSOT**: Token unit rates and cost metrics are resolved strictly from the authoritative LiteLLM model pricing registry, providing unified FinOps cost accounting and savings estimates without secondary shadow pricing tables.
 - **Observability & GenAI Semantic Conventions**: Outbound model executions automatically trace under OpenTelemetry and Logfire semantic conventions, preserving active trace context across provider adapters, capturing unit token usage and latency metrics, recording explicit context cache hit indicators on active spans, and instrumenting external Model Context Protocol (MCP) tool calls.
 - **Zero Silent Fallback Guarantee**: If an API call fails, credentials are missing, or retry limits are exhausted, the engine halts immediately with an explicit `AppException` rather than silently substituting an alternate model, preserving longitudinal consistency and audit baselines.
+- **Modular Provider Package Architecture**: Foundational model execution and provider instantiation are partitioned across single-responsibility modules in the provider package:
+  * Factory Resolution (`provider_factory.py`): Maps typed `LLMProvider` enums to concrete provider instances based on system configuration and model parameters.
+  * Foundational LiteLLM Execution Engine (`litellm_provider.py`): Manages direct model interaction, dynamic RPM semaphore pooling, and pacing delays.
+  * Response & Error Telemetry Stage (`litellm_response_stage.py`): Isolates response parsing, token usage extraction, and structured LiteLLM exception classification into typed `AppException` domain hierarchies.
+  * Transient Retry & Backoff Policy (`transient_retry_policy.py`): Evaluates transient network and provider status codes (429, 500, 502, 503, 504), extracts `Retry-After` header specifications, and executes adaptive exponential jitter backoff.
+  * Environment & Schema Adaptation (`env_and_schema_utils.py`): Enforces secure runtime environment variable injection with configuration validation and normalizes OpenAPI schemas for model tool calling.
+  * Base & Mock Simulation (`base_and_mock_provider.py`): Defines the abstract `LLMProvider` contract and provides zero-deployment test simulation with simulated token tracking and structured validation.
+  * Package Facade (`__init__.py`): Exposes public provider interfaces via explicit redundant PEP 484 exports.
 
 ### 2.4. Two-Tier Concurrency Architecture & Micro-Throttling Isolation
 Parallel execution enforces strict concurrency bounds across decoupled tiers:

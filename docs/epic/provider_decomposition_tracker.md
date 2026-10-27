@@ -83,7 +83,7 @@
 6. **Item 10 (`anti_happy_path_mandate` — ISTQB Negative & Boundary Partitions)**: Add negative and boundary unit tests covering the 66 missed statements from baseline (`lines 67, 72, 76-77, 80, 88-99, 211, 215, 242, 269-271, 284-297, 307, 312, 349, 368-369, 384-386, 511, 753, 809-811, 822-823, 874, 892-894, 904, 933, 997, 1033-1041, 1049-1050, 1063, 1069, 1332, 1534-1536, 1544, 1728, 1834-1835` of `provider.py`) across `backend_v2/tests/unit/llm/provider/` to achieve `>= 97%` line coverage.
 
 #### Architectural Documentation Synchronization
-- [ ] **[NOK] As-Built Architectural Sync**: Run `/tier7-describe-architecture @[docs/epic/provider_decomposition_tracker.md] @[ki_god_code_prevention.md] @[ki_deterministic_hardening_state.md]`
+- [x] **[OK] As-Built Architectural Sync**: Run `/tier7-describe-architecture @[docs/epic/provider_decomposition_tracker.md] @[ki_god_code_prevention.md] @[ki_deterministic_hardening_state.md]`
   - **Target KIs to Synchronize**: `@[ki_god_code_prevention.md]`, `@[ki_deterministic_hardening_state.md]`
   - **Directory Reference Sync**: Verify `@[.agents/rules/04_directory_reference.md]` reflects `backend_v2/llm/provider/` and `backend_v2/tests/unit/llm/provider/`
   - **Pillar Documentation Sync**: Update LLM & Adapter documentation in `docs/architecture/` to reflect the modular `backend_v2/llm/provider/` package
