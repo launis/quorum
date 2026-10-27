@@ -301,6 +301,7 @@ Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytke
 │ Suoritus: exe_2af2f7665e7c477b (wf_a8f1d71000000001, rep_210bacba)     │
 │ Vaiheet 1-3 + WeasyPrint 9s PDF + Flutter SDUI läpäisty 100 % puhtaasti│
 │ Forensic Summary: data/files/executions/exe_2af2f7665e7c477b/          │
+│ Git Commit: 3f3f3d941 (docs(architecture): record verified e2e...)     │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
 ┌───────────────────────────────────▼────────────────────────────────────┐
@@ -402,7 +403,7 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
 > 
 > * **Suoritus-ID:** `exe_2af2f7665e7c477b` (Työnkulku: `wf_a8f1d71000000001`, Raportti: `rep_210bacbab69246c4`)
 > * **Ajankohta & Kesto:** 27.10.2026 klo 09:42:10 – 09:47:45 UTC+02:00 (5 min 35 s)
-> * **Tila:** 🟢 **PASSED & FINALIZED (100 % E2E Pariteetti)**
+> * **Tila & Git Commit:** 🟢 **PASSED & FINALIZED (100 % E2E Pariteetti)** — Commit `3f3f3d941` (*docs(architecture): record verified e2e execution exe_2af2f7665e7c477b prior to postgresql*)
 > * **Forensiikkaraportti:** `@[data/files/executions/exe_2af2f7665e7c477b/forensic_summary.md]`
 > * **Tallennetut fyysiset artefaktit:**
 >   * `report.pdf` (185.9 KB, 9-sivuinen WeasyPrint-johdon raportti)
@@ -420,7 +421,7 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
 ---
 
 ### Askel 3: Suorita PostgreSQL 19 Zero-ORM & `dag_executor.py` -purku (Vaihe 2)
-* **Lähtötilanteen varmennus:** Ennen tämän askeleen aloitusta koko järjestelmän suorituskyky ja elinkaari on todennettu onnistuneella tuotantoajolla `exe_2af2f7665e7c477b` (ks. yllä oleva Välivaiheen Todentaminen ja `@[data/files/executions/exe_2af2f7665e7c477b/forensic_summary.md]`).
+* **Lähtötilanteen varmennus:** Ennen tämän askeleen aloitusta koko järjestelmän suorituskyky ja elinkaari on todennettu onnistuneella tuotantoajolla `exe_2af2f7665e7c477b` ja lukittu commitiin `3f3f3d941` (ks. yllä oleva Välivaiheen Todentaminen ja `@[data/files/executions/exe_2af2f7665e7c477b/forensic_summary.md]`).
 * **Tavoite:** Korvaa TinyDB ja JSON-levylukot PostgreSQL 19:llä, `asyncpg`:llä ja `trace_events` append-only -tapahtumavirralla. Pura samalla `dag_executor.py` (1 640 LOC) neljään suoritusmoduuliin.
 * **Toteutussuunnitelma:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` (EPIC 151)
 * **1. Luo seurantatiedosto:**

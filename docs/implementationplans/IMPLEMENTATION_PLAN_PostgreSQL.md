@@ -156,11 +156,11 @@ Pre-flight execution of `uv run python scripts/audit_dict_eradication.py` and `u
     <targets>
       <target action="NEW">[NEW] @[scripts/audit_zero_orm_strictness.py]</target>
       <target action="NEW">[NEW] @[backend_v2/tests/unit/scripts/test_audit_zero_orm_strictness.py]</target>
-      <target action="MODIFY">@[backend_v2/tests/unit/scripts/test_scripts_cli_help.py#L61-L67]</target>
-      <target action="MODIFY">@[backend_v2/models/enums.py#L222-L235]</target>
-      <target action="MODIFY">@[backend_v2/models/core_base.py#L165-L190]</target>
-      <target action="MODIFY">@[backend_v2/tests/unit/models/test_enums.py#L253-L266]</target>
-      <target action="MODIFY">@[backend_v2/tests/unit/models/test_core_base.py#L125-L140]</target>
+      <target action="MODIFY">[MODIFY] @[backend_v2/tests/unit/scripts/test_scripts_cli_help.py#L61-L67]</target>
+      <target action="MODIFY">[MODIFY] @[backend_v2/models/enums.py#L222-L235]</target>
+      <target action="MODIFY">[MODIFY] @[backend_v2/models/core_base.py#L165-L190]</target>
+      <target action="MODIFY">[MODIFY] @[backend_v2/tests/unit/models/test_enums.py#L253-L266]</target>
+      <target action="MODIFY">[MODIFY] @[backend_v2/tests/unit/models/test_core_base.py#L125-L140]</target>
     </targets>
     <action>
       1. Create `[NEW] @[scripts/audit_zero_orm_strictness.py]` with a standardized CLI (`argparse.ArgumentParser`, `RawDescriptionHelpFormatter`, PowerShell epilog examples) using Python's `ast` module (zero reflection, and zero contiguous `dict[str, ...]` literal substrings in docstrings/comments/messages to preserve `audit_warning_baseline.py` Census `P == 0`) to scan `backend_v2/database/postgres/`, `backend_v2/models/domain/proposition_graph.py`, and `backend_v2/database/migrations/001_pg19_uuidv7_schema.sql` for six fatal rules:
@@ -188,8 +188,8 @@ Pre-flight execution of `uv run python scripts/audit_dict_eradication.py` and `u
     <targets>
       <target action="NEW">[NEW] @[backend_v2/models/domain/proposition_graph.py]</target>
       <target action="NEW">[NEW] @[backend_v2/tests/unit/models/domain/test_proposition_graph.py]</target>
-      <target action="MODIFY">@[backend_v2/database/interfaces.py#L315-L336]</target>
-      <target action="MODIFY">@[backend_v2/tests/unit/test_interfaces.py#L7-L21]</target>
+      <target action="MODIFY">[MODIFY] @[backend_v2/database/interfaces.py#L315-L336]</target>
+      <target action="MODIFY">[MODIFY] @[backend_v2/tests/unit/test_interfaces.py#L7-L21]</target>
     </targets>
     <action>
       1. Create `[NEW] @[backend_v2/models/domain/proposition_graph.py]` defining the following classes (each explicitly declaring `model_config = ConfigDict(strict=True, extra="forbid", frozen=True)` in its class body to satisfy `QGR007`):
@@ -247,11 +247,11 @@ Pre-flight execution of `uv run python scripts/audit_dict_eradication.py` and `u
     <constraint invariant="unbounded_io_timeout_mandate">All asyncpg pool and connection operations MUST specify explicit timeouts resolved strictly from settings.py and translate transport errors into AppException.</constraint>
     <constraint invariant="credential_hardcoding_ban">Never hardcode database passwords or credential-bearing DSNs in settings.py; resolve credentials exclusively via environment injection.</constraint>
     <targets>
-      <target action="MODIFY">@[backend_v2/settings.py#L47-L51]</target>
-      <target action="MODIFY">@[backend_v2/settings.py#L54-L1053]</target>
-      <target action="MODIFY">@[backend_v2/tests/unit/test_settings.py#L136-L158]</target>
+      <target action="MODIFY">[MODIFY] @[backend_v2/settings.py#L47-L51]</target>
+      <target action="MODIFY">[MODIFY] @[backend_v2/settings.py#L54-L1053]</target>
+      <target action="MODIFY">[MODIFY] @[backend_v2/tests/unit/test_settings.py#L136-L158]</target>
       <target action="NEW">[NEW] @[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]</target>
-      <target action="MODIFY">@[docker-compose.yml]</target>
+      <target action="MODIFY">[MODIFY] @[docker-compose.yml]</target>
       <target action="NEW">[NEW] @[backend_v2/database/postgres/__init__.py]</target>
       <target action="NEW">[NEW] @[backend_v2/database/postgres/pool.py]</target>
     </targets>
@@ -292,8 +292,8 @@ Pre-flight execution of `uv run python scripts/audit_dict_eradication.py` and `u
       <target action="NEW">[NEW] @[backend_v2/database/postgres/entity_adapter.py]</target>
       <target action="NEW">[NEW] @[backend_v2/database/postgres/uow.py]</target>
       <target action="NEW">[NEW] @[backend_v2/tests/fakes/in_memory_uow.py]</target>
-      <target action="MODIFY">@[backend_v2/database/factory.py#L24-L64]</target>
-      <target action="MODIFY">@[backend_v2/tests/unit/test_factory.py#L28-L32]</target>
+      <target action="MODIFY">[MODIFY] @[backend_v2/database/factory.py#L24-L64]</target>
+      <target action="MODIFY">[MODIFY] @[backend_v2/tests/unit/test_factory.py#L28-L32]</target>
     </targets>
     <action>
       1. Create `[NEW] @[backend_v2/database/postgres/graph_adapter.py]` implementing `PostgresGraphAdapter` and `CteReasoningStrategy` (using strictly `row["col"]` subscript indexing with zero `.get()` calls to satisfy `QGR002` and zero `list[dict[...]]` or 3+ element tuple annotations to satisfy `QGR023` and `audit_dict_eradication.py`):
