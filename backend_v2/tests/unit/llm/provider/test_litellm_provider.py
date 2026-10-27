@@ -14,16 +14,21 @@ from pydantic import BaseModel, ConfigDict, Field
 
 import backend_v2.llm.provider as provider_facade
 import backend_v2.llm.provider.litellm_provider as litellm_provider_mod
-from backend_v2.exceptions import ConfigurationError, ServiceUnavailableError
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes, ServiceUnavailableError
 from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
+from backend_v2.llm.adapters.base_adapter import apply_provider_pacing
 from backend_v2.llm.provider.base_and_mock_provider import LogfireShieldedClient
-from backend_v2.llm.provider.litellm_provider import LiteLLMProvider
+from backend_v2.llm.provider.litellm_provider import (
+    LiteLLMProvider,
+    _resolve_apply_provider_pacing,
+    _resolve_get_settings,
+)
 from backend_v2.models.domain.system_config import ProviderExtraParamsDTO
 from backend_v2.models.llm import (
     LLMMessageDTO,
     LLMProviderConfig,
 )
-from backend_v2.settings import Settings
+from backend_v2.settings import Settings, get_settings
 
 
 class _ToolParamModel(BaseModel):
@@ -355,3 +360,92 @@ async def test_litellm_provider_generate_retries_httpx_shield_and_fail_fast_guar
     monkeypatch.setattr(provider.router, "acompletion", _always_rate_limited)
     with pytest.raises(ServiceUnavailableError, match="rate limit exceeded"):
         await provider.generate(prompt="fail", temperature=0.0, max_tokens=64)
+
+
+@pytest.mark.asyncio
+async def test_litellm_provider_negative_boundaries_and_rfc7807_logging(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verifies negative boundaries for schema resolution, dump failures, adapter absence, and RFC 7807 logging."""
+    LiteLLMProvider._router_cache.clear()
+    LiteLLMProvider._semaphores.clear()
+
+    monkeypatch.delitem(litellm_provider_mod.sys.modules, "backend_v2.llm.provider", raising=False)
+    assert _resolve_get_settings() is get_settings
+    assert _resolve_apply_provider_pacing() is apply_provider_pacing
+
+    monkeypatch.setattr(litellm, "completion_cost", lambda **_: 0.001)
+    monkeypatch.setattr(litellm_provider_mod, "apply_provider_pacing", AsyncMock())
+
+    with caplog.at_level("ERROR"), pytest.raises(ConfigurationError, match="LLM Rate Limits"):
+        LiteLLMProvider(model_name="openai/gpt-4o", limits=None)
+    assert ErrorCodes.CONFIGURATION_ERROR.name in caplog.text
+
+    def _raise_adapter_err(*_: Any, **__: Any) -> Any:
+        raise AppException(
+            message="Adapter missing",
+            status_code=400,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+
+    monkeypatch.setattr(LLMCacheAdapterFactory, "get_adapter", _raise_adapter_err)
+
+    cfg = LLMProviderConfig(
+        id="cfg_abcdef1234567891",
+        provider="openai",
+        model_name="openai/gpt-4o",
+        rpm_limit=100,
+        tpm_limit=100000,
+        additional_params=ProviderExtraParamsDTO(),
+    )
+    provider = LiteLLMProvider(
+        model_name="openai/gpt-4o",
+        limits={"tpm": 100000, "rpm": 100},
+        config=cfg,
+    )
+    monkeypatch.setattr(provider.router, "acompletion", AsyncMock(return_value=_SimpleResponse(content="ok")))
+
+    # Messages without cached_content + BaseModel response_schema class
+    res = await provider.generate(
+        messages=[LLMMessageDTO(role="user", content="Hello without cache")],
+        response_schema=_ToolParamModel,
+        temperature=0.0,
+        max_tokens=32,
+    )
+    assert res.content == "ok"
+
+    # Malformed response_schema object raising error during name resolution
+    class _BadName:
+        def __bool__(self) -> bool:
+            return True
+
+        def __str__(self) -> str:
+            raise RuntimeError("corrupted schema name")
+
+    broken_schema = {"json_schema": {"name": _BadName()}}
+    caplog.clear()
+    with caplog.at_level("ERROR"), pytest.raises(ConfigurationError, match="Schema resolution failed"):
+        await provider.generate(
+            prompt="test",
+            response_schema=broken_schema,
+            temperature=0.0,
+            max_tokens=32,
+        )
+    assert ErrorCodes.CONFIGURATION_ERROR.name in caplog.text
+
+    # Diagnostic dump failure raises ConfigurationError with RFC 7807 logging
+    monkeypatch.setenv("DUMP_PROMPTS_FILE", "invalid_path.txt")
+
+    def _fail_dump(*_: Any) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(litellm_provider_mod, "_sync_diagnostic_dump", _fail_dump)
+    caplog.clear()
+    with caplog.at_level("ERROR"), pytest.raises(ConfigurationError, match="Diagnostic dump dispatch failed"):
+        await provider.generate(
+            prompt="test dump error",
+            temperature=0.0,
+            max_tokens=32,
+        )
+    assert ErrorCodes.CONFIGURATION_ERROR.name in caplog.text

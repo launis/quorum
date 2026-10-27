@@ -71,7 +71,6 @@ def _resolve_apply_provider_pacing() -> Any:
     return apply_provider_pacing
 
 
-# Phase 3, Step 1: Relocate LiteLLMProvider into dedicated module (< 430 lines)
 class LiteLLMProvider(LLMProvider):
     """Unified LLM Provider using LiteLLM to support multiple models (Gemini, OpenAI, Anthropic).
 
@@ -127,7 +126,7 @@ class LiteLLMProvider(LLMProvider):
                 "Strict Mode: LLM Rate Limits (TPM/RPM) must be explicitly passed "
                 "to Provider. No hardcoded defaults allowed."
             )
-            logger.error("[LiteLLMProvider] %s", msg)
+            logger.error("[LiteLLMProvider] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
         tpm = None if "tpm" not in limits else limits["tpm"]
@@ -135,7 +134,7 @@ class LiteLLMProvider(LLMProvider):
 
         if tpm is None or rpm is None:
             msg = "Strict Mode: Both TPM and RPM must be defined in limits config."
-            logger.error("[LiteLLMProvider] %s", msg)
+            logger.error("[LiteLLMProvider] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
         cache_key = f"{model_name}_{tpm}_{rpm}"
@@ -251,8 +250,8 @@ class LiteLLMProvider(LLMProvider):
                 f"Strict Mode: '{missing_param}' must be explicitly provided "
                 "from configuration (Database/Registry). No default allowed."
             )
-            logger.error("[LiteLLMProvider] %s", msg)
-            raise ConfigurationError(msg)
+            logger.error("[LiteLLMProvider] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
+            raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
         if pass_reasoning_token:
             blob_content = f"[SYSTEM: RESUME_THOUGHT_PROCESS] PREVIOUS_STATE_BLOB: {pass_reasoning_token}"
@@ -271,7 +270,12 @@ class LiteLLMProvider(LLMProvider):
                 logger.info("[LiteLLM] Enabling Structured Output for schema: %s", schema_name)
                 response_format = response_schema
             except Exception as schema_err:
-                logger.error("[LiteLLM] Could not resolve schema name: %s", schema_err)
+                logger.error(
+                    "[LiteLLM] %s: Could not resolve schema name: %s",
+                    ErrorCodes.CONFIGURATION_ERROR.name,
+                    schema_err,
+                    exc_info=True,
+                )
                 raise ConfigurationError(
                     message=f"Schema resolution failed: {schema_err}",
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -332,7 +336,12 @@ class LiteLLMProvider(LLMProvider):
                     payload = json.dumps(serialized_messages, indent=2, ensure_ascii=False)
                     await asyncio.to_thread(_sync_diagnostic_dump, dump_file, f"[LiteLLM] {self.model_name}", payload)
                 except Exception as e:
-                    logger.error("Failed to schedule diagnostic dump: %s", e)
+                    logger.error(
+                        "[LiteLLMProvider] %s: Failed to schedule diagnostic dump: %s",
+                        ErrorCodes.CONFIGURATION_ERROR.name,
+                        e,
+                        exc_info=True,
+                    )
                     raise ConfigurationError(
                         message=f"Diagnostic dump dispatch failed: {e}",
                         details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -367,7 +376,7 @@ class LiteLLMProvider(LLMProvider):
             response = None
             start_time = time.perf_counter()
 
-            # Phase 3, Step 1: Enforce Adaptive Exponential Backoff with Upstream Retry-After
+            # Enforce adaptive exponential backoff honoring upstream Retry-After headers
             j_init = retry_settings.llm_retry_jitter_initial_seconds
             j_max = retry_settings.llm_retry_max_seconds
             j_base = retry_settings.llm_retry_jitter_exp_base
