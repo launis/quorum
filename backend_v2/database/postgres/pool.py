@@ -304,6 +304,18 @@ async def init_connection(conn: AsyncPgConnectionProtocol) -> None:
         ) from exc
 
 
+def _import_asyncpg_module() -> object:
+    """Lazily import the asyncpg driver module at connection time.
+
+    Returns:
+        Imported asyncpg module object.
+
+    Raises:
+        ModuleNotFoundError: If asyncpg is not installed in the active environment.
+    """
+    return importlib.import_module("asyncpg")
+
+
 class PostgresPoolManager:
     """Manages the PostgreSQL 19 asyncpg connection pool, binary codecs, and DDL migrations.
 
@@ -364,7 +376,7 @@ class PostgresPoolManager:
         dsn = self.resolve_dsn()
         timeout_sec = self.settings.postgres_command_timeout_seconds
         try:
-            raw_module: object = importlib.import_module("asyncpg")
+            raw_module: object = _import_asyncpg_module()
             if not isinstance(raw_module, _AsyncPgModuleProtocol):
                 msg = "Imported asyncpg module does not conform to _AsyncPgModuleProtocol."
                 logger.error(

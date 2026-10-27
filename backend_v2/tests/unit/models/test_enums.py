@@ -306,4 +306,3 @@ def test_storage_backend_and_proposition_graph_enums() -> None:
 
     with pytest.raises(ValidationError):
         GraphEnumModel(backend="POSTGRES", node_type="warrant", rel_type="invalid_rel")
-

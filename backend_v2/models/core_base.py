@@ -353,26 +353,17 @@ def generate_uuid7_opaque_id(
         )
 
     with _UUID7_LOCK:
+        if timestamp_ms is None and resolved_ms < _UUID7_STATE.last_timestamp_ms:
+            resolved_ms = _UUID7_STATE.last_timestamp_ms
+
         if resolved_ms == _UUID7_STATE.last_timestamp_ms:
             _UUID7_STATE.rand_a_counter = (_UUID7_STATE.rand_a_counter + 1) & 0xFFF
             if _UUID7_STATE.rand_a_counter == 0:
                 resolved_ms += 1
                 _UUID7_STATE.last_timestamp_ms = resolved_ms
-        elif resolved_ms > _UUID7_STATE.last_timestamp_ms:
+        else:
             _UUID7_STATE.last_timestamp_ms = resolved_ms
             _UUID7_STATE.rand_a_counter = secrets.randbits(10)
-        else:
-            # Explicit historical timestamp provided in tests
-            rand_a_local = secrets.randbits(12)
-            rand_b_local = secrets.randbits(62)
-            uuid_int_local = (
-                ((resolved_ms & 0xFFFFFFFFFFFF) << 80)
-                | (0x7 << 76)
-                | ((rand_a_local & 0xFFF) << 64)
-                | (0b10 << 62)
-                | (rand_b_local & 0x3FFFFFFFFFFFFFFF)
-            )
-            return format_prefixed_uuid7(uuid.UUID(int=uuid_int_local), prefix, enforce_v7=True)
 
         rand_a = _UUID7_STATE.rand_a_counter
 

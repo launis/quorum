@@ -635,13 +635,19 @@ class InMemoryEntityAdapter:
 class InMemoryAsyncPgTransaction:
     """In-memory implementation of AsyncPgTransactionProtocol with snapshot rollback."""
 
-    def __init__(self, store: _InMemoryPostgresStore) -> None:
+    def __init__(
+        self,
+        store: _InMemoryPostgresStore,
+        faults: dict[str, Exception] | None = None,
+    ) -> None:
         """Initialize the transaction wrapper around a shared store.
 
         Args:
             store: Shared _InMemoryPostgresStore instance.
+            faults: Optional dictionary of injected faults keyed by operation name.
         """
         self._store: _InMemoryPostgresStore = store
+        self._faults: dict[str, Exception] = faults if faults is not None else {}
         self._snapshot: _StoreSnapshot | None = None
         self.active: bool = False
 
@@ -652,11 +658,15 @@ class InMemoryAsyncPgTransaction:
 
     async def commit(self) -> None:
         """Commit the active transaction and discard the rollback snapshot."""
+        if "tx_commit" in self._faults:
+            raise self._faults["tx_commit"]
         self._snapshot = None
         self.active = False
 
     async def rollback(self) -> None:
         """Restore the store to the pre-transaction snapshot."""
+        if "tx_rollback" in self._faults:
+            raise self._faults["tx_rollback"]
         if self._snapshot is not None:
             self._store.restore_snapshot(self._snapshot)
         self._snapshot = None
@@ -744,7 +754,7 @@ class InMemoryAsyncPgConnection:
         """
         self._check_fault("transaction")
         _ = isolation
-        return InMemoryAsyncPgTransaction(self._store)
+        return InMemoryAsyncPgTransaction(self._store, self._faults)
 
     async def execute(self, query: str, *args: object, timeout: float | None = None) -> str:
         """Execute a SQL statement against the in-memory PostgreSQL store.

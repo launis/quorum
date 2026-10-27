@@ -7,8 +7,9 @@ PEP 765 pure finally connection cleanup and RFC 7807 structured error translatio
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Sequence
 from types import TracebackType
-from typing import Self
+from typing import Never, Self
 
 from fastapi import status
 
@@ -23,6 +24,7 @@ from backend_v2.database.postgres.graph_adapter import PostgresGraphAdapter
 from backend_v2.database.postgres.pool import (
     AsyncPgConnectionProtocol,
     AsyncPgPoolProtocol,
+    AsyncPgRecordProtocol,
     AsyncPgTransactionProtocol,
     PostgresPoolManager,
     init_connection,
@@ -34,6 +36,80 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "PostgresUnitOfWork",
 ]
+
+
+def _raise_unbound_uow_error() -> Never:
+    """Raise an explicit AppException when a UoW port is invoked outside 'async with uow:'."""
+    msg = "PostgresUnitOfWork has no active transaction; enter 'async with uow:' before executing queries."
+    logger.error(
+        "[PostgresUnitOfWork] %s: %s",
+        ErrorCodes.STORAGE_ACCESS_FAILED.name,
+        msg,
+        extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+    )
+    raise AppException(
+        message=msg,
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+    )
+
+
+class _UnboundAsyncPgConnection:
+    """Fail-fast connection sentinel bound to PostgresUnitOfWork outside active transaction contexts."""
+
+    async def execute(self, query: str, *args: object, timeout: float | None = None) -> str:
+        """Fail fast when execute is called outside an active Unit of Work transaction."""
+        _ = (query, args, timeout)
+        _raise_unbound_uow_error()
+
+    async def executemany(
+        self,
+        command: str,
+        args: Sequence[Sequence[object]],
+        *,
+        timeout: float | None = None,
+    ) -> None:
+        """Fail fast when executemany is called outside an active Unit of Work transaction."""
+        _ = (command, args, timeout)
+        _raise_unbound_uow_error()
+
+    async def fetch(
+        self,
+        query: str,
+        *args: object,
+        timeout: float | None = None,
+    ) -> Sequence[AsyncPgRecordProtocol]:
+        """Fail fast when fetch is called outside an active Unit of Work transaction."""
+        _ = (query, args, timeout)
+        _raise_unbound_uow_error()
+
+    async def fetchrow(
+        self,
+        query: str,
+        *args: object,
+        timeout: float | None = None,
+    ) -> AsyncPgRecordProtocol | None:
+        """Fail fast when fetchrow is called outside an active Unit of Work transaction."""
+        _ = (query, args, timeout)
+        _raise_unbound_uow_error()
+
+    async def set_type_codec(
+        self,
+        typename: str,
+        *,
+        encoder: Callable[[object], bytes],
+        decoder: Callable[[bytes | bytearray | memoryview], object],
+        schema: str = "pg_catalog",
+        format: str = "binary",
+    ) -> None:
+        """Fail fast when set_type_codec is called outside an active Unit of Work transaction."""
+        _ = (typename, encoder, decoder, schema, format)
+        _raise_unbound_uow_error()
+
+    def transaction(self, *, isolation: str = "repeatable_read") -> AsyncPgTransactionProtocol:
+        """Fail fast when transaction is called outside an active Unit of Work transaction."""
+        _ = isolation
+        _raise_unbound_uow_error()
 
 
 class PostgresUnitOfWork:
@@ -67,6 +143,24 @@ class PostgresUnitOfWork:
         self._conn: AsyncPgConnectionProtocol | None = None
         self._tx: AsyncPgTransactionProtocol | None = None
         self._finalized: bool = False
+        self._bind_unbound_adapters()
+
+    def _bind_unbound_adapters(self) -> None:
+        """Bind fail-fast unbound adapters when no transaction is active."""
+        unbound_conn = _UnboundAsyncPgConnection()
+        timeout_sec = self._pool_manager.settings.postgres_command_timeout_seconds
+        unbound_graph = PostgresGraphAdapter(
+            connection=unbound_conn,
+            command_timeout_seconds=timeout_sec,
+        )
+        unbound_entities = PostgresEntityAdapter(
+            connection=unbound_conn,
+            command_timeout_seconds=timeout_sec,
+        )
+        self.graph = unbound_graph
+        self.topology = unbound_graph
+        self.reasoning = unbound_graph
+        self.entities = unbound_entities
 
     async def __aenter__(self) -> Self:
         """Acquire a connection, start a repeatable_read transaction, and bind CQRS ports.
@@ -168,6 +262,7 @@ class PostgresUnitOfWork:
             self._conn = None
             self._tx = None
             self._pool = None
+            self._bind_unbound_adapters()
             if conn is not None and pool is not None:
                 await pool.release(conn, timeout=timeout_sec)
 

@@ -487,4 +487,3 @@ def test_postgres_settings_and_boundary_invariants() -> None:
     # Negative BVA 3: postgres_min_pool_size > postgres_max_pool_size
     with pytest.raises(ValidationError, match="postgres_min_pool_size"):
         Settings(use_mock_llm=True, postgres_min_pool_size=25, postgres_max_pool_size=10)
-
