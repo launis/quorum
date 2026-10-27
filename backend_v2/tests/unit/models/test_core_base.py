@@ -14,6 +14,7 @@ from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import (
+    _UUID7_STATE,
     OPAQUE_STRIPE_ID_REGEX,
     I18nText,
     V2CoreBase,
@@ -209,6 +210,27 @@ def test_uuid7_prefixed_bridge_and_monotonic_generation() -> None:
     assert older_id.startswith("edg_")
     assert parse_prefixed_uuid7(older_id, EntityPrefix.EDGE).version == 7
 
+    # Sub-millisecond 12-bit counter rollover (0xFFF -> 0 advances timestamp by 1ms)
+    _UUID7_STATE.last_timestamp_ms = fixed_ts
+    _UUID7_STATE.rand_a_counter = 0xFFF
+    rollover_id = generate_uuid7_opaque_id(EntityPrefix.NODE, timestamp_ms=fixed_ts)
+    assert parse_prefixed_uuid7(rollover_id, EntityPrefix.NODE).version == 7
+    assert _UUID7_STATE.last_timestamp_ms == fixed_ts + 1
+    assert _UUID7_STATE.rand_a_counter == 0
+
+    # Clock-drift protection when wall clock is behind last_timestamp_ms
+    future_ts = 9_999_999_999_999
+    _UUID7_STATE.last_timestamp_ms = future_ts
+    _UUID7_STATE.rand_a_counter = 10
+    try:
+        drift_id = generate_uuid7_opaque_id(EntityPrefix.NODE, timestamp_ms=None)
+        assert parse_prefixed_uuid7(drift_id, EntityPrefix.NODE).version == 7
+        assert _UUID7_STATE.last_timestamp_ms == future_ts
+        assert _UUID7_STATE.rand_a_counter == 11
+    finally:
+        _UUID7_STATE.last_timestamp_ms = 0
+        _UUID7_STATE.rand_a_counter = 0
+
 
 def test_uuid7_prefixed_bridge_negative_boundaries() -> None:
     """Verify ISTQB negative boundaries on parse_prefixed_uuid7, format_prefixed_uuid7, and generate_uuid7_opaque_id."""
@@ -219,6 +241,10 @@ def test_uuid7_prefixed_bridge_negative_boundaries() -> None:
     with pytest.raises(AppException) as exc_prefix:
         parse_prefixed_uuid7(generate_uuid7_opaque_id(EntityPrefix.NODE), EntityPrefix.EDGE)
     assert exc_prefix.value.details["error_code"] == "VALIDATION_FAILED"
+
+    with pytest.raises(AppException) as exc_fmt_prefix:
+        format_prefixed_uuid7(generate_uuid7_opaque_id(EntityPrefix.EDGE), EntityPrefix.NODE)
+    assert exc_fmt_prefix.value.details["error_code"] == "VALIDATION_FAILED"
 
     # Non-v7 UUID rejected when enforce_v7=True
     with pytest.raises(AppException):

@@ -77,7 +77,7 @@ class I18nText(V2CoreBase):
         translations: Dictionary mapping locale code to translated string.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     translations: Annotated[
         dict[str, str],
@@ -214,7 +214,6 @@ def generate_opaque_id(prefix: EntityPrefix | str, length: int = 16) -> str:
     return generated_id
 
 
-# Step 1: RFC 9562 UUIDv7 Opaque Stripe ID bridge functions (parse_prefixed_uuid7, format_prefixed_uuid7, generate_uuid7_opaque_id)
 def parse_prefixed_uuid7(
     value: str | uuid.UUID,
     expected_prefix: EntityPrefix,
@@ -239,7 +238,7 @@ def parse_prefixed_uuid7(
         cleaned = value.strip()
         if not re.match(OPAQUE_STRIPE_ID_REGEX, cleaned):
             msg = f"Identifier '{value}' does not match OPAQUE_STRIPE_ID_REGEX."
-            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -248,7 +247,7 @@ def parse_prefixed_uuid7(
         prefix_part, hex_part = cleaned.split("_", 1)
         if prefix_part != expected_prefix.value:
             msg = f"Identifier '{value}' has prefix '{prefix_part}', expected '{expected_prefix.value}'."
-            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -256,7 +255,7 @@ def parse_prefixed_uuid7(
             )
         if len(hex_part) != 32:
             msg = f"UUIDv7 identifier '{value}' requires a 32-character hex payload, got {len(hex_part)}."
-            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -266,7 +265,7 @@ def parse_prefixed_uuid7(
 
     if enforce_v7 and parsed.version != 7:
         msg = f"UUID '{parsed}' has version {parsed.version}, expected RFC 9562 version 7."
-        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -297,14 +296,14 @@ def format_prefixed_uuid7(
         uuid_obj = raw_uuid
     else:
         cleaned = raw_uuid.strip()
-        if cleaned.startswith(f"{prefix.value}_"):
+        if "_" in cleaned:
             uuid_obj = parse_prefixed_uuid7(cleaned, prefix, enforce_v7=enforce_v7)
             return f"{prefix.value}_{uuid_obj.hex}"
         try:
             uuid_obj = uuid.UUID(cleaned)
         except ValueError as exc:
             msg = f"Invalid UUID string '{raw_uuid}' passed to format_prefixed_uuid7."
-            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -313,7 +312,7 @@ def format_prefixed_uuid7(
 
     if enforce_v7 and uuid_obj.version != 7:
         msg = f"UUID '{uuid_obj}' has version {uuid_obj.version}, expected RFC 9562 version 7."
-        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -345,7 +344,7 @@ def generate_uuid7_opaque_id(
     resolved_ms = int(time.time() * 1000) if timestamp_ms is None else timestamp_ms
     if resolved_ms < 0 or resolved_ms > 0xFFFFFFFFFFFF:
         msg = f"UUIDv7 timestamp_ms={resolved_ms} is outside valid 48-bit unsigned range."
-        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
