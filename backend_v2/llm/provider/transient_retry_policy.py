@@ -2,6 +2,7 @@
 
 import asyncio
 import re
+from typing import override
 
 from pydantic import ValidationError
 from tenacity import RetryCallState
@@ -24,7 +25,6 @@ __all__ = [
 ]
 
 
-# Phase 1, Step 1: Relocate depth-1 transient error detection and adaptive Retry-After policy
 def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) -> bool:
     """Check if the LiteLLM/asyncio/HTTP exception is a transient network error, rate limit, or timeout.
 
@@ -266,6 +266,7 @@ class _AdaptiveWaitWithRetryAfter(wait_base):
         self.base_wait = base_wait
         self.max_seconds = max_seconds
 
+    @override
     def __call__(self, retry_state: RetryCallState) -> float:
         """Calculate wait time considering upstream Retry-After headers.
 

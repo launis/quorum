@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import aiohttp
 import httpx
 import pytest
@@ -12,7 +14,7 @@ from litellm.exceptions import (
     RateLimitError,
 )
 from pydantic import BaseModel, ConfigDict, ValidationError
-from tenacity import Future, RetryCallState
+from tenacity import Future, RetryCallState, Retrying
 from tenacity.wait import wait_fixed
 
 from backend_v2.exceptions import (
@@ -80,7 +82,7 @@ def test_extract_retry_after_and_adaptive_wait_clamping() -> None:
     # 1. Retry-After + 0.5s safety margin (11.5 + 0.5 = 12.0s) > base_wait (2.0s) and < max_seconds (30.0s)
     outcome_mid = Future(1)
     outcome_mid.set_exception(err_msg)
-    rs_mid = RetryCallState(retry_object=None, fn=None, args=(), kwargs={})
+    rs_mid = RetryCallState(retry_object=Retrying(), fn=None, args=(), kwargs={})
     rs_mid.outcome = outcome_mid
     assert waiter(rs_mid) == 12.0
 
@@ -88,14 +90,14 @@ def test_extract_retry_after_and_adaptive_wait_clamping() -> None:
     err_huge = _UpstreamStatusError("try again in 120.0s")
     outcome_huge = Future(1)
     outcome_huge.set_exception(err_huge)
-    rs_huge = RetryCallState(retry_object=None, fn=None, args=(), kwargs={})
+    rs_huge = RetryCallState(retry_object=Retrying(), fn=None, args=(), kwargs={})
     rs_huge.outcome = outcome_huge
     assert waiter(rs_huge) == 30.0
 
     # 3. No Retry-After falls back to base_wait (2.0s)
     outcome_none = Future(1)
     outcome_none.set_exception(RuntimeError("generic transient failure"))
-    rs_none = RetryCallState(retry_object=None, fn=None, args=(), kwargs={})
+    rs_none = RetryCallState(retry_object=Retrying(), fn=None, args=(), kwargs={})
     rs_none.outcome = outcome_none
     assert waiter(rs_none) == 2.0
 
@@ -199,24 +201,30 @@ def test_extract_retry_after_recursive_and_format_attempt_error() -> None:
     invalid_header = _UpstreamStatusError("no retry", headers={"Retry-After": "invalid", "Other": "1"})
     assert _extract_retry_after_seconds(invalid_header) is None
 
-    rs_empty = RetryCallState(retry_object=None, fn=None, args=(), kwargs={})
+    rs_empty = RetryCallState(retry_object=Retrying(), fn=None, args=(), kwargs={})
     assert _format_attempt_error(rs_empty) == "Unknown"
 
     outcome_err = Future(1)
     outcome_err.set_exception(TimeoutError("timed out"))
-    rs_failed = RetryCallState(retry_object=None, fn=None, args=(), kwargs={})
+    rs_failed = RetryCallState(retry_object=Retrying(), fn=None, args=(), kwargs={})
     rs_failed.outcome = outcome_err
     assert _format_attempt_error(rs_failed) == "TimeoutError"
 
 
-# Phase 4, Step 1: Migrate test_extract_retry_after_and_transient_advanced from test_provider.py
 def test_extract_retry_after_and_transient_advanced() -> None:
     """Test corner cases in retry-after extraction and transient error detection."""
-    from unittest.mock import MagicMock
-
     e_cycle = ValueError("cycle")
     visited = {id(e_cycle)}
     assert _extract_retry_after_seconds(e_cycle, visited) is None
+
+    zero_header = _UpstreamStatusError("zero header", headers={"Retry-After": "0"})
+    assert _extract_retry_after_seconds(zero_header) is None
+
+    neg_header = _UpstreamStatusError("negative header", headers={"Retry-After": "-2.5"})
+    assert _extract_retry_after_seconds(neg_header) is None
+
+    zero_msg = ValueError("Please try again in 0s")
+    assert _extract_retry_after_seconds(zero_msg) is None
 
     parent_cause = ValueError("outer")
     parent_cause.__cause__ = ValueError("Please try again in 3.5s")
