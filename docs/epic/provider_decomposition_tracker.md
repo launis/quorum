@@ -66,7 +66,7 @@
   - [x] [NEW] @[backend_v2/llm/provider/litellm_response_stage.py]
   - [x] [NEW] @[backend_v2/llm/provider/litellm_provider.py]
   - [x] [NEW] @[backend_v2/llm/provider/__init__.py]
-  - [ ] `@[backend_v2/llm/client.py#L46-L58]`
+  - [x] `@[backend_v2/llm/client.py#L46-L58]`
   - [ ] `@[backend_v2/llm/handler.py#L878-L1057]`
   - [ ] `@[backend_v2/services/mcp/generic_mcp_client.py#L447-L509]`
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Pure backend Python decomposition with zero `.dart` changes.
