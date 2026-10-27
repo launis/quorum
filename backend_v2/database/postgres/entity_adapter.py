@@ -375,6 +375,7 @@ class PostgresEntityAdapter:
                 "[PostgresEntityAdapter] %s: %s",
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "report_id": payload.report_id},
             )
             raise AppException(
@@ -410,6 +411,7 @@ class PostgresEntityAdapter:
                 "[PostgresEntityAdapter] %s: %s",
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "report_id": report_id},
             )
             raise AppException(
@@ -527,6 +529,7 @@ class PostgresEntityAdapter:
                 "[PostgresEntityAdapter] %s: %s",
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "execution_id": record.id},
             )
             raise AppException(
@@ -565,6 +568,7 @@ class PostgresEntityAdapter:
                 "[PostgresEntityAdapter] %s: %s",
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "execution_id": execution_id},
             )
             raise AppException(

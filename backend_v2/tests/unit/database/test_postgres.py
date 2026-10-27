@@ -31,6 +31,11 @@ from backend_v2.database.postgres import (
     decode_jsonb_binary,
     encode_jsonb_binary,
 )
+from backend_v2.database.postgres.entity_adapter import (
+    _coerce_float,
+    _coerce_uuid_or_str,
+    _decode_jsonb_column,
+)
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import Organization, User
 from backend_v2.models.core_base import (
@@ -93,6 +98,7 @@ from backend_v2.models.enums import (
     StorageBackend,
     ToolCapability,
 )
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.settings import Settings
 from backend_v2.tests.fakes.in_memory_uow import (
@@ -505,6 +511,10 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
             is_degraded=False,
             system_concurrency_snapshot={"max_concurrent_workflows": 5},
         ),
+        metadata=ExecutionMetadata(
+            matrix_sampling_strategy=5,
+            workflow_version=2,
+        ),
         duration_ms=2340,
         created_at=now_utc,
         updated_at=now_utc,
@@ -532,6 +542,8 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
         assert fetched_exec.frozen_context is not None
         assert len(fetched_exec.frozen_context.mcp_tool_audit) == 1
         assert fetched_exec.frozen_context.mcp_tool_audit[0].namespaced_alias == "exa_gateway__web_search_exa"
+        assert fetched_exec.metadata is not None
+        assert fetched_exec.metadata.matrix_sampling_strategy == 5
 
     # Also test binary pydantic_core JSONB wire codec roundtrip with 0x01 version byte
     encoded_wire = encode_jsonb_binary({"lz4_toast": True, "tokens": [10, 20, 30]})
@@ -1140,6 +1152,24 @@ async def test_adapter_database_driver_fault_translation() -> None:
             (),
         )
     assert exc_unbound_many.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+    with pytest.raises(AppException) as exc_unbound_save_exec:
+        await unbound_uow.entities.save_execution(
+            ExecutionRecord(
+                id=run_id,
+                workflow_id=generate_uuid7_opaque_id(EntityPrefix.WORKFLOW),
+                target_locale="en",
+            )
+        )
+    assert exc_unbound_save_exec.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+    with pytest.raises(AppException) as exc_unbound_get_exec:
+        await unbound_uow.entities.get_execution(run_id)
+    assert exc_unbound_get_exec.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+    # Verify column coercion helpers handle non-UUID/str, memoryview, already-decoded objects, and str floats
+    assert _coerce_uuid_or_str(12345) == "12345"
+    assert _decode_jsonb_column(memoryview(b'{"k": 1}')) == {"k": 1}
+    assert _decode_jsonb_column([1, 2, 3]) == [1, 2, 3]
+    assert _coerce_float("0.0042") == pytest.approx(0.0042)
 
     async with manager.acquire_connection() as conn:
         graph = PostgresGraphAdapter(connection=conn, command_timeout_seconds=5.0)
