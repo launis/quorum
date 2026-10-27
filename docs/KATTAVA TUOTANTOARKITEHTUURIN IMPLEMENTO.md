@@ -635,14 +635,14 @@ uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
   Ennen pilvituotannon käyttöönottoa karkaistaan Flutter Web- ja Desktop -käyttöliittymä (`client_app_v2`), Riverpod-tilanhallinta, SDUI Dumb Painter -renderöinti ja virherajat (`AppErrorBoundary`). Tämä takaa, ettei mikään verkko- tai deserialisointivirhe kaada sovellusta punaiseen virheruutuun (Red Screen of Death), vaan käyttöliittymä toipuu siististi.
 * **Laajuus & Kesto:** ~12–15 tiedostoa (`client_app_v2/lib/features/`, `client_app_v2/lib/shared/`), kestoarvio **~1,5 h**.
 * **Kohdetiedostot:**
-  1. `@[client_app_v2/lib/features/studio/presentation/views/studio_dashboard_view.dart]`
-  2. `@[client_app_v2/lib/features/studio/presentation/widgets/workflow_step_card.dart]`
-  3. `@[client_app_v2/lib/features/studio/presentation/widgets/workflow_steps_tab.dart]`
-  4. `@[client_app_v2/lib/features/reports/presentation/views/report_view.dart]`
-  5. `@[client_app_v2/lib/features/reports/presentation/widgets/sdui_block_renderer.dart]`
-  6. `@[client_app_v2/lib/shared/widgets/app_error_boundary.dart]`
-  7. `@[client_app_v2/lib/core/network/api_client.dart]`
-  8. `@[client_app_v2/lib/core/auth/auth_controller.dart]`
+  1. `@[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]`
+  2. `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]`
+  3. `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]`
+  4. `@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]`
+  5. `@[client_app_v2/lib/core/error/app_error_boundary.dart]`
+  6. `@[client_app_v2/lib/core/network/api_client.dart]`
+  7. `@[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]`
+  8. `@[client_app_v2/lib/core/api/execution_client.dart]`
 * **Suorituskomento:**
   ```powershell
   uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Hardening.md]" --gate frontend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"
