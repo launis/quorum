@@ -290,10 +290,10 @@ Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytke
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
 ┌───────────────────────────────────▼────────────────────────────────────┐
-│ 1B. LLM Provider & Client Engine -purku (Aalto 3.2)                    │
-│     provider.py (1 610 LOC), handler.py (911 LOC), client.py (845 LOC) │
-│     -> backend_v2/llm/engine/ (semaphore_pool, cost, error, executor) │
-│     Komento: /tier3-god-code-decomposition backend_v2/llm/provider.py  │
+│ 1B. LLM Provider -purku (SUORITETTU & LUKITTU - Vaihe 1B)              │
+│     provider.py (1 846 LOC) -> backend_v2/llm/provider/ (7 moduulia)   │
+│     Plan: docs/epic/tasks_provider/ | Tracker: provider_decomposition  │
+│     Lukittu AST-säännöllä QGR017 (52 testiä, 99 % kattavuus)           │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
 ┌───────────────────────────────────▼────────────────────────────────────┐
@@ -337,7 +337,7 @@ Koodikannassa on kartoitettu ja aikataulutettu kaikki 12 kriittistä monoliittia
 | Monoliitti / God Code -alue | Alkuperäinen koko & riski | Purkutoimenpide & tavoitearkkitehtuuri | Virallinen Epic / Toteutussuunnitelma | Suoritusvaihe & Tila |
 | :--- | :--- | :--- | :--- | :--- |
 | **1. DAG Workflow Executor** | `backend_v2/services/orchestrator/dag_executor.py`<br>**1 640 LOC** (koko järjestelmän suurin tiedosto, `execute_workflow` 1 118 LOC). Raskas TinyDB-lukitus (`_update_lock`), tilablobien uudelleenkirjoitus. | Puretaan 4 itsenäiseen moduuliin:<br>1. `wave_scheduler.py` (Kahnin aallot)<br>2. `state_machine.py` (`trace_events` append-only)<br>3. `cancellation_manager.py` (DLQ/TaskGroup)<br>4. `telemetry_broadcaster.py` (SSE/WS) | **PostgreSQL 19 & Event Sourcing**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`<br>`@[docs/epic/EPIC_151_PostgreSQL_Clean_Slate_Migration_and_TinyDB_Eradication.md]` | **Vaihe 2**<br>Puretaan PostgreSQL-migraation yhteydessä (ks. perustelu alla) |
-| **2. LLM Provider Core & Engine** | `backend_v2/llm/provider.py` (**1 610 LOC**), `handler.py` (**911 LOC**), `client.py` (**845 LOC**). Yhdistää semaforit, LiteLLM-kutsut, hinnoittelun ja virheiden parsinnan. | Puretaan alipakettiin `backend_v2/llm/engine/`: `semaphore_pool.py`, `cost_calculator.py`, `error_classifier.py`, `execution_engine.py`. | **LLM Engine Decomposition**<br>`/tier3-god-code-decomposition backend_v2/llm/provider.py` | **Vaihe 1B**<br>Suoritetaan LLM Strategian jälkeen ennen kantaa |
+| **2. LLM Provider Core & Engine** | `backend_v2/llm/provider.py`<br>**1 846 LOC**. Yhdisti semaforit, dynaamisen nopeusrajoituksen, LiteLLM-kutsut, hinnoittelun ja transienttien virheiden luokittelun. | Purettu 7 modulaariseen alitiedostoon paketissa `backend_v2/llm/provider/`: `env_and_schema_utils.py`, `transient_retry_policy.py`, `base_and_mock_provider.py`, `provider_factory.py`, `litellm_response_stage.py`, `litellm_provider.py` ja 93 LOC fasaadi `__init__.py`. Monoliitti poistettu ja lukittu AST-säännöllä `QGR017`. | **Provider Decomposition Plan**<br>`@[docs/epic/provider_decomposition_tracker.md]`<br>`@[docs/epic/tasks_provider/]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017`, 52 yksikkötestiä läpäisty (99 % kattavuus), 0 sanakirjarikkomusta, Tier 8 Red-Team auditoitu |
 | **3. LLM Strategy & Orchestrator** | `backend_v2/services/orchestrator/strategies/llm.py`<br>**1 090 LOC**. Vastasi yhtä aikaa prompteista, skeemoista, työkaluista, LLM-kutsusta ja telemetriasta. | 4-vaiheinen Strangler Fig -pilkonta pakettiin `llm_strategy/`: `blueprint_and_metadata_stage`, `prompt_and_schema_stage`, `engine_retry_stage`, `trace_event_stage` ja fasaadi `__init__.py` (< 200 LOC). Monoliitti tuhotaan. | **EPIC 157**<br>`@[docs/epic/llm_decomposition_tracker.md]`<br>`@[docs/epic/tasks_llm/]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` (hashit `b9d66471a`, `3f04a6e2f`) |
 | **4. Tietokantaydin & Tallennus** | `tinydb_driver.py`, `firestore_driver.py` ja `db_v2.json.lock`. Keräsivät sanakirjoja (`dict[str, Any]`), estivät rinnakkaisuuden ja lukitsivat levyn. | Korvataan puhtaalla Zero-ORM -arkkitehtuurilla: heksagonaaliset CQRS-portit (`GraphMutationPort`, `EntityPersistencePort`), `PostgresPoolManager` (`asyncpg`) ja binääriset `pydantic_core` Rust-koodekit. | **PostgreSQL 19 Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` | **Vaihe 2**<br>Valmis suunnitelma, alkaa heti LLM-purkujen jälkeen |
 | **5. Taustatyöntekijät (Workers)** | `backend_v2/worker.py`<br>**2 000+ LOC**. Sekoitti Arq-daemonin käynnistyksen, raskaat DAG-analyysit ja raporttien generoinnin yhteen sekamelskaan. | Pilkottu kolmeen: `worker.py` on pelkkä ohut daemon-käynnistys; raskas laskenta on `backend_v2/workers/execution_worker.py` ja raporttien renderöinti `backend_v2/workers/report_worker.py`. | **Worker Decoupling Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
@@ -358,9 +358,9 @@ Koodikannassa on kartoitettu ja aikataulutettu kaikki 12 kriittistä monoliittia
 * Jos `dag_executor.py` yritettäisiin pilkkoa ennen PostgreSQL-vaihetta, jouduttaisiin rakentamaan monimutkaisia väliaikaisia lukitus- ja tilanhallintamoduuleita tiedostokannalle — ja heittämään ne heti perään roskiin tietokantamigraatiossa.
 * PostgreSQL 19:ssä siirrytään **append-only `trace_events` -tapahtumavirtaan** (`asyncpg`), jolloin koko tiedostolukitus poistuu luonnostaan. `dag_executor.py` puretaan suoraan neljään puhtaaseen tapahtumamoduuliin (`wave_scheduler.py`, `state_machine.py`, `cancellation_manager.py`, `telemetry_broadcaster.py`) ilman väliaikaista koodijätettä.
 
-#### Miksi `provider.py` ja LLM-ydin puretaan heti LLM Strategian jälkeen (Vaihe 1B)?
-* **Syy:** EPIC 159 (Dynamic MCP) on jo poistanut vanhat staattiset työkalut (`tavily.py`, `wikipedia.py`, `models/domain/tools.py`) ja stabiloinut `GenericMCPClient`:in ja `ToolDispatcher`:in.
-* Kun `strategies/llm.py` valmistuu (Vaihe 1A), koko LLM-infrastruktuuri on puhdas vanhoista MCP-riippuvuuksista. Tällöin `provider.py` voidaan pilkkoa puhtaiksi itsenäisiksi moottoreiksi (`semaphore_pool.py`, `cost_calculator.py`, `error_classifier.py`, `execution_engine.py`) ennen tietokantamigraatiota.
+#### Miksi `provider.py` ja LLM-ydin purettiin heti LLM Strategian jälkeen (Vaihe 1B)?
+* **Syy:** EPIC 159 (Dynamic MCP) oli jo poistanut vanhat staattiset työkalut (`tavily.py`, `wikipedia.py`, `models/domain/tools.py`) ja stabiloinut `GenericMCPClient`:in ja `ToolDispatcher`:in.
+* Kun `strategies/llm.py` valmistui (Vaihe 1A), koko LLM-infrastruktuuri oli puhdas vanhoista MCP-riippuvuuksista. Tällöin `provider.py` voitiin pilkkoa puhtaaksi paketiksi `backend_v2/llm/provider/` ennen tietokantamigraatiota, jolloin PostgreSQL- ja `dag_executor.py` -vaiheeseen siirrytään täysin modernisoidulla LLM-infrastruktuurilla.
 
 ---
 
@@ -380,17 +380,11 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
 
 ---
 
-### Askel 2: Suorita LLM Provider & Client Engine -purku (Vaihe 1B)
-* **Tavoite:** Pura `backend_v2/llm/provider.py` (1 610 LOC), `handler.py` (911 LOC) ja `client.py` (845 LOC) puhtaiksi alipalveluiksi (`backend_v2/llm/engine/`).
-* **Suunnittelukomento (God Code Planner):**
-  ```powershell
-  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier3-god-code-decomposition backend_v2/llm/provider.py --full-auto"
-  ```
-* **Trackertiedoston luonti & suoritus:**
-  ```powershell
-  agy -i "/tier1-tracker-generator [NEW] @[docs/epic/provider_decomposition_plan.md]"
-  uv run python scripts/auto_phase_runner.py --tracker docs/epic/provider_decomposition_tracker.md
-  ```
+### Askel 2: Suorita LLM Provider & Client Engine -purku (Vaihe 1B) — [SUORITETTU & LUKITTU]
+* **Tavoite:** Pura `backend_v2/llm/provider.py` (1 846 LOC) modulaariseksi paketiksi `backend_v2/llm/provider/`, eristä fasaadi `__init__.py` (< 100 LOC), poista monoliitti ja lukitse se AST-säännöllä `QGR017`.
+* **Seurantatiedosto:** `@[docs/epic/provider_decomposition_tracker.md]`
+* **Tila:** Suoritettu, kovennettu ja auditoitu (10/10 Epoch 2 -karkaisukohdetta läpäisty, Tier 7 As-Built dokumentaatiosynkronointi ja Tier 8 System 2 Red-Team Audit suoritettu). Monoliitti tuhottu ja korvattu 93-rivisellä fasaadilla `backend_v2/llm/provider/__init__.py`.
+* **Laatuvarmennus:** 10/10 backend-laatuporttia läpäisty, 52 yksikkötestiä läpäisty (99 % testikattavuus), 0 sanakirjarikkomusta (`audit_dict_eradication.py`), 395/395 puhdasta tuontimoduulia (`audit_clean_imports.py`), `QGR017` aktiivisena.
 
 ---
 
@@ -399,11 +393,15 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
 * **Toteutussuunnitelma:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` (EPIC 151)
 * **1. Luo seurantatiedosto:**
   ```powershell
-  agy -i "/tier1-plan-tracker-generator @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]"
+  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier1-plan-tracker-generator @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]"
   ```
 * **2. Käynnistä automaattinen vaiheittainen toteutus:**
   ```powershell
-  agy -i "/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] [NEW] @[docs/implementationplans/TRACKER_PostgreSQL.md]"
+  uv run python scripts/auto_phase_runner.py --tracker docs/implementationplans/TRACKER_PostgreSQL.md --model gemini-4-argon-high
+  ```
+  tai suoraan itsenäisessä CLI-sessiossa:
+  ```powershell
+  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] @[docs/implementationplans/TRACKER_PostgreSQL.md] --full-auto. PERMISSION GRANTED for continuous full-auto execution across all steps. Proceed autonomously through all steps without intermediate confirmations."
   ```
 * **Laatuvarmennus:**
   ```powershell
