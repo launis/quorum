@@ -60,7 +60,7 @@
 
 - [ ] **[NOK] Tier 2 Hardening (Backend)** (`[NEW]` sub-modules & 1-hop callers): Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/epic/provider_decomposition_tracker.md]" --gate backend --model gemini-4-argon-medium`
   - [x] [NEW] @[backend_v2/llm/provider/env_and_schema_utils.py]
-  - [ ] [NEW] @[backend_v2/llm/provider/transient_retry_policy.py]
+  - [x] [NEW] @[backend_v2/llm/provider/transient_retry_policy.py]
   - [ ] [NEW] @[backend_v2/llm/provider/base_and_mock_provider.py]
   - [ ] [NEW] @[backend_v2/llm/provider/provider_factory.py]
   - [ ] [NEW] @[backend_v2/llm/provider/litellm_response_stage.py]
