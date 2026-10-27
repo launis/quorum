@@ -29,11 +29,24 @@
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]" --gate backend --model gemini-4-argon-medium`.
+  - [ ] @[backend_v2/database/driver.py]
+  - [ ] @[backend_v2/database/factory.py]
+  - [ ] @[backend_v2/database/interfaces.py]
+  - [ ] @[backend_v2/database/postgres/entity_adapter.py]
+  - [ ] @[backend_v2/database/postgres/pool.py]
   - [ ] @[backend_v2/database/postgres/storage_driver.py]
+  - [ ] @[backend_v2/main.py]
+  - [ ] @[backend_v2/models/core_base.py]
+  - [ ] @[backend_v2/seed/run_seed.py]
+  - [ ] @[backend_v2/services/storage.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/audit_zero_orm_strictness.py]
+  - [ ] @[scripts/reconcile_storage.py]
+  - [ ] @[scripts/run_e2e_variance_test.py]
   - [ ] @[scripts/backend_audit_loop.py]
+  - [ ] @[backend_v2/tests/factories/model_factories.py]
+  - [ ] @[backend_v2/tests/unit/scripts/test_ast_guardrails.py]
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]" --gate frontend --model gemini-4-argon-medium`. (Zero frontend `.dart` production targets in this plan).
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
