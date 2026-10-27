@@ -4,6 +4,8 @@ Centralizes the creation of Repository drivers and PostgreSQL 19 QuorumUnitOfWor
 instances based on Application Settings.
 """
 
+from __future__ import annotations
+
 import logging
 
 from google.cloud import firestore
@@ -39,8 +41,9 @@ async def get_driver(settings: Settings, db_client: AbstractDatabase | None = No
         An initialized StorageDriver instance (TinyDBDriver or FirestoreDriver).
 
     Raises:
-        ConfigurationError: If POSTGRES (which requires create_unit_of_work) or an unknown
-            storage backend is configured.
+        ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if StorageBackend.POSTGRES
+            (which requires create_unit_of_work), an incompatible db_client for
+            StorageBackend.LOCAL, or an unknown storage backend is configured.
     """
     backend = settings.active_backend
     logger.debug("[Factory] Initializing Storage Driver for Backend: %s", backend.value)
@@ -58,7 +61,20 @@ async def get_driver(settings: Settings, db_client: AbstractDatabase | None = No
             # Local uses TinyDB
             db_client_local: TinyDBClient
 
-            if db_client and isinstance(db_client, TinyDBClient):
+            if db_client is not None:
+                if not isinstance(db_client, TinyDBClient):
+                    msg = (
+                        f"StorageBackend.LOCAL requires a TinyDBClient instance when db_client is provided, "
+                        f"got {type(db_client).__name__}."
+                    )
+                    logger.error(
+                        "[Factory] %s: %s",
+                        ErrorCodes.CONFIGURATION_ERROR.name,
+                        msg,
+                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                        exc_info=True,
+                    )
+                    raise ConfigurationError(msg)
                 db_client_local = db_client
             else:
                 db_path = settings.prod_db_path
@@ -78,6 +94,7 @@ async def get_driver(settings: Settings, db_client: AbstractDatabase | None = No
                 ErrorCodes.CONFIGURATION_ERROR.name,
                 msg,
                 extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                exc_info=True,
             )
             raise ConfigurationError(msg)
 
@@ -88,6 +105,7 @@ async def get_driver(settings: Settings, db_client: AbstractDatabase | None = No
                 ErrorCodes.CONFIGURATION_ERROR.name,
                 msg,
                 extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                exc_info=True,
             )
             raise ConfigurationError(msg)
 
@@ -106,7 +124,8 @@ def create_unit_of_work(
         Configured PostgresUnitOfWork conforming to QuorumUnitOfWork.
 
     Raises:
-        ConfigurationError: If settings.active_backend is not StorageBackend.POSTGRES.
+        ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if settings.active_backend
+            is not StorageBackend.POSTGRES.
     """
     backend = settings.active_backend
     if backend != StorageBackend.POSTGRES:
@@ -116,6 +135,7 @@ def create_unit_of_work(
             ErrorCodes.CONFIGURATION_ERROR.name,
             msg,
             extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            exc_info=True,
         )
         raise ConfigurationError(msg)
 
