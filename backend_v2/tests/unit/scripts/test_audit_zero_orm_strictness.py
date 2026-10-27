@@ -160,4 +160,3 @@ def test_try_else_traversal_and_dto_boundary_validation(tmp_path: Path) -> None:
             scanned_files=-1,
             findings=(),
         )
-
