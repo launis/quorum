@@ -144,9 +144,11 @@ def test_llm_factory_api_key_resolution(mock_get_settings: MagicMock) -> None:
     mock_settings.google_api_key = "google-key"
     mock_settings.openai_api_key = "openai-key"
     mock_settings.anthropic_api_key = "anthropic-key"
+    mock_settings.llm_default_timeout = 60.0
     mock_settings.semaphore_low_rpm_threshold = 100
     mock_settings.semaphore_low_rpm_limit = 5
-    mock_settings.semaphore_high_rpm_limit = 20
+    mock_settings.semaphore_max_concurrency = 20
+    mock_settings.semaphore_rpm_divisor = 10
     mock_get_settings.return_value = mock_settings
 
     # 1. Test Anthropic provider type

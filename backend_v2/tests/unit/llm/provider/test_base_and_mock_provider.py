@@ -357,4 +357,3 @@ async def test_mock_provider_full_lifecycle(monkeypatch: pytest.MonkeyPatch, tmp
         usage_service.track_usage = AsyncMock(side_effect=RuntimeError("track fail"))
         with pytest.raises(AppException):
             await mock_prov.generate("track fail prompt", temperature=0.0, max_tokens=50)
-

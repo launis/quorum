@@ -255,4 +255,3 @@ def test_llm_factory_create_provider_edge_cases(monkeypatch: pytest.MonkeyPatch)
     prov_litellm = LLMFactory.create_provider("litellm", "ollama/llama3", limits={"tpm": 1000, "rpm": 100})
     assert isinstance(prov_litellm, LiteLLMProvider)
     assert prov_litellm.model_name == "ollama/llama3"
-

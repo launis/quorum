@@ -89,7 +89,7 @@ def scan_file_for_concurrency(filepath: Path) -> dict[str, bool]:
 def test_ast_semaphore_guardrail() -> None:
     """Verify that semaphore usage is decoupled and present only where authorized."""
     base = Path(__file__).resolve().parents[2]
-    provider_path = base / "llm" / "provider.py"
+    provider_path = base / "llm" / "provider" / "litellm_provider.py"
     dag_executor_path = base / "services" / "orchestrator" / "dag_executor.py"
 
     assert provider_path.exists(), f"Target missing: {provider_path}"
@@ -112,6 +112,7 @@ def test_ast_semaphore_guardrail() -> None:
         base / "services" / "orchestrator" / "strategies" / "base.py",
         base / "services" / "orchestrator" / "strategies" / "logic.py",
         *sorted((base / "services" / "orchestrator" / "strategies" / "llm_strategy").glob("*.py")),
+        *sorted(p for p in (base / "llm" / "provider").glob("*.py") if p.name != "litellm_provider.py"),
     ]
     for path in decoupled_modules:
         assert path.exists(), f"Target missing: {path}"

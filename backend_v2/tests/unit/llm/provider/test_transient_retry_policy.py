@@ -272,4 +272,3 @@ def test_extract_retry_after_and_transient_advanced() -> None:
     e_cycle_trans = ValueError("transient-cycle")
     visited_trans = {id(e_cycle_trans)}
     assert _is_transient_llm_error(e_cycle_trans, visited_trans) is False
-
