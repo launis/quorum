@@ -100,6 +100,9 @@ trigger: always_on
     <rule_block id="ban_anonymous_state_tuples">
         <mandate>NEVER use anonymous multi-value tuples (3+ elements or 2+ elements of identical primitive types), positional index access (`item[0]`, `res[1]`), or positional tuple unpacking (`a, b, c = ...`) for domain state transit or service layer returns ("Tuple Hell"). ALWAYS encapsulate multi-field return states and pipeline payloads into strictly typed, immutable Pydantic V2 DTOs (`ConfigDict(strict=True, extra="forbid", frozen=True)`). 2-tuples are permitted EXCLUSIVELY for standard (payload, TokenUsage) or (key, value) pairs at low-level utility boundaries.</mandate>
     </rule_block>
+    <rule_block id="zero_compromise_cutover_mandate">
+        <mandate>NEVER allow transitional dual-backend states, parallel storage drivers, or legacy fallback branches to coexist during platform migrations or storage cutovers. All platform cutovers MUST execute as atomic, single-pipeline transitions where deprecated backend branches and test overrides are simultaneously eradicated and blocked by fatal AST guardrails (`QGR030`).</mandate>
+    </rule_block>
     <rule_block id="the_no_legacy_mandate">
         <mandate>Legacy support is STRICTLY PROHIBITED. If data is missing or malformed, Fail-Fast. Ruthlessly delete obsolete code, fallback chains, and legacy test fixtures. NEVER maintain backwards compatibility with V1 structures, deprecated APIs, or legacy databases.</mandate>
     </rule_block>

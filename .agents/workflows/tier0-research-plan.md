@@ -50,6 +50,10 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
     <rule_block id="touched_scope_tech_debt_mandate">
       <mandate>ALWAYS execute the deterministic technical debt auditor via `uv run python scripts/audit_technical_debt.py --targets &lt;target_paths&gt; --include-one-hop` (or `--plan &lt;plan_path&gt;`). Inspect TARGET files and 1-hop callers for 7 technical debt items: (1) Backend: `getattr/hasattr`, `.get(`, silent `except:`, `model_copy(update=)`, magic numbers/timeouts, missing `@model_validator`/strict DTOs; (2) Frontend: hardcoded strings (missing `.arb`), hex colors (`Color(0x...)`), manual `substring()`, missing `AppErrorBoundary`/`AsyncValue`; (3) ISTQB: missing negative partitions or legacy dict fixtures. ALWAYS inject discovered debt into `Phase 1: Pre-Implementation Cleanups`.</mandate>
     </rule_block>
+
+    <rule_block id="preflight_metatest_and_exemption_mapping_mandate">
+      <mandate>Whenever an implementation plan includes `[DELETE]` targets or removes symbols or drivers, pre-flight research MUST execute `grep_search` across `scripts/` and `backend_v2/tests/unit/scripts/` (specifically and exhaustively: `BOUNDARY_EXEMPTION_FILES`, `OPEN_JSON_EXEMPTION_FILES`, `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`, `RESIDUAL_FUTURE_PHASE_QGR028_FILES`, `test_ast_guardrails.py`, and `test_scripts_cli_help.py`). Any discovered metatest files, exemption lists, or CLI help callers that reference the deleted symbols MUST be explicitly added to the plan's TARGET boundaries and updated synchronously during implementation.</mandate>
+    </rule_block>
   </context_rules>
 
   <execution_protocol level="0_research_plan">

@@ -40,6 +40,10 @@
         <mandate>NEVER accept client-defined primary IDs on resource creation endpoints, use sequential/semantic counters, or rely on frontend timestamps. All primary and relational entity IDs MUST be generated exclusively on the backend via randomized cryptographic generators (`f"{prefix}_{uuid.uuid4().hex[:16]}"`). Resources in draft endpoints MUST have their canonical Opaque Stripe ID pre-assigned by the backend. All models MUST enforce strict regex `pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"` on `id` fields.</mandate>
     </rule_block>
 
+    <rule_block id="hermetic_test_fixtures_mandate">
+        <mandate>NEVER instantiate concrete production `Settings()` instances with legacy storage backend overrides or configure live database backends in unit tests testing domain logic, token verification, SDUI rendering, or linguistics. Unit tests MUST use lightweight in-memory fakes (`InMemoryUnitOfWork`, `InMemoryEntityAdapter`) and Polyfactory models (`ModelFactory[T]`) generating canonical hexadecimal Opaque Stripe IDs via `generate_opaque_id(EntityPrefix.<TYPE>)`.</mandate>
+    </rule_block>
+
     <rule_block id="anemic_routers">
         <mandate>NEVER place business logic, database CRUD, or RBAC checks in API routers (`backend_v2/api/`). Routers MUST ONLY handle HTTP parsing, assign an explicit `response_model`, and delegate to the Service layer (`backend_v2/services/`).</mandate>
     </rule_block>
