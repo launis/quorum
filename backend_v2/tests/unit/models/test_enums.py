@@ -7,20 +7,26 @@ from backend_v2.models.enums import (
     BlockDataType,
     CausalRootCauseType,
     ComponentType,
+    DependencyRelationType,
     DisplayScale,
+    EntityPrefix,
     ExecutionProfile,
     ExecutionStatus,
     HistoricalContextMode,
     LaxBlockDataType,
     LaxCausalRootCauseType,
     LaxComponentType,
+    LaxDependencyRelationType,
     LaxExecutionStatus,
     LaxHistoricalContextMode,
+    LaxPropositionNodeType,
     LaxStepType,
     LaxStepZone,
+    LaxStorageBackend,
     LaxToolCapability,
     LaxXaiExtensionType,
     PipelineConfig,
+    PropositionNodeType,
     ReportAtomColumn,
     ReportMatrixColumn,
     ReportSheetKey,
@@ -29,6 +35,7 @@ from backend_v2.models.enums import (
     SDUIComponentType,
     StepType,
     StepZone,
+    StorageBackend,
     TitleKey,
     ToolCapability,
     UiVariant,
@@ -264,3 +271,39 @@ def test_lax_tool_capability() -> None:
 
     with pytest.raises(ValidationError):
         DummyModel(cap="invalid_capability")
+
+
+def test_storage_backend_and_proposition_graph_enums() -> None:
+    """Verify StorageBackend, PropositionNodeType, DependencyRelationType, and EntityPrefix members."""
+    assert EntityPrefix.NODE == "nod"
+    assert EntityPrefix.EDGE == "edg"
+    assert StorageBackend.POSTGRES == "POSTGRES"
+    assert PropositionNodeType.CLAIM == "claim"
+    assert PropositionNodeType.GROUND == "ground"
+    assert PropositionNodeType.WARRANT == "warrant"
+    assert PropositionNodeType.REBUTTAL == "rebuttal"
+    assert PropositionNodeType.SCM_VAR == "scm_var"
+    assert DependencyRelationType.SUPPORTS == "supports"
+    assert DependencyRelationType.WARRANTS == "warrants"
+    assert DependencyRelationType.REBUTS == "rebuts"
+    assert DependencyRelationType.CAUSES == "causes"
+
+    class GraphEnumModel(BaseModel):
+        backend: LaxStorageBackend
+        node_type: LaxPropositionNodeType
+        rel_type: LaxDependencyRelationType
+
+    parsed = GraphEnumModel(backend="POSTGRES", node_type="warrant", rel_type="rebuts")
+    assert parsed.backend == StorageBackend.POSTGRES
+    assert parsed.node_type == PropositionNodeType.WARRANT
+    assert parsed.rel_type == DependencyRelationType.REBUTS
+
+    with pytest.raises(ValidationError):
+        GraphEnumModel(backend="UNKNOWN_DB", node_type="warrant", rel_type="rebuts")
+
+    with pytest.raises(ValidationError):
+        GraphEnumModel(backend="POSTGRES", node_type="invalid_node", rel_type="rebuts")
+
+    with pytest.raises(ValidationError):
+        GraphEnumModel(backend="POSTGRES", node_type="warrant", rel_type="invalid_rel")
+

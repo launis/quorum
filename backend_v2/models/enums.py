@@ -22,6 +22,7 @@ __all__ = [
     "CausalRootCauseType",
     "CognitiveTier",
     "ComponentType",
+    "DependencyRelationType",
     "DisplayScale",
     "EngineType",
     "EnsembleJitter",
@@ -53,6 +54,7 @@ __all__ = [
     "LaxCausalRootCauseType",
     "LaxCognitiveTier",
     "LaxComponentType",
+    "LaxDependencyRelationType",
     "LaxDisplayScale",
     "LaxEngineType",
     "LaxEthicalSeverity",
@@ -71,6 +73,7 @@ __all__ = [
     "LaxPlausibilityLevel",
     "LaxPresetView",
     "LaxPromptBlockCategory",
+    "LaxPropositionNodeType",
     "LaxReportStatus",
     "LaxRiskLevel",
     "LaxRoleClassification",
@@ -81,6 +84,7 @@ __all__ = [
     "LaxStepFilterScope",
     "LaxStepType",
     "LaxStepZone",
+    "LaxStorageBackend",
     "LaxStrategicDepth",
     "LaxSystemLocale",
     "LaxTargetBlockType",
@@ -97,6 +101,7 @@ __all__ = [
     "PresetView",
     "PromptBlockCategory",
     "PromptCacheStatus",
+    "PropositionNodeType",
     "ReferenceTitle",
     "ReportAtomColumn",
     "ReportMatrixColumn",
@@ -114,6 +119,7 @@ __all__ = [
     "StepFilterScope",
     "StepType",
     "StepZone",
+    "StorageBackend",
     "StrategicDepth",
     "StrictnessAnchor",
     "SystemConfigID",
@@ -233,6 +239,45 @@ class EntityPrefix(StrEnum):
     ORGANIZATION = "org"
     TDA = "tda"
     REPORT = "rep"
+    # Step 1: PostgreSQL 19 proposition graph node and edge Opaque Stripe ID prefixes
+    NODE = "nod"
+    EDGE = "edg"
+
+
+class StorageBackend(StrEnum):
+    """Supported storage backend engines for Quorum persistence."""
+
+    FIRESTORE = "FIRESTORE"
+    LOCAL = "LOCAL"
+    POSTGRES = "POSTGRES"
+
+
+LaxStorageBackend = Annotated[StorageBackend, Field(strict=False)]
+
+
+class PropositionNodeType(StrEnum):
+    """Toulmin and Structural Causal Model (SCM) proposition node classifications."""
+
+    CLAIM = "claim"
+    GROUND = "ground"
+    WARRANT = "warrant"
+    REBUTTAL = "rebuttal"
+    SCM_VAR = "scm_var"
+
+
+LaxPropositionNodeType = Annotated[PropositionNodeType, Field(strict=False)]
+
+
+class DependencyRelationType(StrEnum):
+    """Directed Toulmin and causal dependency edge relation classifications."""
+
+    SUPPORTS = "supports"
+    WARRANTS = "warrants"
+    REBUTS = "rebuts"
+    CAUSES = "causes"
+
+
+LaxDependencyRelationType = Annotated[DependencyRelationType, Field(strict=False)]
 
 
 class SystemConfigID(StrEnum):

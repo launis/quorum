@@ -9,7 +9,11 @@ from __future__ import annotations
 
 import logging
 import re
+import secrets
+import threading
+import time
 import uuid
+from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import status
@@ -23,12 +27,32 @@ __all__ = [
     "OPAQUE_STRIPE_ID_REGEX",
     "V2CoreBase",
     "coerce_source_quotes_tuple",
+    "format_prefixed_uuid7",
     "generate_opaque_id",
+    "generate_uuid7_opaque_id",
+    "parse_prefixed_uuid7",
 ]
 
 logger = logging.getLogger(__name__)
 
 OPAQUE_STRIPE_ID_REGEX: str = r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+
+
+@dataclass
+class _MonotonicUuid7State:
+    """Thread-safe RFC 9562 Section 6.2 monotonic sub-millisecond counter state.
+
+    Attributes:
+        last_timestamp_ms: Last observed 48-bit Unix epoch millisecond tick.
+        rand_a_counter: 12-bit monotonic counter within the same millisecond tick.
+    """
+
+    last_timestamp_ms: int = 0
+    rand_a_counter: int = 0
+
+
+_UUID7_LOCK = threading.Lock()
+_UUID7_STATE = _MonotonicUuid7State()
 
 
 class V2CoreBase(BaseModel):
@@ -188,6 +212,179 @@ def generate_opaque_id(prefix: EntityPrefix | str, length: int = 16) -> str:
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
     return generated_id
+
+
+# Step 1: RFC 9562 UUIDv7 Opaque Stripe ID bridge functions (parse_prefixed_uuid7, format_prefixed_uuid7, generate_uuid7_opaque_id)
+def parse_prefixed_uuid7(
+    value: str | uuid.UUID,
+    expected_prefix: EntityPrefix,
+    enforce_v7: bool = True,
+) -> uuid.UUID:
+    """Parse a prefixed Opaque Stripe ID or UUID into a validated 16-byte UUID object.
+
+    Args:
+        value: Prefixed string identifier (specifically '{prefix}_{32_hex}') or uuid.UUID instance.
+        expected_prefix: Canonical EntityPrefix expected on string inputs.
+        enforce_v7: Whether to require RFC 9562 version 7 on the parsed UUID.
+
+    Returns:
+        Validated 16-byte uuid.UUID instance.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if prefix, regex, hex length, or version is invalid.
+    """
+    if isinstance(value, uuid.UUID):
+        parsed = value
+    else:
+        cleaned = value.strip()
+        if not re.match(OPAQUE_STRIPE_ID_REGEX, cleaned):
+            msg = f"Identifier '{value}' does not match OPAQUE_STRIPE_ID_REGEX."
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        prefix_part, hex_part = cleaned.split("_", 1)
+        if prefix_part != expected_prefix.value:
+            msg = f"Identifier '{value}' has prefix '{prefix_part}', expected '{expected_prefix.value}'."
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        if len(hex_part) != 32:
+            msg = f"UUIDv7 identifier '{value}' requires a 32-character hex payload, got {len(hex_part)}."
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        parsed = uuid.UUID(hex=hex_part)
+
+    if enforce_v7 and parsed.version != 7:
+        msg = f"UUID '{parsed}' has version {parsed.version}, expected RFC 9562 version 7."
+        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+    return parsed
+
+
+def format_prefixed_uuid7(
+    raw_uuid: uuid.UUID | str,
+    prefix: EntityPrefix,
+    enforce_v7: bool = True,
+) -> str:
+    """Format a 16-byte UUID or UUID string into a canonical prefixed Opaque Stripe ID.
+
+    Args:
+        raw_uuid: uuid.UUID instance, raw UUID string, or already-prefixed Opaque Stripe ID.
+        prefix: Canonical EntityPrefix to prepend.
+        enforce_v7: Whether to require RFC 9562 version 7 on the UUID.
+
+    Returns:
+        Canonical Opaque Stripe ID string formatted as '{prefix.value}_{uuid.hex}'.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if raw_uuid is malformed or fails version check.
+    """
+    if isinstance(raw_uuid, uuid.UUID):
+        uuid_obj = raw_uuid
+    else:
+        cleaned = raw_uuid.strip()
+        if cleaned.startswith(f"{prefix.value}_"):
+            uuid_obj = parse_prefixed_uuid7(cleaned, prefix, enforce_v7=enforce_v7)
+            return f"{prefix.value}_{uuid_obj.hex}"
+        try:
+            uuid_obj = uuid.UUID(cleaned)
+        except ValueError as exc:
+            msg = f"Invalid UUID string '{raw_uuid}' passed to format_prefixed_uuid7."
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from exc
+
+    if enforce_v7 and uuid_obj.version != 7:
+        msg = f"UUID '{uuid_obj}' has version {uuid_obj.version}, expected RFC 9562 version 7."
+        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+    return f"{prefix.value}_{uuid_obj.hex}"
+
+
+def generate_uuid7_opaque_id(
+    prefix: EntityPrefix,
+    timestamp_ms: int | None = None,
+) -> str:
+    """Generate a monotonic RFC 9562 UUIDv7 formatted as a canonical Opaque Stripe ID.
+
+    Combines a 48-bit Unix epoch millisecond timestamp, a thread-safe 12-bit monotonic
+    sub-millisecond counter (rand_a), the 2-bit RFC 9562 variant (0b10), and 62 bits of
+    cryptographic randomness (rand_b).
+
+    Args:
+        prefix: Canonical EntityPrefix to prepend to the 32-hex UUIDv7 payload.
+        timestamp_ms: Optional explicit Unix epoch millisecond timestamp for deterministic tests.
+
+    Returns:
+        Canonical 32-hex Opaque Stripe ID string ('{prefix.value}_{uuid7_hex}').
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if timestamp_ms is negative or exceeds 48 bits.
+    """
+    resolved_ms = int(time.time() * 1000) if timestamp_ms is None else timestamp_ms
+    if resolved_ms < 0 or resolved_ms > 0xFFFFFFFFFFFF:
+        msg = f"UUIDv7 timestamp_ms={resolved_ms} is outside valid 48-bit unsigned range."
+        logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
+    with _UUID7_LOCK:
+        if resolved_ms == _UUID7_STATE.last_timestamp_ms:
+            _UUID7_STATE.rand_a_counter = (_UUID7_STATE.rand_a_counter + 1) & 0xFFF
+            if _UUID7_STATE.rand_a_counter == 0:
+                resolved_ms += 1
+                _UUID7_STATE.last_timestamp_ms = resolved_ms
+        elif resolved_ms > _UUID7_STATE.last_timestamp_ms:
+            _UUID7_STATE.last_timestamp_ms = resolved_ms
+            _UUID7_STATE.rand_a_counter = secrets.randbits(10)
+        else:
+            # Explicit historical timestamp provided in tests
+            rand_a_local = secrets.randbits(12)
+            rand_b_local = secrets.randbits(62)
+            uuid_int_local = (
+                ((resolved_ms & 0xFFFFFFFFFFFF) << 80)
+                | (0x7 << 76)
+                | ((rand_a_local & 0xFFF) << 64)
+                | (0b10 << 62)
+                | (rand_b_local & 0x3FFFFFFFFFFFFFFF)
+            )
+            return format_prefixed_uuid7(uuid.UUID(int=uuid_int_local), prefix, enforce_v7=True)
+
+        rand_a = _UUID7_STATE.rand_a_counter
+
+    rand_b = secrets.randbits(62)
+    uuid_int = (
+        ((resolved_ms & 0xFFFFFFFFFFFF) << 80)
+        | (0x7 << 76)
+        | ((rand_a & 0xFFF) << 64)
+        | (0b10 << 62)
+        | (rand_b & 0x3FFFFFFFFFFFFFFF)
+    )
+    return format_prefixed_uuid7(uuid.UUID(int=uuid_int), prefix, enforce_v7=True)
 
 
 def coerce_source_quotes_tuple(v: object) -> tuple[str, ...] | None:

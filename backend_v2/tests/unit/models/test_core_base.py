@@ -1,12 +1,13 @@
 """Unit tests for backend_v2/models/core_base.py.
 
 Verifies V2CoreBase immutability, extra-field forbidding, I18nText sanitization,
-validation error fail-fast handling, and localization resolution.
+validation error fail-fast handling, localization resolution, and RFC 9562 PrefixedUUID7 utilities.
 """
 
 from __future__ import annotations
 
 import re
+import uuid
 
 import pytest
 from pydantic import ValidationError
@@ -17,7 +18,10 @@ from backend_v2.models.core_base import (
     I18nText,
     V2CoreBase,
     coerce_source_quotes_tuple,
+    format_prefixed_uuid7,
     generate_opaque_id,
+    generate_uuid7_opaque_id,
+    parse_prefixed_uuid7,
 )
 from backend_v2.models.enums import EntityPrefix
 
@@ -78,6 +82,7 @@ def test_i18n_text_key_sanitization_and_resolution() -> None:
 
     # Exact language code
     assert i18n.resolve("en") == "English Text"
+    assert i18n.get("en") == "English Text"
 
     # Regional language code extraction ('fi-FI' -> 'fi')
     i18n_bilingual = I18nText(translations={"en": "Hello", "fi": "Moi", "de": "Hallo"})
@@ -179,3 +184,63 @@ def test_coerce_source_quotes_tuple_unsupported_types() -> None:
     assert coerce_source_quotes_tuple(12345) is None
     assert coerce_source_quotes_tuple({"key": "val"}) is None
     assert coerce_source_quotes_tuple([1, 2, 3]) is None
+
+
+def test_uuid7_prefixed_bridge_and_monotonic_generation() -> None:
+    """Verify generate_uuid7_opaque_id, parse_prefixed_uuid7, and format_prefixed_uuid7 roundtrips."""
+    fixed_ts = 1_760_000_000_000
+    generated_ids = [generate_uuid7_opaque_id(EntityPrefix.NODE, timestamp_ms=fixed_ts) for _ in range(10)]
+    assert generated_ids == sorted(generated_ids)
+    assert len(set(generated_ids)) == 10
+
+    first_id = generated_ids[0]
+    assert first_id.startswith("nod_")
+    assert re.match(OPAQUE_STRIPE_ID_REGEX, first_id)
+
+    parsed_uuid = parse_prefixed_uuid7(first_id, EntityPrefix.NODE)
+    assert parsed_uuid.version == 7
+    assert parse_prefixed_uuid7(parsed_uuid, EntityPrefix.NODE) == parsed_uuid
+    assert format_prefixed_uuid7(parsed_uuid, EntityPrefix.NODE) == first_id
+    assert format_prefixed_uuid7(str(parsed_uuid), EntityPrefix.NODE) == first_id
+    assert format_prefixed_uuid7(first_id, EntityPrefix.NODE) == first_id
+
+    # Historical timestamp branch
+    older_id = generate_uuid7_opaque_id(EntityPrefix.EDGE, timestamp_ms=1_000)
+    assert older_id.startswith("edg_")
+    assert parse_prefixed_uuid7(older_id, EntityPrefix.EDGE).version == 7
+
+
+def test_uuid7_prefixed_bridge_negative_boundaries() -> None:
+    """Verify ISTQB negative boundaries on parse_prefixed_uuid7, format_prefixed_uuid7, and generate_uuid7_opaque_id."""
+    v4_uuid = uuid.uuid4()
+    v4_prefixed = f"nod_{v4_uuid.hex}"
+
+    # Wrong prefix
+    with pytest.raises(AppException) as exc_prefix:
+        parse_prefixed_uuid7(generate_uuid7_opaque_id(EntityPrefix.NODE), EntityPrefix.EDGE)
+    assert exc_prefix.value.details["error_code"] == "VALIDATION_FAILED"
+
+    # Non-v7 UUID rejected when enforce_v7=True
+    with pytest.raises(AppException):
+        parse_prefixed_uuid7(v4_prefixed, EntityPrefix.NODE, enforce_v7=True)
+
+    with pytest.raises(AppException):
+        format_prefixed_uuid7(v4_uuid, EntityPrefix.NODE, enforce_v7=True)
+
+    # Short 16-hex ID rejected by parse_prefixed_uuid7
+    with pytest.raises(AppException):
+        parse_prefixed_uuid7("nod_0123456789abcdef", EntityPrefix.NODE)
+
+    # Regex mismatch and invalid UUID strings
+    with pytest.raises(AppException):
+        parse_prefixed_uuid7("not-an-opaque-id", EntityPrefix.NODE)
+
+    with pytest.raises(AppException):
+        format_prefixed_uuid7("not-a-uuid-string", EntityPrefix.NODE)
+
+    # Timestamp boundary violations (< 0 and > 48-bit max)
+    with pytest.raises(AppException):
+        generate_uuid7_opaque_id(EntityPrefix.NODE, timestamp_ms=-1)
+
+    with pytest.raises(AppException):
+        generate_uuid7_opaque_id(EntityPrefix.NODE, timestamp_ms=0x1000000000000)
