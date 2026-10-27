@@ -32,7 +32,7 @@
   - [x] @[backend_v2/database/factory.py]
   - [x] @[backend_v2/database/interfaces.py]
   - [x] [NEW] @[backend_v2/database/postgres/__init__.py]
-  - [ ] [NEW] @[backend_v2/database/postgres/entity_adapter.py]
+  - [x] [NEW] @[backend_v2/database/postgres/entity_adapter.py]
   - [ ] [NEW] @[backend_v2/database/postgres/graph_adapter.py]
   - [ ] [NEW] @[backend_v2/database/postgres/pool.py]
   - [ ] [NEW] @[backend_v2/database/postgres/uow.py]
