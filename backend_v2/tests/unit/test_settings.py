@@ -1,11 +1,21 @@
-import os
-from unittest.mock import patch
+"""Unit tests for application settings and environment configuration invariants."""
+
+from unittest.mock import MagicMock, patch
 
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.core.test_settings import get_test_settings
-from backend_v2.settings import Settings, get_settings
+from backend_v2.core.test_settings import get_test_settings, with_test_settings
+from backend_v2.exceptions import AppException
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
+from backend_v2.settings import (
+    Settings,
+    StorageBackend,
+    get_lexical_fuzz_threshold,
+    get_settings,
+    strip_whitespace,
+)
 
 
 def test_settings_initialization() -> None:
@@ -24,7 +34,7 @@ def test_get_settings_lru_cache() -> None:
 
 def test_settings_model_post_init_mock_llm() -> None:
     """Test the Google AI post_init validation bypasses key check when mock LLM is enabled."""
-    with patch.dict(os.environ, clear=True):
+    with patch.dict("backend_v2.settings.os.environ", {}, clear=True):
         settings = Settings(use_mock_llm=True)
         # Should not raise any validation error because mock LLM is true.
         assert settings.use_mock_llm is True
@@ -78,16 +88,12 @@ def test_authenticity_threshold_env_override(monkeypatch: pytest.MonkeyPatch) ->
 
 def test_strip_whitespace_and_custom_types() -> None:
     """Test whitespace stripping validator and bool parsing."""
-    from backend_v2.settings import strip_whitespace
-
     assert strip_whitespace("  hello  ") == "hello"
     assert strip_whitespace(123) == 123
 
 
 def test_settings_properties_and_computed_fields() -> None:
     """Test computed fields and properties on Settings."""
-    from backend_v2.settings import StorageBackend
-
     settings = Settings(
         google_api_key="sk-test",
         openai_api_key="sk-openai",
@@ -127,17 +133,18 @@ def test_settings_properties_and_computed_fields() -> None:
 
 def test_settings_service_account_auto_detection() -> None:
     """Test auto-detection of service-account.json in root when credentials are not preset."""
-    with patch.dict(os.environ, clear=True), patch("pathlib.Path.exists", return_value=True):
+    with (
+        patch.dict("backend_v2.settings.os.environ", {}, clear=True) as scoped_env,
+        patch("backend_v2.settings.Path.exists", return_value=True),
+    ):
         settings = Settings(use_mock_llm=False)
         assert settings.use_mock_llm is False
-        assert os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") is not None
+        assert "GOOGLE_APPLICATION_CREDENTIALS" in scoped_env
+        assert "vertex_ai" in settings.enabled_providers
 
 
 def test_settings_storage_backend_fallback_and_invalid() -> None:
     """Test local storage backend fallback and invalid backend raising AppException."""
-    from backend_v2.exceptions import AppException
-    from backend_v2.settings import StorageBackend
-
     s_local = Settings(storage_backend=None, use_mock_llm=True)
     assert s_local.active_backend == StorageBackend.LOCAL
 
@@ -214,29 +221,35 @@ def test_settings_allow_mock_tokens_defense_in_depth() -> None:
 
 def test_settings_model_post_init_no_credentials_raises() -> None:
     """Test production mode without credentials raises AppException."""
-    from backend_v2.exceptions import AppException
-
-    with patch.dict(os.environ, clear=True), patch("pathlib.Path.exists", return_value=False):
+    with (
+        patch.dict("backend_v2.settings.os.environ", {}, clear=True),
+        patch("backend_v2.settings.Path.exists", return_value=False),
+    ):
         with pytest.raises(AppException):
             Settings(use_mock_llm=False, google_api_key=None)
 
 
 def test_get_lexical_fuzz_threshold() -> None:
-    """Test locale-based fuzzy threshold lookup."""
-    from backend_v2.settings import get_lexical_fuzz_threshold
-
+    """Test locale-based fuzzy threshold lookup across locales and strictness levels."""
     assert get_lexical_fuzz_threshold(None) == 90.0
     assert get_lexical_fuzz_threshold("fi") == 85.0
     assert get_lexical_fuzz_threshold("hu") == 85.0
+    assert get_lexical_fuzz_threshold("tr") == 85.0
     assert get_lexical_fuzz_threshold("en") == 92.0
+    assert get_lexical_fuzz_threshold("sv") == 92.0
     assert get_lexical_fuzz_threshold("zh") == 98.0
+    assert get_lexical_fuzz_threshold("ja") == 98.0
     assert get_lexical_fuzz_threshold("unknown") == 90.0
+
+    # Strictness level BVA partitions: >= 100, >= 85, >= 50, >= 30, < 30
+    assert get_lexical_fuzz_threshold("en", lexical_strictness_level=100) == 100.0
+    assert get_lexical_fuzz_threshold("fi", lexical_strictness_level=85) == pytest.approx(85.0 * 1.02)
+    assert get_lexical_fuzz_threshold("fi", lexical_strictness_level=30) == pytest.approx(85.0 * 0.90)
+    assert get_lexical_fuzz_threshold("fi", lexical_strictness_level=29) == pytest.approx(85.0 * 0.80)
 
 
 def test_test_settings_factory_inherits_base_with_differential_delta() -> None:
     """Test that get_test_settings factory inherits base defaults and applies fast overrides."""
-    from backend_v2.core.test_settings import get_test_settings, with_test_settings
-
     test_settings = get_test_settings()
     assert test_settings.environment == "development"
     assert test_settings.matrix_sampling_limit == 1
@@ -269,8 +282,6 @@ def test_test_settings_factory_inherits_base_with_differential_delta() -> None:
 
 def test_settings_binary_environment_validation() -> None:
     """Test that Settings validates binary environment strictly and rejects invalid strings."""
-    from pydantic import ValidationError
-
     # Valid environments
     dev_settings = Settings(use_mock_llm=True, environment="development")
     assert dev_settings.environment == "development"
@@ -303,8 +314,6 @@ def test_dev_max_thinking_budget_invariants() -> None:
     assert dev_settings.dev_max_thinking_budget == 0
 
     # 2. Test settings parity
-    from backend_v2.core.test_settings import get_test_settings
-
     assert get_test_settings().dev_max_thinking_budget == 0
 
     # 3. Explicit positive integer allowed
@@ -316,7 +325,6 @@ def test_dev_max_thinking_budget_invariants() -> None:
         Settings(use_mock_llm=True, dev_max_thinking_budget=-1)
 
 
-# Phase 2, Step 2.2: Comprehensive ISTQB BVA test function for llm_default_timeout
 def test_settings_llm_default_timeout_invariants() -> None:
     """Verify Settings.llm_default_timeout default, bounds, and test settings parity."""
     # 1. Default positive value: 120.0
@@ -381,11 +389,6 @@ def test_settings_causal_defaults() -> None:
 
 def test_two_pass_atomizer_dynamic_packet_size() -> None:
     """Verify TwoPassAtomizer dynamically resolves packet_size from settings when None."""
-    from unittest.mock import MagicMock
-
-    from backend_v2.services.llm_task_executor import LLMTaskExecutor
-    from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
-
     mock_executor = MagicMock(spec=LLMTaskExecutor)
     atomizer = TwoPassAtomizer(executor=mock_executor)
 
@@ -487,3 +490,27 @@ def test_postgres_settings_and_boundary_invariants() -> None:
     # Negative BVA 3: postgres_min_pool_size > postgres_max_pool_size
     with pytest.raises(ValidationError, match="postgres_min_pool_size"):
         Settings(use_mock_llm=True, postgres_min_pool_size=25, postgres_max_pool_size=10)
+
+
+def test_validate_linker_axiom_budgets_invariants() -> None:
+    """Verify linker axiom budgets cross-field validation and ISTQB negative boundaries."""
+    valid_boundary = Settings(
+        use_mock_llm=True,
+        linker_max_bridge_axioms=4,
+        linker_max_root_axioms=4,
+        linker_max_global_root_axioms=8,
+    )
+    assert valid_boundary.linker_max_global_root_axioms == 8
+
+    # Negative BVA 1: bridge + root > global ceiling
+    with pytest.raises(ValidationError, match="Combined linker axioms budget"):
+        Settings(
+            use_mock_llm=True,
+            linker_max_bridge_axioms=5,
+            linker_max_root_axioms=4,
+            linker_max_global_root_axioms=8,
+        )
+
+    # Negative BVA 2: negative bridge axioms (< 0)
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, linker_max_bridge_axioms=-1)

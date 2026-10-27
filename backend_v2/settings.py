@@ -234,7 +234,7 @@ class Settings(BaseSettings):
         ),
     ] = 100
     llm_default_timeout_seconds: Annotated[int, Field(description="Network timeout in seconds for LLM calls")] = 300
-    # Phase 1, Step 1.2: Protocol-agnostic MCP execution, discovery, and SSRF configuration SSOT
+    # --- Protocol-Agnostic MCP Execution, Discovery, and SSRF Configuration ---
     mcp_default_timeout_seconds: Annotated[
         int, Field(default=30, ge=1, le=300, description="Default timeout in seconds for MCP tool executions")
     ] = 30
@@ -293,7 +293,6 @@ class Settings(BaseSettings):
         int,
         Field(description="Maximum number of unmet criteria descriptions per matrix in synthesis explanation context"),
     ] = 5
-    # Phase 1, Step 2: Synthesis reasoning truncation limit
     max_synthesis_reasoning_length: Annotated[
         int, Field(description="Maximum character length for semantic reasoning in synthesis payloads")
     ] = 300
@@ -488,7 +487,6 @@ class Settings(BaseSettings):
         SystemConfigModelRegistry | None,
         Field(default=None, description="System Config Model Registry snapshot (Optional)."),
     ] = None
-    # Phase 2, Step 2.1: Restore llm_default_timeout SSOT for LiteLLM network timeouts
     llm_default_timeout: Annotated[
         float,
         Field(
@@ -631,7 +629,7 @@ class Settings(BaseSettings):
     storage_backend: Annotated[
         str | None, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, FIRESTORE, or POSTGRES")
     ] = None
-    # Step 3: Environment-injected PostgreSQL 19 connection, pool, timeout, and TOAST settings
+    # Environment-injected PostgreSQL 19 connection, pool, timeout, and TOAST settings
     postgres_host: Annotated[str, Field(description="PostgreSQL server host address.")] = "127.0.0.1"
     postgres_port: Annotated[int, Field(ge=1, le=65535, description="PostgreSQL server port.")] = 5432
     postgres_user: Annotated[str, Field(min_length=1, description="PostgreSQL role username.")] = "quorum"
@@ -816,7 +814,7 @@ class Settings(BaseSettings):
         return self.active_backend == StorageBackend.FIRESTORE
 
     model_config = SettingsConfigDict(
-        env_file=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"),
+        env_file=str(Path(__file__).resolve().parent.parent / ".env"),
         env_ignore_empty=True,
         extra="ignore",
         case_sensitive=False,
@@ -905,7 +903,7 @@ class Settings(BaseSettings):
                 self.pacing_delay_mock_seconds = 0
 
             # Ensembles and Retries Overrides (Fail-Fast: 0 retries in development for schema/logical iterations)
-            # Phase 1, Step 1: Retain sovereign transient retries (default 3) for network/gateway errors
+            # Retain sovereign transient retries (default 3) for network and gateway errors
             if "llm_max_retries" not in self.model_fields_set:
                 self.llm_max_retries = 0
             if "llm_max_schema_retries" not in self.model_fields_set:
@@ -953,7 +951,7 @@ class Settings(BaseSettings):
         if not self.use_mock_llm and (
             os.getenv("VERTEX_PROJECT_ID")
             or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-            or os.path.exists("service-account.json")
+            or Path("service-account.json").exists()
         ):
             providers.append("vertex_ai")
 
