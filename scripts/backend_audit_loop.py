@@ -70,7 +70,7 @@ if isinstance(sys.stdout, io.TextIOWrapper):
         pass
 
 
-def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
+def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
     """Execute pytest unit tests and enforce strict 90% TDD line coverage.
 
     Resolves matching unit test files corresponding to target source files or directories,
@@ -438,8 +438,8 @@ Optional steps:
     parser.add_argument(
         "--logfire",
         action=argparse.BooleanOptionalAction,
-        default=None,
-        help="Enable/disable Logfire distributed tracing in Pytest runs (default: enabled; use --no-logfire to disable).",
+        default=False,
+        help="Enable/disable Logfire distributed tracing in Pytest runs (default: disabled; use --logfire to enable).",
     )
 
     args = parser.parse_args(argv)
@@ -454,7 +454,7 @@ Optional steps:
     run_openapi = args.openapi
     run_test = args.test
     ast_strict = args.ast_strict
-    use_logfire: bool = args.logfire if args.logfire is not None else (not args.micro)
+    use_logfire: bool = bool(args.logfire)
 
     # Ensure we are in the project root directory
     current_dir = Path(os.getcwd())
