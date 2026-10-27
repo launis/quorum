@@ -505,7 +505,17 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
 
 ### Askel 3.2: Kohdennettu Aluekohtainen Karkaisu (Targeted Hardening: Workers, SDUI & Utilities) (Vaihe 2c)
 * **Tavoite ja Arkkitehtoninen Rooli:**
-  Ennen siirtymistä laajaan B2B SaaS IAM -vaiheeseen (Askel 4) karkaistaan Quorumin kolme keskeisintä asynkronista ja esityskerroksen apualuetta. Nämä muodostavat järjestelmän "selkärangan" (asynkroniset Arq-taustatyöntekijät) ja "hermoston" (SDUI-muuntimet ja matemaattiset aputyökalut). Karkaisu suoritetaan omina itsenäisinä ja hallittuina paketteinaan (`auto_hardening_runner.py` käyttäen mallia `gemini-4-argon-medium` ja alikomentoa `/tier2-hardening-backend`).
+  Ennen siirtymistä laajaan B2B SaaS IAM -vaiheeseen (Askel 4) karkaistaan Quorumin kolme keskeisintä asynkronista ja esityskerroksen apualuetta (yhteensä 36 tiedostoa). Nämä muodostavat järjestelmän "selkärangan" (asynkroniset Arq-taustatyöntekijät) ja "hermoston" (SDUI-muuntimet ja matemaattiset aputyökalut). Karkaisu suoritetaan joko yhdellä autonomisella tausta-ajolla (yön yli) tai paketti kerrallaan.
+* **Seurantadokumentti (Yhdistetty SSOT Tracker):** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`
+* **Kokonaislaajuus & Kesto:** 36 tiedostoa, kestoarvio **~3,5 – 4 h**.
+* **Kaikkien 36 tiedoston YHTEINEN suorituskomento (Yön yli / Tausta-ajo):**
+  ```powershell
+  uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md --gate backend --model gemini-4-argon-medium
+  ```
+  *tai itsenäisenä Antigravity CLI -tausta-ajona:*
+  ```powershell
+  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md --gate backend --model gemini-4-argon-medium"
+  ```
 
 #### Paketti 1: Asynkroniset Taustatyöntekijät (`backend_v2/workers/`)
 * **Laajuus & Kesto:** 6 tiedostoa, kestoarvio **~40 min**.
@@ -517,10 +527,6 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
   4. `@[backend_v2/workers/synthesis_tasks.py]`
   5. `@[backend_v2/workers/synthesis_worker.py]`
   6. `@[backend_v2/workers/variance_synthesis.py]`
-* **Suorituskomento:**
-  ```powershell
-  uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Workers_Hardening.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
-  ```
 
 #### Paketti 2: SDUI-adapterit & Vientimuuntimet (`backend_v2/services/sdui/adapters/`)
 * **Laajuus & Kesto:** 15 tiedostoa, kestoarvio **~1,5 h**.
@@ -541,13 +547,9 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
   13. `@[backend_v2/services/sdui/adapters/variance_adapter.py]`
   14. `@[backend_v2/services/sdui/adapters/warning_card_adapter.py]`
   15. `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]`
-* **Suorituskomento:**
-  ```powershell
-  uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_SDUI_Hardening.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
-  ```
 
 #### Paketti 3: Utilities & Apupalvelut (`backend_v2/utils/` + `services/`)
-* **Laajuus & Kesto:** 15 tiedostoa, kestoarvio **~1,5 – 2 h**.
+* **Laajuus & Kesto:** 15 tiedostoa, kestoarvio **~1,5 h**.
 * **Tavoite:** Tiukat tyypit, nolla `typing.Any`, hiljaisten virhenielujen poisto, `exc_info=True`, suorat Pydantic V2 DTO -validointisäännöt.
 * **Kohdetiedostot:**
   1. `@[backend_v2/utils/math_utils.py]`
@@ -560,15 +562,11 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
   8. `@[backend_v2/utils/static_charts.py]`
   9. `@[backend_v2/utils/finops_trace_analyzer.py]`
   10. `@[backend_v2/services/translation_service.py]`
-  11. `@[backend_v2/services/caching_service.py]`
+  11. `@[backend_v2/llm/caching_service.py]`
   12. `@[backend_v2/services/llm_task_executor.py]`
-  13. `@[backend_v2/services/state_sanitizer_service.py]`
-  14. `@[backend_v2/services/mcp/presentation_sanitizer.py]`
+  13. `@[backend_v2/services/chat_normalizer.py]`
+  14. `@[backend_v2/services/sdui/sanitizers/mcp_presentation_sanitizer.py]`
   15. `@[backend_v2/services/orchestrator/localization_compiler.py]`
-* **Suorituskomento:**
-  ```powershell
-  uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Utility_Hardening.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
-  ```
 
 #### Laatuvarmennus:
 Jokaisen karkaisupaketin jälkeen ajetaan koko backendin kattava laatuportti:
