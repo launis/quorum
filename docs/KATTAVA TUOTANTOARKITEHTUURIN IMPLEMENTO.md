@@ -485,6 +485,24 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
 
 ---
 
+### Askel 3.1b: `dag_executor.py` God Code -purku Event Sourcing -malliin (Vaihe 2b-2)
+* **Tavoite ja Arkkitehtoninen Rooli:**
+  Nyt kun PostgreSQL 19 Cutover on suoritettu ja TinyDB-tiedostolukitukset (`_update_lock`, `msvcrt/fcntl`) poistettu, puretaan koko järjestelmän suurin monoliitti `backend_v2/services/orchestrator/dag_executor.py` (1 640 LOC, `execute_workflow` 1 118 LOC) neljään itsenäiseen ja puhtaaseen moduuliin Luvun 7 arkkitehtuurisopimuksen mukaisesti:
+  1. `wave_scheduler.py`: Kahnin topologinen aallotus ja rinnakkaiset TaskGroup-ajot.
+  2. `state_machine.py`: Asynkroninen tilasiirtymä ja tapahtumavirta suoraan PostgreSQL:n `trace_events`-tauluun ilman tiedostolukituksia.
+  3. `cancellation_manager.py`: DLQ-virheluokittelu ja rinnakkaisten LLM-tehtävien hallittu peruutus virhetilanteessa.
+  4. `telemetry_broadcaster.py`: Reaaliaikainen SSE- ja WebSocket-tapahtumien lähetys käyttöliittymälle ja simulaattorille.
+* **Toteutuskomento (Tier 3 God Code Decomposition):**
+  ```powershell
+  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier3-god-code-decomposition --target=\"backend_v2/services/orchestrator/dag_executor.py\""
+  ```
+* **Laatuvarmennus:**
+  ```powershell
+  uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/ --test --ast-strict
+  ```
+
+---
+
 ### Askel 3.2: Kohdennettu Aluekohtainen Karkaisu (Targeted Hardening: Workers, SDUI & Utilities) (Vaihe 2c)
 * **Tavoite ja Arkkitehtoninen Rooli:**
   Ennen siirtymistä laajaan B2B SaaS IAM -vaiheeseen (Askel 4) karkaistaan Quorumin kolme keskeisintä asynkronista ja esityskerroksen apualuetta. Nämä muodostavat järjestelmän "selkärangan" (asynkroniset Arq-taustatyöntekijät) ja "hermoston" (SDUI-muuntimet ja matemaattiset aputyökalut). Karkaisu suoritetaan omina itsenäisinä ja hallittuina paketteinaan (`auto_hardening_runner.py` käyttäen mallia `gemini-4-argon-medium` ja alikomentoa `/tier2-hardening-backend`).
