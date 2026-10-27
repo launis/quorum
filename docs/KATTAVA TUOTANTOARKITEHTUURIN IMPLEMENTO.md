@@ -4,12 +4,13 @@
 > [!NOTE]
 > **Arkkitehtuurin tila ja Single Source of Truth (SSOT)**
 > Tämä asiakirja kokoaa yhteen Cognitive Quorumin tuotantopystytyksen kokonaiskuvan Google Cloud Platformilla (`europe-north1` / Hamina, Suomi). Se korvaa vanhentuneet SQLAlchemy 2.0-, Alembic- ja TinyDB-luonnokset ja nojaa suoraan Quorumin virallisiin 2026-arkkitehtuuristandardeihin:
-> 1. **PostgreSQL 19 Zero-ORM & Cutover** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`, vaatimukset: `@[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]`)
-> 2. **Kohdennettu Tausta- ja Apukerroksen Karkaisu** (Workers, SDUI Adapters, Utilities)
-> 3. **B2B SaaS IAM, Token Exchange & Enterprise Hardening** (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`)
-> 4. **Firebase Storage & Direct-to-Cloud Signed URLs** (`[NEW] @[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]`)
-> 5. **Frontend & Studio UI Hardening** (Flutter Web & Desktop: Error Boundaries & Dumb Painter)
-> 6. **GCP Production Deployment, Cloud Security & FinOps Hardening** (`@[docs/epic/EPIC_74_Production_Deployment_GCP.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]`, tracker: `@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]`)
+> 1. **PostgreSQL 19 Zero-ORM Perusta & Cutover** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`, `@[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]`)
+> 2. **`dag_executor.py` God Code -purku Event Sourcing -malliin** (1 640 LOC -> 4 erillistä SRP-moduulia & ohut fasaadi)
+> 3. **Kohdennettu Tausta- ja Apukerroksen Karkaisu (36 tiedostoa)** (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`)
+> 4. **B2B SaaS IAM, Token Exchange & Enterprise Hardening** (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`)
+> 5. **Firebase Storage & Direct-to-Cloud Signed URLs** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]`)
+> 6. **Frontend & Studio UI Hardening** (Flutter Web & Desktop: Error Boundaries & Dumb Painter)
+> 7. **GCP Production Deployment, Cloud Security & FinOps Hardening** (`@[docs/epic/EPIC_74_Production_Deployment_GCP.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]`, tracker: `@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]`)
 
 ---
 
@@ -308,11 +309,15 @@ Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytke
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
 ┌───────────────────────────────────▼────────────────────────────────────┐
-│ 2. PostgreSQL 19 Zero-ORM & dag_executor.py -purku (EPIC 151)          │
-│    - asyncpg-allas, PrefixedUUID7, 12 taulua, Zero-ORM (ei SQLAlchemy) │
-│    - TinyDB-lukkojen poisto & dag_executor.py (1 640 LOC) purku        │
-│      tapahtumapohjaiseen trace_events-malliin (wave_scheduler jne.)    │
-│    Plan: docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md    │
+│ 2. PostgreSQL 19 Zero-ORM, Cutover & dag_executor.py -purku (EPIC 151) │
+│    2A. PostgreSQL 19 Perusta [SUORITETTU & AUDITOITU - commit 4e56873c4]│
+│        asyncpg-allas, PrefixedUUID7, 12 taulua, Zero-ORM               │
+│    2B. PostgreSQL 19 Cutover [SUORITUKSESSA - TRACKER_Cutover]         │
+│        TinyDB:n fyysinen poisto, run_local.bat, QGR017-lukitus         │
+│    2C. dag_executor.py (1 640 LOC) purku Event Sourcing -malliin      │
+│        wave_scheduler, state_machine, cancellation_manager, telemetria │
+│    2D. Kohdennettu Taustakerroksen Karkaisu (36 tiedostoa)             │
+│        Workers (6 kpl), SDUI-adapterit (15 kpl), Utilities (15 kpl)    │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
 ┌───────────────────────────────────▼────────────────────────────────────┐
@@ -423,31 +428,19 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
 
 ---
 
-### Askel 3: Suorita PostgreSQL 19 Zero-ORM & `dag_executor.py` -purku (Vaihe 2)
-* **Lähtötilanteen varmennus:** Ennen tämän askeleen aloitusta koko järjestelmän suorituskyky ja elinkaari on todennettu onnistuneella tuotantoajolla `exe_2af2f7665e7c477b` ja lukittu commitiin `3f3f3d941` (ks. yllä oleva Välivaiheen Todentaminen ja `@[data/files/executions/exe_2af2f7665e7c477b/forensic_summary.md]`).
-* **Tavoite:** Korvaa TinyDB ja JSON-levylukot PostgreSQL 19:llä, `asyncpg`:llä ja `trace_events` append-only -tapahtumavirralla. Pura samalla `dag_executor.py` (1 640 LOC) neljään suoritusmoduuliin.
-* **Toteutussuunnitelma:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` (EPIC 151)
-* **1. Luo seurantatiedosto:**
-  ```powershell
-  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier1-plan-tracker-generator @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]"
-  ```
-* **2. Käynnistä automaattinen vaiheittainen toteutus:**
-  ```powershell
-  uv run python scripts/auto_phase_runner.py --tracker docs/implementationplans/TRACKER_PostgreSQL.md --model gemini-4-argon-high
-  ```
-  tai suoraan itsenäisessä CLI-sessiossa:
-  ```powershell
-  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] @[docs/implementationplans/TRACKER_PostgreSQL.md] --full-auto. PERMISSION GRANTED for continuous full-auto execution across all steps. Proceed autonomously through all steps without intermediate confirmations."
-  ```
-* **Laatuvarmennus:**
-  ```powershell
-  uv run python scripts/backend_audit_loop.py backend_v2/database/ --test --ast-strict
-  uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/execution/ --test --ast-strict
-  ```
+### Askel 3: PostgreSQL 19 Zero-ORM -perusinfrastruktuuri (Vaihe 2) — [SUORITETTU & LUKITTU]
+* **Tila & Git Commit:** 🟢 **100 % SUORITETTU, KARKAISTU JA AUDITOITU** — Commit `4e56873c4` (*Merge branch 'main' into HEAD*).
+* **Lähtötilanteen varmennus:** Koko järjestelmän suorituskyky ja elinkaari todennettu onnistuneella tuotantoajolla `exe_2af2f7665e7c477b` ja lukittu commitiin `3f3f3d941` (`@[data/files/executions/exe_2af2f7665e7c477b/forensic_summary.md]`).
+* **Saavutetut tulokset (REQ-001 – REQ-012):**
+  1. Täydellinen PostgreSQL 19 DDL-skeema (`001_pg19_uuidv7_schema.sql`, 12 taulua, virtuaaliset aikaleimat, LZ4 TOAST).
+  2. `PostgresPoolManager` (`asyncpg`), `PostgresEntityAdapter`, `PostgresGraphAdapter` ja `PostgresUnitOfWork` (repeatable read -eristys).
+  3. Zero-ORM -arkkitehtuuri ja binääriset `pydantic_core` Rust-koodekit (`\x01`-etuliitteellä).
+  4. Kaikki 12 kohdetiedostoa karkaistu, Tier 7 As-Built dokumentointi ja Tier 8 System 2 Red-Team Audit läpäisty 0 virheellä.
+* **Toteutussuunnitelma & Seurantadokumentti:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`, `@[docs/implementationplans/TRACKER_PostgreSQL.md]`
 
 ---
 
-### Askel 3.1: PostgreSQL 19 Lopullinen Cutover, TinyDB:n Poisto & Täysi Live E2E -Testiajo (Vaihe 2b)
+### Askel 3.1: PostgreSQL 19 Lopullinen Cutover, TinyDB:n Poisto & Täysi Live E2E -Testiajo (Vaihe 2b) — [SUORITUKSESSA]
 * **Siirtymä ja Lähtötilanteen Vaikutusanalyysi:**
   Kun PostgreSQL 19 -perusinfrastruktuuri ja sen tiedostokohtainen hardening (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` ja `@[docs/implementationplans/TRACKER_PostgreSQL.md]`) saavuttavat 100 % hyväksynnän, toteutetaan **Lopullinen Cutover (TinyDB Eradication)** vaatimusmäärittelyn `@[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]` mukaisesti ennen siirtymistä B2B SaaS IAM -vaiheeseen (Askel 4).
   * **Vaikutus ja saavutettu pohja:** `IMPLEMENTATION_PLAN_PostgreSQL.md`:n ja `TRACKER_PostgreSQL.md`:n valmistuttua DDL-skeema (`001_pg19_uuidv7_schema.sql`), `PostgresPoolManager`, `PostgresEntityAdapter`, `PostgresGraphAdapter` ja `PostgresUnitOfWork` ovat jo valmiina, karkaistuina ja 100 % Zero-ORM AST -valvottuina.
@@ -487,19 +480,51 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
 
 ### Askel 3.1b: `dag_executor.py` God Code -purku Event Sourcing -malliin (Vaihe 2b-2)
 * **Tavoite ja Arkkitehtoninen Rooli:**
-  Nyt kun PostgreSQL 19 Cutover on suoritettu ja TinyDB-tiedostolukitukset (`_update_lock`, `msvcrt/fcntl`) poistettu, puretaan koko järjestelmän suurin monoliitti `backend_v2/services/orchestrator/dag_executor.py` (1 640 LOC, `execute_workflow` 1 118 LOC) neljään itsenäiseen ja puhtaaseen moduuliin Luvun 7 arkkitehtuurisopimuksen mukaisesti:
-  1. `wave_scheduler.py`: Kahnin topologinen aallotus ja rinnakkaiset TaskGroup-ajot.
-  2. `state_machine.py`: Asynkroninen tilasiirtymä ja tapahtumavirta suoraan PostgreSQL:n `trace_events`-tauluun ilman tiedostolukituksia.
-  3. `cancellation_manager.py`: DLQ-virheluokittelu ja rinnakkaisten LLM-tehtävien hallittu peruutus virhetilanteessa.
-  4. `telemetry_broadcaster.py`: Reaaliaikainen SSE- ja WebSocket-tapahtumien lähetys käyttöliittymälle ja simulaattorille.
-* **Toteutuskomento (Tier 3 God Code Decomposition):**
-  ```powershell
-  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier3-god-code-decomposition --target=\"backend_v2/services/orchestrator/dag_executor.py\""
-  ```
-* **Laatuvarmennus:**
-  ```powershell
-  uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/ --test --ast-strict
-  ```
+  Nyt kun PostgreSQL 19 Cutover on suoritettu ja TinyDB-tiedostolukitukset (`_update_lock`, `msvcrt/fcntl`) poistettu, puretaan koko järjestelmän suurin monoliitti `backend_v2/services/orchestrator/dag_executor.py` (1 640 LOC, `execute_workflow` 1 118 LOC) neljään itsenäiseen moduuliin pakettiin `backend_v2/services/orchestrator/execution/` ja ohueksi fasaadiksi Luvun 7 arkkitehtuurisopimuksen mukaisesti:
+  1. `wave_scheduler.py` (~250 LOC): Kahnin topologinen aallotus (`find_independent_steps`), aaltojen suoritus rinnakkaisissa `asyncio.TaskGroup`-lohkoissa, ja Post-Wave Atomic Commit Invariant.
+  2. `state_machine.py` (~300 LOC): Tapahtumapohjainen tilasiirtymä (`ExecutionRecord.transition_step`) ja `trace_events` append-only -tallennus PostgreSQL 19:ään `PostgresUnitOfWork`:in kautta ilman `_update_lock`-tiedostolukituksia.
+  3. `cancellation_manager.py` (~150 LOC): DLQ-virheluokittelu, asynkroninen TaskGroup-peruutus (`cancel_remaining_steps`) ja transienttien virheiden käsittely.
+  4. `telemetry_broadcaster.py` (~150 LOC): Reaaliaikainen SSE- ja WebSocket-tapahtumien lähetys Redis PubSubin ja Uvicorn-yhteyksien kautta ilman suoraa couplingia taustatyöjonoon.
+  5. `dag_executor.py` (< 150 LOC): Ohut julkinen fasaadi, joka säilyttää 100 % taaksepäin yhteensopivan ulkoisen rajapintasopimuksen (`execute_dag_workflow`).
+* **Kokonaiskestoarvio:** ~2 – 2,5 h.
+
+* **Toteutus Quorumin Normaalilla Projektiprosessilla (6 vaihetta):**
+  1. **Tier 3 God Code Decomposition -suunnittelu:**
+     Käynnistetään dekompositiosuunnittelija, joka generoi modulaariset tehtävät ja seurantatiedoston:
+     ```powershell
+     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier3-god-code-decomposition --target="backend_v2/services/orchestrator/dag_executor.py""
+     ```
+     *Tämä tuottaa tehtävät hakemistoon `docs/epic/tasks_dag_executor/` ja trackerin `docs/epic/dag_executor_decomposition_tracker.md`.*
+
+  2. **Tier 2 Autonominen Suoritus (`auto_phase_runner.py`):**
+     Toteutetaan uudet moduulit ja karsitaan monoliitti vaiheittain automaattisella ajurilla:
+     ```powershell
+     uv run python scripts/auto_phase_runner.py --tracker docs/epic/dag_executor_decomposition_tracker.md --model gemini-4-argon-high
+     ```
+
+  3. **Tier 2 Autonominen Hardening (Tiedostokohtainen laatuportti):**
+     Karkaistaan uudet eristetyt moduulit ja fasaadi:
+     ```powershell
+     uv run python scripts/auto_hardening_runner.py --tracker docs/epic/dag_executor_decomposition_tracker.md --gate backend --model gemini-4-argon-medium
+     ```
+
+  4. **AST Guardrail QGR017 -lukitus:**
+     Varmistetaan, että `dag_executor.py` pysyy alle 200 rivin ohuena fasaadina eikä palaa monoliitiksi:
+     ```powershell
+     uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/ --test --ast-strict
+     ```
+
+  5. **Täysi Live E2E Workflow -pariteettivarmennus:**
+     Ajetaan täysi simulaatio varmistaen, että työnkulku kulkee onnistuneesti uusien moduulien ja PostgreSQL 19 `trace_events` -tapahtumien läpi:
+     ```powershell
+     uv run python backend_v2/scripts/run_workflow_simulation.py
+     ```
+
+  6. **Tier 7 Dokumentointi & Tier 8 Auditointi:**
+     ```powershell
+     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier7-describe-architecture docs/epic/dag_executor_decomposition_tracker.md"
+     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier8-audit-plan docs/epic/dag_executor_decomposition_tracker.md"
+     ```
 
 ---
 
@@ -581,21 +606,26 @@ uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
 * **Virallinen Eepos:** `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`
 * **1. Generoi vaihekohtaiset suunnitelmat ja tracker:**
   ```powershell
-  agy -i "/tier1-planner @[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]"
+  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier1-planner @[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]"
   ```
 * **2. Suorita vaiheet multi-phase runnerilla:**
   ```powershell
-  uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_160_tracker.md
+  uv run python scripts/auto_phase_runner.py --tracker docs/epic/EPIC_160_tracker.md --model gemini-4-argon-high
   ```
 
 ---
 
 ### Askel 5: Suorita Firebase Storage Direct-to-Cloud Signed URLs (Vaihe 4)
 * **Tavoite:** Toteuta frontendin suoralataus Firebase Storageen (15 min PUT Signed URLs), tiedostometadatan rekisteröinti ja orposiivous-taustatyö.
-* **Toteutussuunnitelma:** `[NEW] @[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]`
-* **Suoritus:**
+* **Toteutussuunnitelma:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]`
+* **Seurantadokumentti (Tracker):** `@[docs/implementationplans/TRACKER_Storage_Signed_URLs.md]`
+* **1. Luo seurantatiedosto:**
   ```powershell
-  agy -i "/tier2-execute --full-auto [NEW] @[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]"
+  agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier1-plan-tracker-generator @[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]"
+  ```
+* **2. Suorita automaattisesti:**
+  ```powershell
+  uv run python scripts/auto_phase_runner.py --tracker docs/implementationplans/TRACKER_Storage_Signed_URLs.md --model gemini-4-argon-high
   ```
 
 ---
