@@ -101,6 +101,13 @@ reserving a guaranteed minimum quota $W_{\text{min}} = 12$ atoms for current-win
 
 Within `CausalDiscoveryEngine`, Algorithm 1 dual fault attribution separates primary node defects (`NODE_FAILURE`) from broken warrant grounding dependencies (`WARRANT_GROUNDING_FAILURE`). When a causal edge warrant fails lexical verification ($\lambda(\mathbf{W}) = 0$) while parent claims pass, the engine attributes the failure specifically to the grounding warrant rather than improperly penalizing the underlying parent proposition.
 
+#### Proposition Graph Draft-to-Persisted Wave Materialization & Toulmin SQL Falsification
+Relational proposition graph persistence separates in-memory LLM extraction drafts from persisted database entities and executes wave ingestion in a single database round-trip:
+- **Draft vs. Persisted Domain Segregation**: During in-memory wave computation, extracted claims and dependencies are modeled as immutable draft contracts (`NodeDraft` keyed by step-local `local_key` and `EdgeDraft` linking `source_local_key` to `target_local_key` with self-loop rejection). Only upon database materialization are drafts elevated into persisted `PropositionNode` (`nod_...`) and `DependencyEdge` (`edg_...`) models carrying database-assigned RFC 9562 `uuidv7()` identifiers.
+- **Single-Round Multi-CTE Wave Ingestion (`materialize_wave`)**: `PostgresGraphAdapter.materialize_wave` ingests an entire Kahn topological wave of node and edge drafts in a single parameterized multi-CTE SQL statement (`WITH upserted_nodes AS (...), resolved_edges AS (...), inserted_edges AS (...)`). Node upserts leverage PostgreSQL 19 `ON CONFLICT (run_id, local_key) DO SELECT FOR UPDATE RETURNING` to resolve both newly inserted and pre-existing node `UUID` keys in one pass without secondary lookup round-trips, immediately mapping local keys to `UUID` foreign keys for `quorum_edges`.
+- **Post-Wave `QuorumUnitOfWork` Atomic Commit**: All parallel LLM inference inside `asyncio.TaskGroup` executes 100% in memory with zero held database connections. Once the wave completes, `PostgresUnitOfWork` opens an atomic `repeatable_read` transaction, executes `materialize_wave` or `upsert_wave_batch`, verifies DAG acyclicity via `WITH RECURSIVE ... CYCLE` (`assert_acyclic`, raising `CycleDetectedError` on cyclic dependencies), and commits atomically.
+- **Toulmin Structural Falsification Queries (`CteReasoningStrategy`)**: `CausalReasoningPort.find_falsified_claims` executes a 3-way relational join across `quorum_edges` (`relation_type = 'FALSIFIES'`) and `quorum_nodes`, identifying active claims (`CLAIM`, `HYPOTHESIS`, `ASSUMPTION`) contradicted by high-confidence falsifier nodes (`confidence >= min_falsifier_confidence`) and projecting results directly into immutable `FalsifiedClaimMatch` models.
+
 ### 2.7. Asynchronous Background Workers & Non-Blocking Handshake
 Workflows and report generation execute completely outside the synchronous HTTP request-response cycle across decoupled background workers:
 1. The API Ingress router receives an execution request, initializes and persists the execution record with `status=RUNNING`, persists the frozen context snapshot, and enqueues the heavy DAG job to the asynchronous Redis-backed task queue (`execute_workflow_task`).
@@ -365,7 +372,7 @@ sequenceDiagram
     autonumber
     actor User as Client Application (Flutter UI)
     participant API as API Ingress Router
-    participant DB as Persistence Store (MongoDB)
+    participant DB as Persistence Store (PostgreSQL 19)
     participant Arq as Background Task Queue (Arq/Redis)
     participant DAG as DAG Orchestration Engine
     participant LLM as LLM Provider Gateway

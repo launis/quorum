@@ -17,7 +17,7 @@
 
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]
 
-- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] @[docs/implementationplans/TRACKER_PostgreSQL.md]` (`33f4d4328`)
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] @[docs/implementationplans/TRACKER_PostgreSQL.md]`
   - [x] Step 1: PHASE_1_CLEANUPS_AST_GUARDRAIL_AND_ENUM_FOUNDATION
   - [x] Step 2: PROPOSITION_GRAPH_DOMAIN_MODELS_AND_HEXAGONAL_CQRS_PORTS
   - [x] Step 3: POSTGRESQL_19_UUIDV7_SCHEMA_AND_POOL_INFRASTRUCTURE
@@ -28,26 +28,26 @@
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
-- [x] **[OK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
-  - [x] @[backend_v2/database/factory.py]
-  - [x] @[backend_v2/database/interfaces.py]
-  - [x] [NEW] @[backend_v2/database/postgres/__init__.py]
-  - [x] [NEW] @[backend_v2/database/postgres/entity_adapter.py]
-  - [x] [NEW] @[backend_v2/database/postgres/graph_adapter.py]
-  - [x] [NEW] @[backend_v2/database/postgres/pool.py]
-  - [x] [NEW] @[backend_v2/database/postgres/uow.py]
-  - [x] @[backend_v2/models/core_base.py]
-  - [x] [NEW] @[backend_v2/models/domain/proposition_graph.py]
-  - [x] @[backend_v2/models/enums.py]
-  - [x] @[backend_v2/settings.py]
-  - [x] [NEW] @[scripts/audit_zero_orm_strictness.py]
-- [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate frontend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`. (Zero frontend `.dart` production targets in this plan).
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate backend --model gemini-4-argon-medium`.
+  - [ ] @[backend_v2/database/factory.py]
+  - [ ] @[backend_v2/database/interfaces.py]
+  - [ ] [NEW] @[backend_v2/database/postgres/__init__.py]
+  - [ ] [NEW] @[backend_v2/database/postgres/entity_adapter.py]
+  - [ ] [NEW] @[backend_v2/database/postgres/graph_adapter.py]
+  - [ ] [NEW] @[backend_v2/database/postgres/pool.py]
+  - [ ] [NEW] @[backend_v2/database/postgres/uow.py]
+  - [ ] @[backend_v2/models/core_base.py]
+  - [ ] [NEW] @[backend_v2/models/domain/proposition_graph.py]
+  - [ ] @[backend_v2/models/enums.py]
+  - [ ] @[backend_v2/settings.py]
+  - [ ] [NEW] @[scripts/audit_zero_orm_strictness.py]
+- [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate frontend --model gemini-4-argon-medium`. (Zero frontend `.dart` production targets in this plan).
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_PostgreSQL.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] @[ki_god_code_prevention.md] @[ki_python_314_concurrency_strictness.md] @[ki_zero_permissive_typing.md] @[ki_mcp_tool_protocol.md]
   ```
@@ -81,7 +81,7 @@
    - Exclusively use workspace-relative `@[...]` paths across all documentation, trackers, and handover blocks.
 5. **Post-Implementation Hardening Execution Options**:
    - Run interactive file-by-file hardening in chat via `/tier2-hardening-backend @[docs/implementationplans/TRACKER_PostgreSQL.md]`, OR
-   - Run autonomous unattended CLI hardening via `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+   - Run autonomous unattended CLI hardening via `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate backend --model gemini-4-argon-medium`.
 
 ## Requirements Traceability Matrix
 
@@ -103,21 +103,16 @@
 # Session Handover Context
 
 ## Achieved
-- Completed and committed all 5 steps of `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` (`REQ-001` through `REQ-012` 100% `[x]`):
-  - **Step 1 (`0cbc76caf`)**: Created `@[scripts/audit_zero_orm_strictness.py]` (`ZORM001`–`ZORM006`) and `@[backend_v2/tests/unit/scripts/test_audit_zero_orm_strictness.py]`, registered the script in `@[backend_v2/tests/unit/scripts/test_scripts_cli_help.py]` (`36` -> `37`), extended `@[backend_v2/models/enums.py]` (`StorageBackend`, `PropositionNodeType`, `DependencyRelationType`, `EntityPrefix.NODE`, `EntityPrefix.EDGE`) and `@[backend_v2/models/core_base.py]` (`parse_prefixed_uuid7`, `format_prefixed_uuid7`, `generate_uuid7_opaque_id`).
-  - **Step 2 (`658f3bfac`)**: Created `@[backend_v2/models/domain/proposition_graph.py]` and `@[backend_v2/tests/unit/models/domain/test_proposition_graph.py]` (100% coverage), and declared the `@runtime_checkable` Hexagonal CQRS Ports (`GraphMutationPort`, `TopologyResolutionPort`, `CausalReasoningPort`, `EntityPersistencePort`, `QuorumUnitOfWork`) in `@[backend_v2/database/interfaces.py]`.
-  - **Step 3 (`b6d5f0c07`)**: Updated `@[backend_v2/settings.py]` and `@[backend_v2/tests/unit/test_settings.py]`, created `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]`, updated `@[docker-compose.yml]` (`postgres:19-rc1`), and implemented `@[backend_v2/database/postgres/pool.py]` and `@[backend_v2/database/postgres/__init__.py]`.
-  - **Step 4 (`cf36a3085`)**: Implemented `@[backend_v2/database/postgres/graph_adapter.py]`, `@[backend_v2/database/postgres/entity_adapter.py]`, `@[backend_v2/database/postgres/uow.py]`, `@[backend_v2/tests/fakes/in_memory_uow.py]`, and wired `StorageBackend.POSTGRES` in `@[backend_v2/database/factory.py]` and `@[backend_v2/tests/unit/test_factory.py]`.
-  - **Step 5**: Created `@[backend_v2/tests/unit/database/test_postgres.py]` (95% coverage across `backend_v2/database/postgres/`), synchronized `@[.agents/rules/04_directory_reference.md]`, and verified 100% pass across `audit_zero_orm_strictness.py`, `audit_dict_eradication.py`, `backend_audit_loop.py backend_v2/ --test` (6,271 passed, 96.90% coverage), and `flutter_audit_loop.py client_app_v2/ --build`.
+- Completed Steps 1 through 5 of `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` (`REQ-001` through `REQ-012`), implementing the All-in-PostgreSQL 19 Sovereign Zero-ORM Architecture, Hexagonal CQRS Ports (`GraphMutationPort`, `TopologyResolutionPort`, `CausalReasoningPort`, `EntityPersistencePort`, `QuorumUnitOfWork`), `PostgresPoolManager` with binary `pydantic_core` `\x01` JSONB codecs, Single-Round Multi-CTE `materialize_wave`, `PostgresUnitOfWork` in `repeatable_read` isolation, `InMemoryUnitOfWork`, and the `ZORM001`–`ZORM006` AST verifier (`@[scripts/audit_zero_orm_strictness.py]`).
+- Executed Tier 7 As-Built Architectural Sync (`/tier7-describe-architecture`), synchronizing all 4 target Knowledge Items (`@[ki_god_code_prevention.md]`, `@[ki_python_314_concurrency_strictness.md]`, `@[ki_zero_permissive_typing.md]`, `@[ki_mcp_tool_protocol.md]`) and their `metadata.json` manifests, registering all new modules and test suites in `@[.agents/rules/04_directory_reference.md]`, and integrating timeless present-tense narratives into `docs/architecture/01_system_context_and_invariants.md`, `02_data_seeding_and_ontology.md`, `03_cognitive_orchestration_engine.md`, and `05_resilience_and_observability.md`.
 
 ## Learned
-- Initializing `_UnboundAsyncPgConnection` adapters in `PostgresUnitOfWork.__init__` (and resetting them on `__aexit__` cleanup) ensures `@runtime_checkable` `isinstance(uow, QuorumUnitOfWork)` evaluates to `True` both before and during `async with uow:` while failing fast with `AppException(ErrorCodes.STORAGE_ACCESS_FAILED)` if a caller invokes port methods outside an active transaction.
-- In `generate_uuid7_opaque_id`, clamping `resolved_ms < _UUID7_STATE.last_timestamp_ms` strictly when `timestamp_ms is None` while resetting `_UUID7_STATE.last_timestamp_ms = resolved_ms` whenever `resolved_ms != _UUID7_STATE.last_timestamp_ms` guarantees monotonic sub-millisecond `rand_a` ordering for both live wall-clock timestamps and deterministic fixed-timestamp unit tests regardless of test execution order.
+- All 12 closed-topology tables in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]` maintain 1:1 column naming parity with their target Pydantic V2 domain models, verified statically by `ZORM006` and at runtime by `test_schema_dto_naming_parity` in `@[backend_v2/tests/unit/database/test_postgres.py]`.
+- `PostgresGraphAdapter.materialize_wave` resolves both newly inserted and pre-existing proposition node UUIDs in a single database round-trip via PostgreSQL 19 `ON CONFLICT (run_id, local_key) DO SELECT FOR UPDATE RETURNING` before inserting directed edges, while `PostgresUnitOfWork` guarantees zero held database connections during `asyncio.TaskGroup` LLM inference.
 
 ## Remaining
-- Execute `Tier 2 Hardening (Backend)` (`uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`).
-- Execute `As-Built Architectural Sync` (`/tier7-describe-architecture @[docs/implementationplans/TRACKER_PostgreSQL.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] @[ki_god_code_prevention.md] @[ki_python_314_concurrency_strictness.md] @[ki_zero_permissive_typing.md] @[ki_mcp_tool_protocol.md]`).
-- Execute `System 2 Red-Team Audit` (`/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] @[docs/implementationplans/TRACKER_PostgreSQL.md]`).
+- Execute `Tier 2 Hardening (Backend)` across the 12 production Python target files via `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL.md]" --gate backend --model gemini-4-argon-medium` or `/tier2-hardening-backend @[docs/implementationplans/TRACKER_PostgreSQL.md]`.
+- Execute the final System 2 Red-Team Plan Audit via `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md] @[docs/implementationplans/TRACKER_PostgreSQL.md]`.
 
 ## Resume Command
 ```powershell

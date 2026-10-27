@@ -77,7 +77,7 @@
     
     <module path="backend_v2/database/">
         <responsibility>DATA PERSISTENCE, HEXAGONAL CQRS PORTS & POSTGRESQL 19 ZERO-ORM ADAPTERS (PILLAR 2)</responsibility>
-        <key_domains>interfaces.py (Hexagonal CQRS Ports: GraphMutationPort, TopologyResolutionPort, CausalReasoningPort, EntityPersistencePort, QuorumUnitOfWork), factory.py (create_unit_of_work, get_driver), migrations/ (001_pg19_uuidv7_schema.sql), postgres/ (__init__.py facade, pool.py [PostgresPoolManager, binary pydantic_core 0x01 JSONB codecs], graph_adapter.py [PostgresGraphAdapter, CteReasoningStrategy, Single-Round Multi-CTE materialize_wave], entity_adapter.py [PostgresEntityAdapter], uow.py [PostgresUnitOfWork]), wrapper.py, repositories/</key_domains>
+        <key_domains>interfaces.py (Hexagonal CQRS Ports: GraphMutationPort, TopologyResolutionPort, CausalReasoningPort, EntityPersistencePort, QuorumUnitOfWork), factory.py (create_unit_of_work, get_driver), migrations/ (001_pg19_uuidv7_schema.sql), postgres/ (__init__.py facade, pool.py [PostgresPoolManager, AsyncPgRecordProtocol, AsyncPgPoolProtocol, binary pydantic_core 0x01 JSONB codecs], graph_adapter.py [PostgresGraphAdapter, CteReasoningStrategy, Single-Round Multi-CTE materialize_wave], entity_adapter.py [PostgresEntityAdapter], uow.py [PostgresUnitOfWork]), wrapper.py, repositories/</key_domains>
     </module>
     
     <module path="backend_v2/seed/">
