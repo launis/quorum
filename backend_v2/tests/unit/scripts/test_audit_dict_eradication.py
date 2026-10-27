@@ -154,9 +154,9 @@ def test_audit_dict_eradication_exempts_boundary_drivers_and_legit_get(tmp_path:
     """Verifies that locked boundary files and legitimate get calls are exempt,
     while domain files sharing basename are not.
     """
-    driver_dir = tmp_path / "backend_v2" / "database"
+    driver_dir = tmp_path / "backend_v2" / "database" / "postgres"
     driver_dir.mkdir(parents=True, exist_ok=True)
-    exempt_file = driver_dir / "tinydb_driver.py"
+    exempt_file = driver_dir / "storage_driver.py"
     exempt_file.write_text(
         "def serialize(data: object) -> None:\n    hasattr(data, 'model_dump')\n",
         encoding="utf-8",

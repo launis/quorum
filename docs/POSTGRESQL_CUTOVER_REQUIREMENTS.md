@@ -9,6 +9,7 @@
   <knowledge_item>@[ki_python_314_concurrency_strictness.md]</knowledge_item>
   <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
   <knowledge_item>@[ki_mcp_tool_protocol.md]</knowledge_item>
+  <knowledge_item>@[ki_seed_vault_verification_and_sanitization.md]</knowledge_item>
 </required_context_rules>
 
 ## Executive Summary (Johdon Yhteenveto)

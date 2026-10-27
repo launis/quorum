@@ -10,7 +10,7 @@ from fastapi import status
 from pydantic import AliasChoices, BeforeValidator, Field, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.dtos.system import SafetySettingDTO
 from backend_v2.models.enums import StorageBackend as StorageBackend
@@ -627,8 +627,8 @@ class Settings(BaseSettings):
 
     # --- Storage ---
     storage_backend: Annotated[
-        str | None, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, FIRESTORE, or POSTGRES")
-    ] = None
+        str | None, BeforeValidator(strip_whitespace), Field(description="Sovereign storage backend (POSTGRES)")
+    ] = "POSTGRES"
     # Environment-injected PostgreSQL 19 connection, pool, timeout, and TOAST settings
     postgres_host: Annotated[str, Field(description="PostgreSQL server host address.")] = "127.0.0.1"
     postgres_port: Annotated[int, Field(ge=1, le=65535, description="PostgreSQL server port.")] = 5432
@@ -733,12 +733,12 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def prod_db_path(self) -> str:
-        """Returns the path to the production database file. Isolated to V2.
+        """Returns the path to the production database marker file. Isolated to V2.
 
         Returns:
-            Path pointing directly to the target SQLite or JSON schema dynamic file.
+            Path pointing directly to the target PostgreSQL schema marker file.
         """
-        return str(Path(self.data_dir) / "db_v2.json")
+        return str(Path(self.data_dir) / "postgres_v2.db")
 
     @computed_field
     @property
@@ -775,43 +775,40 @@ class Settings(BaseSettings):
     def active_backend(self) -> StorageBackend:
         """Determines the active storage backend based on configuration.
 
-        Priority 1: Explicit FIRESTORE backend.
-        Default: Local storage.
+        PostgreSQL 19 (StorageBackend.POSTGRES) is the sole supported persistence backend.
 
         Returns:
-            The verified active target backend strategy.
+            StorageBackend.POSTGRES when configured for PostgreSQL.
 
         Raises:
-            AppException: CONFIGURATION_ERROR if storage backend is explicitly requested but invalid.
+            ConfigurationError: If storage backend is LOCAL, TINYDB, FIRESTORE, or invalid.
         """
         if not self.storage_backend:
-            return StorageBackend.LOCAL
+            return StorageBackend.POSTGRES
 
         value = self.storage_backend.upper()
-        if value == "FIRESTORE":
-            return StorageBackend.FIRESTORE
         if value in ("POSTGRES", "POSTGRESQL"):
             return StorageBackend.POSTGRES
-        if value in ("LOCAL", "TINYDB"):
-            return StorageBackend.LOCAL
 
-        msg = f"CRITICAL: Invalid STORAGE_BACKEND '{self.storage_backend}'. Must be LOCAL, FIRESTORE, or POSTGRES."
+        msg = (
+            f"CRITICAL: Unsupported STORAGE_BACKEND '{self.storage_backend}'. "
+            "Only POSTGRES (PostgreSQL 19) is supported."
+        )
         logger.error("[Settings] %s", msg, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}, exc_info=True)
-        raise AppException(
+        raise ConfigurationError(
             message=msg,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
     @computed_field
     @property
     def is_cloud_storage(self) -> bool:
-        """Returns True if active_backend is FIRESTORE.
+        """Returns True if cloud bucket storage is configured or FIRESTORE backend is active.
 
         Returns:
             Boolean value signifying cloud integration state.
         """
-        return self.active_backend == StorageBackend.FIRESTORE
+        return bool(self.storage_bucket_name) or self.active_backend == StorageBackend.FIRESTORE
 
     model_config = SettingsConfigDict(
         env_file=str(Path(__file__).resolve().parent.parent / ".env"),
@@ -988,13 +985,15 @@ class Settings(BaseSettings):
     def allow_mock_tokens(self) -> bool:
         """Strictly disallow mock tokens in cloud environments or active Firebase Auth production.
 
-        Allow mock tokens ONLY on local storage backend when Firebase Auth is explicitly disabled
+        Allow mock tokens ONLY on PostgreSQL / local storage backend when Firebase Auth is explicitly disabled
         or when running in development mode.
 
         Returns:
             True if mock tokens are permitted, False otherwise.
         """
-        if self.active_backend != StorageBackend.LOCAL:
+        if self.is_cloud_storage:
+            return False
+        if self.active_backend not in (StorageBackend.POSTGRES, StorageBackend.LOCAL):
             return False
         if not self.use_firebase_auth:
             return True

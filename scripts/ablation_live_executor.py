@@ -331,7 +331,7 @@ def resolve_model_telemetry(
     keyed lookup by ID, slug, name, or provider.
 
     Args:
-        db_path: Path to database (data/db_v2.json) or seed file.
+        db_path: Path to seed database file (backend_v2/seed/seed_data.json).
         registry_id: Optional model registry ID, slug, provider, or name substring.
 
     Returns:

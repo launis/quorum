@@ -1561,7 +1561,7 @@ def run_variance_test(
         inputs_target: File or directory path containing test inputs.
         num_runs: Number of consecutive runs to compare.
         timeout_seconds: Maximum polling timeout per execution in seconds.
-        db_path: Optional path to the database file (defaults to data/db_v2.json).
+        db_path: Optional path to the seed database file (defaults to backend_v2/seed/seed_data.json).
         no_cache: Whether to bypass native LLM provider context cache.
         cooldown_seconds: Cool-down pause between runs in seconds.
         dev: Whether to run in fast development mode instead of full production.
@@ -1577,7 +1577,7 @@ def run_variance_test(
     Returns:
         List of generated execution IDs.
     """
-    target_db_path = Path(db_path) if db_path else Path("data/db_v2.json")
+    target_db_path = Path(db_path) if db_path else Path("backend_v2/seed/seed_data.json")
 
     comparison_pair: tuple[Mapping[str, JsonValue], Mapping[str, JsonValue]] | None = None
     if compare_registries is not None:
@@ -2035,7 +2035,9 @@ def main(argv: list[str] | None = None) -> list[str]:
     parser.add_argument("--workflow", default=None, help="Workflow ID or slug to execute")
     parser.add_argument("--profile", default=None, help="Output Profile ID to apply (defaults to workflow default)")
     parser.add_argument("--locale", default="fi", help="Target locale for outputs (default: fi)")
-    parser.add_argument("--db-path", default=None, help="Path to database file (defaults to data/db_v2.json)")
+    parser.add_argument(
+        "--db-path", default=None, help="Path to database file (defaults to backend_v2/seed/seed_data.json)"
+    )
     parser.add_argument("--no-cache", action="store_true", help="Bypass native LLM provider context cache")
     parser.add_argument("--cooldown-seconds", type=int, default=0, help="Cool-down pause between runs in seconds")
     parser.add_argument("--num-runs", type=int, default=2, help="Number of consecutive runs to compare")
@@ -2103,7 +2105,7 @@ def main(argv: list[str] | None = None) -> list[str]:
         return []
 
     if args.show_matrices:
-        target_db = Path(args.db_path) if args.db_path else Path("data/db_v2.json")
+        target_db = Path(args.db_path) if args.db_path else Path("backend_v2/seed/seed_data.json")
         if args.compare_registries is not None:
             reg_a, reg_b = resolve_comparison_registries(
                 target_db,

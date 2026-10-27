@@ -443,6 +443,11 @@ class PostgresPoolManager:
             migration_sql_path if migration_sql_path is not None else _DEFAULT_MIGRATION_PATH
         )
 
+    @property
+    def is_initialized(self) -> bool:
+        """Return whether the underlying asyncpg pool has been initialized."""
+        return self._pool is not None
+
     def resolve_dsn(self) -> str:
         """Build the PostgreSQL connection DSN from environment-injected settings.
 

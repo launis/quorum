@@ -1,6 +1,6 @@
 """Database Factory Module.
 
-Centralizes the creation of Repository drivers and PostgreSQL 19 QuorumUnitOfWork
+Centralizes the creation of PostgreSQL 19 StorageDriver and QuorumUnitOfWork
 instances based on Application Settings.
 """
 
@@ -8,19 +8,13 @@ from __future__ import annotations
 
 import logging
 
-from google.cloud import firestore
-
 from backend_v2.database.driver import StorageDriver
-from backend_v2.database.firestore_driver import FirestoreDriver
 from backend_v2.database.interfaces import QuorumUnitOfWork
 from backend_v2.database.postgres.pool import PostgresPoolManager
+from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.database.postgres.uow import PostgresUnitOfWork
-
-# Drivers
-from backend_v2.database.tinydb_driver import TinyDBDriver
-from backend_v2.database.wrapper import AbstractDatabase, TinyDBClient
 from backend_v2.exceptions import ConfigurationError, ErrorCodes
-from backend_v2.settings import Settings, StorageBackend
+from backend_v2.settings import Settings, StorageBackend, get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -30,64 +24,43 @@ __all__ = [
 ]
 
 
-async def get_driver(settings: Settings, db_client: AbstractDatabase | None = None) -> StorageDriver:
-    """Instantiate the appropriate Async Storage Driver for document-store backends.
+async def get_driver(
+    settings: Settings | None = None,
+    pool_manager: object | None = None,
+) -> StorageDriver:
+    """Instantiate the PostgreSQL 19 Async Storage Driver.
 
     Args:
         settings: Application settings object containing 'active_backend'.
-        db_client: Optional pre-initialized database client for testing or dependency injection.
+        pool_manager: Optional pre-initialized PostgresPoolManager instance for injection.
 
     Returns:
-        An initialized StorageDriver instance (TinyDBDriver or FirestoreDriver).
+        An initialized PostgresStorageDriver instance.
 
     Raises:
-        ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if StorageBackend.POSTGRES
-            (which requires create_unit_of_work), an incompatible db_client for
-            StorageBackend.LOCAL, or an unknown storage backend is configured.
+        ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if active_backend
+            is not StorageBackend.POSTGRES or if an incompatible pool_manager is passed.
     """
-    backend = settings.active_backend
+    resolved_settings = settings if settings is not None else get_settings()
+    backend = resolved_settings.active_backend
     logger.debug("[Factory] Initializing Storage Driver for Backend: %s", backend.value)
 
-    match backend:
-        case StorageBackend.FIRESTORE:
-            # Credentials are implicitly handled by GOOGLE_APPLICATION_CREDENTIALS env var
-            # set by the .bat files.
-            # We use the AsyncClient directly for the driver
-            client = firestore.AsyncClient()
-            driver = FirestoreDriver(client)
-            return driver
+    if backend != StorageBackend.POSTGRES:
+        msg = f"Unsupported storage backend '{backend.value}'. Only StorageBackend.POSTGRES is supported."
+        logger.error(
+            "[Factory] %s: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            msg,
+            extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            exc_info=True,
+        )
+        raise ConfigurationError(msg)
 
-        case StorageBackend.LOCAL:
-            # Local uses TinyDB
-            db_client_local: TinyDBClient
-
-            if db_client is not None:
-                if not isinstance(db_client, TinyDBClient):
-                    msg = (
-                        f"StorageBackend.LOCAL requires a TinyDBClient instance when db_client is provided, "
-                        f"got {type(db_client).__name__}."
-                    )
-                    logger.error(
-                        "[Factory] %s: %s",
-                        ErrorCodes.CONFIGURATION_ERROR.name,
-                        msg,
-                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                        exc_info=True,
-                    )
-                    raise ConfigurationError(msg)
-                db_client_local = db_client
-            else:
-                db_path = settings.prod_db_path
-                logger.debug("[Factory] Using LOCAL configuration. Path: %s", db_path)
-                db_client_local = TinyDBClient(db_path)
-
-            local_driver = TinyDBDriver(db_client_local)
-            return local_driver
-
-        case StorageBackend.POSTGRES:
+    if pool_manager is not None:
+        if not isinstance(pool_manager, PostgresPoolManager):
             msg = (
-                "StorageBackend.POSTGRES uses Zero-ORM QuorumUnitOfWork via create_unit_of_work(); "
-                "legacy document StorageDriver is disabled under Clean-Slate Cutover."
+                f"StorageBackend.POSTGRES requires a PostgresPoolManager instance when pool_manager is provided, "
+                f"got {type(pool_manager).__name__}."
             )
             logger.error(
                 "[Factory] %s: %s",
@@ -97,21 +70,13 @@ async def get_driver(settings: Settings, db_client: AbstractDatabase | None = No
                 exc_info=True,
             )
             raise ConfigurationError(msg)
+        return PostgresStorageDriver(pool_manager=pool_manager, settings=resolved_settings)
 
-        case _:
-            msg = f"Unknown storage backend: {backend}"
-            logger.error(
-                "[Factory] %s: %s",
-                ErrorCodes.CONFIGURATION_ERROR.name,
-                msg,
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                exc_info=True,
-            )
-            raise ConfigurationError(msg)
+    return PostgresStorageDriver(settings=resolved_settings)
 
 
 def create_unit_of_work(
-    settings: Settings,
+    settings: Settings | None = None,
     pool_manager: PostgresPoolManager | None = None,
 ) -> QuorumUnitOfWork:
     """Instantiate a PostgreSQL 19 Post-Wave Atomic QuorumUnitOfWork.
@@ -127,7 +92,8 @@ def create_unit_of_work(
         ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR if settings.active_backend
             is not StorageBackend.POSTGRES.
     """
-    backend = settings.active_backend
+    resolved_settings = settings if settings is not None else get_settings()
+    backend = resolved_settings.active_backend
     if backend != StorageBackend.POSTGRES:
         msg = f"create_unit_of_work requires StorageBackend.POSTGRES, but active_backend is '{backend.value}'."
         logger.error(
@@ -143,5 +109,5 @@ def create_unit_of_work(
     if pool_manager is not None:
         resolved_pool_manager = pool_manager
     else:
-        resolved_pool_manager = PostgresPoolManager(settings=settings)
+        resolved_pool_manager = PostgresPoolManager(settings=resolved_settings)
     return PostgresUnitOfWork(pool_manager=resolved_pool_manager)

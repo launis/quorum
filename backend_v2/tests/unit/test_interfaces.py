@@ -23,6 +23,7 @@ def test_interfaces_are_protocols() -> None:
         interfaces.IAgentRepository,
         interfaces.IAuditRepository,
         interfaces.IComponentRepository,
+        interfaces.IEntityPersistenceAdapter,
         interfaces.IExecutionPersonaRepository,
         interfaces.IExecutionRepository,
         interfaces.IExtractionProtocolRepository,

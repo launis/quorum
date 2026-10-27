@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from pathlib import Path
 
 import pytest
 
 from backend_v2.database.driver import StorageDriver
+from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.database.repositories import (
     AuditRepositoryImpl,
     ComponentRepositoryImpl,
@@ -15,8 +15,6 @@ from backend_v2.database.repositories import (
     SystemRepositoryImpl,
     WorkflowRepositoryImpl,
 )
-from backend_v2.database.tinydb_driver import TinyDBDriver
-from backend_v2.database.wrapper import TinyDBClient
 from backend_v2.exceptions import ResourceNotFoundError
 from backend_v2.models.auth import Organization, SubscriptionStatus
 from backend_v2.models.core_base import I18nText
@@ -42,10 +40,9 @@ from backend_v2.models.enums import (
 
 
 @pytest.fixture
-def driver(tmp_path: Path) -> StorageDriver:
-    """Provides a real TinyDBDriver over ephemeral tmp_path."""
-    db_path = str(tmp_path / "test_repo_v2.json")
-    return TinyDBDriver(TinyDBClient(db_path))
+def driver() -> StorageDriver:
+    """Provides a PostgresStorageDriver instance."""
+    return PostgresStorageDriver(auto_initialize_pool=False)
 
 
 @pytest.mark.asyncio

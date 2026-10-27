@@ -11,13 +11,13 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timezone
 from types import TracebackType
 from typing import Annotated, Self
 
 from fastapi import status
-from pydantic import ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_core import from_json, to_json
 
 from backend_v2.database.interfaces import (
@@ -32,6 +32,7 @@ from backend_v2.database.postgres.pool import (
     AsyncPgTransactionProtocol,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.auth import Organization, User
 from backend_v2.models.core_base import (
     V2CoreBase,
     format_prefixed_uuid7,
@@ -39,6 +40,13 @@ from backend_v2.models.core_base import (
     parse_prefixed_uuid7,
 )
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
+)
 from backend_v2.models.domain.proposition_graph import (
     CycleDetectedError,
     DependencyEdge,
@@ -50,6 +58,13 @@ from backend_v2.models.domain.proposition_graph import (
 from backend_v2.models.domain.proposition_graph import (
     ReportBinaryPayloadDTO as ReportBinaryPayloadDTO,
 )
+from backend_v2.models.domain.report_artifact import ReportArtifact
+from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.system_config import (
+    SystemConfigMCPGateways,
+    SystemConfigModelRegistry,
+)
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import (
     DependencyRelationType,
     EntityPrefix,
@@ -71,6 +86,14 @@ __all__ = [
 type _ColumnValue = (
     str | int | float | bool | bytes | datetime | uuid.UUID | tuple[uuid.UUID, ...] | tuple[str, ...] | None
 )
+type _SeedRowEntry = BaseModel | Sequence[_ColumnValue]
+
+
+def _to_column_value(val: object) -> _ColumnValue:
+    """Narrow an arbitrary SQL argument to _ColumnValue."""
+    if val is None or isinstance(val, (str, int, float, bool, bytes, datetime, uuid.UUID)):
+        return val
+    return str(val)
 
 
 class _StoredNodeEntry(V2CoreBase):
@@ -109,6 +132,7 @@ class _StoreSnapshot(V2CoreBase):
     ]
     report_has_pdf: Annotated[dict[str, bool], Field(default_factory=dict, description="Report PDF flags.")]
     executions: Annotated[dict[str, ExecutionRecord], Field(default_factory=dict, description="Stored executions.")]
+    seed_counts: Annotated[dict[str, int], Field(default_factory=dict, description="Seeded table counts.")]
     migrations_applied: Annotated[int, Field(default=0, ge=0, description="DDL migrations applied count.")]
 
 
@@ -121,6 +145,7 @@ class _InMemoryPostgresStore:
         report_binaries: Mapping of report_id to ReportBinaryPayloadDTO.
         report_has_pdf: Mapping of report_id to boolean has_pdf flag.
         executions: Mapping of execution_id to ExecutionRecord.
+        seed_tables: Mapping of canonical PostgreSQL table name to stored records keyed by id.
         migrations_applied: Number of times DDL migrations were executed.
     """
 
@@ -131,6 +156,17 @@ class _InMemoryPostgresStore:
         self.report_binaries: dict[str, ReportBinaryPayloadDTO] = {}
         self.report_has_pdf: dict[str, bool] = {}
         self.executions: dict[str, ExecutionRecord] = {}
+        self.seed_tables: dict[str, dict[str, _SeedRowEntry]] = {
+            "organizations": {},
+            "users": {},
+            "system_configs": {},
+            "prompt_blocks": {},
+            "steps": {},
+            "workflows": {},
+            "output_profiles": {},
+            "report_artifacts": {},
+            "trace_events": {},
+        }
         self.migrations_applied: int = 0
 
     def take_snapshot(self) -> _StoreSnapshot:
@@ -145,6 +181,7 @@ class _InMemoryPostgresStore:
             report_binaries=dict(self.report_binaries),
             report_has_pdf=dict(self.report_has_pdf),
             executions=dict(self.executions),
+            seed_counts={tbl: len(rows) for tbl, rows in self.seed_tables.items()},
             migrations_applied=self.migrations_applied,
         )
 
@@ -631,6 +668,161 @@ class InMemoryEntityAdapter:
             return self._store.executions[execution_id]
         return None
 
+    async def seed_collection_batch(
+        self,
+        collection_name: str,
+        items: Sequence[BaseModel],
+    ) -> int:
+        """Batch-upsert a validated seed collection in memory.
+
+        Args:
+            collection_name: Canonical collection or table name ('system_config' or 'system_configs', etc.).
+            items: Sequence of validated Pydantic domain models to persist.
+
+        Returns:
+            Number of rows persisted into the target table.
+
+        Raises:
+            AppException: With VALIDATION_FAILED if collection_name is not an allowlisted seed table.
+        """
+        canonical = "system_configs" if collection_name == "system_config" else collection_name
+        allowed = {
+            "organizations",
+            "users",
+            "system_configs",
+            "prompt_blocks",
+            "steps",
+            "workflows",
+            "output_profiles",
+            "executions",
+            "report_artifacts",
+            "report_binaries",
+        }
+        if canonical not in allowed:
+            msg = f"Unsupported seed collection '{collection_name}'."
+            logger.error(
+                "[InMemoryEntityAdapter] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "collection_name": collection_name},
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
+        expected_types: dict[str, tuple[type[BaseModel], ...]] = {
+            "organizations": (Organization,),
+            "users": (User,),
+            "system_configs": (SystemConfigModelRegistry, SystemConfigMCPGateways),
+            "prompt_blocks": (
+                MatrixPromptBlock,
+                SystemRulePromptBlock,
+                PersonaPromptBlock,
+                ProtocolPromptBlock,
+            ),
+            "steps": (Step,),
+            "workflows": (Workflow,),
+            "output_profiles": (OutputProfile,),
+            "executions": (ExecutionRecord,),
+            "report_artifacts": (ReportArtifact,),
+            "report_binaries": (ReportBinaryPayloadDTO,),
+        }
+        for item in items:
+            if not isinstance(item, expected_types[canonical]):
+                msg = f"Item type '{type(item).__name__}' does not match target table '{canonical}'."
+                logger.error(
+                    "[InMemoryEntityAdapter] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
+        if canonical == "executions":
+            for item in items:
+                if isinstance(item, ExecutionRecord):
+                    await self.save_execution(item)
+            return len(items)
+
+        if canonical == "report_binaries":
+            for item in items:
+                if isinstance(item, ReportBinaryPayloadDTO):
+                    await self.save_report_binary(item)
+            return len(items)
+
+        table_bucket = self._store.seed_tables[canonical]
+        for idx, item in enumerate(items):
+            dumped = item.model_dump(mode="json")
+            raw_id = dumped["id"] if "id" in dumped else f"{canonical}_{idx}"
+            table_bucket[str(raw_id)] = item
+        return len(items)
+
+    async def verify_seed_table_counts(
+        self,
+        expected_counts: Mapping[str, int],
+    ) -> dict[str, int]:
+        """Query row counts across all 10 core tables and assert seed materialization.
+
+        Args:
+            expected_counts: Mapping of collection/table name to minimum expected row count.
+
+        Returns:
+            Dictionary mapping each of the 10 table names to its row count.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED or VALIDATION_FAILED if any table fails verification.
+        """
+        counts: dict[str, int] = {
+            "organizations": len(self._store.seed_tables["organizations"]),
+            "users": len(self._store.seed_tables["users"]),
+            "system_configs": len(self._store.seed_tables["system_configs"]),
+            "prompt_blocks": len(self._store.seed_tables["prompt_blocks"]),
+            "steps": len(self._store.seed_tables["steps"]),
+            "workflows": len(self._store.seed_tables["workflows"]),
+            "output_profiles": len(self._store.seed_tables["output_profiles"]),
+            "executions": len(self._store.executions),
+            "report_artifacts": len(self._store.seed_tables["report_artifacts"]),
+            "report_binaries": len(self._store.report_binaries),
+        }
+        for key, min_expected in expected_counts.items():
+            target_table = "system_configs" if key == "system_config" else key
+            if target_table not in counts:
+                msg = f"Unknown table '{target_table}' in verify_seed_table_counts."
+                logger.error(
+                    "[InMemoryEntityAdapter] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+            if counts[target_table] < min_expected:
+                msg = (
+                    f"Seed count verification failed for table '{target_table}': "
+                    f"expected >= {min_expected}, got {counts[target_table]}."
+                )
+                logger.error(
+                    "[InMemoryEntityAdapter] %s: %s",
+                    ErrorCodes.STORAGE_ACCESS_FAILED.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "table": target_table},
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "table": target_table},
+                )
+        return counts
+
 
 class InMemoryAsyncPgTransaction:
     """In-memory implementation of AsyncPgTransactionProtocol with snapshot rollback."""
@@ -775,6 +967,21 @@ class InMemoryAsyncPgConnection:
             self._store.migrations_applied += 1
             return "CREATE TABLE"
 
+        if normalized.startswith("TRUNCATE TABLE "):
+            for tbl in self._store.seed_tables:
+                if f"TRUNCATE TABLE {tbl.upper()}" in normalized:
+                    self._store.seed_tables[tbl].clear()
+                    return "TRUNCATE TABLE"
+            if "TRUNCATE TABLE EXECUTIONS" in normalized:
+                self._store.executions.clear()
+                self._store.nodes.clear()
+                self._store.edges.clear()
+                return "TRUNCATE TABLE"
+            if "TRUNCATE TABLE REPORT_BINARIES" in normalized:
+                self._store.report_binaries.clear()
+                return "TRUNCATE TABLE"
+            return "TRUNCATE TABLE"
+
         if "INSERT INTO REPORT_BINARIES" in normalized:
             report_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
             report_id = format_prefixed_uuid7(report_uuid, EntityPrefix.REPORT)
@@ -850,6 +1057,41 @@ class InMemoryAsyncPgConnection:
             self._store.executions[exec_id] = record
             return "INSERT 0 1"
 
+        for tbl in (
+            "organizations",
+            "users",
+            "system_configs",
+            "prompt_blocks",
+            "steps",
+            "workflows",
+            "output_profiles",
+            "report_artifacts",
+        ):
+            if f"INSERT INTO {tbl.upper()}" in normalized:
+                row_id = str(args[0])
+                self._store.seed_tables[tbl][row_id] = tuple(_to_column_value(a) for a in args)
+                return "INSERT 0 1"
+            if f"DELETE FROM {tbl.upper()}" in normalized:
+                if not args:
+                    self._store.seed_tables[tbl].clear()
+                    return "DELETE"
+                row_id = str(args[0])
+                if row_id in self._store.seed_tables[tbl]:
+                    del self._store.seed_tables[tbl][row_id]
+                    return "DELETE 1"
+                return "DELETE 0"
+
+        if "DELETE FROM EXECUTIONS" in normalized:
+            if not args:
+                self._store.executions.clear()
+                return "DELETE"
+            exec_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
+            exec_id = format_prefixed_uuid7(exec_uuid, EntityPrefix.EXECUTION)
+            if exec_id in self._store.executions:
+                del self._store.executions[exec_id]
+                return "DELETE 1"
+            return "DELETE 0"
+
         return "OK"
 
     async def executemany(
@@ -913,6 +1155,21 @@ class InMemoryAsyncPgConnection:
                     created_at=_extract_uuid7_timestamp(edge_id, EntityPrefix.EDGE),
                 )
                 self._store.edges[edge_id] = edge
+        else:
+            for tbl in (
+                "organizations",
+                "users",
+                "system_configs",
+                "prompt_blocks",
+                "steps",
+                "workflows",
+                "output_profiles",
+            ):
+                if f"INSERT INTO {tbl.upper()}" in normalized:
+                    for row in args:
+                        row_id = str(row[0])
+                        self._store.seed_tables[tbl][row_id] = tuple(_to_column_value(a) for a in row)
+                    break
 
     async def fetch(
         self,
@@ -994,7 +1251,98 @@ class InMemoryAsyncPgConnection:
                 for m in matches
             )
 
+        if "FROM EXECUTIONS" in normalized:
+            return tuple(self._build_execution_record_row(rec) for rec in self._store.executions.values())
+
+        for tbl in (
+            "organizations",
+            "users",
+            "system_configs",
+            "prompt_blocks",
+            "steps",
+            "workflows",
+            "output_profiles",
+            "report_artifacts",
+        ):
+            if f"FROM {tbl.upper()}" in normalized:
+                cols = self._extract_select_columns(query)
+                rows: list[AsyncPgRecordProtocol] = []
+                for entry in self._store.seed_tables[tbl].values():
+                    if isinstance(entry, Sequence):
+                        rows.append(InMemoryAsyncPgRecord({col: val for col, val in zip(cols, entry, strict=False)}))
+                return tuple(rows)
+
         return ()
+
+    @staticmethod
+    def _extract_select_columns(query: str) -> list[str]:
+        """Extract column names from a SELECT col1, col2, ... FROM statement."""
+        norm_q = " ".join(query.strip().split())
+        upper = norm_q.upper()
+        select_idx = upper.find("SELECT ")
+        from_idx = upper.find(" FROM ")
+        if select_idx == -1 or from_idx == -1:
+            return []
+        cols_part = norm_q[select_idx + 7 : from_idx]
+        return [c.strip().lower() for c in cols_part.split(",") if c.strip()]
+
+    @staticmethod
+    def _build_execution_record_row(rec: ExecutionRecord) -> InMemoryAsyncPgRecord:
+        """Convert a stored ExecutionRecord into an InMemoryAsyncPgRecord."""
+        dumped = rec.model_dump(mode="json", exclude_none=True)
+        frozen_ctx_str: str | None = None
+        if rec.frozen_context is not None:
+            frozen_ctx_str = to_json(dumped["frozen_context"]).decode("utf-8")
+        exec_summary_str: str | None = None
+        if rec.execution_summary is not None:
+            exec_summary_str = to_json(dumped["execution_summary"]).decode("utf-8")
+        metadata_str: str | None = None
+        if rec.metadata is not None:
+            metadata_str = to_json(dumped["metadata"]).decode("utf-8")
+        return InMemoryAsyncPgRecord(
+            {
+                "id": parse_prefixed_uuid7(rec.id, EntityPrefix.EXECUTION),
+                "workflow_id": rec.workflow_id,
+                "workflow_version": rec.workflow_version,
+                "active_profile_id": rec.active_profile_id,
+                "output_profile_id": rec.output_profile_id,
+                "status": rec.status.value,
+                "target_locale": rec.target_locale,
+                "progress": rec.progress,
+                "status_message": rec.status_message,
+                "raw_inputs": to_json(dumped["raw_inputs"]).decode("utf-8"),
+                "frozen_context": frozen_ctx_str,
+                "frozen_context_storage_path": rec.frozen_context_storage_path,
+                "pdf_report_path": rec.pdf_report_path,
+                "steps": to_json(dumped["steps"]).decode("utf-8"),
+                "step_states": to_json(dumped["step_states"]).decode("utf-8"),
+                "profile_syntheses": to_json(dumped["profile_syntheses"]).decode("utf-8"),
+                "source_identity_manifest": to_json(dumped["source_identity_manifest"]).decode("utf-8"),
+                "execution_trace": to_json(dumped["execution_trace"]).decode("utf-8"),
+                "execution_trace_storage_path": rec.execution_trace_storage_path,
+                "context_variables": to_json(dumped["context_variables"]).decode("utf-8"),
+                "context_variables_storage_path": rec.context_variables_storage_path,
+                "is_resumable": rec.is_resumable,
+                "prompt_tokens": rec.prompt_tokens,
+                "completion_tokens": rec.completion_tokens,
+                "cached_tokens": rec.cached_tokens,
+                "reasoning_tokens": rec.reasoning_tokens,
+                "cumulative_synthesis_tokens": rec.cumulative_synthesis_tokens,
+                "dag_cost_usd": rec.dag_cost_usd,
+                "cumulative_synthesis_cost": rec.cumulative_synthesis_cost,
+                "cost_estimate": rec.cost_estimate,
+                "models_used": to_json(dumped["models_used"]).decode("utf-8"),
+                "execution_summary": exec_summary_str,
+                "metadata": metadata_str,
+                "duration_ms": rec.duration_ms,
+                "error": rec.error,
+                "created_at": rec.created_at,
+                "updated_at": rec.updated_at,
+                "completed_at": rec.completed_at,
+                "created_by": rec.created_by,
+                "organization_id": rec.organization_id,
+            }
+        )
 
     async def fetchrow(
         self,
@@ -1015,6 +1363,27 @@ class InMemoryAsyncPgConnection:
         self._check_fault("fetchrow")
         _ = timeout
         normalized = " ".join(query.strip().split()).upper()
+
+        if (
+            "SELECT COUNT(*)::BIGINT AS ROW_COUNT FROM " in normalized
+            or "SELECT COUNT(*) AS ROW_COUNT FROM " in normalized
+        ):
+            for tbl in (
+                "organizations",
+                "users",
+                "system_configs",
+                "prompt_blocks",
+                "steps",
+                "workflows",
+                "output_profiles",
+                "report_artifacts",
+            ):
+                if f"FROM {tbl.upper()}" in normalized:
+                    return InMemoryAsyncPgRecord({"row_count": len(self._store.seed_tables[tbl])})
+            if "FROM EXECUTIONS" in normalized:
+                return InMemoryAsyncPgRecord({"row_count": len(self._store.executions)})
+            if "FROM REPORT_BINARIES" in normalized:
+                return InMemoryAsyncPgRecord({"row_count": len(self._store.report_binaries)})
 
         if "CYCLE TARGET_ID SET IS_CYCLE" in normalized:
             run_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
@@ -1051,61 +1420,26 @@ class InMemoryAsyncPgConnection:
             exec_id = format_prefixed_uuid7(exec_uuid, EntityPrefix.EXECUTION)
             if exec_id not in self._store.executions:
                 return None
-            rec = self._store.executions[exec_id]
-            dumped = rec.model_dump(mode="json", exclude_none=True)
-            frozen_ctx_str: str | None = None
-            if rec.frozen_context is not None:
-                frozen_ctx_str = to_json(dumped["frozen_context"]).decode("utf-8")
-            exec_summary_str: str | None = None
-            if rec.execution_summary is not None:
-                exec_summary_str = to_json(dumped["execution_summary"]).decode("utf-8")
-            metadata_str: str | None = None
-            if rec.metadata is not None:
-                metadata_str = to_json(dumped["metadata"]).decode("utf-8")
-            return InMemoryAsyncPgRecord(
-                {
-                    "id": parse_prefixed_uuid7(rec.id, EntityPrefix.EXECUTION),
-                    "workflow_id": rec.workflow_id,
-                    "workflow_version": rec.workflow_version,
-                    "active_profile_id": rec.active_profile_id,
-                    "output_profile_id": rec.output_profile_id,
-                    "status": rec.status.value,
-                    "target_locale": rec.target_locale,
-                    "progress": rec.progress,
-                    "status_message": rec.status_message,
-                    "raw_inputs": to_json(dumped["raw_inputs"]).decode("utf-8"),
-                    "frozen_context": frozen_ctx_str,
-                    "frozen_context_storage_path": rec.frozen_context_storage_path,
-                    "pdf_report_path": rec.pdf_report_path,
-                    "steps": to_json(dumped["steps"]).decode("utf-8"),
-                    "step_states": to_json(dumped["step_states"]).decode("utf-8"),
-                    "profile_syntheses": to_json(dumped["profile_syntheses"]).decode("utf-8"),
-                    "source_identity_manifest": to_json(dumped["source_identity_manifest"]).decode("utf-8"),
-                    "execution_trace": to_json(dumped["execution_trace"]).decode("utf-8"),
-                    "execution_trace_storage_path": rec.execution_trace_storage_path,
-                    "context_variables": to_json(dumped["context_variables"]).decode("utf-8"),
-                    "context_variables_storage_path": rec.context_variables_storage_path,
-                    "is_resumable": rec.is_resumable,
-                    "prompt_tokens": rec.prompt_tokens,
-                    "completion_tokens": rec.completion_tokens,
-                    "cached_tokens": rec.cached_tokens,
-                    "reasoning_tokens": rec.reasoning_tokens,
-                    "cumulative_synthesis_tokens": rec.cumulative_synthesis_tokens,
-                    "dag_cost_usd": rec.dag_cost_usd,
-                    "cumulative_synthesis_cost": rec.cumulative_synthesis_cost,
-                    "cost_estimate": rec.cost_estimate,
-                    "models_used": to_json(dumped["models_used"]).decode("utf-8"),
-                    "execution_summary": exec_summary_str,
-                    "metadata": metadata_str,
-                    "duration_ms": rec.duration_ms,
-                    "error": rec.error,
-                    "created_at": rec.created_at,
-                    "updated_at": rec.updated_at,
-                    "completed_at": rec.completed_at,
-                    "created_by": rec.created_by,
-                    "organization_id": rec.organization_id,
-                }
-            )
+            return self._build_execution_record_row(self._store.executions[exec_id])
+
+        for tbl in (
+            "organizations",
+            "users",
+            "system_configs",
+            "prompt_blocks",
+            "steps",
+            "workflows",
+            "output_profiles",
+            "report_artifacts",
+        ):
+            if f"FROM {tbl.upper()}" in normalized and args:
+                row_id = str(args[0])
+                if row_id not in self._store.seed_tables[tbl]:
+                    return None
+                entry = self._store.seed_tables[tbl][row_id]
+                if isinstance(entry, Sequence):
+                    cols = self._extract_select_columns(query)
+                    return InMemoryAsyncPgRecord({col: val for col, val in zip(cols, entry, strict=False)})
 
         return None
 

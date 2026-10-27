@@ -186,8 +186,21 @@ class I18nText(V2CoreBase):
         return I18nText(translations=new_translations)
 
 
+_UUID7_DELEGATED_PREFIXES: frozenset[str] = frozenset(
+    {
+        EntityPrefix.EXECUTION.value,
+        EntityPrefix.REPORT.value,
+        EntityPrefix.NODE.value,
+        EntityPrefix.EDGE.value,
+    }
+)
+
+
 def generate_opaque_id(prefix: EntityPrefix | str, length: int = 16) -> str:
     """Generates a randomized hex ID conforming to OPAQUE_STRIPE_ID_REGEX.
+
+    Delegates temporal-locality entity prefixes (exe, rep, nod, edg) directly
+    to RFC 9562 UUIDv7 generation (32-char lowercase hex).
 
     Args:
         prefix: Entity prefix (StrEnum member or string matching ^[a-z]{2,5}$).
@@ -200,6 +213,8 @@ def generate_opaque_id(prefix: EntityPrefix | str, length: int = 16) -> str:
         AppException: If prefix or generated ID fails validation against OPAQUE_STRIPE_ID_REGEX.
     """
     prefix_str = prefix.value if isinstance(prefix, EntityPrefix) else str(prefix).strip().lower()
+    if prefix_str in _UUID7_DELEGATED_PREFIXES:
+        return generate_uuid7_opaque_id(EntityPrefix(prefix_str))
     bounded_len = max(16, min(length, 32))
     hex_token = uuid.uuid4().hex[:bounded_len]
     generated_id = f"{prefix_str}_{hex_token}"

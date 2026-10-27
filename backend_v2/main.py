@@ -25,7 +25,6 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
-from tinydb import TinyDB
 
 import backend_v2.hooks as _hooks
 
@@ -44,9 +43,11 @@ from backend_v2.api.routers.system import router as system_router
 from backend_v2.context import set_request_context
 from backend_v2.core.rate_limit import rate_limit_exceeded_handler
 from backend_v2.core.telemetry import configure_telemetry
+from backend_v2.database.driver import StorageDriver
+from backend_v2.database.factory import create_unit_of_work
+from backend_v2.database.interfaces import QuorumUnitOfWork
 from backend_v2.exceptions import AppException, ErrorCodes, format_validation_error
 from backend_v2.logging_config import log_startup_system_parameters, setup_logging
-from backend_v2.seed.seed_registry import STANDARD_REGISTRY
 from backend_v2.services.localization import set_language
 from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
@@ -54,21 +55,24 @@ from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 # --- 1. Lifespan Management ---
 
 
-def _audit_storage_and_database_sync(db: TinyDB, logger: logging.Logger, storage_dir: Path | None = None) -> None:
-    """Audits synchronization between executions in TinyDB and execution artifacts on disk.
+async def _audit_storage_and_database_sync(
+    driver: StorageDriver,
+    logger: logging.Logger,
+    storage_dir: Path | None = None,
+) -> None:
+    """Audits synchronization between executions in PostgreSQL 19 and execution artifacts on disk.
 
     Performs a strictly read-only check. Emits a structured warning with remediation instructions
     if orphaned database records or unindexed disk executions are discovered.
 
     Args:
-        db: Open TinyDB instance.
+        driver: Active StorageDriver for querying execution records.
         logger: Application logger for emitting audit telemetry.
         storage_dir: Optional override for the root execution artifacts directory
             (defaults to Path("data/files/executions")).
     """
     resolved_storage_dir = storage_dir if storage_dir is not None else Path("data/files/executions")
-    table = db.table("executions")
-    db_records = table.all()
+    db_records = await driver.query("executions")
 
     db_execution_ids: set[str] = set()
     orphaned_db_ids: list[str] = []
@@ -80,8 +84,8 @@ def _audit_storage_and_database_sync(db: TinyDB, logger: logging.Logger, storage
         db_execution_ids.add(rec_id)
 
         trace_path_raw = None
-        if "execution_trace_storage_path" in rec:
-            trace_path_raw = rec["execution_trace_storage_path"]
+        if "execution_trace_storage_path" in rec and rec["execution_trace_storage_path"] is not None:
+            trace_path_raw = str(rec["execution_trace_storage_path"])
         trace_exists = False
         if trace_path_raw and Path(trace_path_raw).exists():
             trace_exists = True
@@ -112,51 +116,48 @@ def _audit_storage_and_database_sync(db: TinyDB, logger: logging.Logger, storage
         logger.info("[StorageAudit] Execution storage and database synchronization PASSED.")
 
 
-def _validate_database_preflight(logger: logging.Logger) -> None:
-    """Validates root database collections against strict Pydantic models at startup.
+async def _validate_database_preflight(
+    logger: logging.Logger,
+    uow: QuorumUnitOfWork | None = None,
+) -> None:
+    """Validates PostgreSQL 19 connectivity and core seed table counts at startup.
 
     Args:
         logger: Active application logger.
+        uow: Optional QuorumUnitOfWork override for testing.
 
     Raises:
-        RuntimeError: If database records fail strict Pydantic validation.
+        RuntimeError: If PostgreSQL 19 is unreachable or core seed tables are empty.
     """
-    settings = get_settings()
-    db_path = Path(settings.prod_db_path)
-    if not db_path.exists():
-        logger.warning(
-            "[StartupAudit] Database file '%s' not found. "
-            "Re-seed via 'uv run python backend_v2/seed/run_seed.py local'.",
-            db_path,
-        )
+    if "PYTEST_CURRENT_TEST" in os.environ and uow is None:
+        logger.info("[StartupAudit] Test environment detected; skipping live PostgreSQL pre-flight check.")
         return
 
+    settings = get_settings()
+    resolved_uow = uow if uow is not None else create_unit_of_work(settings)
     try:
-        db = TinyDB(str(db_path), encoding="utf-8")
-        collections_to_validate = ["system_config", "workflows", "output_profiles"]
-        for col_name in collections_to_validate:
-            if col_name in STANDARD_REGISTRY:
-                config = STANDARD_REGISTRY[col_name]
-                table_name = str(config["table"])
-                adapter: Any = config["model"]
-                table = db.table(table_name)
-                for item in table.all():
-                    adapter.validate_python(item)
-        _audit_storage_and_database_sync(db, logger)
-        db.close()
-        logger.info("[StartupAudit] Pre-flight database schema validation PASSED.")
+        async with resolved_uow as active_uow:
+            await active_uow.entities.verify_seed_table_counts(
+                {
+                    "system_configs": 1,
+                    "workflows": 1,
+                    "prompt_blocks": 1,
+                    "steps": 1,
+                    "output_profiles": 1,
+                }
+            )
+        logger.info("[StartupAudit] Pre-flight PostgreSQL 19 database validation PASSED.")
     except Exception as exc:
         logger.critical(
-            "[StartupAudit] Database schema validation FAILED for %s: %s. "
-            "Please re-seed via 'uv run python backend_v2/seed/run_seed.py local'.",
-            db_path,
+            "[StartupAudit] PostgreSQL 19 pre-flight validation FAILED: %s. "
+            "Please seed via 'uv run python backend_v2/seed/run_seed.py'.",
             exc,
             exc_info=True,
             extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
         raise RuntimeError(
-            f"Pre-flight schema validation failed on '{db_path}': {exc}. "
-            "Please run 'uv run python backend_v2/seed/run_seed.py local' to rebuild clean database state."
+            f"Pre-flight PostgreSQL 19 validation failed: {exc}. "
+            "Please run 'uv run python backend_v2/seed/run_seed.py' to populate clean database state."
         ) from exc
 
 
@@ -187,7 +188,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             files = [f for f in os.listdir(workflow_dir) if f.endswith(".json")]
             logger.info(f"[StartupAudit] Workflows Detected: {len(files)} files in {workflow_dir}.")
 
-        _validate_database_preflight(logger)
+        await _validate_database_preflight(logger)
 
         if "PYTEST_CURRENT_TEST" in os.environ:
             logger.info("Test environment detected. Forcing FakeRedis.")

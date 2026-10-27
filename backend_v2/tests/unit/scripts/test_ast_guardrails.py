@@ -745,7 +745,7 @@ def test_cli_execution_no_args() -> None:
     with patch.object(sys, "argv", ["_ast_guardrails.py"]):
         with pytest.raises(SystemExit) as exc:
             main()
-        assert exc.value.code == 1
+        assert exc.value.code == 0
 
 
 def test_zero_reflection_self_verification() -> None:
@@ -851,7 +851,7 @@ def test_qgr012_allows_isinstance_non_dict() -> None:
 
 def test_qgr012_boundary_exemption_honored() -> None:
     code = "if isinstance(payload, dict):\n    pass\n"
-    violations = _scan_snippet(code, filepath="backend_v2/database/tinydb_driver.py")
+    violations = _scan_snippet(code, filepath="backend_v2/database/postgres/storage_driver.py")
     qgr012 = [v for v in violations if v.rule_code == "QGR012"]
     assert len(qgr012) == 0
 
@@ -956,7 +956,7 @@ def test_ast_guardrails_fatal_rejection_on_dict_messages() -> None:
 def test_ast_guardrails_exempt_driver_fatal_severity() -> None:
     """Contract 2: Exempt boundary files receive FATAL severity unconditionally."""
     code = "val = getattr(obj, 'x', None)\n"
-    violations = _scan_snippet(code, filepath="backend_v2/database/tinydb_driver.py")
+    violations = _scan_snippet(code, filepath="backend_v2/database/postgres/storage_driver.py")
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR001"
     assert violations[0].severity == GuardrailSeverity.FATAL
@@ -1148,6 +1148,9 @@ def test_purged_boundary_exemption_files() -> None:
     from scripts._ast_guardrails import BOUNDARY_EXEMPTION_FILES
 
     purged = [
+        "backend_v2/database/tinydb_driver.py",
+        "backend_v2/database/firestore_driver.py",
+        "backend_v2/database/wrapper.py",
         "backend_v2/models/dtos/telemetry.py",
         "backend_v2/api/routers/system/telemetry.py",
         "backend_v2/services/sdui/adapters/base_adapter.py",
@@ -1161,10 +1164,10 @@ def test_purged_boundary_exemption_files() -> None:
 
     assert BOUNDARY_EXEMPTION_FILES == frozenset(
         {
-            "backend_v2/database/tinydb_driver.py",
-            "backend_v2/database/firestore_driver.py",
+            "backend_v2/database/postgres/storage_driver.py",
+            "backend_v2/database/postgres/entity_adapter.py",
+            "backend_v2/database/postgres/graph_adapter.py",
             "backend_v2/database/driver.py",
-            "backend_v2/database/wrapper.py",
             "backend_v2/llm/provider/__init__.py",
             "backend_v2/llm/handler.py",
             "backend_v2/logging_config.py",
@@ -1234,7 +1237,7 @@ def test_qgr016_boolean_condition_allowed_false_positive_immunity() -> None:
 def test_qgr016_boundary_exempt_file_fatal() -> None:
     """QGR016: Boundary exemption files emit FATAL severity unconditionally."""
     code = "conn = raw_conn or 'localhost'\n"
-    violations = _scan_snippet(code, filepath="backend_v2/database/drivers/tinydb_driver.py")
+    violations = _scan_snippet(code, filepath="backend_v2/database/postgres/storage_driver.py")
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 1
     assert qgr016[0].severity == GuardrailSeverity.FATAL
@@ -1243,7 +1246,7 @@ def test_qgr016_boundary_exempt_file_fatal() -> None:
 def test_qgr016_comment_suppression_rejected() -> None:
     """QGR016: Comment suppression does not suppress the violation."""
     code = "x = val or 'default'  # noqa: QGR016 [REASON: legacy compatibility boundary]\n"
-    violations = _scan_snippet(code, filepath="backend_v2/database/tinydb_driver.py")
+    violations = _scan_snippet(code, filepath="backend_v2/database/postgres/storage_driver.py")
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 1
     assert qgr016[0].severity == GuardrailSeverity.FATAL
@@ -1607,8 +1610,8 @@ def test_qgr018_typeadapter_mapping_laundering_fatal() -> None:
 
 def test_boundary_exemption_files_preserved() -> None:
     code = "val = getattr(obj, 'k', None)\n"
-    for exempt_file in ["tinydb_driver.py", "firestore_driver.py", "provider.py", "logging_config.py"]:
-        violations = _scan_snippet(code, filepath=f"backend_v2/database/drivers/{exempt_file}")
+    for exempt_file in ["storage_driver.py", "entity_adapter.py", "graph_adapter.py", "logging_config.py"]:
+        violations = _scan_snippet(code, filepath=f"backend_v2/database/postgres/{exempt_file}")
         assert all(v.severity == GuardrailSeverity.FATAL for v in violations)
 
 
@@ -1954,7 +1957,7 @@ def test_admission_ratchet_asserts_clean_baseline_for_new_members() -> None:
 
     nine_new_members = [
         "backend_v2/database/driver.py",
-        "backend_v2/database/wrapper.py",
+        "backend_v2/database/postgres/graph_adapter.py",
         "backend_v2/llm/handler.py",
         "backend_v2/llm/adapters/vertex_adapter.py",
         "backend_v2/llm/adapters/ai_studio_adapter.py",

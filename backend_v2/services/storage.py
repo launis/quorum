@@ -1,6 +1,6 @@
 """Storage Service Factory (V2026).
 
-This module provides a singleton factory for obtaining the active StorageDriver
+This module provides a singleton factory for obtaining the active FileDriver
 based on the application configuration.
 """
 
@@ -18,36 +18,26 @@ logger = logging.getLogger(__name__)
 
 @lru_cache
 def get_storage_driver() -> FileDriver:
-    """Returns the singleton StorageDriver instance.
+    """Returns the singleton FileDriver instance for PostgreSQL 19 runtime.
 
-    The driver is selected based on settings.storage_backend:
-    - FIRESTORE -> GCSFileDriver (using settings.storage_bucket_name)
-    - LOCAL -> LocalFileDriver (using settings.files_dir)
+    The driver is selected based on settings.active_backend (StorageBackend.POSTGRES):
+    - GCSFileDriver if settings.storage_bucket_name is configured.
+    - LocalFileDriver (using settings.files_dir) otherwise.
 
     Returns:
-        FileDriver: The initialized driver.
+        FileDriver: The initialized file storage driver.
 
     Raises:
-        AppException: If FIRESTORE backend is selected but storage_bucket_name is missing,
-            or if an unknown StorageBackend is configured.
+        AppException: If an unsupported StorageBackend is configured.
     """
     settings = get_settings()
     backend = settings.active_backend
 
-    if backend == StorageBackend.FIRESTORE:
-        bucket_name = settings.storage_bucket_name
-        if not bucket_name:
-            msg = "CRITICAL: STORAGE_BACKEND=FIRESTORE requires STORAGE_BUCKET_NAME to be set."
-            logger.error("[StorageService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-            )
-        logger.info("Initializing GCSFileDriver with bucket: %s", bucket_name)
-        return GCSFileDriver(bucket_name=bucket_name)
+    if backend == StorageBackend.POSTGRES:
+        if settings.storage_bucket_name:
+            logger.info("Initializing GCSFileDriver for POSTGRES with bucket: %s", settings.storage_bucket_name)
+            return GCSFileDriver(bucket_name=settings.storage_bucket_name)
 
-    if backend == StorageBackend.LOCAL:
         base_path = settings.files_dir
         base_url = None
         if settings.api_url:

@@ -76,10 +76,10 @@ class GuardrailViolation(BaseModel):
 
 BOUNDARY_EXEMPTION_FILES: frozenset[str] = frozenset(
     {
-        "backend_v2/database/tinydb_driver.py",
-        "backend_v2/database/firestore_driver.py",
+        "backend_v2/database/postgres/storage_driver.py",
+        "backend_v2/database/postgres/entity_adapter.py",
+        "backend_v2/database/postgres/graph_adapter.py",
         "backend_v2/database/driver.py",
-        "backend_v2/database/wrapper.py",
         "backend_v2/llm/provider/__init__.py",
         "backend_v2/llm/handler.py",
         "backend_v2/logging_config.py",
@@ -684,6 +684,23 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "QGR017",
                         f"Banned legacy static MCP wrapper file `{banned_mcp_path}` detected.",
                         "Use protocol-agnostic `GenericMCPClient`, `ToolDispatcher`, and `SchemaFactory` instead of static tool wrappers.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
+            # Phase 4, Step 4: Lock eradicated legacy TinyDB / Firestore / Wrapper / Exporter / Wipe paths in QGR017
+            eradicated_db_paths = (
+                "backend_v2/database/tinydb_driver.py",
+                "backend_v2/database/firestore_driver.py",
+                "backend_v2/database/wrapper.py",
+                "backend_v2/database/exporter.py",
+                "backend_v2/seed/wipe_user_data.py",
+            )
+            for banned_db_path in eradicated_db_paths:
+                if norm_path == banned_db_path or norm_path.endswith("/" + banned_db_path):
+                    self._add_violation(
+                        node,
+                        "QGR017",
+                        f"Banned eradicated legacy database module `{banned_db_path}` detected.",
+                        "Use PostgreSQL 19 Zero-ORM adapters (`PostgresStorageDriver`, `PostgresUnitOfWork`, `PostgresEntityAdapter`).",
                         severity=GuardrailSeverity.FATAL,
                     )
         self.generic_visit(node)
@@ -2004,6 +2021,29 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Use dynamic `ToolDispatcher`, `GenericMCPClient`, and `SchemaFactory` instead of static MCP wrappers.",
                     severity=GuardrailSeverity.FATAL,
                 )
+            elif (
+                alias.name == "tinydb"
+                or alias.name.startswith("tinydb.")
+                or alias.name
+                in (
+                    "backend_v2.database.tinydb_driver",
+                    "tinydb_driver",
+                    "backend_v2.database.firestore_driver",
+                    "firestore_driver",
+                    "backend_v2.database.wrapper",
+                    "backend_v2.database.exporter",
+                    "backend_v2.seed.wipe_user_data",
+                )
+                or alias.name.endswith((".tinydb_driver", ".firestore_driver"))
+            ):
+                # Phase 4, Step 4: Lock eradicated TinyDB and Firestore persistence modules in QGR017
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import of eradicated legacy persistence module `{alias.name}`.",
+                    "Use PostgreSQL 19 Zero-ORM persistence (`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                    severity=GuardrailSeverity.FATAL,
+                )
             # QGR021: Banned import of eradicated llm_debug_logger
             if "llm_debug_logger" in alias.name:
                 self._add_violation(
@@ -2244,6 +2284,58 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             severity=GuardrailSeverity.FATAL,
                         )
 
+            # Phase 4, Step 4: Lock eradicated TinyDB, Firestore, and Wrapper persistence modules in QGR017
+            if (
+                node.module == "tinydb"
+                or node.module.startswith("tinydb.")
+                or node.module
+                in (
+                    "backend_v2.database.tinydb_driver",
+                    "tinydb_driver",
+                    "backend_v2.database.firestore_driver",
+                    "firestore_driver",
+                    "backend_v2.database.wrapper",
+                    "backend_v2.database.exporter",
+                    "backend_v2.seed.wipe_user_data",
+                )
+                or node.module.endswith((".tinydb_driver", ".firestore_driver"))
+            ):
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import from eradicated legacy persistence module `{node.module}`.",
+                    "Use PostgreSQL 19 Zero-ORM persistence (`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            elif node.module in ("backend_v2.database", "database"):
+                for alias in node.names:
+                    if alias.name in (
+                        "tinydb_driver",
+                        "firestore_driver",
+                        "wrapper",
+                        "exporter",
+                        "TinyDBClient",
+                        "TinyDBDriver",
+                        "FirestoreDriver",
+                    ):
+                        self._add_violation(
+                            node,
+                            "QGR017",
+                            f"Banned import of eradicated legacy persistence symbol `{alias.name}` from `{node.module}`.",
+                            "Use PostgreSQL 19 Zero-ORM persistence (`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+            else:
+                for alias in node.names:
+                    if alias.name in ("TinyDB", "TinyDBClient", "TinyDBDriver", "FirestoreDriver"):
+                        self._add_violation(
+                            node,
+                            "QGR017",
+                            f"Banned import of eradicated legacy persistence symbol `{alias.name}`.",
+                            "Use PostgreSQL 19 Zero-ORM persistence (`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+
         # QGR021: Banned import of eradicated legacy debug logger
         if node.module and "llm_debug_logger" in node.module:
             self._add_violation(
@@ -2274,6 +2366,35 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "Use modern PEP 742 `TypeIs` from `typing` (or `typing_extensions`) instead of `TypeGuard` for narrowing.",
                 severity=GuardrailSeverity.FATAL,
             )
+        # QGR017: Banned eradicated persistence symbols
+        if node.id in ("TinyDB", "TinyDBClient", "TinyDBDriver", "FirestoreDriver"):
+            self._add_violation(
+                node,
+                "QGR017",
+                f"Banned reference to eradicated persistence symbol `{node.id}`.",
+                "Use PostgreSQL 19 Zero-ORM persistence (`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                severity=GuardrailSeverity.FATAL,
+            )
+        self.generic_visit(node)
+
+    def visit_Constant(self, node: ast.Constant) -> None:
+        # QGR017: Banned reference to eradicated TinyDB JSON artifact `db_v2.json`
+        if isinstance(node.value, str) and "db_v2.json" in node.value:
+            norm_path = self._normalized_path
+            is_guardrail_self = (
+                norm_path == "scripts/_ast_guardrails.py"
+                or norm_path.endswith("/scripts/_ast_guardrails.py")
+                or norm_path == "backend_v2/tests/unit/scripts/test_ast_guardrails.py"
+                or norm_path.endswith("/backend_v2/tests/unit/scripts/test_ast_guardrails.py")
+            )
+            if not is_guardrail_self:
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned reference to eradicated TinyDB file `{node.value}` detected.",
+                    "PostgreSQL 19 is the sole persistence backend; remove all `db_v2.json` references.",
+                    severity=GuardrailSeverity.FATAL,
+                )
         self.generic_visit(node)
 
     def visit_BoolOp(self, node: ast.BoolOp) -> None:
@@ -2705,11 +2826,7 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
 
     args = parser.parse_args(argv)
 
-    if not args.targets:
-        print("Usage: python scripts/_ast_guardrails.py <target_files_or_directories...> [--strict]")
-        sys.exit(1)
-
-    targets: list[str] = args.targets
+    targets: list[str] = args.targets if args.targets else ["backend_v2/"]
     strict_mode: bool = args.strict_mode
 
     violations, is_success = scan_files_for_guardrails(targets, strict=strict_mode)

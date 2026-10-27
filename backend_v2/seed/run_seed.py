@@ -1,79 +1,63 @@
-"""V2 Seeder Script.
+"""V2 PostgreSQL 19 Authoritative Seeder Script.
 
-Reads from backend_v2/seed/seed_data.json and populates the isolated V2 target database.
-Strictly restricted to V2 Pydantic models (SystemConfig, Role, Workflow, PromptBlock, Step, OutputProfile).
+Reads from backend_v2/seed/seed_data.json, validates 100% of entities in memory
+against strict Pydantic V2 domain models and DAGCompilerService, and idempotently
+upserts all collections into PostgreSQL 19 via PostgresUnitOfWork.
 
 Usage:
 Execute the script from the project root using `uv run python`:
 
-```bash
-uv run python backend_v2/seed/run_seed.py <target>
-```
-
-Examples:
-1. Update local TinyDB database only (data/db_v2.json):
-```bash
-uv run python backend_v2/seed/run_seed.py local
-```
-
-2. Update Cloud Firestore database:
-```bash
-uv run python backend_v2/seed/run_seed.py firestore
-```
-
-3. Update both databases simultaneously:
-```bash
-uv run python backend_v2/seed/run_seed.py all
+```powershell
+uv run python backend_v2/seed/run_seed.py
+uv run python backend_v2/seed/run_seed.py postgres --dry-run
 ```
 """
 
+from __future__ import annotations
+
 import argparse
 import asyncio
-import importlib.util
 import json
 import logging
-import shutil
 import sys
-from collections.abc import Iterable, Sequence
-from datetime import UTC, datetime
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from tinydb import Query, TinyDB
-
-FIREBASE_AVAILABLE = importlib.util.find_spec("firebase_admin") is not None
-if FIREBASE_AVAILABLE:
-    import firebase_admin
-    from firebase_admin import credentials, firestore
-else:
-    from unittest.mock import MagicMock
-
-    firebase_admin = MagicMock()
-    credentials = MagicMock()
-    firestore = MagicMock()
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from backend_v2.database.factory import create_unit_of_work
+from backend_v2.database.interfaces import QuorumUnitOfWork
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import Organization, User
 from backend_v2.models.domain.execution import ExecutionRecord
-from backend_v2.models.state import StateProjector as _StateProjector
-
-_ = _StateProjector
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.workflow import Workflow
-from backend_v2.seed.seed_registry import STANDARD_REGISTRY, SystemConfigUnion
+from backend_v2.models.state import StateProjector as _StateProjector
+from backend_v2.seed.seed_registry import SystemConfigUnion
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.settings import get_settings
 
+_ = _StateProjector
+
 SEED_PATH = Path(get_settings().seed_data_path)
-LOCAL_DB_PATH = Path(get_settings().prod_db_path)
+
+TOPOLOGICAL_SEED_ORDER: tuple[str, ...] = (
+    "organizations",
+    "users",
+    "system_config",
+    "prompt_blocks",
+    "steps",
+    "workflows",
+    "output_profiles",
+    "executions",
+)
 
 # Configure Logging
 logging.basicConfig(
@@ -83,29 +67,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "FIREBASE_AVAILABLE",
-    "LOCAL_DB_PATH",
     "PROJECT_ROOT",
     "SEED_PATH",
+    "TOPOLOGICAL_SEED_ORDER",
     "ValidatedSeedBufferDTO",
+    "_seed_postgres",
     "main",
     "seed_database",
     "validate_all_seed_collections",
+    "verify_seed_table_counts",
 ]
-
-
-class _FirestoreDocumentReference(Protocol):
-    def delete(self) -> None: ...
-
-
-class _FirestoreDocument(Protocol):
-    @property
-    def reference(self) -> _FirestoreDocumentReference: ...
-
-
-class _FirestoreCollection(Protocol):
-    def limit(self, count: int) -> _FirestoreCollection: ...
-    def stream(self) -> Iterable[_FirestoreDocument]: ...
 
 
 class ValidatedSeedBufferDTO(BaseModel):
@@ -125,7 +96,7 @@ class ValidatedSeedBufferDTO(BaseModel):
     def get_collection(self, col_key: str) -> Sequence[BaseModel]:
         """Returns the typed collection list by collection name."""
         match col_key:
-            case "system_config":
+            case "system_config" | "system_configs":
                 return self.system_config
             case "workflows":
                 return self.workflows
@@ -152,6 +123,7 @@ class ValidatedSeedBufferDTO(BaseModel):
         """Verify whether a collection key name belongs to standard seed collections."""
         return col_key in {
             "system_config",
+            "system_configs",
             "workflows",
             "prompt_blocks",
             "steps",
@@ -188,10 +160,10 @@ def _fail_fast(msg: str, error: Exception) -> AppException:
 
 
 def validate_all_seed_collections(seed_data: object) -> ValidatedSeedBufferDTO:
-    """Validates 100% of seed items in-memory across STANDARD_REGISTRY before any database operations.
+    """Validates 100% of seed items in-memory across all collections before any database operations.
 
     Phase 1 of Two-Phase Seeding: validates schemas and DAG workflows in memory.
-    If ANY item is invalid, triggers Fail-Fast before tables or files are touched.
+    If ANY item is invalid, triggers Fail-Fast before tables are touched.
 
     Args:
         seed_data: Raw JSON payload loaded from the seed file.
@@ -209,7 +181,6 @@ def validate_all_seed_collections(seed_data: object) -> ValidatedSeedBufferDTO:
     except Exception as e:
         raise _fail_fast("Processing error during seed validation", e) from e
 
-    # Additional DAG compilation validation on workflows
     for wf in validated_buffer.workflows:
         try:
             DAGCompilerService.validate_workflow(wf)
@@ -219,224 +190,107 @@ def validate_all_seed_collections(seed_data: object) -> ValidatedSeedBufferDTO:
     return validated_buffer
 
 
-async def _seed_tinydb(
-    db_path: Path,
+async def verify_seed_table_counts(
+    uow: QuorumUnitOfWork,
+    expected_counts: Mapping[str, int],
+) -> dict[str, int]:
+    """Verify row counts across the 10 core PostgreSQL 19 tables via EntityPersistencePort.
+
+    Args:
+        uow: Active QuorumUnitOfWork instance.
+        expected_counts: Mapping of collection/table name to minimum expected row count.
+
+    Returns:
+        Dictionary mapping canonical table name to actual row count in PostgreSQL 19.
+    """
+    return await uow.entities.verify_seed_table_counts(expected_counts)
+
+
+async def _seed_postgres(
     seed_data: object,
-    target_env: str,
     dry_run: bool = False,
-) -> None:
-    """Seeds the local TinyDB instance with parsed V2 registry data.
+    uow: QuorumUnitOfWork | None = None,
+) -> dict[str, int]:
+    """Seeds the PostgreSQL 19 database with validated V2 domain models.
 
     Enforces Two-Phase Pre-Flight In-Memory Validation:
     Phase 1: Validates 100% of seed items in-memory via validate_all_seed_collections.
-    Phase 2: Performs backup, drops tables, and persists validated buffers.
+    Phase 2: Executes transactional idempotent UPSERT across all collections in topological order
+        and verifies row counts across all 10 tables via SELECT count(*).
 
     Args:
-        db_path: Absolute path to the local JSON database.
         seed_data: Raw JSON payload loaded from the seed file.
-        target_env: Execution target environment string.
-        dry_run: If True, bypass database modifications.
+        dry_run: If True, validate in memory and bypass database modifications.
+        uow: Optional QuorumUnitOfWork instance for dependency injection in tests.
 
-    Raises:
-        SystemExit: If TinyDB initialization, validation, or integrity checks fail.
+    Returns:
+        Mapping of table name to verified row count.
     """
-    # -------------------------------------------------------------------------
-    # PHASE 1: Pre-Flight In-Memory Validation (Zero DB mutations if invalid)
-    # -------------------------------------------------------------------------
     validated_buffers = validate_all_seed_collections(seed_data)
     print("[Seeder V2] Pre-flight in-memory validation passed for all collections.")
 
-    # -------------------------------------------------------------------------
-    # PHASE 2: Database Persistence
-    # -------------------------------------------------------------------------
-    db: TinyDB | None = None
+    expected_counts: dict[str, int] = {
+        "organizations": max(1, len(validated_buffers.organizations)),
+        "users": max(1, len(validated_buffers.users)),
+        "system_configs": max(1, len(validated_buffers.system_config)),
+        "prompt_blocks": max(1, len(validated_buffers.prompt_blocks)),
+        "steps": max(1, len(validated_buffers.steps)),
+        "workflows": max(1, len(validated_buffers.workflows)),
+        "output_profiles": max(1, len(validated_buffers.output_profiles)),
+        "executions": len(validated_buffers.executions),
+        "report_artifacts": 0,
+        "report_binaries": 0,
+    }
+
+    if dry_run:
+        print("[Seeder V2] DRY-RUN ACTIVE: Completed validation without modifying PostgreSQL 19.")
+        return expected_counts
+
+    resolved_uow: QuorumUnitOfWork = uow if uow is not None else create_unit_of_work(get_settings())
     try:
-        if not dry_run:
-            db_path.parent.mkdir(parents=True, exist_ok=True)
+        async with resolved_uow as active_uow:
+            for col_key in TOPOLOGICAL_SEED_ORDER:
+                items = validated_buffers.get_collection(col_key)
+                upserted_count = await active_uow.entities.seed_collection_batch(col_key, items)
+                print(f"[Seeder V2] Upserted {upserted_count} items to '{col_key}'.")
 
-            # 1. Automatic Backup before dropping the DB
-            if db_path.exists():
-                timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-                backup_dir = Path(get_settings().base_dir) / "seed" / "backups"
-                backup_dir.mkdir(parents=True, exist_ok=True)
-                backup_path = backup_dir / f"{db_path.name}.{timestamp}.bak"
-                try:
-                    shutil.copy2(db_path, backup_path)
-                    print(f"[SUCCESS] Backup created: {backup_path}")
-                except OSError as e:
-                    logger.error(
-                        "[Seeder] %s: Failed to create db backup: %s",
-                        ErrorCodes.FILESYSTEM_VIOLATION.name,
-                        e,
-                        exc_info=True,
-                    )
-                    print(f"[ERROR] Failed to create db backup: {e}")
-                    raise AppException(
-                        message=f"Failed to create db backup: {e}",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.FILESYSTEM_VIOLATION},
-                    ) from e
+            actual_counts = await verify_seed_table_counts(active_uow, expected_counts)
+    except AppException:
+        raise
+    except Exception as exc:
+        raise _fail_fast("PostgreSQL 19 transactional seeding failed", exc) from exc
 
-            db = TinyDB(str(db_path), encoding="utf-8")
-            db.drop_tables()  # CLEAN SLATE
-            print(f"[Seeder V2] CLEARED persistence. Dropped all tables from {db_path}.")
-
-            # 2. Cleanup orphaned execution files physically
-            if "db_v2.json" in db_path.name:
-                executions_dir = Path(get_settings().data_dir) / "files" / "executions"
-                if executions_dir.exists():
-                    shutil.rmtree(executions_dir, ignore_errors=True)
-                executions_dir.mkdir(parents=True, exist_ok=True)
-                print(f"[Seeder V2] WIPED physical orphaned files from {executions_dir}.")
-        else:
-            print("[Seeder V2] DRY-RUN ACTIVE: Bypassing DB wipe and backup.")
-
-    except OSError as e:
-        raise _fail_fast("Error initializing TinyDB", e) from e
-
-    # Seed Standard Strict Collections
-    for col_key, config in STANDARD_REGISTRY.items():
-        table_name = str(config["table"])
-        target_table = None
-        if not dry_run and db is not None:
-            target_table = db.table(table_name)
-        id_field = str(config["id_field"])
-        items = validated_buffers.get_collection(col_key)
-        count = 0
-
-        # Synchronous UPSERT loop to prevent TinyDB concurrent async corruption
-        for model in items:
-            try:
-                dumped = model.model_dump(mode="json")
-                if id_field in dumped:
-                    if not dry_run and target_table is not None:
-                        target_table.upsert(dumped, Query().id == dumped[id_field])
-                    count += 1
-                else:
-                    print(f"Item lacking {id_field}")
-            except (OSError, RuntimeError) as e:
-                raise _fail_fast(f"Database Error upserting {col_key} item", e) from e
-
-        # ---------------------------------------------------------------------
-        # INTEGRITY PARITY CHECK: Fail-Fast if TinyDB silent drops occur
-        # ---------------------------------------------------------------------
-        if not dry_run and target_table is not None:
-            actual_db_count = len(target_table)
-            expected_count = len(items)
-            if actual_db_count != expected_count:
-                raise _fail_fast(
-                    f"Data Loss Detected in '{col_key}' table!",
-                    RuntimeError(
-                        f"Expected to save {expected_count} unique items, but TinyDB only holds {actual_db_count}."
-                    ),
-                )
-
-        print(f"[Seeder V2] Upserted and verified {count} items to '{col_key}' registry.")
-
-    if not dry_run and db is not None:
-        db.close()
-        print(f"[Seeder V2] Closed DB. Final size: {db_path.stat().st_size} bytes.")
-    else:
-        print("[Seeder V2] DRY-RUN ACTIVE: Completed successfully without saving to disk.")
+    print(f"[Seeder V2] Verified PostgreSQL 19 table counts: {actual_counts}")
+    return actual_counts
 
 
-async def _seed_firestore(seed_data: object, target_env: str) -> None:
-    """Seeds the Cloud Firestore database with parsed V2 registry data.
-
-    Enforces Two-Phase Pre-Flight In-Memory Validation:
-    Phase 1: Validates 100% of seed items in-memory via validate_all_seed_collections.
-    Phase 2: Clears collections and persists validated buffers.
+async def seed_database(
+    target: str = "postgres",
+    dry_run: bool = False,
+    uow: QuorumUnitOfWork | None = None,
+) -> dict[str, int]:
+    """Orchestrates the seeding process for PostgreSQL 19.
 
     Args:
-        seed_data: Raw JSON payload loaded from the seed file.
-        target_env: Execution target environment string.
-
-    Raises:
-        SystemExit: If Firestore validation or batch processing fails.
-    """
-    if not FIREBASE_AVAILABLE:
-        print("Firebase Admin not installed.")
-        return
-
-    # -------------------------------------------------------------------------
-    # PHASE 1: Pre-Flight In-Memory Validation (Zero DB mutations if invalid)
-    # -------------------------------------------------------------------------
-    validated_buffers = validate_all_seed_collections(seed_data)
-    print("[Seeder V2] Pre-flight in-memory validation passed for all Firestore collections.")
-
-    # -------------------------------------------------------------------------
-    # PHASE 2: Firestore Persistence
-    # -------------------------------------------------------------------------
-    if not firebase_admin._apps:
-        cred = credentials.ApplicationDefault()
-        firebase_admin.initialize_app(cred)
-
-    db = firestore.client()
-
-    # Define collections
-    collections_to_clear = [config["table"] for config in STANDARD_REGISTRY.values()]
-
-    for col in collections_to_clear:
-        _delete_collection(db.collection(col))
-
-    def batch_upsert(collection_name: str, items: list[BaseModel], id_field: str = "id") -> None:
-        batch = db.batch()
-        count = 0
-        total = 0
-        for model in items:
-            item = model.model_dump(mode="json")
-            doc_id = None
-            if id_field in item:
-                doc_id = str(item[id_field])
-            if not doc_id:
-                print(f"[Seeder V2] Error: Item in {collection_name} missing {id_field}. Skipping.")
-                continue
-
-            ref = db.collection(collection_name).document(doc_id)
-            batch.set(ref, item)
-            count += 1
-            total += 1
-            if count >= 400:
-                batch.commit()
-                batch = db.batch()
-                count = 0
-        if count > 0:
-            batch.commit()
-        print(f"[Seeder V2] Upserted {total} items to Firestore collection '{collection_name}'.")
-
-    for col_key, config in STANDARD_REGISTRY.items():
-        id_field = str(config["id_field"])
-        items = validated_buffers.get_collection(col_key)
-        batch_upsert(col_key, list(items), id_field=id_field)
-
-
-def _delete_collection(coll_ref: _FirestoreCollection, batch_size: int = 50) -> None:
-    """Recursively deletes all documents in a Firestore collection.
-
-    Args:
-        coll_ref: Firestore collection reference object.
-        batch_size: Number of documents to delete per batch.
-    """
-    docs = list(coll_ref.limit(batch_size).stream())
-    deleted = 0
-    for doc in docs:
-        doc.reference.delete()
-        deleted += 1
-    if deleted >= batch_size:
-        _delete_collection(coll_ref, batch_size)
-
-
-async def seed_database(target: str, dry_run: bool = False) -> None:
-    """Orchestrates the seeding process based on the target environment.
-
-    Args:
-        target: Target database environment ('local', 'firestore', or 'all').
+        target: Target database environment ('postgres', 'local', or 'all').
         dry_run: If True, bypass database modifications.
+        uow: Optional QuorumUnitOfWork override for testing.
+
+    Returns:
+        Mapping of table name to verified row count.
 
     Raises:
-        SystemExit: If seed file is missing or target fails to seed.
+        AppException: If target is invalid or seeding fails.
+        SystemExit: If seed file is missing on disk.
     """
-    print(f"--- V2 SEEDING TARGET: {target.upper()} ---")
+    normalized_target = target.strip().lower()
+    if normalized_target not in ("postgres", "postgresql", "local", "all"):
+        raise _fail_fast(
+            f"Unsupported seed target '{target}'. Only PostgreSQL 19 ('postgres') is supported",
+            ValueError(f"Invalid target: {target}"),
+        )
+
+    print(f"--- V2 SEEDING TARGET: POSTGRESQL 19 ({normalized_target.upper()}) ---")
 
     if not SEED_PATH.exists():
         logger.critical("[Seeder] %s: Seed file not found at %s", ErrorCodes.FILE_NOT_FOUND.name, SEED_PATH)
@@ -446,21 +300,13 @@ async def seed_database(target: str, dry_run: bool = False) -> None:
     with open(SEED_PATH, encoding="utf-8") as f:
         data = json.load(f)
 
-    if target == "local":
-        await _seed_tinydb(LOCAL_DB_PATH, data, target, dry_run=dry_run)
-        print(f"[SUCCESS] V2 Seeded Local DB at {LOCAL_DB_PATH}")
-
-    elif target == "firestore":
-        if dry_run:
-            print("[Seeder V2] DRY-RUN for firestore not currently supported. Skipping.")
-        else:
-            print("[Seeder V2] Connecting to Firestore...")
-            await _seed_firestore(data, target)
-            print("[SUCCESS] V2 Seeded Cloud Firestore.")
+    counts = await _seed_postgres(data, dry_run=dry_run, uow=uow)
+    print("[SUCCESS] V2 Seeded PostgreSQL 19 Database.")
+    return counts
 
 
 def main(argv: list[str] | None = None) -> None:
-    """Parses command line arguments and initializes the async seeding loop.
+    """Parses command line arguments and initializes the async PostgreSQL 19 seeding loop.
 
     Args:
         argv: Optional list of argument strings for invocation.
@@ -468,38 +314,36 @@ def main(argv: list[str] | None = None) -> None:
     Raises:
         SystemExit: If parsing fails or an unhandled seeding error occurs.
     """
-    parser = argparse.ArgumentParser(description="Unified V2 Database Seeder")
+    parser = argparse.ArgumentParser(description="Unified V2 PostgreSQL 19 Database Seeder")
     parser.add_argument(
         "targets",
-        nargs="+",
-        choices=["local", "firestore", "all"],
-        help="Target environment(s). 'local'=data/db_v2.json",
+        nargs="*",
+        default=["postgres"],
+        choices=["postgres", "postgresql", "local", "all"],
+        help="Target environment (defaults to 'postgres').",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Validate seed data without modifying the database.",
+        help="Validate seed data in memory without modifying PostgreSQL 19.",
     )
 
     args = parser.parse_args(argv)
+    target_list: list[str] = list(args.targets)
+    if not target_list:
+        target_list = ["postgres"]
 
-    targets = set(args.targets)
-    if "all" in targets:
-        targets = {"local", "firestore"}
-
-    for t in targets:
-        try:
-            asyncio.run(seed_database(t, dry_run=args.dry_run))
-        except (OSError, RuntimeError, ValueError, AppException) as e:
-            logger.critical(
-                "[Seeder] %s: Failed to seed %s: %s",
-                ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                t,
-                e,
-                exc_info=True,
-            )
-            print(f"\033[91m[ERROR] Failed to seed {t}: {e}\033[0m")
-            raise SystemExit(1) from e
+    try:
+        asyncio.run(seed_database(target_list[0], dry_run=args.dry_run))
+    except (OSError, RuntimeError, ValueError, AppException) as e:
+        logger.critical(
+            "[Seeder] %s: Failed to seed PostgreSQL 19: %s",
+            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+            e,
+            exc_info=True,
+        )
+        print(f"\033[91m[ERROR] Failed to seed PostgreSQL 19: {e}\033[0m")
+        raise SystemExit(1) from e
 
     print("\n[SUCCESS] All requested targets completed successfully.")
 

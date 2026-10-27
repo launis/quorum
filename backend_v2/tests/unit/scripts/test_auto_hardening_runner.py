@@ -336,7 +336,7 @@ def test_subprocess_timeout_triggers_tree_kill_and_circuit_breaker(monkeypatch: 
 
 
 def test_workspace_snapshot_restores_collateral_modifications(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """TC-AHR-013 (positive): Verify snapshot restores collateral modifications while preserving db_v2."""
+    """TC-AHR-013 (positive): Verify snapshot restores collateral modifications while preserving hardening_state.json."""
     # Create files on disk
     target_file = tmp_path / "backend_v2" / "target.py"
     target_file.parent.mkdir(parents=True, exist_ok=True)
@@ -344,10 +344,6 @@ def test_workspace_snapshot_restores_collateral_modifications(tmp_path: Path, mo
 
     collateral_file = tmp_path / "backend_v2" / "collateral.py"
     collateral_file.write_text("initial collateral", encoding="utf-8")
-
-    db_file = tmp_path / "data" / "db_v2.json"
-    db_file.parent.mkdir(parents=True, exist_ok=True)
-    db_file.write_text('{"preserved": true}', encoding="utf-8")
 
     state_file = tmp_path / "hardening_state.json"
     state_file.write_text('{"TARGETS": [], "DONE": []}', encoding="utf-8")
@@ -360,12 +356,11 @@ def test_workspace_snapshot_restores_collateral_modifications(tmp_path: Path, mo
         untracked_files=[],
     )
 
-    # During attempt: target, collateral, db_v2, state_file modified; untracked_garbage created
+    # During attempt: target, collateral, state_file modified; untracked_garbage created
     current_snapshot = WorkspaceSnapshotDTO(
         modified_files=[
             "backend_v2/target.py",
             "backend_v2/collateral.py",
-            "data/db_v2.json",
             "hardening_state.json",
         ],
         untracked_files=["scratch_garbage.py"],
@@ -388,14 +383,12 @@ def test_workspace_snapshot_restores_collateral_modifications(tmp_path: Path, mo
     assert "backend_v2/target.py" in restored_files
     assert "backend_v2/collateral.py" in restored_files
 
-    # Verify db_v2.json and hardening_state.json were strictly NEVER restored
-    assert "data/db_v2.json" not in restored_files
+    # Verify hardening_state.json was strictly NEVER restored
     assert "hardening_state.json" not in restored_files
 
     # Verify untracked garbage was deleted
     assert not untracked_garbage.exists()
     assert state_file.exists()
-    assert db_file.exists()
 
 
 def test_state_file_discovery_and_persistence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

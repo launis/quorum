@@ -46,7 +46,6 @@ async def test_auth_service_verify_token_mock(
         use_mock_llm=True,
         environment="development",
         use_firebase_auth=False,
-        storage_backend="LOCAL",
     )
     monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
     monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: mock_settings)
@@ -80,7 +79,6 @@ async def test_auth_service_verify_token_mock_forbidden_in_production(
         use_mock_llm=True,
         environment="production",
         use_firebase_auth=True,
-        storage_backend="LOCAL",
     )
     monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: mock_settings)
     service = AuthService(mock_repo, use_firebase=True)
@@ -168,7 +166,6 @@ async def test_auth_service_verify_token_mock_missing_user(
         use_mock_llm=True,
         environment="development",
         use_firebase_auth=False,
-        storage_backend="LOCAL",
     )
     monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
     monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: mock_settings)
@@ -331,7 +328,6 @@ async def test_verify_token_mock_token_in_production_forbidden_raises_authentica
         use_mock_llm=True,
         environment="production",
         use_firebase_auth=True,
-        storage_backend="LOCAL",
     )
     monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
 
@@ -355,7 +351,6 @@ async def test_verify_token_mock_token_user_not_found_raises_authentication_erro
         use_mock_llm=True,
         environment="development",
         use_firebase_auth=False,
-        storage_backend="LOCAL",
     )
     monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
 
@@ -379,7 +374,6 @@ async def test_verify_token_mock_token_success_returns_tokendata(
         use_mock_llm=True,
         environment="development",
         use_firebase_auth=False,
-        storage_backend="LOCAL",
     )
     monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
 

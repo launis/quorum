@@ -7,9 +7,11 @@ All methods return strictly typed Pydantic Domain models (ConfigDict(frozen=True
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from types import TracebackType
 from typing import Protocol, Self, runtime_checkable
+
+from pydantic import BaseModel
 
 from backend_v2.models.auth import (
     Organization,
@@ -78,6 +80,7 @@ __all__ = [
     "IAgentRepository",
     "IAuditRepository",
     "IComponentRepository",
+    "IEntityPersistenceAdapter",
     "IExecutionPersonaRepository",
     "IExecutionRepository",
     "IExtractionProtocolRepository",
@@ -398,6 +401,11 @@ class EntityPersistencePort(Protocol):
     async def get_report_binary(self, report_id: str) -> ReportBinaryPayloadDTO | None: ...
     async def save_execution(self, record: ExecutionRecord) -> str: ...
     async def get_execution(self, execution_id: str) -> ExecutionRecord | None: ...
+    async def seed_collection_batch(self, collection_name: str, items: Sequence[BaseModel]) -> int: ...
+    async def verify_seed_table_counts(self, expected_counts: Mapping[str, int]) -> dict[str, int]: ...
+
+
+IEntityPersistenceAdapter = EntityPersistencePort
 
 
 @runtime_checkable

@@ -100,14 +100,13 @@ def test_settings_properties_and_computed_fields() -> None:
         anthropic_api_key="sk-anthropic",
         use_mock_llm=True,
         environment="development",
-        storage_backend="FIRESTORE",
         use_json_logging=True,
     )
 
-    assert settings.active_backend == StorageBackend.FIRESTORE
-    assert settings.is_cloud_storage is True
+    assert settings.active_backend == StorageBackend.POSTGRES
+    assert settings.is_cloud_storage is False
     assert settings.log_format == "json"
-    assert settings.allow_mock_tokens is False
+    assert settings.allow_mock_tokens is True
     assert settings.schema_max_chunk_records == settings.llm_max_chunk_size + 5
     assert settings.schema_max_source_aliases == min(
         settings.schema_max_quotes_target, settings.schema_max_chunk_records
@@ -124,7 +123,7 @@ def test_settings_properties_and_computed_fields() -> None:
     assert "docs" in settings.docs_dir
     assert "database" in settings.db_dir
     assert "scripts" in settings.scripts_dir
-    assert "db_v2.json" in settings.prod_db_path
+    assert "postgres_v2.db" in settings.prod_db_path
     assert "seed_data.json" in settings.seed_data_path
     assert "mock_responses.json" in settings.mock_responses_path
     assert settings.log_file_name in settings.log_file_path
@@ -144,18 +143,10 @@ def test_settings_service_account_auto_detection() -> None:
 
 
 def test_settings_storage_backend_fallback_and_invalid() -> None:
-    """Test local storage backend fallback and invalid backend raising AppException."""
-    s_local = Settings(storage_backend=None, use_mock_llm=True)
-    assert s_local.active_backend == StorageBackend.LOCAL
-
-    s_tinydb = Settings(storage_backend="TINYDB", use_mock_llm=True)
-    assert s_tinydb.active_backend == StorageBackend.LOCAL
-
-    s_pg = Settings(storage_backend="POSTGRES", use_mock_llm=True)
-    assert s_pg.active_backend == StorageBackend.POSTGRES
-
-    s_postgresql = Settings(storage_backend="postgresql", use_mock_llm=True)
-    assert s_postgresql.active_backend == StorageBackend.POSTGRES
+    """Test PostgreSQL 19 sovereign storage backend and removed storage_backend field rejection."""
+    s_default = Settings(use_mock_llm=True)
+    assert s_default.active_backend == StorageBackend.POSTGRES
+    assert s_default.is_cloud_storage is False
 
     s_dev = Settings(use_mock_llm=True, environment="development", use_json_logging=False)
     assert s_dev.log_format == "readable"
@@ -167,56 +158,32 @@ def test_settings_storage_backend_fallback_and_invalid() -> None:
     s_prod_local = Settings(use_mock_llm=True, environment="production", use_firebase_auth=False)
     assert s_prod_local.allow_mock_tokens is True
 
-    with pytest.raises(AppException):
-        _ = Settings(storage_backend="INVALID_STORAGE", use_mock_llm=True).active_backend
-
 
 def test_settings_allow_mock_tokens_defense_in_depth() -> None:
-    """Test defense-in-depth firewall for allow_mock_tokens across storage backends."""
-    # Negative Partition 1: Cloud Firestore storage unconditionally bans mock tokens even in dev
-    s_cloud_dev = Settings(
+    """Test defense-in-depth firewall for allow_mock_tokens under PostgreSQL 19."""
+    # Negative Partition: POSTGRES storage with active Firebase auth bans mock tokens in production
+    s_pg_prod_fb = Settings(
         use_mock_llm=True,
-        storage_backend="FIRESTORE",
-        use_firebase_auth=False,
-        environment="development",
-    )
-    assert s_cloud_dev.allow_mock_tokens is False
-
-    # Negative Partition 2: Cloud Firestore storage bans mock tokens in prod with Firebase auth
-    s_cloud_prod = Settings(
-        use_mock_llm=True,
-        storage_backend="FIRESTORE",
         use_firebase_auth=True,
         environment="production",
     )
-    assert s_cloud_prod.allow_mock_tokens is False
+    assert s_pg_prod_fb.allow_mock_tokens is False
 
-    # Negative Partition 3: Local storage with active Firebase auth bans mock tokens in production
-    s_local_prod_fb = Settings(
+    # Positive Partition 1: POSTGRES storage in development allows mock tokens
+    s_pg_dev = Settings(
         use_mock_llm=True,
-        storage_backend="LOCAL",
-        use_firebase_auth=True,
-        environment="production",
-    )
-    assert s_local_prod_fb.allow_mock_tokens is False
-
-    # Positive Partition 1: Local storage in development allows mock tokens
-    s_local_dev = Settings(
-        use_mock_llm=True,
-        storage_backend="LOCAL",
         use_firebase_auth=True,
         environment="development",
     )
-    assert s_local_dev.allow_mock_tokens is True
+    assert s_pg_dev.allow_mock_tokens is True
 
-    # Positive Partition 2: Local storage with disabled Firebase auth allows mock tokens
-    s_local_no_fb = Settings(
+    # Positive Partition 2: POSTGRES storage with disabled Firebase auth allows mock tokens
+    s_pg_no_fb = Settings(
         use_mock_llm=True,
-        storage_backend="LOCAL",
         use_firebase_auth=False,
         environment="production",
     )
-    assert s_local_no_fb.allow_mock_tokens is True
+    assert s_pg_no_fb.allow_mock_tokens is True
 
 
 def test_settings_model_post_init_no_credentials_raises() -> None:
@@ -449,7 +416,7 @@ def test_generic_mcp_settings_invariants() -> None:
 
 def test_postgres_settings_and_boundary_invariants() -> None:
     """Verify PostgreSQL 19 Settings defaults, custom overrides, and ISTQB negative boundaries."""
-    defaults = Settings(use_mock_llm=True)
+    defaults = Settings(use_mock_llm=True, postgres_password=None, postgres_dsn=None)
     assert defaults.postgres_host == "127.0.0.1"
     assert defaults.postgres_port == 5432
     assert defaults.postgres_user == "quorum"

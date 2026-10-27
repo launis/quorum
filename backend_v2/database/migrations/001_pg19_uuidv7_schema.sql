@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS organizations (
     contact_email TEXT,
     billing_id TEXT,
     subscription_status TEXT NOT NULL,
-    quota_limit NUMERIC(12, 4) NOT NULL DEFAULT 0.0,
+    quota_limit NUMERIC(18, 4) NOT NULL DEFAULT 0.0,
     tpm_limit BIGINT NOT NULL CHECK (tpm_limit >= 1000),
     rpm_limit INTEGER NOT NULL CHECK (rpm_limit >= 1)
 );
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS system_configs (
 CREATE TABLE IF NOT EXISTS prompt_blocks (
     id TEXT PRIMARY KEY,
     slug TEXT NOT NULL,
-    organization_id TEXT REFERENCES organizations(id) ON DELETE CASCADE,
+    organization_id TEXT,
     label JSONB NOT NULL,
     description JSONB NOT NULL,
     output_extensions JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS prompt_blocks (
 CREATE TABLE IF NOT EXISTS steps (
     id TEXT PRIMARY KEY,
     slug TEXT NOT NULL,
-    organization_id TEXT REFERENCES organizations(id) ON DELETE CASCADE,
+    organization_id TEXT,
     name JSONB NOT NULL,
     description JSONB,
     type TEXT NOT NULL DEFAULT 'llm',
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS workflows (
     status TEXT NOT NULL,
     version INTEGER NOT NULL DEFAULT 1,
     is_public BOOLEAN NOT NULL DEFAULT FALSE,
-    organization_id TEXT REFERENCES organizations(id) ON DELETE CASCADE,
+    organization_id TEXT,
     default_profile_id TEXT,
     mcp_gateway_id TEXT,
     model_registry_id TEXT NOT NULL,
@@ -136,8 +136,8 @@ CREATE TABLE IF NOT EXISTS workflows (
 CREATE TABLE IF NOT EXISTS output_profiles (
     id TEXT PRIMARY KEY,
     slug TEXT NOT NULL,
-    workflow_id TEXT NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
-    organization_id TEXT REFERENCES organizations(id) ON DELETE CASCADE,
+    workflow_id TEXT NOT NULL,
+    organization_id TEXT,
     name JSONB NOT NULL,
     description JSONB,
     user_role_label JSONB,
@@ -294,8 +294,13 @@ BEGIN
 END $$;
 
 -- PostgreSQL 19 Extended Multi-Column Statistics on VIRTUAL Generated Columns
-CREATE STATISTICS IF NOT EXISTS stat_quorum_nodes_run_created ON run_id, created_at FROM quorum_nodes;
-CREATE STATISTICS IF NOT EXISTS stat_quorum_edges_run_created ON run_id, created_at FROM quorum_edges;
+DO $$
+BEGIN
+    IF current_setting('server_version_num')::int >= 190000 THEN
+        CREATE STATISTICS IF NOT EXISTS stat_quorum_nodes_run_created ON run_id, created_at FROM quorum_nodes;
+        CREATE STATISTICS IF NOT EXISTS stat_quorum_edges_run_created ON run_id, created_at FROM quorum_edges;
+    END IF;
+END $$;
 
 -- B-Tree & GIN Indexes for Single-Round Wave Materialization & CTE Traversal
 CREATE INDEX IF NOT EXISTS idx_quorum_nodes_run_type ON quorum_nodes (run_id, node_type);

@@ -2,7 +2,7 @@
 
 Adheres to V2 Architecture:
 - 100% Pydantic V2 validated hydration (ExecutionRecord).
-- Explicit UTF-8 TinyDB and file system encoding.
+- Explicit UTF-8 file system encoding.
 - Dual-mode operation: Safe read-only inspection (--check) vs. explicit recovery (--fix).
 """
 
@@ -10,6 +10,7 @@ import argparse
 import io
 import json
 import logging
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,22 +26,43 @@ if isinstance(sys.stdout, io.TextIOWrapper):
 if isinstance(sys.stderr, io.TextIOWrapper):
     sys.stderr.reconfigure(encoding="utf-8")
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
-from tinydb import Query, TinyDB
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
 logger = logging.getLogger("scripts.reconcile_storage")
 
 __all__ = [
+    "ExecutionSnapshotDTO",
     "ReconciliationReport",
     "TraceEventContent",
     "TraceEventHeader",
     "main",
     "reconcile_storage",
 ]
+
+# Resolve forward references in ExecutionRecord for strict ExecutionSnapshotDTO validation
+ExecutionRecord.model_rebuild(
+    _types_namespace={
+        "ErrorTraceEvent": ErrorTraceEvent,
+        "TombstoneEvent": TombstoneEvent,
+        "TraceEvent": TraceEvent,
+    }
+)
+
+
+class ExecutionSnapshotDTO(BaseModel):
+    """Snapshot container for execution records."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    executions: dict[str, ExecutionRecord] = Field(default_factory=dict)
+
+
+ExecutionSnapshotDTO.model_rebuild()
 
 
 class TraceEventContent(BaseModel):
@@ -79,13 +101,13 @@ class ReconciliationReport(BaseModel):
     """Encapsulates the audit and reconciliation outcome.
 
     Attributes:
-        db_path: Path to the TinyDB database file.
+        db_path: Path to the execution snapshot file.
         storage_dir: Path to the physical storage directory.
-        orphaned_db_ids: Execution IDs present in DB but missing from disk.
-        unindexed_disk_ids: Execution IDs present on disk but missing from DB.
-        pruned_db_ids: Execution IDs removed from DB during fix mode.
-        recovered_disk_ids: Execution IDs registered into DB during fix mode.
-        is_synced: True if storage artifacts and database are fully synchronized.
+        orphaned_db_ids: Execution IDs present in snapshot but missing from disk.
+        unindexed_disk_ids: Execution IDs present on disk but missing from snapshot.
+        pruned_db_ids: Execution IDs removed during fix mode.
+        recovered_disk_ids: Execution IDs registered during fix mode.
+        is_synced: True if storage artifacts and snapshot are fully synchronized.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
@@ -127,8 +149,6 @@ def _extract_trace_metadata(trace_file: Path) -> tuple[str, str]:
     if workflow_id == "wor_default":
         summary_file = trace_file.parent / "forensic_summary.md"
         if summary_file.exists():
-            import re
-
             summary_text = summary_file.read_text(encoding="utf-8")
             match_wf = re.search(r"\*\*Workflow ID:\*\*\s*`?([a-zA-Z0-9_]+)`?", summary_text)
             if match_wf and workflow_id == "wor_default":
@@ -141,12 +161,13 @@ def _extract_trace_metadata(trace_file: Path) -> tuple[str, str]:
                 sdui_path = rep_dir / "report.sdui.json"
                 if sdui_path.exists():
                     try:
-                        sdui_data = json.loads(sdui_path.read_text(encoding="utf-8"))
-                        if sdui_data.get("execution_id") == trace_file.parent.name:
-                            if sdui_data.get("workflow_id"):
-                                workflow_id = sdui_data["workflow_id"]
-                            break
-                    except Exception:
+                        sdui_text = sdui_path.read_text(encoding="utf-8")
+                        if f'"{trace_file.parent.name}"' in sdui_text:
+                            match_wf_sdui = re.search(r'"workflow_id":\s*"([^"]+)"', sdui_text)
+                            if match_wf_sdui:
+                                workflow_id = match_wf_sdui.group(1)
+                                break
+                    except OSError:
                         pass
 
     if target_locale == "en":
@@ -170,8 +191,6 @@ def _extract_profile_id(trace_file: Path) -> str | None:
     """
     summary_file = trace_file.parent / "forensic_summary.md"
     if summary_file.exists():
-        import re
-
         summary_text = summary_file.read_text(encoding="utf-8")
         match_prf = re.search(r"\*\*Output Profile:\*\*\s*`?([a-zA-Z0-9_]+)`?", summary_text)
         if match_prf:
@@ -183,11 +202,12 @@ def _extract_profile_id(trace_file: Path) -> str | None:
             sdui_path = rep_dir / "report.sdui.json"
             if sdui_path.exists():
                 try:
-                    sdui_data = json.loads(sdui_path.read_text(encoding="utf-8"))
-                    if sdui_data.get("execution_id") == trace_file.parent.name:
-                        if sdui_data.get("profile_id"):
-                            return sdui_data["profile_id"]
-                except Exception:
+                    sdui_text = sdui_path.read_text(encoding="utf-8")
+                    if f'"{trace_file.parent.name}"' in sdui_text:
+                        match_prf_sdui = re.search(r'"profile_id":\s*"([^"]+)"', sdui_text)
+                        if match_prf_sdui:
+                            return match_prf_sdui.group(1)
+                except OSError:
                     pass
     return None
 
@@ -218,17 +238,17 @@ def _resolve_trace_path(storage_dir: Path, exe_id: str, trace_path_raw: str | No
 
 
 def _reconstitute_execution_record(
-    exe_id: str, storage_dir: Path, template_record: dict[str, JsonValue] | None
-) -> dict[str, JsonValue]:
-    """Constructs and validates an ExecutionRecord dictionary for an unindexed physical disk execution.
+    exe_id: str, storage_dir: Path, template_record: ExecutionRecord | None
+) -> ExecutionRecord:
+    """Constructs and validates an ExecutionRecord for an unindexed physical disk execution.
 
     Args:
         exe_id: Canonical opaque execution ID (e.g. 'exe_...').
         storage_dir: Base directory containing execution artifact folders.
-        template_record: Optional existing database record used as structural template.
+        template_record: Optional existing ExecutionRecord used as structural template.
 
     Returns:
-        Validated JSON-serializable dictionary representing the ExecutionRecord.
+        Validated ExecutionRecord instance.
     """
     exe_dir = storage_dir / exe_id
     trace_file = exe_dir / "execution_trace.json"
@@ -243,8 +263,8 @@ def _reconstitute_execution_record(
     pdf_storage_path = str(pdf_file).replace("\\", "/") if pdf_file.exists() else None
     status = ExecutionStatus.PASSED
 
-    if template_record:
-        rec_dict = dict(template_record)
+    if template_record is not None:
+        rec_dict = template_record.model_dump(mode="json")
         rec_dict["id"] = exe_id
         if workflow_id != "wor_default":
             rec_dict["workflow_id"] = workflow_id
@@ -268,37 +288,69 @@ def _reconstitute_execution_record(
             rec_dict["created_at"] = now_iso
         if pdf_file.exists() and "completed_at" not in rec_dict:
             rec_dict["completed_at"] = now_iso
-        record = ExecutionRecord.model_validate(rec_dict, strict=False)
-    else:
-        record = ExecutionRecord(
-            id=exe_id,
-            workflow_id=workflow_id,
-            target_locale=target_locale,
-            output_profile_id=profile_id or "prof_default",
-            status=status,
-            execution_trace_storage_path=trace_storage_path,
-            context_variables_storage_path=cv_storage_path,
-            pdf_report_path=pdf_storage_path,
-            is_resumable=False,
-            execution_trace=[],
-            context_variables=ContextVariablesDTO(),
-            progress=None,
-            status_message=None,
-        )
+        return ExecutionRecord.model_validate(rec_dict, strict=False)
 
-    dumped: dict[str, JsonValue] = record.model_dump(mode="json")
-    return dumped
+    return ExecutionRecord(
+        id=exe_id,
+        workflow_id=workflow_id,
+        target_locale=target_locale,
+        output_profile_id=profile_id or "prof_default",
+        status=status,
+        execution_trace_storage_path=trace_storage_path,
+        context_variables_storage_path=cv_storage_path,
+        pdf_report_path=pdf_storage_path,
+        is_resumable=False,
+        execution_trace=[],
+        context_variables=ContextVariablesDTO(),
+        progress=None,
+        status_message=None,
+    )
+
+
+def _load_execution_records(db_path: Path) -> list[ExecutionRecord]:
+    """Loads ExecutionRecord models from a JSON snapshot file.
+
+    Args:
+        db_path: Path to JSON snapshot file.
+
+    Returns:
+        List of validated ExecutionRecord instances.
+    """
+    raw_text = db_path.read_text(encoding="utf-8").strip()
+    if not raw_text:
+        return []
+    try:
+        snapshot = ExecutionSnapshotDTO.model_validate_json(raw_text)
+        return list(snapshot.executions.values())
+    except ValidationError, ValueError:
+        pass
+    try:
+        return TypeAdapter(list[ExecutionRecord]).validate_json(raw_text)
+    except ValidationError, ValueError:
+        pass
+    return []
+
+
+def _save_execution_records(db_path: Path, records: list[ExecutionRecord]) -> None:
+    """Persists ExecutionRecord models to a JSON snapshot file.
+
+    Args:
+        db_path: Path to JSON snapshot file.
+        records: List of ExecutionRecord instances.
+    """
+    indexed = {str(idx): rec.model_dump(mode="json") for idx, rec in enumerate(records, start=1)}
+    db_path.write_text(json.dumps({"executions": indexed}, indent=2), encoding="utf-8")
 
 
 def reconcile_storage(
     db_path: Path, storage_dir: Path, fix: bool = False, logger_instance: logging.Logger | None = None
 ) -> ReconciliationReport:
-    """Scans and synchronizes execution records in TinyDB with artifact folders on disk.
+    """Scans and synchronizes execution records with artifact folders on disk.
 
     Args:
-        db_path: Path to TinyDB database file.
+        db_path: Path to execution records snapshot file.
         storage_dir: Path to directory containing physical execution subdirectories.
-        fix: If True, prunes orphaned database records and registers unindexed disk runs.
+        fix: If True, prunes orphaned records and registers unindexed disk runs.
         logger_instance: Optional logger for emitting progress information.
 
     Returns:
@@ -314,23 +366,21 @@ def reconcile_storage(
             is_synced=False,
         )
 
-    db = TinyDB(str(db_path), encoding="utf-8")
-    table = db.table("executions")
-    records = table.all()
+    records = _load_execution_records(db_path)
 
     db_execution_ids: set[str] = set()
     orphaned_db_ids: list[str] = []
 
     for rec in records:
-        rec_id = rec["id"] if "id" in rec else None
+        rec_id = rec.id
         if not rec_id:
             continue
-        db_execution_ids.add(str(rec_id))
+        db_execution_ids.add(rec_id)
 
-        trace_path_raw = rec["execution_trace_storage_path"] if "execution_trace_storage_path" in rec else None
-        resolved_trace = _resolve_trace_path(storage_dir, str(rec_id), trace_path_raw)
+        trace_path_raw = rec.execution_trace_storage_path
+        resolved_trace = _resolve_trace_path(storage_dir, rec_id, trace_path_raw)
         if resolved_trace is None:
-            orphaned_db_ids.append(str(rec_id))
+            orphaned_db_ids.append(rec_id)
 
     unindexed_disk_ids: list[str] = []
     if storage_dir.exists() and storage_dir.is_dir():
@@ -344,20 +394,20 @@ def reconcile_storage(
     recovered_disk_ids: list[str] = []
 
     if fix:
-        execution_query = Query()
+        orphaned_set = set(orphaned_db_ids)
+        remaining_records = [r for r in records if r.id not in orphaned_set]
         for orphaned_id in orphaned_db_ids:
-            table.remove(execution_query.id == orphaned_id)
             pruned_db_ids.append(orphaned_id)
             log.info("[Reconcile] Pruned orphaned DB record: %s", orphaned_id)
 
         template_record = records[0] if records else None
         for unindexed_id in unindexed_disk_ids:
-            new_record_dict = _reconstitute_execution_record(unindexed_id, storage_dir, template_record)
-            table.insert(new_record_dict)
+            new_record = _reconstitute_execution_record(unindexed_id, storage_dir, template_record)
+            remaining_records.append(new_record)
             recovered_disk_ids.append(unindexed_id)
             log.info("[Reconcile] Recovered and registered disk execution: %s", unindexed_id)
 
-    db.close()
+        _save_execution_records(db_path, remaining_records)
 
     is_synced = (len(orphaned_db_ids) == 0 and len(unindexed_disk_ids) == 0) or (
         fix and len(pruned_db_ids) == len(orphaned_db_ids) and len(recovered_disk_ids) == len(unindexed_disk_ids)
@@ -382,25 +432,10 @@ def main(argv: list[str] | None = None) -> None:
     """
     parser = argparse.ArgumentParser(
         description=(
-            "TinyDB Executions Table and Physical Storage Reconciliation Suite.\n\n"
-            "Maintains CQRS consistency between operational database records and physical file artifacts:\n"
-            "  • Scans the TinyDB database 'executions' table for orphaned records whose directories are missing\n"
-            "  • Scans the physical execution storage directory for unindexed disk artifacts\n"
-            "  • Operates in read-only inspection mode (--check) by default without mutating state\n"
-            "  • Reconciles database records in --fix mode by pruning dead pointers and recovering disk runs"
+            "Executions Snapshot and Physical Storage Reconciliation Suite.\n\n"
+            "Maintains CQRS consistency between operational database records and physical file artifacts."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=(
-            "Examples (Windows PowerShell):\n"
-            "  # Perform dry-run synchronization check against default paths:\n"
-            "  uv run python scripts/reconcile_storage.py\n\n"
-            "  # Explicitly run dry-run check:\n"
-            "  uv run python scripts/reconcile_storage.py --check\n\n"
-            "  # Reconcile database state by pruning orphans and recovering unindexed runs:\n"
-            "  uv run python scripts/reconcile_storage.py --fix\n\n"
-            "  # Check against custom database and storage directories:\n"
-            "  uv run python scripts/reconcile_storage.py --check --db-path data/db_v2.json --storage-dir data/files/executions"
-        ),
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
@@ -417,8 +452,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--db-path",
         type=Path,
-        default=Path("data/db_v2.json"),
-        help="Path to the TinyDB database file (defaults to data/db_v2.json).",
+        default=Path("data/executions_snapshot.json"),
+        help="Path to the execution snapshot file.",
     )
     parser.add_argument(
         "--storage-dir",

@@ -56,8 +56,8 @@ echo ===================================================
 echo   COGNITIVE QUORUM - LOCAL LAUNCHER
 echo   AJOTYYPPI / ENVIRONMENT: %ENVIRONMENT%
 echo   [!] TILA: (Tuotanto: 305 atomia / Kehitys: 1 atomi)
-echo   KANTA:       PAIKALLINEN (data\db_v2.json)
-echo   AUTH:        MOCK TOKENS SALLITTU (LOCAL)
+echo   KANTA:       POSTGRESQL 19 (Docker port 5432)
+echo   AUTH:        MOCK TOKENS SALLITTU (POSTGRES)
 echo   LLM:         REAL VERTEX AI (service-account.json)
 if "%DISABLE_VERTEX_CACHE%"=="true" echo   CACHE:       VERTEX AI CONTEXT CACHE DISABLED
 ===================================================
@@ -83,7 +83,7 @@ if exist client_debug.log del /F /Q client_debug.log
 if exist client_app_v2\client_debug.log del /F /Q client_app_v2\client_debug.log
 echo [Logs Cleared]
 
-echo [1/3] Starting Infrastructure (Redis)...
+echo [1/3] Starting Infrastructure (Redis ^& PostgreSQL 19)...
 
 :: Check if Docker is running
 docker info >nul 2>&1
@@ -98,15 +98,9 @@ IF %ERRORLEVEL% NEQ 0 (
     echo Docker started.
 )
 
-:: Check if Redis is already running on port 6379
-netstat -an | findstr "6379.*LISTENING" >nul 2>&1
-IF %ERRORLEVEL% EQU 0 (
-    echo [+] Redis already running on port 6379 - reusing existing instance.
-) ELSE (
-    docker-compose up -d redis
-    echo [Debug] Waiting 2 seconds for Redis startup...
-    timeout /t 2 /nobreak >nul
-)
+docker compose up -d redis postgres
+echo [Debug] Waiting 2 seconds for Redis and PostgreSQL 19 startup...
+timeout /t 2 /nobreak >nul
 
 :: =========================================================================
 :: REDIS JONON TYHJENNYS
@@ -127,10 +121,10 @@ set USE_FIREBASE_AUTH=false
 set OTEL_ENABLED=true
 
 :: Backend
-start "CQ Backend V2 [LOCAL - %ENVIRONMENT%]" cmd /k "set ENVIRONMENT=%ENVIRONMENT%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& set OTEL_ENABLED=true&& uv run uvicorn backend_v2.main:app --reload --reload-dir backend_v2 --host 0.0.0.0 --port 8000 --timeout-keep-alive 30 --log-config backend_v2/uvicorn_logging.yaml"
+start "CQ Backend V2 [POSTGRES - %ENVIRONMENT%]" cmd /k "set ENVIRONMENT=%ENVIRONMENT%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=POSTGRES&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& set OTEL_ENABLED=true&& uv run uvicorn backend_v2.main:app --reload --reload-dir backend_v2 --host 0.0.0.0 --port 8000 --timeout-keep-alive 30 --log-config backend_v2/uvicorn_logging.yaml"
 
 :: Worker
-start "CQ Worker V2 [LOCAL - %ENVIRONMENT%]" cmd /k "set ENVIRONMENT=%ENVIRONMENT%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& set OTEL_ENABLED=true&& uv run python -m backend_v2.run_worker"
+start "CQ Worker V2 [POSTGRES - %ENVIRONMENT%]" cmd /k "set ENVIRONMENT=%ENVIRONMENT%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=POSTGRES&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& set OTEL_ENABLED=true&& uv run python -m backend_v2.run_worker"
 
 if not "%NO_CLIENT%"=="true" (
     echo [3/3] Launching Client [Flutter]...

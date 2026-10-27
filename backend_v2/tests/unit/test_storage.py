@@ -1,3 +1,5 @@
+"""Unit tests for backend_v2/services/storage.py."""
+
 from collections.abc import Generator
 from unittest.mock import patch
 
@@ -19,51 +21,50 @@ def clear_lru_cache() -> Generator[None]:
     get_settings.cache_clear()
 
 
-def test_get_storage_driver_local() -> None:
-    """Test that LOCAL backend returns LocalFileDriver."""
-    with patch.dict("os.environ", {"STORAGE_BACKEND": "LOCAL", "GOOGLE_API_KEY": "fake-key"}):
+def test_get_storage_driver_postgres_local_default() -> None:
+    """Test that POSTGRES backend without bucket name returns LocalFileDriver."""
+    with patch("backend_v2.services.storage.get_settings") as mock_get_settings:
+        mock_settings = mock_get_settings.return_value
+        mock_settings.active_backend = get_settings().active_backend
+        mock_settings.storage_bucket_name = None
+        mock_settings.files_dir = get_settings().files_dir
+        mock_settings.api_url = "https://api.quorum.test"
+
         driver = get_storage_driver()
         assert isinstance(driver, LocalFileDriver)
 
 
-def test_get_storage_driver_firestore() -> None:
-    """Test that FIRESTORE backend returns GCSFileDriver when bucket name is provided."""
-    with patch.dict(
-        "os.environ",
-        {
-            "STORAGE_BACKEND": "FIRESTORE",
-            "STORAGE_BUCKET_NAME": "test-bucket",
-            "GOOGLE_API_KEY": "fake-key",
-        },
+def test_get_storage_driver_postgres_gcs_bucket() -> None:
+    """Test that POSTGRES backend returns GCSFileDriver when storage_bucket_name is provided."""
+    with (
+        patch("backend_v2.services.storage.get_settings") as mock_get_settings,
+        patch("backend_v2.services.storage.GCSFileDriver") as mock_gcs,
     ):
-        with patch("backend_v2.services.storage.GCSFileDriver") as mock_gcs:
-            get_storage_driver()
-            # It should return the mock
-            mock_gcs.assert_called_once_with(bucket_name="test-bucket")
+        mock_settings = mock_get_settings.return_value
+        mock_settings.active_backend = get_settings().active_backend
+        mock_settings.storage_bucket_name = "test-bucket"
+
+        get_storage_driver()
+        mock_gcs.assert_called_once_with(bucket_name="test-bucket")
 
 
-def test_get_storage_driver_firestore_missing_bucket() -> None:
-    """Test that FIRESTORE backend raises AppException if bucket name is missing."""
-    with patch.dict(
-        "os.environ",
-        {
-            "STORAGE_BACKEND": "FIRESTORE",
-            "STORAGE_BUCKET_NAME": "",
-            "GOOGLE_API_KEY": "fake-key",
-        },
-    ):
-        with pytest.raises(AppException) as exc:
-            get_storage_driver()
-        assert "requires STORAGE_BUCKET_NAME" in exc.value.message
+def test_get_storage_driver_postgres_local_without_api_url() -> None:
+    """Boundary test: POSTGRES backend with empty api_url initializes LocalFileDriver with base_url=None."""
+    with patch("backend_v2.services.storage.get_settings") as mock_get_settings:
+        mock_settings = mock_get_settings.return_value
+        mock_settings.active_backend = get_settings().active_backend
+        mock_settings.storage_bucket_name = ""
+        mock_settings.files_dir = get_settings().files_dir
+        mock_settings.api_url = ""
+
+        driver = get_storage_driver()
+        assert isinstance(driver, LocalFileDriver)
 
 
 def test_get_storage_driver_invalid_backend() -> None:
     """Test that an invalid backend raises AppException."""
-    # We mock the active_backend property directly to test the fallback in get_storage_driver
     with patch("backend_v2.services.storage.get_settings") as mock_get_settings:
         mock_settings = mock_get_settings.return_value
-        # Use type(mock).property to mock a property on a mock if it was a property,
-        # but here it's just an attribute on the returned mock.
         mock_settings.active_backend = "UNKNOWN"
         mock_settings.storage_bucket_name = "bucket"
 

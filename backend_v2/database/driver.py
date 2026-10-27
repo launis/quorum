@@ -1,7 +1,7 @@
 """Storage Driver Protocol (V2.9/V2026).
 
 This module defines the abstract interface for data storage, enforcing the
-'Write Logic Once, Swap the Driver' pattern.
+'Write Logic Once, Swap the Driver' pattern over PostgreSQL 19.
 """
 
 from dataclasses import dataclass
@@ -9,6 +9,8 @@ from typing import Any, Literal, Protocol
 
 # Supported operators for queries
 Operator = Literal["==", "!=", "<", "<=", ">", ">=", "in", "array-contains"]
+type StorageValue = Any
+type StorageDocument = dict[str, StorageValue]
 
 
 @dataclass
@@ -21,7 +23,7 @@ class Filter:
 
 
 class StorageDriver(Protocol):
-    """Abstract interface for Database Operations (TinyDB/Firestore)."""
+    """Abstract interface for Database Operations (PostgreSQL 19)."""
 
     async def get(self, collection: str, doc_id: str) -> dict[str, Any] | None:
         """Retrieve a document by ID.

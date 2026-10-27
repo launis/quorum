@@ -1,31 +1,27 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
+from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.database.repositories.components.prompt_block import PromptBlockRepositoryImpl
-from backend_v2.database.tinydb_driver import TinyDBDriver
-from backend_v2.database.wrapper import TinyDBClient
 from backend_v2.exceptions import AppException, ErrorCodes
 
 
 @pytest.fixture
-def driver(tmp_path: Path) -> TinyDBDriver:
-    """Provides a real TinyDBDriver over ephemeral tmp_path."""
-    db_path = str(tmp_path / "test_repo_deletion.json")
-    return TinyDBDriver(TinyDBClient(db_path))
+def driver() -> PostgresStorageDriver:
+    """Provides a PostgresStorageDriver instance."""
+    return PostgresStorageDriver(auto_initialize_pool=False)
 
 
 @pytest.mark.asyncio
-async def test_delete_prompt_block_blocks_orphan_data(driver: TinyDBDriver) -> None:
+async def test_delete_prompt_block_blocks_orphan_data(driver: PostgresStorageDriver) -> None:
     """Positive: tests Fail-Fast deletion boundary when prompt block is used by a Step."""
     repo = PromptBlockRepositoryImpl(driver=driver)
 
     block_id = "blk_0000000000000001"
     step_id = "stp_0000000000000001"
 
-    # Seed block and referencing step in physical storage
+    # Seed block and referencing step in storage
     await driver.upsert("prompt_blocks", {"id": block_id, "name": "block1"}, block_id)
     await driver.upsert("steps", {"id": step_id, "prompt_blocks": [block_id]}, step_id)
 

@@ -7,18 +7,14 @@ guarantees that pre-flight schema validation passes upon software restart.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 from pydantic import TypeAdapter
-from tinydb import TinyDB
 
+from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.database.repositories.components.output_profile import OutputProfileRepositoryImpl
 from backend_v2.database.repositories.components.prompt_block import PromptBlockRepositoryImpl
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
-from backend_v2.database.tinydb_driver import TinyDBDriver
-from backend_v2.database.wrapper import TinyDBClient
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
@@ -103,15 +99,9 @@ def _create_sample_output_profile(
     )
 
 
-async def test_save_workflow_updates_inplace_and_preserves_preflight(tmp_path: Path) -> None:
-    """Tests that saving an existing workflow updates in-place without creating orphan records.
-
-    RED TEST (RCA): Fails because save_workflow calls create_workflow, stripping the ID,
-    generating an un-prefixed UUID with is_latest: True, and leaving the original record unchanged.
-    """
-    db_path = str(tmp_path / "test_db.json")
-    db_client = TinyDBClient(db_path)
-    driver = TinyDBDriver(db_client)
+async def test_save_workflow_updates_inplace_and_preserves_preflight() -> None:
+    """Tests that saving an existing workflow updates in-place without creating orphan records."""
+    driver = PostgresStorageDriver(auto_initialize_pool=False)
 
     workflow_repo = WorkflowRepositoryImpl(driver=driver)
     output_profile_repo = OutputProfileRepositoryImpl(driver=driver)
@@ -129,7 +119,6 @@ async def test_save_workflow_updates_inplace_and_preserves_preflight(tmp_path: P
     target_id = "wf_1234567890abcdef"
     initial_wf = _create_sample_workflow(target_id)
 
-    # Seed initial workflow and output profile into database
     await driver.upsert("workflows", initial_wf.model_dump(mode="json"), target_id)
     profile = OutputProfile(
         id="prf_1234567890abcdef",
@@ -143,7 +132,6 @@ async def test_save_workflow_updates_inplace_and_preserves_preflight(tmp_path: P
     )
     await driver.upsert("output_profiles", profile.model_dump(mode="json"), "prf_1234567890abcdef")
 
-    # Update workflow with new settings
     updated_data = initial_wf.model_copy(
         update={
             "name": I18nText(translations={"en": "Updated Workflow", "fi": "Päivitetty työnkulku"}),
@@ -154,37 +142,27 @@ async def test_save_workflow_updates_inplace_and_preserves_preflight(tmp_path: P
 
     res = await workflow_service.save_workflow(root_token, target_id, updated_data)
 
-    # 1. Assert returned DTO has the updated values
     assert res.id == target_id
     assert res.default_strictness_level == 85, f"Expected 85, got {res.default_strictness_level}"
     assert res.enable_semantic_smoothing is True
 
-    # 2. Assert persisted record in repo has the updated values
     persisted = await workflow_repo.get_workflow_by_id(target_id)
     assert persisted is not None
     assert persisted.default_strictness_level == 85
     assert persisted.enable_semantic_smoothing is True
 
-    # 3. Assert no orphan records or un-prefixed UUIDs were created in TinyDB
-    with TinyDB(db_path, encoding="utf-8") as raw_db:
-        wf_docs = raw_db.table("workflows").all()
-        assert len(wf_docs) == 1, f"Expected exactly 1 workflow in DB, but found {len(wf_docs)} (orphan created!)"
+    wf_docs = await driver.get_all("workflows")
+    assert len(wf_docs) == 1, f"Expected exactly 1 workflow in DB, but found {len(wf_docs)} (orphan created!)"
 
-        # 4. Assert all documents in workflows pass strict startup pre-flight validation
-        workflow_adapter = TypeAdapter(Workflow)
-        for doc in wf_docs:
-            validated = workflow_adapter.validate_python(doc)
-            assert validated.id == target_id
+    workflow_adapter = TypeAdapter(Workflow)
+    for doc in wf_docs:
+        validated = workflow_adapter.validate_python(doc)
+        assert validated.id == target_id
 
 
-async def test_save_step_updates_inplace_and_preserves_preflight(tmp_path: Path) -> None:
-    """Tests that saving an existing step updates in-place without creating orphan records.
-
-    RED TEST (RCA): Fails because save_step strips id, calls create_step, and creates an orphan record.
-    """
-    db_path = str(tmp_path / "test_db.json")
-    db_client = TinyDBClient(db_path)
-    driver = TinyDBDriver(db_client)
+async def test_save_step_updates_inplace_and_preserves_preflight() -> None:
+    """Tests that saving an existing step updates in-place without creating orphan records."""
+    driver = PostgresStorageDriver(auto_initialize_pool=False)
 
     workflow_repo = WorkflowRepositoryImpl(driver=driver)
     output_profile_repo = OutputProfileRepositoryImpl(driver=driver)
@@ -202,10 +180,8 @@ async def test_save_step_updates_inplace_and_preserves_preflight(tmp_path: Path)
     target_id = "stp_1234567890abcdef"
     initial_step = _create_sample_step(target_id)
 
-    # Seed initial step
     await driver.upsert("steps", initial_step.model_dump(mode="json"), target_id)
 
-    # Update step with new hook and name
     updated_data = initial_step.model_copy(
         update={
             "hook": "updated_hook",
@@ -215,31 +191,25 @@ async def test_save_step_updates_inplace_and_preserves_preflight(tmp_path: Path)
 
     res = await workflow_service.save_step(root_token, target_id, updated_data)
 
-    # 1. Assert returned step has updated value
     assert res.id == target_id
     assert res.hook == "updated_hook"
     assert res.name.translations["en"] == "Updated Step"
 
-    # 2. Assert persisted record in repo has the updated value
     persisted = await workflow_repo.get_step_by_id(target_id)
     assert persisted is not None
     assert persisted.hook == "updated_hook"
     assert persisted.name.translations["en"] == "Updated Step"
 
-    # 3. Assert no orphan records in TinyDB
-    with TinyDB(db_path, encoding="utf-8") as raw_db:
-        step_docs = raw_db.table("steps").all()
-        assert len(step_docs) == 1, f"Expected exactly 1 step in DB, but found {len(step_docs)}"
-        for doc in step_docs:
-            validated = Step.model_validate(doc)
-            assert validated.id == target_id
+    step_docs = await driver.get_all("steps")
+    assert len(step_docs) == 1, f"Expected exactly 1 step in DB, but found {len(step_docs)}"
+    for doc in step_docs:
+        validated = Step.model_validate(doc)
+        assert validated.id == target_id
 
 
-async def test_save_output_profile_updates_inplace_and_preserves_preflight(tmp_path: Path) -> None:
+async def test_save_output_profile_updates_inplace_and_preserves_preflight() -> None:
     """Tests that saving an output profile updates in-place without creating orphan records."""
-    db_path = str(tmp_path / "test_db.json")
-    db_client = TinyDBClient(db_path)
-    driver = TinyDBDriver(db_client)
+    driver = PostgresStorageDriver(auto_initialize_pool=False)
 
     workflow_repo = WorkflowRepositoryImpl(driver=driver)
     output_profile_repo = OutputProfileRepositoryImpl(driver=driver)
@@ -275,30 +245,24 @@ async def test_save_output_profile_updates_inplace_and_preserves_preflight(tmp_p
 
     res = await output_profile_service.save_output_profile(root_token, prof_id, updated_prof)
 
-    # 1. Assert returned profile has updated value and identical ID
     assert res.id == prof_id
     assert res.name.translations["en"] == "Updated Profile"
 
-    # 2. Assert persisted record in repo has updated value
     persisted = await output_profile_repo.get_output_profile_by_id(prof_id)
     assert persisted is not None
     assert persisted.id == prof_id
     assert persisted.name.translations["en"] == "Updated Profile"
 
-    # 3. Assert output_profiles table does not have orphan/duplicate records
-    with TinyDB(db_path, encoding="utf-8") as raw_db:
-        prof_docs = raw_db.table("output_profiles").all()
-        assert len(prof_docs) == 1, f"Expected 1 profile in DB, but found {len(prof_docs)}"
-        for doc in prof_docs:
-            validated = OutputProfile.model_validate(doc)
-            assert validated.id == prof_id
+    prof_docs = await driver.get_all("output_profiles")
+    assert len(prof_docs) == 1, f"Expected 1 profile in DB, but found {len(prof_docs)}"
+    for doc in prof_docs:
+        validated = OutputProfile.model_validate(doc)
+        assert validated.id == prof_id
 
 
-async def test_create_output_profile_draft_binds_to_valid_workflow(tmp_path: Path) -> None:
+async def test_create_output_profile_draft_binds_to_valid_workflow() -> None:
     """Tests that output profile draft binds to an active workflow and not wildcard '*'."""
-    db_path = str(tmp_path / "test_db.json")
-    db_client = TinyDBClient(db_path)
-    driver = TinyDBDriver(db_client)
+    driver = PostgresStorageDriver(auto_initialize_pool=False)
 
     workflow_repo = WorkflowRepositoryImpl(driver=driver)
     output_profile_repo = OutputProfileRepositoryImpl(driver=driver)
@@ -327,11 +291,9 @@ async def test_create_output_profile_draft_binds_to_valid_workflow(tmp_path: Pat
     assert draft.workflow_id != "*"
 
 
-async def test_save_output_profile_invalid_target_component_fails_fast(tmp_path: Path) -> None:
+async def test_save_output_profile_invalid_target_component_fails_fast() -> None:
     """Tests that saving an output profile referencing an invalid target component raises 400 VALIDATION_FAILED."""
-    db_path = str(tmp_path / "test_db.json")
-    db_client = TinyDBClient(db_path)
-    driver = TinyDBDriver(db_client)
+    driver = PostgresStorageDriver(auto_initialize_pool=False)
 
     workflow_repo = WorkflowRepositoryImpl(driver=driver)
     output_profile_repo = OutputProfileRepositoryImpl(driver=driver)
@@ -375,11 +337,9 @@ async def test_save_output_profile_invalid_target_component_fails_fast(tmp_path:
     assert exc_info.value.details["error_code"] in (ErrorCodes.VALIDATION_FAILED, ErrorCodes.VALIDATION_FAILED.value)
 
 
-async def test_save_output_profile_nonexistent_workflow_raises_resource_not_found(tmp_path: Path) -> None:
+async def test_save_output_profile_nonexistent_workflow_raises_resource_not_found() -> None:
     """Tests that saving an output profile referencing a missing workflow raises 404 ResourceNotFoundError."""
-    db_path = str(tmp_path / "test_db.json")
-    db_client = TinyDBClient(db_path)
-    driver = TinyDBDriver(db_client)
+    driver = PostgresStorageDriver(auto_initialize_pool=False)
 
     workflow_repo = WorkflowRepositoryImpl(driver=driver)
     output_profile_repo = OutputProfileRepositoryImpl(driver=driver)
@@ -407,15 +367,9 @@ async def test_save_output_profile_nonexistent_workflow_raises_resource_not_foun
         await output_profile_service.save_output_profile(root_token, prof_id, prof)
 
 
-async def test_save_prompt_block_updates_inplace_and_preserves_preflight(tmp_path: Path) -> None:
-    """Tests that saving a prompt block updates in-place without creating orphan records.
-
-    Verifies 100% parity across all 5 Studio entities by checking in-place upsert
-    and strict pre-flight schema validation against PromptBlockAdapter.
-    """
-    db_path = str(tmp_path / "test_db.json")
-    db_client = TinyDBClient(db_path)
-    driver = TinyDBDriver(db_client)
+async def test_save_prompt_block_updates_inplace_and_preserves_preflight() -> None:
+    """Tests that saving a prompt block updates in-place without creating orphan records."""
+    driver = PostgresStorageDriver(auto_initialize_pool=False)
 
     prompt_block_repo = PromptBlockRepositoryImpl(driver=driver)
     system_repo = SystemRepositoryImpl(driver=driver)
@@ -429,10 +383,8 @@ async def test_save_prompt_block_updates_inplace_and_preserves_preflight(tmp_pat
     target_id = "blk_1234567890abcdef"
     initial_block = _create_sample_prompt_block(target_id)
 
-    # Seed initial prompt block into database
     await driver.upsert("prompt_blocks", initial_block.model_dump(mode="json"), target_id)
 
-    # Update prompt block with new values
     updated_block = initial_block.model_copy(
         update={
             "label": I18nText(translations={"en": "Updated Persona", "fi": "Päivitetty persona"}),
@@ -443,14 +395,12 @@ async def test_save_prompt_block_updates_inplace_and_preserves_preflight(tmp_pat
 
     res = await prompt_block_service.save_prompt_block(root_token, target_id, updated_block)
 
-    # 1. Assert returned DTO has the updated values and identical ID
     assert res.id == target_id
     assert isinstance(res, PersonaPromptBlock)
     assert res.label.translations["en"] == "Updated Persona"
     assert res.role_enforcement == "Empathetic executive coach."
     assert res.tone_directives == ["Constructive", "Supportive"]
 
-    # 2. Assert persisted record in repo has the updated values
     persisted = await prompt_block_repo.get_prompt_block_by_id(target_id)
     assert persisted is not None
     assert persisted.id == target_id
@@ -459,15 +409,12 @@ async def test_save_prompt_block_updates_inplace_and_preserves_preflight(tmp_pat
     assert persisted.role_enforcement == "Empathetic executive coach."
     assert persisted.tone_directives == ["Constructive", "Supportive"]
 
-    # 3. Assert prompt_blocks table in TinyDB does not have duplicate/orphan records
-    with TinyDB(db_path, encoding="utf-8") as raw_db:
-        block_docs = raw_db.table("prompt_blocks").all()
-        assert len(block_docs) == 1, f"Expected exactly 1 prompt block in DB, but found {len(block_docs)}"
+    block_docs = await driver.get_all("prompt_blocks")
+    assert len(block_docs) == 1, f"Expected exactly 1 prompt block in DB, but found {len(block_docs)}"
 
-        # 4. Assert all documents in prompt_blocks pass startup pre-flight validation
-        for doc in block_docs:
-            validated = PromptBlockAdapter.validate_python(doc)
-            assert validated.id == target_id
-            assert isinstance(validated, PersonaPromptBlock)
-            assert validated.label.translations["en"] == "Updated Persona"
-            assert validated.role_enforcement == "Empathetic executive coach."
+    for doc in block_docs:
+        validated = PromptBlockAdapter.validate_python(doc)
+        assert validated.id == target_id
+        assert isinstance(validated, PersonaPromptBlock)
+        assert validated.label.translations["en"] == "Updated Persona"
+        assert validated.role_enforcement == "Empathetic executive coach."

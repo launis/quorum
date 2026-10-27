@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from pydantic import BaseModel, JsonValue, ValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.main import (
     LocalizationMiddleware,
@@ -24,6 +25,7 @@ from backend_v2.main import (
     lifespan,
     validation_exception_handler,
 )
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 client = TestClient(app)
 
@@ -42,54 +44,45 @@ def test_openapi_schema() -> None:
     assert response.json()["info"]["title"] == "Cognitive Quorum API"
 
 
-def test_validate_database_preflight_missing_file() -> None:
-    """Test that pre-flight check logs a warning and returns if DB file does not exist."""
+@pytest.mark.asyncio
+async def test_validate_database_preflight_skips_in_pytest_when_uow_not_passed() -> None:
+    """Test that pre-flight check skips live check in pytest when uow is None."""
+    logger = MagicMock(spec=logging.Logger)
+    await _validate_database_preflight(logger)
+    logger.info.assert_called_once()
+    assert "skipping" in logger.info.call_args[0][0].lower()
+
+
+@pytest.mark.asyncio
+async def test_validate_database_preflight_success() -> None:
+    """Test that pre-flight check passes when core PostgreSQL seed tables are populated."""
+    logger = MagicMock(spec=logging.Logger)
+    uow = InMemoryUnitOfWork()
+    for table in ("system_configs", "workflows", "prompt_blocks", "steps", "output_profiles"):
+        uow.store.seed_tables[table][f"{table[:3]}_1234567890abcdef"] = (f"{table[:3]}_1234567890abcdef",)
+
+    await _validate_database_preflight(logger, uow=uow)
+    logger.info.assert_called_once()
+    assert "PASSED" in logger.info.call_args[0][0]
+
+
+@pytest.mark.asyncio
+async def test_validate_database_preflight_empty_table_raises_runtime_error() -> None:
+    """Test that pre-flight check cleanly aborts with instructions to re-seed when a seed table is empty."""
     logger = logging.getLogger("test.main")
-    with patch("pathlib.Path.exists", return_value=False):
-        _validate_database_preflight(logger)
+    uow = InMemoryUnitOfWork()
 
+    with pytest.raises(RuntimeError) as excinfo:
+        await _validate_database_preflight(logger, uow=uow)
 
-def test_validate_database_preflight_success() -> None:
-    """Test that pre-flight check passes with valid database records."""
-    logger = logging.getLogger("test.main")
-    mock_db = MagicMock()
-    mock_table = MagicMock()
-    mock_table.all.return_value = []
-    mock_db.table.return_value = mock_table
-
-    with (
-        patch("pathlib.Path.exists", return_value=True),
-        patch("backend_v2.main.TinyDB", return_value=mock_db),
-        patch("backend_v2.main._audit_storage_and_database_sync"),
-    ):
-        _validate_database_preflight(logger)
-        mock_db.close.assert_called_once()
-
-
-def test_validate_database_preflight_corrupted_raises_runtime_error() -> None:
-    """Test that pre-flight check cleanly aborts with instructions to re-seed on invalid DB schema."""
-    logger = logging.getLogger("test.main")
-    mock_db = MagicMock()
-    mock_table = MagicMock()
-    mock_table.all.return_value = [{"invalid_key": "unsupported_data"}]
-    mock_db.table.return_value = mock_table
-
-    with (
-        patch("pathlib.Path.exists", return_value=True),
-        patch("backend_v2.main.TinyDB", return_value=mock_db),
-        patch("backend_v2.main._audit_storage_and_database_sync"),
-        pytest.raises(RuntimeError) as excinfo,
-    ):
-        _validate_database_preflight(logger)
-
-    assert "run_seed.py local" in str(excinfo.value)
+    assert "run_seed.py" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
 async def test_lifespan_test_environment() -> None:
     """Test lifespan startup and shutdown in test environment."""
     test_app = FastAPI()
-    with patch("backend_v2.main._validate_database_preflight"):
+    with patch("backend_v2.main._validate_database_preflight", new_callable=AsyncMock):
         async with lifespan(test_app):
             assert test_app.state.arq_pool is not None
 
@@ -103,7 +96,7 @@ async def test_lifespan_production_redis_failure(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(b_main, "create_pool", AsyncMock(side_effect=ConnectionError("Redis down")))
     monkeypatch.setattr(b_main, "setup_logging", MagicMock())
     monkeypatch.setattr(b_main, "configure_telemetry", MagicMock())
-    monkeypatch.setattr(b_main, "_validate_database_preflight", MagicMock())
+    monkeypatch.setattr(b_main, "_validate_database_preflight", AsyncMock())
     test_app = FastAPI()
     with pytest.raises(ConnectionError):
         async with b_main.lifespan(test_app):
@@ -218,7 +211,7 @@ async def test_lifespan_shutdown_closes_arq_pool() -> None:
 
     test_app = FastAPI()
     mock_pool = AsyncMock(spec=ArqRedis)
-    with patch("backend_v2.main._validate_database_preflight"):
+    with patch("backend_v2.main._validate_database_preflight", new_callable=AsyncMock):
         async with lifespan(test_app):
             test_app.state.arq_pool = mock_pool
     mock_pool.aclose.assert_awaited_once()
@@ -292,45 +285,43 @@ async def test_path_normalization_middleware_ignores_non_http() -> None:
     assert scope["path"] == "//ws"
 
 
-def test_audit_execution_storage_sync_clean(tmp_path: Path) -> None:
+@pytest.mark.asyncio
+async def test_audit_execution_storage_sync_clean(tmp_path: Path) -> None:
     """Test _audit_storage_and_database_sync when records and disk files match cleanly."""
     from backend_v2.main import _audit_storage_and_database_sync
 
-    mock_db = MagicMock()
-    mock_table = MagicMock()
-    mock_table.all.return_value = [
-        {"id": "exe_1", "execution_trace_storage_path": str(tmp_path / "exe_1" / "execution_trace.json")}
-    ]
-    mock_db.table.return_value = mock_table
+    driver = PostgresStorageDriver(auto_initialize_pool=False)
+    await driver.upsert(
+        "executions",
+        {"id": "exe_1", "execution_trace_storage_path": str(tmp_path / "exe_1" / "execution_trace.json")},
+        "exe_1",
+    )
 
     exe_dir = tmp_path / "exe_1"
     exe_dir.mkdir(parents=True)
     (exe_dir / "execution_trace.json").write_text("{}")
 
     mock_logger = MagicMock()
-    _audit_storage_and_database_sync(db=mock_db, logger=mock_logger, storage_dir=tmp_path)
+    await _audit_storage_and_database_sync(driver=driver, logger=mock_logger, storage_dir=tmp_path)
     mock_logger.info.assert_called_once()
     assert "PASSED" in mock_logger.info.call_args[0][0]
 
 
-def test_audit_execution_storage_sync_desync(tmp_path: Path) -> None:
+@pytest.mark.asyncio
+async def test_audit_execution_storage_sync_desync(tmp_path: Path) -> None:
     """Test _audit_storage_and_database_sync warns on orphaned DB records and unindexed disk runs."""
     from backend_v2.main import _audit_storage_and_database_sync
 
-    mock_db = MagicMock()
-    mock_table = MagicMock()
-    mock_table.all.return_value = [
-        {"id": "exe_orphaned", "execution_trace_storage_path": None},
-        {"id": ""},
-    ]
-    mock_db.table.return_value = mock_table
+    driver = PostgresStorageDriver(auto_initialize_pool=False)
+    await driver.upsert("executions", {"id": "exe_orphaned", "execution_trace_storage_path": None}, "exe_orphaned")
+    await driver.upsert("executions", {"id": ""}, "exe_empty")
 
     disk_dir = tmp_path / "exe_unindexed"
     disk_dir.mkdir(parents=True)
     (disk_dir / "execution_trace.json").write_text("{}")
 
     mock_logger = MagicMock()
-    _audit_storage_and_database_sync(db=mock_db, logger=mock_logger, storage_dir=tmp_path)
+    await _audit_storage_and_database_sync(driver=driver, logger=mock_logger, storage_dir=tmp_path)
     mock_logger.warning.assert_called_once()
     assert "Storage/Database desync detected" in mock_logger.warning.call_args[0][0]
 
@@ -340,7 +331,7 @@ async def test_lifespan_workflow_detection(tmp_path: Path) -> None:
     """Test lifespan startup logs workflow files when workflow directory exists."""
     test_app = FastAPI()
     with (
-        patch("backend_v2.main._validate_database_preflight"),
+        patch("backend_v2.main._validate_database_preflight", new_callable=AsyncMock),
         patch("os.path.exists", return_value=True),
         patch("os.listdir", return_value=["test_wf.json", "other.txt"]),
     ):

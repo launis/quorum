@@ -1,15 +1,17 @@
 """Unit tests for backend_v2/seed/run_seed.py."""
 
+import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pydantic import JsonValue
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.seed import run_seed
+from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
-VALID_ORGANIZATION = {
+VALID_ORGANIZATION: dict[str, JsonValue] = {
     "id": "org_12345678abcd",
     "name": "Acme Corp",
     "is_active": True,
@@ -20,7 +22,49 @@ VALID_ORGANIZATION = {
     "rpm_limit": 100,
 }
 
-VALID_WORKFLOW = {
+VALID_USER: dict[str, JsonValue] = {
+    "id": "usr_1234567890abcdef",
+    "email": "admin@quorum.com",
+    "role": "ROOT",
+    "organization_id": "org_12345678abcd",
+    "is_active": True,
+    "language": "fi",
+    "theme_mode": "dark",
+    "created_at": "2026-01-01T00:00:00Z",
+}
+
+VALID_SYSTEM_CONFIG: dict[str, JsonValue] = {
+    "id": "sys_1234567890abcdef1234567890abcdef",
+    "name": "Default Model Registry",
+    "type": "model_registry",
+    "default_provider": "ai_studio",
+    "tier_definitions": {
+        "fast": {"provider": "ai_studio", "model_name": "gemini-2.5-flash"},
+        "balanced": {"provider": "ai_studio", "model_name": "gemini-2.5-flash"},
+        "deep": {"provider": "ai_studio", "model_name": "gemini-2.5-pro"},
+        "reasoning": {"provider": "ai_studio", "model_name": "gemini-2.5-pro"},
+    },
+}
+
+VALID_PROMPT_BLOCK: dict[str, JsonValue] = {
+    "id": "blk_1234567890abcdef",
+    "slug": "rule_clean",
+    "label": {"translations": {"en": "Rule", "fi": "Saanto"}},
+    "description": {"translations": {"en": "Description", "fi": "Kuvaus"}},
+    "category_id": "system_rule",
+    "type": "instruction",
+    "instruction_text": "Instruction.",
+}
+
+VALID_STEP: dict[str, JsonValue] = {
+    "id": "stp_1234567890abcdef",
+    "slug": "step_guard",
+    "name": {"translations": {"en": "Guard Step", "fi": "Suojavaihe"}},
+    "type": "logic",
+    "hook": "sample_hook",
+}
+
+VALID_WORKFLOW: dict[str, JsonValue] = {
     "id": "wor_1234567890abcdef",
     "slug": "test_workflow",
     "name": "Test Workflow",
@@ -28,11 +72,36 @@ VALID_WORKFLOW = {
     "status": "published",
     "version": 1,
     "is_public": True,
-    "default_profile_id": "out_1234567890abcdef",
+    "default_profile_id": "prf_1234567890abcdef",
     "historical_context_mode": "DISABLED",
-    "model_registry_id": "cfg_model_registry_01",
+    "model_registry_id": "sys_1234567890abcdef1234567890abcdef",
     "steps": [],
 }
+
+VALID_OUTPUT_PROFILE: dict[str, JsonValue] = {
+    "id": "prf_1234567890abcdef",
+    "slug": "test_profile",
+    "name": {"translations": {"en": "Test Profile", "fi": "Testiprofiili"}},
+    "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
+    "workflow_id": "wor_1234567890abcdef",
+    "target_block_order": ["executive_summary_block"],
+}
+
+
+def _build_full_valid_seed_payload() -> run_seed.ValidatedSeedBufferDTO:
+    """Return a minimal valid 8-collection seed payload as ValidatedSeedBufferDTO."""
+    return run_seed.ValidatedSeedBufferDTO.model_validate(
+        {
+            "organizations": [VALID_ORGANIZATION],
+            "users": [VALID_USER],
+            "system_config": [VALID_SYSTEM_CONFIG],
+            "prompt_blocks": [VALID_PROMPT_BLOCK],
+            "steps": [VALID_STEP],
+            "workflows": [VALID_WORKFLOW],
+            "output_profiles": [VALID_OUTPUT_PROFILE],
+            "executions": [],
+        }
+    )
 
 
 def test_run_seed_main_help(capsys: pytest.CaptureFixture[str]) -> None:
@@ -42,24 +111,18 @@ def test_run_seed_main_help(capsys: pytest.CaptureFixture[str]) -> None:
 
     assert excinfo.value.code == 0
     captured = capsys.readouterr()
-    assert "Unified V2 Database Seeder" in captured.out
+    assert "Unified V2 PostgreSQL 19 Database Seeder" in captured.out
 
 
-def test_run_seed_main_local_success() -> None:
-    """Test main function with local target."""
+def test_run_seed_main_postgres_default_and_local_alias() -> None:
+    """Test main function with default postgres target and local alias."""
     with patch("backend_v2.seed.run_seed.seed_database", new_callable=AsyncMock) as mock_seed:
-        run_seed.main(["local"])
-        mock_seed.assert_called_once_with("local", dry_run=False)
+        run_seed.main([])
+        mock_seed.assert_called_once_with("postgres", dry_run=False)
 
-
-def test_run_seed_main_all_targets() -> None:
-    """Test main function with 'all' and '--dry-run' flags."""
-    with patch("backend_v2.seed.run_seed.seed_database", new_callable=AsyncMock) as mock_seed:
-        run_seed.main(["all", "--dry-run"])
-        assert mock_seed.call_count == 2
-        calls = [c.args for c in mock_seed.call_args_list]
-        assert ("local",) in calls or ("local",) in [c[0] for c in calls]
-        assert ("firestore",) in calls or ("firestore",) in [c[0] for c in calls]
+    with patch("backend_v2.seed.run_seed.seed_database", new_callable=AsyncMock) as mock_seed_local:
+        run_seed.main(["local", "--dry-run"])
+        mock_seed_local.assert_called_once_with("local", dry_run=True)
 
 
 def test_run_seed_main_exception_exits() -> None:
@@ -68,7 +131,7 @@ def test_run_seed_main_exception_exits() -> None:
         patch("backend_v2.seed.run_seed.seed_database", side_effect=RuntimeError("Database down")),
         pytest.raises(SystemExit) as excinfo,
     ):
-        run_seed.main(["local"])
+        run_seed.main(["postgres"])
     assert excinfo.value.code == 1
 
 
@@ -83,395 +146,124 @@ def test_fail_fast_logs_and_raises() -> None:
 async def test_seed_database_seed_path_missing() -> None:
     """Test seed_database terminates if seed_data.json does not exist."""
     with (
-        patch("pathlib.Path.exists", return_value=False),
+        patch("backend_v2.seed.run_seed.Path.exists", return_value=False),
         pytest.raises(SystemExit) as excinfo,
     ):
-        await run_seed.seed_database("local")
+        await run_seed.seed_database("postgres")
     assert excinfo.value.code == 1
 
 
 @pytest.mark.asyncio
-async def test_seed_database_local_branch() -> None:
-    """Test the main seed_database orchestrator for 'local' target."""
-    fake_data: dict[str, JsonValue] = {"organizations": []}
-    with (
-        patch("pathlib.Path.exists", return_value=True),
-        patch("builtins.open"),
-        patch("json.load", return_value=fake_data),
-        patch("backend_v2.seed.run_seed._seed_tinydb", new_callable=AsyncMock) as mock_seed,
-    ):
-        await run_seed.seed_database("local", dry_run=False)
-        mock_seed.assert_called_once_with(run_seed.LOCAL_DB_PATH, fake_data, "local", dry_run=False)
-
-
-@pytest.mark.asyncio
-async def test_seed_database_firestore_dry_run(capsys: pytest.CaptureFixture[str]) -> None:
-    """Test seed_database firestore branch in dry-run mode."""
-    with (
-        patch("pathlib.Path.exists", return_value=True),
-        patch("builtins.open"),
-        patch("json.load", return_value={}),
-    ):
-        await run_seed.seed_database("firestore", dry_run=True)
-        captured = capsys.readouterr()
-        assert "DRY-RUN for firestore not currently supported" in captured.out
-
-
-@pytest.mark.asyncio
-async def test_seed_database_firestore_execution() -> None:
-    """Test seed_database firestore branch calls _seed_firestore."""
-    fake_data: dict[str, JsonValue] = {"system_config": []}
-    with (
-        patch("pathlib.Path.exists", return_value=True),
-        patch("builtins.open"),
-        patch("json.load", return_value=fake_data),
-        patch("backend_v2.seed.run_seed._seed_firestore", new_callable=AsyncMock) as mock_fire,
-    ):
-        await run_seed.seed_database("firestore", dry_run=False)
-        mock_fire.assert_called_once_with(fake_data, "firestore")
-
-
-@pytest.mark.asyncio
-async def test_seed_tinydb_empty() -> None:
-    """Test the TinyDB seeding process with empty data."""
-    mock_db = MagicMock()
-    mock_table = MagicMock()
-    mock_db.table.return_value = mock_table
-    mock_table.__len__.return_value = 0
-
-    with (
-        patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db),
-        patch("pathlib.Path.mkdir"),
-        patch("pathlib.Path.exists", return_value=False),
-        patch("pathlib.Path.stat") as mock_stat,
-    ):
-        mock_stat.return_value.st_size = 123
-        await run_seed._seed_tinydb(Path("fake_db.json"), {}, "local")
-
-        mock_db.drop_tables.assert_called_once()
-        mock_db.close.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_seed_tinydb_backup_failure_exits() -> None:
-    """Test _seed_tinydb terminates if database backup fails."""
-    with (
-        patch("pathlib.Path.mkdir"),
-        patch("pathlib.Path.exists", return_value=True),
-        patch("shutil.copy2", side_effect=OSError("Permission denied")),
-        pytest.raises(AppException) as excinfo,
-    ):
-        await run_seed._seed_tinydb(Path("db_v2.json"), {}, "local")
-    assert excinfo.value.error_code == ErrorCodes.FILESYSTEM_VIOLATION
-
-
-@pytest.mark.asyncio
-async def test_seed_tinydb_with_valid_items_and_cleanup() -> None:
-    """Test _seed_tinydb with valid items, execution folder wipe, and upsert."""
-    mock_db = MagicMock()
-    tables: dict[str, MagicMock] = {}
-
-    def get_table(name: str) -> MagicMock:
-        if name not in tables:
-            tbl = MagicMock()
-            tbl.__len__.return_value = 1 if name == "organizations" else 0
-            tables[name] = tbl
-        return tables[name]
-
-    mock_db.table.side_effect = get_table
-    seed_payload = {"organizations": [VALID_ORGANIZATION]}
-
-    with (
-        patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db),
-        patch("pathlib.Path.mkdir"),
-        patch("pathlib.Path.exists", return_value=True),
-        patch("shutil.copy2"),
-        patch("shutil.rmtree"),
-        patch("pathlib.Path.stat") as mock_stat,
-    ):
-        mock_stat.return_value.st_size = 456
-        await run_seed._seed_tinydb(Path("db_v2.json"), seed_payload, "local", dry_run=False)
-
-        mock_db.drop_tables.assert_called_once()
-        tables["organizations"].upsert.assert_called()
-        mock_db.close.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_seed_tinydb_with_workflow_validation() -> None:
-    """Test _seed_tinydb with workflows collection validates DAG compiler."""
-    mock_db = MagicMock()
-    tables: dict[str, MagicMock] = {}
-
-    def get_table(name: str) -> MagicMock:
-        if name not in tables:
-            tbl = MagicMock()
-            tbl.__len__.return_value = 1 if name == "workflows" else 0
-            tables[name] = tbl
-        return tables[name]
-
-    mock_db.table.side_effect = get_table
-    seed_payload = {"workflows": [VALID_WORKFLOW]}
-
-    with (
-        patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db),
-        patch("pathlib.Path.mkdir"),
-        patch("pathlib.Path.exists", return_value=False),
-        patch("backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow") as mock_dag,
-        patch("pathlib.Path.stat") as mock_stat,
-    ):
-        mock_stat.return_value.st_size = 789
-        await run_seed._seed_tinydb(Path("db_v2.json"), seed_payload, "local", dry_run=False)
-        mock_dag.assert_called_once()
-        mock_db.close.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_seed_tinydb_dry_run() -> None:
-    """Test _seed_tinydb with dry_run=True."""
-    seed_payload = {"organizations": [VALID_ORGANIZATION]}
-    await run_seed._seed_tinydb(Path("db_v2.json"), seed_payload, "local", dry_run=True)
-
-
-@pytest.mark.asyncio
-async def test_seed_tinydb_validation_error_fails_fast() -> None:
-    """Test _seed_tinydb fails fast on Pydantic ValidationError."""
-    mock_db = MagicMock()
-    seed_payload = {"organizations": [{"id": "bad_item"}]}
-
-    with (
-        patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db),
-        patch("pathlib.Path.mkdir"),
-        patch("pathlib.Path.exists", return_value=False),
-        pytest.raises(AppException) as excinfo,
-    ):
-        await run_seed._seed_tinydb(Path("db_v2.json"), seed_payload, "local")
+async def test_seed_database_unsupported_target_raises_app_exception() -> None:
+    """Negative test: unsupported target (e.g., firestore) raises AppException."""
+    with pytest.raises(AppException) as excinfo:
+        await run_seed.seed_database("firestore")
     assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio
-async def test_seed_tinydb_processing_error_fails_fast() -> None:
-    """Test _seed_tinydb fails fast on unexpected processing errors."""
-    mock_db = MagicMock()
+async def test_seed_database_delegates_to_seed_postgres(tmp_path: Path) -> None:
+    """Positive test: seed_database loads seed_data.json and delegates to _seed_postgres."""
+    seed_file = tmp_path / "seed.json"
+    payload = _build_full_valid_seed_payload()
+    raw_json = payload.model_dump_json()
+    seed_file.write_text(raw_json, encoding="utf-8")
+
     with (
-        patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db),
-        patch("pathlib.Path.mkdir"),
-        patch("pathlib.Path.exists", return_value=False),
-        patch.dict(
-            "backend_v2.seed.run_seed.STANDARD_REGISTRY",
-            {
-                "organizations": {
-                    "table": "organizations",
-                    "model": MagicMock(validate_python=MagicMock(side_effect=TypeError("Unexpected"))),
-                    "id_field": "id",
-                }
-            },
-        ),
-        pytest.raises(AppException) as excinfo,
+        patch("backend_v2.seed.run_seed.SEED_PATH", seed_file),
+        patch(
+            "backend_v2.seed.run_seed._seed_postgres", new_callable=AsyncMock, return_value={"organizations": 1}
+        ) as mock_pg,
     ):
-        await run_seed._seed_tinydb(Path("db_v2.json"), {"organizations": [{}]}, "local")
-    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
+        counts = await run_seed.seed_database("postgres", dry_run=False)
+        assert counts == {"organizations": 1}
+        mock_pg.assert_called_once_with(json.loads(raw_json), dry_run=False, uow=None)
 
 
 @pytest.mark.asyncio
-async def test_seed_tinydb_upsert_error_fails_fast() -> None:
-    """Test _seed_tinydb fails fast when table upsert throws an exception."""
-    mock_db = MagicMock()
-    mock_table = MagicMock()
-    mock_table.upsert.side_effect = RuntimeError("Disk full")
-    mock_db.table.return_value = mock_table
+async def test_seed_postgres_dry_run() -> None:
+    """Positive test: _seed_postgres in dry-run mode validates in-memory without touching PostgreSQL."""
+    payload = _build_full_valid_seed_payload()
+    with patch("backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow"):
+        counts = await run_seed._seed_postgres(payload, dry_run=True)
+    assert counts["organizations"] == 1
+    assert counts["workflows"] == 1
+
+
+@pytest.mark.asyncio
+async def test_seed_postgres_full_materialization_and_count_verification() -> None:
+    """Positive test: _seed_postgres ingests all 7 collections into PostgreSQL 19 and verifies counts."""
+    payload = _build_full_valid_seed_payload()
+    uow = InMemoryUnitOfWork()
+
+    with patch("backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow"):
+        counts = await run_seed._seed_postgres(payload, dry_run=False, uow=uow)
+
+    assert counts["organizations"] == 1
+    assert counts["users"] == 1
+    assert counts["system_configs"] == 1
+    assert counts["prompt_blocks"] == 1
+    assert counts["steps"] == 1
+    assert counts["workflows"] == 1
+    assert counts["output_profiles"] == 1
+    assert counts["executions"] == 0
+    assert counts["report_artifacts"] == 0
+    assert counts["report_binaries"] == 0
+
+
+@pytest.mark.asyncio
+async def test_seed_postgres_fails_fast_when_required_table_count_is_zero() -> None:
+    """Negative boundary test: _seed_postgres raises AppException when any required seed table has 0 rows."""
+    payload = _build_full_valid_seed_payload().model_copy(update={"organizations": []})
+    uow = InMemoryUnitOfWork()
 
     with (
-        patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db),
-        patch("pathlib.Path.mkdir"),
-        patch("pathlib.Path.exists", return_value=False),
-        pytest.raises(AppException) as excinfo,
-    ):
-        await run_seed._seed_tinydb(Path("db_v2.json"), {"organizations": [VALID_ORGANIZATION]}, "local")
-    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
-
-
-@pytest.mark.asyncio
-async def test_seed_tinydb_integrity_parity_mismatch_fails_fast() -> None:
-    """Test _seed_tinydb fails fast if TinyDB dropped items unexpectedly."""
-    mock_db = MagicMock()
-    mock_table = MagicMock()
-    mock_db.table.return_value = mock_table
-    # Expected 1 item, but table returns 0
-    mock_table.__len__.return_value = 0
-
-    seed_payload = {"organizations": [VALID_ORGANIZATION]}
-
-    with (
-        patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db),
-        patch("pathlib.Path.mkdir"),
-        patch("pathlib.Path.exists", return_value=False),
-        pytest.raises(AppException) as excinfo,
-    ):
-        await run_seed._seed_tinydb(Path("db_v2.json"), seed_payload, "local")
-    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
-
-
-@pytest.mark.asyncio
-async def test_seed_firestore_when_firebase_not_available(capsys: pytest.CaptureFixture[str]) -> None:
-    """Test _seed_firestore returns early if Firebase Admin is not available."""
-    with patch("backend_v2.seed.run_seed.FIREBASE_AVAILABLE", False):
-        await run_seed._seed_firestore({}, "firestore")
-        captured = capsys.readouterr()
-        assert "Firebase Admin not installed." in captured.out
-
-
-@pytest.mark.asyncio
-async def test_seed_firestore_execution() -> None:
-    """Test _seed_firestore processes documents and commits batches."""
-    mock_client = MagicMock()
-    mock_batch = MagicMock()
-    mock_client.batch.return_value = mock_batch
-    mock_coll = MagicMock()
-    mock_client.collection.return_value = mock_coll
-
-    seed_payload = {
-        "organizations": [VALID_ORGANIZATION],
-        "workflows": [VALID_WORKFLOW],
-    }
-
-    with (
-        patch("backend_v2.seed.run_seed.FIREBASE_AVAILABLE", True),
-        patch("backend_v2.seed.run_seed.firebase_admin._apps", []),
-        patch("backend_v2.seed.run_seed.credentials.ApplicationDefault"),
-        patch("backend_v2.seed.run_seed.firebase_admin.initialize_app"),
-        patch("backend_v2.seed.run_seed.firestore.client", return_value=mock_client),
-        patch("backend_v2.seed.run_seed._delete_collection"),
         patch("backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow"),
-    ):
-        await run_seed._seed_firestore(seed_payload, "firestore")
-        mock_batch.set.assert_called()
-        mock_batch.commit.assert_called()
-
-
-@pytest.mark.asyncio
-async def test_seed_firestore_batch_chunking_and_missing_doc_id(capsys: pytest.CaptureFixture[str]) -> None:
-    """Test _seed_firestore handles batch commits at threshold and skips items with missing id."""
-    mock_client = MagicMock()
-    mock_batch = MagicMock()
-    mock_client.batch.return_value = mock_batch
-    mock_coll = MagicMock()
-    mock_client.collection.return_value = mock_coll
-
-    # Generate 401 valid items to trigger batch.commit() at count >= 400
-    many_orgs = [{**VALID_ORGANIZATION, "id": f"org_0000000000{i:04d}"} for i in range(405)]
-
-    seed_payload = {"organizations": many_orgs}
-
-    with (
-        patch("backend_v2.seed.run_seed.FIREBASE_AVAILABLE", True),
-        patch("backend_v2.seed.run_seed.firebase_admin._apps", ["app"]),
-        patch("backend_v2.seed.run_seed.firestore.client", return_value=mock_client),
-        patch("backend_v2.seed.run_seed._delete_collection"),
-    ):
-        await run_seed._seed_firestore(seed_payload, "firestore")
-        assert mock_batch.commit.call_count >= 2
-
-
-@pytest.mark.asyncio
-async def test_seed_firestore_validation_error_fails_fast() -> None:
-    """Test _seed_firestore fails fast on invalid items."""
-    mock_client = MagicMock()
-    seed_payload = {"organizations": [{"id": "invalid"}]}
-
-    with (
-        patch("backend_v2.seed.run_seed.FIREBASE_AVAILABLE", True),
-        patch("backend_v2.seed.run_seed.firebase_admin._apps", ["app"]),
-        patch("backend_v2.seed.run_seed.firestore.client", return_value=mock_client),
-        patch("backend_v2.seed.run_seed._delete_collection"),
         pytest.raises(AppException) as excinfo,
     ):
-        await run_seed._seed_firestore(seed_payload, "firestore")
-    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
+        await run_seed._seed_postgres(payload, dry_run=False, uow=uow)
+
+    assert excinfo.value.error_code in (ErrorCodes.STORAGE_ACCESS_FAILED, ErrorCodes.VALIDATION_FAILED)
+    assert "organizations" in excinfo.value.message
 
 
 @pytest.mark.asyncio
-async def test_seed_firestore_processing_error_fails_fast() -> None:
-    """Test _seed_firestore fails fast on unexpected processing error."""
-    mock_client = MagicMock()
-    with (
-        patch("backend_v2.seed.run_seed.FIREBASE_AVAILABLE", True),
-        patch("backend_v2.seed.run_seed.firebase_admin._apps", ["app"]),
-        patch("backend_v2.seed.run_seed.firestore.client", return_value=mock_client),
-        patch("backend_v2.seed.run_seed._delete_collection"),
-        patch.dict(
-            "backend_v2.seed.run_seed.STANDARD_REGISTRY",
-            {
-                "organizations": {
-                    "table": "organizations",
-                    "model": MagicMock(validate_python=MagicMock(side_effect=TypeError("Unexpected"))),
-                    "id_field": "id",
-                }
-            },
-        ),
-        pytest.raises(AppException) as excinfo,
-    ):
-        await run_seed._seed_firestore({"organizations": [{}]}, "firestore")
-    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
-
-
-def test_delete_collection_pagination() -> None:
-    """Test _delete_collection deletes documents in batches."""
-    mock_coll = MagicMock()
-    doc1 = MagicMock()
-    doc2 = MagicMock()
-    mock_coll.limit.return_value.stream.side_effect = [
-        [doc1, doc2],  # Batch 1 (size 2 == batch_size, triggers recursion)
-        [],  # Batch 2 (size 0, recursion terminates)
-    ]
-
-    run_seed._delete_collection(mock_coll, batch_size=2)
-    doc1.reference.delete.assert_called_once()
-    doc2.reference.delete.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_seeder_aborts_without_dropping_tables_on_corrupt_data() -> None:
-    """Contract 1: Negative test - corrupt seed data aborts during preflight without dropping tables."""
-    mock_db = MagicMock()
-    corrupt_payload = {"organizations": [{"id": "bad_item_lacking_fields"}]}
+async def test_seeder_aborts_without_truncating_tables_on_corrupt_data() -> None:
+    """Contract 1: Negative test - corrupt seed data aborts during preflight without opening UoW."""
+    corrupt_payload: dict[str, JsonValue] = {"organizations": [{"id": "bad_item_lacking_fields"}]}
 
     with (
-        patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db) as mock_tinydb_cls,
+        patch("backend_v2.seed.run_seed.create_unit_of_work") as mock_uow_fn,
         pytest.raises(AppException) as excinfo,
     ):
-        await run_seed._seed_tinydb(Path("db_v2.json"), corrupt_payload, "local")
+        await run_seed._seed_postgres(corrupt_payload, dry_run=False)
 
     assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
-    # TinyDB was never initialized or tables dropped because pre-flight failed first
-    mock_tinydb_cls.assert_not_called()
-    mock_db.drop_tables.assert_not_called()
+    mock_uow_fn.assert_not_called()
 
 
 @pytest.mark.asyncio
 async def test_seeder_aborts_on_invalid_workflow_dag() -> None:
-    """Contract 2: Negative test - workflow with broken DAG compilation aborts before DB drop."""
-    mock_db = MagicMock()
-    seed_payload = {"workflows": [VALID_WORKFLOW]}
+    """Contract 2: Negative test - workflow with broken DAG compilation aborts before DB mutation."""
+    seed_payload: dict[str, JsonValue] = {"workflows": [VALID_WORKFLOW]}
 
     with (
-        patch("backend_v2.seed.run_seed.TinyDB", return_value=mock_db) as mock_tinydb_cls,
+        patch("backend_v2.seed.run_seed.create_unit_of_work") as mock_uow_fn,
         patch(
             "backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow",
             side_effect=ValueError("Broken DAG circular dependency"),
         ),
         pytest.raises(AppException) as excinfo,
     ):
-        await run_seed._seed_tinydb(Path("db_v2.json"), seed_payload, "local")
+        await run_seed._seed_postgres(seed_payload, dry_run=False)
 
     assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
-    mock_tinydb_cls.assert_not_called()
-    mock_db.drop_tables.assert_not_called()
+    mock_uow_fn.assert_not_called()
 
 
 def test_seeder_preflight_validates_all_standard_collections() -> None:
     """Contract 3: Positive test - validate_all_seed_collections validates collections into ValidatedSeedBufferDTO."""
-    valid_payload = {
+    valid_payload: dict[str, JsonValue] = {
         "organizations": [VALID_ORGANIZATION],
         "workflows": [VALID_WORKFLOW],
         "users": [],
@@ -487,20 +279,37 @@ def test_seeder_preflight_validates_all_standard_collections() -> None:
 
     assert isinstance(buffers, run_seed.ValidatedSeedBufferDTO)
     assert "organizations" in buffers
-    assert len(buffers.organizations) == 1
+    assert len(buffers["organizations"]) == 1
     assert buffers.organizations[0].id == VALID_ORGANIZATION["id"]
     assert "workflows" in buffers
-    assert len(buffers.workflows) == 1
+    assert len(buffers["workflows"]) == 1
     assert buffers.workflows[0].id == VALID_WORKFLOW["id"]
     for col in ["users", "system_config", "prompt_blocks", "steps", "output_profiles", "executions"]:
         assert col in buffers
-        assert buffers.get_collection(col) == []
+        assert buffers[col] == []
+    with pytest.raises(KeyError):
+        _ = buffers["unknown_collection_key"]
+
+
+@pytest.mark.asyncio
+async def test_seed_postgres_wraps_unexpected_uow_exception_in_app_exception() -> None:
+    """Negative test: unexpected RuntimeError inside UoW transaction is wrapped via _fail_fast."""
+    payload = _build_full_valid_seed_payload()
+    failing_uow = MagicMock()
+    failing_uow.__aenter__ = AsyncMock(side_effect=RuntimeError("Connection reset by peer"))
+    failing_uow.__aexit__ = AsyncMock(return_value=None)
+
+    with (
+        patch("backend_v2.services.orchestrator.dag_compiler.DAGCompilerService.validate_workflow"),
+        pytest.raises(AppException) as excinfo,
+    ):
+        await run_seed._seed_postgres(payload, dry_run=False, uow=failing_uow)
+
+    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 def test_validated_seed_buffer_dto_rejects_unknown_collection() -> None:
     """Test contract: ValidatedSeedBufferDTO rejects unknown collection key under extra='forbid'."""
-    from pydantic import ValidationError
-
     invalid_payload = {
         "unknown_collection": [{"id": "foo"}],
     }

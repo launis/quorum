@@ -221,6 +221,24 @@ class User(UserBase):
     deleted_at: Annotated[datetime | None, Field(default=None)]
 ```
 
+### 2.4 Zero-ORM Adapterikerros ja Tuleva Purkusuunnitelma (`backend_v2/database/postgres/`)
+
+PostgreSQL 19 Zero-ORM -arkkitehtuuri nojaa suoraan `asyncpg`-ajuriin ja heksagonaalisiin portteihin (`GraphMutationPort`, `TopologyResolutionPort`, `CausalReasoningPort`, `EntityPersistencePort`). Kanta-adaptereista muodostuu kolme ydinkomponenttia:
+
+1. **`PostgresEntityAdapter` (`backend_v2/database/postgres/entity_adapter.py`, 1 975 LOC):**
+   * **Vastuu:** Kokoaa yhteen kaikkien 10 relaatiotaulun (`organizations`, `users`, `system_configs`, `prompt_blocks`, `steps`, `workflows`, `output_profiles`, `executions`, `report_artifacts`, `report_binaries`) natiivit parametroidut SQL-kyselyt, JSONB-projektion ja eräseedauksen.
+   * **Arkkitehtoninen tila:** Toimii tällä hetkellä keskitettynä Zero-ORM-sovittimena. Koska tiedostokoko ylittää Quorumin 500 rivin suositusrajan, se on kirjattu Luvun 7 Monoliittipurkukarttaan (**Kohta 13**).
+   * **Purkusuunnitelma (`/tier3-god-code-decomposition`):** PostgreSQL Cutoverin ja karkaisun jälkeen tiedosto puretaan Strangler Fig -mallilla alikansioon `backend_v2/database/postgres/entity/`:
+     * `iam_adapter.py` (`organizations`, `users`)
+     * `studio_adapter.py` (`system_configs`, `prompt_blocks`, `steps`, `workflows`, `output_profiles`)
+     * `execution_adapter.py` (`executions`, `report_artifacts`, `report_binaries`)
+     * `seeding_adapter.py` (idempotentit batch-tallennukset)
+     * Ohut `<150 LOC` fasaadi `entity_adapter.py` / `__init__.py`, jolloin kutsupinnat säilyvät 100 % yhteensopivina.
+2. **`PostgresGraphAdapter` (`backend_v2/database/postgres/graph_adapter.py`, 669 LOC):**
+   * **Vastuu:** Kausaalipäättelygraafin Kahnin aallot, asyklisyyden varmennus (`detect_cycle`) ja falsifioitujen väitteiden suodatus. Modulaarinen, mutta ylittää lievästi 500 rivin rajan.
+3. **`PostgresPoolManager` (`backend_v2/database/postgres/pool.py`, 534 LOC):**
+   * **Vastuu:** `asyncpg`-yhteysaltaan elinkaari, transaktiorajat ja DDL-migraatioiden suoritus ilman ulkoisia migraatiotyökaluja.
+
 ---
 
 ## Luku 3: B2B SaaS IAM, Token Exchange ja Turvallisuus
@@ -348,7 +366,7 @@ Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytke
 
 Jotta tuotantokoodi on testattavaa, helposti ylläpidettävää ja skaalautuvaa, Quorumin arkkitehtuurisäännöt (`@[ki_god_code_prevention.md]`) vaativat kaikkien historiallisten monoliittien purkamisen pieniin, yhden vastuun luokkiin ja palveluihin (Single Responsibility Principle & Hexagonal CQRS).
 
-Koodikannassa on kartoitettu ja aikataulutettu kaikki 12 kriittistä monoliittialuetta. Jokaisella on oma virallinen eepoksensa tai toteutussuunnitelmansa, ja niiden purku on sidottu tarkasti oikeisiin aaltoihin:
+Koodikannassa on kartoitettu ja aikataulutettu kaikki 13 kriittistä monoliittialuetta. Jokaisella on oma virallinen eepoksensa tai toteutussuunnitelmansa, ja niiden purku on sidottu tarkasti oikeisiin aaltoihin:
 
 | Monoliitti / God Code -alue | Alkuperäinen koko & riski | Purkutoimenpide & tavoitearkkitehtuuri | Virallinen Epic / Toteutussuunnitelma | Suoritusvaihe & Tila |
 | :--- | :--- | :--- | :--- | :--- |
@@ -359,11 +377,12 @@ Koodikannassa on kartoitettu ja aikataulutettu kaikki 12 kriittistä monoliittia
 | **5. Taustatyöntekijät (Workers)** | `backend_v2/worker.py`<br>**2 000+ LOC**. Sekoitti Arq-daemonin käynnistyksen, raskaat DAG-analyysit ja raporttien generoinnin yhteen sekamelskaan. | Pilkottu kolmeen: `worker.py` on pelkkä ohut daemon-käynnistys; raskas laskenta on `backend_v2/workers/execution_worker.py` ja raporttien renderöinti `backend_v2/workers/report_worker.py`. | **Worker Decoupling Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
 | **6. Raportointipalvelu** | `backend_v2/services/report_service.py`<br>**749 LOC**. Käsitteli raporttien elinkaarta, Markdown/PDF-kasausta ja tiedostolukua. | Purettu pakettiin `backend_v2/services/report/`: `lifecycle_service.py`, `compilation_service.py`, `format_reader_service.py`. | **Report Service Decomposition**<br>`@[docs/koodikannan_purku_ja_migraatiojarjestys.md]` | **SUORITETTU & LUKITTU**<br>Vanha tiedosto poistettu |
 | **7. Raporttiviennin Flattenerit** | `backend_v2/services/export_service.py` (**1 123 LOC**) & aiemmin määritelty (defined) `FlatFileService`. Keräsivät sanakirjamutaatioita ja konvertoivat graafeja löyhästi yhden rivin konevektoreiksi. | Monoliittinen flattener tuhottu; korvattu tyypitetyillä Pydantic V2 DTO-virroilla (`ExportMatrixSummaryRowDTO`, `ExportForensicAtomDTO`, `ExportPayloadDTO`) ja modulaarisella `backend_v2/services/export/` -paketilla. | **Export Tables SSOT Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Report_Tables_SSOT_and_Causal_Export.md]` | **SUORITETTU & LUKITTU**<br>`ki_god_code_prevention.md` |
-| **8. Matriisidomainin Jäsennin** | `backend_v2/services/matrix_domain_parser.py`<br>**732 LOC**. Sekoitti asteikot, atomien jäsennyksen, jakaumamuotoilun ja rivien rakentamisen. | Purettu pakettiin `backend_v2/services/matrix_parser/`: `scale_and_atom_stage.py`, `row_builder_stage.py`, `distribution_formatter.py`. | **Matrix Parser Decomposition**<br>`@[docs/epic/matrix_domain_parser_decomposition_tracker.md]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
+| **8. Matriisidomainin Jäsennin** | `backend_v2/services/matrix_domain_parser.py`<br>**732 LOC**. Sekoitti asteikot, atomien jäsennyksen, jakaumamuotoilun ja rivien rakentamisen. | Purettu pakettiin `backend_v2/services/matrix_parser/`: `scale_and_atom_stage.py`, `row_builder_stage.py`, `distribution_formatter.py`. | **Matrix Parser Decomposition**<br>`@[docs/epic/matrix_domain_parser_decomposition_tracker.md]`<br>`@[docs/epic/tasks_matrix/]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
 | **9. Sitaattien Lexical Verifier** | `backend_v2/services/orchestrator/anchor_validation_service.py`<br>**855 LOC**. Hoiti yhtä aikaa tekstin normalisoinnin, fuzzy-tarkistuksen, morfologian ja tilasiirtymät. | Pilkottu modulaariseksi paketiksi `backend_v2/services/orchestrator/anchor_validation/`: `lexical_normalizer.py`, `lexical_matcher.py`, `evidence_validator.py`, `atom_evaluation_processor.py`. | **Anchor Validation Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Multilingual_Rule_Based_Stemming_in_Anchor_Validation.md]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
 | **10. Keskustelun PDF-ingressi** | `backend_v2/services/ingress/pdf_chat_extractor.py`<br>**682 LOC**. Sekoitti Skia-vektoripiirron, taulukoiden rekonstruoinnin ja puheenvuorojen segmentoinnin. | Pilkottu 3-vaiheiseksi liukuhihnaksi `backend_v2/services/ingress/pdf_extractor/`: `bubble_geometry.py`, `table_and_card_stage.py`, `turn_assembly_stage.py` ja fasaadiksi `pdf_extractor/__init__.py`. | **Chat Ingress SSOT**<br>`@[ki_chat_ingress_and_provenance_architecture.md]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
 | **11. SDUI UI-Mäppääjä** | `backend_v2/services/sdui_mapper_service.py` (juurimonoliitti). Yhdisti laskentalogiikan ja Dumb Painter -renderöinnin. | Juurimonoliitti tuhottu ja siirretty kanoniseen paikkaan `backend_v2/services/sdui/sdui_mapper_service.py`. | **SDUI Dumb Painter Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Steps_Dumb_Painter_System_Core.md]` | **SUORITETTU & LUKITTU**<br>Juurimonoliitti poistettu |
 | **12. Dynaaminen MCP & Työkalukutsu** | `backend_v2/services/mcp/mcp_tool_loop.py` (**651 LOC**) ja Flutterin `StepBuilderView` (lomakemonoliitti). Kovakoodatut työkalut ja kytkökset. | Staattiset työkalut poistettu; korvattu protokolla-agnostisella `GenericMCPClient`:llä, `SchemaFactory`:lla ja JIT-syntetisoijalla. Flutterissa eristetty `McpToolParamsPanel`. | **EPIC 159 (Dynamic MCP)**<br>`@[docs/epic/EPIC_159_DYNAMIC_MCP_ARCHITECTURE.md]`<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md]` | **SUORITETTU & KOVENNETTU**<br>`GenericMCPClient` tuotannossa |
+| **13. PostgreSQL Zero-ORM Entity Adapter** | `backend_v2/database/postgres/entity_adapter.py`<br>**1 975 LOC**. Kokoaa yhteen kaikkien 10 domain-taulun (`organizations`, `users`, `system_configs`, `prompt_blocks`, `steps`, `workflows`, `output_profiles`, `executions`, `report_artifacts`, `report_binaries`) natiivit SQL-lauseet, hidraatiot, CRUD-operaatiot ja eräseedauksen. | Puretaan Two-Epoch Strangler Fig -mallilla pakettiin `backend_v2/database/postgres/entity/`: `iam_adapter.py`, `studio_adapter.py`, `execution_adapter.py`, `seeding_adapter.py` ja alle 150 LOC fasaadi `__init__.py`. | **Entity Adapter Decomposition Plan**<br>`/tier3-god-code-decomposition @[backend_v2/database/postgres/entity_adapter.py]` | **Tuleva Tech Debt -aalto**<br>PostgreSQL Cutoverin ja kovetuksen jälkeen |
 
 ---
 

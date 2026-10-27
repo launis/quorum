@@ -1448,3 +1448,283 @@ def test_zero_orm_ast_guardrail_verification(tmp_path: Path) -> None:
     sql_findings = audit_sql_migration_file(bad_sql_file)
     assert len(sql_findings) == 1
     assert sql_findings[0].rule_code == ZeroOrmRuleCode.ZORM004
+
+
+@pytest.mark.asyncio
+async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
+    """Verify PostgresStorageDriver CRUD roundtrips, query filtering/sorting, and negative boundaries."""
+    from backend_v2.database.driver import Filter
+    from backend_v2.database.factory import create_unit_of_work, get_driver
+    from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
+
+    pool = InMemoryAsyncPgPool()
+    settings = Settings(
+        storage_backend=StorageBackend.POSTGRES,
+        postgres_host="db.internal",
+        postgres_port=5432,
+        postgres_user="quorum",
+        postgres_db="quorum",
+        postgres_command_timeout_seconds=12.0,
+    )
+    pool_manager = PostgresPoolManager(settings=settings, pool=pool)
+
+    # Verify factory functions
+    default_driver = await get_driver()
+    assert isinstance(default_driver, PostgresStorageDriver)
+    assert default_driver.pool_manager is not None
+    factory_uow = create_unit_of_work(pool_manager=pool_manager)
+    assert isinstance(factory_uow, QuorumUnitOfWork)
+
+    driver = PostgresStorageDriver(pool_manager=pool_manager, settings=settings, auto_initialize_pool=False)
+
+    # 1. Upsert and Get roundtrip against custom collection + canonical collection
+    org_payload = {
+        "id": "org_1111111111111111",
+        "slug": "alpha-org",
+        "name": "Alpha Org",
+        "is_active": True,
+        "tier": "enterprise",
+        "subscription_status": "active",
+        "quota_limit": 500.0,
+        "tpm_limit": 100000,
+        "rpm_limit": 1000,
+    }
+    doc_id = await driver.upsert("organizations", org_payload, "org_1111111111111111")
+    assert doc_id == "org_1111111111111111"
+    fetched = await driver.get("organizations", doc_id)
+    assert fetched is not None
+    assert fetched["id"] == doc_id
+    assert fetched["name"] == "Alpha Org"
+
+    # Update existing and missing
+    assert await driver.update("organizations", doc_id, {"name": "Alpha Updated"}) is True
+    assert await driver.update("organizations", "org_missing000000000", {"name": "Nope"}) is False
+    updated_org = await driver.get("organizations", doc_id)
+    assert updated_org is not None
+    assert updated_org["name"] == "Alpha Updated"
+
+    # 2. Insert and Query with all filter operators, nested fields, sort, and limit
+    await driver.insert(
+        "custom_items",
+        {
+            "id": "itm_1111111111111111",
+            "name": "Item A",
+            "score": 90,
+            "tags": ["core", "pg19"],
+            "meta": {"rank": 1},
+        },
+    )
+    await driver.insert(
+        "custom_items",
+        {
+            "id": "itm_2222222222222222",
+            "name": "Item B",
+            "score": 40,
+            "tags": ["aux"],
+            "meta": {"rank": 2},
+        },
+    )
+    all_items = await driver.get_all("custom_items")
+    assert len(all_items) == 2
+    assert await driver.count("custom_items") == 2
+
+    assert len(await driver.query("custom_items", filters=[Filter("name", "==", "Item A")])) == 1
+    assert len(await driver.query("custom_items", filters=[Filter("name", "!=", "Item A")])) == 1
+    assert len(await driver.query("custom_items", filters=[Filter("name", "in", ["Item A", "Item C"])])) == 1
+    assert len(await driver.query("custom_items", filters=[Filter("name", "in", "not-a-list")])) == 0
+    assert len(await driver.query("custom_items", filters=[Filter("tags", "array-contains", "pg19")])) == 1
+    assert len(await driver.query("custom_items", filters=[Filter("name", "array-contains", "pg19")])) == 0
+    assert len(await driver.query("custom_items", filters=[Filter("score", ">", 50)])) == 1
+    assert len(await driver.query("custom_items", filters=[Filter("score", ">=", 90)])) == 1
+    assert len(await driver.query("custom_items", filters=[Filter("score", "<", 50)])) == 1
+    assert len(await driver.query("custom_items", filters=[Filter("score", "<=", 40)])) == 1
+    assert len(await driver.query("custom_items", filters=[Filter("meta.rank", "==", 1)])) == 1
+    assert len(await driver.query("custom_items", filters=[Filter("meta.missing", ">", 0)])) == 0
+    assert (
+        len(
+            await driver.query(
+                "custom_items",
+                order_by="score",
+                descending=True,
+                limit=1,
+            )
+        )
+        == 1
+    )
+
+    # 3. Delete and Clear
+    assert await driver.delete("custom_items", "itm_2222222222222222") is True
+    assert await driver.delete("custom_items", "itm_missing") is False
+    assert await driver.delete("organizations", doc_id) is True
+    await driver.clear("custom_items")
+    await driver.clear("organizations")
+    assert await driver.get_all("custom_items") == []
+    await driver.close()
+
+    # 4. Negative boundaries: empty collection name or empty doc_id raises AppException(VALIDATION_FAILED)
+    with pytest.raises(AppException) as exc_empty_col:
+        await driver.get("   ", "org_1111111111111111")
+    assert exc_empty_col.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    with pytest.raises(AppException) as exc_empty_id:
+        await driver.get("organizations", "   ")
+    assert exc_empty_id.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUnitOfWork) -> None:
+    """Verify seed_collection_batch, collection helpers, and verify_seed_table_counts across all tables."""
+    from backend_v2.models.dtos.report_artifact import ReportMetadataDTO, ReportStoragePathsDTO
+    from backend_v2.models.enums import ReportStatus
+    from backend_v2.seed.run_seed import ValidatedSeedBufferDTO
+
+    repo_root = Path(__file__).resolve().parents[4]
+    seed_buffer = ValidatedSeedBufferDTO.model_validate_json(
+        (repo_root / "backend_v2" / "seed" / "seed_data.json").read_bytes()
+    )
+    now = datetime.now(timezone.utc)
+
+    sample_exec = ExecutionRecord(
+        id=generate_uuid7_opaque_id(EntityPrefix.EXECUTION),
+        workflow_id=generate_uuid7_opaque_id(EntityPrefix.WORKFLOW),
+        workflow_version=2,
+        output_profile_id="prf_1111111111111111",
+        status=ExecutionStatus.PASSED,
+        target_locale="fi",
+        progress=100,
+        status_message="Completed",
+        created_at=now,
+        updated_at=now,
+        completed_at=now,
+    )
+    sample_report = ReportArtifact(
+        id=generate_uuid7_opaque_id(EntityPrefix.REPORT),
+        execution_id=sample_exec.id,
+        workflow_id=sample_exec.workflow_id,
+        profile_id="prf_1111111111111111",
+        locale="fi",
+        title="Sample Report",
+        status=ReportStatus.READY,
+        storage_paths=ReportStoragePathsDTO(pdf_path=f"{sample_exec.id}/reports/report.pdf"),
+        metadata=ReportMetadataDTO(cost_usd=0.01),
+        created_at=now,
+        updated_at=now,
+    )
+    sample_binary = ReportBinaryPayloadDTO(
+        report_id=sample_report.id,
+        mime_type="application/pdf",
+        pdf_bytes=b"%PDF-1.7 sample",
+        size_bytes=len(b"%PDF-1.7 sample"),
+        created_at=now,
+    )
+
+    sample_blocks = [
+        next(b for b in seed_buffer.prompt_blocks if isinstance(b, MatrixPromptBlock)),
+        next(b for b in seed_buffer.prompt_blocks if isinstance(b, PersonaPromptBlock)),
+        next(b for b in seed_buffer.prompt_blocks if isinstance(b, ProtocolPromptBlock)),
+        next(b for b in seed_buffer.prompt_blocks if isinstance(b, SystemRulePromptBlock)),
+    ]
+
+    async with uow:
+        assert await uow.entities.seed_collection_batch("organizations", seed_buffer.organizations[:1]) == 1
+        assert await uow.entities.seed_collection_batch("users", seed_buffer.users[:1]) == 1
+        assert await uow.entities.seed_collection_batch("system_config", seed_buffer.system_config) == len(
+            seed_buffer.system_config
+        )
+        assert await uow.entities.seed_collection_batch("prompt_blocks", sample_blocks) == 4
+        assert await uow.entities.seed_collection_batch("steps", seed_buffer.steps[:1]) == 1
+        assert await uow.entities.seed_collection_batch("workflows", seed_buffer.workflows[:1]) == 1
+        assert await uow.entities.seed_collection_batch("output_profiles", seed_buffer.output_profiles[:1]) == 1
+        assert await uow.entities.seed_collection_batch("executions", [sample_exec]) == 1
+        assert await uow.entities.seed_collection_batch("report_artifacts", [sample_report]) == 1
+        assert await uow.entities.seed_collection_batch("report_binaries", [sample_binary]) == 1
+
+        verified = await uow.entities.verify_seed_table_counts(
+            {
+                "organizations": 1,
+                "users": 1,
+                "system_config": 1,
+                "prompt_blocks": 4,
+                "steps": 1,
+                "workflows": 1,
+                "output_profiles": 1,
+                "executions": 1,
+                "report_artifacts": 1,
+                "report_binaries": 1,
+            }
+        )
+        assert verified["organizations"] == 1
+        assert verified["executions"] == 1
+
+        if isinstance(uow.entities, PostgresEntityAdapter):
+            # Exercise list_collection_documents and get_collection_document across all seeded tables
+            for col_name in (
+                "organizations",
+                "users",
+                "system_configs",
+                "prompt_blocks",
+                "steps",
+                "workflows",
+                "output_profiles",
+                "executions",
+                "report_artifacts",
+            ):
+                docs = await uow.entities.list_collection_documents(col_name)
+                assert len(docs) >= 1
+                first_id = str(docs[0]["id"])
+                fetched_doc = await uow.entities.get_collection_document(col_name, first_id)
+                assert fetched_doc is not None
+                assert await uow.entities.upsert_collection_document(col_name, first_id, fetched_doc) is True
+
+            assert await uow.entities.list_collection_documents("unknown_col") == []
+            assert await uow.entities.get_collection_document("unknown_col", "id_1") is None
+            assert await uow.entities.get_collection_document("executions", "exe_invalid") is None
+            assert await uow.entities.get_collection_document("report_artifacts", "rep_invalid") is None
+            assert await uow.entities.upsert_collection_document("unknown_col", "id_1", {}) is False
+            assert await uow.entities.upsert_collection_document("organizations", "bad_id", {"bad": 1}) is False
+
+            # Delete and clear helpers
+            assert await uow.entities.delete_collection_document("executions", sample_exec.id) is True
+            assert await uow.entities.delete_collection_document("executions", "exe_invalid") is False
+            assert await uow.entities.delete_collection_document("report_artifacts", sample_report.id) is True
+            assert await uow.entities.delete_collection_document("report_artifacts", "rep_invalid") is False
+            assert await uow.entities.delete_collection_document("unknown_col", "id_1") is False
+            await uow.entities.clear_collection_documents("organizations")
+            await uow.entities.clear_collection_documents("unknown_col")
+
+        # Negative boundary 1: unsupported collection name raises VALIDATION_FAILED
+        with pytest.raises(AppException) as exc_bad_col:
+            await uow.entities.seed_collection_batch("rogue_collection", seed_buffer.organizations[:1])
+        assert exc_bad_col.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+        # Negative boundary 2: mismatched entity type for collection raises VALIDATION_FAILED
+        with pytest.raises(AppException) as exc_type_mismatch:
+            await uow.entities.seed_collection_batch("users", seed_buffer.organizations[:1])
+        assert exc_type_mismatch.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+        # Negative boundary 3: unknown table in verify_seed_table_counts raises VALIDATION_FAILED
+        with pytest.raises(AppException) as exc_unknown_tbl:
+            await uow.entities.verify_seed_table_counts({"unknown_table": 1})
+        assert exc_unknown_tbl.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+        # Negative boundary 4: count below expected threshold raises STORAGE_ACCESS_FAILED
+        with pytest.raises(AppException) as exc_count_low:
+            await uow.entities.verify_seed_table_counts({"organizations": 5})
+        assert exc_count_low.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+
+def test_qgr017_ast_guardrail_blocks_tinydb_resurrection(tmp_path: Path) -> None:
+    """Verify QGR017 AST guardrail catches synthetic legacy imports and file path string literals."""
+    from scripts._ast_guardrails import scan_files_for_guardrails
+
+    banned_pkg = "tiny" + "db"
+    banned_file = "db_v2" + ".json"
+    synthetic_file = tmp_path / "synthetic_violation.py"
+    synthetic_file.write_text(
+        f"import {banned_pkg}\nDB_PATH = 'data/{banned_file}'\n",
+        encoding="utf-8",
+    )
+    violations, is_success = scan_files_for_guardrails([str(synthetic_file)], strict=True)
+    assert is_success is False
+    qgr017_hits = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017_hits) >= 2
