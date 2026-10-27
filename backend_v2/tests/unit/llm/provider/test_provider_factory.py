@@ -95,6 +95,25 @@ def test_llm_factory_create_provider_config_authority_and_capabilities(
         )
     assert ground_exc.value.details["error_code"] == ErrorCodes.CAPABILITY_NOT_SUPPORTED.value
 
+    # 2b. Grounding requested when supports_grounding=True succeeds without raising ConfigurationError
+    grounded_cfg = LLMProviderConfig(
+        id="prv_grounded01",
+        provider="vertex_ai",
+        model_name="vertex_ai/gemini-2.5-flash",
+        supports_grounding=True,
+        tpm_limit=1000,
+        rpm_limit=10,
+    )
+    grounded_prov = LLMFactory.create_provider(
+        "vertex_ai",
+        "vertex_ai/gemini-2.5-flash",
+        config=grounded_cfg,
+        enable_grounding=True,
+        tools=[{"google_search": {}}],
+    )
+    assert isinstance(grounded_prov, LiteLLMProvider)
+    assert grounded_prov.supports_grounding is True
+
     # 3. Active config populates limits and explicit api_key
     active_cfg = LLMProviderConfig(
         id="prv_active0001",
@@ -104,7 +123,12 @@ def test_llm_factory_create_provider_config_authority_and_capabilities(
         tpm_limit=50000,
         rpm_limit=50,
     )
-    created_from_cfg = LLMFactory.create_provider("openai", "ignored", config=active_cfg)
+    created_from_cfg = LLMFactory.create_provider(
+        "openai",
+        "ignored",
+        config=active_cfg,
+        limits={"tpm": 100, "rpm": 5},
+    )
     assert isinstance(created_from_cfg, LiteLLMProvider)
     assert created_from_cfg.api_key == "cfg-override-key"
     assert created_from_cfg.model_name == "openai/gpt-5.1"
@@ -158,7 +182,6 @@ def test_llm_factory_create_provider_config_authority_and_capabilities(
     assert "LiteLLMProvider class is not registered" in str(missing_cls_exc.value)
 
 
-# Phase 4, Step 1: Migrate test_llm_factory_create_provider_edge_cases from test_provider.py
 def test_llm_factory_create_provider_edge_cases(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test LLMFactory.create_provider branches and validations via facade patch targets."""
     settings = Settings(
