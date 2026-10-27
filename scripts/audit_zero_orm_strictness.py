@@ -591,6 +591,7 @@ def run_zero_orm_audit(target_paths: list[Path] | None = None) -> ZeroOrmAuditRe
         Immutable ZeroOrmAuditReportDTO containing file count and findings.
     """
     explicit_mode = target_paths is not None and len(target_paths) > 0
+    # Phase 3, Step 3: Include scripts/reconcile_storage.py in default Zero-ORM strictness targets
     resolved_targets: list[Path] = (
         list(target_paths)
         if explicit_mode and target_paths is not None
@@ -598,6 +599,7 @@ def run_zero_orm_audit(target_paths: list[Path] | None = None) -> ZeroOrmAuditRe
             _WORKSPACE_ROOT / "backend_v2" / "database" / "postgres",
             _WORKSPACE_ROOT / "backend_v2" / "models" / "domain" / "proposition_graph.py",
             _WORKSPACE_ROOT / "backend_v2" / "database" / "migrations" / "001_pg19_uuidv7_schema.sql",
+            _WORKSPACE_ROOT / "scripts" / "reconcile_storage.py",
         ]
     )
 

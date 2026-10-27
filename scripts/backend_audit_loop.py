@@ -59,6 +59,18 @@ __all__ = [
     "run_tests_with_strict_coverage",
 ]
 
+# Phase 3, Step 3: Authoritative operational and guardrail scripts audited in macro completion gate
+_MACRO_AUTHORITATIVE_SCRIPTS: tuple[str, ...] = (
+    "scripts/reconcile_storage.py",
+    "scripts/_ast_guardrails.py",
+    "scripts/audit_zero_orm_strictness.py",
+    "scripts/backend_audit_loop.py",
+    "scripts/audit_markdown_boundaries.py",
+    "scripts/audit_dict_eradication.py",
+    "scripts/audit_technical_debt.py",
+    "scripts/_ast_boundary_utils.py",
+)
+
 # Force pure Python Protobuf implementation to prevent duplicate descriptor pool crashes in Python 3.14+
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
@@ -172,6 +184,7 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
             cov_filter_name = filename
 
             test_paths = []
+            # Phase 3, Step 3: First-class operational and guardrail scripts test discovery
             if parts[0] == "scripts":
                 for cand in candidates:
                     cand_path = Path("backend_v2/tests/unit/scripts") / cand
@@ -464,33 +477,41 @@ Optional steps:
         print("Error: Script must be executed from the project root (where backend_v2 is located).")
         sys.exit(1)
 
-    targets_str = ", ".join(targets)
+    # Phase 3, Step 3: Expand macro completion gate targets with authoritative operational and guardrail scripts
+    is_macro_backend_gate = not args.micro and any(t.replace("\\", "/").rstrip("/") == "backend_v2" for t in targets)
+    stage_targets: list[str] = list(targets)
+    if is_macro_backend_gate:
+        for script_path in _MACRO_AUTHORITATIVE_SCRIPTS:
+            if script_path not in stage_targets:
+                stage_targets.append(script_path)
+
+    targets_str = ", ".join(stage_targets)
     print(f"\n🚀 Executing quality-loop for targets: {targets_str}")
     print("--------------------------------------------------")
 
     print("\n⏳ 1/10: Checking and fixing files (ruff check --fix)...")
-    res = subprocess.run(["uv", "run", "ruff", "check", *targets, "--fix", "--extend-ignore=E501"])
+    res = subprocess.run(["uv", "run", "ruff", "check", *stage_targets, "--fix", "--extend-ignore=E501"])
     if res.returncode != 0:
         print("❌ Ruff linter found unfixable errors!")
         sys.exit(res.returncode)
     print("✅ Linting and auto-fix complete.")
 
     print("\n⏳ 2/10: Formatting code (ruff format)...")
-    res = subprocess.run(["uv", "run", "ruff", "format", *targets])
+    res = subprocess.run(["uv", "run", "ruff", "format", *stage_targets])
     if res.returncode != 0:
         print("❌ Ruff formatting failed!")
         sys.exit(res.returncode)
     print("✅ Formatting complete.")
 
     print("\n⏳ 3/10: Type checking code (mypy --strict)...")
-    res = subprocess.run(["uv", "run", "mypy", *targets, "--strict"])
+    res = subprocess.run(["uv", "run", "mypy", *stage_targets, "--strict"])
     if res.returncode != 0:
         print("\n❌ MyPy found type errors! Resolve Universal Quality Gate violations.\n")
         sys.exit(res.returncode)
     print("✅ Type check passed.")
 
     print("\n⏳ 4/10: Checking AST Codebase Guardrails (scripts/_ast_guardrails.py)...")
-    violations, is_success = scan_files_for_guardrails(targets, strict=ast_strict)
+    violations, is_success = scan_files_for_guardrails(stage_targets, strict=ast_strict)
     unsuppressed = violations
     fatal_violations = [v for v in unsuppressed if v.severity == GuardrailSeverity.FATAL]
 
@@ -571,6 +592,10 @@ Optional steps:
         if res_dict.returncode != 0:
             print("\n❌ Dict eradication audit failed! Eliminate naked dicts/casts.\n")
             sys.exit(res_dict.returncode)
+        res_zorm = subprocess.run(["uv", "run", "python", "scripts/audit_zero_orm_strictness.py"])
+        if res_zorm.returncode != 0:
+            print("\n❌ Zero-ORM strictness audit failed! Resolve ZORM001-ZORM006 violations.\n")
+            sys.exit(res_zorm.returncode)
         print("✅ Dict eradication and typed domain transit verified.")
     else:
         print("\n⚡ Micro-audit mode active (--micro): Skipping whole-repository Stages 5-10.")

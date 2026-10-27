@@ -45,6 +45,9 @@ def test_audit_zero_orm_clean_python_and_sql(tmp_path: Path) -> None:
 
 def test_audit_zero_orm_default_paths_pass() -> None:
     """Verify running main() with default canonical workspace paths returns exit code 0."""
+    report = run_zero_orm_audit()
+    assert report.is_clean is True
+    assert report.scanned_files >= 8
     assert main([]) == 0
 
 
