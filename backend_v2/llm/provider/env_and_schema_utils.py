@@ -10,7 +10,7 @@ from typing import Any
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
-from backend_v2.exceptions import ConfigurationError
+from backend_v2.exceptions import ConfigurationError, ErrorCodes
 
 __all__ = [
     "_INTERNAL_NON_API_KEYS",
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 _SENTINEL = object()
 
-# Phase 1, Step 1: Relocate depth-0 leaf static reflection helpers and environment/schema utilities
+# Internal non-API keys stripped before dispatching requests to external LLM routers
 _INTERNAL_NON_API_KEYS: frozenset[str] = frozenset({"mock_identity", "validation_context"})
 
 
@@ -108,9 +108,13 @@ def resolve_env_variables(params: dict[str, Any]) -> dict[str, Any]:
             env_key = v[2:-1]
             resolved_value = os.getenv(env_key)
             if not resolved_value:
-                raise ConfigurationError(
-                    f"Strict Mode: Required environment variable '{env_key}' is missing for parameter '{k}'."
+                msg = f"Strict Mode: Required environment variable '{env_key}' is missing for parameter '{k}'."
+                logger.error(
+                    msg,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
+                raise ConfigurationError(msg)
             resolved[k] = resolved_value
         else:
             resolved[k] = v
@@ -161,4 +165,4 @@ def _sync_diagnostic_dump(dump_file: str, model_name: str, payload_str: str) -> 
             f.write(payload_str)
             f.write("\n")
     except OSError as e:
-        logger.error("Failed to dump prompt: %s", e)
+        logger.error("Failed to dump prompt: %s", e, exc_info=True)
