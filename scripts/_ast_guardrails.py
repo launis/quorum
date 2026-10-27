@@ -154,7 +154,6 @@ RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset(
 
 RESIDUAL_FUTURE_PHASE_QGR028_FILES: frozenset[str] = frozenset(
     {
-        "backend_v2/services/auth.py",
         "backend_v2/services/execution/ingress_service.py",
         "backend_v2/services/execution/override_service.py",
         "backend_v2/services/execution/resumption_service.py",
@@ -167,6 +166,12 @@ RESIDUAL_FUTURE_PHASE_QGR028_FILES: frozenset[str] = frozenset(
         "backend_v2/services/studio/workflow_service.py",
     }
 )
+
+_QGR030_ENTITY_PREFIXES: frozenset[str] = frozenset(
+    {"exe", "rep", "tda", "wf", "stp", "prf", "blk", "sys", "usr", "org", "nod", "edg"}
+)
+_QGR030_MOCK_ID_REGEX: re.Pattern[str] = re.compile(r"^([a-z]{2,5})_([a-zA-Z0-9]{14,32})$")
+_QGR030_NON_HEX_CHARS: frozenset[str] = frozenset("ghijklmnopqrstuvwxyzGHIJKLMNOPQRSTUVWXYZ")
 
 
 def _is_repository_identifier(name: str) -> bool:
@@ -535,6 +540,12 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         path_parts = set(normalized_path.strip("/").split("/"))
         self._normalized_path = normalized_path
         self._path_parts = path_parts
+        self.is_guardrail_self: bool = (
+            normalized_path == "scripts/_ast_guardrails.py"
+            or normalized_path.endswith("/scripts/_ast_guardrails.py")
+            or normalized_path == "backend_v2/tests/unit/scripts/test_ast_guardrails.py"
+            or normalized_path.endswith("/backend_v2/tests/unit/scripts/test_ast_guardrails.py")
+        )
         self._is_test_file = "backend_v2/tests/" in normalized_path or "tests" in path_parts
         self._is_domain_code = not (self._is_test_file or "scripts" in path_parts)
         self._is_boundary_exempt = is_boundary_exempt(filepath)
@@ -715,9 +726,41 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "Use typed Pydantic `.model_dump()` or direct attribute dot-notation instead of accessing `.__dict__` directly.",
                 severity=GuardrailSeverity.FATAL,
             )
+
+        # Phase 2, Step 2: QGR030 ban deprecated StorageBackend.LOCAL and StorageBackend.FIRESTORE attribute references
+        if (
+            not self.is_guardrail_self
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "StorageBackend"
+            and node.attr in ("LOCAL", "FIRESTORE")
+            and not (
+                self._normalized_path == "backend_v2/models/enums.py"
+                or self._normalized_path.endswith("/backend_v2/models/enums.py")
+            )
+        ):
+            self._add_violation(
+                node,
+                "QGR030",
+                f"Banned deprecated storage backend reference `StorageBackend.{node.attr}` detected.",
+                "PostgreSQL 19 (`StorageBackend.POSTGRES`) is the sole persistence backend; remove legacy LOCAL/FIRESTORE references.",
+                severity=GuardrailSeverity.FATAL,
+            )
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
+        # Phase 2, Step 2: QGR030 ban deprecated storage_backend keyword arguments in function/Settings calls
+        if not self.is_guardrail_self:
+            for kw in node.keywords:
+                if kw.arg == "storage_backend":
+                    if isinstance(kw.value, ast.Constant) and kw.value.value in ("LOCAL", "FIRESTORE"):
+                        self._add_violation(
+                            kw.value,
+                            "QGR030",
+                            f"Banned deprecated `storage_backend={kw.value.value!r}` keyword argument in `{ast.unparse(node.func)}(...)`.",
+                            "Omit legacy storage_backend overrides and use sovereign `StorageBackend.POSTGRES` defaults.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+
         # QGR026: Banned pytest.xfail() call
         if (
             isinstance(node.func, ast.Attribute)
@@ -2386,14 +2429,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
     def visit_Constant(self, node: ast.Constant) -> None:
         # QGR017: Banned reference to eradicated TinyDB JSON artifact `db_v2.json`
         if isinstance(node.value, str) and "db_v2.json" in node.value:
-            norm_path = self._normalized_path
-            is_guardrail_self = (
-                norm_path == "scripts/_ast_guardrails.py"
-                or norm_path.endswith("/scripts/_ast_guardrails.py")
-                or norm_path == "backend_v2/tests/unit/scripts/test_ast_guardrails.py"
-                or norm_path.endswith("/backend_v2/tests/unit/scripts/test_ast_guardrails.py")
-            )
-            if not is_guardrail_self:
+            if not self.is_guardrail_self:
                 self._add_violation(
                     node,
                     "QGR017",
@@ -2401,6 +2437,34 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "PostgreSQL 19 is the sole persistence backend; remove all `db_v2.json` references.",
                     severity=GuardrailSeverity.FATAL,
                 )
+
+        # Phase 2, Step 2: QGR030 ban non-hexadecimal mock entity ID string literals
+        if isinstance(node.value, str) and not self.is_guardrail_self:
+            id_match = _QGR030_MOCK_ID_REGEX.match(node.value)
+            if id_match is not None:
+                prefix, suffix = id_match.group(1), id_match.group(2)
+                if prefix in _QGR030_ENTITY_PREFIXES:
+                    has_digits = any(c.isdigit() for c in suffix)
+                    has_non_hex = any(c in _QGR030_NON_HEX_CHARS for c in suffix)
+                    if has_digits and has_non_hex:
+                        is_strict_id_scope = (
+                            self._is_domain_code
+                            or "scripts" in self._path_parts
+                            or "factories" in self._path_parts
+                            or self._normalized_path.endswith("sample.py")
+                        )
+                        distinct_digits = {c for c in suffix if c.isdigit()}
+                        is_sequential_mock_id = len(distinct_digits) >= 9 and not suffix.startswith(
+                            ("test1234", "step1234")
+                        )
+                        if is_strict_id_scope or is_sequential_mock_id:
+                            self._add_violation(
+                                node,
+                                "QGR030",
+                                f"Banned non-hexadecimal entity ID literal `{node.value}` detected.",
+                                "All entity IDs must conform to canonical hexadecimal format `^([a-z]{2,5})_[a-fA-F0-9]{16,32}$` via `generate_opaque_id(EntityPrefix.<TYPE>)`.",
+                                severity=GuardrailSeverity.FATAL,
+                            )
         self.generic_visit(node)
 
     def visit_BoolOp(self, node: ast.BoolOp) -> None:

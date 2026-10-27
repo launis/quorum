@@ -1931,7 +1931,7 @@ def test_boundary_exemption_files_contains_only_relative_paths() -> None:
         assert not path.is_absolute(), f"Exemption path must be relative: {file_path_str}"
         assert "\\" not in file_path_str, f"Exemption path must use POSIX separators: {file_path_str}"
         physical_file = REPO_ROOT / path
-        assert physical_file.is_file(), f"Exemption file must exist on disk: {physical_file}"
+        assert physical_file.is_file(), f"BOUNDARY_EXEMPTION_FILES contains deleted file: {path}"
 
 
 def test_boundary_exemption_files_rejects_models_services_hooks_api() -> None:
@@ -2269,3 +2269,93 @@ def test_find_nested_dict_subscript_coverage() -> None:
     assert _find_nested_dict_subscript(_get_ann("x: Iterable[dict[str, int]]")) is not None
     assert _find_nested_dict_subscript(_get_ann("x: set[dict[str, int]]")) is not None
     assert _find_nested_dict_subscript(_get_ann("x: Set[dict[str, int]]")) is not None
+
+
+# ==============================================================================
+# Partition 31: QGR030 Storage Backend & Hexadecimal Entity ID Invariants
+# ==============================================================================
+
+
+def test_boundary_and_residual_exemption_sets_exist_on_disk() -> None:
+    """Phase 2, Step 2: Verify every file in BOUNDARY_EXEMPTION_FILES and residual exemption sets exists on disk."""
+    from scripts._ast_guardrails import (
+        BOUNDARY_EXEMPTION_FILES,
+        OPEN_JSON_EXEMPTION_FILES,
+        REPO_ROOT,
+        RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES,
+        RESIDUAL_FUTURE_PHASE_QGR028_FILES,
+    )
+
+    exemption_sets: list[tuple[str, frozenset[str]]] = [
+        ("BOUNDARY_EXEMPTION_FILES", BOUNDARY_EXEMPTION_FILES),
+        ("OPEN_JSON_EXEMPTION_FILES", OPEN_JSON_EXEMPTION_FILES),
+        ("RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES", RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES),
+        ("RESIDUAL_FUTURE_PHASE_QGR028_FILES", RESIDUAL_FUTURE_PHASE_QGR028_FILES),
+    ]
+    for set_name, file_set in exemption_sets:
+        for path in file_set:
+            assert (REPO_ROOT / path).is_file(), f"{set_name} contains deleted file: {path}"
+
+
+def test_qgr030_deprecated_storage_backend_call_and_attribute_raises_fatal() -> None:
+    """QGR030: Positive violation test detecting deprecated storage_backend keywords and StorageBackend attributes."""
+    code = """
+from backend_v2.models.enums import StorageBackend
+from backend_v2.settings import Settings
+
+s1 = Settings(storage_backend="LOCAL")
+s2 = Settings(storage_backend="FIRESTORE")
+b1 = StorageBackend.LOCAL
+b2 = StorageBackend.FIRESTORE
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr030 = [v for v in violations if v.rule_code == "QGR030"]
+    assert len(qgr030) == 4
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr030)
+
+
+def test_qgr030_non_hexadecimal_mock_entity_id_raises_fatal() -> None:
+    """QGR030: Positive violation test detecting non-hexadecimal mock entity ID literals."""
+    code = """
+ghost_id = "exe_ghost1234567890"
+disk_id = "exe_disk9876543210"
+test_id = "exe_test1234567890"
+sdui_id = "exe_sdui1234567890"
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr030 = [v for v in violations if v.rule_code == "QGR030"]
+    assert len(qgr030) == 4
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr030)
+
+
+def test_qgr030_valid_postgres_backend_and_enums_module_allowed() -> None:
+    """QGR030: Negative boundary test verifying StorageBackend.POSTGRES and enums.py definitions pass cleanly."""
+    code = """
+from backend_v2.models.enums import StorageBackend
+from backend_v2.settings import Settings
+
+s1 = Settings(storage_backend="POSTGRES")
+b1 = StorageBackend.POSTGRES
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    assert [v for v in violations if v.rule_code == "QGR030"] == []
+
+    enum_code = """
+from backend_v2.models.enums import StorageBackend
+legacy = (StorageBackend.LOCAL, StorageBackend.FIRESTORE)
+"""
+    enum_violations = _scan_snippet(enum_code, filepath="backend_v2/models/enums.py")
+    assert [v for v in enum_violations if v.rule_code == "QGR030"] == []
+
+
+def test_qgr030_valid_hexadecimal_ids_and_snake_case_identifiers_allowed() -> None:
+    """QGR030: Negative boundary test verifying canonical hexadecimal IDs, snake_case identifiers, and short strings pass."""
+    code = """
+valid_exe = "exe_1111222233334444"
+valid_wf = "wf_abcdef0123456789abcdef0123456789"
+snake_case = "wf_custom_step_identifier_123"
+short_negative = "wf_invalid1"
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    assert [v for v in violations if v.rule_code == "QGR030"] == []
+
