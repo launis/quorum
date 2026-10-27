@@ -437,7 +437,7 @@ def test_run_post_hardening_gate_with_hardening_agent(tmp_path: Path) -> None:
         assert "--agent-cmd" in cmd_backend
         backend_agent_idx = cmd_backend.index("--agent-cmd")
         assert "gemini-4-argon-high" in cmd_backend[backend_agent_idx + 1]
-        assert "/tier2-hardening-backend {target}" in cmd_backend[backend_agent_idx + 1]
+        assert "/tier2-hardening-backend @[{target}]" in cmd_backend[backend_agent_idx + 1]
 
         # 2. Frontend call verification
         cmd_frontend = mock_run.call_args_list[1][0][0]
@@ -446,7 +446,15 @@ def test_run_post_hardening_gate_with_hardening_agent(tmp_path: Path) -> None:
         assert "--agent-cmd" in cmd_frontend
         frontend_agent_idx = cmd_frontend.index("--agent-cmd")
         assert "gemini-4-argon-high" in cmd_frontend[frontend_agent_idx + 1]
-        assert "/tier2-hardening-frontend {target}" in cmd_frontend[frontend_agent_idx + 1]
+        assert "/tier2-hardening-frontend @[{target}]" in cmd_frontend[frontend_agent_idx + 1]
+
+
+def test_auto_phase_runner_args_default_hardening_model(tmp_path: Path) -> None:
+    """Verify AutoPhaseRunnerArgsDTO defaults hardening_model to gemini-4-argon-medium."""
+    tracker = tmp_path / "tracker.md"
+    tracker.write_text("# Tracker\n", encoding="utf-8")
+    args = AutoPhaseRunnerArgsDTO(tracker=tracker)
+    assert args.hardening_model == "gemini-4-argon-medium"
 
 
 def test_run_post_hardening_gate_no_unhardened_targets(tmp_path: Path) -> None:
@@ -529,7 +537,8 @@ def test_run_post_hardening_gate_only_frontend(tmp_path: Path) -> None:
         assert mock_run.call_count == 1
         cmd = mock_run.call_args_list[0][0][0]
         assert cmd[cmd.index("--gate") + 1] == "frontend"
-        assert "/tier2-hardening-frontend {target}" in cmd[cmd.index("--agent-cmd") + 1]
+        assert "gemini-4-argon-medium" in cmd[cmd.index("--agent-cmd") + 1]
+        assert "/tier2-hardening-frontend @[{target}]" in cmd[cmd.index("--agent-cmd") + 1]
 
 
 def test_execute_subagent_cmd_wrapper_on_windows(tmp_path: Path) -> None:

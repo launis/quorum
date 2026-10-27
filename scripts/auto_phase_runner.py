@@ -150,10 +150,10 @@ class AutoPhaseRunnerArgsDTO(BaseModel):
     hardening_model: Annotated[
         str | None,
         Field(
-            default=None,
-            description="LLM model override for hardening subagent; defaults to main model if None.",
+            default="gemini-4-argon-medium",
+            description="LLM model for hardening subagent; defaults to gemini-4-argon-medium.",
         ),
-    ] = None
+    ] = "gemini-4-argon-medium"
     max_retries: Annotated[
         int,
         Field(
@@ -933,7 +933,7 @@ def run_post_hardening_gate(
         )
         return 0
 
-    h_model = args.hardening_model or args.model
+    h_model = args.hardening_model or "gemini-4-argon-medium"
 
     # 1. Backend Hardening Gate
     if backend_targets:
@@ -953,9 +953,11 @@ def run_post_hardening_gate(
         ]
         if args.hardening_agent:
             agent_cmd_template = (
-                f'agy --model {h_model} --dangerously-skip-permissions --print "/tier2-hardening-backend {{target}}"'
+                f'agy --model {h_model} --dangerously-skip-permissions --print "/tier2-hardening-backend @[{{target}}]"'
             )
             backend_cmd.extend(["--agent-cmd", agent_cmd_template])
+        else:
+            backend_cmd.append("--no-agent")
         if args.dry_run:
             backend_cmd.append("--dry-run")
         if args.verbose:
@@ -986,10 +988,10 @@ def run_post_hardening_gate(
             "frontend",
         ]
         if args.hardening_agent:
-            agent_cmd_template = (
-                f'agy --model {h_model} --dangerously-skip-permissions --print "/tier2-hardening-frontend {{target}}"'
-            )
+            agent_cmd_template = f'agy --model {h_model} --dangerously-skip-permissions --print "/tier2-hardening-frontend @[{{target}}]"'
             frontend_cmd.extend(["--agent-cmd", agent_cmd_template])
+        else:
+            frontend_cmd.append("--no-agent")
         if args.dry_run:
             frontend_cmd.append("--dry-run")
         if args.verbose:
@@ -1245,8 +1247,8 @@ Key Behavioral Invariants for Autonomous AI Agents:
     parser.add_argument(
         "--hardening-model",
         type=str,
-        default=None,
-        help="LLM model override for hardening subagent; defaults to main model if None.",
+        default="gemini-4-argon-medium",
+        help="LLM model override for hardening subagent (default: gemini-4-argon-medium).",
     )
     parser.add_argument(
         "--timeout",

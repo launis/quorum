@@ -52,6 +52,11 @@ class _SampleObject:
 
     write_only_prop = property(fget=None)
 
+    @property
+    def broken_prop(self) -> str:
+        """Raise AttributeError during property evaluation to exercise static fallback."""
+        raise AttributeError("broken attribute inside property")
+
     def greet(self) -> str:
         """Return a formatted greeting.
 
@@ -115,7 +120,7 @@ def test_resolve_env_variables_and_mcp_schema_normalization(monkeypatch: pytest.
             name="search_docs",
             description="Search indexed documents.",
             parameters=MCPToolInputSchemaDTO(
-                type=JSONSchemaPropertyType.OBJECT,
+                type="object",
                 properties={
                     "mode": MCPToolSchemaPropertyDTO(
                         type=JSONSchemaPropertyType.STRING,
@@ -141,17 +146,23 @@ def test_resolve_env_variables_and_mcp_schema_normalization(monkeypatch: pytest.
     assert _INTERNAL_NON_API_KEYS == frozenset({"mock_identity", "validation_context"})
 
 
-def test_resolve_env_variables_missing_var_raises_configuration_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify resolve_env_variables raises ConfigurationError when a referenced env variable is unset or empty."""
+def test_resolve_env_variables_missing_var_raises_configuration_error(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify resolve_env_variables logs error and raises ConfigurationError when env var is missing."""
     monkeypatch.delenv("UNSET_SECRET_TOKEN_XYZ", raising=False)
-    with pytest.raises(ConfigurationError) as exc_info:
+    with caplog.at_level(logging.ERROR), pytest.raises(ConfigurationError) as exc_info:
         resolve_env_variables({"api_token": "${UNSET_SECRET_TOKEN_XYZ}"})
     assert "UNSET_SECRET_TOKEN_XYZ" in str(exc_info.value)
+    assert "UNSET_SECRET_TOKEN_XYZ" in caplog.text
 
+    caplog.clear()
     monkeypatch.setenv("EMPTY_SECRET_TOKEN_XYZ", "")
-    with pytest.raises(ConfigurationError) as empty_exc:
+    with caplog.at_level(logging.ERROR), pytest.raises(ConfigurationError) as empty_exc:
         resolve_env_variables({"api_token": "${EMPTY_SECRET_TOKEN_XYZ}"})
     assert "EMPTY_SECRET_TOKEN_XYZ" in str(empty_exc.value)
+    assert "EMPTY_SECRET_TOKEN_XYZ" in caplog.text
 
 
 def test_safe_static_getattr_and_hasattr_across_types() -> None:
@@ -163,6 +174,7 @@ def test_safe_static_getattr_and_hasattr_across_types() -> None:
     assert _safe_static_getattr(sample, "value") == "quorum"
     assert _safe_static_getattr(sample, "computed_label") == "QUORUM"
     assert _safe_static_getattr(sample, "write_only_prop", "no_getter") == "no_getter"
+    assert _safe_static_getattr(sample, "broken_prop", "attr_err_fallback") == "attr_err_fallback"
     bound_method = _safe_static_getattr(sample, "greet")
     assert callable(bound_method)
     assert bound_method() == "hello quorum"
@@ -200,7 +212,6 @@ def test_sync_diagnostic_dump_writes_and_handles_os_error(
     assert "Failed to dump prompt" in caplog.text
 
 
-# Phase 4, Step 1: Migrate test_resolve_env_variables, test_sync_diagnostic_dump, and schema/key tests from test_provider.py
 def test_resolve_env_variables(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test resolving env variables with ${ENV_VAR} structure."""
     monkeypatch.setenv("TEST_REGION_VAR", "europe-west3")
@@ -278,7 +289,7 @@ async def test_lite_llm_provider_strips_unpacked_internal_keys_from_call_kwargs(
 async def test_lite_llm_provider_serializes_mcp_tool_declarations_to_standard_json_schema(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Positive & Negative: Verify LiteLLMProvider.generate maps enum_values and additional_properties to JSON Schema."""
+    """Verify LiteLLMProvider.generate maps enum_values and additional_properties to JSON Schema."""
     monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.001)
     monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
 
