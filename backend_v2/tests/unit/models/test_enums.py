@@ -19,13 +19,16 @@ from backend_v2.models.enums import (
     LaxDependencyRelationType,
     LaxExecutionStatus,
     LaxHistoricalContextMode,
+    LaxPresetView,
     LaxPropositionNodeType,
+    LaxReportStatus,
     LaxStepType,
     LaxStepZone,
     LaxStorageBackend,
     LaxToolCapability,
     LaxXaiExtensionType,
     PipelineConfig,
+    PresetView,
     PropositionNodeType,
     ReportAtomColumn,
     ReportMatrixColumn,
@@ -275,18 +278,18 @@ def test_lax_tool_capability() -> None:
 
 def test_storage_backend_and_proposition_graph_enums() -> None:
     """Verify StorageBackend, PropositionNodeType, DependencyRelationType, and EntityPrefix members."""
-    assert EntityPrefix.NODE == "nod"
-    assert EntityPrefix.EDGE == "edg"
-    assert StorageBackend.POSTGRES == "POSTGRES"
-    assert PropositionNodeType.CLAIM == "claim"
-    assert PropositionNodeType.GROUND == "ground"
-    assert PropositionNodeType.WARRANT == "warrant"
-    assert PropositionNodeType.REBUTTAL == "rebuttal"
-    assert PropositionNodeType.SCM_VAR == "scm_var"
-    assert DependencyRelationType.SUPPORTS == "supports"
-    assert DependencyRelationType.WARRANTS == "warrants"
-    assert DependencyRelationType.REBUTS == "rebuts"
-    assert DependencyRelationType.CAUSES == "causes"
+    assert str(EntityPrefix.NODE) == "nod"
+    assert str(EntityPrefix.EDGE) == "edg"
+    assert str(StorageBackend.POSTGRES) == "POSTGRES"
+    assert str(PropositionNodeType.CLAIM) == "claim"
+    assert str(PropositionNodeType.GROUND) == "ground"
+    assert str(PropositionNodeType.WARRANT) == "warrant"
+    assert str(PropositionNodeType.REBUTTAL) == "rebuttal"
+    assert str(PropositionNodeType.SCM_VAR) == "scm_var"
+    assert str(DependencyRelationType.SUPPORTS) == "supports"
+    assert str(DependencyRelationType.WARRANTS) == "warrants"
+    assert str(DependencyRelationType.REBUTS) == "rebuts"
+    assert str(DependencyRelationType.CAUSES) == "causes"
 
     class GraphEnumModel(BaseModel):
         backend: LaxStorageBackend
@@ -306,3 +309,25 @@ def test_storage_backend_and_proposition_graph_enums() -> None:
 
     with pytest.raises(ValidationError):
         GraphEnumModel(backend="POSTGRES", node_type="warrant", rel_type="invalid_rel")
+
+
+def test_lax_report_status_and_preset_view() -> None:
+    """Verify LaxReportStatus and LaxPresetView coerce valid strings and reject invalid values."""
+
+    class ReportPresetModel(BaseModel):
+        status: LaxReportStatus
+        preset: LaxPresetView
+
+    obj1 = ReportPresetModel(status=ReportStatus.READY, preset=PresetView.COMPARE_2D)
+    assert obj1.status == ReportStatus.READY
+    assert obj1.preset == PresetView.COMPARE_2D
+
+    obj2 = ReportPresetModel(status="generating", preset="3d_matrix")
+    assert obj2.status == ReportStatus.GENERATING
+    assert obj2.preset == PresetView.MATRIX_3D
+
+    with pytest.raises(ValidationError):
+        ReportPresetModel(status="invalid_status", preset="3d_matrix")
+
+    with pytest.raises(ValidationError):
+        ReportPresetModel(status="ready", preset="invalid_preset")

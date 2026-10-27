@@ -239,7 +239,7 @@ class EntityPrefix(StrEnum):
     ORGANIZATION = "org"
     TDA = "tda"
     REPORT = "rep"
-    # Step 1: PostgreSQL 19 proposition graph node and edge Opaque Stripe ID prefixes
+    # Proposition graph node and edge Opaque Stripe ID prefixes
     NODE = "nod"
     EDGE = "edg"
 
@@ -585,7 +585,7 @@ class ReportStatus(StrEnum):
                 return "reportStatusFailed"
 
 
-LaxReportStatus = ReportStatus | str
+LaxReportStatus = Annotated[ReportStatus, Field(strict=False)]
 
 
 class SDUIComponentType(StrEnum):
@@ -802,6 +802,10 @@ class RoleClassification(StrEnum):
 
         Returns:
             RoleClassification enum member corresponding to clamped score.
+
+        Raises:
+            ValueError: If score is NaN or cannot be converted to float.
+            OverflowError: If score is positive or negative infinity.
         """
         clamped = max(1, min(5, int(round(float(score)))))
         match clamped:
@@ -1078,7 +1082,7 @@ class PresetView(StrEnum):
     MATRIX_SUMMARY = "matrix_summary"
 
 
-LaxPresetView = PresetView | str
+LaxPresetView = Annotated[PresetView, Field(strict=False)]
 
 
 class TargetSpeaker(StrEnum):
