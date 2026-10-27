@@ -51,6 +51,7 @@ from backend_v2.models.domain.system_config import (
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import EntityPrefix, PromptBlockCategory
 from backend_v2.models.state import WorkflowState
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -834,16 +835,21 @@ class PostgresEntityAdapter:
     def __init__(
         self,
         connection: AsyncPgConnectionProtocol,
-        command_timeout_seconds: float = 15.0,
+        command_timeout_seconds: float | None = None,
     ) -> None:
         """Initialize the PostgreSQL entity adapter over an active connection.
 
         Args:
             connection: Active database connection conforming to AsyncPgConnectionProtocol.
-            command_timeout_seconds: Explicit command timeout in seconds.
+            command_timeout_seconds: Explicit command timeout in seconds, or None to use settings.py.
         """
+        resolved_timeout = (
+            command_timeout_seconds
+            if command_timeout_seconds is not None
+            else get_settings().postgres_command_timeout_seconds
+        )
         self._conn: AsyncPgConnectionProtocol = connection
-        self.command_timeout_seconds: float = command_timeout_seconds
+        self.command_timeout_seconds: float = resolved_timeout
 
     async def save_report_binary(self, payload: ReportBinaryPayloadDTO) -> None:
         """Persist a ReportBinaryPayloadDTO into report_binaries (BYTEA TOAST) and mark has_pdf.
@@ -1162,7 +1168,20 @@ class PostgresEntityAdapter:
         entity_label: str,
         entity_id: str,
     ) -> str:
-        """Execute a parameterized upsert statement and translate transport errors to AppException."""
+        """Execute a parameterized upsert statement and translate transport errors to AppException.
+
+        Args:
+            sql: Parameterized INSERT ... ON CONFLICT DO UPDATE statement.
+            *args: Positional SQL bind arguments.
+            entity_label: Human-readable entity type label for structured error logging.
+            entity_id: Canonical Opaque Stripe ID of the entity being persisted.
+
+        Returns:
+            Canonical entity_id persisted into PostgreSQL 19.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED if the database command fails.
+        """
         try:
             await self._conn.execute(sql, *args, timeout=self.command_timeout_seconds)
         except Exception as exc:
@@ -1184,7 +1203,14 @@ class PostgresEntityAdapter:
         return entity_id
 
     def _hydrate_organization_row(self, row: AsyncPgRecordProtocol) -> Organization:
-        """Hydrate an Organization from a database row."""
+        """Hydrate an Organization from a database row.
+
+        Args:
+            row: Database record from the organizations table.
+
+        Returns:
+            Validated Organization domain model.
+        """
         return Organization.model_validate(
             {
                 "id": row["id"],
@@ -1204,7 +1230,17 @@ class PostgresEntityAdapter:
         )
 
     async def upsert_organization(self, org: Organization) -> str:
-        """Persist an Organization into the organizations table."""
+        """Persist an Organization into the organizations table.
+
+        Args:
+            org: Validated Organization domain model.
+
+        Returns:
+            Canonical org_<hex> organization identifier.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+        """
         return await self._execute_upsert(
             _UPSERT_ORGANIZATION_SQL,
             org.id,
@@ -1224,14 +1260,28 @@ class PostgresEntityAdapter:
         )
 
     async def get_organization(self, org_id: str) -> Organization | None:
-        """Fetch an Organization by ID."""
+        """Fetch an Organization by ID.
+
+        Args:
+            org_id: Canonical org_<hex> organization identifier.
+
+        Returns:
+            Hydrated Organization instance if found, or None.
+        """
         row = await self._conn.fetchrow(_GET_ORGANIZATION_SQL, org_id, timeout=self.command_timeout_seconds)
         if row is None:
             return None
         return self._hydrate_organization_row(row)
 
     def _hydrate_user_row(self, row: AsyncPgRecordProtocol) -> User:
-        """Hydrate a User from a database row."""
+        """Hydrate a User from a database row.
+
+        Args:
+            row: Database record from the users table.
+
+        Returns:
+            Validated User domain model.
+        """
         return User.model_validate(
             {
                 "id": row["id"],
@@ -1250,7 +1300,17 @@ class PostgresEntityAdapter:
         )
 
     async def upsert_user(self, user: User) -> str:
-        """Persist a User into the users table."""
+        """Persist a User into the users table.
+
+        Args:
+            user: Validated User domain model.
+
+        Returns:
+            Canonical usr_<hex> user identifier.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+        """
         return await self._execute_upsert(
             _UPSERT_USER_SQL,
             user.id,
@@ -1269,7 +1329,14 @@ class PostgresEntityAdapter:
         )
 
     async def get_user(self, user_id: str) -> User | None:
-        """Fetch a User by ID."""
+        """Fetch a User by ID.
+
+        Args:
+            user_id: Canonical usr_<hex> user identifier.
+
+        Returns:
+            Hydrated User instance if found, or None.
+        """
         row = await self._conn.fetchrow(_GET_USER_SQL, user_id, timeout=self.command_timeout_seconds)
         if row is None:
             return None
@@ -1278,7 +1345,14 @@ class PostgresEntityAdapter:
     def _hydrate_system_config_row(
         self, row: AsyncPgRecordProtocol
     ) -> SystemConfigModelRegistry | SystemConfigMCPGateways:
-        """Hydrate a polymorphic SystemConfig from a database row."""
+        """Hydrate a polymorphic SystemConfig from a database row.
+
+        Args:
+            row: Database record from the system_configs table.
+
+        Returns:
+            Validated SystemConfigModelRegistry or SystemConfigMCPGateways instance.
+        """
         cfg_type = row["type"]
         if cfg_type == "mcp_gateways":
             return SystemConfigMCPGateways.model_validate(
@@ -1308,7 +1382,17 @@ class PostgresEntityAdapter:
         )
 
     async def upsert_system_config(self, cfg: SystemConfigModelRegistry | SystemConfigMCPGateways) -> str:
-        """Persist a SystemConfigModelRegistry or SystemConfigMCPGateways into system_configs."""
+        """Persist a SystemConfigModelRegistry or SystemConfigMCPGateways into system_configs.
+
+        Args:
+            cfg: Validated SystemConfigModelRegistry or SystemConfigMCPGateways domain model.
+
+        Returns:
+            Canonical sys_<hex> system configuration identifier.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+        """
         dumped = cfg.model_dump(mode="json")
         if isinstance(cfg, SystemConfigMCPGateways):
             return await self._execute_upsert(
@@ -1349,14 +1433,28 @@ class PostgresEntityAdapter:
         )
 
     async def get_system_config(self, config_id: str) -> SystemConfigModelRegistry | SystemConfigMCPGateways | None:
-        """Fetch a SystemConfig by ID."""
+        """Fetch a SystemConfig by ID.
+
+        Args:
+            config_id: Canonical sys_<hex> system configuration identifier.
+
+        Returns:
+            Hydrated SystemConfigModelRegistry or SystemConfigMCPGateways if found, or None.
+        """
         row = await self._conn.fetchrow(_GET_SYSTEM_CONFIG_SQL, config_id, timeout=self.command_timeout_seconds)
         if row is None:
             return None
         return self._hydrate_system_config_row(row)
 
     def _hydrate_prompt_block_row(self, row: AsyncPgRecordProtocol) -> AnyPromptBlock:
-        """Hydrate a polymorphic AnyPromptBlock from a database row."""
+        """Hydrate a polymorphic AnyPromptBlock from a database row.
+
+        Args:
+            row: Database record from the prompt_blocks table.
+
+        Returns:
+            Validated MatrixPromptBlock, PersonaPromptBlock, ProtocolPromptBlock, or SystemRulePromptBlock.
+        """
         cat = str(row["category_id"])
         if cat == PromptBlockCategory.MATRIX.value:
             return MatrixPromptBlock.model_validate(
@@ -1446,7 +1544,17 @@ class PostgresEntityAdapter:
         )
 
     async def upsert_prompt_block(self, block: AnyPromptBlock) -> str:
-        """Persist a polymorphic AnyPromptBlock into prompt_blocks."""
+        """Persist a polymorphic AnyPromptBlock into prompt_blocks.
+
+        Args:
+            block: Validated concrete PromptBlock domain model.
+
+        Returns:
+            Canonical blk_<hex> prompt block identifier.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+        """
         dumped = block.model_dump(mode="json")
         allow_ctx_override = False
         target_input_key: str | None = None
@@ -1509,14 +1617,28 @@ class PostgresEntityAdapter:
         )
 
     async def get_prompt_block(self, block_id: str) -> AnyPromptBlock | None:
-        """Fetch an AnyPromptBlock by ID."""
+        """Fetch an AnyPromptBlock by ID.
+
+        Args:
+            block_id: Canonical blk_<hex> prompt block identifier.
+
+        Returns:
+            Hydrated AnyPromptBlock instance if found, or None.
+        """
         row = await self._conn.fetchrow(_GET_PROMPT_BLOCK_SQL, block_id, timeout=self.command_timeout_seconds)
         if row is None:
             return None
         return self._hydrate_prompt_block_row(row)
 
     def _hydrate_step_row(self, row: AsyncPgRecordProtocol) -> Step:
-        """Hydrate a Step from a database row."""
+        """Hydrate a Step from a database row.
+
+        Args:
+            row: Database record from the steps table.
+
+        Returns:
+            Validated Step domain model.
+        """
         return Step.model_validate(
             {
                 "id": row["id"],
@@ -1545,7 +1667,17 @@ class PostgresEntityAdapter:
         )
 
     async def upsert_step(self, step: Step) -> str:
-        """Persist a Step into steps."""
+        """Persist a Step into steps.
+
+        Args:
+            step: Validated Step domain model.
+
+        Returns:
+            Canonical stp_<hex> step identifier.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+        """
         dumped = step.model_dump(mode="json")
         cognitive_tier_str: str | None = None
         if step.cognitive_tier is not None:
@@ -1578,14 +1710,28 @@ class PostgresEntityAdapter:
         )
 
     async def get_step(self, step_id: str) -> Step | None:
-        """Fetch a Step by ID."""
+        """Fetch a Step by ID.
+
+        Args:
+            step_id: Canonical stp_<hex> step identifier.
+
+        Returns:
+            Hydrated Step instance if found, or None.
+        """
         row = await self._conn.fetchrow(_GET_STEP_SQL, step_id, timeout=self.command_timeout_seconds)
         if row is None:
             return None
         return self._hydrate_step_row(row)
 
     def _hydrate_workflow_row(self, row: AsyncPgRecordProtocol) -> Workflow:
-        """Hydrate a Workflow from a database row."""
+        """Hydrate a Workflow from a database row.
+
+        Args:
+            row: Database record from the workflows table.
+
+        Returns:
+            Validated Workflow domain model.
+        """
         return Workflow.model_validate(
             {
                 "id": row["id"],
@@ -1616,7 +1762,17 @@ class PostgresEntityAdapter:
         )
 
     async def upsert_workflow(self, wf: Workflow) -> str:
-        """Persist a Workflow into workflows."""
+        """Persist a Workflow into workflows.
+
+        Args:
+            wf: Validated Workflow domain model.
+
+        Returns:
+            Canonical wor_<hex> workflow identifier.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+        """
         dumped = wf.model_dump(mode="json")
         return await self._execute_upsert(
             _UPSERT_WORKFLOW_SQL,
@@ -1648,14 +1804,28 @@ class PostgresEntityAdapter:
         )
 
     async def get_workflow(self, workflow_id: str) -> Workflow | None:
-        """Fetch a Workflow by ID."""
+        """Fetch a Workflow by ID.
+
+        Args:
+            workflow_id: Canonical wor_<hex> workflow identifier.
+
+        Returns:
+            Hydrated Workflow instance if found, or None.
+        """
         row = await self._conn.fetchrow(_GET_WORKFLOW_SQL, workflow_id, timeout=self.command_timeout_seconds)
         if row is None:
             return None
         return self._hydrate_workflow_row(row)
 
     def _hydrate_output_profile_row(self, row: AsyncPgRecordProtocol) -> OutputProfile:
-        """Hydrate an OutputProfile from a database row."""
+        """Hydrate an OutputProfile from a database row.
+
+        Args:
+            row: Database record from the output_profiles table.
+
+        Returns:
+            Validated OutputProfile domain model.
+        """
         return OutputProfile.model_validate(
             {
                 "id": row["id"],
@@ -1703,7 +1873,17 @@ class PostgresEntityAdapter:
         )
 
     async def upsert_output_profile(self, profile: OutputProfile) -> str:
-        """Persist an OutputProfile into output_profiles."""
+        """Persist an OutputProfile into output_profiles.
+
+        Args:
+            profile: Validated OutputProfile domain model.
+
+        Returns:
+            Canonical prf_<hex> output profile identifier.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+        """
         dumped = profile.model_dump(mode="json")
         language_str: str | None = None
         if profile.language is not None:
@@ -1755,14 +1935,28 @@ class PostgresEntityAdapter:
         )
 
     async def get_output_profile(self, profile_id: str) -> OutputProfile | None:
-        """Fetch an OutputProfile by ID."""
+        """Fetch an OutputProfile by ID.
+
+        Args:
+            profile_id: Canonical prf_<hex> output profile identifier.
+
+        Returns:
+            Hydrated OutputProfile instance if found, or None.
+        """
         row = await self._conn.fetchrow(_GET_OUTPUT_PROFILE_SQL, profile_id, timeout=self.command_timeout_seconds)
         if row is None:
             return None
         return self._hydrate_output_profile_row(row)
 
     def _hydrate_report_artifact_row(self, row: AsyncPgRecordProtocol) -> ReportArtifact:
-        """Hydrate a ReportArtifact from a database row."""
+        """Hydrate a ReportArtifact from a database row.
+
+        Args:
+            row: Database record from the report_artifacts table.
+
+        Returns:
+            Validated ReportArtifact domain model.
+        """
         return ReportArtifact.model_validate(
             {
                 "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.REPORT),
@@ -1783,7 +1977,18 @@ class PostgresEntityAdapter:
         )
 
     async def upsert_report_artifact(self, artifact: ReportArtifact) -> str:
-        """Persist a ReportArtifact into report_artifacts."""
+        """Persist a ReportArtifact into report_artifacts.
+
+        Args:
+            artifact: Validated ReportArtifact domain model.
+
+        Returns:
+            Canonical rep_<uuid7_hex> report artifact identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED on invalid report ID or
+                STORAGE_ACCESS_FAILED if persistence fails.
+        """
         report_uuid = parse_prefixed_uuid7(artifact.id, EntityPrefix.REPORT)
         dumped = artifact.model_dump(mode="json")
         return await self._execute_upsert(
@@ -1807,7 +2012,17 @@ class PostgresEntityAdapter:
         )
 
     async def get_report_artifact(self, report_id: str) -> ReportArtifact | None:
-        """Fetch a ReportArtifact by ID."""
+        """Fetch a ReportArtifact by ID.
+
+        Args:
+            report_id: Canonical rep_<uuid7_hex> report artifact identifier.
+
+        Returns:
+            Hydrated ReportArtifact instance if found, or None.
+
+        Raises:
+            AppException: With VALIDATION_FAILED on invalid report_id.
+        """
         report_uuid = parse_prefixed_uuid7(report_id, EntityPrefix.REPORT)
         row = await self._conn.fetchrow(_GET_REPORT_ARTIFACT_SQL, report_uuid, timeout=self.command_timeout_seconds)
         if row is None:
@@ -1825,7 +2040,8 @@ class PostgresEntityAdapter:
             Number of rows upserted.
 
         Raises:
-            AppException: If collection_name is unsupported or a database error occurs.
+            AppException: With VALIDATION_FAILED if collection_name or item type is unsupported,
+                or STORAGE_ACCESS_FAILED if a database error occurs.
         """
         if collection_name not in _COLLECTION_TO_TABLE_MAP:
             msg = f"Unsupported seed collection '{collection_name}'."
@@ -1894,7 +2110,8 @@ class PostgresEntityAdapter:
             Dictionary mapping canonical table name to actual row count in PostgreSQL 19.
 
         Raises:
-            AppException: If any table fails query execution or has fewer rows than expected.
+            AppException: With VALIDATION_FAILED if expected_counts references an unknown table,
+                or STORAGE_ACCESS_FAILED if any table fails query execution or has fewer rows than expected.
         """
         actual_counts: dict[str, int] = {}
         for table_name in CANONICAL_SEED_TABLES:
@@ -1959,7 +2176,14 @@ class PostgresEntityAdapter:
         return actual_counts
 
     async def list_collection_documents(self, collection_name: str) -> list[dict[str, JsonValue]]:
-        """List all documents from a canonical PostgreSQL 19 table as JSON-compatible dictionaries."""
+        """List all documents from a canonical PostgreSQL 19 table as JSON-compatible dictionaries.
+
+        Args:
+            collection_name: Canonical collection or table name.
+
+        Returns:
+            List of serialized document dictionaries from the mapped table.
+        """
         if collection_name not in _COLLECTION_TO_TABLE_MAP:
             return []
         table_name = _COLLECTION_TO_TABLE_MAP[collection_name]
@@ -1993,7 +2217,15 @@ class PostgresEntityAdapter:
         return []
 
     async def get_collection_document(self, collection_name: str, doc_id: str) -> dict[str, JsonValue] | None:
-        """Fetch a single document by ID from a canonical PostgreSQL 19 table."""
+        """Fetch a single document by ID from a canonical PostgreSQL 19 table.
+
+        Args:
+            collection_name: Canonical collection or table name.
+            doc_id: Primary document identifier.
+
+        Returns:
+            Serialized document dictionary if found and valid, or None.
+        """
         if collection_name not in _COLLECTION_TO_TABLE_MAP:
             return None
         table_name = _COLLECTION_TO_TABLE_MAP[collection_name]
@@ -2029,7 +2261,16 @@ class PostgresEntityAdapter:
     async def upsert_collection_document(
         self, collection_name: str, doc_id: str, data: Mapping[str, JsonValue]
     ) -> bool:
-        """Validate and upsert a document dictionary into its canonical PostgreSQL 19 table if schema-valid."""
+        """Validate and upsert a document dictionary into its canonical PostgreSQL 19 table if schema-valid.
+
+        Args:
+            collection_name: Canonical collection or table name.
+            doc_id: Primary document identifier.
+            data: Raw document dictionary to validate and persist.
+
+        Returns:
+            True if the document validated against the table's domain schema and was persisted, else False.
+        """
         if collection_name not in _COLLECTION_TO_TABLE_MAP:
             return False
         table_name = _COLLECTION_TO_TABLE_MAP[collection_name]
@@ -2072,7 +2313,15 @@ class PostgresEntityAdapter:
         return False
 
     async def delete_collection_document(self, collection_name: str, doc_id: str) -> bool:
-        """Delete a row by ID from a canonical PostgreSQL 19 table."""
+        """Delete a row by ID from a canonical PostgreSQL 19 table.
+
+        Args:
+            collection_name: Canonical collection or table name.
+            doc_id: Primary document identifier.
+
+        Returns:
+            True if a row was deleted, else False.
+        """
         if collection_name not in _COLLECTION_TO_TABLE_MAP:
             return False
         table_name = _COLLECTION_TO_TABLE_MAP[collection_name]
@@ -2106,7 +2355,11 @@ class PostgresEntityAdapter:
         return status_str.endswith(" 1")
 
     async def clear_collection_documents(self, collection_name: str) -> None:
-        """Delete all rows from a canonical PostgreSQL 19 table."""
+        """Delete all rows from a canonical PostgreSQL 19 table.
+
+        Args:
+            collection_name: Canonical collection or table name.
+        """
         if collection_name not in _COLLECTION_TO_TABLE_MAP:
             return
         table_name = _COLLECTION_TO_TABLE_MAP[collection_name]

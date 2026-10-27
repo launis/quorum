@@ -47,7 +47,7 @@ from backend_v2.database.postgres.graph_adapter import (
     _hydrate_payload_dto,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import Organization, User
+from backend_v2.models.auth import Organization, SubscriptionStatus, User
 from backend_v2.models.core_base import (
     I18nText,
     V2CoreBase,
@@ -1184,6 +1184,11 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
         lambda: settings,
         raising=False,
     )
+    monkeypatch.setattr(
+        "backend_v2.database.postgres.entity_adapter.get_settings",
+        lambda: settings,
+        raising=False,
+    )
     manager = PostgresPoolManager(settings=settings, pool=pool)
     run_id = generate_uuid7_opaque_id(EntityPrefix.EXECUTION)
     node_id_1 = generate_uuid7_opaque_id(EntityPrefix.NODE)
@@ -1209,8 +1214,10 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
     async with manager.acquire_connection() as default_conn:
         default_graph = PostgresGraphAdapter(connection=default_conn)
         default_reasoning = CteReasoningStrategy(connection=default_conn)
+        default_entities = PostgresEntityAdapter(connection=default_conn)
         assert default_graph.command_timeout_seconds == 22.5
         assert default_reasoning.command_timeout_seconds == 22.5
+        assert default_entities.command_timeout_seconds == 22.5
 
     # Verify calling UoW ports outside 'async with uow:' fails fast with STORAGE_ACCESS_FAILED
     unbound_uow = PostgresUnitOfWork(pool_manager=manager)
@@ -1376,6 +1383,15 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
             with pytest.raises(AppException) as exc_get_exec:
                 await entities.get_execution(run_id)
             assert exc_get_exec.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+            with pytest.raises(AppException) as exc_verify_counts:
+                await entities.verify_seed_table_counts({"organizations": 0})
+            assert exc_verify_counts.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+            pool.inject_fault("fetchrow", app_row_err)
+            with pytest.raises(AppException) as exc_verify_counts_direct:
+                await entities.verify_seed_table_counts({"organizations": 0})
+            assert exc_verify_counts_direct.value is app_row_err
         finally:
             pool.clear_faults()
 
@@ -1388,6 +1404,31 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
             with pytest.raises(AppException) as exc_save_exec:
                 await entities.save_execution(exec_record)
             assert exc_save_exec.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+            org_model = Organization(
+                id="org_1111111111111111",
+                slug="fault-org",
+                name="Fault Org",
+                is_active=True,
+                tier="enterprise",
+                subscription_status=SubscriptionStatus.ACTIVE,
+                quota_limit=500.0,
+                tpm_limit=100000,
+                rpm_limit=1000,
+            )
+            with pytest.raises(AppException) as exc_upsert_org:
+                await entities.upsert_organization(org_model)
+            assert exc_upsert_org.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+            app_exec_err = AppException(
+                message="Direct AppException from execute",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+            pool.inject_fault("execute", app_exec_err)
+            with pytest.raises(AppException) as exc_upsert_org_direct:
+                await entities.upsert_organization(org_model)
+            assert exc_upsert_org_direct.value is app_exec_err
         finally:
             pool.clear_faults()
 
