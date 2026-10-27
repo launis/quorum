@@ -22,6 +22,7 @@ def handler(mock_repo: InMemoryUnifiedWorkflowRepository) -> LLMHandler:
 
 def test_settings_enabled_providers_with_anthropic() -> None:
     """Test that settings.enabled_providers dynamically includes 'anthropic'."""
+    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
     settings = Settings(
         use_mock_llm=False,
         google_api_key="fake-google-key",
@@ -29,7 +30,6 @@ def test_settings_enabled_providers_with_anthropic() -> None:
         anthropic_api_key="fake-anthropic-key",
         vertex_location="europe-north1",
         discovery_location="us-central1",
-        storage_backend="LOCAL",
     )
     providers = settings.enabled_providers
     assert "ai_studio" in providers
@@ -39,6 +39,7 @@ def test_settings_enabled_providers_with_anthropic() -> None:
 
 def test_settings_enabled_providers_without_anthropic() -> None:
     """Test that settings.enabled_providers excludes 'anthropic' when key is missing."""
+    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
     settings = Settings(
         use_mock_llm=False,
         google_api_key="fake-google-key",
@@ -46,7 +47,6 @@ def test_settings_enabled_providers_without_anthropic() -> None:
         anthropic_api_key=None,
         vertex_location="europe-north1",
         discovery_location="us-central1",
-        storage_backend="LOCAL",
     )
     providers = settings.enabled_providers
     assert "ai_studio" in providers
@@ -169,3 +169,26 @@ def test_llm_factory_api_key_resolution(mock_get_settings: MagicMock) -> None:
     )
     assert isinstance(provider_litellm, LiteLLMProvider)
     assert provider_litellm.api_key == "anthropic-key"
+
+
+def test_settings_active_backend_invalid_value_error() -> None:
+    """Test that Settings.active_backend raises ConfigurationError on invalid legacy backend values."""
+    from backend_v2.exceptions import ConfigurationError
+
+    invalid_settings = Settings(storage_backend="INVALID_BACKEND")
+    with pytest.raises(ConfigurationError, match="Unsupported STORAGE_BACKEND"):
+        _ = invalid_settings.active_backend
+
+
+@patch("backend_v2.llm.provider.get_settings")
+def test_llm_factory_create_provider_invalid_empty_model_error(mock_get_settings: MagicMock) -> None:
+    """Test that LLMFactory.create_provider raises ConfigurationError when model_name is empty."""
+    from backend_v2.exceptions import ConfigurationError
+
+    mock_settings = MagicMock()
+    mock_settings.use_mock_llm = False
+    mock_settings.openai_api_key = "openai-key"
+    mock_get_settings.return_value = mock_settings
+
+    with pytest.raises(ConfigurationError, match="Model name is required"):
+        LLMFactory.create_provider(provider_type="openai", model_name="")

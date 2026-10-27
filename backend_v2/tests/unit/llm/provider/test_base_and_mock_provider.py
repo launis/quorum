@@ -108,7 +108,7 @@ async def test_logfire_shielded_client_delegates_async_context_and_attributes() 
 @pytest.mark.asyncio
 async def test_mock_provider_consumes_mock_identity_directly(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verifies that MockProvider forwards mock_identity to MockLLMService and strips internal keys identically to pre-extraction behavior."""
-    fast_settings = Settings(pacing_delay_mock_seconds=0, storage_backend="LOCAL")
+    fast_settings = Settings(pacing_delay_mock_seconds=0)
     monkeypatch.setattr(base_mock_mod, "get_settings", lambda: fast_settings)
 
     provider = MockProvider(model_name="mock-model")
@@ -156,7 +156,7 @@ async def test_mock_provider_lifecycle_branches_and_negative_paths(
     tmp_path: Path,
 ) -> None:
     """Verify MockProvider parameter validation, diagnostic dump, pacing, response formats, and usage tracking."""
-    paced_settings = Settings(pacing_delay_mock_seconds=1, storage_backend="LOCAL")
+    paced_settings = Settings(pacing_delay_mock_seconds=1)
     monkeypatch.setattr(base_mock_mod, "get_settings", lambda: paced_settings)
 
     sleep_mock = AsyncMock()
@@ -291,9 +291,9 @@ async def test_logfire_shielded_client() -> None:
 @pytest.mark.asyncio
 async def test_mock_provider_full_lifecycle(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Verify MockProvider parameter checks, prompt dump, and usage tracking."""
+    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
     mock_settings = Settings(
         pacing_delay_mock_seconds=0,
-        storage_backend="LOCAL",
     )
     monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
 

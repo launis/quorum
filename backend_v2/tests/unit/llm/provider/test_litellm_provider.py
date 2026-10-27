@@ -87,12 +87,12 @@ def test_litellm_provider_init_validates_limits_and_caches_router_and_semaphores
     LiteLLMProvider._router_cache.clear()
     LiteLLMProvider._semaphores.clear()
 
+    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
     test_settings = Settings(
         semaphore_low_rpm_threshold=60,
         semaphore_low_rpm_limit=2,
         semaphore_max_concurrency=20,
         semaphore_rpm_divisor=10,
-        storage_backend="LOCAL",
     )
     monkeypatch.setattr(litellm_provider_mod, "get_settings", lambda: test_settings)
 
@@ -274,12 +274,12 @@ async def test_litellm_provider_generate_retries_httpx_shield_and_fail_fast_guar
     LiteLLMProvider._semaphores.clear()
     LiteLLMProvider._httpx_clients.clear()
 
+    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
     fast_settings = Settings(
         llm_max_transient_retries=1,
         llm_retry_jitter_initial_seconds=0,
         llm_retry_max_seconds=1,
         llm_retry_jitter_exp_base=1,
-        storage_backend="LOCAL",
     )
     monkeypatch.setattr(provider_facade, "get_settings", lambda: fast_settings)
     monkeypatch.setattr(provider_facade, "apply_provider_pacing", AsyncMock())

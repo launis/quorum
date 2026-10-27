@@ -293,7 +293,7 @@ def test_extract_trace_metadata_forensic_summary_and_reports(tmp_path: Path) -> 
     """Test extracting workflow_id, profile_id, and Finnish locale from summary and reports."""
     from scripts.reconcile_storage import _extract_profile_id, _extract_trace_metadata
 
-    exe_dir = tmp_path / "artifacts" / "executions" / "exe_test1234567890"
+    exe_dir = tmp_path / "artifacts" / "executions" / "exe_1111222233334444"
     exe_dir.mkdir(parents=True, exist_ok=True)
     trace_file = exe_dir / "execution_trace.json"
     trace_file.write_text("[]", encoding="utf-8")
@@ -316,7 +316,7 @@ def test_extract_metadata_and_profile_from_reports_sdui(tmp_path: Path) -> None:
     """Test extracting workflow_id and profile_id from report.sdui.json."""
     from scripts.reconcile_storage import _extract_profile_id, _extract_trace_metadata
 
-    exe_name = "exe_sdui1234567890"
+    exe_name = "exe_5555666677778888"
     exe_dir = tmp_path / "executions" / exe_name
     exe_dir.mkdir(parents=True, exist_ok=True)
     trace_file = exe_dir / "execution_trace.json"
@@ -390,3 +390,34 @@ def test_reconstitute_execution_record_with_template(tmp_path: Path) -> None:
     assert rec.output_profile_id == "prof_template"
     assert rec.pdf_report_path is not None
     assert rec.context_variables_storage_path is not None
+
+
+def test_load_execution_records_invalid_json_error(tmp_path: Path) -> None:
+    """Test that _load_execution_records returns empty list on malformed JSON and ReconciliationReport forbids extra fields."""
+    from pydantic import ValidationError
+
+    from scripts.reconcile_storage import _load_execution_records
+
+    corrupt_file = tmp_path / "corrupt.json"
+    corrupt_file.write_text("{invalid-json", encoding="utf-8")
+    assert _load_execution_records(corrupt_file) == []
+
+    with pytest.raises(ValidationError):
+        ReconciliationReport.model_validate(
+            {
+                "db_path": "a",
+                "storage_dir": "b",
+                "is_synced": True,
+                "unexpected_extra": "forbidden",
+            }
+        )
+
+
+def test_reconcile_storage_main_cli_invalid_argument_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that CLI main() raises SystemExit(2) when conflicting --check and --fix flags are passed."""
+    from scripts.reconcile_storage import main
+
+    monkeypatch.setattr("sys.argv", ["reconcile_storage.py", "--check", "--fix"])
+    with pytest.raises(SystemExit) as exc:
+        main()
+    assert exc.value.code == 2

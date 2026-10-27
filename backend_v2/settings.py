@@ -803,12 +803,12 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def is_cloud_storage(self) -> bool:
-        """Returns True if cloud bucket storage is configured or FIRESTORE backend is active.
+        """Returns True if cloud bucket storage is configured.
 
         Returns:
             Boolean value signifying cloud integration state.
         """
-        return bool(self.storage_bucket_name) or self.active_backend == StorageBackend.FIRESTORE
+        return bool(self.storage_bucket_name)
 
     model_config = SettingsConfigDict(
         env_file=str(Path(__file__).resolve().parent.parent / ".env"),
@@ -985,7 +985,7 @@ class Settings(BaseSettings):
     def allow_mock_tokens(self) -> bool:
         """Strictly disallow mock tokens in cloud environments or active Firebase Auth production.
 
-        Allow mock tokens ONLY on PostgreSQL / local storage backend when Firebase Auth is explicitly disabled
+        Allow mock tokens ONLY on PostgreSQL storage backend when Firebase Auth is explicitly disabled
         or when running in development mode.
 
         Returns:
@@ -993,7 +993,7 @@ class Settings(BaseSettings):
         """
         if self.is_cloud_storage:
             return False
-        if self.active_backend not in (StorageBackend.POSTGRES, StorageBackend.LOCAL):
+        if self.active_backend != StorageBackend.POSTGRES:
             return False
         if not self.use_firebase_auth:
             return True
