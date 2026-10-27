@@ -257,15 +257,20 @@ async def test_litellm_provider_generate_full_telemetry_and_toolcalls(
 @pytest.mark.asyncio
 async def test_extract_litellm_content_and_usage_variants_and_error_paths(
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Verifies dict tool_calls, reasoning_blob/model_extra fallbacks, and error handling paths."""
-    with pytest.raises(ServiceUnavailableError, match="Failed to get a response"):
+    with caplog.at_level("ERROR"), pytest.raises(ServiceUnavailableError, match="Failed to get a response"):
         await extract_litellm_content_and_usage(
             response=None,
             model_name="openai/gpt-4o",
             start_time=time.perf_counter(),
             final_messages=[],
         )
+    assert "SERVICE_UNAVAILABLE" in caplog.text
+
+    monkeypatch.delitem(response_stage_mod.sys.modules, "backend_v2.llm.provider", raising=False)
+    assert response_stage_mod._resolve_otel_trace() is otel_trace
 
     monkeypatch.setattr(litellm, "completion_cost", lambda **_: 0.001)
     dict_tc = {"id": "call_dict_1", "type": "function", "function": {"name": "fn_a", "arguments": ""}}

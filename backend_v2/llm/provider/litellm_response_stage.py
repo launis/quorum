@@ -46,7 +46,6 @@ def _resolve_otel_trace() -> Any:
     return otel_trace
 
 
-# Phase 3, Step 1: Hoist _truncate_for_debug from LiteLLMProvider.generate
 def _truncate_for_debug(text: str, label: str) -> None:
     """Log redacted prompt/message character length without leaking raw content.
 
@@ -60,7 +59,6 @@ def _truncate_for_debug(text: str, label: str) -> None:
     logger.info("[LiteLLM] [%s]: Length=%d chars | Content=[REDACTED_FOR_SECURITY]", label, len(text))
 
 
-# Phase 3, Step 1: Extract response parsing, TokenUsage, cost, and OpenTelemetry span stage
 async def extract_litellm_content_and_usage(
     response: Any,
     model_name: str,
@@ -94,6 +92,12 @@ async def extract_litellm_content_and_usage(
     import litellm
 
     if response is None:
+        logger.error(
+            "[LiteLLMProvider] %s: Failed to get a response from the model provider (%s).",
+            ErrorCodes.SERVICE_UNAVAILABLE.name,
+            model_name,
+            exc_info=True,
+        )
         raise ServiceUnavailableError("Failed to get a response from the model provider.")
 
     call_extra: dict[str, Any] = {} if kwargs is None else kwargs
@@ -205,7 +209,7 @@ async def extract_litellm_content_and_usage(
         base_model_name = model_name.split("/")[-1] if "/" in model_name else model_name
         cost = litellm.completion_cost(completion_response=response, model=base_model_name)
     except Exception as e:
-        logger.error("[LiteLLMProvider] Cost Calculation Failed: %s", e)
+        logger.error("[LiteLLMProvider] Cost Calculation Failed: %s", e, exc_info=True)
         raise AgentExecutionError(detail=ErrorCodes.UNKNOWN_ERROR, original_error=e, agent_name=model_name) from e
 
     if usage_service:
@@ -232,7 +236,7 @@ async def extract_litellm_content_and_usage(
                 cost_usd=cost,
             )
         except Exception as e:
-            logger.error("[LiteLLMProvider] Usage Tracking Failed: %s", e)
+            logger.error("[LiteLLMProvider] Usage Tracking Failed: %s", e, exc_info=True)
             raise AppException(
                 message=f"Usage Tracking Failed: {e}",
                 status_code=500,
@@ -280,7 +284,6 @@ async def extract_litellm_content_and_usage(
     )
 
 
-# Phase 3, Step 1: Extract post-retry RFC 7807 exception classification stage
 def classify_and_raise_litellm_error(e: Exception, model_name: str) -> Any:
     """Record exception on active OpenTelemetry span and raise mapped RFC 7807 AppException.
 
@@ -317,7 +320,7 @@ def classify_and_raise_litellm_error(e: Exception, model_name: str) -> Any:
 
     if isinstance(e, litellm_exc.RateLimitError) or status_code == 429 or "Resource exhausted" in error_msg:
         rl_code = ErrorCodes.RATE_LIMIT_EXCEEDED
-        logger.error("[LiteLLM] %s: RESOURCE EXHAUSTED (Retries depleted): %s", rl_code.name, error_msg)
+        logger.error("[LiteLLM] %s: RESOURCE EXHAUSTED (Retries depleted): %s", rl_code.name, error_msg, exc_info=True)
         raise ServiceUnavailableError(
             message="Model provider rate limit exceeded and all automatic retries failed.",
             details={"error_code": rl_code.value, "original_error": error_msg},
@@ -325,7 +328,7 @@ def classify_and_raise_litellm_error(e: Exception, model_name: str) -> Any:
 
     if "InstructorRetryException" in error_type or "ResponseParsingError" in error_type:
         parse_code = ErrorCodes.AGENT_RESPONSE_PARSING_FAILED
-        logger.error("[LiteLLM] %s: INSTRUCTOR / MODEL FAILURE: %s", parse_code.name, error_msg)
+        logger.error("[LiteLLM] %s: INSTRUCTOR / MODEL FAILURE: %s", parse_code.name, error_msg, exc_info=True)
         raise AppException(
             message="Model failed to generate structured output (empty response or looping).",
             status_code=500,
@@ -334,7 +337,7 @@ def classify_and_raise_litellm_error(e: Exception, model_name: str) -> Any:
 
     if isinstance(e, litellm_exc.AuthenticationError) or status_code in (401, 403) or "invalid_api_key" in error_msg:
         cfg_code = ErrorCodes.CONFIGURATION_ERROR
-        logger.critical("[LiteLLM] %s: AUTH FAILED (Check API Keys): %s", cfg_code.name, error_msg)
+        logger.error("[LiteLLM] %s: AUTH FAILED (Check API Keys): %s", cfg_code.name, error_msg, exc_info=True)
         raise ConfigurationError(
             message="LLM Provider authentication failed.",
             details={"error_code": cfg_code.value, "original_error": "Invalid API Key or Credential"},
@@ -344,26 +347,31 @@ def classify_and_raise_litellm_error(e: Exception, model_name: str) -> Any:
         status_code == 400 and ("context" in error_msg.lower() or "token" in error_msg.lower())
     ):
         err_code = ErrorCodes.AGENT_EXECUTION_CRITICAL
-        logger.error("[LiteLLM] %s: CONTEXT EXCEEDED (Prompt too long): %s", err_code.name, error_msg)
+        logger.error("[LiteLLM] %s: CONTEXT EXCEEDED (Prompt too long): %s", err_code.name, error_msg, exc_info=True)
         raise AgentExecutionError(detail=err_code, original_error=e, agent_name=model_name) from e
 
     if status_code == 400:
         err_code = ErrorCodes.AGENT_RESPONSE_MALFORMED
-        logger.error("[LiteLLM] %s: BAD REQUEST (400): %s", err_code.name, error_msg)
+        logger.error("[LiteLLM] %s: BAD REQUEST (400): %s", err_code.name, error_msg, exc_info=True)
         raise AgentExecutionError(detail=err_code, original_error=e, agent_name=model_name) from e
 
     if isinstance(e, (litellm_exc.ServiceUnavailableError, litellm_exc.Timeout, asyncio.TimeoutError)) or (
         isinstance(status_code, int) and status_code in (408, 500, 502, 503, 504)
     ):
         to_code = ErrorCodes.UPSTREAM_TIMEOUT
-        logger.error("[LiteLLM] %s: SERVICE UNAVAILABLE (Upstream/Timeout): %s", to_code.name, error_msg)
+        logger.error("[LiteLLM] %s: SERVICE UNAVAILABLE (Upstream/Timeout): %s", to_code.name, error_msg, exc_info=True)
         raise ServiceUnavailableError(
             message="Upstream LLM service timed out or is unavailable.",
             details={"error_code": to_code.value, "original_error": error_msg},
         ) from e
 
     if "ContentPolicyViolation" in error_type or "blocked" in error_msg.lower():
-        logger.warning("[LiteLLM] %s: SAFETY FILTER TRIGGERED: %s", ErrorCodes.SECURITY_VIOLATION.name, error_msg)
+        logger.error(
+            "[LiteLLM] %s: SAFETY FILTER TRIGGERED: %s",
+            ErrorCodes.SECURITY_VIOLATION.name,
+            error_msg,
+            exc_info=True,
+        )
         raise SecurityViolationError(
             message="Content blocked by safety filters.",
             details={"error_code": ErrorCodes.SECURITY_VIOLATION.value, "original_error": error_msg},
