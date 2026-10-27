@@ -4,28 +4,89 @@ This module defines the abstract interface for data storage, enforcing the
 'Write Logic Once, Swap the Driver' pattern over PostgreSQL 19.
 """
 
+from __future__ import annotations
+
+import logging
 from dataclasses import dataclass
-from typing import Any, Literal, Protocol
+from typing import Any, Final, Literal, Protocol
+
+from fastapi import status
+
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
+
+__all__ = [
+    "Filter",
+    "Operator",
+    "StorageDocument",
+    "StorageDriver",
+    "StorageValue",
+]
 
 # Supported operators for queries
-Operator = Literal["==", "!=", "<", "<=", ">", ">=", "in", "array-contains"]
+type Operator = Literal["==", "!=", "<", "<=", ">", ">=", "in", "array-contains"]
 type StorageValue = Any
 type StorageDocument = dict[str, StorageValue]
 
+_VALID_OPERATORS: Final[frozenset[str]] = frozenset({"==", "!=", "<", "<=", ">", ">=", "in", "array-contains"})
 
-@dataclass
+
+@dataclass(frozen=True)
 class Filter:
-    """Represents a single query filter condition."""
+    """Represents a single immutable query filter condition.
+
+    Attributes:
+        field: Document field path to evaluate.
+        operator: Comparison operator from Operator literal set.
+        value: Target comparison value.
+    """
 
     field: str
     operator: Operator
-    value: Any
+    value: StorageValue
+
+    def __post_init__(self) -> None:
+        """Validate filter field and operator invariants.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if field is empty
+                or operator is not in the supported operator set.
+        """
+        if not self.field.strip():
+            msg = "Filter field name cannot be empty."
+            logger.error(
+                "[Filter] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        if self.operator not in _VALID_OPERATORS:
+            msg = f"Unsupported filter operator: '{self.operator}'."
+            logger.error(
+                "[Filter] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
 
 
 class StorageDriver(Protocol):
     """Abstract interface for Database Operations (PostgreSQL 19)."""
 
-    async def get(self, collection: str, doc_id: str) -> dict[str, Any] | None:
+    async def get(self, collection: str, doc_id: str) -> StorageDocument | None:
         """Retrieve a document by ID.
 
         Args:
@@ -36,11 +97,12 @@ class StorageDriver(Protocol):
             A dictionary containing the document data, or None if not found.
 
         Raises:
-            AppException: If the retrieval operation fails.
+            AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.DATABASE_ERROR
+                if the retrieval operation fails.
         """
         ...
 
-    async def upsert(self, collection: str, data: dict[str, Any], doc_id: str) -> str:
+    async def upsert(self, collection: str, data: StorageDocument, doc_id: str) -> str:
         """Create or Update a document.
 
         Args:
@@ -52,11 +114,12 @@ class StorageDriver(Protocol):
             The document ID.
 
         Raises:
-            AppException: If the upsert operation fails.
+            AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.DATABASE_ERROR
+                if the upsert operation fails.
         """
         ...
 
-    async def update(self, collection: str, doc_id: str, updates: dict[str, Any]) -> bool:
+    async def update(self, collection: str, doc_id: str, updates: StorageDocument) -> bool:
         """Partial update of a document.
 
         Args:
@@ -68,7 +131,8 @@ class StorageDriver(Protocol):
             True if successful, False otherwise.
 
         Raises:
-            AppException: If the update operation fails unexpectedly.
+            AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.DATABASE_ERROR
+                if the update operation fails unexpectedly.
         """
         ...
 
@@ -83,7 +147,8 @@ class StorageDriver(Protocol):
             True if the document was deleted successfully.
 
         Raises:
-            AppException: If the deletion operation fails.
+            AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.DATABASE_ERROR
+                if the deletion operation fails.
         """
         ...
 
@@ -94,7 +159,7 @@ class StorageDriver(Protocol):
         limit: int | None = None,
         order_by: str | None = None,
         descending: bool = False,
-    ) -> list[dict[str, Any]]:
+    ) -> list[StorageDocument]:
         """Query a collection with filters, sorting, and limits.
 
         Args:
@@ -108,7 +173,8 @@ class StorageDriver(Protocol):
             A list of dictionaries representing the matched documents.
 
         Raises:
-            AppException: If the query operation fails.
+            AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.DATABASE_ERROR
+                if the query operation fails.
         """
         ...
 
@@ -123,7 +189,8 @@ class StorageDriver(Protocol):
             The total number of documents matching the filters.
 
         Raises:
-            AppException: If the count operation fails.
+            AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.DATABASE_ERROR
+                if the count operation fails.
         """
         ...
 
@@ -134,6 +201,7 @@ class StorageDriver(Protocol):
             collection: The name of the collection to clear.
 
         Raises:
-            AppException: If the clear operation fails.
+            AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.DATABASE_ERROR
+                if the clear operation fails.
         """
         ...
