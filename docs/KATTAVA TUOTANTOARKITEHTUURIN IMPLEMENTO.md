@@ -4,9 +4,12 @@
 > [!NOTE]
 > **Arkkitehtuurin tila ja Single Source of Truth (SSOT)**
 > Tämä asiakirja kokoaa yhteen Cognitive Quorumin tuotantopystytyksen kokonaiskuvan Google Cloud Platformilla (`europe-north1` / Hamina, Suomi). Se korvaa vanhentuneet SQLAlchemy 2.0-, Alembic- ja TinyDB-luonnokset ja nojaa suoraan Quorumin virallisiin 2026-arkkitehtuuristandardeihin:
-> 1. **PostgreSQL 19 Zero-ORM** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`)
-> 2. **B2B SaaS IAM, Token Exchange & Enterprise Hardening** (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`)
-> 3. **GCP Production Deployment** (`@[docs/epic/EPIC_74_Production_Deployment_GCP.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]`, tracker: `@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]`)
+> 1. **PostgreSQL 19 Zero-ORM & Cutover** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`, vaatimukset: `@[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]`)
+> 2. **Kohdennettu Tausta- ja Apukerroksen Karkaisu** (Workers, SDUI Adapters, Utilities)
+> 3. **B2B SaaS IAM, Token Exchange & Enterprise Hardening** (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`)
+> 4. **Firebase Storage & Direct-to-Cloud Signed URLs** (`[NEW] @[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]`)
+> 5. **Frontend & Studio UI Hardening** (Flutter Web & Desktop: Error Boundaries & Dumb Painter)
+> 6. **GCP Production Deployment, Cloud Security & FinOps Hardening** (`@[docs/epic/EPIC_74_Production_Deployment_GCP.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]`, tracker: `@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]`)
 
 ---
 
@@ -444,6 +447,119 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
 
 ---
 
+### Askel 3.1: PostgreSQL 19 Lopullinen Cutover, TinyDB:n Poisto & Täysi Live E2E -Testiajo (Vaihe 2b)
+* **Siirtymä ja Lähtötilanteen Vaikutusanalyysi:**
+  Kun PostgreSQL 19 -perusinfrastruktuuri ja sen tiedostokohtainen hardening (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` ja `@[docs/implementationplans/TRACKER_PostgreSQL.md]`) saavuttavat 100 % hyväksynnän, toteutetaan **Lopullinen Cutover (TinyDB Eradication)** vaatimusmäärittelyn `@[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]` mukaisesti ennen siirtymistä B2B SaaS IAM -vaiheeseen (Askel 4).
+  * **Vaikutus ja saavutettu pohja:** `IMPLEMENTATION_PLAN_PostgreSQL.md`:n ja `TRACKER_PostgreSQL.md`:n valmistuttua DDL-skeema (`001_pg19_uuidv7_schema.sql`), `PostgresPoolManager`, `PostgresEntityAdapter`, `PostgresGraphAdapter` ja `PostgresUnitOfWork` ovat jo valmiina, karkaistuina ja 100 % Zero-ORM AST -valvottuina.
+  * **Cutoverin täsmällinen fokus:** Cutoverissa keskitytään puhtaasti TinyDB:n ja tiedostolukitusten fyysiseen poistamiseen, `run_seed.py`:n uudelleenohjaukseen PostgreSQL 19:ään, `run_local.bat`:n pysyvään siirtämiseen `STORAGE_BACKEND=POSTGRES` -tilaan, `tinydb`-paketin poistoon `pyproject.toml`:sta sekä `QGR017`-AST-laatuportin lukitsemiseen.
+* **Toteutus Quorumin Normaalilla Projektitavalla:**
+  1. **Tier 0 Tutkimus ja Vaikutusanalyysi:**
+     ```powershell
+     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier0-research-plan @[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]"
+     ```
+  2. **Tier 1 Suunnittelu ja Seuranta:**
+     Luodaan `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]` ja `@[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`:
+     ```powershell
+     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier1-plan-tracker-generator @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]"
+     ```
+  3. **Tier 2 Autonominen Suoritus:**
+     ```powershell
+     uv run python scripts/auto_phase_runner.py --tracker docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md --model gemini-4-argon-high
+     ```
+  4. **Tier 2 Autonominen Hardening (Tiedostokohtainen Laatuportti):**
+     ```powershell
+     uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
+     ```
+  5. **Täysi Live E2E -Testiajo (Gate 8 Pariteetti- ja Toimintavarmennus):**
+     Käynnistetään järjestelmä `run_local.bat`-skriptillä PostgreSQL 19 -kontin kanssa ja ajetaan täydellinen monivaiheinen E2E-ajo (`run_workflow_simulation.py` tai `/tier6-execution-monitor`), joka verifioi:
+     * **Vaihe 1 (DAG Heavy LLM Execution):** Tilasiirtymät ja Kahn-aallot tallentuvat suoraan PostgreSQL:n `executions`- ja `trace_events`-tauluihin ilman tiedostolukituksia.
+     * **Vaihe 2 (Asynkroninen synteesi):** Varianssianalyysi ja synteesit tuotetaan rinnakkain.
+     * **Vaihe 3 (Monikanavainen vienti):** Koostetaan ja tallennetaan `report.pdf`, `report.sdui.json`, `report.xlsx` ja `report.csv`.
+     * **Vaihe 4 (Frontend-pariteetti):** Flutter Desktop ja Web noutavat raportin ja SDUI-lohkot virheettömästi (HTTP 200).
+     * **FinOps & Observability:** 0 itseparannustoistoa (`healing_cost_events = 0`), täysi pariteetti aiempaan `exe_2af2f7665e7c477b`-ajoon.
+  6. **Tier 7 Dokumentointi & Tier 8 Auditointi:**
+     ```powershell
+     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier7-describe-architecture @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]"
+     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]"
+     ```
+
+---
+
+### Askel 3.2: Kohdennettu Aluekohtainen Karkaisu (Targeted Hardening: Workers, SDUI & Utilities) (Vaihe 2c)
+* **Tavoite ja Arkkitehtoninen Rooli:**
+  Ennen siirtymistä laajaan B2B SaaS IAM -vaiheeseen (Askel 4) karkaistaan Quorumin kolme keskeisintä asynkronista ja esityskerroksen apualuetta. Nämä muodostavat järjestelmän "selkärangan" (asynkroniset Arq-taustatyöntekijät) ja "hermoston" (SDUI-muuntimet ja matemaattiset aputyökalut). Karkaisu suoritetaan omina itsenäisinä ja hallittuina paketteinaan (`auto_hardening_runner.py` käyttäen mallia `gemini-4-argon-medium` ja alikomentoa `/tier2-hardening-backend`).
+
+#### Paketti 1: Asynkroniset Taustatyöntekijät (`backend_v2/workers/`)
+* **Laajuus & Kesto:** 6 tiedostoa, kestoarvio **~40 min**.
+* **Tavoite:** Taustajonojen täysi vikaturvallisuus, nolla "jumiin jäänyttä" työnkulkua, deterministinen DLQ-luokittelu, `exc_info=True` ja oikeat `ErrorCodes`.
+* **Kohdetiedostot:**
+  1. `@[backend_v2/workers/execution_worker.py]`
+  2. `@[backend_v2/workers/report_worker.py]`
+  3. `@[backend_v2/workers/synthesis_reducers.py]`
+  4. `@[backend_v2/workers/synthesis_tasks.py]`
+  5. `@[backend_v2/workers/synthesis_worker.py]`
+  6. `@[backend_v2/workers/variance_synthesis.py]`
+* **Suorituskomento:**
+  ```powershell
+  uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Workers_Hardening.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
+  ```
+
+#### Paketti 2: SDUI-adapterit & Vientimuuntimet (`backend_v2/services/sdui/adapters/`)
+* **Laajuus & Kesto:** 15 tiedostoa, kestoarvio **~1,5 h**.
+* **Tavoite:** Nolla Flutter- tai PDF-kaatumista puuttuvien tai ääriarvoisten metriikoiden takia, 100 % Dumb Painter -yhteensopivuus, ISTQB-rajatestit ääritilanteille.
+* **Kohdetiedostot:**
+  1. `@[backend_v2/services/sdui/sdui_mapper_service.py]`
+  2. `@[backend_v2/services/sdui/adapters/base_adapter.py]`
+  3. `@[backend_v2/services/sdui/adapters/causal_graph_adapter.py]`
+  4. `@[backend_v2/services/sdui/adapters/executive_summary_adapter.py]`
+  5. `@[backend_v2/services/sdui/adapters/global_score_adapter.py]`
+  6. `@[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]`
+  7. `@[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]`
+  8. `@[backend_v2/services/sdui/adapters/mcp_audit_adapter.py]`
+  9. `@[backend_v2/services/sdui/adapters/metadata_adapter.py]`
+  10. `@[backend_v2/services/sdui/adapters/penalties_adapter.py]`
+  11. `@[backend_v2/services/sdui/adapters/printable_sources_adapter.py]`
+  12. `@[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]`
+  13. `@[backend_v2/services/sdui/adapters/variance_adapter.py]`
+  14. `@[backend_v2/services/sdui/adapters/warning_card_adapter.py]`
+  15. `@[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]`
+* **Suorituskomento:**
+  ```powershell
+  uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_SDUI_Hardening.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
+  ```
+
+#### Paketti 3: Utilities & Apupalvelut (`backend_v2/utils/` + `services/`)
+* **Laajuus & Kesto:** 15 tiedostoa, kestoarvio **~1,5 – 2 h**.
+* **Tavoite:** Tiukat tyypit, nolla `typing.Any`, hiljaisten virhenielujen poisto, `exc_info=True`, suorat Pydantic V2 DTO -validointisäännöt.
+* **Kohdetiedostot:**
+  1. `@[backend_v2/utils/math_utils.py]`
+  2. `@[backend_v2/utils/alias_engine.py]`
+  3. `@[backend_v2/utils/normalization.py]`
+  4. `@[backend_v2/utils/paths.py]`
+  5. `@[backend_v2/utils/pydantic_utils.py]`
+  6. `@[backend_v2/utils/ranked_round_robin.py]`
+  7. `@[backend_v2/utils/redis_patcher.py]`
+  8. `@[backend_v2/utils/static_charts.py]`
+  9. `@[backend_v2/utils/finops_trace_analyzer.py]`
+  10. `@[backend_v2/services/translation_service.py]`
+  11. `@[backend_v2/services/caching_service.py]`
+  12. `@[backend_v2/services/llm_task_executor.py]`
+  13. `@[backend_v2/services/state_sanitizer_service.py]`
+  14. `@[backend_v2/services/mcp/presentation_sanitizer.py]`
+  15. `@[backend_v2/services/orchestrator/localization_compiler.py]`
+* **Suorituskomento:**
+  ```powershell
+  uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Utility_Hardening.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
+  ```
+
+#### Laatuvarmennus:
+Jokaisen karkaisupaketin jälkeen ajetaan koko backendin kattava laatuportti:
+```powershell
+uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
+```
+
+---
+
 ### Askel 4: Suorita B2B SaaS IAM & Hardening (Vaihe 3)
 * **Tavoite:** Ota käyttöön RFC 8693 Token Exchange, 0,1 ms in-RAM JWT -validointi, Redis Fail-Closed Kill-Switch, moniroolivaltuutus ja luotava (create) [NEW] `SecretService`.
 * **Virallinen Eepos:** `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`
@@ -468,6 +584,30 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
 
 ---
 
+### Askel 5.1: Frontend & Studio UI Hardening (Flutter Web & Desktop) (Vaihe 4b)
+* **Tavoite ja Arkkitehtoninen Rooli:**
+  Ennen pilvituotannon käyttöönottoa karkaistaan Flutter Web- ja Desktop -käyttöliittymä (`client_app_v2`), Riverpod-tilanhallinta, SDUI Dumb Painter -renderöinti ja virherajat (`AppErrorBoundary`). Tämä takaa, ettei mikään verkko- tai deserialisointivirhe kaada sovellusta punaiseen virheruutuun (Red Screen of Death), vaan käyttöliittymä toipuu siististi.
+* **Laajuus & Kesto:** ~12–15 tiedostoa (`client_app_v2/lib/features/`, `client_app_v2/lib/shared/`), kestoarvio **~1,5 h**.
+* **Kohdetiedostot:**
+  1. `@[client_app_v2/lib/features/studio/presentation/views/studio_dashboard_view.dart]`
+  2. `@[client_app_v2/lib/features/studio/presentation/widgets/workflow_step_card.dart]`
+  3. `@[client_app_v2/lib/features/studio/presentation/widgets/workflow_steps_tab.dart]`
+  4. `@[client_app_v2/lib/features/reports/presentation/views/report_view.dart]`
+  5. `@[client_app_v2/lib/features/reports/presentation/widgets/sdui_block_renderer.dart]`
+  6. `@[client_app_v2/lib/shared/widgets/app_error_boundary.dart]`
+  7. `@[client_app_v2/lib/core/network/api_client.dart]`
+  8. `@[client_app_v2/lib/core/auth/auth_controller.dart]`
+* **Suorituskomento:**
+  ```powershell
+  uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Hardening.md]" --gate frontend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"
+  ```
+* **Laatuvarmennus:**
+  ```powershell
+  uv run python scripts/flutter_audit_loop.py client_app_v2/ --build
+  ```
+
+---
+
 ### Askel 6: Suorita GCP-tuotantopystytys & `quorum.ai` Domain (Vaihe 5)
 * **Tavoite:** Provisioi GCP europe-north1 -resurssit (Cloud SQL PG19, Cloud Run API & Worker, Memorystore Redis, Secret Manager, Cloud Armor, Cloud Load Balancer) ja kytke Google-Managed SAN SSL `api.quorum.ai`-, `app.quorum.ai`- ja `quorum.fi`-osoitteille.
 * **Virallinen Eepos:** `@[docs/epic/EPIC_74_Production_Deployment_GCP.md]`
@@ -484,4 +624,26 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
   tai suoraan itsenäisessä CLI-sessiossa:
   ```powershell
   agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md] @[docs/implementationplans/TRACKER_GCP_Production_Deployment.md] --full-auto. PERMISSION GRANTED for continuous full-auto execution across all steps. Proceed autonomously through all steps without intermediate confirmations."
+  ```
+
+---
+
+### Askel 6.1: Cloud Security & FinOps Infrastructure Hardening (GCP europe-north1) (Vaihe 5b)
+* **Tavoite ja Arkkitehtoninen Rooli:**
+  Ennen julkisen verkkoliikenteen avaamista `quorum.ai`-osoitteelle karkaistaan GCP europe-north1 -tuotantoympäristön verkkoturvallisuus, WAF-säännöt, pienimmät riittävät käyttöoikeudet (Least Privilege IAM), VPC-eristys ja kustannuskatot (FinOps Circuit Breakers).
+* **Laajuus & Kesto:** Pilvi-infrastruktuurin auditointi ja verifiointi, kestoarvio **~1 h**.
+* **Karkaisualueet:**
+  1. **Cloud Armor WAF & Rate Limiting:** Konfiguroidaan DDoS-suojaus, HTTP Flood -rajoittimet ja SQLi/XSS-suodattimet kuormantasaajassa (`quorum-lb`).
+  2. **Least Privilege IAM Audit:** Varmistetaan, että Cloud Run -palvelutilillä (`quorum-api-sa`) on ainoastaan:
+     * `roles/secretmanager.secretAccessor` (vain vaadituille salaisuuksille)
+     * `roles/cloudsql.client`
+     * `roles/storage.objectAdmin` (vain `quorum-prod-uploads`- ja `quorum-prod-reports`-säilöille)
+     * 0 kpl laajoja projektitason ylläpito-oikeuksia.
+  3. **VPC Private IP Firewall -sulku:** Varmistetaan, että Cloud SQL PostgreSQL 19 ja Memorystore Redis eivät omaa julkista IP-osoitetta (`public_ip = false`) ja sallivat yhteydet ainoastaan sisäisen `quorum-vpc-connector`:in kautta.
+  4. **FinOps Token & Cost Circuit Breakers:** Verifioidaan Redis-pohjaiset TPM/RPM-katot ja hälytysrajat GCP Billing Alertseissa estämään hallitsemattomat tekoälykulut.
+* **Todennuskomento:**
+  ```powershell
+  gcloud compute security-policies describe quorum-armor-policy --project=quorum-prod
+  gcloud sql instances describe quorum-pg19 --format="value(ipAddresses)"
+  uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
   ```

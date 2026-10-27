@@ -130,18 +130,41 @@ uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
 
 # 7. Local Launcher dry-run: start run_local.bat and verify zero TinyDB logs
 .\run_local.bat --no-client
+
+# 8. Full Live E2E Workflow Execution & Parity Verification (Gate 8):
+# Execute a full live end-to-end production workflow run against PostgreSQL 19 to assert 100% parity
+# against the pre-PostgreSQL verified baseline (exe_2af2f7665e7c477b):
+# - DAG Heavy LLM execution, asynchronous synthesis, and multi-channel artifact exports.
+# - Zero healing cost events (healing_cost_events = 0) and zero transient HTTP errors.
+# - Materialize verified physical artifacts: report.pdf, report.sdui.json, report.xlsx, and report.csv.
+# - Validate append-only audit trail in PostgreSQL table trace_events.
+# - Validate Flutter Desktop and Web HTTP 200 responses on /reports/{id}/sdui and /rows.
 ```
 
 ---
 
 ## 4. Execution Protocol & Transition to Plan
 
-Once Phase 1 in the background terminal completes:
-1. Generate the formal implementation plan artifact:
-   `docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md`
-2. Generate its dedicated tracker:
-   `docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md`
-3. Execute the Cutover autonomously:
+The Final Cutover proceeds systematically through Quorum's sovereign project lifecycle once the Phase 1 hardening queue completes:
+
+1. **Tier 0 Research & Impact Analysis:**
+   Run `/tier0-research-plan @[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]` to evaluate how Phase 1 artifacts (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` and `@[docs/implementationplans/TRACKER_PostgreSQL.md]`) have prepared the target state (verified DDL schema, binary JSONB pool, entity and graph adapters, wave uow).
+2. **Tier 1 Implementation Plan & Tracker Generation:**
+   Generate the formal implementation plan and tracker artifacts:
+   * Plan: `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]`
+   * Tracker: `@[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`
+3. **Tier 2 Autonomous Execution:**
+   Execute the Cutover autonomously:
    ```powershell
    uv run python scripts/auto_phase_runner.py --tracker docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md --model gemini-4-argon-high
    ```
+4. **Tier 2 Autonomous Hardening:**
+   Execute file-granular hardening with subagent architectural audits across all modified cutover files:
+   ```powershell
+   uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
+   ```
+5. **Full Live E2E Production Verification:**
+   Launch the system via `run_local.bat` and run a full live workflow execution to achieve 100% parity with baseline `exe_2af2f7665e7c477b`.
+6. **Tier 7 Architecture Synchronization & Tier 8 Audit:**
+   Synchronize architectural documentation via `/tier7-describe-architecture` and verify completion via `/tier8-audit-plan`.
+
