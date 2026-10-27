@@ -10,6 +10,8 @@ vs. Domain DTO Column Naming Parity across all 12 tables, and ISTQB negative bou
 from __future__ import annotations
 
 import re
+import sys
+import types
 import uuid
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -918,6 +920,18 @@ async def test_istqb_boundary_value_and_wire_header_failures(
     manager_pw = PostgresPoolManager(settings=settings_with_pw, pool=pool)
     assert "quorum_user:env_injected_secret_value@pg.quorum.local:5432/quorum_db" in manager_pw.resolve_dsn()
 
+    settings_no_pw = Settings(
+        storage_backend=StorageBackend.POSTGRES,
+        postgres_host="pg.quorum.local",
+        postgres_port=5432,
+        postgres_user="quorum_user",
+        postgres_password=None,
+        postgres_db="quorum_db",
+        postgres_command_timeout_seconds=10.0,
+    )
+    manager_no_pw = PostgresPoolManager(settings=settings_no_pw, pool=pool)
+    assert manager_no_pw.resolve_dsn() == "postgresql://quorum_user@pg.quorum.local:5432/quorum_db"
+
     settings_dsn = Settings(
         storage_backend=StorageBackend.POSTGRES,
         postgres_dsn="postgresql://override_host:5432/custom_db",
@@ -939,12 +953,23 @@ async def test_istqb_boundary_value_and_wire_header_failures(
     assert exc_missing_sql.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
 
     # Fault injection on pool operations with strict try...finally cleanup
+    pre_existing_app_err = AppException(
+        message="Pre-existing AppException passthrough",
+        status_code=500,
+        details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+    )
     try:
         pool.inject_fault("acquire", OSError("pool exhausted"))
         with pytest.raises(AppException) as exc_acq:
             async with manager_pw.acquire_connection():
                 pass
         assert exc_acq.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        pool.inject_fault("acquire", pre_existing_app_err)
+        with pytest.raises(AppException) as exc_acq_direct:
+            async with manager_pw.acquire_connection():
+                pass
+        assert exc_acq_direct.value is pre_existing_app_err
     finally:
         pool.clear_faults()
 
@@ -954,6 +979,12 @@ async def test_istqb_boundary_value_and_wire_header_failures(
             async with manager_pw.acquire_connection():
                 pass
         assert exc_codec.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        pool.inject_fault("set_type_codec", pre_existing_app_err)
+        with pytest.raises(AppException) as exc_codec_direct:
+            async with manager_pw.acquire_connection():
+                pass
+        assert exc_codec_direct.value is pre_existing_app_err
     finally:
         pool.clear_faults()
 
@@ -962,6 +993,11 @@ async def test_istqb_boundary_value_and_wire_header_failures(
         with pytest.raises(AppException) as exc_ddl:
             await manager_pw.apply_migrations()
         assert exc_ddl.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        pool.inject_fault("execute", pre_existing_app_err)
+        with pytest.raises(AppException) as exc_ddl_direct:
+            await manager_pw.apply_migrations()
+        assert exc_ddl_direct.value is pre_existing_app_err
     finally:
         pool.clear_faults()
 
@@ -1054,6 +1090,12 @@ async def test_istqb_boundary_value_and_wire_header_failures(
         with pytest.raises(AppException) as exc_close:
             await manager_pw.close()
         assert exc_close.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+        manager_close_direct = PostgresPoolManager(settings=settings_with_pw, pool=pool)
+        pool.inject_fault("close", pre_existing_app_err)
+        with pytest.raises(AppException) as exc_close_direct:
+            await manager_close_direct.close()
+        assert exc_close_direct.value is pre_existing_app_err
     finally:
         pool.clear_faults()
 
@@ -1064,7 +1106,7 @@ async def test_istqb_boundary_value_and_wire_header_failures(
     await manager_close_ok.close()
 
     # Lazy asyncpg import path when pool is None: module-scoped monkeypatch
-    class _FakeAsyncPgDriverModule:
+    class _FakeAsyncPgDriverModule(types.ModuleType):
         async def create_pool(
             self,
             dsn: str,
@@ -1078,9 +1120,10 @@ async def test_istqb_boundary_value_and_wire_header_failures(
             _ = (dsn, min_size, max_size, command_timeout, timeout, init)
             return InMemoryAsyncPgPool()
 
-    monkeypatch.setattr(
-        "backend_v2.database.postgres.pool._import_asyncpg_module",
-        lambda: _FakeAsyncPgDriverModule(),
+    monkeypatch.setitem(
+        sys.modules,
+        "asyncpg",
+        _FakeAsyncPgDriverModule("asyncpg"),
     )
     lazy_mgr = PostgresPoolManager(settings=settings_dsn, pool=None)
     connected_pool = await lazy_mgr.connect()

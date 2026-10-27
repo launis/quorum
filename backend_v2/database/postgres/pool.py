@@ -45,11 +45,25 @@ class AsyncPgRecordProtocol(Protocol):
     """Standalone structural protocol for asyncpg Record rows without Mapping inheritance."""
 
     def __getitem__(self, key: str) -> object:
-        """Retrieve column value by column name."""
+        """Retrieve column value by column name.
+
+        Args:
+            key: Column identifier in the result row.
+
+        Returns:
+            Decoded column value.
+        """
         ...
 
     def __contains__(self, key: object) -> bool:
-        """Return whether column name exists in record."""
+        """Return whether column name exists in record.
+
+        Args:
+            key: Candidate column key to check.
+
+        Returns:
+            True if the column exists in the record, otherwise False.
+        """
         ...
 
 
@@ -70,7 +84,11 @@ class AsyncPgTransactionProtocol(Protocol):
         ...
 
     async def __aenter__(self) -> Self:
-        """Enter the transaction context manager."""
+        """Enter the transaction context manager.
+
+        Returns:
+            Active transaction protocol instance.
+        """
         ...
 
     async def __aexit__(
@@ -79,7 +97,13 @@ class AsyncPgTransactionProtocol(Protocol):
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """Exit the transaction context manager."""
+        """Exit the transaction context manager.
+
+        Args:
+            exc_type: Exception class if raised within the context block.
+            exc_val: Exception instance if raised within the context block.
+            exc_tb: Traceback object if raised within the context block.
+        """
         ...
 
 
@@ -88,7 +112,16 @@ class AsyncPgConnectionProtocol(Protocol):
     """Structural protocol for asyncpg connections."""
 
     async def execute(self, query: str, *args: object, timeout: float | None = None) -> str:
-        """Execute a SQL statement and return command status tag."""
+        """Execute a SQL statement and return command status tag.
+
+        Args:
+            query: SQL statement string to execute.
+            *args: Positional query bind parameters.
+            timeout: Optional execution timeout in seconds.
+
+        Returns:
+            PostgreSQL command completion status tag.
+        """
         ...
 
     async def executemany(
@@ -98,7 +131,13 @@ class AsyncPgConnectionProtocol(Protocol):
         *,
         timeout: float | None = None,
     ) -> None:
-        """Execute a SQL statement across a batch of parameter sequences."""
+        """Execute a SQL statement across a batch of parameter sequences.
+
+        Args:
+            command: Parameterized SQL statement string.
+            args: Sequence of positional parameter tuples.
+            timeout: Optional execution timeout in seconds.
+        """
         ...
 
     async def fetch(
@@ -107,7 +146,16 @@ class AsyncPgConnectionProtocol(Protocol):
         *args: object,
         timeout: float | None = None,
     ) -> Sequence[AsyncPgRecordProtocol]:
-        """Execute a SQL query and return all matching records."""
+        """Execute a SQL query and return all matching records.
+
+        Args:
+            query: SQL query string to execute.
+            *args: Positional query bind parameters.
+            timeout: Optional execution timeout in seconds.
+
+        Returns:
+            Sequence of records conforming to AsyncPgRecordProtocol.
+        """
         ...
 
     async def fetchrow(
@@ -116,7 +164,16 @@ class AsyncPgConnectionProtocol(Protocol):
         *args: object,
         timeout: float | None = None,
     ) -> AsyncPgRecordProtocol | None:
-        """Execute a SQL query and return the first matching record or None."""
+        """Execute a SQL query and return the first matching record or None.
+
+        Args:
+            query: SQL query string to execute.
+            *args: Positional query bind parameters.
+            timeout: Optional execution timeout in seconds.
+
+        Returns:
+            First matching record or None if no rows matched.
+        """
         ...
 
     async def set_type_codec(
@@ -128,11 +185,26 @@ class AsyncPgConnectionProtocol(Protocol):
         schema: str = "pg_catalog",
         format: str = "binary",
     ) -> None:
-        """Register a custom binary wire codec for a PostgreSQL type."""
+        """Register a custom binary wire codec for a PostgreSQL type.
+
+        Args:
+            typename: Target PostgreSQL data type name.
+            encoder: Callable serializing Python values into wire bytes.
+            decoder: Callable deserializing wire bytes into Python values.
+            schema: PostgreSQL schema owning the type.
+            format: Wire transfer format identifier.
+        """
         ...
 
     def transaction(self, *, isolation: str = "repeatable_read") -> AsyncPgTransactionProtocol:
-        """Create a transaction context with the specified isolation level."""
+        """Create a transaction context with the specified isolation level.
+
+        Args:
+            isolation: PostgreSQL transaction isolation level name.
+
+        Returns:
+            Transaction context manager conforming to AsyncPgTransactionProtocol.
+        """
         ...
 
 
@@ -141,7 +213,14 @@ class AsyncPgPoolProtocol(Protocol):
     """Structural protocol for asyncpg connection pools."""
 
     async def acquire(self, *, timeout: float | None = None) -> AsyncPgConnectionProtocol:
-        """Acquire a database connection from the pool."""
+        """Acquire a database connection from the pool.
+
+        Args:
+            timeout: Optional acquisition timeout in seconds.
+
+        Returns:
+            Acquired connection conforming to AsyncPgConnectionProtocol.
+        """
         ...
 
     async def release(
@@ -150,7 +229,12 @@ class AsyncPgPoolProtocol(Protocol):
         *,
         timeout: float | None = None,
     ) -> None:
-        """Release a database connection back to the pool."""
+        """Release a database connection back to the pool.
+
+        Args:
+            connection: Previously acquired database connection.
+            timeout: Optional release timeout in seconds.
+        """
         ...
 
     async def close(self) -> None:
@@ -172,11 +256,23 @@ class _AsyncPgModuleProtocol(Protocol):
         timeout: float,
         init: Callable[[AsyncPgConnectionProtocol], object],
     ) -> AsyncPgPoolProtocol:
-        """Create an asyncpg connection pool."""
+        """Create an asyncpg connection pool.
+
+        Args:
+            dsn: PostgreSQL connection URI.
+            min_size: Minimum number of pooled connections.
+            max_size: Maximum number of pooled connections.
+            command_timeout: Default command execution timeout in seconds.
+            timeout: Connection establishment timeout in seconds.
+            init: Per-connection initialization callback registering codecs.
+
+        Returns:
+            Initialized connection pool conforming to AsyncPgPoolProtocol.
+        """
         ...
 
 
-# Step 3: Binary pydantic_core JSONB codecs with PostgreSQL \x01 wire header framing
+# Frame binary pydantic_core JSONB payloads with PostgreSQL \x01 wire version byte
 def encode_jsonb_binary(value: object) -> bytes:
     """Serialize a Python or Pydantic value into PostgreSQL binary JSONB wire format.
 
@@ -200,6 +296,7 @@ def encode_jsonb_binary(value: object) -> bytes:
             "[PostgresPool] %s: %s",
             ErrorCodes.STORAGE_ACCESS_FAILED.name,
             msg,
+            exc_info=True,
             extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
         )
         raise AppException(
@@ -233,6 +330,7 @@ def decode_jsonb_binary(raw: bytes | bytearray | memoryview) -> object:
             "[PostgresPool] %s: %s",
             ErrorCodes.STORAGE_ACCESS_FAILED.name,
             msg,
+            exc_info=True,
             extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
         )
         raise AppException(
@@ -246,6 +344,7 @@ def decode_jsonb_binary(raw: bytes | bytearray | memoryview) -> object:
             "[PostgresPool] %s: %s",
             ErrorCodes.STORAGE_ACCESS_FAILED.name,
             msg,
+            exc_info=True,
             extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
         )
         raise AppException(
@@ -261,6 +360,7 @@ def decode_jsonb_binary(raw: bytes | bytearray | memoryview) -> object:
             "[PostgresPool] %s: %s",
             ErrorCodes.STORAGE_ACCESS_FAILED.name,
             msg,
+            exc_info=True,
             extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
         )
         raise AppException(
@@ -295,6 +395,7 @@ async def init_connection(conn: AsyncPgConnectionProtocol) -> None:
             "[PostgresPool] %s: %s",
             ErrorCodes.STORAGE_ACCESS_FAILED.name,
             msg,
+            exc_info=True,
             extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
         )
         raise AppException(
@@ -383,6 +484,7 @@ class PostgresPoolManager:
                     "[PostgresPool] %s: %s",
                     ErrorCodes.STORAGE_ACCESS_FAILED.name,
                     msg,
+                    exc_info=True,
                     extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
                 )
                 raise AppException(
@@ -406,6 +508,7 @@ class PostgresPoolManager:
                 "[PostgresPool] %s: %s",
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             )
             raise AppException(
@@ -437,6 +540,7 @@ class PostgresPoolManager:
                 "[PostgresPool] %s: %s",
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             )
             raise AppException(
@@ -463,6 +567,7 @@ class PostgresPoolManager:
                 "[PostgresPool] %s: %s",
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             )
             raise AppException(
@@ -484,6 +589,7 @@ class PostgresPoolManager:
                     "[PostgresPool] %s: %s",
                     ErrorCodes.STORAGE_ACCESS_FAILED.name,
                     msg,
+                    exc_info=True,
                     extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
                 )
                 raise AppException(
@@ -512,6 +618,7 @@ class PostgresPoolManager:
                 "[PostgresPool] %s: %s",
                 ErrorCodes.STORAGE_ACCESS_FAILED.name,
                 msg,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             )
             raise AppException(
