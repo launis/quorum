@@ -21,7 +21,7 @@
 ### Post-Implementation Gates
 
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`
-  - [ ] @[backend_v2/context.py]
+  - [x] @[backend_v2/context.py]
   - [ ] @[backend_v2/core/rate_limit.py]
   - [ ] @[backend_v2/core/template_processor.py]
   - [ ] @[backend_v2/core/telemetry.py]
