@@ -13,7 +13,7 @@ import secrets
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, override
 
 from arq.connections import ArqRedis, RedisSettings, create_pool
 from fakeredis.aioredis import FakeRedis
@@ -51,6 +51,19 @@ from backend_v2.logging_config import log_startup_system_parameters, setup_loggi
 from backend_v2.services.localization import set_language
 from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
+
+__all__ = [
+    "LocalizationMiddleware",
+    "PathNormalizationMiddleware",
+    "RequestIdMiddleware",
+    "app",
+    "app_exception_handler",
+    "global_exception_handler",
+    "http_exception_handler",
+    "lifespan",
+    "rate_limit_exception_handler",
+    "validation_exception_handler",
+]
 
 # --- 1. Lifespan Management ---
 
@@ -169,7 +182,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app: The current FastAPI application context.
 
     Yields:
-        None: Proceeds with the yield flow while application runs.
+        Proceeds with the yield flow while application runs.
 
     Raises:
         Exception: Propagates initialization failures to the application host.
@@ -183,10 +196,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.arq_pool = None
 
     try:
-        workflow_dir = "data/workflows"
-        if os.path.exists(workflow_dir):
-            files = [f for f in os.listdir(workflow_dir) if f.endswith(".json")]
-            logger.info(f"[StartupAudit] Workflows Detected: {len(files)} files in {workflow_dir}.")
+        workflow_dir = Path("data/workflows")
+        if workflow_dir.exists() and workflow_dir.is_dir():
+            files = [f.name for f in workflow_dir.iterdir() if f.name.endswith(".json")]
+            logger.info(f"[StartupAudit] Workflows Detected: {len(files)} files in {workflow_dir.as_posix()}.")
 
         await _validate_database_preflight(logger)
 
@@ -247,6 +260,7 @@ app.add_middleware(
 class RequestIdMiddleware(BaseHTTPMiddleware):
     """Middleware to inject Request ID into context."""
 
+    @override
     async def dispatch(self, request: Request, call_next: Callable[[Request], Any]) -> Any:
         """Process the request and assign secure request trace IDs.
 
@@ -255,9 +269,10 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
             call_next: Next request processing middleware function in line.
 
         Returns:
-            Any: The completed downstream execution response.
+            The completed downstream execution response.
         """
-        request_id = request.headers.get("X-Request-ID") or secrets.token_hex(16)
+        raw_request_id = request.headers.get("X-Request-ID")
+        request_id = raw_request_id if raw_request_id else secrets.token_hex(16)
         set_request_context(request_id)
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
@@ -267,6 +282,7 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
 class LocalizationMiddleware(BaseHTTPMiddleware):
     """Middleware to inject Accept-Language into context."""
 
+    @override
     async def dispatch(self, request: Request, call_next: Callable[[Request], Any]) -> Any:
         """Process the request and determine client localization.
 
@@ -275,7 +291,7 @@ class LocalizationMiddleware(BaseHTTPMiddleware):
             call_next: Next request processing middleware function in line.
 
         Returns:
-            Any: The completed downstream execution response.
+            The completed downstream execution response.
         """
         accept_language = request.headers.get("Accept-Language", "en")
         preferred_lang = accept_language.split(",")[0].split(";")[0].strip()
@@ -296,7 +312,16 @@ class PathNormalizationMiddleware:
         self.app_instance = app_instance
 
     async def __call__(self, scope: Any, receive: Any, send: Any) -> Any:
-        """Intercepts and normalizes ASGI HTTP paths by collapsing double slashes."""
+        """Intercepts and normalizes ASGI HTTP paths by collapsing double slashes.
+
+        Args:
+            scope: ASGI connection scope mapping.
+            receive: ASGI receive awaitable channel.
+            send: ASGI send awaitable channel.
+
+        Returns:
+            None after delegating to the downstream ASGI application.
+        """
         if "type" in scope and scope["type"] == "http":
             if "path" in scope and "//" in scope["path"]:
                 path: str = scope["path"]
@@ -323,7 +348,7 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
         exc: The raised domain model exception to catch.
 
     Returns:
-        JSONResponse: Standardized RFC 7807 JSON response.
+        Standardized RFC 7807 JSON response.
     """
     logger = logging.getLogger("backend.main")
     err_name = str(exc.error_code)
@@ -354,7 +379,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         exc: Pydantic internal structure failure trace.
 
     Returns:
-        JSONResponse: Standardized RFC 7807 JSON response mapping schema issues.
+        Standardized RFC 7807 JSON response mapping schema issues.
     """
     logger = logging.getLogger("backend.main")
     readable_detail = format_validation_error(exc)
@@ -390,7 +415,7 @@ async def rate_limit_exception_handler(request: Request, exc: RateLimitExceeded)
         exc: SlowAPI threshold rate restriction.
 
     Returns:
-        Any: Delegated JSON response indicating client rate lockout.
+        Delegated JSON response indicating client rate lockout.
     """
     return rate_limit_exceeded_handler(request, exc)
 
@@ -404,7 +429,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException) 
         exc: Core HTTP standard exception model.
 
     Returns:
-        JSONResponse: Standardized RFC 7807 JSON response.
+        Standardized RFC 7807 JSON response.
     """
     error_code_enum = ErrorCodes.UNKNOWN_ERROR
     if exc.status_code == 404:
@@ -450,7 +475,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         exc: Caught arbitrary exception thrown downstream.
 
     Returns:
-        JSONResponse: Standardized RFC 7807 JSON response mapping a 500 error.
+        Standardized RFC 7807 JSON response mapping a 500 error.
     """
     logger = logging.getLogger("backend.main")
     logger.error(

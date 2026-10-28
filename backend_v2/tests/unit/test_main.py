@@ -249,8 +249,8 @@ async def test_path_normalization_middleware_collapses_double_slashes() -> None:
     middleware = PathNormalizationMiddleware(mock_app)
     scope = {"type": "http", "path": "/api/v2//reports/rep_123///pdf"}
 
-    async def mock_receive():
-        return {}
+    async def mock_receive() -> None:
+        pass
 
     async def mock_send(message: Any) -> None:
         pass
@@ -274,8 +274,8 @@ async def test_path_normalization_middleware_ignores_non_http() -> None:
     middleware = PathNormalizationMiddleware(mock_app)
     scope = {"type": "websocket", "path": "//ws"}
 
-    async def mock_receive():
-        return {}
+    async def mock_receive() -> None:
+        pass
 
     async def mock_send(message: Any) -> None:
         pass
@@ -327,13 +327,67 @@ async def test_audit_execution_storage_sync_desync(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_lifespan_workflow_detection(tmp_path: Path) -> None:
+async def test_lifespan_workflow_detection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test lifespan startup logs workflow files when workflow directory exists."""
+    wf_dir = tmp_path / "data" / "workflows"
+    wf_dir.mkdir(parents=True)
+    (wf_dir / "test_wf.json").write_text("{}", encoding="utf-8")
+    (wf_dir / "other.txt").write_text("text", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
     test_app = FastAPI()
-    with (
-        patch("backend_v2.main._validate_database_preflight", new_callable=AsyncMock),
-        patch("os.path.exists", return_value=True),
-        patch("os.listdir", return_value=["test_wf.json", "other.txt"]),
-    ):
+    with patch("backend_v2.main._validate_database_preflight", new_callable=AsyncMock):
         async with lifespan(test_app):
-            pass
+            assert test_app.state.arq_pool is not None
+
+
+@pytest.mark.asyncio
+async def test_lifespan_production_redis_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test lifespan startup connects to Arq Redis pool and closes on shutdown in production mode."""
+    from arq.connections import ArqRedis
+
+    import backend_v2.main as b_main
+
+    mock_pool = AsyncMock(spec=ArqRedis)
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.setattr(b_main, "create_pool", AsyncMock(return_value=mock_pool))
+    monkeypatch.setattr(b_main, "setup_logging", MagicMock())
+    monkeypatch.setattr(b_main, "configure_telemetry", MagicMock())
+    monkeypatch.setattr(b_main, "_validate_database_preflight", AsyncMock())
+    test_app = FastAPI()
+    async with b_main.lifespan(test_app):
+        assert test_app.state.arq_pool is mock_pool
+    mock_pool.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_audit_execution_storage_sync_relative_and_fallback_paths(tmp_path: Path) -> None:
+    """Test _audit_storage_and_database_sync resolves parent-relative and default execution trace paths."""
+    from backend_v2.main import _audit_storage_and_database_sync
+
+    storage_dir = tmp_path / "executions"
+    storage_dir.mkdir(parents=True)
+
+    rel_trace = tmp_path / "custom_traces" / "exe_rel" / "execution_trace.json"
+    rel_trace.parent.mkdir(parents=True)
+    rel_trace.write_text("{}", encoding="utf-8")
+
+    fallback_trace = storage_dir / "exe_fallback" / "execution_trace.json"
+    fallback_trace.parent.mkdir(parents=True)
+    fallback_trace.write_text("{}", encoding="utf-8")
+
+    driver = PostgresStorageDriver(auto_initialize_pool=False)
+    await driver.upsert(
+        "executions",
+        {"id": "exe_rel", "execution_trace_storage_path": "custom_traces/exe_rel/execution_trace.json"},
+        "exe_rel",
+    )
+    await driver.upsert(
+        "executions",
+        {"id": "exe_fallback", "execution_trace_storage_path": None},
+        "exe_fallback",
+    )
+
+    mock_logger = MagicMock()
+    await _audit_storage_and_database_sync(driver=driver, logger=mock_logger, storage_dir=storage_dir)
+    mock_logger.info.assert_called_once()
+    assert "PASSED" in mock_logger.info.call_args[0][0]
