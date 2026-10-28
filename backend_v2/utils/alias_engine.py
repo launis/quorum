@@ -16,6 +16,8 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import DEFAULT_ALIAS_LITERALS
 
+__all__ = ["AliasEngine", "AliasManifest"]
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,8 +34,14 @@ class AliasManifest(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    alias_map: Annotated[dict[str, str], Field(default_factory=dict)]
-    source_document_aliases: Annotated[list[str], Field(default_factory=list)]
+    alias_map: Annotated[
+        dict[str, str],
+        Field(default_factory=dict, description="Complete mapping of short aliases to real opaque IDs"),
+    ]
+    source_document_aliases: Annotated[
+        list[str],
+        Field(default_factory=list, description="Ordered list of source document alias keys"),
+    ]
 
 
 class AliasEngine:
@@ -44,6 +52,11 @@ class AliasEngine:
 
     WARNING: AliasEngine MUST be instantiated per-request or per-job. Do NOT use it
     as a global singleton, or you will cause catastrophic memory leaks.
+
+    Attributes:
+        ALIAS_REGEX_PATTERN: Universal regex permitting alphanumeric identifiers and delimiters.
+        alias_map: Mapping of generated short aliases to real opaque IDs.
+        source_document_aliases: Ordered list of registered source document alias keys.
     """
 
     # Universal regex permitting alphanumeric identifiers and delimiters.
@@ -55,7 +68,15 @@ class AliasEngine:
         source_document_ids: list[str] | None,
         allowed_dynamic_keys: list[str] | None = None,
     ) -> Any:
-        """Builds an Annotated Literal type for source documents."""
+        """Build a Literal type for source document identifiers.
+
+        Args:
+            source_document_ids: Registered source document alias keys.
+            allowed_dynamic_keys: Optional dynamic context keys to permit.
+
+        Returns:
+            Constructed Literal type containing sorted valid document identifiers.
+        """
         choices = set(source_document_ids) if source_document_ids is not None else set()
         choices.update(DEFAULT_ALIAS_LITERALS)
         if allowed_dynamic_keys:
@@ -70,7 +91,16 @@ class AliasEngine:
         allowed_atom_ids: list[str] | None,
         allowed_dynamic_keys: list[str] | None = None,
     ) -> Any:
-        """Builds an Annotated Literal type for extracted quotes."""
+        """Build a Literal type for extracted evidence quotes.
+
+        Args:
+            source_document_ids: Registered source document alias keys.
+            allowed_atom_ids: Registered atom alias keys.
+            allowed_dynamic_keys: Optional dynamic context keys to permit.
+
+        Returns:
+            Constructed Literal type containing sorted valid quote source identifiers.
+        """
         doc_choices = set(source_document_ids) if source_document_ids is not None else set()
         atom_choices = set(allowed_atom_ids) if allowed_atom_ids is not None else set()
         choices = doc_choices | atom_choices
@@ -87,7 +117,15 @@ class AliasEngine:
         allowed_atom_ids: list[str] | None,
         allowed_dynamic_keys: list[str] | None = None,
     ) -> Any:
-        """Builds an Annotated Literal type for DAG atom dependencies."""
+        """Build a Literal type for DAG atom dependencies.
+
+        Args:
+            allowed_atom_ids: Registered atom alias keys.
+            allowed_dynamic_keys: Optional dynamic context keys to permit.
+
+        Returns:
+            Constructed Literal type containing sorted valid atom identifiers.
+        """
         choices = set(allowed_atom_ids) if allowed_atom_ids is not None else set()
         choices.update(DEFAULT_ALIAS_LITERALS)
         if allowed_dynamic_keys:
@@ -99,7 +137,14 @@ class AliasEngine:
 
     @staticmethod
     def extract_literal_values(annotation: Any) -> list[str]:
-        """Extract valid choices from a Literal type annotation."""
+        """Extract valid string choices from a Literal or Annotated Literal type annotation.
+
+        Args:
+            annotation: The type annotation to inspect.
+
+        Returns:
+            List of extracted string literal values, or an empty list if not a Literal.
+        """
         # Unpack Annotated if present
         if get_origin(annotation) is Annotated:
             annotation = get_args(annotation)[0]
@@ -112,7 +157,12 @@ class AliasEngine:
     def __init__(
         self, alias_map: dict[str, str] | None = None, source_document_aliases: list[str] | None = None
     ) -> None:
-        """Initialize with an optional pre-existing map for hydration."""
+        """Initialize the AliasEngine with an optional pre-existing map for hydration.
+
+        Args:
+            alias_map: Optional mapping of short aliases to real opaque IDs.
+            source_document_aliases: Optional ordered list of source document alias keys.
+        """
         self.alias_map: dict[str, str] = {}
         if alias_map is not None:
             self.alias_map = alias_map
@@ -124,7 +174,16 @@ class AliasEngine:
     def is_valid_source_id(
         self, source_id: str, allowed_dynamic_keys: list[str], allowed_mcp_prefixes: list[str] | None = None
     ) -> bool:
-        """Centralized validation for source_id to prevent hallucination while allowing valid dynamic keys and MCP results."""
+        """Validate a source_id to prevent hallucination while allowing dynamic keys and MCP results.
+
+        Args:
+            source_id: The candidate source identifier or alias to verify.
+            allowed_dynamic_keys: Explicitly permitted dynamic context keys.
+            allowed_mcp_prefixes: Optional list of permitted MCP tool prefixes.
+
+        Returns:
+            True if the source_id is a recognized alias, literal, or MCP source; False otherwise.
+        """
         if not source_id:
             return False
         if source_id in DEFAULT_ALIAS_LITERALS:
@@ -147,7 +206,11 @@ class AliasEngine:
     # --- SERIALIZATION BOUNDARY ---
 
     def to_manifest(self) -> AliasManifest:
-        """Export the current alias mapping for serialization."""
+        """Export the current alias mapping for cross-boundary serialization.
+
+        Returns:
+            An immutable AliasManifest snapshot of the current engine state.
+        """
         return AliasManifest(
             alias_map=dict(self.alias_map),
             source_document_aliases=list(self.source_document_aliases),
@@ -178,7 +241,7 @@ class AliasEngine:
         Returns:
             The generated alias string (e.g., 'a0', 'doc1').
         """
-        # EPIC V2_5: Fail-Fast Reverse Lookup to prevent duplicate aliases for the same real_id
+        # Fail-Fast Reverse Lookup to prevent duplicate aliases for the same real_id
         existing_alias = next((k for k, v in self.alias_map.items() if v == real_id), None)
         if existing_alias:
             return existing_alias
@@ -211,7 +274,8 @@ class AliasEngine:
             The original opaque ID, or the original string if not a known prefix.
 
         Raises:
-            AppException: (422) If the alias matches a registered prefix but is not found in the alias_map.
+            AppException: (ErrorCodes.VALIDATION_FAILED) If the alias matches a registered
+                prefix but is not found in the alias_map.
         """
         if not alias:
             return alias
@@ -227,6 +291,15 @@ class AliasEngine:
 
         match = re.match(r"^([a-zA-Z_-]+)\d+$", alias)
         if match and match.group(1) in active_prefixes:
+            logger.error(
+                "Invalid alias ID hallucinated by LLM",
+                extra={
+                    "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                    "alias": alias,
+                    "prefix": match.group(1),
+                },
+                exc_info=True,
+            )
             raise AppException(
                 status_code=422,
                 message=f"Invalid alias ID hallucinated by LLM: {alias}",
@@ -236,7 +309,14 @@ class AliasEngine:
         return alias
 
     def hydrate_reasoning_text(self, text: str) -> str:
-        """Replace internal aliases with their real IDs in text fields."""
+        """Replace internal aliases with their real IDs in text fields.
+
+        Args:
+            text: Reasoning or narrative text containing short aliases.
+
+        Returns:
+            Text with all registered aliases replaced by their real opaque IDs.
+        """
         if not text:
             return text
         for alias, real_id in self.alias_map.items():
@@ -270,11 +350,14 @@ class AliasEngine:
         return text.replace(target, replacement)
 
     def hydrate_and_filter_aliases(self, data: Any, field_names: set[str]) -> None:
-        """Hydrate valid aliases and strictly DROP invalid ones in-place.
+        """Hydrate valid aliases and strictly drop invalid ones in-place.
 
-        Recursively traverses dicts/lists.
-        For lists: strictly drop invalid aliases.
-        For scalars: set field to None if alias is invalid.
+        Recursively traverses dicts and lists. For lists, strictly drops invalid aliases.
+        For scalars, sets the field to None if the alias is invalid.
+
+        Args:
+            data: Mutable payload structure (dict or list) to traverse in-place.
+            field_names: Set of dictionary key names whose values should be hydrated.
         """
 
         def _recurse(node: Any) -> None:

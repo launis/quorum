@@ -1,9 +1,16 @@
 """Unit tests for AliasEngine and AliasManifest.
 
 Tests the core aliasing pipeline including serialization boundary
-(to_manifest/from_manifest) and namespace isolation.
+(to_manifest/from_manifest), namespace isolation, and negative Fail-Fast boundaries.
 """
 
+from typing import Annotated, Literal
+
+import pytest
+from pydantic import Field, ValidationError
+
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.enums import DEFAULT_ALIAS_LITERALS
 from backend_v2.utils.alias_engine import AliasEngine, AliasManifest
 
 
@@ -11,17 +18,27 @@ class TestAliasEngineCore:
     """Tests for core AliasEngine operations."""
 
     def test_generate_alias_registers_mapping(self) -> None:
-        """Verify generate_alias creates correct alias and registers in map."""
+        """Verify register creates correct alias and registers in map."""
         engine = AliasEngine()
-        alias = engine.register("tda_abc123", prefix="a")
+        alias = engine.register("tda_0123456789abcdef", prefix="a")
 
         assert alias == "a0"
-        assert engine.alias_map["a0"] == "tda_abc123"
+        assert engine.alias_map["a0"] == "tda_0123456789abcdef"
+
+    def test_register_idempotent_reverse_lookup(self) -> None:
+        """Verify registering the same real_id twice returns the existing alias."""
+        engine = AliasEngine()
+        first = engine.register("tda_0123456789abcdef", prefix="a")
+        second = engine.register("tda_0123456789abcdef", prefix="a")
+
+        assert first == "a0"
+        assert second == "a0"
+        assert len(engine.alias_map) == 1
 
     def test_register_inferred_prefix(self) -> None:
         """Verify register infers the prefix correctly from the real ID."""
         engine = AliasEngine()
-        alias1 = engine.register("tda_abc123")
+        alias1 = engine.register("tda_0123456789abcdef")
         alias2 = engine.register("doc_xyz")
         alias3 = engine.register("MX-123")
         alias4 = engine.register("plainid")
@@ -31,7 +48,7 @@ class TestAliasEngineCore:
         assert alias3 == "MX-0"
         assert alias4 == "item0"
 
-        assert engine.alias_map["tda0"] == "tda_abc123"
+        assert engine.alias_map["tda0"] == "tda_0123456789abcdef"
         assert engine.alias_map["doc0"] == "doc_xyz"
         assert engine.alias_map["MX-0"] == "MX-123"
         assert engine.alias_map["item0"] == "plainid"
@@ -39,32 +56,43 @@ class TestAliasEngineCore:
     def test_generate_alias_multiple_prefixes_no_collision(self) -> None:
         """Verify different prefixes coexist in the same alias_map without collision."""
         engine = AliasEngine()
-        engine.register("tda_abc", prefix="a")
-        engine.register("tda_def", prefix="a")
+        engine.register("tda_0123456789abcdef", prefix="a")
+        engine.register("tda_fedcba9876543210", prefix="a")
         engine.register("doc_xyz", prefix="src_")
         engine.register("doc_uvw", prefix="src_")
 
         assert len(engine.alias_map) == 4
-        assert engine.alias_map["a0"] == "tda_abc"
-        assert engine.alias_map["a1"] == "tda_def"
+        assert engine.alias_map["a0"] == "tda_0123456789abcdef"
+        assert engine.alias_map["a1"] == "tda_fedcba9876543210"
         assert engine.alias_map["src_0"] == "doc_xyz"
         assert engine.alias_map["src_1"] == "doc_uvw"
 
-    def test_resolve_alias_returns_real_id(self) -> None:
-        """Verify resolve_alias returns the correct real ID or raises/returns original."""
+    def test_resolve_alias_returns_real_id_and_empty_passthrough(self) -> None:
+        """Verify resolve_alias returns the real ID, empty string, or unknown non-prefix string."""
         engine = AliasEngine()
-        engine.register("tda_abc", prefix="a")
-        assert engine.resolve_alias("a0") == "tda_abc"
-        # Should return original string if not matching a known prefix
+        engine.register("tda_0123456789abcdef", prefix="a")
+        assert engine.resolve_alias("a0") == "tda_0123456789abcdef"
+        assert engine.resolve_alias("") == ""
         assert engine.resolve_alias("nonexistent") == "nonexistent"
-        # Should raise AppException for hallucinated alias (matches 'a' prefix but not found)
-        import pytest
 
-        from backend_v2.exceptions import AppException
+    def test_resolve_alias_negative_hallucinated_atom_prefix_raises(self) -> None:
+        """Verify resolve_alias raises AppException(422) on hallucinated atom alias matching active prefix."""
+        engine = AliasEngine()
+        engine.register("tda_0123456789abcdef", prefix="a")
 
         with pytest.raises(AppException) as exc_info:
             engine.resolve_alias("a99")
         assert exc_info.value.status_code == 422
+        assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+
+    def test_resolve_alias_negative_hallucinated_delimited_prefix_raises(self) -> None:
+        """Verify resolve_alias raises AppException(422) on hallucinated delimited prefix alias (e.g. DOC-1)."""
+        engine = AliasEngine(alias_map={"DOC-0": "doc_0123456789abcdef", "custom_key": "val"})
+
+        with pytest.raises(AppException) as exc_info:
+            engine.resolve_alias("DOC-1")
+        assert exc_info.value.status_code == 422
+        assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
 
 
 class TestAliasManifest:
@@ -118,28 +146,25 @@ class TestAliasManifest:
         # Mutating original should not affect manifest
         engine.register("doc_b", prefix="doc")
 
-        assert "doc_1" not in manifest.alias_map
+        assert "doc1" not in manifest.alias_map
 
     def test_from_manifest_then_add_atoms(self) -> None:
-        """Verify the core use case: upstream source docs + local atom aliases unified."""
-        # Phase 2: llm.py exports source doc aliases
+        """Verify upstream source docs and local atom aliases coexist after reconstruction."""
         upstream = AliasEngine()
         upstream.register("doc_xyz", prefix="doc")
         upstream.register("doc_uvw", prefix="doc")
         upstream.source_document_aliases = ["doc0", "doc1"]
         manifest = upstream.to_manifest()
 
-        # Phase 3: chunk_worker.py reconstructs and adds atom aliases
         downstream = AliasEngine.from_manifest(manifest)
-        downstream.register("tda_abc", prefix="a")
-        downstream.register("tda_def", prefix="a")
+        downstream.register("tda_0123456789abcdef", prefix="a")
+        downstream.register("tda_fedcba9876543210", prefix="a")
 
-        # Both namespaces coexist in val_context
         assert len(downstream.alias_map) == 4
         assert downstream.alias_map["doc0"] == "doc_xyz"
         assert downstream.alias_map["doc1"] == "doc_uvw"
-        assert downstream.alias_map["a0"] == "tda_abc"
-        assert downstream.alias_map["a1"] == "tda_def"
+        assert downstream.alias_map["a0"] == "tda_0123456789abcdef"
+        assert downstream.alias_map["a1"] == "tda_fedcba9876543210"
 
     def test_manifest_serialization_json(self) -> None:
         """Verify manifest serializes cleanly to JSON for step_metadata transport."""
@@ -154,17 +179,26 @@ class TestAliasManifest:
         assert json_data["alias_map"] == {"doc0": "doc_xyz"}
         assert json_data["source_document_aliases"] == ["doc0"]
 
-        # Verify deserialization roundtrip
         restored = AliasManifest.model_validate(json_data)
         assert restored.alias_map == manifest.alias_map
 
+    def test_manifest_negative_extra_fields_forbidden(self) -> None:
+        """Verify AliasManifest rejects extra fields with ValidationError."""
+        with pytest.raises(ValidationError):
+            AliasManifest.model_validate({"alias_map": {}, "unexpected_field": "banned"})
+
+    def test_manifest_negative_invalid_type_rejected(self) -> None:
+        """Verify AliasManifest strict mode rejects non-string alias_map values."""
+        with pytest.raises(ValidationError):
+            AliasManifest.model_validate({"alias_map": {"a0": 123}})
+
 
 class TestAliasManifestEdgeCases:
-    """Edge case tests for AliasManifest."""
+    """Edge case tests for AliasManifest and AliasEngine helpers."""
 
     def test_empty_manifest(self) -> None:
         """Verify empty manifest creates empty engine."""
-        manifest = AliasManifest()
+        manifest = AliasManifest.model_validate({})
         engine = AliasEngine.from_manifest(manifest)
 
         assert engine.alias_map == {}
@@ -185,8 +219,8 @@ class TestAliasManifestEdgeCases:
         )
         valid_choices = AliasEngine.extract_literal_values(literal_type)
 
-        assert "inputs" in valid_choices, "'inputs' missing from QuoteIdsLiteral choices!"
-        assert "prior_analysis" in valid_choices, "'prior_analysis' missing from QuoteIdsLiteral choices!"
+        assert "inputs" in valid_choices
+        assert "prior_analysis" in valid_choices
 
     def test_build_doc_ids_literal(self) -> None:
         """Test build_doc_ids_literal generation."""
@@ -210,23 +244,26 @@ class TestAliasManifestEdgeCases:
         assert engine.text_replace_alias("", "", "a0") == ""
 
     def test_hydrate_reasoning_text(self) -> None:
-        """Test hydrate_reasoning_text."""
+        """Test hydrate_reasoning_text with matching and non-matching aliases."""
         engine = AliasEngine()
-        engine.register("tda_1234", prefix="a")
+        engine.register("tda_0123456789abcdef", prefix="a")
+        engine.register("tda_fedcba9876543210", prefix="a")
         text = "See atom 'a0' and \"a0\" and `a0` and standalone a0 here."
         hydrated = engine.hydrate_reasoning_text(text)
-        assert "tda_1234" in hydrated
+        assert "tda_0123456789abcdef" in hydrated
         assert engine.hydrate_reasoning_text("") == ""
 
     def test_hydrate_and_filter_aliases(self) -> None:
-        """Test hydrate_and_filter_aliases in-place mutations."""
+        """Test hydrate_and_filter_aliases in-place mutations including DEFAULT_ALIAS_LITERALS."""
         engine = AliasEngine()
-        engine.register("tda_real_1", prefix="a")
+        engine.register("tda_0123456789abcdef", prefix="a")
+        default_lit = next(iter(DEFAULT_ALIAS_LITERALS))
 
         data = {
             "atom_id": "a0",
+            "default_scalar": default_lit,
             "source_id": "unknown_alias",
-            "sources": ["a0", "unknown_source", 123],
+            "sources": ["a0", default_lit, "unknown_source", 123],
             "nested": {
                 "atom_id": "a0",
                 "other_field": "keep_me",
@@ -237,24 +274,31 @@ class TestAliasManifestEdgeCases:
             ],
         }
 
-        engine.hydrate_and_filter_aliases(data, {"atom_id", "source_id", "sources"})
-        assert data["atom_id"] == "tda_real_1"
+        engine.hydrate_and_filter_aliases(data, {"atom_id", "default_scalar", "source_id", "sources"})
+        assert data["atom_id"] == "tda_0123456789abcdef"
+        assert data["default_scalar"] == default_lit
         assert data["source_id"] is None
-        assert data["sources"] == ["tda_real_1", 123]
-        assert data["nested"]["atom_id"] == "tda_real_1"
-        assert data["list_of_dicts"][0]["atom_id"] == "tda_real_1"
+        assert data["sources"] == ["tda_0123456789abcdef", default_lit, 123]
+        assert data["nested"]["atom_id"] == "tda_0123456789abcdef"
+        assert data["list_of_dicts"][0]["atom_id"] == "tda_0123456789abcdef"
         assert data["list_of_dicts"][1]["atom_id"] is None
 
     def test_is_valid_source_id(self) -> None:
-        """Test is_valid_source_id validation checks."""
+        """Test is_valid_source_id validation checks across all branches."""
         engine = AliasEngine()
         engine.register("doc_abc", prefix="doc")
+        default_lit = next(iter(DEFAULT_ALIAS_LITERALS))
+
         assert engine.is_valid_source_id("doc0", allowed_dynamic_keys=["meta"])
+        assert engine.is_valid_source_id(default_lit, allowed_dynamic_keys=[])
         assert engine.is_valid_source_id("meta", allowed_dynamic_keys=["meta"])
-        assert engine.is_valid_source_id("tavily_search_1", allowed_dynamic_keys=[])
+        assert engine.is_valid_source_id("mcp_custom_1", allowed_dynamic_keys=[], allowed_mcp_prefixes=["mcp_"])
+        assert engine.is_valid_source_id("tavily_search_1", allowed_dynamic_keys=[], allowed_mcp_prefixes=["other_"])
         assert not engine.is_valid_source_id("", allowed_dynamic_keys=[])
         assert not engine.is_valid_source_id("invalid_src", allowed_dynamic_keys=[])
 
-    def test_extract_literal_values_non_literal(self) -> None:
-        """Test extract_literal_values on non-literal type."""
+    def test_extract_literal_values_annotated_and_non_literal(self) -> None:
+        """Test extract_literal_values on Annotated[Literal[...], ...] and non-literal types."""
+        annotated_lit = Annotated[Literal["a0", "a1"], Field(description="Atom alias")]
+        assert AliasEngine.extract_literal_values(annotated_lit) == ["a0", "a1"]
         assert AliasEngine.extract_literal_values(str) == []
