@@ -1,10 +1,12 @@
 """Unit tests for the LLMCachingService."""
 
 import logging
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import opentelemetry.trace as otel_trace
 import pytest
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
@@ -55,16 +57,18 @@ async def test_teardown_workflow_caches() -> None:
 
 @pytest.mark.asyncio
 async def test_teardown_workflow_caches_exception() -> None:
-    """Verify that exceptions during teardown are properly raised."""
+    """Verify that exceptions during teardown are wrapped in AppException."""
     mock_adapter = AsyncMock()
-    mock_adapter.teardown_cache.side_effect = Exception("Teardown failed")
+    mock_adapter.teardown_cache.side_effect = RuntimeError("Teardown failed")
 
     with patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter", return_value=mock_adapter):
-        with pytest.raises(Exception, match="Teardown failed"):
+        with pytest.raises(AppException, match="Teardown failed") as exc_info:
             await LLMCachingService.teardown_workflow_caches(
                 provider_name="anthropic",
                 workflow_run_id="run_123",
             )
+        assert exc_info.value.status_code == 500
+        assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR
 
 
 @pytest.mark.asyncio
@@ -86,8 +90,6 @@ async def test_pre_cache_document() -> None:
 @pytest.mark.asyncio
 async def test_purity_scanner_detects_violations(caplog: pytest.LogCaptureFixture) -> None:
     """Verify purity scanner raises Fail-Fast AppException on dynamic traces in system instructions."""
-    from backend_v2.exceptions import AppException, ErrorCodes
-
     mock_adapter = AsyncMock()
     mock_adapter.prepare_caching_payload.return_value = CachingPayloadResultDTO(messages=[], kwargs={})
 
@@ -135,10 +137,7 @@ async def test_purity_scanner_detects_violations(caplog: pytest.LogCaptureFixtur
 
 
 def test_record_cache_hit_with_recording_span() -> None:
-    from unittest.mock import MagicMock
-
-    import opentelemetry.trace as otel_trace
-
+    """Verify record_cache_hit sets the gen_ai.cache.hit attribute only when span is recording."""
     mock_span = MagicMock()
     mock_span.is_recording.return_value = True
 

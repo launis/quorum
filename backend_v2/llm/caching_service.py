@@ -2,6 +2,7 @@
 
 import logging
 import re
+from typing import Final
 
 import opentelemetry.trace as trace
 
@@ -10,7 +11,15 @@ from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 
+__all__ = ["LLMCachingService"]
+
 logger = logging.getLogger(__name__)
+
+_UUID_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b"
+)
+# Matches ISO 8601 timestamps (specifically YYYY-MM-DDTHH:MM:SS)
+_TIMESTAMP_PATTERN: Final[re.Pattern[str]] = re.compile(r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 
 
 class LLMCachingService:
@@ -22,10 +31,10 @@ class LLMCachingService:
 
     @staticmethod
     def record_cache_hit(is_hit: bool) -> None:
-        """Records the context cache hit status on the active OpenTelemetry span.
+        """Record the context cache hit status on the active OpenTelemetry span.
 
         Args:
-            is_hit: Boolean indicating whether a prompt cache hit occurred.
+            is_hit: Whether a prompt cache hit occurred.
         """
         current_span = trace.get_current_span()
         if current_span.is_recording():
@@ -46,11 +55,12 @@ class LLMCachingService:
             model_name: The actual target model identifier.
 
         Returns:
-            A CachingPayloadResultDTO containing prepared messages and extra kwargs.
+            Prepared messages and extra provider-specific caching keyword arguments.
 
         Raises:
-            AppException: If there is an internal failure during compilation
-                or purity scan (ErrorCodes.INTERNAL_SERVER_ERROR).
+            AppException: Triggered with ErrorCodes.VALIDATION_FAILED if dynamic traces
+                pollute the static system prompt or if the provider is unrecognized, or
+                ErrorCodes.CAPABILITY_NOT_SUPPORTED if adapter initialization fails.
         """
         await cls._run_purity_scanner(compiled_prompt.to_flat_messages())
 
@@ -73,27 +83,32 @@ class LLMCachingService:
             provider_name: The target LLM provider (e.g., 'vertex_ai').
             compiled_prompt: The structured CompiledPrompt containing static content.
             model_name: The target model identifier.
+
+        Raises:
+            AppException: Triggered with ErrorCodes.VALIDATION_FAILED if dynamic traces
+                pollute the static system prompt or if the provider is unrecognized, or
+                ErrorCodes.CAPABILITY_NOT_SUPPORTED if adapter initialization fails.
         """
         await cls.prepare_caching_payload(provider_name, compiled_prompt, model_name)
 
     @classmethod
     async def _run_purity_scanner(cls, messages: list[LLMMessageDTO]) -> None:
-        """Passive scanner to detect caching purity violations in system messages.
+        """Scan system messages to detect context caching purity violations.
 
-        Scans messages for dynamic traces like UUIDs and standard timestamps that
-        will prevent downstream caches from achieving optimal hit rates.
+        Scans messages for dynamic traces such as UUIDs and ISO-8601 timestamps that
+        prevent downstream caches from achieving optimal hit rates.
 
         Args:
-            messages: A list of message DTOs consisting of standard roles and content.
-        """
-        uuid_pattern = re.compile(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b")
-        # Matches ISO 8601 timestamps like 2026-05-31T06:22:07Z
-        timestamp_pattern = re.compile(r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
+            messages: Message DTOs consisting of standard roles and content.
 
+        Raises:
+            AppException: Triggered with ErrorCodes.VALIDATION_FAILED if a dynamic UUID
+                or timestamp pattern is detected in a system message.
+        """
         for msg in messages:
             if msg.role == "system":
                 content = str(msg.content)
-                if uuid_pattern.search(content) or timestamp_pattern.search(content):
+                if _UUID_PATTERN.search(content) or _TIMESTAMP_PATTERN.search(content):
                     msg_text = (
                         "PROMPT_CACHING_PURITY_VIOLATION: Dynamic trace/timestamp pattern "
                         "detected in static system instruction block. Cache hit rate will drop to 0%!"
@@ -102,6 +117,7 @@ class LLMCachingService:
                         "[LLMCachingService] %s: %s",
                         ErrorCodes.VALIDATION_FAILED.name,
                         msg_text,
+                        exc_info=True,
                         extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
                     raise AppException(
@@ -123,19 +139,19 @@ class LLMCachingService:
             workflow_run_id: The active workflow run reference ID.
 
         Raises:
-            AppException: Wrap any operational failures in standardized RFC 7807
-                AppException (ErrorCodes.INTERNAL_SERVER_ERROR).
+            AppException: Triggered with ErrorCodes.INTERNAL_SERVER_ERROR if cache
+                teardown fails.
         """
         try:
             adapter = LLMCacheAdapterFactory.get_adapter(provider_name)
             await adapter.teardown_cache(workflow_run_id)
         except Exception as e:
-            # Phase 7, Step 7: Explicit logging and error wrapping for critical diagnostic visibility
             logger.error(
                 "Asynchronous cache teardown failed for provider '%s': %s",
                 provider_name,
                 str(e),
                 exc_info=True,
+                extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             )
             status_code = 500
             raise AppException(
