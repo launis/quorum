@@ -1,0 +1,289 @@
+"""Unit tests for backend_v2.services.orchestrator.dag_executor.causal_tda_fusion.
+
+Covers transform_causal_nodes_to_atoms and compute_causal_tda_fusion_result across
+positive, negative, and boundary partitions.
+"""
+
+from __future__ import annotations
+
+import pytest
+from pydantic import ValidationError
+
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.matrix import FlattenedAtom
+from backend_v2.models.domain.step import ExpectedInput
+from backend_v2.models.dtos.atom_result import AtomResultDTO, ExtractedValueDTO
+from backend_v2.models.dtos.causal_discovery import (
+    CausalEdgeDTO,
+    CausalGraphPayloadDTO,
+    CausalNodeDTO,
+    FairScoringBreakdownDTO,
+)
+from backend_v2.models.enums import ExecutionStatus
+from backend_v2.services.orchestrator.dag_executor.causal_tda_fusion import (
+    compute_causal_tda_fusion_result,
+    transform_causal_nodes_to_atoms,
+)
+
+
+def _make_graph(
+    nodes: list[CausalNodeDTO],
+    edges: list[CausalEdgeDTO] | None = None,
+    root_cause_node_ids: list[str] | None = None,
+    cycle_detected: bool = False,
+    isolated_node_ids: list[str] | None = None,
+    edge_root_causes: list[str] | None = None,
+) -> CausalGraphPayloadDTO:
+    """Build a validated CausalGraphPayloadDTO instance for unit testing.
+
+    Args:
+        nodes: List of causal nodes in the graph.
+        edges: Optional list of directed causal edges.
+        root_cause_node_ids: Optional list of root cause node identifiers.
+        cycle_detected: Whether a cycle was detected in the graph.
+        isolated_node_ids: Optional list of isolated node identifiers.
+        edge_root_causes: Optional list of edge root cause keys.
+
+    Returns:
+        Validated CausalGraphPayloadDTO instance.
+    """
+    return CausalGraphPayloadDTO(
+        nodes=nodes,
+        edges=edges if edges is not None else [],
+        root_cause_node_ids=root_cause_node_ids if root_cause_node_ids is not None else [],
+        cycle_detected=cycle_detected,
+        isolated_node_ids=isolated_node_ids if isolated_node_ids is not None else [],
+        partition_node_ids={},
+        edge_root_causes=edge_root_causes if edge_root_causes is not None else [],
+    )
+
+
+def test_transform_causal_nodes_to_atoms_empty_and_populated() -> None:
+    """Verify transform_causal_nodes_to_atoms maps empty, populated, and nullable nodes."""
+    assert transform_causal_nodes_to_atoms([]) == []
+
+    nodes = [
+        CausalNodeDTO(
+            node_id="tda_0000000000000001",
+            claim="First causal proposition.",
+            source_quotes=("Quote A", "Quote B"),
+            paragraph_ref="P1",
+            status=ExecutionStatus.PASSED,
+            blame_parent_ids=[],
+            dependent_child_ids=[],
+        ),
+        CausalNodeDTO(
+            node_id="tda_0000000000000002",
+            claim="Second causal proposition without quotes.",
+            source_quotes=None,
+            paragraph_ref=None,
+            status=ExecutionStatus.FAILED,
+            blame_parent_ids=[],
+            dependent_child_ids=[],
+        ),
+    ]
+
+    atoms = transform_causal_nodes_to_atoms(nodes)
+    assert len(atoms) == 2
+    assert isinstance(atoms[0], FlattenedAtom)
+    assert atoms[0].atom_id == "tda_0000000000000001"
+    assert atoms[0].question == "First causal proposition."
+    assert atoms[0].anchor_target == "P1"
+    assert atoms[0].extraction_rule == "Quote A [...] Quote B"
+    assert atoms[1].atom_id == "tda_0000000000000002"
+    assert atoms[1].anchor_target == ""
+    assert atoms[1].extraction_rule == ""
+
+
+def test_compute_causal_tda_fusion_result_falsification_and_elevation() -> None:
+    """Verify compute_causal_tda_fusion_result projects atom statuses, scores, and remediations."""
+    node1 = CausalNodeDTO(
+        node_id="tda_0000000000000001",
+        claim="Foundational root claim",
+        source_quotes=("Verbatim quote 1",),
+        paragraph_ref="P1",
+        status=ExecutionStatus.PASSED,
+        tda_score=1.0,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0000000000000002"],
+        source_input_key="deliverable_doc",
+    )
+    node2 = CausalNodeDTO(
+        node_id="tda_0000000000000002",
+        claim="Downstream dependent claim",
+        source_quotes=("Verbatim quote 2",),
+        paragraph_ref="P2",
+        status=ExecutionStatus.FAILED,
+        tda_score=1.0,
+        blame_parent_ids=["tda_0000000000000001"],
+        dependent_child_ids=[],
+        source_input_key="deliverable_doc",
+    )
+    node3 = CausalNodeDTO(
+        node_id="tda_0000000000000003",
+        claim="Exogenous reference claim",
+        source_quotes=None,
+        paragraph_ref="P3",
+        status=ExecutionStatus.PASSED,
+        tda_score=3.0,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0000000000000002"],
+        source_input_key="assignment_doc",
+    )
+    edges = [
+        CausalEdgeDTO(
+            source_id="tda_0000000000000001",
+            target_id="tda_0000000000000002",
+            reasoning="Direct causal link",
+        ),
+        CausalEdgeDTO(
+            source_id="tda_0000000000000003",
+            target_id="tda_0000000000000002",
+            reasoning="Exogenous support link",
+        ),
+    ]
+    graph = _make_graph(
+        nodes=[node1, node2, node3],
+        edges=edges,
+        root_cause_node_ids=["tda_0000000000000001"],
+        cycle_detected=False,
+    )
+
+    evaluated_atoms = [
+        AtomResultDTO(
+            tda_id="tda_0000000000000001",
+            matrix_id="blk_1111222233334444",
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="Falsified by TDA evaluation.",
+            source_quotes=None,
+            extensions={},
+            depends_on_tda_ids=[],
+            short_circuit_reason_tda_ids=[],
+        ),
+        AtomResultDTO(
+            tda_id="tda_0000000000000002",
+            matrix_id=None,
+            status=ExecutionStatus.PASSED,
+            extracted_data=ExtractedValueDTO(value=5.0),
+            evaluation_reasoning="Elevated by TDA evaluation.",
+            source_quotes=("Verbatim quote 2",),
+            extensions={},
+            depends_on_tda_ids=[],
+            short_circuit_reason_tda_ids=[],
+        ),
+    ]
+    expected_inputs = [
+        ExpectedInput(
+            input_key="deliverable_doc",
+            label=I18nText(translations={"en": "Deliverable"}),
+            required=True,
+            is_endorsed_deliverable=True,
+            input_modes=["text"],
+            description=I18nText(translations={"en": "Main deliverable"}),
+        ),
+        ExpectedInput(
+            input_key="assignment_doc",
+            label=I18nText(translations={"en": "Assignment"}),
+            required=True,
+            is_endorsed_deliverable=False,
+            input_modes=["assignment"],
+            description=I18nText(translations={"en": "Assignment brief"}),
+        ),
+    ]
+
+    result = compute_causal_tda_fusion_result(
+        graph=graph,
+        evaluative_matrices={"blk_1111222233334444": 1.0},
+        evaluated_atoms=evaluated_atoms,
+        dampening_factor=0.5,
+        expected_inputs=expected_inputs,
+    )
+
+    projected_by_id = {n.node_id: n for n in result.graph.nodes}
+    assert projected_by_id["tda_0000000000000001"].status == ExecutionStatus.FAILED
+    assert projected_by_id["tda_0000000000000001"].tda_score == 1.0
+    assert projected_by_id["tda_0000000000000002"].status == ExecutionStatus.PASSED
+    assert projected_by_id["tda_0000000000000002"].tda_score == 5.0
+    assert projected_by_id["tda_0000000000000003"].status == ExecutionStatus.PASSED
+    assert result.total_deliverable_nodes == 2
+    assert len(result.prescriptive_remediations) == 1
+    assert result.prescriptive_remediations[0].target_node_id == "tda_0000000000000001"
+    assert result.prescriptive_remediations[0].unlocks_node_ids == ["tda_0000000000000002"]
+
+
+def test_compute_causal_tda_fusion_result_fallback_deliverables_and_cycles() -> None:
+    """Verify deliverable fallback filtering, empty deliverable cohesion, and cycle penalty."""
+    node1 = CausalNodeDTO(
+        node_id="tda_0000000000000001",
+        claim="Isolated claim in secondary doc",
+        source_quotes=None,
+        paragraph_ref="P1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=["tda_0000000000000002"],
+        dependent_child_ids=[],
+        source_input_key="other_doc",
+    )
+    node2 = CausalNodeDTO(
+        node_id="tda_0000000000000002",
+        claim="Root cause node",
+        source_quotes=("Quote",),
+        paragraph_ref="P2",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0000000000000001"],
+        source_input_key="other_doc",
+    )
+    graph_cycle = _make_graph(
+        nodes=[node1, node2],
+        edges=[
+            CausalEdgeDTO(
+                source_id="tda_0000000000000002",
+                target_id="tda_0000000000000001",
+                reasoning="Link",
+            )
+        ],
+        root_cause_node_ids=["tda_0000000000000002"],
+        cycle_detected=True,
+    )
+
+    fallback_inputs = [
+        ExpectedInput(
+            input_key="unmatched_deliverable",
+            label=I18nText(translations={"en": "Unmatched"}),
+            required=True,
+            is_endorsed_deliverable=False,
+            input_modes=["text"],
+            description=I18nText(translations={"en": "Unmatched text input"}),
+        )
+    ]
+
+    empty_deliverable_res = compute_causal_tda_fusion_result(
+        graph=graph_cycle,
+        expected_inputs=fallback_inputs,
+    )
+    assert empty_deliverable_res.total_deliverable_nodes == 0
+    assert empty_deliverable_res.anti_fluff_audit.logical_cohesion_score == 1.0
+    assert empty_deliverable_res.fair_scoring.independent_error_count == 1
+    assert empty_deliverable_res.fair_scoring.cascading_fault_count == 1
+
+    cycle_res = compute_causal_tda_fusion_result(graph=graph_cycle, expected_inputs=None)
+    assert cycle_res.anti_fluff_audit.cycle_detected is True
+    assert cycle_res.anti_fluff_audit.logical_cohesion_score == 0.5
+
+
+def test_compute_causal_tda_fusion_result_degenerate_scale_raises_error() -> None:
+    """Verify degenerate scoring breakdown or referential integrity violation raises ValidationError."""
+    with pytest.raises(ValidationError, match="Scoring identity violated"):
+        FairScoringBreakdownDTO(
+            independent_error_count=1,
+            cascading_fault_count=1,
+            raw_penalty_points=2.0,
+            deduplicated_penalty_points=2.0,
+            dampened_savings_points=1.0,
+        )
+
+    with pytest.raises(ValidationError):
+        _make_graph(
+            nodes=[],
+            root_cause_node_ids=["tda_0000000000000001"],
+        )

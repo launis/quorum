@@ -149,6 +149,7 @@ RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset(
         # Orchestrator and DAG
         "backend_v2/services/orchestrator/context_router.py",
         "backend_v2/services/orchestrator/dag_executor.py",
+        "backend_v2/services/orchestrator/dag_executor/execution_committer.py",
         "backend_v2/services/orchestrator/matrix_reducer.py",
         "backend_v2/services/orchestrator/result_projector.py",
         "backend_v2/services/orchestrator/strategies/logic.py",
