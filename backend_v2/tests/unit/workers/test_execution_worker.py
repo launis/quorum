@@ -1,7 +1,6 @@
 """Unit tests for execution worker enforcing Tripartite Phase 1 Sovereignty and ISTQB boundaries."""
 
 import asyncio
-import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -549,12 +548,48 @@ async def test_execution_worker_failure_update_error_resilience() -> None:
         "redis": None,
     }
 
-    result = await execute_workflow_job(
-        ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
-        inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
-    )
+    try:
+        result = await execute_workflow_job(
+            ctx=ctx,
+            workflow_id="wor_0123456789abcdef",
+            inputs=ExecutionInputsDTO(),
+            execution_id="exe_0123456789abcdef",
+        )
+    finally:
+        mock_repo.clear_faults()
+
+    assert result.status == "FAILED/DLQ"
+
+
+@pytest.mark.asyncio
+async def test_execution_worker_cancelled_update_error_resilience() -> None:
+    """Verify worker handles repository failure during cancellation recording gracefully."""
+    mock_workflow = _create_mock_workflow()
+    base_record = _create_mock_record()
+
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_workflow(mock_workflow)
+    await mock_repo.save_execution(base_record)
+    mock_repo.inject_fault("update_execution", OSError("DB write error on cancel"), trigger_count=1)
+
+    mock_engine = MagicMock()
+    mock_engine.execute_workflow = AsyncMock(side_effect=asyncio.CancelledError())
+
+    ctx = {
+        "repository": mock_repo,
+        "engine": mock_engine,
+        "redis": None,
+    }
+
+    try:
+        result = await execute_workflow_job(
+            ctx=ctx,
+            workflow_id="wor_0123456789abcdef",
+            inputs=ExecutionInputsDTO(),
+            execution_id="exe_0123456789abcdef",
+        )
+    finally:
+        mock_repo.clear_faults()
 
     assert result.status == "FAILED/DLQ"
 
@@ -565,29 +600,30 @@ async def test_execution_worker_with_execution_inputs_dto_and_telemetry() -> Non
     step_id = "stp_0123456789abcdef"
     mock_workflow = _create_mock_workflow()
     mock_record = _create_mock_record()
+    envelope_instance = TraceEventMetadataEnvelope(
+        step_metadata=StepTraceMetadataDTO(
+            step_id=step_id,
+            model_strategy="fast",
+            physical_model="gpt-5.4",
+            system_fingerprint="fp_123",
+            chunk_size=2,
+            token_usage=TokenUsage(
+                prompt_tokens=100,
+                completion_tokens=50,
+                cached_tokens=10,
+                reasoning_tokens=5,
+                total_tokens=150,
+                cost_usd=0.002,
+            ),
+        )
+    )
     mock_record = mock_record.model_copy(
         update={
             "execution_trace": [
                 TraceEvent(
-                    step_name="Analytical Step",
+                    step_name=step_id,
                     event_type="output",
-                    content=TraceEventMetadataEnvelope(
-                        step_metadata=StepTraceMetadataDTO(
-                            step_id=step_id,
-                            model_strategy="fast",
-                            physical_model="gpt-5.4",
-                            system_fingerprint="fp_123",
-                            chunk_size=2,
-                            token_usage=TokenUsage(
-                                prompt_tokens=100,
-                                completion_tokens=50,
-                                cached_tokens=10,
-                                reasoning_tokens=5,
-                                total_tokens=150,
-                                cost_usd=0.002,
-                            ),
-                        )
-                    ).model_dump(by_alias=True, mode="json"),
+                    content=envelope_instance,
                 ),
             ],
             "step_states": {
@@ -630,6 +666,8 @@ async def test_execution_worker_with_execution_inputs_dto_and_telemetry() -> Non
     updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.prompt_tokens == 100
+    assert updated_rec.steps[0].prompt_tokens == 100
+    assert updated_rec.steps[0].chunk_count == 2
 
 
 @pytest.mark.asyncio
@@ -659,7 +697,7 @@ async def test_execution_worker_with_workflow_inputs_generated_id() -> None:
         dynamic_inputs={},
     )
 
-    with patch("uuid.uuid4", return_value=uuid.UUID(hex=fixed_uuid)):
+    with patch("backend_v2.workers.execution_worker.generate_opaque_id", return_value=generated_id):
         result = await execute_workflow_job(
             ctx=ctx,
             workflow_id="wor_0123456789abcdef",
