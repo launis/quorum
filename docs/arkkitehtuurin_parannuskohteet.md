@@ -602,13 +602,11 @@ Tier 8 -auditoinnin pohjalta kokonaisuus toteutetaan neljänä itsenäisenä ja 
 ---
 
 ## Luku 7: AST- ja Laatuporttilaajennukset (Post-PostgreSQL 19 Hardening Learnings)
-> **STATUS: DOKUMENTOITU BACKLOGIIN ([`BACKLOG_AST_GUARDRAIL_EXPANSIONS.md`](file:///c:/src/quorum/docs/BACKLOG_AST_GUARDRAIL_EXPANSIONS.md))**
+> **STATUS: TUNNISTETUT JATKOHANKKEET (Tuleva Roadmap)**
 
 PostgreSQL 19 -kovennuskierroksen (18 tiedostoa) pohjalta tunnistetut jatkokehityskohteet staattiselle analyysille ja laadunvalvonnalle:
 
 1. **`QGR031` (Kyselysuodattimien staattinen validointi):** Estää virheelliset operaattorit (`"eq"`, `"LIKE"`, `"="`), tyhjät kentät sekä `"in"`-operaattorin vahingolliset merkkijonoliteraalit staattisesti AST-tasolla.
 2. **`scripts/`-hakemiston dynaaminen automaattiskannaus:** Korvaa kovakoodatut skriptilistat dynaamisella `scripts/*.py` -globilla, estäen varjoskriptien ja vanhentuneiden aputyökalujen syntymisen laatuporttien ulkopuolelle.
 3. **Polyfactory-mallitehtaiden invarianttivartija (`QGR032` & metatestit):** Varmistaa, että testitehtaat käyttävät heksadesimaalisia Opaque ID -generaattoreita ja että jokainen tehdas palauttaa aina oletusarvoilla `.build()` validoituvan Pydantic V2 -mallin.
-
-Yksityiskohtainen kuvaus, AST-solmutason säännöt ja koodiesimerkit löytyvät erillisestä dokumentista: [`BACKLOG_AST_GUARDRAIL_EXPANSIONS.md`](file:///c:/src/quorum/docs/BACKLOG_AST_GUARDRAIL_EXPANSIONS.md).
 

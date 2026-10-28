@@ -30,7 +30,7 @@
 
 ## Problem Statement & Architectural Context
 
-In Quorum 2026, the relationship between Workflows, Output Profiles, and MCP Gateways must adhere strictly to the **Tripartite Pipeline Architecture** (`ki_tripartite_pipeline_architecture.md`) and the **Clean Pydantic Transition Catalog** (`docs/CLEAN_PYDANTIC_TRANSITION_CATALOG.md`):
+In Quorum 2026, the relationship between Workflows, Output Profiles, and MCP Gateways must adhere strictly to the **Tripartite Pipeline Architecture** (`ki_tripartite_pipeline_architecture.md`) and the **Zero Permissive Typing Architecture** (`@[ki_zero_permissive_typing.md]`):
 
 1. **Phase 1 (Heavy LLM Execution Phase — Pre-bound MCP Gateways & Reusability):**
    - **Täysi riippumattomuus työnkulusta (Standalone System Entity):** `SystemConfigMCPGateways` -määrittelyt (`system_config`-kokoelmassa) ovat täysin riippumattomia ja itsenäisiä järjestelmätason entiteettejä. Ne eivät sisällä mitään viittauksia työnkulkuihin. Useat eri työnkulut voivat käyttää samaa MCP-yhdyskäytäväkonfiguraatiota (`N : 1` uudelleenkäytettävyys).

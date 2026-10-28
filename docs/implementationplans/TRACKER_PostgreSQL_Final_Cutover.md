@@ -1,6 +1,6 @@
 # Tracker: PostgreSQL 19 Sovereign Cutover & TinyDB Eradication Requirements
 
-@[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]
+@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]
 
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
@@ -16,14 +16,14 @@
 
 ## Step Execution Status
 
-**Plan:** @[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]
+**Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]
 
-- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`
   - [x] Step 1: Phase 1: Pre-Implementation Cleanups, Dependency Purge & Physical TinyDB Eradication
   - [x] Step 2: Phase 2: Sovereign Settings, UUIDv7 ID Routing & Storage Driver Cutover
   - [x] Step 3: Phase 3: Authoritative PostgreSQL 19 Seeding & FastAPI Preflight Cutover
   - [x] Step 4: Phase 4: AST Guardrail QGR017 Lockdown & Unit Test Suite Synchronization
-- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`
 
 ### Post-Implementation Gates
 
@@ -53,7 +53,7 @@
 
 - [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
-  /tier7-describe-architecture @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md] @[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md] @[ki_god_code_prevention.md] @[ki_python_314_concurrency_strictness.md] @[ki_zero_permissive_typing.md] @[ki_mcp_tool_protocol.md] @[ki_seed_vault_verification_and_sanitization.md]
+  /tier7-describe-architecture @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md] @[ki_god_code_prevention.md] @[ki_python_314_concurrency_strictness.md] @[ki_zero_permissive_typing.md] @[ki_mcp_tool_protocol.md] @[ki_seed_vault_verification_and_sanitization.md]
   ```
 
   #### Directives for Tier 7 Agent:
@@ -70,13 +70,13 @@
 
 ### Final Plan Audit
 
-- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors. (PASSED with findings FINDING-01–03 resolved).
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors. (PASSED with findings FINDING-01–03 resolved).
 
 ## Instructions for the Execution Agent
 
 1. **Execution Mode**:
-   - **Step-by-Step Mode** (`/tier2-execute @[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`): Execute a single unchecked step, run all step-level quality gates, update this tracker (`[x]`) and the `# Session Handover Context`, instruct the user to perform an atomic `git commit`, and STOP.
-   - **Continuous Full-Auto Mode** (`/tier2-execute --full-auto @[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`): Proceed autonomously across all steps in sequence as long as quality gates pass 100%, halting immediately if any quality gate fails or when `context_amnesia_prevention` handover thresholds are reached.
+   - **Step-by-Step Mode** (`/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`): Execute a single unchecked step, run all step-level quality gates, update this tracker (`[x]`) and the `# Session Handover Context`, instruct the user to perform an atomic `git commit`, and STOP.
+   - **Continuous Full-Auto Mode** (`/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`): Proceed autonomously across all steps in sequence as long as quality gates pass 100%, halting immediately if any quality gate fails or when `context_amnesia_prevention` handover thresholds are reached.
 2. **Quality Gate Mandate**:
    - After modifying any `.py` file, run `uv run python scripts/backend_audit_loop.py <target_path> --test --ast-strict` and `uv run python scripts/audit_zero_orm_strictness.py`.
    - Before closing the final step, run the global completion gates: `uv run python scripts/backend_audit_loop.py backend_v2/ --test` and `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`.
@@ -108,7 +108,7 @@
 # Session Handover Context
 
 ## Achieved
-- Executed Steps 1 through 4 of `@[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]` in Continuous Full-Auto Mode:
+- Executed Steps 1 through 4 of `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]` in Continuous Full-Auto Mode:
   - **Step 1**: Updated `@[run_local.bat]` to launch `docker compose up -d redis postgres` and set `STORAGE_BACKEND=POSTGRES`; removed `"tinydb"` and added `"asyncpg>=0.30.0"` in `@[pyproject.toml]` and `@[uv.lock]`; physically deleted all 8 legacy files (`tinydb_driver.py`, `wrapper.py`, `firestore_driver.py`, `exporter.py`, `wipe_user_data.py`, `data/db_v2.json`, `data/db_v2.json.lock`, `data/app.db`).
   - **Step 2**: Defaulted `Settings.storage_backend` to `StorageBackend.POSTGRES` in `@[backend_v2/settings.py]`, updated `get_storage_driver` in `@[backend_v2/services/storage.py]` and `generate_opaque_id` in `@[backend_v2/models/core_base.py]`, implemented `[NEW] @[backend_v2/database/postgres/storage_driver.py]` (`PostgresStorageDriver`), registered it in `@[scripts/audit_zero_orm_strictness.py]`, and wired `@[backend_v2/database/factory.py]` (`get_driver` and `create_unit_of_work`) exclusively to PostgreSQL 19.
   - **Step 3**: Expanded `EntityPersistencePort` (`@[backend_v2/database/interfaces.py]`) and `PostgresEntityAdapter` (`@[backend_v2/database/postgres/entity_adapter.py]`) with `seed_collection_batch` and `verify_seed_table_counts` across all 10 core PostgreSQL 19 tables, refactored `@[backend_v2/seed/run_seed.py]` and `@[backend_v2/main.py]` preflight checks, and verified live seeding against `quorum-postgres` (130 rows across the 7 seeded tables).
@@ -124,7 +124,7 @@
 
 ## Remaining
 - Execute `Tier 2 Hardening (Backend)` via `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]" --gate backend --model gemini-4-argon-medium`.
-- Execute `### Final Plan Audit` (`/tier8-audit-plan @[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`).
+- Execute `### Final Plan Audit` (`/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`).
 
 ## Resume Command
 ```powershell

@@ -4,8 +4,8 @@
 > [!NOTE]
 > **Arkkitehtuurin tila ja Single Source of Truth (SSOT)**
 > Tämä asiakirja kokoaa yhteen Cognitive Quorumin tuotantopystytyksen kokonaiskuvan Google Cloud Platformilla (`europe-north1` / Hamina, Suomi). Se korvaa vanhentuneet SQLAlchemy 2.0-, Alembic- ja TinyDB-luonnokset ja nojaa suoraan Quorumin virallisiin 2026-arkkitehtuuristandardeihin:
-> 1. **PostgreSQL 19 Zero-ORM Perusta & Cutover** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]`, `@[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]`)
-> 1b. **Järjestelmällinen Ennaltaehkäisy, AST-vartija QGR030 & Testitehtaat** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md]`, `@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]`, `@[docs/BACKLOG_AST_GUARDRAIL_EXPANSIONS.md]`)
+> 1. **PostgreSQL 19 Zero-ORM Perusta & Cutover** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]`)
+> 1b. **Järjestelmällinen Ennaltaehkäisy, AST-vartija QGR030 & Testitehtaat** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md]`, `@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]`)
 > 2. **`dag_executor.py` God Code -purku Event Sourcing -malliin** (1 640 LOC -> 4 erillistä SRP-moduulia & ohut fasaadi)
 > 3. **Kohdennettu Tausta- ja Apukerroksen Karkaisu (36 tiedostoa)** (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`)
 > 4. **B2B SaaS IAM, Token Exchange & Enterprise Hardening** (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`)
@@ -83,36 +83,34 @@ Tuotantoympäristö provisioidaan Google Cloud Platformin Haminan datakeskukseen
 * Nollatoleranssi `.env`-tiedostoille tai kovakoodatuille avaimille tuotannossa.
 * Cloud Run lataa käynnistyessään salaisuudet (`DATABASE_URL`, `JWT_SECRET_KEY`, Cloud KMS -avaimet) suoraan GCP Secret Managerista ympäristöinjektiona.
 
-### 0.4 Verkkotunnukset, Reititys ja `quorum.ai` -varaus
-Tuotannon verkkoinfrastruktuuri ja kuormantasaus konfiguroidaan tukemaan kansainvälistä pääverkkotunnusta **`quorum.ai`** (rinnalla toissijainen `quorum.fi`):
-* **1. Verkkotunnuksen saatavuuden tarkistus ja hankinta (`quorum.ai` & `quorum.fi`):**
-  * Ennen kuormantasaajan ja SSL-varmenteen pystytystä tarkistetaan `quorum.ai`- ja `quorum.fi`-verkkotunnusten saatavuus Google Cloud Domainsilla (`gcloud domains registrations search-domains quorum.ai`) tai valtuutetulla verkkotunnusvälittäjällä (Cloudflare Registrar `.ai`-tunnuksille ja Traficom-välittäjä `.fi`-tunnuksille).
-  * **Mikäli `quorum.ai` on vapaana:** Rekisteröidään `quorum.ai` ensisijaiseksi globaaliksi verkkotunnukseksi ja `quorum.fi` rinnakkaiseksi kotimaiseksi verkkotunnukseksi sekä ohjataan nimipalvelimet (`NS`-tietueet) Google Cloud DNS -vyöhykkeeseen.
-  * **Toimintamalli, mikäli `quorum.ai` on jo varattu kolmannelle osapuolelle:** Rekisteröidään vapaana oleva ensisijainen verkkotunnus (`cognitivequorum.ai` tai `quorum.fi`) ja asetetaan se Cloud Run -ympäristömuuttujiin (`PRIMARY_DOMAIN`, `JWT_ISSUER`, `JWT_AUDIENCE`, `CORS_ORIGINS`). Koska `@[backend_v2/settings.py#L54-L1053]` lukee kaikki domain- ja JWT-väitteet dynaamisesti ympäristömuuttujista (`AliasChoices`), Python- tai Flutter-lähdekoodiin ei tarvita yhtäkään koodimuutosta.
+### 0.4 Verkkotunnukset, Reititys ja `qrum.ai` -varaus
+Tuotannon verkkoinfrastruktuuri ja kuormantasaus konfiguroidaan tukemaan virallisesti vapaaksi todennettua kansainvälistä pääverkkotunnusta **`qrum.ai`** (4-merkkinen ultra-lyhyt globaali verkkotunnus):
+* **1. Verkkotunnuksen hankinta ja DNS-vyöhykkeen delegointi (`qrum.ai`):**
+  * `whois.nic.ai` -rekisteritarkistus vahvistaa verkkotunnuksen `qrum.ai` olevan vapaana rekisteröitäväksi.
+  * Rekisteröidään `qrum.ai` ensisijaiseksi globaaliksi verkkotunnukseksi valtuutetulla verkkotunnusvälittäjällä (esim. Cloudflare Registrar tai Google Cloud Domains) ja ohjataan nimipalvelimet (`NS`-tietueet) Google Cloud DNS -vyöhykkeeseen (`qrum-ai-zone`).
+  * Asetetaan verkkotunnus Cloud Run -ympäristömuuttujiin (`PRIMARY_DOMAIN=qrum.ai`, `JWT_ISSUER=https://api.qrum.ai`, `JWT_AUDIENCE=https://qrum.ai`, `CORS_ORIGINS`). Koska `@[backend_v2/settings.py#L54-L1053]` lukee kaikki domain- ja JWT-väitteet dynaamisesti ympäristömuuttujista (`AliasChoices`), Python- tai Flutter-lähdekoodiin ei tarvita yhtäkään koodimuutosta.
 * **2. Domain-jako ja reititys (Cloud Load Balancer & Cloud DNS):**
-  * `api.quorum.ai` $\rightarrow$ Cloud Run API (`quorum-api`) REST/SSE-rajapinnat.
-  * `app.quorum.ai` / `studio.quorum.ai` $\rightarrow$ Flutter Web & Studio -käyttöliittymä.
-  * `quorum.ai` $\rightarrow$ Yrityksen pääsivusto / landing page ja ohjaus sovellukseen.
-  * `api.quorum.fi` & `app.quorum.fi` $\rightarrow$ Rinnakkaiset toissijaiset osoitteet automaattisella 301-ohjauksella tai rinnakkaistuella.
+  * `api.qrum.ai` $\rightarrow$ Cloud Run API (`quorum-api`) REST/SSE-rajapinnat.
+  * `app.qrum.ai` / `studio.qrum.ai` $\rightarrow$ Flutter Web & Studio -käyttöliittymä.
+  * `qrum.ai` $\rightarrow$ Yrityksen pääsivusto / landing page ja ohjaus sovellukseen.
 * **3. Google-Managed SSL/TLS -monivarmenne (SAN Certs):**
-  * Luodaan Google-Managed SSL-sertifikaatti (`quorum-san-cert`), joka kattaa kaikki alidomainit (`quorum.ai`, `api.quorum.ai`, `app.quorum.ai`, `studio.quorum.ai`, `quorum.fi`, `api.quorum.fi`, `app.quorum.fi`) yhdellä globaalilla Anycast IP -osoitteella (`quorum-global-ip`).
+  * Luodaan Google-Managed SSL-sertifikaatti (`qrum-san-cert`), joka kattaa kaikki alidomainit (`qrum.ai`, `api.qrum.ai`, `app.qrum.ai`, `studio.qrum.ai`) yhdellä globaalilla Anycast IP -osoitteella (`qrum-global-ip`).
 * **4. Cloud DNS & SAN SSL -provisiointikomennot (PowerShell):**
   ```powershell
-  gcloud domains registrations search-domains quorum.ai
-  gcloud compute addresses create quorum-global-ip --global --ip-version IPV4
-  gcloud dns managed-zones create quorum-ai-zone --dns-name="quorum.ai." --description="Cognitive Quorum Primary Production DNS Zone" --visibility=public
-  gcloud dns record-sets create quorum.ai. --zone=quorum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
-  gcloud dns record-sets create api.quorum.ai. --zone=quorum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
-  gcloud dns record-sets create app.quorum.ai. --zone=quorum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
-  gcloud dns record-sets create studio.quorum.ai. --zone=quorum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
-  gcloud compute ssl-certificates create quorum-san-cert --domains="quorum.ai,api.quorum.ai,app.quorum.ai,studio.quorum.ai,quorum.fi,api.quorum.fi,app.quorum.fi" --global
+  gcloud compute addresses create qrum-global-ip --global --ip-version IPV4
+  gcloud dns managed-zones create qrum-ai-zone --dns-name="qrum.ai." --description="Quorum Primary Production DNS Zone" --visibility=public
+  gcloud dns record-sets create qrum.ai. --zone=qrum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
+  gcloud dns record-sets create api.qrum.ai. --zone=qrum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
+  gcloud dns record-sets create app.qrum.ai. --zone=qrum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
+  gcloud dns record-sets create studio.qrum.ai. --zone=qrum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
+  gcloud compute ssl-certificates create qrum-san-cert --domains="qrum.ai,api.qrum.ai,app.qrum.ai,studio.qrum.ai" --global
   ```
 * **5. CORS & Origin Security (`@[backend_v2/settings.py#L54-L1053]`):**
-  * API-ingress sallii nimenomaisesti tuotanto-originit: `https://quorum.ai`, `https://app.quorum.ai`, `https://studio.quorum.ai`, `https://quorum.fi`, `https://app.quorum.fi`.
+  * API-ingress sallii nimenomaisesti tuotanto-originit: `https://qrum.ai`, `https://app.qrum.ai`, `https://studio.qrum.ai`.
 * **6. Firebase Auth & OAuth Redirect URIs:**
-  * Lisätään Firebase Authenticationin *Authorized Domains* -listalle: `quorum.ai`, `app.quorum.ai`, `api.quorum.ai`, `quorum.fi`, `app.quorum.fi`.
+  * Lisätään Firebase Authenticationin *Authorized Domains* -listalle: `qrum.ai`, `app.qrum.ai`, `api.qrum.ai`.
 * **7. JWT Issuer & Audience SSOT:**
-  * Quorum Local JWT:n token-väitteet: `iss = "https://api.quorum.ai"`, `aud = "https://quorum.ai"`.
+  * Quorum Local JWT:n token-väitteet: `iss = "https://api.qrum.ai"`, `aud = "https://qrum.ai"`.
 
 ---
 
@@ -303,7 +301,7 @@ Tietokannan alustus ja testidata hoidetaan täysin ilman vanhoja JSON-tiedostoja
 
 ## Luku 6: Toteutustiekartta ja Riippuvuudet (The Master Waves)
 
-Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytkeytyy suoraan virallisiin Epiceihin ja hyväksyttyihin toteutussuunnitelmiin. Järjestys perustuu `@[docs/koodikannan_purku_ja_migraatiojarjestys.md]` -analyysiin, jolla eliminoidaan kaksoistyö ja estetään purettujen moduulien desynkronoituminen:
+Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytkeytyy suoraan virallisiin Epiceihin ja hyväksyttyihin toteutussuunnitelmiin. Järjestys perustuu monoliittianalyysiin, jolla eliminoidaan kaksoistyö ja estetään purettujen moduulien desynkronoituminen:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -353,9 +351,9 @@ Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytke
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
 ┌───────────────────────────────────▼─────────────────────────────────────────────────┐
-│ 5. GCP Tuotantopystytys & quorum.ai Domain (EPIC 74 & Pilvi-infra)                  │
+│ 5. GCP Tuotantopystytys & qrum.ai Domain (EPIC 74 & Pilvi-infra)                    │
 │    Cloud SQL PG19, Cloud Run API & Worker, Memorystore, Secret Manager              │
-│    Google-Managed SSL (api.quorum.ai, app.quorum.ai, quorum.fi)                    │
+│    Google-Managed SSL (api.qrum.ai, app.qrum.ai, studio.qrum.ai)                   │
 │    Epic: docs/epic/EPIC_74_Production_Deployment_GCP.md                             │
 │    Plan: docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md │
 │    Tracker: docs/implementationplans/TRACKER_GCP_Production_Deployment.md          │
@@ -377,7 +375,7 @@ Koodikannassa on kartoitettu ja aikataulutettu kaikki 13 kriittistä monoliittia
 | **3. LLM Strategy & Orchestrator** | `backend_v2/services/orchestrator/strategies/llm.py`<br>**1 090 LOC**. Vastasi yhtä aikaa prompteista, skeemoista, työkaluista, LLM-kutsusta ja telemetriasta. | 4-vaiheinen Strangler Fig -pilkonta pakettiin `llm_strategy/`: `blueprint_and_metadata_stage`, `prompt_and_schema_stage`, `engine_retry_stage`, `trace_event_stage` ja fasaadi `__init__.py` (< 200 LOC). Monoliitti tuhotaan. | **EPIC 157**<br>`@[docs/epic/llm_decomposition_tracker.md]`<br>`@[docs/epic/tasks_llm/]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` (hashit `b9d66471a`, `3f04a6e2f`) |
 | **4. Tietokantaydin & Tallennus** | `tinydb_driver.py`, `firestore_driver.py` ja `db_v2.json.lock`. Keräsivät sanakirjoja (`dict[str, Any]`), estivät rinnakkaisuuden ja lukitsivat levyn. | Korvattu puhtaalla Zero-ORM -arkkitehtuurilla: heksagonaaliset CQRS-portit (`GraphMutationPort`, `EntityPersistencePort`), `PostgresPoolManager` (`asyncpg`), binääriset `pydantic_core` Rust-koodekit ja AST-vartija `QGR030` (`FATAL`). TinyDB ja Firestore tuhottu kokonaan. | **PostgreSQL 19 Cutover & QGR030**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]`<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md]` | **SUORITETTU, KOVENNETTU & LUKITTU**<br>18/18 kohdetta karkaistu, Tier 7 synkronoitu, QGR030 aktiivisena |
 | **5. Taustatyöntekijät (Workers)** | `backend_v2/worker.py`<br>**2 000+ LOC**. Sekoitti Arq-daemonin käynnistyksen, raskaat DAG-analyysit ja raporttien generoinnin yhteen sekamelskaan. | Pilkottu kolmeen: `worker.py` on pelkkä ohut daemon-käynnistys; raskas laskenta on `backend_v2/workers/execution_worker.py` ja raporttien renderöinti `backend_v2/workers/report_worker.py`. | **Worker Decoupling Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
-| **6. Raportointipalvelu** | `backend_v2/services/report_service.py`<br>**749 LOC**. Käsitteli raporttien elinkaarta, Markdown/PDF-kasausta ja tiedostolukua. | Purettu pakettiin `backend_v2/services/report/`: `lifecycle_service.py`, `compilation_service.py`, `format_reader_service.py`. | **Report Service Decomposition**<br>`@[docs/koodikannan_purku_ja_migraatiojarjestys.md]` | **SUORITETTU & LUKITTU**<br>Vanha tiedosto poistettu |
+| **6. Raportointipalvelu** | `backend_v2/services/report_service.py`<br>**749 LOC**. Käsitteli raporttien elinkaarta, Markdown/PDF-kasausta ja tiedostolukua. | Purettu pakettiin `backend_v2/services/report/`: `lifecycle_service.py`, `compilation_service.py`, `format_reader_service.py`. | **Report Service Decomposition**<br>`@[docs/epic/report_service_decomposition_tracker.md]` | **SUORITETTU & LUKITTU**<br>Vanha tiedosto poistettu |
 | **7. Raporttiviennin Flattenerit** | `backend_v2/services/export_service.py` (**1 123 LOC**) & aiemmin määritelty (defined) `FlatFileService`. Keräsivät sanakirjamutaatioita ja konvertoivat graafeja löyhästi yhden rivin konevektoreiksi. | Monoliittinen flattener tuhottu; korvattu tyypitetyillä Pydantic V2 DTO-virroilla (`ExportMatrixSummaryRowDTO`, `ExportForensicAtomDTO`, `ExportPayloadDTO`) ja modulaarisella `backend_v2/services/export/` -paketilla. | **Export Tables SSOT Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Report_Tables_SSOT_and_Causal_Export.md]` | **SUORITETTU & LUKITTU**<br>`ki_god_code_prevention.md` |
 | **8. Matriisidomainin Jäsennin** | `backend_v2/services/matrix_domain_parser.py`<br>**732 LOC**. Sekoitti asteikot, atomien jäsennyksen, jakaumamuotoilun ja rivien rakentamisen. | Purettu pakettiin `backend_v2/services/matrix_parser/`: `scale_and_atom_stage.py`, `row_builder_stage.py`, `distribution_formatter.py`. | **Matrix Parser Decomposition**<br>`@[docs/epic/matrix_domain_parser_decomposition_tracker.md]`<br>`@[docs/epic/tasks_matrix/]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
 | **9. Sitaattien Lexical Verifier** | `backend_v2/services/orchestrator/anchor_validation_service.py`<br>**855 LOC**. Hoiti yhtä aikaa tekstin normalisoinnin, fuzzy-tarkistuksen, morfologian ja tilasiirtymät. | Pilkottu modulaariseksi paketiksi `backend_v2/services/orchestrator/anchor_validation/`: `lexical_normalizer.py`, `lexical_matcher.py`, `evidence_validator.py`, `atom_evaluation_processor.py`. | **Anchor Validation Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Multilingual_Rule_Based_Stemming_in_Anchor_Validation.md]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
@@ -480,7 +478,7 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
   4. **Polyfactory-mallitehtaat (`model_factories.py`):** Kaikki domain-entiteetit generoivat 100 % skeemavalideja Pydantic V2 -malleja heksadesimaalisilla Opaque Stripe ID:illä ilman kovakoodattuja mockeja.
   5. **18 kohteen autonominen karkaisu:** `auto_hardening_runner.py` ajoi kaikki 18 cutover- ja guardrail-kohdetta läpi (18/18 läpäisty ensimmäisellä yrityksellä, Final Macro-Audit PASSED).
   6. **Tier 7 As-Built -arkkitehtuurisynkronointi:** 4 Knowledge Itemiä, 3 arkkitehtuuripilaria ja hakemistoviite päivitetty preesensissä.
-  7. **Tuleva AST-backlog:** Dokumentoitu `@[docs/BACKLOG_AST_GUARDRAIL_EXPANSIONS.md]` (QGR031 Filter-strictness, dynaaminen skriptiskannaus, Polyfactory zero-crash).
+  7. **Tuleva AST-backlog:** Dokumentoitu `docs/arkkitehtuurin_parannuskohteet.md` (Luku 7: QGR031 Filter-strictness, dynaaminen skriptiskannaus, Polyfactory zero-crash).
 * **Toteutussuunnitelma & Seurantadokumentti:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md]`, `@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]`
 
 ---
@@ -667,8 +665,8 @@ uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
 
 ---
 
-### Askel 6: Suorita GCP-tuotantopystytys & `quorum.ai` Domain (Vaihe 5)
-* **Tavoite:** Provisioi GCP europe-north1 -resurssit (Cloud SQL PG19, Cloud Run API & Worker, Memorystore Redis, Secret Manager, Cloud Armor, Cloud Load Balancer) ja kytke Google-Managed SAN SSL `api.quorum.ai`-, `app.quorum.ai`- ja `quorum.fi`-osoitteille.
+### Askel 6: Suorita GCP-tuotantopystytys & `qrum.ai` Domain (Vaihe 5)
+* **Tavoite:** Provisioi GCP europe-north1 -resurssit (Cloud SQL PG19, Cloud Run API & Worker, Memorystore Redis, Secret Manager, Cloud Armor, Cloud Load Balancer) ja kytke Google-Managed SAN SSL `api.qrum.ai`-, `app.qrum.ai`- ja `studio.qrum.ai`-osoitteille.
 * **Tuotantokriittiset Invariantit (Disaster Recovery & Zero-Downtime):**
   1. **Cloud SQL PostgreSQL 19 PITR & Varmuuskopiot:** Automaattiset päivittäiset varmuuskopiot, transaktiologit (WAL) ja Point-in-Time Recovery (PITR) 14 päivän palautusikkunalla (täysi Disaster Recovery -suoja inhimillisiä tai laitteistovikoja vastaan).
   2. **Nollakatkon Elossapito- ja Valmiustarkistukset (`/healthz` & `/ready`):** Cloud Run liveness probe (`/healthz`: Uvicorn elää) ja readiness probe (`/ready`: nopea <10 ms asynkroninen PostgreSQL- ja Redis-ping ennen liikenteen ohjausta konttiin) takaamaan virheettömät nollakatkon päivitykset (Zero-Downtime Rolling Deployments).
@@ -693,7 +691,7 @@ uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
 
 ### Askel 6.1: Cloud Security & FinOps Infrastructure Hardening (GCP europe-north1) (Vaihe 5b)
 * **Tavoite ja Arkkitehtoninen Rooli:**
-  Ennen julkisen verkkoliikenteen avaamista `quorum.ai`-osoitteelle karkaistaan GCP europe-north1 -tuotantoympäristön verkkoturvallisuus, WAF-säännöt, pienimmät riittävät käyttöoikeudet (Least Privilege IAM), VPC-eristys, hälytyskanavat ja kustannuskatot (FinOps Circuit Breakers).
+  Ennen julkisen verkkoliikenteen avaamista `qrum.ai`-osoitteelle karkaistaan GCP europe-north1 -tuotantoympäristön verkkoturvallisuus, WAF-säännöt, pienimmät riittävät käyttöoikeudet (Least Privilege IAM), VPC-eristys, hälytyskanavat ja kustannuskatot (FinOps Circuit Breakers).
 * **Laajuus & Kesto:** Pilvi-infrastruktuurin auditointi ja verifiointi, kestoarvio **~1 h**.
 * **Karkaisualueet:**
   1. **Cloud Armor WAF & Rate Limiting:** Konfiguroidaan DDoS-suojaus, HTTP Flood -rajoittimet ja SQLi/XSS-suodattimet kuormantasaajassa (`quorum-lb`).

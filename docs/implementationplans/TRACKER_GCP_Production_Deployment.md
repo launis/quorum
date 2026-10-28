@@ -1,4 +1,4 @@
-# Tracker: GCP Production Deployment, Cloud Run & `quorum.ai` Domain Sovereignty
+# Tracker: GCP Production Deployment, Cloud Run & `qrum.ai` Domain Sovereignty
 
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]
 
@@ -55,7 +55,7 @@
   2. **Directory Reference Sync:**
      - Update `@[.agents/rules/04_directory_reference.md]` if any new system router endpoints or DTO exports require indexing.
   3. **Pillar Documentation Sync:**
-     - Update timeless narratives in `@[docs/architecture/01_system_context_and_invariants.md]` and `@[docs/architecture/05_resilience_and_observability.md]` describing the GCP Cloud Run stateless deployment invariants, `quorum.ai` / `quorum.fi` multi-domain origin security, and `/api/v2/system/health` probe in present tense without historical language or plan IDs.
+     - Update timeless narratives in `@[docs/architecture/01_system_context_and_invariants.md]` and `@[docs/architecture/05_resilience_and_observability.md]` describing the GCP Cloud Run stateless deployment invariants, `qrum.ai` domain origin security, and `/api/v2/system/health` probe in present tense without historical language or plan IDs.
 
 ### Final Plan Audit
 
@@ -79,7 +79,7 @@
 | Requirement | Description | Plan Step | Status |
 | :--- | :--- | :--- | :--- |
 | **REQ-GCP-01** | Add `gcp_project_id`, `gcp_region`, `primary_domain`, `jwt_issuer`, and `jwt_audience` to `Settings` in `@[backend_v2/settings.py#L54-L1053]`. | Step 1 | `[ ]` |
-| **REQ-GCP-02** | Lock default production `cors_origins` to `quorum.ai` / `quorum.fi` origins in `_enforce_environment_limits` (`@[backend_v2/settings.py#L847-L908]`) and reject explicit wildcard `["*"]` in production via `validate_production_cors_origins`. | Step 1 | `[ ]` |
+| **REQ-GCP-02** | Lock default production `cors_origins` to `qrum.ai` origins in `_enforce_environment_limits` (`@[backend_v2/settings.py#L847-L908]`) and reject explicit wildcard `["*"]` in production via `validate_production_cors_origins`. | Step 1 | `[ ]` |
 | **REQ-GCP-03** | Replace hardcoded `"https://api.quorum.fi/errors/validation-failed"` in `validation_exception_handler` (`@[backend_v2/main.py#L347-L380]`) with dynamic `get_settings().jwt_issuer`. | Step 1 | `[ ]` |
 | **REQ-GCP-04** | Define immutable `HealthCheckResponseDTO(BaseResponseDTO)` in `@[backend_v2/models/dtos/system.py#L43-L52]` with `ConfigDict(frozen=True, strict=True, extra="forbid")`. | Step 2 | `[ ]` |
 | **REQ-GCP-05** | Expose `GET /api/v2/system/health` (`get_system_health`) in `@[backend_v2/api/routers/system/health.py#L20-L52]` with `response_model=HealthCheckResponseDTO` and RFC 7807 Dual-Reporting. | Step 2 | `[ ]` |
@@ -91,13 +91,13 @@
 # Session Handover Context
 
 ## Achieved
-- Modernized `@[docs/epic/EPIC_74_Production_Deployment_GCP.md]` to align 100% with the 2026 All-in-PostgreSQL 19 Sovereign Zero-ORM Architecture (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`), B2B SaaS IAM (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`), and `quorum.ai` / `quorum.fi` multi-domain origin security.
+- Modernized `@[docs/epic/EPIC_74_Production_Deployment_GCP.md]` to align 100% with the 2026 All-in-PostgreSQL 19 Sovereign Zero-ORM Architecture (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`), B2B SaaS IAM (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`), and `qrum.ai` domain origin security.
 - Authored and hardened `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]` via Tier 0 Five-Axis System 2 Deconstruction, injecting AST-exact `#Lnn-mm` symbol boundaries, `Phase 1: Pre-Implementation Cleanups`, the 5-Column Architectural Directives Table, and the `<execution_protocol>` XML steps.
 - Initialized `@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]` with 1:1 step parity, file-level backend hardening checklists, and the Requirements Traceability Matrix.
 
 ## Learned
-- `validation_exception_handler` in `@[backend_v2/main.py#L347-L380]` previously hardcoded `"https://api.quorum.fi/errors/validation-failed"`; resolving this dynamically from `Settings.jwt_issuer` (`"https://api.quorum.ai"`) eliminates cross-domain drift.
-- `Settings` in `@[backend_v2/settings.py#L54-L1053]` defaulted `cors_origins` to `["*"]` in all environments; locking production defaults to the closed `quorum.ai` and `quorum.fi` origin set in `_enforce_environment_limits` (`@[backend_v2/settings.py#L847-L908]`) and rejecting explicit `"*"` in production via `validate_production_cors_origins` prevents wildcard CORS exposure when `allow_credentials=True`.
+- `validation_exception_handler` in `@[backend_v2/main.py#L347-L380]` previously hardcoded `"https://api.quorum.fi/errors/validation-failed"`; resolving this dynamically from `Settings.jwt_issuer` (`"https://api.qrum.ai"`) eliminates cross-domain drift.
+- `Settings` in `@[backend_v2/settings.py#L54-L1053]` defaulted `cors_origins` to `["*"]` in all environments; locking production defaults to the closed `qrum.ai` origin set in `_enforce_environment_limits` (`@[backend_v2/settings.py#L847-L908]`) and rejecting explicit `"*"` in production via `validate_production_cors_origins` prevents wildcard CORS exposure when `allow_credentials=True`.
 - `@[backend_v2/api/routers/system/health.py#L20-L52]` previously exposed only `/api/v2/system/hooks`; adding `GET /api/v2/system/health` with `HealthCheckResponseDTO` provides a zero-dict, O(1) health probe for Cloud Run and Cloud Load Balancer without violating `single_router_ssot_mandate`.
 
 ## Remaining

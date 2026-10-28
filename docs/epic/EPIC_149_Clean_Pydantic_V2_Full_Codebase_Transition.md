@@ -37,7 +37,7 @@ Despite strict architectural rules in `@[.agents/rules/00-antigravity-core.md]` 
 6. **Cache Boundary Leak (Välimuistin tyyppivuoto)** where Redis cache and blob storage deserialization (`driver.read()`, `redis.get()`) relies on standard Python `json.loads()`, returning raw `dict` objects into `@[backend_v2/database/repositories/execution.py]#L92-L100` (`data[field] = json.loads(decoded)`) and `@[backend_v2/worker.py]`, leaking dictionaries back into caller services and worker pipelines.
 
 ### Strategic Scope
-This Epic enforces the **Strangler Fig** migration pattern: each phase locks a new layer's types, makes existing consumers compile-fail on `dict` usage, fixes all consumers and atomically modernizes their corresponding tests, and runs the global quality gate before proceeding to the next layer. Furthermore, Phase 1 injects upfront Seed Data Vault sanitization to guarantee clean-boot stability before removing silent schema defaults. The authoritative reference catalog is `@[docs/CLEAN_PYDANTIC_TRANSITION_CATALOG.md]`.
+This Epic enforces the **Strangler Fig** migration pattern: each phase locks a new layer's types, makes existing consumers compile-fail on `dict` usage, fixes all consumers and atomically modernizes their corresponding tests, and runs the global quality gate before proceeding to the next layer. Furthermore, Phase 1 injects upfront Seed Data Vault sanitization to guarantee clean-boot stability before removing silent schema defaults. The authoritative reference catalog is `@[ki_zero_permissive_typing.md]`.
 
 ### Clean-Slate Database Wipe & Absolute Zero-Fallback Mandate (Type Constitutionalist)
 - **Approved Best Practice (Type Constitutionalist)**:
@@ -410,7 +410,7 @@ See the canonical `<required_context_rules>` XML block at the top of this docume
 | `@[ki_seed_vault_verification_and_sanitization.md]` | Upfront Seed Vault pre-flight sanitization and audit protocols |
 | `@[ki_ast_guardrail_engine.md]` | AST guardrail visitor mechanics and zero-reflection self-testing |
 | `@[ki_app_error_boundary.md]` | UI exception boundary architecture preventing silent failure "Ghost Bugs" |
-| `@[docs/CLEAN_PYDANTIC_TRANSITION_CATALOG.md]` | Authoritative reference catalog with 9 anti-pattern archetypes |
+| `@[ki_zero_permissive_typing.md]` | Authoritative reference catalog with 9 anti-pattern archetypes |
 
 ### Chronological Drift & Hierarchy of Precedence Invariant
 1. **Supreme Rule Authority**: The core rules in `@[.agents/rules/]` and the Phase 7 invariants in this Epic (`QGR001`, `QGR002`, and `QGR012` enforced at `FATAL` severity in `services/` and `hooks/`) possess absolute system authority and strictly override any historical advisory `WARNING` designations documented in older Knowledge Item snapshots (specifically `@[ki_ast_guardrail_engine.md]` which describes QGR001/QGR002 at `WARNING` severity).

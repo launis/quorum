@@ -270,7 +270,7 @@ uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
 The Final Cutover proceeds systematically through Quorum's sovereign project lifecycle once the Phase 1 hardening queue completes:
 
 1. **Tier 0 Research & Impact Analysis (Completed):**
-   Executed `/tier0-research-plan @[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]` to verify Phase 1 artifacts (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` and `@[docs/implementationplans/TRACKER_PostgreSQL.md]`), AST boundaries, 1-hop caller blast radius, and the 5-Column Directives Table.
+   Executed `/tier0-research-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]` to verify Phase 1 artifacts (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` and `@[docs/implementationplans/TRACKER_PostgreSQL.md]`), AST boundaries, 1-hop caller blast radius, and the 5-Column Directives Table.
 2. **Tier 1 Implementation Plan & Tracker Generation:**
    Generate the formal implementation plan and tracker artifacts:
    * Plan: `[NEW] @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]`
