@@ -7,6 +7,8 @@ across multiple groups ranked by priority or informativeness.
 from collections.abc import Callable, Hashable, Sequence
 from typing import Any
 
+__all__ = ["ranked_round_robin_select"]
+
 
 def ranked_round_robin_select[T](
     items: Sequence[T],
@@ -46,22 +48,22 @@ def ranked_round_robin_select[T](
         TypeError: If `group_key` produces unhashable keys or `rank_key` produces
             mutually incomparable keys within the same group.
     """
-    # Phase 1, Step 2: Validate budget boundary
+    # Guard against non-positive selection budgets or empty input sequences
     if max_items <= 0 or not items:
         return []
 
-    # Phase 1, Step 2: Group items preserving first appearance order
+    # Preserve deterministic first-appearance group ordering across buckets
     groups: dict[Hashable, list[T]] = {}
     for item in items:
         g_key = group_key(item)
         groups.setdefault(g_key, []).append(item)
 
-    # Phase 1, Step 2: Inverted sort so highest priority is at tail (-1 index) for O(1) pop
+    # Invert sort direction so the highest-priority item sits at the tail (-1) for O(1) pop
     sort_reverse = not reverse_rank
     for g_items in groups.values():
         g_items.sort(key=rank_key, reverse=sort_reverse)
 
-    # Phase 1, Step 2: Round-robin selection popping from tail
+    # Interleave selections across active groups until budget or items exhaust
     selected: list[T] = []
     while groups and len(selected) < max_items:
         # Freeze keys list to allow safe deletion during iteration
