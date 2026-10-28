@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import logging
 
+from fastapi import status
+
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
@@ -40,7 +43,19 @@ class SduiMapperService:
 
         Returns:
             An AnySduiBlock discriminated union instance (SduiQuoteCard or SduiWarningCard).
+
+        Raises:
+            AppException: If lang is empty or whitespace-only (ErrorCodes.VALIDATION_FAILED).
         """
+        if not lang or not lang.strip():
+            msg = "Target language code 'lang' cannot be empty when mapping evidence to SDUI."
+            logger.error("[SduiMapperService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
         # Telemetry logging for hallucinations (Dual-Reporting)
         quote_str = ""
         if evidence.source_quotes:
@@ -58,7 +73,7 @@ class SduiMapperService:
         return SduiQuoteCard(quote=quote_str, source_aliases=evidence.verified_source_ids, citations=[])
 
     def map_report(self, report: ReportDataDTO, execution_id: str = "", lang: str = "fi") -> ReportView:
-        """Alias for map_report_to_sdui to satisfy existing test bindings if any.
+        """Delegate report mapping to map_report_to_sdui for caller compatibility.
 
         Args:
             report: The aggregated report data DTO to map into client view representation.
@@ -67,6 +82,9 @@ class SduiMapperService:
 
         Returns:
             The mapped ReportView instance for client rendering.
+
+        Raises:
+            AppException: If lang or the resolved execution_id is empty (ErrorCodes.VALIDATION_FAILED).
         """
         return self.map_report_to_sdui(report, execution_id, lang)
 
@@ -80,8 +98,33 @@ class SduiMapperService:
 
         Returns:
             The mapped ReportView instance for client rendering.
+
+        Raises:
+            AppException: If lang or the resolved execution_id is empty (ErrorCodes.VALIDATION_FAILED).
         """
-        # Phase B1: Metrics & Telemetry (Capture global_score, strictness_level, has_warning)
+        if not lang or not lang.strip():
+            msg = "Target language code 'lang' cannot be empty when mapping report to SDUI."
+            logger.error("[SduiMapperService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
+        if execution_id.strip():
+            resolved_execution_id = execution_id.strip()
+        else:
+            resolved_execution_id = report.execution_id.strip()
+        if not resolved_execution_id:
+            msg = "Resolved execution_id cannot be empty when mapping report to SDUI."
+            logger.error("[SduiMapperService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
+        # Capture top-level report score and strictness telemetry for view header rendering
         metrics = ReportViewMetricsDTO(
             global_score=report.global_score,
             strictness_level=report.strictness_level,
@@ -94,7 +137,7 @@ class SduiMapperService:
 
         inner_blocks: list[AnySduiBlock] = list(report.inner_sdui_blocks)
 
-        # Phase 3a: Map N_A outcomes to SDUI N_A Cards
+        # Map N_A evaluation outcomes to dedicated SDUI N_A cards with prerequisite explanations
         na_default_msg = I18nText(translations={"fi": "Ei sovelleta (N/A)", "en": "Not applicable (N/A)"}).resolve(lang)
         na_rule_prefix = I18nText(
             translations={"fi": "Ohitettu säännön perusteella:", "en": "Skipped based on rule:"}
@@ -115,11 +158,6 @@ class SduiMapperService:
                         message=reason_msg,
                     )
                 )
-
-        if execution_id:
-            resolved_execution_id = execution_id
-        else:
-            resolved_execution_id = report.execution_id
 
         return ReportView(
             view_id=resolved_execution_id,
