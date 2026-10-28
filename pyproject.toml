@@ -82,6 +82,7 @@ exclude = ["scratch", "tmp", ".venv", ".git", "docs"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "D"]
 ignore = [
+    "E501",  # Line too long - line length is formatted by ruff format; also ignored in backend_audit_loop.py
     "B008",  # FastAPI Depends() in default argument - standard pattern
     "E402",  # Module level import not at top - needed for dynamic imports
     "D100",  # Missing docstring in public module
