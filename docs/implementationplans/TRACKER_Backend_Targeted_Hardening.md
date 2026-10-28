@@ -49,7 +49,7 @@
   - [x] @[backend_v2/utils/ranked_round_robin.py]
   - [x] @[backend_v2/utils/redis_patcher.py]
   - [x] @[backend_v2/utils/static_charts.py]
-  - [ ] @[backend_v2/utils/finops_trace_analyzer.py]
+  - [x] @[backend_v2/utils/finops_trace_analyzer.py]
   - [ ] @[backend_v2/services/translation_service.py]
   - [ ] @[backend_v2/llm/caching_service.py]
   - [ ] @[backend_v2/services/llm_task_executor.py]
