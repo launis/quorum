@@ -245,3 +245,87 @@ async def test_dag_executor_execute_workflow_end_to_end_and_missing_blueprint_fa
     assert isinstance(sub_exc, AppException)
     assert sub_exc.details is not None
     assert sub_exc.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR
+
+
+@pytest.mark.asyncio
+async def test_dag_executor_execute_workflow_fails_fast_on_prehydration_and_wave_error() -> None:
+    """Verify DAGExecutor.execute_workflow raises AppException on pre-hydration and wave execution failures."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    executor = _build_dag_executor(repo)
+
+    step_id = "stp_2222333344445555"
+    repo.set_step(
+        Step(
+            id=step_id,
+            slug="step_neg_facade",
+            name=I18nText(translations={"en": "Neg Step", "fi": "Neg Vaihe"}),
+            description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
+            type=StepType.LOGIC,
+            hook="custom_logic_hook",
+            engine_type=EngineType.PROMPT,
+            criteria_block_ids=[],
+        )
+    )
+    workflow = Workflow(
+        id="wf_2222333344445555",
+        slug="wf_neg_facade",
+        name=I18nText(translations={"en": "Neg WF", "fi": "Neg WF"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
+        status="active",
+        version=1,
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        default_profile_id="prf_1111222233334444",
+        model_registry_id="sys_1111222233334444",
+        steps=[StepRule(id=step_id, task_blueprint=step_id, depends_on=[])],
+    )
+    repo.set_workflow(workflow)
+
+    # Negative partition 1: pre-hydration input_processing hook failure raises AppException(VALIDATION_FAILED)
+    with (
+        patch(
+            "backend_v2.services.orchestrator.dag_executor.hook_registry.execute",
+            side_effect=RuntimeError("corrupted input payload"),
+        ),
+        pytest.raises(AppException) as val_exc,
+    ):
+        await executor.execute_workflow(
+            execution_id="exe_2222333344445555",
+            workflow=workflow,
+            raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "Bad input"}),
+        )
+    assert val_exc.value.details is not None
+    assert val_exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
+
+    # Negative partition 2: step execution raising fatal AppException propagates AppException(WORKFLOW_EXECUTION_FAILED)
+    class _FailingNodeExecutor(NodeExecutor):
+        async def execute(self, step: StepRule, *_args: object, **_kwargs: object) -> list[TraceEvent]:
+            raise AppException(
+                message=f"Fatal step failure on {step.id}",
+                status_code=500,
+                details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
+            )
+
+    executor.node_executor = _FailingNodeExecutor(deps=executor.deps)
+    hook_ok = HookResult(
+        success=True,
+        state_delta=HookDeltaDTO(
+            delta=ExecutionInputsDTO(
+                raw_inputs={"doc": "Valid input"},
+                dynamic_inputs={"doc": "Valid input"},
+            )
+        ),
+    )
+    with (
+        patch(
+            "backend_v2.services.orchestrator.dag_executor.hook_registry.execute",
+            return_value=hook_ok,
+        ),
+        pytest.raises(AppException) as wf_exc,
+    ):
+        await executor.execute_workflow(
+            execution_id="exe_3333444455556666",
+            workflow=workflow,
+            raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "Valid input"}),
+        )
+    assert wf_exc.value.details is not None
+    assert wf_exc.value.details["error_code"] == ErrorCodes.WORKFLOW_EXECUTION_FAILED
