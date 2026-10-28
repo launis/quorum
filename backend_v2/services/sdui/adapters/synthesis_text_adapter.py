@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """Synthesis Text SDUI Adapter.
 
 Transforms synthesis markdown into SDUI visual blocks
 for Server-Driven UI rendering. Visual rules are co-located as a module-level
 SYNTHESIS_TEXT_RULES DTO to enforce separation of presentation from logic.
 """
+
+from __future__ import annotations
 
 import logging
 
@@ -54,7 +54,7 @@ class SynthesisTextAdapter:
             return blocks
 
         # 1. READ: Insert pre-defined content blocks from profile
-        if context.profile and context.profile.content_blocks:
+        if context.profile.content_blocks:
             for cb in context.profile.content_blocks:
                 blocks.append(cb.model_copy(deep=True))
 

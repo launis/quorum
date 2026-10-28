@@ -1,9 +1,15 @@
+"""Unit tests for the SynthesisTextAdapter SDUI adapter."""
+
 from __future__ import annotations
+
+import pytest
+from pydantic import ValidationError
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.dtos.base import DataStarvationEvent
+from backend_v2.models.dtos.sdui_rules import SynthesisTextAestheticsDTO, SynthesisTextModeDTO
 from backend_v2.models.view.sdui import MarkdownBlock, ParagraphBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.synthesis_text_adapter import (
@@ -13,7 +19,7 @@ from backend_v2.services.sdui.adapters.synthesis_text_adapter import (
 
 
 def test_synthesis_text_adapter_builds_markdown_blocks() -> None:
-    """Test that SynthesisTextAdapter correctly processes synthesis text."""
+    """Test that SynthesisTextAdapter correctly processes synthesis text as deep copies."""
     cb = ParagraphBlock(text="Predefined content block", exact_quotes=[], citations=[])
 
     profile = OutputProfile(
@@ -41,6 +47,7 @@ def test_synthesis_text_adapter_builds_markdown_blocks() -> None:
     assert len(blocks) == 1
     assert isinstance(blocks[0], ParagraphBlock)
     assert blocks[0].text == "Predefined content block"
+    assert blocks[0] is not cb
 
 
 def test_synthesis_text_adapter_ignores_section_syntheses() -> None:
@@ -142,3 +149,13 @@ def test_synthesis_text_adapter_empty_content_blocks() -> None:
 def test_synthesis_text_rules_attributes() -> None:
     """Test that SYNTHESIS_TEXT_RULES conforms to SynthesisTextAestheticsDTO schema."""
     assert SYNTHESIS_TEXT_RULES.model_config["extra"] == "forbid"
+    assert SYNTHESIS_TEXT_RULES.default_text.mode == "standard"
+
+
+def test_synthesis_text_rules_rejects_extra_fields_and_invalid_types() -> None:
+    """ISTQB Negative: SynthesisTextAestheticsDTO and SynthesisTextModeDTO reject extra fields and invalid types."""
+    with pytest.raises(ValidationError):
+        SynthesisTextModeDTO.model_validate({"mode": "standard", "unexpected": "value"})
+
+    with pytest.raises(ValidationError):
+        SynthesisTextAestheticsDTO.model_validate({"default_text": {"mode": 123}})
