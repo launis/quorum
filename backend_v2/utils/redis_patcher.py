@@ -7,8 +7,20 @@ from typing import Any, cast
 import arq.connections
 import arq.worker
 from arq.connections import ArqRedis
+from fakeredis import FakeServer
 from fakeredis.aioredis import FakeRedis
+from fastapi import status
 from redis.asyncio.connection import ConnectionPool
+
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.settings import get_settings
+
+__all__ = [
+    "ASYNC_ACCUMULATOR_LUA",
+    "ArqCompatibleFakeRedis",
+    "MockRetry",
+    "get_patched_fakeredis_pool",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +65,24 @@ class MockRetry:
 
         Returns:
             The result of the function execution.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if func is not callable.
         """
+        if not callable(func):
+            msg = "Target function for MockRetry.call_with_retry must be callable."
+            logger.error(
+                "[RedisPatcher] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
         return await func()
 
 
@@ -62,7 +91,7 @@ class ArqCompatibleFakeRedis(FakeRedis):
 
     Attributes:
         retry: Mock retry handler for Arq execution.
-        connection_kwargs: Connection parameters dictionary.
+        connection_kwargs: Connection parameters dictionary resolved from Settings SSOT.
     """
 
     connection_kwargs: dict[str, str | int]
@@ -75,8 +104,9 @@ class ArqCompatibleFakeRedis(FakeRedis):
             **kwargs: Keyword arguments for FakeRedis.
         """
         super().__init__(*args, **kwargs)
+        settings = get_settings()
         self.retry = MockRetry()
-        self.connection_kwargs = {"host": "localhost", "port": 6379}
+        self.connection_kwargs = {"host": settings.redis_host, "port": settings.redis_port}
 
     async def get_connection(self) -> Any:
         """Returns self as the active connection.
@@ -95,7 +125,8 @@ class ArqCompatibleFakeRedis(FakeRedis):
         Returns:
             None
         """
-        pass
+        _ = conn
+        return None
 
     def pack_commands(self, cmds: Any) -> Any:
         """Packs commands for pipeline execution.
@@ -105,7 +136,24 @@ class ArqCompatibleFakeRedis(FakeRedis):
 
         Returns:
             The packed commands.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if cmds is empty or None.
         """
+        if not cmds:
+            msg = "Commands payload for pack_commands cannot be empty."
+            logger.error(
+                "[RedisPatcher] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
         return cmds
 
     async def send_packed_command(self, cmds: Any) -> None:
@@ -117,7 +165,8 @@ class ArqCompatibleFakeRedis(FakeRedis):
         Returns:
             None
         """
-        pass
+        _ = cmds
+        return None
 
     async def send_command(self, *args: Any, **kwargs: Any) -> Any:
         """Executes a command and stores the response in context variable.
@@ -128,7 +177,24 @@ class ArqCompatibleFakeRedis(FakeRedis):
 
         Returns:
             None
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if no command arguments are provided.
         """
+        if not args:
+            msg = "Redis command arguments for send_command cannot be empty."
+            logger.error(
+                "[RedisPatcher] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
         cmd: Any = self.execute_command
         res = await cmd(*args, **kwargs)
         _last_response_var.set(res)
@@ -146,7 +212,8 @@ def _patch_arq_logging() -> None:
     """Patches Arq logging to prevent crashes with FakeRedis."""
 
     async def _no_op_log(*args: Any, **kwargs: Any) -> None:
-        pass
+        _ = (args, kwargs)
+        return None
 
     arq.connections.log_redis_info = _no_op_log
     worker_module: Any = arq.worker
@@ -163,10 +230,7 @@ def get_patched_fakeredis_pool() -> ArqRedis:
     Returns:
         An Arq-compatible wrapper around an ArqCompatibleFakeRedis instance.
     """
-    from fakeredis import FakeServer
-
     fake_redis = ArqCompatibleFakeRedis(server=FakeServer())
-    fake_redis.connection_kwargs = {"host": "localhost", "port": 6379}
 
     _patch_arq_logging()
 
