@@ -28,30 +28,23 @@ from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, TraceEvent
 from backend_v2.services.orchestrator.causal_cohesion_evaluator import CausalCohesionEvaluator
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
-from backend_v2.services.orchestrator.dag_executor.causal_tda_fusion import compute_causal_tda_fusion_result
-from backend_v2.services.orchestrator.dag_executor.execution_committer import (
-    ExecutionCommitter,
-)
-from backend_v2.services.orchestrator.dag_executor.node_executor import NodeExecutor
-from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
+from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
+from backend_v2.settings import get_settings
+
+from .causal_tda_fusion import compute_causal_tda_fusion_result
+from .execution_committer import ExecutionCommitter
+from .node_executor import NodeExecutor
+from .workflow_bootstrap_stage import (
     WorkflowExecutionState,
     dlq_handle_progress_commit_error,
     dlq_record_step_failure,
     execute_rag_preflight_stage,
     safe_commit_execution_state,
 )
-from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
-from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 __all__ = ["execute_topological_waves_stage", "finalize_step_output_and_commit"]
 _DAG_EXECUTOR_MODULE = "backend_v2.services.orchestrator.dag_executor"
-
-
-def _resolve_settings() -> Any:
-    """Resolve settings using dag_executor.get_settings when present for patch compatibility."""
-    getter = sys.modules[_DAG_EXECUTOR_MODULE].get_settings if _DAG_EXECUTOR_MODULE in sys.modules else get_settings
-    return getter()
 
 
 def _extract_evaluated_atoms(events: list[TraceEvent]) -> list[AtomResultDTO]:
@@ -71,31 +64,35 @@ def _extract_evaluated_atoms(events: list[TraceEvent]) -> list[AtomResultDTO]:
     return evaluated_atoms
 
 
-async def _commit_record_snapshot(
-    committer: ExecutionCommitter, rec: ExecutionRecord, error: str | None = None
-) -> None:
+async def _commit_record_snapshot(committer: ExecutionCommitter, rec: ExecutionRecord, err: str | None = None) -> None:
     """Persist ExecutionRecord trace, status, step_states, and context_variables via ExecutionCommitter."""
     await committer.commit_trace(
-        rec.execution_trace, rec.status, rec.step_states, error, None, rec.context_variables, rec.steps
+        trace=rec.execution_trace,
+        status=rec.status,
+        step_states=rec.step_states,
+        error=err,
+        context_variables=rec.context_variables,
+        steps=rec.steps,
     )
 
 
 def _append_causal_fusion_and_cohesion_events(
     state: WorkflowExecutionState,
     step_id: str,
-    src_step_id: str,
     events: list[TraceEvent],
     upstream_graph: CausalGraphPayloadDTO,
     causal_cohesion_evaluator: CausalCohesionEvaluator | None,
 ) -> None:
     """Evaluate causal TDA fusion and BARS causal cohesion, appending output and decision TraceEvents."""
-    settings = _resolve_settings()
-    evaluated_atoms = _extract_evaluated_atoms(events)
+    src_step_id = state.steps_by_id[step_id].causal_source_step_id
+    if src_step_id is None:
+        return
+    getter = sys.modules[_DAG_EXECUTOR_MODULE].get_settings if _DAG_EXECUTOR_MODULE in sys.modules else get_settings
+    settings, evaluated_atoms = getter(), _extract_evaluated_atoms(events)
     atoms_arg: list[AtomResultDTO] | None = None
     if evaluated_atoms:
         atoms_arg = evaluated_atoms
-    eval_m = state.global_context_vars.evaluative_matrices
-    damp = settings.causal_secondary_fault_dampening
+    eval_m, damp = state.global_context_vars.evaluative_matrices, settings.causal_secondary_fault_dampening
     fusion_res = compute_causal_tda_fusion_result(
         upstream_graph, eval_m, atoms_arg, damp, state.workflow.expected_inputs
     )
@@ -142,13 +139,11 @@ def _merge_global_context_vars(state: WorkflowExecutionState, parsed: GlobalCont
     return has_gvar_updates
 
 
-def _deduplicate_mcp_traces(
-    current_traces: list[MCPAuditTrace], step_mcp_traces: list[MCPAuditTrace]
-) -> list[MCPAuditTrace]:
+def _deduplicate_mcp_traces(current: list[MCPAuditTrace], step_traces: list[MCPAuditTrace]) -> list[MCPAuditTrace]:
     """Deduplicate step MCPAuditTrace entries against existing FrozenContext traces by ID."""
-    seen_ids: set[str] = {t.id for t in current_traces if t.id}
+    seen_ids: set[str] = {t.id for t in current if t.id}
     new_unique: list[MCPAuditTrace] = []
-    for trace_item in step_mcp_traces:
+    for trace_item in step_traces:
         if trace_item.id is None or trace_item.id not in seen_ids:
             new_unique.append(trace_item)
             if trace_item.id:
@@ -156,7 +151,7 @@ def _deduplicate_mcp_traces(
     return new_unique
 
 
-async def _apply_step_events_to_record(
+async def _apply_step_events(
     state: WorkflowExecutionState, step_id: str, events: list[TraceEvent], has_error_evt: bool
 ) -> None:
     """Apply step TraceEvents, context updates, MCP traces, and schemas to state.exec_record."""
@@ -181,10 +176,8 @@ async def _apply_step_events_to_record(
             elif evt.metadata and evt.metadata.generated_schema is not None:
                 step_generated_schemas[evt.step_name] = evt.metadata.generated_schema
         schema_manifest = GeneratedSchemaManifestDTO(schemas=step_generated_schemas)
-
         if has_cv_updates:
             state.exec_record = state.exec_record.model_copy(update={"context_variables": new_cv})
-
         if has_gvar_updates:
             default_meta = ExecutionMetadata(
                 workflow_version=state.workflow.version, model_registry_id=state.workflow.model_registry_id
@@ -192,34 +185,23 @@ async def _apply_step_events_to_record(
             base_meta = state.exec_record.metadata if state.exec_record.metadata is not None else default_meta
             updated_meta = base_meta.model_copy(update={"global_context_vars": state.global_context_vars})
             state.exec_record = state.exec_record.model_copy(update={"metadata": updated_meta})
-
         base_fc = state.exec_record.frozen_context if state.exec_record.frozen_context is not None else FrozenContext()
         new_mcp_traces = list(base_fc.mcp_tool_audit)
         if step_mcp_traces:
             new_unique = _deduplicate_mcp_traces(new_mcp_traces, step_mcp_traces)
             if new_unique:
                 new_mcp_traces = new_mcp_traces + new_unique
-
         merged_schemas = base_fc.generated_schemas.schemas
         if schema_manifest.schemas:
             merged_schemas = {**base_fc.generated_schemas.schemas, **schema_manifest.schemas}
-
         if new_mcp_traces != list(base_fc.mcp_tool_audit) or merged_schemas != base_fc.generated_schemas.schemas:
-            updated_fc = base_fc.model_copy(
-                update={
-                    "mcp_tool_audit": new_mcp_traces,
-                    "generated_schemas": GeneratedSchemaManifestDTO(schemas=merged_schemas),
-                }
-            )
+            gen_dto = GeneratedSchemaManifestDTO(schemas=merged_schemas)
+            updated_fc = base_fc.model_copy(update={"mcp_tool_audit": new_mcp_traces, "generated_schemas": gen_dto})
             state.exec_record = state.exec_record.model_copy(update={"frozen_context": updated_fc})
-
-        if has_error_evt:
-            step_status = ExecutionStatus.FAILED
-            step_prog = None
-        else:
-            step_status = ExecutionStatus.PASSED
+        step_status = ExecutionStatus.FAILED if has_error_evt else ExecutionStatus.PASSED
+        step_prog: int | None = None
+        if not has_error_evt:
             step_prog = 100
-
         state.exec_record = state.exec_record.transition_step(step_id=step_id, status=step_status, progress=step_prog)
 
 
@@ -246,11 +228,9 @@ async def finalize_step_output_and_commit(
     """
     step_obj = state.steps_by_id[step_id]
     if step_obj.causal_source_step_id is not None and upstream_graph is not None:
-        _append_causal_fusion_and_cohesion_events(
-            state, step_id, step_obj.causal_source_step_id, events, upstream_graph, causal_cohesion_evaluator
-        )
+        _append_causal_fusion_and_cohesion_events(state, step_id, events, upstream_graph, causal_cohesion_evaluator)
     has_error_evt = any(isinstance(evt, ErrorTraceEvent) for evt in events)
-    await _apply_step_events_to_record(state=state, step_id=step_id, events=events, has_error_evt=has_error_evt)
+    await _apply_step_events(state=state, step_id=step_id, events=events, has_error_evt=has_error_evt)
     if has_error_evt:
         err_msg = [evt.error_message for evt in events if isinstance(evt, ErrorTraceEvent)][0]
         msg = f"Step {step_id} emitted ErrorTraceEvent: {err_msg}"
@@ -261,19 +241,18 @@ async def finalize_step_output_and_commit(
     await safe_commit_execution_state(state=state, committer=committer)
 
 
-async def _transition_and_commit_wave_failure(
+async def _fail_wave_and_commit(
     state: WorkflowExecutionState,
     committer: ExecutionCommitter,
-    orch_span: otel_trace.Span,
     waves: list[list[StepRule]],
     wave_idx: int,
-    wave: list[StepRule],
     primary_err: BaseException,
     dlq_on_step_failure: Callable[[str, str, BaseException], None],
 ) -> None:
     """Transition wave and downstream steps on TaskGroup failure and commit the failed record snapshot."""
-    async with state.update_lock:
-        for s_rule in wave:
+    _update_lock = state.update_lock
+    async with _update_lock:
+        for s_rule in waves[wave_idx]:
             curr_st = state.exec_record.step_states[s_rule.id]
             if curr_st.status in (ExecutionStatus.RUNNING, ExecutionStatus.PENDING):
                 state.exec_record = state.exec_record.transition_step(
@@ -291,30 +270,20 @@ async def _transition_and_commit_wave_failure(
         state.exec_record = state.exec_record.model_copy(
             update={"status": ExecutionStatus.FAILED, "error": str(primary_err)}
         )
-    await _commit_record_snapshot(committer, state.exec_record, error=state.exec_record.error)
-    orch_span.record_exception(primary_err)
-    orch_span.set_status(otel_trace.StatusCode.ERROR, str(primary_err))
+    await _commit_record_snapshot(committer, state.exec_record, err=state.exec_record.error)
 
 
-async def _transition_and_commit_unexpected_error(
-    state: WorkflowExecutionState,
-    committer: ExecutionCommitter,
-    orch_span: otel_trace.Span,
-    unexpected_err: Exception,
-) -> None:
+async def _fail_running_steps(state: WorkflowExecutionState, committer: ExecutionCommitter, err: str) -> None:
     """Transition running steps to FAILED on outer orchestration error and commit state."""
-    async with state.update_lock:
+    _update_lock = state.update_lock
+    async with _update_lock:
         for s in state.exec_record.steps:
             if s.status == ExecutionStatus.RUNNING:
                 state.exec_record = state.exec_record.transition_step(
-                    step_id=s.id, status=ExecutionStatus.FAILED, last_error=str(unexpected_err), has_warning=True
+                    step_id=s.id, status=ExecutionStatus.FAILED, last_error=err, has_warning=True
                 )
-        state.exec_record = state.exec_record.model_copy(
-            update={"status": ExecutionStatus.FAILED, "error": str(unexpected_err)}
-        )
-    await _commit_record_snapshot(committer, state.exec_record, error=state.exec_record.error)
-    orch_span.record_exception(unexpected_err)
-    orch_span.set_status(otel_trace.StatusCode.ERROR, str(unexpected_err))
+        state.exec_record = state.exec_record.model_copy(update={"status": ExecutionStatus.FAILED, "error": err})
+    await _commit_record_snapshot(committer, state.exec_record, err=state.exec_record.error)
 
 
 async def execute_topological_waves_stage(
@@ -351,9 +320,8 @@ async def execute_topological_waves_stage(
     orch_span.set_attribute("execution.id", state.execution_id)
     orch_span.set_attribute("workflow.id", state.workflow.id)
     orch_span.set_attribute("workflow.node_count", len(state.workflow.steps))
-    runner: Callable[..., Coroutine[Any, Any, None]] = (
-        step_runner_fn if step_runner_fn is not None else sys.modules[_DAG_EXECUTOR_MODULE].execute_dag_step_wrapper
-    )
+    def_runner: Callable[..., Coroutine[Any, Any, None]] = sys.modules[_DAG_EXECUTOR_MODULE].execute_dag_step_wrapper
+    runner = step_runner_fn if step_runner_fn is not None else def_runner
     try:
         if rag_preflight is not None:
             await execute_rag_preflight_stage(state, rag_preflight, committer, dlq_on_progress_commit_error)
@@ -371,9 +339,9 @@ async def execute_topological_waves_stage(
             except* BaseException as eg:
                 primary_err = eg.exceptions[0]
                 logger.error("[DAGExecutor] Wave %d execution failed: %s", wave_idx, eg, exc_info=True)
-                await _transition_and_commit_wave_failure(
-                    state, committer, orch_span, waves, wave_idx, wave, primary_err, dlq_on_step_failure
-                )
+                await _fail_wave_and_commit(state, committer, waves, wave_idx, primary_err, dlq_on_step_failure)
+                orch_span.record_exception(primary_err)
+                orch_span.set_status(otel_trace.StatusCode.ERROR, str(primary_err))
                 if isinstance(primary_err, AppException):
                     raise primary_err from eg
                 msg = f"Workflow failed: {primary_err}"
@@ -384,7 +352,8 @@ async def execute_topological_waves_stage(
 
         failed_statuses = (ExecutionStatus.FAILED, ExecutionStatus.BLOCKED)
         if any(s.status in failed_statuses for s in state.exec_record.step_states.values()):
-            async with state.update_lock:
+            _update_lock = state.update_lock
+            async with _update_lock:
                 state.exec_record = state.exec_record.model_copy(update={"status": ExecutionStatus.FAILED})
             await _commit_record_snapshot(committer, state.exec_record)
             msg = "Workflow completed with failed steps"
@@ -395,7 +364,9 @@ async def execute_topological_waves_stage(
         await _commit_record_snapshot(committer, state.exec_record)
         return state.exec_record
     except Exception as unexpected_err:
-        await _transition_and_commit_unexpected_error(state, committer, orch_span, unexpected_err)
+        await _fail_running_steps(state, committer, str(unexpected_err))
+        orch_span.record_exception(unexpected_err)
+        orch_span.set_status(otel_trace.StatusCode.ERROR, str(unexpected_err))
         if isinstance(unexpected_err, AppException):
             raise
         msg = f"Workflow failed: {unexpected_err}"
