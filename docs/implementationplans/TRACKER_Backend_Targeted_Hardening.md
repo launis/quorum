@@ -24,7 +24,7 @@
   - [x] @[backend_v2/workers/report_worker.py]
   - [x] @[backend_v2/workers/synthesis_reducers.py]
   - [x] @[backend_v2/workers/synthesis_tasks.py]
-  - [ ] @[backend_v2/workers/synthesis_worker.py]
+  - [x] @[backend_v2/workers/synthesis_worker.py]
   - [ ] @[backend_v2/workers/variance_synthesis.py]
   - [ ] @[backend_v2/services/sdui/sdui_mapper_service.py]
   - [ ] @[backend_v2/services/sdui/adapters/base_adapter.py]
