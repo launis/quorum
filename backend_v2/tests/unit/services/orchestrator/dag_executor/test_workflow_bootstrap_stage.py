@@ -41,7 +41,6 @@ from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage impo
     dlq_handle_progress_commit_error,
     dlq_record_step_failure,
     execute_rag_preflight_stage,
-    safe_commit_execution_state,
 )
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 from backend_v2.services.orchestrator.strategies.base import StrategyDependencies

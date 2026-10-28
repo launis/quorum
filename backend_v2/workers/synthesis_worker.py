@@ -117,6 +117,7 @@ async def generate_profile_synthesis_and_pdf_task(
         )
 
     logger.info("[Task] Starting Async Text Synthesis for execution %s (Profile: %s)", execution_id, profile_id)
+    repo: UnifiedWorkflowRepository | None = None
     try:
         driver = await get_driver(get_settings())
         repo = UnifiedWorkflowRepository(driver)
@@ -637,5 +638,5 @@ async def generate_profile_synthesis_and_pdf_task(
                 extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             )
 
-        await handle_synthesis_failure_state(execution_id, profile_id, e)
+        await handle_synthesis_failure_state(execution_id, profile_id, e, repo=repo)
         raise e

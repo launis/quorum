@@ -506,6 +506,7 @@ async def handle_synthesis_failure_state(
     execution_id: str,
     profile_id: str | None,
     error: Exception,
+    repo: UnifiedWorkflowRepository | None = None,
 ) -> None:
     """Quarantine Phase 3 failure by updating virtual step state without failing ExecutionRecord status.
 
@@ -513,6 +514,7 @@ async def handle_synthesis_failure_state(
         execution_id: Authoritative identifier of the execution record.
         profile_id: Optional output profile identifier.
         error: Captured exception from the synthesis task.
+        repo: Optional pre-initialized UnifiedWorkflowRepository to reuse existing database session.
 
     Returns:
         None.
@@ -523,8 +525,9 @@ async def handle_synthesis_failure_state(
     if not profile_id:
         return
     try:
-        driver = await get_driver(get_settings())
-        repo = UnifiedWorkflowRepository(driver)
+        if repo is None:
+            driver = await get_driver(get_settings())
+            repo = UnifiedWorkflowRepository(driver)
         v_step_id = f"sys_render_{profile_id}"
         fail_step_states = None
         fail_steps = None

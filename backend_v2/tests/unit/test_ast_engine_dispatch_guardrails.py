@@ -398,7 +398,7 @@ def test_source_verification_hook_registered_and_safe() -> None:
 
 
 def test_node_strategy_registry_ast_has_no_procedural_string_routing() -> None:
-    """Verify dag_executor.py contains zero procedural string comparisons for step types."""
+    """Verify dag_executor.py and node_executor.py contain zero procedural string comparisons for step types."""
     dag_file = Path("backend_v2/services/orchestrator/dag_executor.py")
     assert dag_file.exists(), f"Missing target file: {dag_file}"
 
@@ -406,7 +406,14 @@ def test_node_strategy_registry_ast_has_no_procedural_string_routing() -> None:
     assert res.has_procedural_string_routing is False, (
         f"Procedural string routing found in {dag_file}: {res.procedural_string_comparisons}"
     )
-    assert res.uses_step_type_enum is True, f"{dag_file} must utilize StepType enum for dispatch"
+
+    node_file = Path("backend_v2/services/orchestrator/dag_executor/node_executor.py")
+    target_dispatch_file = node_file if node_file.exists() else dag_file
+    res_dispatch = scan_file_for_dag_routing(target_dispatch_file)
+    assert res_dispatch.has_procedural_string_routing is False, (
+        f"Procedural string routing found in {target_dispatch_file}: {res_dispatch.procedural_string_comparisons}"
+    )
+    assert res_dispatch.uses_step_type_enum is True, f"{target_dispatch_file} must utilize StepType enum for dispatch"
 
 
 def test_llm_strategy_ast_has_no_frozen_ctx_generated_schemas_mutation() -> None:

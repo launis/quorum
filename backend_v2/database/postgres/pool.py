@@ -7,6 +7,7 @@ and idempotent SQL migration execution.
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 import logging
 from collections.abc import AsyncIterator, Callable, Sequence
@@ -439,6 +440,7 @@ class PostgresPoolManager:
         """
         self.settings: Settings = settings
         self._pool: AsyncPgPoolProtocol | None = pool
+        self._loop: asyncio.AbstractEventLoop | None = None
         self._migration_sql_path: Path = (
             migration_sql_path if migration_sql_path is not None else _DEFAULT_MIGRATION_PATH
         )
@@ -446,7 +448,11 @@ class PostgresPoolManager:
     @property
     def is_initialized(self) -> bool:
         """Return whether the underlying asyncpg pool has been initialized."""
-        return self._pool is not None
+        if self._pool is None:
+            return False
+        if self._loop is not None and self._loop.is_closed():
+            return False
+        return True
 
     def resolve_dsn(self) -> str:
         """Build the PostgreSQL connection DSN from environment-injected settings.
@@ -476,8 +482,14 @@ class PostgresPoolManager:
         Raises:
             AppException: With STORAGE_ACCESS_FAILED if asyncpg is unavailable or connection fails.
         """
+        current_loop = asyncio.get_running_loop()
         if self._pool is not None:
-            return self._pool
+            if self._loop is not None and (self._loop.is_closed() or self._loop != current_loop):
+                logger.debug("[PostgresPool] Pool bound to closed or different event loop. Resetting pool.")
+                self._pool = None
+                self._loop = None
+            else:
+                return self._pool
 
         dsn = self.resolve_dsn()
         timeout_sec = self.settings.postgres_command_timeout_seconds
@@ -505,6 +517,7 @@ class PostgresPoolManager:
                 timeout=timeout_sec,
                 init=init_connection,
             )
+            self._loop = current_loop
         except Exception as exc:
             if isinstance(exc, AppException):
                 raise
@@ -612,7 +625,12 @@ class PostgresPoolManager:
         if self._pool is None:
             return
         pool = self._pool
+        pool_loop = self._loop
         self._pool = None
+        self._loop = None
+        if pool_loop is not None and pool_loop.is_closed():
+            logger.debug("[PostgresPool] Event loop already closed; skipping pool.close().")
+            return
         try:
             await pool.close()
         except Exception as exc:

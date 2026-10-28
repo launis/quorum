@@ -238,7 +238,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         if pool is not None and isinstance(pool, (ArqRedis, FakeRedis)):
             await pool.aclose()
         # Step 2: Drain and close shared PostgresPoolManager on shutdown
-        await close_shared_pool_manager()
+        try:
+            await close_shared_pool_manager()
+        except (AppException, OSError, RuntimeError, AttributeError) as pool_err:
+            logger.warning("[Lifespan] Error draining pool on shutdown: %s", pool_err)
 
 
 # --- 2. Application Setup ---
