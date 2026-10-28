@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR029).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR030).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -61,7 +61,17 @@ except ImportError:
 
 
 class GuardrailViolation(BaseModel):
-    """Pydantic V2 DTO representing an AST architectural violation."""
+    """Pydantic V2 DTO representing an AST architectural violation.
+
+    Attributes:
+        filepath: Target file path relative to workspace.
+        lineno: 1-indexed line number where violation occurred.
+        col_offset: Column offset of violation.
+        rule_code: Rule code matching pattern QGR000-QGR999.
+        message: Descriptive violation message.
+        remediation: Deterministic remediation guidance.
+        severity: Severity tier of the violation.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -96,7 +106,15 @@ BOUNDARY_EXEMPTION_FILES: frozenset[str] = frozenset(
 
 
 def is_boundary_exempt(filepath: str | Path, repo_root: Path | None = None) -> bool:
-    """Checks if a filepath corresponds to one of the 15 locked boundary exemption files."""
+    """Check whether a filepath corresponds to one of the 15 locked boundary exemption files.
+
+    Args:
+        filepath: File path to check against the boundary exemption set.
+        repo_root: Optional repository root path override.
+
+    Returns:
+        True if the file path is an approved boundary adapter or driver, False otherwise.
+    """
     root = repo_root or REPO_ROOT
     p = Path(filepath)
     try:
@@ -122,21 +140,20 @@ OPEN_JSON_EXEMPTION_FILES: frozenset[str] = frozenset(
 
 RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset(
     {
-        # Phase 2 (Hooks, LLM, Ingress)
+        # Hooks, LLM, and Ingress
         "backend_v2/hooks/scoring/matrix_hook.py",
         "backend_v2/llm/client.py",
         "backend_v2/llm/ingress_pipeline.py",
         "backend_v2/llm/mock_data.py",
         "backend_v2/services/llm_task_executor.py",
-        # Phase 4 (Services & Tools)
-        # Phase 5 (Orchestrator & DAG)
+        # Orchestrator and DAG
         "backend_v2/services/orchestrator/context_router.py",
         "backend_v2/services/orchestrator/dag_executor.py",
         "backend_v2/services/orchestrator/matrix_reducer.py",
         "backend_v2/services/orchestrator/result_projector.py",
         "backend_v2/services/orchestrator/strategies/logic.py",
         "backend_v2/services/orchestrator/synthesis_payload_compressor.py",
-        # Residual Models (Phases 2, 4, 11)
+        # Residual Domain and DTO Models
         "backend_v2/models/domain/synthesis.py",
         "backend_v2/models/dtos/atom_evaluation.py",
         "backend_v2/models/dtos/hook_delta.py",
@@ -175,7 +192,14 @@ _QGR030_NON_HEX_CHARS: frozenset[str] = frozenset("ghijklmnopqrstuvwxyzGHIJKLMNO
 
 
 def _is_repository_identifier(name: str) -> bool:
-    """Determine whether an identifier name refers to a repository."""
+    """Determine whether an identifier name refers to a repository.
+
+    Args:
+        name: Variable, parameter, or function identifier string.
+
+    Returns:
+        True if the identifier matches repository naming conventions, False otherwise.
+    """
     name_lower = name.lower()
     return (
         "_repo" in name_lower or "repo_" in name_lower or name_lower.endswith("repo") or name_lower == "repo"
@@ -183,7 +207,11 @@ def _is_repository_identifier(name: str) -> bool:
 
 
 def _resolve_positive_repository_classes() -> frozenset[str]:
-    """Dynamically resolve all concrete and protocol repository class names across the database layer."""
+    """Dynamically resolve all concrete and protocol repository class names across the database layer.
+
+    Returns:
+        Frozenset of repository class and protocol names.
+    """
     repo_root = REPO_ROOT
     classes: set[str] = set()
     targets: list[Path] = [
@@ -211,7 +239,11 @@ def _resolve_positive_repository_classes() -> frozenset[str]:
 
 
 def _resolve_interface_repository_methods() -> frozenset[str]:
-    """Extract all public method names defined across Protocols in backend_v2/database/interfaces.py."""
+    """Extract all public method names defined across Protocols in backend_v2/database/interfaces.py.
+
+    Returns:
+        Frozenset of public repository interface method names.
+    """
     interfaces_path = REPO_ROOT / "backend_v2" / "database" / "interfaces.py"
     if not interfaces_path.exists():
         return frozenset()
@@ -234,7 +266,14 @@ INTERFACE_REPOSITORY_METHODS: frozenset[str] = _resolve_interface_repository_met
 
 
 def _get_root_identifier(node: ast.AST) -> str | None:
-    """Traverse attribute access or indexing to find root identifier name."""
+    """Traverse attribute access or indexing to find the root identifier name.
+
+    Args:
+        node: AST expression node to inspect.
+
+    Returns:
+        Root variable identifier string if present, or None.
+    """
     curr = node
     while isinstance(curr, (ast.Attribute, ast.Subscript)):
         curr = curr.value
@@ -244,7 +283,14 @@ def _get_root_identifier(node: ast.AST) -> str | None:
 
 
 def _is_mock_instantiation(node: ast.AST | None) -> bool:
-    """Check if an AST node is a Call to Mock, MagicMock, or AsyncMock."""
+    """Check whether an AST node is a call to Mock, MagicMock, or AsyncMock.
+
+    Args:
+        node: AST node or None to inspect.
+
+    Returns:
+        True if the node instantiates a mock object, False otherwise.
+    """
     if not isinstance(node, ast.Call):
         return False
     match node.func:
@@ -257,7 +303,15 @@ def _is_mock_instantiation(node: ast.AST | None) -> bool:
 
 
 def is_open_json_exempt(filepath: str | Path, repo_root: Path | None = None) -> bool:
-    """Checks if a filepath is approved for Open-JSON (dict[..., JsonValue]) annotations."""
+    """Check whether a filepath is approved for Open-JSON (dict[..., JsonValue]) annotations.
+
+    Args:
+        filepath: File path to check against Open-JSON exemption sets.
+        repo_root: Optional repository root path override.
+
+    Returns:
+        True if the file path is exempt for Open-JSON annotations, False otherwise.
+    """
     if is_boundary_exempt(filepath, repo_root):
         return True
     root = repo_root or REPO_ROOT
@@ -272,7 +326,14 @@ def is_open_json_exempt(filepath: str | Path, repo_root: Path | None = None) -> 
 
 
 def _find_jsonvalue_dict_subscript(node: ast.AST | None) -> ast.Subscript | None:
-    """Finds any dict[..., JsonValue], Mapping[..., JsonValue], or container subscript in the AST node."""
+    """Find any dict[..., JsonValue], Mapping[..., JsonValue], or container subscript in the AST node.
+
+    Args:
+        node: AST annotation node or None to inspect.
+
+    Returns:
+        The offending Subscript node if a JsonValue dictionary is found, or None.
+    """
     if node is None:
         return None
     for sub in ast.walk(node):
@@ -445,7 +506,14 @@ def _find_nested_dict_subscript(node: ast.AST | None) -> ast.Subscript | None:
 
 
 def _is_field_call(node: ast.AST | None) -> bool:
-    """Checks whether an AST node is a Call to Field()."""
+    """Check whether an AST node is a call to Field().
+
+    Args:
+        node: AST node or None to inspect.
+
+    Returns:
+        True if the node is a Call to Field(), False otherwise.
+    """
     if isinstance(node, ast.Call):
         match node.func:
             case ast.Name(id="Field") | ast.Attribute(attr="Field"):
@@ -454,7 +522,14 @@ def _is_field_call(node: ast.AST | None) -> bool:
 
 
 def _has_annotated_field(node: ast.AST | None) -> bool:
-    """Checks whether an annotation is an Annotated subscript containing Field()."""
+    """Check whether an annotation is an Annotated subscript containing Field().
+
+    Args:
+        node: AST annotation node or None to inspect.
+
+    Returns:
+        True if the annotation is an Annotated subscript with a Field() call, False otherwise.
+    """
     if isinstance(node, ast.Subscript):
         is_annotated = False
         match node.value:
@@ -470,9 +545,15 @@ def _has_annotated_field(node: ast.AST | None) -> bool:
 
 
 def _find_string_quoted_annotations(node: ast.AST | None) -> list[ast.Constant]:
-    """Finds string constants used as type annotations while exempting Literal slices and Annotated metadata.
+    """Find string constants used as type annotations while exempting Literal slices and Annotated metadata.
 
     Enforces QGR024: Python 3.14 PEP 649/749 deferred annotations without quotes.
+
+    Args:
+        node: AST annotation node or None to inspect.
+
+    Returns:
+        List of ast.Constant string nodes representing quoted forward-reference annotations.
     """
     if node is None:
         return []
@@ -526,7 +607,13 @@ def _find_string_quoted_annotations(node: ast.AST | None) -> list[ast.Constant]:
 
 
 class QuorumGuardrailVisitor(ast.NodeVisitor):
-    """AST Visitor detecting domain architectural violations with zero reflection."""
+    """AST Visitor detecting domain architectural violations with zero reflection.
+
+    Attributes:
+        filepath: Target file path being scanned.
+        violations: Accumulated list of GuardrailViolation instances.
+        is_guardrail_self: Whether the scanned file is the guardrail engine or its unit test module.
+    """
 
     def __init__(self, filepath: str) -> None:
         """Initialize QuorumGuardrailVisitor with target filepath.
@@ -560,7 +647,14 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._repo_result_vars: set[str] = set()
 
     def _is_pytest_skip_or_xfail(self, expr: ast.AST) -> bool:
-        """Helper checking if an AST node is a pytest.mark.skip or pytest.mark.xfail."""
+        """Check whether an AST node is an unconditional pytest.mark.skip or pytest.mark.xfail.
+
+        Args:
+            expr: Decorator or marker AST expression node to inspect.
+
+        Returns:
+            True if the expression is pytest.mark.skip or pytest.mark.xfail, False otherwise.
+        """
         if isinstance(expr, ast.Attribute) and expr.attr in ("skip", "xfail"):
             if isinstance(expr.value, ast.Attribute) and expr.value.attr == "mark":
                 if isinstance(expr.value.value, ast.Name) and expr.value.value.id == "pytest":
@@ -574,7 +668,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         return False
 
     def _check_qgr026_decorators(self, node: ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef) -> None:
-        """QGR026: Prohibits unconditional @pytest.mark.skip and @pytest.mark.xfail."""
+        """Enforce QGR026 prohibiting unconditional @pytest.mark.skip and @pytest.mark.xfail decorators.
+
+        Args:
+            node: Function, async function, or class definition AST node to inspect.
+        """
         for dec in node.decorator_list:
             if self._is_pytest_skip_or_xfail(dec):
                 self._add_violation(
@@ -630,12 +728,17 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         )
 
     def visit_Module(self, node: ast.Module) -> None:
+        """Inspect Module AST node for banned legacy God file and eradicated module paths (QGR017).
+
+        Args:
+            node: Root Module AST node.
+        """
         # QGR017: Banned legacy God files & eradicated facades
         norm_path = self._normalized_path
         if norm_path == "backend_v2/services/report_service.py" or norm_path.endswith(
             "/backend_v2/services/report_service.py"
         ):
-            # Phase 4, Step 2: Register retired path backend_v2/services/report_service.py under QGR017
+            # Register retired path backend_v2/services/report_service.py under QGR017
             self._add_violation(
                 node,
                 "QGR017",
@@ -670,7 +773,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 severity=GuardrailSeverity.FATAL,
             )
         elif norm_path == "backend_v2/llm/provider.py" or norm_path.endswith("/backend_v2/llm/provider.py"):
-            # Phase 4, Step 3: Lock retired path backend_v2/llm/provider.py under QGR017
+            # Lock retired path backend_v2/llm/provider.py under QGR017
             self._add_violation(
                 node,
                 "QGR017",
@@ -679,7 +782,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 severity=GuardrailSeverity.FATAL,
             )
         else:
-            # Phase 3, Step 3.3: Lock eradicated legacy MCP static wrapper file paths in QGR017
+            # Lock eradicated legacy MCP static wrapper file paths in QGR017
             eradicated_mcp_paths = (
                 "backend_v2/services/mcp/tools/tavily.py",
                 "backend_v2/services/mcp/tools/wikipedia.py",
@@ -697,7 +800,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "Use protocol-agnostic `GenericMCPClient`, `ToolDispatcher`, and `SchemaFactory` instead of static tool wrappers.",
                         severity=GuardrailSeverity.FATAL,
                     )
-            # Phase 4, Step 4: Lock eradicated legacy TinyDB / Firestore / Wrapper / Exporter / Wipe paths in QGR017
+            # Lock eradicated legacy TinyDB / Firestore / Wrapper / Exporter / Wipe paths in QGR017
             eradicated_db_paths = (
                 "backend_v2/database/tinydb_driver.py",
                 "backend_v2/database/firestore_driver.py",
@@ -717,6 +820,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
+        """Inspect Attribute AST node for .__dict__ reflection (QGR001) and deprecated StorageBackend members (QGR030).
+
+        Args:
+            node: Attribute access AST node.
+        """
         # QGR001: Attribute access to .__dict__
         if node.attr == "__dict__":
             self._add_violation(
@@ -727,7 +835,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 severity=GuardrailSeverity.FATAL,
             )
 
-        # Phase 2, Step 2: QGR030 ban deprecated StorageBackend.LOCAL and StorageBackend.FIRESTORE attribute references
+        # QGR030: Ban deprecated StorageBackend.LOCAL and StorageBackend.FIRESTORE attribute references
         if (
             not self.is_guardrail_self
             and isinstance(node.value, ast.Name)
@@ -748,7 +856,12 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
-        # Phase 2, Step 2: QGR030 ban deprecated storage_backend keyword arguments in function/Settings calls
+        """Inspect Call AST node for banned reflection, fallbacks, timeouts, duck-typing, and mock patterns.
+
+        Args:
+            node: Function or method Call AST node.
+        """
+        # QGR030: Ban deprecated storage_backend keyword arguments in function/Settings calls
         if not self.is_guardrail_self:
             for kw in node.keywords:
                 if kw.arg == "storage_backend":
@@ -1001,6 +1114,14 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             types_arg = node.args[1]
 
             def _check_isinstance_target(t_node: ast.AST) -> tuple[bool, bool]:
+                """Recursively checks whether an isinstance target AST node references dict or Mapping.
+
+                Args:
+                    t_node: Target AST expression passed as the second argument to isinstance().
+
+                Returns:
+                    A 2-tuple of booleans (is_dict, is_mapping).
+                """
                 match t_node:
                     case ast.Name(id="dict"):
                         return True, False
@@ -1303,6 +1424,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
+        """Tracks asynchronous lock context managers (`_update_lock`) during AST traversal.
+
+        Args:
+            node: The `ast.AsyncWith` statement node.
+        """
         is_update_lock = any(
             isinstance(item.context_expr, ast.Name) and item.context_expr.id == "_update_lock" for item in node.items
         )
@@ -1313,6 +1439,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._in_update_lock = prev_lock
 
     def visit_Try(self, node: ast.Try) -> None:
+        """Traverses try/except/else/finally blocks while tracking finally-block scope.
+
+        Args:
+            node: The `ast.Try` statement node.
+        """
         for stmt in node.body:
             self.visit(stmt)
         for handler in node.handlers:
@@ -1326,6 +1457,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._in_finally = prev_in_finally
 
     def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+        """Audits exception handlers for broad catches and silent exception swallowing (QGR003).
+
+        Args:
+            node: The `ast.ExceptHandler` AST node.
+        """
         # QGR003: Exception swallowing and broad except Exception handlers lacking ast.Raise
         is_broad = False
         if node.type is None:
@@ -1412,6 +1548,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        """Audits class definitions for Pydantic config, pseudo-class overrides, and test doubles.
+
+        Args:
+            node: The `ast.ClassDef` AST node.
+        """
         self._check_qgr026_decorators(node)
 
         # QGR014 (g): Prohibit ad-hoc repository classes defining interface methods outside tests/fakes/
@@ -1551,6 +1692,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._current_class_name = prev_class
 
     def visit_Compare(self, node: ast.Compare) -> None:
+        """Audits comparison expressions for raw string discriminator comparisons (QGR005).
+
+        Args:
+            node: The `ast.Compare` AST node.
+        """
         # QGR005: Raw string literals in category discriminator routing
         for comp_op, comparator in zip(node.ops, node.comparators, strict=False):
             if isinstance(comp_op, (ast.Eq, ast.NotEq)):
@@ -1576,16 +1722,31 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_If(self, node: ast.If) -> None:
+        """Records boolean condition expressions in `if` statements for QGR016 analysis.
+
+        Args:
+            node: The `ast.If` statement node.
+        """
         for sub_node in ast.walk(node.test):
             self._bool_condition_nodes.add(sub_node)
         self.generic_visit(node)
 
     def visit_While(self, node: ast.While) -> None:
+        """Records boolean condition expressions in `while` loops for QGR016 analysis.
+
+        Args:
+            node: The `ast.While` statement node.
+        """
         for sub_node in ast.walk(node.test):
             self._bool_condition_nodes.add(sub_node)
         self.generic_visit(node)
 
     def visit_IfExp(self, node: ast.IfExp) -> None:
+        """Audits ternary expressions for lazy literal fallbacks in domain code (QGR016).
+
+        Args:
+            node: The `ast.IfExp` expression node.
+        """
         for sub_node in ast.walk(node.test):
             self._bool_condition_nodes.add(sub_node)
 
@@ -1614,11 +1775,21 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Assert(self, node: ast.Assert) -> None:
+        """Records boolean condition expressions in `assert` statements for QGR016 analysis.
+
+        Args:
+            node: The `ast.Assert` statement node.
+        """
         for sub_node in ast.walk(node.test):
             self._bool_condition_nodes.add(sub_node)
         self.generic_visit(node)
 
     def visit_Return(self, node: ast.Return) -> None:
+        """Audits return statements for boolean expressions and mock repository returns (QGR014).
+
+        Args:
+            node: The `ast.Return` statement node.
+        """
         if node.value is not None:
             for sub_node in ast.walk(node.value):
                 self._bool_condition_nodes.add(sub_node)
@@ -1637,6 +1808,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Raise(self, node: ast.Raise) -> None:
+        """Audits `raise` statements to ensure `AppException` uses typed `ErrorCodes` (QGR009).
+
+        Args:
+            node: The `ast.Raise` statement node.
+        """
         # QGR009: raise AppException(...) missing typed ErrorCodes enum argument
         if isinstance(node.exc, ast.Call):
             is_app_exception = False
@@ -1702,6 +1878,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Match(self, node: ast.Match) -> None:
+        """Audits `match/case` blocks for dictionary mapping patterns in domain code (QGR012).
+
+        Args:
+            node: The `ast.Match` statement node.
+        """
         # QGR012: Structural pattern matching unpacking dictionaries (match/case dict)
         if not self._is_test_file:
             for case in node.cases:
@@ -1736,6 +1917,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def _check_function_annotations(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        """Checks function parameter and return annotations for quoted forward references and dict fixtures.
+
+        Args:
+            node: Function or async function AST node to inspect.
+        """
         if not self._is_test_file and not self._is_boundary_exempt and self._is_domain_code:
             if node.returns is not None:
                 quoted = _find_string_quoted_annotations(node.returns)
@@ -1771,7 +1957,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             self._check_qgr029_fixture_returns(node)
 
     def _check_qgr029_fixture_returns(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        """QGR029: Banned Untyped Dict Return in Test Fixtures."""
+        """Checks pytest fixture functions for untyped dictionary return annotations (QGR029).
+
+        Args:
+            node: Function or async function AST node representing a test fixture.
+        """
         is_fixture = any(_is_pytest_fixture_decorator(d) for d in node.decorator_list)
         if not is_fixture:
             return
@@ -1809,6 +1999,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             )
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        """Audits synchronous function definitions for decorators, annotations, and scope tracking.
+
+        Args:
+            node: The `ast.FunctionDef` AST node.
+        """
         self._check_qgr026_decorators(node)
         self._check_function_annotations(node)
         self._function_depth += 1
@@ -1820,6 +2015,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._function_depth -= 1
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        """Audits asynchronous function definitions for decorators, annotations, and scope tracking.
+
+        Args:
+            node: The `ast.AsyncFunctionDef` AST node.
+        """
         self._check_qgr026_decorators(node)
         self._check_function_annotations(node)
         self._function_depth += 1
@@ -1831,6 +2031,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._function_depth -= 1
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        """Audits annotated assignments for quoted annotations, JsonValue dicts, and Field defaults.
+
+        Args:
+            node: The `ast.AnnAssign` AST node.
+        """
         if not self._is_test_file and not self._is_boundary_exempt:
             if self._is_domain_code:
                 # QGR024: String-Quoted Forward-Reference Annotation Ban
@@ -1851,7 +2056,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR027",
                     f"Banned unauthorized Open-JSON `dict[..., JsonValue]` annotation `{ast.unparse(jsonvalue_sub)}` detected in non-open-schema model.",
                     "Open-JSON is permitted exclusively on approved external specifications (MCP, OpenAPI, JSON Schema, RFC 7807). "
-                    "Encapsulate internal domain entities and simulation traces in a dedicated Pydantic V2 DTO per EPIC 157 Section 2.4.",
+                    "Encapsulate internal domain entities and simulation traces in a dedicated Pydantic V2 DTO (e.g. StepSimulationTraceDTO).",
                     severity=GuardrailSeverity.FATAL,
                 )
             # QGR020: Duplicate Field() assignment on Annotated field
@@ -1880,6 +2085,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Assign(self, node: ast.Assign) -> None:
+        """Audits assignments for pytestmark skips, mock repositories, mutable defaults, and repo vars.
+
+        Args:
+            node: The `ast.Assign` AST node.
+        """
         # QGR026: Module-level pytestmark skip/xfail marker ban
         for target in node.targets:
             if isinstance(target, ast.Name) and target.id == "pytestmark":
@@ -1963,6 +2173,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import) -> None:
+        """Audits `import` statements for eradicated legacy modules and debug loggers (QGR017, QGR021).
+
+        Args:
+            node: The `ast.Import` AST node.
+        """
         # QGR017: Banned import from eradicated facade v2_core
         for alias in node.names:
             if alias.name == "backend_v2.models.v2_core" or alias.name.endswith(".v2_core") or alias.name == "v2_core":
@@ -1990,7 +2205,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 or alias.name.endswith(".matrix_domain_parser")
                 or alias.name == "matrix_domain_parser"
             ):
-                # Phase 4, Step 3: Lock retired matrix_domain_parser path in QGR017
+                # Lock retired matrix_domain_parser path in QGR017
                 self._add_violation(
                     node,
                     "QGR017",
@@ -2003,7 +2218,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 or alias.name.endswith(".pdf_chat_extractor")
                 or alias.name == "pdf_chat_extractor"
             ):
-                # Phase 4, Step 3: Lock retired pdf_chat_extractor path in QGR017
+                # Lock retired pdf_chat_extractor path in QGR017
                 self._add_violation(
                     node,
                     "QGR017",
@@ -2016,7 +2231,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 or alias.name.endswith(".anchor_validation_service")
                 or alias.name == "anchor_validation_service"
             ):
-                # Phase 4, Step 3: Lock retired anchor_validation_service path in QGR017
+                # Lock retired anchor_validation_service path in QGR017
                 self._add_violation(
                     node,
                     "QGR017",
@@ -2029,7 +2244,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 or alias.name.endswith(".report_service")
                 or alias.name == "report_service"
             ):
-                # Phase 4, Step 2: Lock retired report_service path in QGR017
+                # Lock retired report_service path in QGR017
                 self._add_violation(
                     node,
                     "QGR017",
@@ -2040,7 +2255,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             elif alias.name == "backend_v2.services.orchestrator.strategies.llm" or alias.name.endswith(
                 ".strategies.llm"
             ):
-                # Phase 4, Step 3: Lock retired strategies.llm path in QGR017
+                # Lock retired strategies.llm path in QGR017
                 self._add_violation(
                     node,
                     "QGR017",
@@ -2056,7 +2271,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "backend_v2.models.domain.wikipedia",
                 "backend_v2.models.domain.tools",
             ):
-                # Phase 3, Step 3.3: Lock eradicated legacy MCP wrapper modules in QGR017
+                # Lock eradicated legacy MCP wrapper modules in QGR017
                 self._add_violation(
                     node,
                     "QGR017",
@@ -2079,7 +2294,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 )
                 or alias.name.endswith((".tinydb_driver", ".firestore_driver"))
             ):
-                # Phase 4, Step 4: Lock eradicated TinyDB and Firestore persistence modules in QGR017
+                # Lock eradicated TinyDB and Firestore persistence modules in QGR017
                 self._add_violation(
                     node,
                     "QGR017",
@@ -2099,6 +2314,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        """Audits `from ... import` statements for `TypeGuard`, eradicated modules, and debug loggers.
+
+        Args:
+            node: The `ast.ImportFrom` AST node.
+        """
         # QGR015: TypeGuard import ban per PEP 742 (pep742_typeis_over_typeguard)
         if node.module in ("typing", "typing_extensions"):
             for alias in node.names:
@@ -2152,7 +2372,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 or node.module.endswith(".matrix_domain_parser")
                 or node.module == "matrix_domain_parser"
             ):
-                # Phase 4, Step 3: Lock retired matrix_domain_parser path in QGR017
+                # Lock retired matrix_domain_parser path in QGR017
                 self._add_violation(
                     node,
                     "QGR017",
@@ -2165,7 +2385,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 or node.module.endswith(".pdf_chat_extractor")
                 or node.module == "pdf_chat_extractor"
             ):
-                # Phase 4, Step 3: Lock retired pdf_chat_extractor path in QGR017
+                # Lock retired pdf_chat_extractor path in QGR017
                 self._add_violation(
                     node,
                     "QGR017",
@@ -2207,7 +2427,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 or node.module.endswith(".anchor_validation_service")
                 or node.module == "anchor_validation_service"
             ):
-                # Phase 4, Step 3: Lock retired anchor_validation_service path in QGR017
+                # Lock retired anchor_validation_service path in QGR017
                 self._add_violation(
                     node,
                     "QGR017",
@@ -2231,7 +2451,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 or node.module.endswith(".report_service")
                 or node.module == "report_service"
             ):
-                # Phase 4, Step 2: Lock retired report_service path in QGR017
+                # Lock retired report_service path in QGR017
                 self._add_violation(
                     node,
                     "QGR017",
@@ -2242,7 +2462,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             if node.module == "backend_v2.services":
                 for alias in node.names:
                     if alias.name == "report_service":
-                        # Phase 4, Step 2: Lock retired report_service symbol in QGR017
+                        # Lock retired report_service symbol in QGR017
                         self._add_violation(
                             node,
                             "QGR017",
@@ -2255,7 +2475,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 or node.module.endswith(".strategies.llm")
                 or (node.level > 0 and node.module == "llm")
             ):
-                # Phase 4, Step 3: Lock retired strategies.llm path in QGR017
+                # Lock retired strategies.llm path in QGR017
                 self._add_violation(
                     node,
                     "QGR017",
@@ -2271,7 +2491,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             ):
                 for alias in node.names:
                     if alias.name == "llm":
-                        # Phase 4, Step 3: Lock retired strategies.llm symbol in QGR017
+                        # Lock retired strategies.llm symbol in QGR017
                         self._add_violation(
                             node,
                             "QGR017",
@@ -2280,7 +2500,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             severity=GuardrailSeverity.FATAL,
                         )
 
-            # Phase 3, Step 3.3: Lock eradicated legacy MCP wrapper modules in QGR017
+            # Lock eradicated legacy MCP wrapper modules in QGR017
             if node.module in (
                 "backend_v2.services.mcp.tools.tavily",
                 "backend_v2.services.mcp.tools.wikipedia",
@@ -2327,7 +2547,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             severity=GuardrailSeverity.FATAL,
                         )
 
-            # Phase 4, Step 4: Lock eradicated TinyDB, Firestore, and Wrapper persistence modules in QGR017
+            # Lock eradicated TinyDB, Firestore, and Wrapper persistence modules in QGR017
             if (
                 node.module == "tinydb"
                 or node.module.startswith("tinydb.")
@@ -2404,6 +2624,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Name(self, node: ast.Name) -> None:
+        """Audits `ast.Name` identifier references for `TypeGuard` and eradicated persistence symbols.
+
+        Args:
+            node: The `ast.Name` AST node.
+        """
         # QGR015: TypeGuard usage in annotations/expressions
         if node.id == "TypeGuard" and not self._is_test_file:
             self._add_violation(
@@ -2427,6 +2652,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Constant(self, node: ast.Constant) -> None:
+        """Audits string constants for eradicated `db_v2.json` references and non-hex entity IDs (QGR030).
+
+        Args:
+            node: The `ast.Constant` AST node.
+        """
         # QGR017: Banned reference to eradicated TinyDB JSON artifact `db_v2.json`
         if isinstance(node.value, str) and "db_v2.json" in node.value:
             if not self.is_guardrail_self:
@@ -2438,7 +2668,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     severity=GuardrailSeverity.FATAL,
                 )
 
-        # Phase 2, Step 2: QGR030 ban non-hexadecimal mock entity ID string literals
+        # QGR030: Ban non-hexadecimal mock entity ID string literals
         if isinstance(node.value, str) and not self.is_guardrail_self:
             id_match = _QGR030_MOCK_ID_REGEX.match(node.value)
             if id_match is not None:
@@ -2468,6 +2698,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_BoolOp(self, node: ast.BoolOp) -> None:
+        """Audits boolean `or` operations for lazy literal fallbacks and multi-fallback chains (QGR016).
+
+        Args:
+            node: The `ast.BoolOp` AST node.
+        """
         # QGR016: Banned lazy fallback expressions (`or "default"`, `or []`, `or {}`, or multi-fallback chains)
         if isinstance(node.op, ast.Or) and not self._is_test_file and self._is_domain_code:
             # Check 1: Fallback to literal constant or empty collection (e.g. `x or "default"`, `x or []`, `x or {}`)
@@ -2505,6 +2740,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_JoinedStr(self, node: ast.JoinedStr) -> None:
+        """Audits f-strings (`ast.JoinedStr`) for unshielded prompt XML interpolation (QGR022).
+
+        Args:
+            node: The `ast.JoinedStr` AST node.
+        """
         # QGR022: Unshielded f-string Prompt Interpolation Ban
         # Enforces that prompt XML blocks and user payload interpolations use PEP 750 t"..."
         # or TemplateProcessor.render_prompt.
@@ -2585,6 +2825,11 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Subscript(self, node: ast.Subscript) -> None:
+        """Audits generic `tuple[...]` subscript annotations for anonymous state tuples (QGR023).
+
+        Args:
+            node: The `ast.Subscript` AST node.
+        """
         # QGR023: Anonymous Multi-Value State Tuples Ban ("Tuple Hell")
         # Enforces ban_anonymous_state_tuples: 3+ elements or 2 elements of identical primitive types
         if not self._is_test_file and not self._is_boundary_exempt and self._is_domain_code:
@@ -2838,33 +3083,39 @@ def format_violations_table(violations: list[GuardrailViolation]) -> str:
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point for running AST codebase guardrails.
 
-    Parses positional targets and flags, scans files for AST violations (QGR000-QGR023),
+    Parses positional targets and flags, scans files for AST violations (QGR000-QGR030),
     and exits with code 0 on success or 1 on failure.
+
+    Args:
+        argv: Optional list of command-line argument strings.
+
+    Raises:
+        SystemExit: Always raised with exit code 0 on pass or 1 when violations fail the gate.
     """
     parser = argparse.ArgumentParser(
-        description="""Automated AST Codebase Guardrails Engine (QGR000-QGR023).
+        description="""Automated AST Codebase Guardrails Engine (QGR000-QGR030).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum:
   QGR000: Syntax Error Detection (FATAL)
-  QGR001: getattr/hasattr Reflection Ban (WARNING)
-  QGR002: Naked Dict Type Annotation Ban (WARNING)
-  QGR003: isinstance(..., dict) Duck-Typing Ban (WARNING)
-  QGR004: Direct Provider SDK Usage Ban (WARNING)
-  QGR005: Raw String Concatenation in Prompts Ban (WARNING)
+  QGR001: getattr/hasattr Reflection Ban (FATAL)
+  QGR002: Naked Dict Type Annotation Ban (FATAL)
+  QGR003: Exception Swallowing & Broad Except Ban (FATAL)
+  QGR004: Pydantic Pseudo-Class Override Ban (FATAL)
+  QGR005: Raw String Discriminator Routing Ban (FATAL)
   QGR006: asyncio.gather() Ban - TaskGroup Mandate (FATAL)
   QGR007: Missing ConfigDict(strict=True, extra='forbid') (FATAL)
   QGR008: Hardcoded Magic Timeouts Ban (FATAL)
   QGR009: AppException without typed ErrorCodes (FATAL)
-  QGR010: Naive Datetime Ban (WARNING)
+  QGR010: Naive Datetime Ban (FATAL)
   QGR011: Banned id field in CreateDTO / CreateRequest (FATAL)
-  QGR012: In-Place Dictionary Modification Ban (WARNING)
-  QGR013: Legacy TypeVar() Instantiation Ban (WARNING)
+  QGR012: isinstance(..., dict | Mapping) & match/case dict Ban (FATAL)
+  QGR013: Legacy TypeVar() Instantiation Ban (FATAL)
   QGR014: AsyncMock / MagicMock on repository interfaces in tests (FATAL)
-  QGR015: Direct Persistence Access from Routers Ban (FATAL)
-  QGR016: Negative String Exclusion Filtering Ban (FATAL)
-  QGR017: Eradicated Facades & God Files Ban (v2_core, auth.py, export_service.py) (FATAL)
-  QGR018: Primitive Obsession Nested Dict Ban (WARNING)
-  QGR019: In-Place dict.pop Mutation Ban (WARNING)
+  QGR015: Legacy TypeGuard Ban - PEP 742 TypeIs Mandate (FATAL)
+  QGR016: Lazy Fallback & Negative String Exclusion Filtering Ban (FATAL)
+  QGR017: Eradicated Facades & Legacy Modules Ban (FATAL)
+  QGR018: Dictionary Type Laundering via TypeAdapter Ban (FATAL)
+  QGR019: In-Place dict.pop Mutation Ban (FATAL)
   QGR020: Duplicate Field() on Annotated Fields & Class Mutable Defaults (FATAL)
   QGR021: llm_debug_logger Eradication Import Ban (FATAL)
   QGR022: Unshielded f-string Prompt Interpolation Ban (FATAL)
@@ -2872,6 +3123,10 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR024: String-Quoted Forward-Reference Annotation Ban (FATAL)
   QGR025: Untyped Dynamic Dict in model_copy(update=...) Ban (FATAL)
   QGR026: Unconditional Skip and Xfail Test Ban (FATAL)
+  QGR027: Unauthorized Open-JSON / JsonValue Dict Ban (FATAL)
+  QGR028: Redundant Repository Reconstitution & Dict State Conversion Ban (FATAL)
+  QGR029: Untyped Dict Return in Test Fixtures Ban (FATAL)
+  QGR030: Non-Hexadecimal Mock Entity ID Literal Ban (FATAL)
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples (PowerShell):
