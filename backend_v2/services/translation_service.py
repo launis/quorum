@@ -3,11 +3,15 @@
 Provides utilities for translating text using LLM calls.
 """
 
-import logging
-from typing import Any
+from __future__ import annotations
 
-from backend_v2.exceptions import AppException
+import logging
+
+from backend_v2.core.template_processor import TemplateProcessor
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.llm.client import LLMClient
 from backend_v2.llm.prompt_builder import build_system_directive
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.common import (
     STATIC_LINGUISTIC_PROTOCOL,
     build_linguistic_parameters,
@@ -15,21 +19,48 @@ from backend_v2.models.prompts.common import (
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
+__all__ = ["translate_text"]
+
 logger = logging.getLogger(__name__)
+
+_SYSTEM_INSTRUCTION = build_system_directive(
+    objective="Translate the provided text directly into the target language.",
+    linguistic_context=STATIC_LINGUISTIC_PROTOCOL,
+    rules=[
+        "Maintain the original meaning, tone, and facts.",
+        "Output ONLY the translated text without any explanations, tags, prefix, suffix, or extra commentary.",
+    ],
+)
 
 
 def _dlq_record_translation_failure(text: str, target_lang: str, exc: Exception) -> None:
-    """Record translation failure for telemetry and dead-letter tracing."""
-    logger.error("Failed to translate text to '%s': %s", target_lang, exc, exc_info=True)
+    """Record translation failure for telemetry and dead-letter tracing.
+
+    Args:
+        text: The source text that failed translation.
+        target_lang: The target ISO language code.
+        exc: The caught exception that triggered the fallback.
+    """
+    logger.error(
+        "Failed to translate text to '%s': %s",
+        target_lang,
+        exc,
+        exc_info=True,
+        extra={
+            "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+            "target_lang": target_lang,
+            "payload_length": len(text),
+        },
+    )
 
 
 async def translate_text(
     text: str,
     target_lang: str,
-    llm_client: Any,
+    llm_client: LLMClient | None,
     source_language: str = "English/Original",
 ) -> str:
-    """Translates the given text to the target language using LLM.
+    """Translate the given text to the target language using an LLM.
 
     Args:
         text: The raw text to translate.
@@ -49,17 +80,12 @@ async def translate_text(
             target_locale=target_lang,
             source_language=source_language,
         )
-        translation_system_prompt = build_system_directive(
-            objective="Translate the provided text directly into the target language.",
-            linguistic_context=f"{STATIC_LINGUISTIC_PROTOCOL}\n{linguistic_params}",
-            rules=[
-                "Maintain the original meaning, tone, and facts.",
-                "Output ONLY the translated text without any explanations, tags, prefix, suffix, or extra commentary.",
-            ],
+        user_content = TemplateProcessor.render_prompt(
+            t"{linguistic_params:raw}\n<user_payload>\n{text}\n</user_payload>"
         )
         translation_messages = [
-            {"role": "system", "content": translation_system_prompt},
-            {"role": "user", "content": text},
+            LLMMessageDTO(role="system", content=_SYSTEM_INSTRUCTION),
+            LLMMessageDTO(role="user", content=user_content),
         ]
 
         temp_executor = LLMTaskExecutor(PromptCompiler())
