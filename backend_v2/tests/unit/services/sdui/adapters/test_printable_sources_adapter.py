@@ -798,3 +798,142 @@ def test_sdui_printable_sources_empty_framework_negative_partition(
     assert "> **Sources & Fact-Checking Audit**" in text_box
     assert "No external bibliographic citations or fact-checking traces recorded in this execution." in text_box
     assert "#### " not in text_box
+
+
+def test_build_missing_l10n_directory_raises_app_exception(
+    valid_output_profile_fixture: OutputProfile,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """ISTQB Negative: Missing localization directory triggers Fail-Fast AppException."""
+    from pathlib import Path
+
+    from backend_v2.exceptions import AppException, ErrorCodes
+    from backend_v2.services.localization import LocalizationService
+
+    monkeypatch.setattr(LocalizationService, "_loaded", False)
+    monkeypatch.setattr(LocalizationService, "L10N_DIR", Path(str(tmp_path)) / "nonexistent_l10n")
+
+    ctx = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=RenderedSynthesisCache(cited_sources=["Kahneman, D. (2011)."]),
+        user_name=None,
+        org_name=None,
+    )
+    with pytest.raises(AppException) as exc_info:
+        PrintableSourcesAdapter.build(ctx)
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+def test_build_missing_translation_key_raises_app_exception(
+    valid_output_profile_fixture: OutputProfile,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ISTQB Negative: Missing required translation key triggers Fail-Fast AppException."""
+    from backend_v2.exceptions import AppException, ErrorCodes
+    from backend_v2.services.localization import LocalizationService
+
+    monkeypatch.setattr(LocalizationService, "_loaded", True)
+    monkeypatch.setattr(LocalizationService, "_translations", {})
+
+    ctx = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=RenderedSynthesisCache(cited_sources=["Kahneman, D. (2011)."]),
+        user_name=None,
+        org_name=None,
+    )
+    with pytest.raises(AppException) as exc_info:
+        PrintableSourcesAdapter.build(ctx)
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+def test_build_edge_case_branches_full_coverage(
+    valid_output_profile_fixture: OutputProfile,
+) -> None:
+    """ISTQB Boundary: Covers whitespace citations, URL citations, URL-less frameworks, and empty MCP query."""
+    from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
+
+    matrix_with_url = MatrixScorecardRowDTO(
+        block_id="blk_url_framework",
+        name="Framework With URL",
+        label_i18n=I18nText(translations={"en": "Framework With URL"}),
+        is_evaluative=True,
+        row_explanation="Explanation",
+        cited_source_title="Bloom, B. S. (1956).",
+        cited_source_url="https://example.org/bloom",
+    )
+    matrix_without_url = MatrixScorecardRowDTO(
+        block_id="blk_no_url_framework",
+        name="Framework Without URL",
+        label_i18n=I18nText(translations={"en": "Framework Without URL"}),
+        is_evaluative=True,
+        row_explanation="Explanation",
+        cited_source_title="Toulmin, S. (1958).",
+        cited_source_url=None,
+    )
+    cache = RenderedSynthesisCache(
+        cited_sources=[
+            "   ",
+            "-   ",
+            "https://doi.org/10.1038/nature",
+        ],
+    )
+    mcp_audit_map = {
+        "trace_empty_query": MCPAuditTrace(
+            tool_id="mcp_fallback_tool",
+            step_name="step_1",
+            claim_text="Claim text",
+            query="   ",
+            response_summary="Summary",
+            source_urls=[],
+        )
+    }
+
+    # 1. VERIFIED_EVIDENCE mode
+    ctx_verified = AdapterContext(
+        execution=None,
+        locale="fi",
+        penalties_applied=[],
+        mcp_audit_map=mcp_audit_map,
+        parsed_matrices={"m1": matrix_with_url, "m2": matrix_without_url},
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+    )
+    blocks_verified = PrintableSourcesAdapter.build(ctx_verified)
+    assert len(blocks_verified) == 1
+    text_v = blocks_verified[0].text
+    assert "- **Framework Without URL**: Toulmin, S. (1958)." in text_v
+    assert "- **mcp_fallback_tool**" in text_v
+    assert "- **[https://doi.org/10.1038/nature](https://doi.org/10.1038/nature)**" in text_v
+
+    # 2. SIMPLE_BIBLIOGRAPHY mode with framework items (with and without URL)
+    simple_profile = valid_output_profile_fixture.model_copy(
+        update={"sources_display_mode": SourcesDisplayMode.SIMPLE_BIBLIOGRAPHY}
+    )
+    ctx_simple = ctx_verified.model_copy(update={"profile": simple_profile, "locale": "en"})
+    blocks_simple = PrintableSourcesAdapter.build(ctx_simple)
+    assert len(blocks_simple) == 1
+    text_s = blocks_simple[0].text
+    assert "- Framework With URL: Bloom, B. S. (1956). - https://example.org/bloom" in text_s
+    assert "- Framework Without URL: Toulmin, S. (1958)." in text_s
+
+    # 3. Direct _resolve_tool_badge with None tool_id for both locales
+    assert (
+        PrintableSourcesAdapter._resolve_tool_badge(None, ctx_simple, "en") == "External Information Retrieval Gateway"
+    )
+    assert (
+        PrintableSourcesAdapter._resolve_tool_badge(None, ctx_verified, "fi") == "Ulkoisen tiedonhaun yhdyskäytävä"
+    )
