@@ -8,24 +8,19 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import dataclasses
 import logging
-import uuid
-from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
 import opentelemetry.trace as otel_trace
-from pydantic import BaseModel, JsonValue, TypeAdapter, ValidationError
+from pydantic import JsonValue, TypeAdapter, ValidationError
 from tenacity import AsyncRetrying, before_sleep_log, retry_if_exception, stop_after_attempt, wait_exponential
 
 from backend_v2.core.hook_registry import (
-    ExecutionInputsDTO,
     GlobalContextVarsDTO,
-    HookDeltaDTO,
-    HookDependencies,
-    HookState,
-    hook_registry,
+)
+from backend_v2.core.hook_registry import (
+    hook_registry as hook_registry,
 )
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.database.interfaces import (
@@ -40,38 +35,32 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
 from backend_v2.llm.provider import _is_transient_llm_error
-from backend_v2.models.auth import User
-from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, FrozenContext
+from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.domain.prompt_blocks import PromptBlock
-from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.step import Step as Step
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO
-from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.node_execution import StepOutputContentDTO
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
-from backend_v2.models.dtos.trace import ProgressTracePayloadDTO, TraceEventMetadataDTO
-from backend_v2.models.enums import CognitiveTier, ExecutionStatus, StepType, StrictnessAnchor
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
-from backend_v2.services.execution import create_execution_record
-from backend_v2.services.localization import set_language
+from backend_v2.models.state import ErrorTraceEvent, TraceEvent
 from backend_v2.services.orchestrator.causal_cohesion_evaluator import CausalCohesionEvaluator
-from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
-from backend_v2.services.orchestrator.engines import ExecutionEngine, build_execution_engine
 from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
-from backend_v2.services.orchestrator.strategies.base import StrategyContext, StrategyDependencies
-from backend_v2.services.orchestrator.strategies.registry import NodeStrategyFactory
-from backend_v2.settings import get_settings
+from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
+from backend_v2.services.orchestrator.strategies.registry import (
+    NodeStrategyFactory as NodeStrategyFactory,
+)
+from backend_v2.settings import get_settings as get_settings
 
 logger = logging.getLogger(__name__)
 
-# Phase 1, Step 2: Declare __path__ submodule bridging and explicit redundant re-exports
+# Phase 1 & Phase 2: Declare __path__ submodule bridging and explicit redundant re-exports
 __path__: list[str] = [str(Path(__file__).resolve().with_suffix(""))]
 
 from backend_v2.services.orchestrator.dag_executor.causal_tda_fusion import (
@@ -92,252 +81,45 @@ from backend_v2.services.orchestrator.dag_executor.execution_committer import (
 from backend_v2.services.orchestrator.dag_executor.execution_committer import (
     StepOutputContentValue as StepOutputContentValue,
 )
+from backend_v2.services.orchestrator.dag_executor.node_executor import (
+    NodeExecutor as NodeExecutor,
+)
+from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
+    WorkflowExecutionState as WorkflowExecutionState,
+)
+from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
+    bootstrap_workflow_execution_state as bootstrap_workflow_execution_state,
+)
+from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
+    dlq_fallback_step_exceptions as dlq_fallback_step_exceptions,
+)
+from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
+    dlq_handle_progress_commit_error as dlq_handle_progress_commit_error,
+)
+from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
+    dlq_record_step_failure as dlq_record_step_failure,
+)
+from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
+    execute_rag_preflight_stage as execute_rag_preflight_stage,
+)
+from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
+    safe_commit_execution_state as safe_commit_execution_state,
+)
 
 __all__ = [
     "DAGExecutor",
     "ExecutionCommitter",
     "NodeExecutor",
+    "WorkflowExecutionState",
+    "bootstrap_workflow_execution_state",
     "compute_causal_tda_fusion_result",
+    "dlq_fallback_step_exceptions",
+    "dlq_handle_progress_commit_error",
+    "dlq_record_step_failure",
+    "execute_rag_preflight_stage",
+    "safe_commit_execution_state",
     "transform_causal_nodes_to_atoms",
 ]
-
-
-class NodeExecutor:
-    """Executes a single step in pure isolation, emitting TraceEvents."""
-
-    def __init__(
-        self,
-        deps: StrategyDependencies,
-    ) -> None:
-        """Initialize NodeExecutor with typed StrategyDependencies container.
-
-        Args:
-            deps: Immutable container holding repositories, compiler, and pools.
-        """
-        self.deps = deps
-
-    @staticmethod
-    def _dlq_record_node_error(step_id: str, exc: Exception) -> list[TraceEvent]:
-        """Dead-letter error recording for failed step execution returning error trace."""
-        logger.error("[NodeExecutor] Dual-Reporting Exception for step %s: %s", step_id, str(exc), exc_info=True)
-        return [
-            ErrorTraceEvent(
-                step_name=step_id, error_code="STEP_FAILED", error_message=str(exc), content={"traceback": str(exc)}
-            )
-        ]
-
-    def _resolve_execution_engine(
-        self, step_def: Step, prompt_blocks: list[PromptBlock] | None = None
-    ) -> ExecutionEngine:
-        """Resolve ExecutionEngine orthogonally from model_strategy based on step engine_type.
-
-        Args:
-            step_def: Step domain blueprint model.
-            prompt_blocks: Optional pre-loaded list of prompt blocks (retained for signature parity).
-
-        Returns:
-            Instantiated ExecutionEngine strategy instance.
-        """
-        return build_execution_engine(step_def.engine_type, self.deps.prompt_compiler)
-
-    async def execute(
-        self,
-        step: StepRule,
-        execution_id: str,
-        workflow_id: str,
-        metadata: ExecutionMetadata,
-        projector: StateProjector,
-        expected_inputs: list[Any] | None = None,
-        frozen_ctx: FrozenContext | None = None,
-        trace: list[TraceEvent] | None = None,
-        strictness_level: int = StrictnessAnchor.STANDARD.value,
-        lexical_strictness_level: int = StrictnessAnchor.STANDARD.value,
-        arq_pool: Any | None = None,
-        context_variables: ContextVariablesDTO | None = None,
-        progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
-        step_def: Step | None = None,
-        global_context_vars: GlobalContextVarsDTO | None = None,
-        target_locale: str = "en",
-        output_profile_id: str | None = None,
-        organization_id: str | None = None,
-    ) -> list[TraceEvent]:
-        """Executes a pipeline node strategy with static parameters.
-
-        Args:
-            step: Step parameters and routing context constraints mappings.
-            execution_id: Execution identifier path.
-            workflow_id: Primary database record workflow key.
-            metadata: Operational contexts such as organization identity maps.
-            projector: Transient state snapshot delta computer context.
-            expected_inputs: Type list schema limits.
-            frozen_ctx: Frozen context snapshot.
-            trace: Trace events history.
-            strictness_level: Strictness level numeric value.
-            lexical_strictness_level: Lexical strictness level numeric value.
-            arq_pool: Async Arq pool context.
-            context_variables: Global state context dictionary or DTO.
-            progress_callback: Progress observer async invocation handler.
-            step_def: Underlying definition specification if eager loaded.
-            global_context_vars: Global context variables state envelope.
-            target_locale: ISO language tag.
-            output_profile_id: Presentation output profile identifier.
-            organization_id: Organization context identifier.
-
-        Returns:
-            List of emitted trace events.
-
-        Raises:
-            AppException: Fail-fast error if node configuration or blueprint is missing.
-        """
-        tracer = get_tracer(__name__)
-        current_span = otel_trace.get_current_span()
-        span_cm = (
-            contextlib.nullcontext(current_span)
-            if current_span.is_recording()
-            else tracer.start_as_current_span(f"dag.node.{step.id}")
-        )
-        with span_cm as node_span:
-            node_span.set_attribute("node.id", step.id)
-            if step.task_blueprint is not None:
-                node_span.set_attribute("node.blueprint", step.task_blueprint)
-            node_span.set_attribute("node.depends_on", list(step.depends_on))
-            try:
-                blueprint_id = step.task_blueprint
-                if not blueprint_id:
-                    msg = f"Step {step.id} has no task_blueprint configured."
-                    logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                    raise AppException(
-                        message=msg,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-                    )
-
-                if not step_def:
-                    step_def_data = await self.deps.workflow_repo.get_step_by_id(blueprint_id)
-                    if not step_def_data:
-                        msg = f"Step definition not found: {blueprint_id}"
-                        logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                        raise AppException(
-                            message=msg,
-                            status_code=500,
-                            details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-                        )
-                    step_def = Step.model_validate(step_def_data)
-
-                # Scoring Hook Separation Contract: Standalone causal steps or steps with zero criteria matrices
-                # and no evaluative matrices omit apply_scoring_logic_hook.
-                if "apply_scoring_logic_hook" in step_def.post_hooks or "apply_scoring_logic" in step_def.post_hooks:
-                    has_step_matrices = bool(step_def.criteria_block_ids)
-                    has_eval_matrices = bool(global_context_vars and global_context_vars.evaluative_matrices)
-                    if not has_step_matrices and not has_eval_matrices:
-                        filtered_posts = [
-                            h
-                            for h in step_def.post_hooks
-                            if h not in ("apply_scoring_logic_hook", "apply_scoring_logic")
-                        ]
-                        step_def = step_def.model_copy(update={"post_hooks": filtered_posts})
-
-                normalized_mappings = {}
-                for logical_name, path in step.input_mappings.items():
-                    normalized_path = ContextRouter.normalize_and_validate_variable(path, projector.snapshot)
-                    normalized_mappings[logical_name] = normalized_path
-
-                step = step.model_copy(update={"input_mappings": normalized_mappings})
-
-                criteria_ids: list[str] = list(step_def.criteria_block_ids)
-                if step_def.role_block_id:
-                    criteria_ids.append(step_def.role_block_id)
-                if step_def.extraction_protocol_block_id:
-                    criteria_ids.append(step_def.extraction_protocol_block_id)
-                if step_def.execution_persona_block_id:
-                    criteria_ids.append(step_def.execution_persona_block_id)
-
-                loaded_prompt_blocks = await self.deps.prompt_block_repo.get_prompt_blocks_by_ids(
-                    criteria_ids, strict=True
-                )
-
-                engine: ExecutionEngine | None = None
-                if step_def.type in (StepType.LLM, StepType.CAUSAL_DISCOVERY):
-                    engine = self._resolve_execution_engine(step_def, loaded_prompt_blocks)
-
-                effective_deps = self.deps
-                if arq_pool is not None:
-                    effective_deps = dataclasses.replace(self.deps, arq_pool=arq_pool)
-
-                strategy_impl = NodeStrategyFactory.create_strategy(
-                    step_type=step_def.type,
-                    deps=effective_deps,
-                    engine=engine,
-                )
-
-                resolved_global_vars: GlobalContextVarsDTO
-                if isinstance(global_context_vars, GlobalContextVarsDTO):
-                    resolved_global_vars = global_context_vars
-                else:
-                    resolved_global_vars = GlobalContextVarsDTO()
-
-                if (
-                    isinstance(metadata, ExecutionMetadata)
-                    and metadata.global_context_vars is not None
-                    and not resolved_global_vars.model_dump(exclude_defaults=True)
-                    and isinstance(metadata.global_context_vars, GlobalContextVarsDTO)
-                ):
-                    resolved_global_vars = metadata.global_context_vars
-
-                resolved_model_registry_id: str | None = None
-                if isinstance(metadata, ExecutionMetadata) and metadata.model_registry_id is not None:
-                    resolved_model_registry_id = metadata.model_registry_id
-
-                resolved_context_vars: ContextVariablesDTO
-                if isinstance(context_variables, ContextVariablesDTO):
-                    resolved_context_vars = context_variables
-                else:
-                    resolved_context_vars = ContextVariablesDTO()
-
-                resolved_cognitive_tier = CognitiveTier.FAST
-                if step_def.cognitive_tier is not None:
-                    resolved_cognitive_tier = step_def.cognitive_tier
-
-                context = StrategyContext(
-                    execution_id=execution_id,
-                    workflow_id=workflow_id,
-                    target_locale=target_locale,
-                    output_profile_id=output_profile_id,
-                    metadata=metadata,
-                    expected_inputs=expected_inputs,
-                    cognitive_tier=resolved_cognitive_tier,
-                    strictness_level=strictness_level,
-                    lexical_strictness_level=lexical_strictness_level,
-                    global_context_vars=resolved_global_vars,
-                    context_variables=resolved_context_vars,
-                    prompt_blocks=loaded_prompt_blocks,
-                    model_registry_id=resolved_model_registry_id,
-                )
-
-                await strategy_impl.assert_quota(org_id=organization_id)
-
-                return await strategy_impl.execute(
-                    step=step,
-                    projector=projector,
-                    context=context,
-                    frozen_ctx=frozen_ctx,
-                    trace=trace,
-                    progress_callback=progress_callback,
-                )
-
-            except AppException as ae:
-                node_span.record_exception(ae)
-                node_span.set_status(otel_trace.StatusCode.ERROR, str(ae))
-                logger.error("[NodeExecutor] Fail-Fast Exception for step %s: %s", step.id, str(ae), exc_info=True)
-                raise
-            except (ValidationError, RuntimeError, ValueError, TypeError, KeyError, OSError, TimeoutError) as e:
-                node_span.record_exception(e)
-                node_span.set_status(otel_trace.StatusCode.ERROR, str(e))
-                return self._dlq_record_node_error(step.id, e)
-            except Exception as e:
-                node_span.record_exception(e)
-                node_span.set_status(otel_trace.StatusCode.ERROR, str(e))
-                raise
 
 
 class DAGExecutor:
@@ -346,33 +128,17 @@ class DAGExecutor:
     @staticmethod
     def _dlq_record_step_failure(step_id: str, err_code: str, exc: BaseException) -> None:
         """Dead-letter error recording for failed DAG step execution."""
-        logger.error("[DAGExecutor] Step %s failed with error [%s]: %s", step_id, err_code, exc, exc_info=True)
+        dlq_record_step_failure(step_id, err_code, exc)
 
     @staticmethod
     def _dlq_handle_progress_commit_error(step_id: str, commit_err: Exception) -> None:
         """Handle non-terminal progress commit error."""
-        logger.warning(
-            "[DAGExecutor] %s: Non-terminal progress commit skipped for step %s: %s",
-            ErrorCodes.PROGRESS_UPDATE_FAILED.name,
-            step_id,
-            commit_err,
-        )
+        dlq_handle_progress_commit_error(step_id, commit_err)
 
     @staticmethod
     def _dlq_fallback_step_exceptions() -> tuple[type[BaseException], ...]:
         """Fallback step exceptions tuple when litellm is not imported."""
-        return (
-            AppException,
-            ValidationError,
-            RuntimeError,
-            ValueError,
-            TypeError,
-            KeyError,
-            OSError,
-            TimeoutError,
-            ConnectionError,
-            ExceptionGroup,
-        )
+        return dlq_fallback_step_exceptions()
 
     def __init__(
         self,
@@ -452,301 +218,37 @@ class DAGExecutor:
             AppException: Triggered with VALIDATION_FAILED or WORKFLOW_EXECUTION_FAILED during step evaluations.
             WorkflowExecutionError: Instantiated inside execution branches if a step fails to complete gracefully.
         """
-        DAGCompilerService.validate_workflow(workflow)
-
         self.committer.execution_id = execution_id
-
-        # 1. Pre-fetch and validate all Step definitions upfront (Fail-Fast & N+1 fix)
-        blueprint_ids = {s.task_blueprint for s in workflow.steps if s.task_blueprint}
-        step_definitions: dict[str, Step] = {}
-
-        async def _fetch_and_validate(b_id: str) -> tuple[str, Step]:
-            data = await self.workflow_repo.get_step_by_id(b_id)
-            if not data:
-                msg = f"Configuration error: Step '{b_id}' not found."
-                logger.error("[DAGExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-                )
-            return b_id, Step.model_validate(data)
-
-        if blueprint_ids:
-            async with asyncio.TaskGroup() as tg:
-                tasks = [tg.create_task(_fetch_and_validate(b_id)) for b_id in blueprint_ids]
-            results = [t.result() for t in tasks]
-            step_definitions = dict(results)
-
-        # Scoring Hook Separation Contract:
-        # In standalone non-matrix workflows (zero criteria matrix blocks), omit apply_scoring_logic_hook
-        # to prevent false-positive fail-fast crashes on empty evaluative matrices.
-        has_criteria_matrices = any(
-            bool(s_def.criteria_block_ids) for s_def in step_definitions.values() if s_def is not None
+        state = await bootstrap_workflow_execution_state(
+            execution_id=execution_id,
+            workflow=workflow,
+            raw_inputs=raw_inputs,
+            deps=self.deps,
+            strictness_level=strictness_level,
+            lexical_strictness_level=lexical_strictness_level,
+            dlq_fallback_fn=self._dlq_fallback_step_exceptions,
         )
-        if not has_criteria_matrices:
-            for bp_id, s_def in step_definitions.items():
-                if "apply_scoring_logic_hook" in s_def.post_hooks or "apply_scoring_logic" in s_def.post_hooks:
-                    filtered_posts = [
-                        h for h in s_def.post_hooks if h not in ("apply_scoring_logic_hook", "apply_scoring_logic")
-                    ]
-                    step_definitions[bp_id] = s_def.model_copy(update={"post_hooks": filtered_posts})
-
-        if strictness_level is None:
-            strictness_level = workflow.default_strictness_level
-
-        if lexical_strictness_level is None:
-            lexical_strictness_level = workflow.default_lexical_strictness_level
-
-        raw_rec = await self.exec_repo.get_execution(execution_id)
-        existing_record: ExecutionRecord | None = None
-        if isinstance(raw_rec, ExecutionRecord):
-            existing_record = raw_rec
-        elif raw_rec is not None:
-            existing_record = ExecutionRecord.model_validate(raw_rec, strict=False)
-
-        target_loc = "en"
-        if existing_record is not None and existing_record.target_locale:
-            target_loc = existing_record.target_locale
-        elif raw_inputs is not None and raw_inputs.language:
-            target_loc = raw_inputs.language
-
-        steps: list[ExecutionStep] = []
-        step_states: dict[str, ExecutionStep] = {}
-        for step in workflow.steps:
-            step_def = None
-            if step.task_blueprint is not None and step.task_blueprint in step_definitions:
-                step_def = step_definitions[step.task_blueprint]
-            if step_def is not None and isinstance(step_def.name, I18nText):
-                step_label = step_def.name.resolve(target_loc)
-            elif step_def is not None and isinstance(step_def.name, str) and step_def.name.strip():
-                step_label = step_def.name
-            else:
-                step_label = step.id
-            st = ExecutionStep(
-                id=step.id,
-                label=step_label,
-                status=ExecutionStatus.PENDING,
-            )
-            steps.append(st)
-            step_states[step.id] = st
-
-        if existing_record:
-            effective_meta = existing_record.metadata
-            if effective_meta is None:
-                effective_meta = ExecutionMetadata(
-                    workflow_version=workflow.version,
-                    model_registry_id=workflow.model_registry_id,
-                )
-            elif effective_meta.model_registry_id is None:
-                effective_meta = effective_meta.model_copy(update={"model_registry_id": workflow.model_registry_id})
-            exec_record = existing_record.model_copy(
-                update={"status": ExecutionStatus.RUNNING, "metadata": effective_meta}
-            )
-            if not exec_record.steps:
-                exec_record = exec_record.model_copy(update={"steps": steps, "step_states": step_states})
-            else:
-                updated_steps = []
-                updated_states = {}
-                for s in exec_record.steps:
-                    matching_label = step_states[s.id].label if s.id in step_states else s.label
-                    new_s = s.model_copy(update={"label": matching_label}) if (s.label == s.id or not s.label) else s
-                    updated_steps.append(new_s)
-                    updated_states[new_s.id] = new_s
-                exec_record = exec_record.model_copy(update={"steps": updated_steps, "step_states": updated_states})
-
-        else:
-            exec_record = create_execution_record(
-                execution_id=execution_id,
-                workflow_id=workflow.id,
-                raw_inputs=raw_inputs,
-                frozen_context=FrozenContext(),
-                source_identity_manifest={},
-                status=ExecutionStatus.RUNNING,
-                steps=steps,
-                step_states=step_states,
-                output_profile_id=workflow.default_profile_id,
-                metadata=ExecutionMetadata(
-                    workflow_version=workflow.version,
-                    model_registry_id=workflow.model_registry_id,
-                ),
-            )
-
-        if exec_record.target_locale:
-            set_language(exec_record.target_locale)
-
-        resolved_language: str | None = None
-        user_id = exec_record.created_by
-        if user_id is None and exec_record.raw_inputs is not None:
-            user_id = exec_record.raw_inputs.user_id
-        if user_id is not None:
-            user_data = await self.identity_repo.get_user(user_id)
-            if user_data is not None and isinstance(user_data, User):
-                if user_data.language:
-                    resolved_language = str(user_data.language)
-
-        if resolved_language is None and exec_record.raw_inputs.language:
-            resolved_language = exec_record.raw_inputs.language
-
-        if resolved_language is None and exec_record.target_locale:
-            resolved_language = exec_record.target_locale
-
-        if exec_record.metadata and exec_record.metadata.global_context_vars is not None:
-            existing_gvars = exec_record.metadata.global_context_vars
-            new_lang = resolved_language if not existing_gvars.language else existing_gvars.language
-            new_locale = exec_record.target_locale if not existing_gvars.target_locale else existing_gvars.target_locale
-            new_profile = workflow.default_profile_id if not existing_gvars.profile_id else existing_gvars.profile_id
-            global_context_vars = existing_gvars.model_copy(
-                update={"language": new_lang, "target_locale": new_locale, "profile_id": new_profile}
-            )
-        else:
-            global_context_vars = GlobalContextVarsDTO(
-                language=resolved_language,
-                target_locale=exec_record.target_locale,
-                profile_id=workflow.default_profile_id,
-            )
-            base_meta = exec_record.metadata or ExecutionMetadata(
-                workflow_version=workflow.version,
-                model_registry_id=workflow.model_registry_id,
-            )
-            exec_record = exec_record.model_copy(
-                update={"metadata": base_meta.model_copy(update={"global_context_vars": global_context_vars})}
-            )
-
-        projector = StateProjector()
-        for evt in exec_record.execution_trace:
-            projector.apply_delta(evt)
-
-        if not exec_record.execution_trace:
-            input_event = TraceEvent(step_name="raw_inputs", event_type="input", content=exec_record.raw_inputs)
-            exec_record.execution_trace.append(input_event)
-            projector.apply_delta(input_event)
-
-            try:
-                global_hook_deps = HookDependencies(
-                    exec_repo=self.exec_repo,
-                    workflow_repo=self.workflow_repo,
-                    comp_repo=self.comp_repo,
-                    prompt_block_repo=self.prompt_block_repo,
-                    output_profile_repo=self.output_profile_repo,
-                    identity_repo=self.identity_repo,
-                    audit_repo=self.audit_repo,
-                    system_repo=self.system_repo,
-                )
-                global_hook_state = HookState(
-                    execution_id=execution_id,
-                    workflow_id=workflow.id,
-                    metadata=exec_record.metadata or ExecutionMetadata(),
-                    global_context_vars=global_context_vars,
-                    inputs=ExecutionInputsDTO(
-                        raw_inputs=exec_record.raw_inputs.dynamic_inputs,
-                        dynamic_inputs=exec_record.raw_inputs.dynamic_inputs,
-                    ),
-                )
-                processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
-                if processed_result.success and processed_result.state_delta is not None:
-                    delta_content_dict: dict[str, StepOutputContentValue] = {}
-                    if isinstance(processed_result.state_delta, HookDeltaDTO):
-                        delta_payload = processed_result.state_delta.delta
-                        if delta_payload is None:
-                            delta_content_dict = {}
-                        elif isinstance(delta_payload, ExecutionInputsDTO):
-                            delta_content_dict = {
-                                **dict(delta_payload.raw_inputs),
-                                **dict(delta_payload.dynamic_inputs),
-                            }
-                        elif isinstance(delta_payload, BaseModel):
-                            delta_content_dict = delta_payload.model_dump(mode="json")
-                        elif isinstance(delta_payload, (str, int, float, bool, list)):
-                            delta_content_dict = {"value": delta_payload}
-                        elif (  # pragma: no cover
-                            not isinstance(delta_payload, (str, int, float, bool, list)) and delta_payload is not None
-                        ):
-                            delta_content_dict = dict(delta_payload)
-                    elif isinstance(processed_result.state_delta, ExecutionInputsDTO):  # pragma: no cover
-                        delta_content_dict = {
-                            **dict(processed_result.state_delta.raw_inputs),
-                            **dict(processed_result.state_delta.dynamic_inputs),
-                        }
-                    elif isinstance(processed_result.state_delta, BaseModel):  # pragma: no cover
-                        delta_content_dict = processed_result.state_delta.model_dump(mode="json")
-                    elif isinstance(processed_result.state_delta, (str, int, float, bool, list)):  # pragma: no cover
-                        delta_content_dict = {"value": processed_result.state_delta}
-                    elif (  # pragma: no cover
-                        not isinstance(processed_result.state_delta, (str, int, float, bool, list))
-                        and processed_result.state_delta is not None
-                    ):
-                        delta_content_dict = dict(processed_result.state_delta)
-                    delta_content = StepOutputContentDTO.model_validate({"data": delta_content_dict})
-                    proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content)
-                    exec_record.execution_trace.append(proc_event)
-                    projector.apply_delta(proc_event)
-            except Exception as e:
-                msg = f"Pre-Hydration failed: {e}"
-                logger.error(msg, exc_info=True)
-                raise AppException(
-                    message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED}, status_code=400
-                ) from e
-
-        try:
-            import litellm.exceptions as _litellm_exc
-
-            step_exceptions: tuple[type[BaseException], ...] = (
-                AppException,
-                ValidationError,
-                RuntimeError,
-                ValueError,
-                TypeError,
-                KeyError,
-                OSError,
-                TimeoutError,
-                ConnectionError,
-                ExceptionGroup,
-                _litellm_exc.APIConnectionError,
-                _litellm_exc.APIError,
-                _litellm_exc.RateLimitError,
-                _litellm_exc.Timeout,
-                _litellm_exc.ServiceUnavailableError,
-                _litellm_exc.InternalServerError,
-                _litellm_exc.BadGatewayError,
-                _litellm_exc.AuthenticationError,
-                _litellm_exc.PermissionDeniedError,
-                _litellm_exc.NotFoundError,
-                _litellm_exc.UnprocessableEntityError,
-                _litellm_exc.ContextWindowExceededError,
-                _litellm_exc.ContentPolicyViolationError,
-            )
-        except ImportError:  # pragma: no cover
-            step_exceptions = self._dlq_fallback_step_exceptions()
-
-        failed_previous_steps = []
-        for step_id, s_state in exec_record.step_states.items():
-            if s_state.status == ExecutionStatus.FAILED:
-                failed_previous_steps.append(step_id)
-                exec_record = exec_record.transition_step(
-                    step_id=step_id,
-                    status=ExecutionStatus.PENDING,
-                )
-
-        steps_by_id = {step.id: step for step in workflow.steps}
-        _update_lock = asyncio.Lock()
-        _commit_lock = asyncio.Lock()
-        _evaluated_causal_sources: set[str] = set()
+        exec_record = state.exec_record
+        global_context_vars = state.global_context_vars
+        projector = state.projector
+        step_definitions = state.step_definitions
+        steps_by_id = state.steps_by_id
+        strictness_level = state.strictness_level
+        lexical_strictness_level = state.lexical_strictness_level
+        step_exceptions = state.step_exceptions
+        _update_lock = state.update_lock
+        _evaluated_causal_sources = state.evaluated_causal_sources
 
         async def _safe_commit(
             status_override: ExecutionStatus | None = None, error_override: str | None = None
         ) -> None:
-            async with _commit_lock:
-                current = exec_record
-                await self.committer.commit_trace(
-                    trace=current.execution_trace,
-                    status=status_override if status_override is not None else current.status,
-                    step_states=current.step_states,
-                    error=error_override if error_override is not None else current.error,
-                    frozen_context=current.frozen_context,
-                    context_variables=current.context_variables,
-                    steps=current.steps,
-                )
+            state.exec_record = exec_record
+            await safe_commit_execution_state(
+                state=state,
+                committer=self.committer,
+                status_override=status_override,
+                error_override=error_override,
+            )
 
         async def run_step_wrapper(step_id: str) -> None:
             nonlocal exec_record, global_context_vars
@@ -819,10 +321,17 @@ class DAGExecutor:
                                 case CausalGraphPayloadDTO() as direct_graph:
                                     upstream_graph = direct_graph
                                     break
-                                case StepOutputContentDTO() as step_out:
+                                case raw_evt_content:
                                     try:
+                                        evt_map = (
+                                            raw_evt_content.data
+                                            if isinstance(raw_evt_content, StepOutputContentDTO)
+                                            else raw_evt_content
+                                        )
                                         out_payload = (
-                                            step_out.data["graph"] if "graph" in step_out.data else step_out.data
+                                            evt_map["graph"]
+                                            if type(evt_map) is dict and "graph" in evt_map
+                                            else evt_map
                                         )
                                         if isinstance(out_payload, CausalGraphPayloadDTO):
                                             upstream_graph = out_payload
@@ -844,33 +353,6 @@ class DAGExecutor:
                                             status_code=500,
                                             details={"error_code": ErrorCodes.VALIDATION_FAILED},
                                         ) from err
-                                case _:
-                                    try:
-                                        evt_payload = (
-                                            evt.content["graph"]
-                                            if type(evt.content) is dict and "graph" in evt.content
-                                            else evt.content
-                                        )
-                                        if isinstance(evt_payload, CausalGraphPayloadDTO):
-                                            upstream_graph = evt_payload
-                                        else:
-                                            upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(
-                                                evt_payload,
-                                                strict=False,
-                                            )
-                                        break
-                                    except ValidationError as err:
-                                        logger.error(
-                                            "[DAGExecutor] %s: Failed to parse upstream causal graph "
-                                            "from trace event: %s",
-                                            ErrorCodes.VALIDATION_FAILED.name,
-                                            err,
-                                        )
-                                        raise AppException(
-                                            message=f"Failed to parse upstream causal graph: {err}",
-                                            status_code=500,
-                                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                                        ) from err
 
                     if upstream_graph is None:
                         for snap_dto in projector.snapshot:
@@ -879,39 +361,17 @@ class DAGExecutor:
                                     case CausalGraphPayloadDTO() as snap_graph:
                                         upstream_graph = snap_graph
                                         break
-                                    case StepOutputContentDTO() as snap_step_out:
+                                    case raw_snap_content:
                                         try:
-                                            snap_out_payload = (
-                                                snap_step_out.data["graph"]
-                                                if "graph" in snap_step_out.data
-                                                else snap_step_out.data
+                                            snap_map = (
+                                                raw_snap_content.data
+                                                if isinstance(raw_snap_content, StepOutputContentDTO)
+                                                else raw_snap_content
                                             )
-                                            if isinstance(snap_out_payload, CausalGraphPayloadDTO):
-                                                upstream_graph = snap_out_payload
-                                            else:
-                                                upstream_graph = TypeAdapter(CausalGraphPayloadDTO).validate_python(
-                                                    snap_out_payload,
-                                                    strict=False,
-                                                )
-                                            break
-                                        except ValidationError as err:
-                                            logger.error(
-                                                "[DAGExecutor] %s: Failed to parse upstream causal graph "
-                                                "from snapshot: %s",
-                                                ErrorCodes.VALIDATION_FAILED.name,
-                                                err,
-                                            )
-                                            raise AppException(
-                                                message=f"Failed to parse upstream causal graph from snapshot: {err}",
-                                                status_code=500,
-                                                details={"error_code": ErrorCodes.VALIDATION_FAILED},
-                                            ) from err
-                                    case _:
-                                        try:
                                             snap_payload = (
-                                                snap_dto.payload["graph"]
-                                                if type(snap_dto.payload) is dict and "graph" in snap_dto.payload
-                                                else snap_dto.payload
+                                                snap_map["graph"]
+                                                if type(snap_map) is dict and "graph" in snap_map
+                                                else snap_map
                                             )
                                             if isinstance(snap_payload, CausalGraphPayloadDTO):
                                                 upstream_graph = snap_payload
@@ -1315,93 +775,16 @@ class DAGExecutor:
         orch_span.set_attribute("workflow.id", workflow.id)
         orch_span.set_attribute("workflow.node_count", len(workflow.steps))
         try:
-            # RAG Pre-Flight Pipeline Injection
-            has_prehydrated = False
-            preflight_target_step = None
-            for step in workflow.steps:
-                if step.task_blueprint and step.task_blueprint in step_definitions:
-                    step_b = step_definitions[step.task_blueprint]
-                    if "atom_flattening_hook" in step_b.pre_hooks or "synthesis_distiller_hook" in step_b.pre_hooks:
-                        has_prehydrated = True
-                        preflight_target_step = step
-                        break
-
-            if has_prehydrated and preflight_target_step:
-                virtual_step_id = f"sys_rag_{uuid.uuid4().hex[:16]}"
-
-                async with _update_lock:
-                    exec_record = exec_record.transition_step(
-                        step_id=virtual_step_id,
-                        status=ExecutionStatus.RUNNING,
-                        progress=0,
-                        label="system.rag.preflight",
-                        has_warning=False,
-                    )
-
-                await _safe_commit()
-
-                async def _emit_preflight_progress(message: str, pct: int) -> None:
-                    nonlocal exec_record
-                    evt = TraceEvent(
-                        step_name=virtual_step_id,
-                        event_type="progress",
-                        content=ProgressTracePayloadDTO(message=message, progress_pct=pct),
-                    )
-                    async with _update_lock:
-                        exec_record.execution_trace.append(evt)
-                        projector.apply_delta(evt)
-                        exec_record = exec_record.transition_step(
-                            step_id=virtual_step_id,
-                            status=ExecutionStatus.RUNNING,
-                            progress=pct,
-                            label=f"system.rag.preflight: {message}",
-                        )
-                        exec_record = exec_record.model_copy(
-                            update={
-                                "progress": pct,
-                                "status_message": f"Preflight: {message}",
-                            }
-                        )
-                    try:
-                        await _safe_commit()
-                    except (OSError, AppException, TimeoutError, ConnectionError) as commit_err:
-                        self._dlq_handle_progress_commit_error(virtual_step_id, commit_err)
-
-                try:
-                    blackboard_payload = await self.rag_preflight.execute(
-                        target_step=preflight_target_step,
-                        step_def=step_definitions[preflight_target_step.task_blueprint],
-                        exec_record=exec_record,
-                        emit_progress=_emit_preflight_progress,
-                    )
-
-                    async with _update_lock:
-                        exec_record = exec_record.transition_step(
-                            step_id=virtual_step_id,
-                            status=ExecutionStatus.PASSED,
-                            progress=100,
-                        )
-                        new_cv = exec_record.context_variables.with_update(
-                            __GLOBAL_ATOM_BLACKBOARD__=blackboard_payload
-                        )
-                        exec_record = exec_record.model_copy(
-                            update={
-                                "context_variables": new_cv,
-                            }
-                        )
-                    await _safe_commit()
-                except Exception as e:
-                    async with _update_lock:
-                        exec_record = exec_record.transition_step(
-                            step_id=virtual_step_id,
-                            status=ExecutionStatus.FAILED,
-                            last_error=str(e),
-                            has_warning=True,
-                        )
-                    await _safe_commit(status_override=ExecutionStatus.FAILED, error_override=str(e))
-                    raise WorkflowExecutionError(
-                        step_id=virtual_step_id, task_key="system.rag.preflight", original_error=e
-                    ) from e
+            state.exec_record = exec_record
+            try:
+                await execute_rag_preflight_stage(
+                    state=state,
+                    rag_preflight=self.rag_preflight,
+                    committer=self.committer,
+                    dlq_on_progress_commit_error=self._dlq_handle_progress_commit_error,
+                )
+            finally:
+                exec_record = state.exec_record
 
             waves = DAGCompilerService.compute_topological_waves(workflow.steps)
             for wave_idx, wave in enumerate(waves):
