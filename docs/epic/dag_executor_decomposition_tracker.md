@@ -61,7 +61,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend)** (`[NEW]` sub-modules & 1-hop callers): Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/epic/dag_executor_decomposition_tracker.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/execution_committer.py]
-  - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/node_executor.py]
+  - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/node_executor.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
