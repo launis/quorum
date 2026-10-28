@@ -315,3 +315,19 @@ def test_validated_seed_buffer_dto_rejects_unknown_collection() -> None:
     }
     with pytest.raises(ValidationError):
         run_seed.ValidatedSeedBufferDTO.model_validate(invalid_payload)
+
+
+def test_validate_all_seed_collections_unexpected_error_raises_app_exception() -> None:
+    """Negative test: non-ValidationError during seed buffer validation is wrapped in AppException."""
+    with (
+        patch.object(
+            run_seed.ValidatedSeedBufferDTO,
+            "model_validate",
+            side_effect=RuntimeError("Unexpected memory fault"),
+        ),
+        pytest.raises(AppException) as excinfo,
+    ):
+        run_seed.validate_all_seed_collections({})
+
+    assert excinfo.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert "Processing error during seed validation" in excinfo.value.message

@@ -22,6 +22,7 @@ import logging
 import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -80,21 +81,66 @@ __all__ = [
 
 
 class ValidatedSeedBufferDTO(BaseModel):
-    """Strongly typed container for validated in-memory seed collections."""
+    """Strongly typed container for validated in-memory seed collections.
+
+    Attributes:
+        system_config: Validated system configuration entities.
+        workflows: Validated workflow blueprint entities.
+        prompt_blocks: Validated polymorphic prompt block entities.
+        steps: Validated workflow step entities.
+        output_profiles: Validated output profile entities.
+        executions: Validated historical execution records.
+        organizations: Validated tenant organization entities.
+        users: Validated user entities.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    system_config: list[SystemConfigUnion] = Field(default_factory=list)
-    workflows: list[Workflow] = Field(default_factory=list)
-    prompt_blocks: list[AnyPromptBlock] = Field(default_factory=list)
-    steps: list[Step] = Field(default_factory=list)
-    output_profiles: list[OutputProfile] = Field(default_factory=list)
-    executions: list[ExecutionRecord] = Field(default_factory=list)
-    organizations: list[Organization] = Field(default_factory=list)
-    users: list[User] = Field(default_factory=list)
+    system_config: Annotated[
+        list[SystemConfigUnion],
+        Field(default_factory=list, description="Validated system configuration entities."),
+    ]
+    workflows: Annotated[
+        list[Workflow],
+        Field(default_factory=list, description="Validated workflow blueprint entities."),
+    ]
+    prompt_blocks: Annotated[
+        list[AnyPromptBlock],
+        Field(default_factory=list, description="Validated polymorphic prompt block entities."),
+    ]
+    steps: Annotated[
+        list[Step],
+        Field(default_factory=list, description="Validated workflow step entities."),
+    ]
+    output_profiles: Annotated[
+        list[OutputProfile],
+        Field(default_factory=list, description="Validated output profile entities."),
+    ]
+    executions: Annotated[
+        list[ExecutionRecord],
+        Field(default_factory=list, description="Validated historical execution records."),
+    ]
+    organizations: Annotated[
+        list[Organization],
+        Field(default_factory=list, description="Validated tenant organization entities."),
+    ]
+    users: Annotated[
+        list[User],
+        Field(default_factory=list, description="Validated user entities."),
+    ]
 
     def get_collection(self, col_key: str) -> Sequence[BaseModel]:
-        """Returns the typed collection list by collection name."""
+        """Return the typed collection sequence by canonical collection name.
+
+        Args:
+            col_key: Canonical collection key name.
+
+        Returns:
+            Sequence of validated Pydantic domain models for the requested collection.
+
+        Raises:
+            KeyError: If col_key does not match a registered seed collection.
+        """
         match col_key:
             case "system_config" | "system_configs":
                 return self.system_config
@@ -116,11 +162,28 @@ class ValidatedSeedBufferDTO(BaseModel):
                 raise KeyError(f"Unknown seed collection: '{col_key}'")
 
     def __getitem__(self, col_key: str) -> Sequence[BaseModel]:
-        """Retrieve seed collection by registry key name."""
+        """Retrieve a seed collection sequence by registry key name.
+
+        Args:
+            col_key: Canonical collection key name.
+
+        Returns:
+            Sequence of validated Pydantic domain models for the requested collection.
+
+        Raises:
+            KeyError: If col_key does not match a registered seed collection.
+        """
         return self.get_collection(col_key)
 
     def __contains__(self, col_key: object) -> bool:
-        """Verify whether a collection key name belongs to standard seed collections."""
+        """Verify whether a collection key name belongs to standard seed collections.
+
+        Args:
+            col_key: Candidate collection key to check.
+
+        Returns:
+            True if col_key is a recognized seed collection identifier, otherwise False.
+        """
         return col_key in {
             "system_config",
             "system_configs",
@@ -135,16 +198,16 @@ class ValidatedSeedBufferDTO(BaseModel):
 
 
 def _fail_fast(msg: str, error: Exception) -> AppException:
-    """Logs a critical error and returns a typed AppException.
+    """Log a structured RFC 7807 error and return a typed AppException.
 
     Args:
-        msg: The failure message describing the context.
+        msg: The failure message describing the validation context.
         error: The caught exception instance.
 
     Returns:
-        AppException: Typed application exception with ErrorCodes.VALIDATION_FAILED.
+        Typed application exception configured with ErrorCodes.VALIDATION_FAILED.
     """
-    logger.critical(
+    logger.error(
         "[Seeder] %s: [CRITICAL FAIL FAST] %s - %s",
         ErrorCodes.VALIDATION_FAILED.name,
         msg,
@@ -160,7 +223,7 @@ def _fail_fast(msg: str, error: Exception) -> AppException:
 
 
 def validate_all_seed_collections(seed_data: object) -> ValidatedSeedBufferDTO:
-    """Validates 100% of seed items in-memory across all collections before any database operations.
+    """Validate 100% of seed items in-memory across all collections before any database operations.
 
     Phase 1 of Two-Phase Seeding: validates schemas and DAG workflows in memory.
     If ANY item is invalid, triggers Fail-Fast before tables are touched.
@@ -169,10 +232,10 @@ def validate_all_seed_collections(seed_data: object) -> ValidatedSeedBufferDTO:
         seed_data: Raw JSON payload loaded from the seed file.
 
     Returns:
-        ValidatedSeedBufferDTO containing validated domain models per collection.
+        Validated domain models grouped per collection.
 
     Raises:
-        AppException: If any validation or processing error occurs.
+        AppException: With ErrorCodes.VALIDATION_FAILED if schema or DAG validation fails.
     """
     try:
         validated_buffer = ValidatedSeedBufferDTO.model_validate(seed_data)
@@ -202,6 +265,9 @@ async def verify_seed_table_counts(
 
     Returns:
         Dictionary mapping canonical table name to actual row count in PostgreSQL 19.
+
+    Raises:
+        AppException: With ErrorCodes.STORAGE_ACCESS_FAILED or ErrorCodes.VALIDATION_FAILED if row counts fail verification.
     """
     return await uow.entities.verify_seed_table_counts(expected_counts)
 
@@ -211,7 +277,7 @@ async def _seed_postgres(
     dry_run: bool = False,
     uow: QuorumUnitOfWork | None = None,
 ) -> dict[str, int]:
-    """Seeds the PostgreSQL 19 database with validated V2 domain models.
+    """Seed the PostgreSQL 19 database with validated V2 domain models.
 
     Enforces Two-Phase Pre-Flight In-Memory Validation:
     Phase 1: Validates 100% of seed items in-memory via validate_all_seed_collections.
@@ -225,6 +291,9 @@ async def _seed_postgres(
 
     Returns:
         Mapping of table name to verified row count.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.STORAGE_ACCESS_FAILED if validation or seeding fails.
     """
     validated_buffers = validate_all_seed_collections(seed_data)
     print("[Seeder V2] Pre-flight in-memory validation passed for all collections.")
@@ -269,7 +338,7 @@ async def seed_database(
     dry_run: bool = False,
     uow: QuorumUnitOfWork | None = None,
 ) -> dict[str, int]:
-    """Orchestrates the seeding process for PostgreSQL 19.
+    """Orchestrate the seeding process for PostgreSQL 19.
 
     Args:
         target: Target database environment ('postgres', 'local', or 'all').
@@ -280,7 +349,7 @@ async def seed_database(
         Mapping of table name to verified row count.
 
     Raises:
-        AppException: If target is invalid or seeding fails.
+        AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.STORAGE_ACCESS_FAILED if target is invalid or seeding fails.
         SystemExit: If seed file is missing on disk.
     """
     normalized_target = target.strip().lower()
@@ -306,13 +375,13 @@ async def seed_database(
 
 
 def main(argv: list[str] | None = None) -> None:
-    """Parses command line arguments and initializes the async PostgreSQL 19 seeding loop.
+    """Parse command line arguments and initialize the async PostgreSQL 19 seeding loop.
 
     Args:
         argv: Optional list of argument strings for invocation.
 
     Raises:
-        SystemExit: If parsing fails or an unhandled seeding error occurs.
+        SystemExit: If argument parsing fails or an unhandled seeding error occurs.
     """
     parser = argparse.ArgumentParser(description="Unified V2 PostgreSQL 19 Database Seeder")
     parser.add_argument(
