@@ -6,10 +6,13 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
   check-api-sync:
     name: Check OpenAPI Sync
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     
     steps:
       - name: Checkout code
@@ -36,14 +39,21 @@ jobs:
           VERTEX_LOCATION: "europe-north1"
           USE_MOCK_LLM: "true"
           USE_MOCK_DB: "true"
-          STORAGE_BACKEND: "TINYDB"
+          STORAGE_BACKEND: "POSTGRES"
         run: uv run backend_v2/scripts/generate_openapi.py
         
-      - name: Verify synchronization
+      - name: Verify or Auto-commit
         run: |
-          git diff --exit-code docs/swagger/openapi.json
-          if [ $? -ne 0 ]; then
+          if git diff --quiet docs/swagger/openapi.json; then
+            echo "OpenAPI schema is up to date."
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "OpenAPI schema out of sync on main; auto-committing updated openapi.json..."
+            git add docs/swagger/openapi.json
+            git commit -m "chore(api): auto-synchronize openapi.json [skip ci]"
+            git push
+          else
             echo "Error: docs/swagger/openapi.json is out of sync!"
             echo "Please run 'uv run backend_v2/scripts/generate_openapi.py' locally and commit the changes."
+            git diff docs/swagger/openapi.json
             exit 1
           fi

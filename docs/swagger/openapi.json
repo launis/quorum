@@ -4379,7 +4379,7 @@
           "Admin Studio V2 - Steps"
         ],
         "summary": "Get Steps",
-        "description": "Retrieve all V2 dynamic step execution block schemas securely via SSOT.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n\nReturns:\n    A list of all steps.\n\nRaises:\n    AppException: If fetching steps fails.",
+        "description": "Retrieve all V2 dynamic step execution block schemas securely via SSOT.\n\nArgs:\n    current_user: The authenticated user making the request.\n    studio_workflow_service: The studio workflow service dependency.\n    scope: Filter scope for step blueprints.\n\nReturns:\n    A list of all steps.\n\nRaises:\n    AppException: If fetching steps fails.",
         "operationId": "get_steps_api_v2_studio_steps__get",
         "security": [
           {
@@ -4387,6 +4387,17 @@
           }
         ],
         "parameters": [
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/StepFilterScope",
+              "description": "Filter steps by scope: specialists, system_core, or all.",
+              "default": "specialists"
+            },
+            "description": "Filter steps by scope: specialists, system_core, or all."
+          },
           {
             "name": "token",
             "in": "query",
@@ -5376,7 +5387,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/SystemConfigMCPGateways"
+                    "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
                   },
                   "title": "Response Get All Mcp Gateways Api V2 Studio Mcp Gateways  Get"
                 }
@@ -5431,7 +5442,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SystemConfigMCPGateways"
+                  "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
                 }
               }
             }
@@ -5495,7 +5506,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SystemConfigMCPGateways"
+                  "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
                 }
               }
             }
@@ -5556,7 +5567,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SystemConfigMCPGateways"
+                "$ref": "#/components/schemas/SystemConfigMCPGateways-Input"
               }
             }
           }
@@ -5567,7 +5578,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SystemConfigMCPGateways"
+                  "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
                 }
               }
             }
@@ -5589,7 +5600,7 @@
           "Admin Studio V2 - MCP Gateways"
         ],
         "summary": "Delete Mcp Gateway",
-        "description": "Delete an MCP Gateway configuration securely via SSOT Service Layer.\n\nArgs:\n    gateway_id: The unique identifier of the MCP gateway to delete.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    An MCPGatewayDeleteResponse confirming the deletion.\n\nRaises:\n    ResourceNotFoundError: If the MCP gateway is not found.\n    AppException: If deleting the MCP gateway fails.",
+        "description": "Delete an MCP Gateway configuration securely via SSOT Service Layer.\n\n# Phase 2, Step 2.3: Wire DELETE /{gateway_id} to delete_mcp_gateways\n\nArgs:\n    gateway_id: The unique identifier of the MCP gateway to delete.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    An MCPGatewayDeleteResponse confirming the deletion.\n\nRaises:\n    ResourceNotFoundError: If the MCP gateway is not found.\n    AppException: If deleting the MCP gateway fails.",
         "operationId": "delete_mcp_gateway_api_v2_studio_mcp_gateways__gateway_id__delete",
         "security": [
           {
@@ -5693,7 +5704,71 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SystemConfigMCPGateways"
+                  "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/studio/mcp-gateways/{gateway_id}/discover": {
+      "post": {
+        "tags": [
+          "Admin Studio V2 - MCP Gateways"
+        ],
+        "summary": "Discover Mcp Gateway Tools",
+        "description": "Connect to the remote MCP Gateway and introspect available tools via tools/list.\n\n# Phase 2, Step 2.3: Add POST /{gateway_id}/discover Studio introspection endpoint\n\nArgs:\n    gateway_id: The unique identifier of the MCP gateway to introspect.\n    current_user: The authenticated user making the request.\n    studio_service: The studio service dependency.\n\nReturns:\n    The updated SystemConfigMCPGateways containing discovered tool definitions.\n\nRaises:\n    ResourceNotFoundError: If the MCP gateway is not found.\n    AppException: If SSRF validation, authentication, or tool discovery fails.",
+        "operationId": "discover_mcp_gateway_tools_api_v2_studio_mcp_gateways__gateway_id__discover_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "gateway_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Gateway Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemConfigMCPGateways-Output"
                 }
               }
             }
@@ -6457,12 +6532,18 @@
         "title": "alert_box",
         "description": "An alert box for highlighting important information."
       },
-      "AllowedMCPTool": {
+      "AllowedMCPTool-Input": {
         "properties": {
           "tool_id": {
             "type": "string",
+            "minLength": 1,
             "title": "Tool Id",
-            "description": "Unique slug (e.g. 'mcp_tavily_search')."
+            "description": "The unique technical identifier of the MCP tool."
+          },
+          "capability": {
+            "$ref": "#/components/schemas/ToolCapability",
+            "description": "Operational capability category of the tool.",
+            "default": "search"
           },
           "name": {
             "$ref": "#/components/schemas/I18nText",
@@ -6474,12 +6555,25 @@
             "description": "English-only LLM description for function calling schema."
           },
           "input_schema": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/JsonValue"
-            },
-            "type": "object",
-            "title": "Input Schema",
-            "description": "JSON Schema defining the tool's input parameters."
+            "$ref": "#/components/schemas/MCPToolInputSchemaDTO-Input",
+            "description": "Strict recursive JSON Schema for tool parameters."
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Whether this discovered tool is enabled for agent execution.",
+            "default": true
+          },
+          "execution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MCPToolExecutionDTO-Input"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional tool execution configuration and task support policy."
           }
         },
         "additionalProperties": false,
@@ -6490,7 +6584,61 @@
           "description"
         ],
         "title": "AllowedMCPTool",
-        "description": "Declares a single MCP tool available for LLM function calling."
+        "description": "Declares a single MCP tool available for LLM function calling.\n\nAttributes:\n    tool_id: The unique technical identifier of the MCP tool.\n    capability: Operational capability category of the tool.\n    name: Localized display name.\n    description: English-only LLM description for function calling schema.\n    input_schema: Strict recursive JSON Schema for tool parameters.\n    enabled: Whether this discovered tool is enabled for agent execution."
+      },
+      "AllowedMCPTool-Output": {
+        "properties": {
+          "tool_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Tool Id",
+            "description": "The unique technical identifier of the MCP tool."
+          },
+          "capability": {
+            "$ref": "#/components/schemas/ToolCapability",
+            "description": "Operational capability category of the tool.",
+            "default": "search"
+          },
+          "name": {
+            "$ref": "#/components/schemas/I18nText",
+            "description": "Localized display name."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "English-only LLM description for function calling schema."
+          },
+          "input_schema": {
+            "$ref": "#/components/schemas/MCPToolInputSchemaDTO-Output",
+            "description": "Strict recursive JSON Schema for tool parameters."
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Whether this discovered tool is enabled for agent execution.",
+            "default": true
+          },
+          "execution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MCPToolExecutionDTO-Output"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional tool execution configuration and task support policy."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tool_id",
+          "name",
+          "description"
+        ],
+        "title": "AllowedMCPTool",
+        "description": "Declares a single MCP tool available for LLM function calling.\n\nAttributes:\n    tool_id: The unique technical identifier of the MCP tool.\n    capability: Operational capability category of the tool.\n    name: Localized display name.\n    description: English-only LLM description for function calling schema.\n    input_schema: Strict recursive JSON Schema for tool parameters.\n    enabled: Whether this discovered tool is enabled for agent execution."
       },
       "AnalystOutput": {
         "properties": {
@@ -6640,7 +6788,7 @@
           "logical_cohesion_score"
         ],
         "title": "AntiFluffAuditDTO",
-        "description": "Audit summary detecting hollow concepts, ungrounded claims, and logical cohesion."
+        "description": "Audit summary detecting hollow concepts, ungrounded claims, and logical cohesion.\n\nAttributes:\n    isolated_concept_count: Number of isolated unlinked claims.\n    cycle_detected: Whether causal loops or circular reasoning occurred.\n    unsupported_claims_count: Count of claims lacking evidentiary foundation.\n    logical_cohesion_score: Overall structural cohesion score (0.0 - 1.0).\n    detected_hollow_terms: Detected hollow or performative buzzwords."
       },
       "AntiPattern": {
         "properties": {
@@ -6749,7 +6897,7 @@
           "tda_id": {
             "type": "string",
             "title": "Tda Id",
-            "description": "Opaque ID pointing to the hydrated_references dictionary key"
+            "description": "Opaque ID pointing to the hydrated_references dictionary key."
           },
           "matrix_id": {
             "anyOf": [
@@ -6761,11 +6909,11 @@
               }
             ],
             "title": "Matrix Id",
-            "description": "Opaque ID of the matrix block that requested this evaluation"
+            "description": "Opaque ID of the matrix block that requested this evaluation."
           },
           "status": {
             "$ref": "#/components/schemas/ExecutionStatus",
-            "description": "Evaluation execution status"
+            "description": "Evaluation execution status."
           },
           "extracted_data": {
             "anyOf": [
@@ -6776,7 +6924,7 @@
                 "type": "null"
               }
             ],
-            "description": "Quantitative or isolated result"
+            "description": "Quantitative or isolated result."
           },
           "source_quotes": {
             "anyOf": [
@@ -6791,12 +6939,12 @@
               }
             ],
             "title": "Source Quotes",
-            "description": "Verbatim original quote segments from the document"
+            "description": "Verbatim original quote segments from the document."
           },
           "contextual_override": {
             "type": "boolean",
             "title": "Contextual Override",
-            "description": "Allows cognitive override without a verbatim quote",
+            "description": "Allows cognitive override without a verbatim quote.",
             "default": false
           },
           "is_inverse_evidence": {
@@ -6815,7 +6963,7 @@
               }
             ],
             "title": "Evaluation Reasoning",
-            "description": "Strictly AI cognitive reasoning, no infra errors"
+            "description": "Strictly AI cognitive reasoning, no infra errors."
           },
           "error_details": {
             "anyOf": [
@@ -6826,7 +6974,7 @@
                 "type": "null"
               }
             ],
-            "description": "Populated only if status is SYSTEM_ERROR"
+            "description": "Populated only if status is SYSTEM_ERROR."
           },
           "extensions": {
             "additionalProperties": {
@@ -6834,7 +6982,7 @@
             },
             "type": "object",
             "title": "Extensions",
-            "description": "Requested XAI extensions mapping"
+            "description": "Requested XAI extensions mapping."
           },
           "depends_on_tda_ids": {
             "items": {
@@ -6842,14 +6990,15 @@
             },
             "type": "array",
             "title": "Depends On Tda Ids",
-            "description": "DAG adjacency list"
+            "description": "DAG adjacency list."
           },
           "short_circuit_reason_tda_ids": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Short Circuit Reason Tda Ids"
+            "title": "Short Circuit Reason Tda Ids",
+            "description": "List of short-circuit reason TDA IDs."
           }
         },
         "additionalProperties": false,
@@ -7150,7 +7299,7 @@
           "source_id"
         ],
         "title": "CausalEdge",
-        "description": "Represents a directional causal dependency between two atoms in the DAG.\n\nIn accordance with the Local Causal Markov Condition over a Directed Acyclic Graph\nG = (V, E), the joint verification probability factorizes strictly over causal parents:\n    P(A_1, ..., A_n | D) = prod_{i=1}^n P(A_i | Parents_G(A_i), D)\n\nCausal dependencies enforce structural conditioning: downstream child atoms are evaluated\nconditionally upon the deterministic resolution of their causal parents. If any parent fails\nits expected_status, downstream execution is deterministically short-circuited with\nP(A_i = BLOCKED | Parent != expected) = 1.0, assigning ExecutionStatus.N_A without LLM invocation.\n\nAttributes:\n    edge_reasoning: Chain-of-thought reasoning explaining the causal relationship.\n    tda_id: The identifier of the parent atom (Topological Directed Atom ID).\n    source_id: The identifier of the spatial anchor (e.g., chunk ID).\n    expected_status: The expected status of the parent for this edge to be satisfied."
+        "description": "Represents a directional causal dependency between two atoms in the DAG.\n\nIn accordance with the Local Causal Markov Condition over a Directed Acyclic Graph\nG = (V, E), the joint verification probability factorizes strictly over causal parents:\n    P(A_1, ..., A_n | D) = prod_{i=1}^n P(A_i | Parents_G(A_i), D)\n\nCausal dependencies enforce structural conditioning: downstream child atoms are evaluated\nconditionally upon the deterministic resolution of their causal parents. If any parent fails\nits expected_status, downstream execution is deterministically short-circuited with\nP(A_i = BLOCKED | Parent != expected) = 1.0, assigning ExecutionStatus.N_A without LLM invocation.\n\nAttributes:\n    edge_reasoning: Chain-of-thought reasoning explaining the causal relationship.\n    tda_id: The identifier of the parent atom (Topological Directed Atom ID).\n    source_id: The identifier of the spatial anchor (e.g., chunk ID).\n    expected_status: The expected status of the parent for this edge to be satisfied.\n    warrant_quotes: Verbatim source quotes grounding the Toulmin inferential warrant."
       },
       "CausalEdgeDTO": {
         "properties": {
@@ -7193,7 +7342,7 @@
           "reasoning"
         ],
         "title": "CausalEdgeDTO",
-        "description": "Directed causal dependency edge between two argument nodes."
+        "description": "Directed causal dependency edge between two argument nodes.\n\nAttributes:\n    source_id: Source/parent node ID in the causal dependency.\n    target_id: Target/dependent node ID in the causal dependency.\n    reasoning: Logical reasoning explaining the dependency relationship.\n    warrant_quotes: Verbatim source quotes grounding the Toulmin inferential warrant."
       },
       "CausalGraphPayloadDTO": {
         "properties": {
@@ -7261,7 +7410,7 @@
           "nodes"
         ],
         "title": "CausalGraphPayloadDTO",
-        "description": "Full causal argument graph payload."
+        "description": "Full causal argument graph payload.\n\nAttributes:\n    nodes: List of causal argument nodes.\n    edges: List of directed dependency edges.\n    root_cause_node_ids: IDs of identified root cause failure nodes.\n    cycle_detected: Flag indicating if cycle was detected during traversal.\n    isolated_node_ids: IDs of isolated claims lacking inbound/outbound links.\n    partition_node_ids: Mapping of dynamic input_key to list of contained causal node IDs.\n    edge_root_causes: List of serialized edge IDs failing warrant grounding or validation."
       },
       "CausalNodeDTO": {
         "properties": {
@@ -7367,7 +7516,7 @@
           "status"
         ],
         "title": "CausalNodeDTO",
-        "description": "Node representation in an argument causal graph."
+        "description": "Node representation in an argument causal graph.\n\nAttributes:\n    node_id: Unique identifier for the causal node.\n    claim: Textual claim statement evaluated in the node.\n    source_quotes: Exact verbatim source quote segments from document.\n    paragraph_ref: Paragraph or block reference in source text.\n    status: Execution and verification status.\n    blame_parent_ids: IDs of upstream parent nodes contributing to failure.\n    dependent_child_ids: IDs of downstream nodes affected by this node.\n    tda_score: Evaluated TDA cognitive score.\n    tda_level_key: TDA qualitative level key.\n    source_input_key: Dynamic input key indicating source document provenance."
       },
       "CausalRootCauseDiagnosisDTO": {
         "properties": {
@@ -7411,7 +7560,7 @@
           "penalty_points"
         ],
         "title": "CausalRootCauseDiagnosisDTO",
-        "description": "Root cause diagnostic detail for an argument failure."
+        "description": "Root cause diagnostic detail for an argument failure.\n\nAttributes:\n    failing_node_id: ID of the failing dependent node.\n    root_cause_parent_id: ID of the upstream root cause parent.\n    paragraph_ref: Source paragraph reference.\n    explanation: Causal chain explanation of why the root cause led to failure.\n    penalty_points: Attributed penalty points.\n    root_cause_type: Categorization of failure as node, warrant, or precondition failure."
       },
       "CausalRootCauseType": {
         "type": "string",
@@ -7469,7 +7618,7 @@
           "fair_scoring"
         ],
         "title": "CausalTdaFusionResultDTO",
-        "description": "Composite fusion result combining causal graph discovery and TDA evaluation."
+        "description": "Composite fusion result combining causal graph discovery and TDA evaluation.\n\nAttributes:\n    graph: Complete causal argument graph.\n    root_cause_diagnoses: Root cause diagnostics for all cascade failures.\n    anti_fluff_audit: Anti-fluff and cohesion audit metrics.\n    prescriptive_remediations: Prescriptive remediation steps to unlock performance.\n    fair_scoring: Fair scoring arithmetic breakdown.\n    total_deliverable_nodes: Total node count in deliverable subgraph."
       },
       "CitationAudit": {
         "properties": {
@@ -7951,7 +8100,7 @@
           "profile_id"
         ],
         "title": "CreateReportRequestDTO",
-        "description": "Payload for requesting report compilation for an execution."
+        "description": "Payload for requesting report compilation for an execution.\n\nAttributes:\n    profile_id: Presentation OutputProfile ID.\n    locale: Target output locale code ('fi' or 'en').\n    execution_id: Optional execution ID matching URL path.\n    force_resynthesis: Forces re-running LLM Phase 2 synthesis for profile.\n    custom_preface_md: Optional custom preface Markdown text.\n    model_registry_id: Optional override model registry ID.\n    provider_override: Optional LLM provider override."
       },
       "DLQAtomSchema": {
         "properties": {
@@ -7998,7 +8147,8 @@
         "properties": {
           "field_id": {
             "type": "string",
-            "title": "Field Id"
+            "title": "Field Id",
+            "description": "Unique field identifier."
           },
           "component_type": {
             "$ref": "#/components/schemas/ComponentType",
@@ -8016,7 +8166,8 @@
                 "type": "null"
               }
             ],
-            "title": "Options"
+            "title": "Options",
+            "description": "Selectable options for dropdown or multiselect components."
           },
           "validation_rules": {
             "anyOf": [
@@ -8026,7 +8177,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Validation constraints for the dynamic field."
           }
         },
         "additionalProperties": false,
@@ -8036,7 +8188,7 @@
           "component_type"
         ],
         "title": "DataDictionaryField",
-        "description": "UI Hints mapping for dynamic form generation (SDUI)."
+        "description": "UI Hints mapping for dynamic form generation (SDUI).\n\nAttributes:\n    field_id: Unique field identifier.\n    component_type: UI component type identifier.\n    options: Selectable options for dropdown or multiselect components.\n    validation_rules: Validation constraints for the dynamic field."
       },
       "DataStarvationEvent": {
         "properties": {
@@ -8560,7 +8712,7 @@
           "atoms"
         ],
         "title": "DraftAtomList",
-        "description": "Wrapper for a list of draft atoms returned by structured task execution."
+        "description": "Wrapper for a list of draft atoms returned by structured task execution.\n\nAttributes:\n    atoms: List of extracted draft atoms.\n    dlq_status: DLQ sentinel marker. Set to 'FAILED/DLQ' on structural failures."
       },
       "DraftExtractedAtom": {
         "properties": {
@@ -8633,12 +8785,12 @@
           "error_code": {
             "type": "string",
             "title": "Error Code",
-            "description": "Standardized error code, e.g., LLM_TIMEOUT"
+            "description": "Standardized error code, e.g., LLM_TIMEOUT."
           },
           "message": {
             "type": "string",
             "title": "Message",
-            "description": "Technical error message or stack trace"
+            "description": "Technical error message or stack trace."
           }
         },
         "additionalProperties": false,
@@ -8773,7 +8925,7 @@
           "tda_id": {
             "type": "string",
             "title": "Tda Id",
-            "description": "Authoritative Opaque ID for the atom"
+            "description": "Authoritative Opaque ID for the atom."
           },
           "atom_id": {
             "anyOf": [
@@ -8785,7 +8937,7 @@
               }
             ],
             "title": "Atom Id",
-            "description": "Optional alias identifier matching tda_id"
+            "description": "Optional alias identifier matching tda_id."
           },
           "status": {
             "anyOf": [
@@ -8797,7 +8949,7 @@
               }
             ],
             "title": "Status",
-            "description": "Evaluation status string or enum"
+            "description": "Evaluation status string or enum."
           },
           "score": {
             "anyOf": [
@@ -8812,7 +8964,7 @@
               }
             ],
             "title": "Score",
-            "description": "Atom evaluation score"
+            "description": "Atom evaluation score."
           },
           "human_override": {
             "anyOf": [
@@ -8824,7 +8976,7 @@
               }
             ],
             "title": "Human Override",
-            "description": "Human override status"
+            "description": "Human override status."
           },
           "exact_quotes": {
             "items": {
@@ -8832,7 +8984,7 @@
             },
             "type": "array",
             "title": "Exact Quotes",
-            "description": "Verbatim extracted source quotes"
+            "description": "Verbatim extracted source quotes."
           },
           "source_quotes": {
             "anyOf": [
@@ -8847,7 +8999,7 @@
               }
             ],
             "title": "Source Quotes",
-            "description": "Verbatim source quote segments"
+            "description": "Verbatim source quote segments."
           },
           "evaluation_reasoning": {
             "anyOf": [
@@ -8859,18 +9011,18 @@
               }
             ],
             "title": "Evaluation Reasoning",
-            "description": "Cognitive reasoning explanation"
+            "description": "Cognitive reasoning explanation."
           },
           "contextual_override": {
             "type": "boolean",
             "title": "Contextual Override",
-            "description": "Cognitive override flag",
+            "description": "Cognitive override flag.",
             "default": false
           },
           "is_inverse_evidence": {
             "type": "boolean",
             "title": "Is Inverse Evidence",
-            "description": "Inverse evidence flag",
+            "description": "Inverse evidence flag.",
             "default": false
           },
           "facts": {
@@ -8882,7 +9034,7 @@
                 "type": "null"
               }
             ],
-            "description": "Evaluation facts"
+            "description": "Evaluation facts."
           }
         },
         "additionalProperties": false,
@@ -8921,7 +9073,8 @@
         "properties": {
           "matrix_id": {
             "type": "string",
-            "title": "Matrix Id"
+            "title": "Matrix Id",
+            "description": "Authoritative matrix identifier."
           },
           "score": {
             "anyOf": [
@@ -8932,7 +9085,8 @@
                 "type": "null"
               }
             ],
-            "title": "Score"
+            "title": "Score",
+            "description": "Evaluated numerical score."
           },
           "display_name": {
             "anyOf": [
@@ -8943,7 +9097,8 @@
                 "type": "null"
               }
             ],
-            "title": "Display Name"
+            "title": "Display Name",
+            "description": "Display name."
           }
         },
         "additionalProperties": false,
@@ -8952,7 +9107,7 @@
           "matrix_id"
         ],
         "title": "EvaluatedMatrixRefDTO",
-        "description": "Reference to an evaluated matrix block."
+        "description": "Reference to an evaluated matrix block.\n\nAttributes:\n    matrix_id: Authoritative matrix identifier.\n    score: Evaluated numerical score for the matrix.\n    display_name: Localized or human-readable display name."
       },
       "EvaluationFactsDTO": {
         "properties": {
@@ -8969,7 +9124,7 @@
             },
             "type": "object",
             "title": "Facts",
-            "description": "Mapping of variable keys to derived evaluation states"
+            "description": "Mapping of variable keys to derived evaluation states."
           }
         },
         "additionalProperties": false,
@@ -9195,6 +9350,16 @@
         "title": "EvidenceRejectionRequest",
         "description": "Request DTO for rejecting a specific evidence quote."
       },
+      "EvidenceType": {
+        "type": "string",
+        "enum": [
+          "EXPLICIT_QUOTE",
+          "IMPLIED_INTENT",
+          "NO_EVIDENCE"
+        ],
+        "title": "EvidenceType",
+        "description": "Categorizes the type of evidence discovered during TDA extraction."
+      },
       "ExecutionCreate": {
         "properties": {
           "workflow_id": {
@@ -9362,7 +9527,7 @@
             "type": "integer",
             "minimum": 0.0,
             "title": "Duration Ms",
-            "description": "Execution duration in milliseconds for observability",
+            "description": "Execution duration in milliseconds for observability.",
             "default": 0
           }
         },
@@ -10051,7 +10216,7 @@
               }
             ],
             "title": "Authenticity Score",
-            "description": "Authenticity score"
+            "description": "Authenticity score."
           },
           "performative_phrases_count": {
             "anyOf": [
@@ -10063,7 +10228,7 @@
               }
             ],
             "title": "Performative Phrases Count",
-            "description": "Performative phrases count"
+            "description": "Performative phrases count."
           },
           "variance_score": {
             "anyOf": [
@@ -10075,7 +10240,7 @@
               }
             ],
             "title": "Variance Score",
-            "description": "Variance score"
+            "description": "Variance score."
           },
           "alignment_verdict": {
             "anyOf": [
@@ -10087,7 +10252,7 @@
               }
             ],
             "title": "Alignment Verdict",
-            "description": "Alignment verdict"
+            "description": "Alignment verdict."
           },
           "jargon_density": {
             "anyOf": [
@@ -10099,7 +10264,7 @@
               }
             ],
             "title": "Jargon Density",
-            "description": "Jargon density"
+            "description": "Jargon density."
           },
           "total_word_count": {
             "anyOf": [
@@ -10112,7 +10277,7 @@
               }
             ],
             "title": "Total Word Count",
-            "description": "Total word count"
+            "description": "Total word count."
           }
         },
         "additionalProperties": false,
@@ -10138,7 +10303,7 @@
               }
             ],
             "title": "Value",
-            "description": "Extracted quantitative or categorical value"
+            "description": "Extracted quantitative or categorical value."
           },
           "unit": {
             "anyOf": [
@@ -10150,7 +10315,7 @@
               }
             ],
             "title": "Unit",
-            "description": "Unit of measurement, e.g., 'tCO2e' or 'EUR'"
+            "description": "Unit of measurement, e.g., 'tCO2e' or 'EUR'."
           }
         },
         "additionalProperties": false,
@@ -10204,7 +10369,7 @@
           "dampened_savings_points"
         ],
         "title": "FairScoringBreakdownDTO",
-        "description": "Fair scoring breakdown attributing penalties and savings across causal chains."
+        "description": "Fair scoring breakdown attributing penalties and savings across causal chains.\n\nAttributes:\n    independent_error_count: Count of independent, non-cascading errors.\n    cascading_fault_count: Count of secondary cascading faults.\n    raw_penalty_points: Raw unpenalized deduction points.\n    deduplicated_penalty_points: Penalty points after deduplicating cascading faults.\n    dampened_savings_points: Points saved via secondary fault dampening."
       },
       "FlattenedAtom": {
         "properties": {
@@ -10423,7 +10588,7 @@
           "atoms_by_input"
         ],
         "title": "GlobalAtomBlackboard",
-        "description": "Immutable blackboard aggregating extracted atoms grouped by source input file.\n\nAttributes:\n    atoms_by_input: Mapping of input file keys to their extracted atom lists."
+        "description": "Immutable blackboard aggregating extracted atoms grouped by source input file.\n\nAttributes:\n    atoms_by_input: Mapping of input file keys to their extracted atom lists.\n    is_data_starved: True when RAG preflight skips extraction due to data starvation."
       },
       "GlobalContextVarsDTO": {
         "properties": {
@@ -11031,7 +11196,7 @@
           "resolved_claim": {
             "type": "string",
             "title": "Resolved Claim",
-            "description": "Cleaned claim in human language"
+            "description": "Cleaned claim in human language."
           },
           "source_quotes": {
             "anyOf": [
@@ -11046,7 +11211,7 @@
               }
             ],
             "title": "Source Quotes",
-            "description": "Verbatim original quote segments"
+            "description": "Verbatim original quote segments."
           }
         },
         "additionalProperties": false,
@@ -11381,6 +11546,20 @@
         ],
         "title": "InteractionStrategy",
         "description": "Prompt engineering strategy classification for interaction quality assessment."
+      },
+      "JSONSchemaPropertyType": {
+        "type": "string",
+        "enum": [
+          "string",
+          "number",
+          "integer",
+          "boolean",
+          "array",
+          "object",
+          "null"
+        ],
+        "title": "JSONSchemaPropertyType",
+        "description": "JSON Schema Draft 2020-12 primitive and structural property types."
       },
       "JsonValue": {},
       "JudgeOutput": {
@@ -11955,21 +12134,24 @@
         "properties": {
           "execution_id": {
             "type": "string",
-            "title": "Execution Id"
+            "title": "Execution Id",
+            "description": "Unique execution identifier."
           },
           "reduced_atoms": {
             "items": {
               "$ref": "#/components/schemas/ReducedAtomDTO"
             },
             "type": "array",
-            "title": "Reduced Atoms"
+            "title": "Reduced Atoms",
+            "description": "List of token-reduced atoms."
           },
           "global_metrics": {
             "additionalProperties": {
               "$ref": "#/components/schemas/JsonValue"
             },
             "type": "object",
-            "title": "Global Metrics"
+            "title": "Global Metrics",
+            "description": "Global execution metrics dictionary."
           },
           "evaluated_matrices": {
             "items": {
@@ -11977,7 +12159,7 @@
             },
             "type": "array",
             "title": "Evaluated Matrices",
-            "description": "Evaluated matrix references"
+            "description": "Evaluated matrix references."
           },
           "raw_extensions": {
             "items": {
@@ -11985,7 +12167,7 @@
             },
             "type": "array",
             "title": "Raw Extensions",
-            "description": "Raw XAI extensions from execution trace"
+            "description": "Raw XAI extensions from execution trace."
           }
         },
         "additionalProperties": false,
@@ -11996,7 +12178,7 @@
           "global_metrics"
         ],
         "title": "LightweightMatrixDTO",
-        "description": "Token-compressed matrix payload for Synthesis Generation."
+        "description": "Token-compressed matrix payload for Synthesis Generation.\n\nAttributes:\n    execution_id: Unique execution identifier.\n    reduced_atoms: Sequence of token-reduced atoms.\n    global_metrics: High-level numerical and categorical metrics dictionary.\n    evaluated_matrices: Evaluated matrix references for cross-block reasoning.\n    raw_extensions: Raw XAI extensions captured during matrix evaluation."
       },
       "LightweightMatrixOutput": {
         "properties": {
@@ -12290,6 +12472,59 @@
         "title": "LoginResponse",
         "description": "Response model for successful login.\n\nAttributes:\n    user (User): Authenticated user object.\n    token_valid (bool): Whether the token is valid.\n    debug_msg (Optional[str]): Optional debug message."
       },
+      "MCPArgumentScalar": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      },
+      "MCPArgumentValue": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/MCPArgumentScalar"
+          },
+          {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          {
+            "items": {
+              "type": "boolean"
+            },
+            "type": "array"
+          },
+          {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/MCPArgumentScalar"
+            },
+            "type": "object"
+          }
+        ]
+      },
       "MCPAuditTrace": {
         "properties": {
           "id": {
@@ -12308,6 +12543,43 @@
             "type": "string",
             "title": "Tool Id",
             "description": "Which tool was called."
+          },
+          "gateway_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gateway Id",
+            "description": "Opaque ID of the MCP gateway that executed the tool."
+          },
+          "gateway_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gateway Slug",
+            "description": "Namespace slug of the MCP gateway."
+          },
+          "namespaced_alias": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Namespaced Alias",
+            "description": "Full namespaced tool alias invoked by the LLM."
           },
           "step_name": {
             "type": "string",
@@ -12392,17 +12664,29 @@
           "query"
         ],
         "title": "MCPAuditTrace",
-        "description": "Immutable audit log entry for a single MCP tool invocation."
+        "description": "Immutable audit log entry for a single MCP tool invocation.\n\nAttributes:\n    id: Unique identifier for the trace injected by the driver.\n    tool_id: Which tool was called.\n    gateway_id: Opaque ID of the MCP gateway that executed the tool.\n    gateway_slug: Namespace slug of the MCP gateway.\n    namespaced_alias: Full namespaced tool alias invoked by the LLM.\n    step_name: DAG step that triggered the call.\n    claim_text: The verbatim claim that triggered this search.\n    query: The search query or tool input.\n    knowledge_gap: The knowledge gap that needs to be resolved.\n    search_rationale: The rationale for the search query.\n    reasoning: Brief explanation of why this claim was verified.\n    response_summary: Extracted text summary.\n    source_urls: Source URLs returned.\n    impacted_axis_names: List of matrix axis names that used this trace.\n    timestamp: UTC timestamp of the tool call.\n    duration_ms: Round-trip latency in milliseconds."
+      },
+      "MCPAuthType": {
+        "type": "string",
+        "enum": [
+          "none",
+          "bearer",
+          "api_key_header"
+        ],
+        "title": "MCPAuthType",
+        "description": "Authentication schemes for outbound MCP gateway requests."
       },
       "MCPGatewayDeleteResponse": {
         "properties": {
           "status": {
             "type": "string",
-            "title": "Status"
+            "title": "Status",
+            "description": "Action outcome status message."
           },
           "deleted_id": {
             "type": "string",
-            "title": "Deleted Id"
+            "title": "Deleted Id",
+            "description": "Opaque ID of the deleted gateway."
           }
         },
         "additionalProperties": false,
@@ -12413,6 +12697,581 @@
         ],
         "title": "MCPGatewayDeleteResponse",
         "description": "API Response schema for deleting an MCP gateway.\n\nAttributes:\n    status: Action outcome status message.\n    deleted_id: Opaque ID of the deleted gateway."
+      },
+      "MCPToolExecutionDTO-Input": {
+        "properties": {
+          "taskSupport": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tasksupport",
+            "description": "Task execution support policy for MCP background tasks."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "MCPToolExecutionDTO",
+        "description": "Execution control metadata for an MCP tool.\n\nAttributes:\n    task_support: Task execution support policy (e.g., 'forbidden', 'optional', 'required')."
+      },
+      "MCPToolExecutionDTO-Output": {
+        "properties": {
+          "task_support": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Support",
+            "description": "Task execution support policy for MCP background tasks."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "MCPToolExecutionDTO",
+        "description": "Execution control metadata for an MCP tool.\n\nAttributes:\n    task_support: Task execution support policy (e.g., 'forbidden', 'optional', 'required')."
+      },
+      "MCPToolInputSchemaDTO-Input": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "object",
+            "title": "Type",
+            "description": "Root JSON Schema type.",
+            "default": "object"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "Optional root JSON Schema title."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Optional root JSON Schema description.",
+            "default": ""
+          },
+          "properties": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Input"
+            },
+            "type": "object",
+            "title": "Properties",
+            "description": "Mapping of parameter names to property schemas."
+          },
+          "required": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required",
+            "description": "List of required top-level parameter names."
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Additionalproperties",
+            "description": "Whether additional top-level properties are permitted."
+          },
+          "$schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "$Schema",
+            "description": "JSON Schema Draft URI specification."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "MCPToolInputSchemaDTO",
+        "description": "Root JSON Schema object definition for an MCP tool's input parameters.\n\nAttributes:\n    type: Root schema type literal ('object').\n    title: Optional root JSON Schema title.\n    description: Optional root JSON Schema description.\n    properties: Mapping of parameter names to recursive property schemas.\n    required: List of required top-level parameter names.\n    additional_properties: Optional flag restricting additional top-level properties.\n    schema_uri: Optional JSON Schema Draft URI specification."
+      },
+      "MCPToolInputSchemaDTO-Output": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "object",
+            "title": "Type",
+            "description": "Root JSON Schema type.",
+            "default": "object"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "Optional root JSON Schema title."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Optional root JSON Schema description.",
+            "default": ""
+          },
+          "properties": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Output"
+            },
+            "type": "object",
+            "title": "Properties",
+            "description": "Mapping of parameter names to property schemas."
+          },
+          "required": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required",
+            "description": "List of required top-level parameter names."
+          },
+          "additional_properties": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Additional Properties",
+            "description": "Whether additional top-level properties are permitted."
+          },
+          "schema_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schema Uri",
+            "description": "JSON Schema Draft URI specification."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "MCPToolInputSchemaDTO",
+        "description": "Root JSON Schema object definition for an MCP tool's input parameters.\n\nAttributes:\n    type: Root schema type literal ('object').\n    title: Optional root JSON Schema title.\n    description: Optional root JSON Schema description.\n    properties: Mapping of parameter names to recursive property schemas.\n    required: List of required top-level parameter names.\n    additional_properties: Optional flag restricting additional top-level properties.\n    schema_uri: Optional JSON Schema Draft URI specification."
+      },
+      "MCPToolParamOverrides": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/MCPArgumentValue"
+        },
+        "type": "object"
+      },
+      "MCPToolSchemaPropertyDTO-Input": {
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JSONSchemaPropertyType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "JSON Schema property type."
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "Optional JSON Schema property title emitted by FastMCP/Pydantic/Zod servers."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Property description.",
+            "default": ""
+          },
+          "enum": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enum",
+            "description": "Allowed string enum values."
+          },
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Input"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Recursive item schema for array properties."
+          },
+          "properties": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Input"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Properties",
+            "description": "Recursive nested properties for object properties."
+          },
+          "required": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required",
+            "description": "Required nested property names."
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Additionalproperties",
+            "description": "Whether additional nested object properties are allowed."
+          },
+          "default": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MCPArgumentValue"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional default value for this property."
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum",
+            "description": "Optional minimum numeric value."
+          },
+          "maximum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum",
+            "description": "Optional maximum numeric value."
+          },
+          "minLength": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minlength",
+            "description": "Minimum string length constraint."
+          },
+          "maxLength": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maxlength",
+            "description": "Maximum string length constraint."
+          },
+          "anyOf": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Input"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anyof",
+            "description": "Alternative sub-schemas."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "MCPToolSchemaPropertyDTO",
+        "description": "Recursive JSON Schema property definition for an MCP tool parameter.\n\nAttributes:\n    type: JSON Schema primitive or structural property type.\n    title: Optional JSON Schema property title emitted by FastMCP/Pydantic/Zod servers.\n    description: Property description for LLM function calling.\n    enum_values: Optional list of allowed string enum values.\n    items: Recursive item schema when type is array.\n    properties: Recursive property mapping when type is object.\n    required: Optional list of required nested property keys when type is object.\n    additional_properties: Optional flag restricting additional properties on nested objects.\n    default: Optional default value for this property.\n    minimum: Optional minimum numeric value.\n    maximum: Optional maximum numeric value.\n    min_length: Optional minimum string length constraint.\n    max_length: Optional maximum string length constraint.\n    any_of: Optional list of alternative sub-schemas (anyOf)."
+      },
+      "MCPToolSchemaPropertyDTO-Output": {
+        "properties": {
+          "type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JSONSchemaPropertyType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "JSON Schema property type."
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "Optional JSON Schema property title emitted by FastMCP/Pydantic/Zod servers."
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Property description.",
+            "default": ""
+          },
+          "enum_values": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enum Values",
+            "description": "Allowed string enum values."
+          },
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Output"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Recursive item schema for array properties."
+          },
+          "properties": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Output"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Properties",
+            "description": "Recursive nested properties for object properties."
+          },
+          "required": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required",
+            "description": "Required nested property names."
+          },
+          "additional_properties": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Additional Properties",
+            "description": "Whether additional nested object properties are allowed."
+          },
+          "default": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MCPArgumentValue"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional default value for this property."
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum",
+            "description": "Optional minimum numeric value."
+          },
+          "maximum": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximum",
+            "description": "Optional maximum numeric value."
+          },
+          "min_length": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Length",
+            "description": "Minimum string length constraint."
+          },
+          "max_length": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Length",
+            "description": "Maximum string length constraint."
+          },
+          "any_of": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MCPToolSchemaPropertyDTO-Output"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Any Of",
+            "description": "Alternative sub-schemas."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "MCPToolSchemaPropertyDTO",
+        "description": "Recursive JSON Schema property definition for an MCP tool parameter.\n\nAttributes:\n    type: JSON Schema primitive or structural property type.\n    title: Optional JSON Schema property title emitted by FastMCP/Pydantic/Zod servers.\n    description: Property description for LLM function calling.\n    enum_values: Optional list of allowed string enum values.\n    items: Recursive item schema when type is array.\n    properties: Recursive property mapping when type is object.\n    required: Optional list of required nested property keys when type is object.\n    additional_properties: Optional flag restricting additional properties on nested objects.\n    default: Optional default value for this property.\n    minimum: Optional minimum numeric value.\n    maximum: Optional maximum numeric value.\n    min_length: Optional minimum string length constraint.\n    max_length: Optional maximum string length constraint.\n    any_of: Optional list of alternative sub-schemas (anyOf)."
+      },
+      "MCPTransportType": {
+        "type": "string",
+        "enum": [
+          "streamable_http",
+          "sse"
+        ],
+        "title": "MCPTransportType",
+        "description": "Supported transport protocols for external MCP servers."
       },
       "MarkdownBlock": {
         "properties": {
@@ -13042,18 +13901,12 @@
           "evidence_type": {
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "EXPLICIT_QUOTE",
-                  "IMPLIED_INTENT",
-                  "NO_EVIDENCE"
-                ]
+                "$ref": "#/components/schemas/EvidenceType"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Evidence Type",
             "description": "The EvidenceType extracted from AtomResponse."
           },
           "cited_source_id": {
@@ -13585,18 +14438,12 @@
           "evidence_type": {
             "anyOf": [
               {
-                "type": "string",
-                "enum": [
-                  "EXPLICIT_QUOTE",
-                  "IMPLIED_INTENT",
-                  "NO_EVIDENCE"
-                ]
+                "$ref": "#/components/schemas/EvidenceType"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Evidence Type",
             "description": "The EvidenceType extracted from AtomResponse."
           },
           "cited_source_id": {
@@ -13994,15 +14841,7 @@
             "description": "List of prompt block IDs targeted by this group"
           },
           "view_type": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PresetView"
-              },
-              {
-                "type": "string"
-              }
-            ],
-            "title": "View Type",
+            "$ref": "#/components/schemas/PresetView",
             "description": "UI presentation preset view for this matrix group (e.g. 1d_metrics, 2d_compare, 3d_matrix, text_only).",
             "default": "1d_metrics"
           }
@@ -14473,17 +15312,19 @@
           "model_name"
         ],
         "title": "ModelProfile",
-        "description": "A flattened physical AI model representation."
+        "description": "A flattened physical AI model representation.\n\nAttributes:\n    provider: Underlying model provider identifier.\n    model_name: The underlying API model name.\n    temperature: Generation temperature.\n    top_p: Nucleus sampling probability.\n    top_k: Top-K sampling parameter.\n    tpm_limit: Tokens per minute limit.\n    rpm_limit: Requests per minute limit.\n    max_tokens: Max generated tokens.\n    frequency_penalty: Frequency penalty.\n    presence_penalty: Presence penalty.\n    allowed_tools: Enabled tools.\n    supports_grounding: Supports Google Search Grounding.\n    api_key: Optional override API key.\n    parsing_mode: Parser logic flag.\n    caching_strategy: Cache strategy identifier.\n    thinking_budget_tokens: Reasoning/thinking token budget for reasoning models.\n    additional_params: Additional provider-specific parameters.\n    is_active: Whether the model is actively available."
       },
       "ModelRegistryDeleteResponse": {
         "properties": {
           "status": {
             "type": "string",
-            "title": "Status"
+            "title": "Status",
+            "description": "Action outcome status message."
           },
           "deleted_id": {
             "type": "string",
-            "title": "Deleted Id"
+            "title": "Deleted Id",
+            "description": "Opaque ID of the deleted model registry."
           }
         },
         "additionalProperties": false,
@@ -14499,7 +15340,8 @@
         "properties": {
           "name": {
             "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "description": "Function name."
           },
           "arguments": {
             "anyOf": [
@@ -14508,12 +15350,13 @@
               },
               {
                 "additionalProperties": {
-                  "$ref": "#/components/schemas/JsonValue"
+                  "$ref": "#/components/schemas/MCPArgumentValue"
                 },
                 "type": "object"
               }
             ],
-            "title": "Arguments"
+            "title": "Arguments",
+            "description": "Function arguments as a JSON string or typed argument dictionary."
           }
         },
         "additionalProperties": false,
@@ -14523,7 +15366,7 @@
           "arguments"
         ],
         "title": "OpenAIFunctionCallDTO",
-        "description": "Schema for a function call in an OpenAI tool call.\n\nAttributes:\n    name: Function name.\n    arguments: Function arguments as a string or dict."
+        "description": "Schema for a function call in an OpenAI tool call.\n\nAttributes:\n    name: Function name.\n    arguments: Function arguments as a string or typed argument mapping."
       },
       "OpenAIToolCallDTO": {
         "properties": {
@@ -14536,19 +15379,23 @@
                 "type": "null"
               }
             ],
-            "title": "Index"
+            "title": "Index",
+            "description": "Call index."
           },
           "id": {
             "type": "string",
-            "title": "Id"
+            "title": "Id",
+            "description": "Tool call ID."
           },
           "type": {
             "type": "string",
             "title": "Type",
+            "description": "Call type.",
             "default": "function"
           },
           "function": {
-            "$ref": "#/components/schemas/OpenAIFunctionCallDTO"
+            "$ref": "#/components/schemas/OpenAIFunctionCallDTO",
+            "description": "The function call payload."
           },
           "provider_specific_fields": {
             "anyOf": [
@@ -14562,7 +15409,8 @@
                 "type": "null"
               }
             ],
-            "title": "Provider Specific Fields"
+            "title": "Provider Specific Fields",
+            "description": "Optional provider-specific metadata."
           }
         },
         "additionalProperties": false,
@@ -14572,7 +15420,7 @@
           "function"
         ],
         "title": "OpenAIToolCallDTO",
-        "description": "Schema for an OpenAI tool call.\n\nAttributes:\n    index: Call index.\n    id: Tool call ID.\n    type: Call type, defaults to 'function'.\n    function: The function call payload."
+        "description": "Schema for an OpenAI tool call.\n\nAttributes:\n    index: Call index.\n    id: Tool call ID.\n    type: Call type, defaults to 'function'.\n    function: The function call payload.\n    provider_specific_fields: Optional provider-specific fields."
       },
       "Organization": {
         "properties": {
@@ -16160,7 +17008,7 @@
           "potential_score_impact"
         ],
         "title": "PrescriptiveRemediationDTO",
-        "description": "Actionable prescriptive remediation unlocking downstream score improvements."
+        "description": "Actionable prescriptive remediation unlocking downstream score improvements.\n\nAttributes:\n    target_node_id: Target node requiring remediation.\n    required_action: Concrete action required to rectify the logical flaw.\n    unlocks_node_ids: Downstream nodes unlocked if this node is fixed.\n    potential_score_impact: Estimated positive impact on total evaluation score."
       },
       "PresetView": {
         "type": "string",
@@ -16271,11 +17119,13 @@
         "properties": {
           "status": {
             "type": "string",
-            "title": "Status"
+            "title": "Status",
+            "description": "Status code or textual message."
           },
           "deleted_id": {
             "type": "string",
-            "title": "Deleted Id"
+            "title": "Deleted Id",
+            "description": "Opaque ID of the deleted prompt block."
           }
         },
         "additionalProperties": false,
@@ -16305,6 +17155,7 @@
               }
             ],
             "title": "Block",
+            "description": "The source PromptBlock domain object.",
             "discriminator": {
               "propertyName": "category_id",
               "mapping": {
@@ -16323,7 +17174,8 @@
               "$ref": "#/components/schemas/DomainInputValue-Input"
             },
             "type": "object",
-            "title": "Mock Inputs"
+            "title": "Mock Inputs",
+            "description": "Mock input variables mimicking workflow execution parameters."
           },
           "target_scale_score": {
             "anyOf": [
@@ -16400,7 +17252,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "PromptBlockSimulationResponse",
-        "description": "Resulting simulation projection for a dry-run prompt rendering.\n\nAttributes:\n    valid: Indicates if simulation passed verification without errors.\n    errors: Compiled structural parsing errors list.\n    rendered_prompt: Raw text output containing the rendered prompt block template.\n    trace: Metadata containing state execution variables."
+        "description": "Resulting simulation projection for a dry-run prompt rendering.\n\nAttributes:\n    valid: Indicates if simulation passed verification without errors.\n    errors: Compiled structural parsing errors list.\n    rendered_prompt: Raw text output containing the rendered prompt block template.\n    trace: Metadata containing state execution variables.\n    prompt_context: XAI compiled prompt structure."
       },
       "PromptContextDTO": {
         "properties": {
@@ -16552,7 +17404,8 @@
                 "type": "null"
               }
             ],
-            "title": "Temperature"
+            "title": "Temperature",
+            "description": "Sampling temperature override."
           },
           "top_p": {
             "anyOf": [
@@ -16563,7 +17416,8 @@
                 "type": "null"
               }
             ],
-            "title": "Top P"
+            "title": "Top P",
+            "description": "Nucleus sampling probability override."
           },
           "top_k": {
             "anyOf": [
@@ -16574,7 +17428,8 @@
                 "type": "null"
               }
             ],
-            "title": "Top K"
+            "title": "Top K",
+            "description": "Top-K sampling override."
           },
           "max_output_tokens": {
             "anyOf": [
@@ -16585,7 +17440,8 @@
                 "type": "null"
               }
             ],
-            "title": "Max Output Tokens"
+            "title": "Max Output Tokens",
+            "description": "Maximum output token limit."
           },
           "reasoning_effort": {
             "anyOf": [
@@ -16596,7 +17452,8 @@
                 "type": "null"
               }
             ],
-            "title": "Reasoning Effort"
+            "title": "Reasoning Effort",
+            "description": "Reasoning effort level."
           },
           "vertex_location": {
             "anyOf": [
@@ -16607,13 +17464,14 @@
                 "type": "null"
               }
             ],
-            "title": "Vertex Location"
+            "title": "Vertex Location",
+            "description": "Vertex AI region override."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "title": "ProviderExtraParamsDTO",
-        "description": "Provider-specific optional parameters for ModelProfile."
+        "description": "Provider-specific optional parameters for ModelProfile.\n\nAttributes:\n    temperature: Sampling temperature override.\n    top_p: Nucleus sampling probability override.\n    top_k: Top-K sampling override.\n    max_output_tokens: Maximum output token limit.\n    reasoning_effort: Reasoning effort level.\n    vertex_location: Vertex AI region override."
       },
       "ProviderMetadataDTO": {
         "properties": {
@@ -16729,7 +17587,7 @@
           "title"
         ],
         "title": "PublicReportDTO",
-        "description": "Public read-only DTO for external report consumption."
+        "description": "Public read-only DTO for external report consumption.\n\nAttributes:\n    report_id: Unique report artifact identifier.\n    created_at: Timestamp when report was created.\n    title: Human-readable title of the report.\n    target_audience: Target audience classification.\n    overall_score: Overall evaluated score.\n    metrics: Flat key-value dictionary of evaluated metrics.\n    executive_summary_markdown: Synthesized executive summary in Markdown format.\n    downloads: Map of format keys to download URLs."
       },
       "QuestionAnswerPair": {
         "properties": {
@@ -16896,7 +17754,8 @@
                 "type": "null"
               }
             ],
-            "title": "Id"
+            "title": "Id",
+            "description": "Extension identifier."
           },
           "type": {
             "anyOf": [
@@ -16907,7 +17766,8 @@
                 "type": "null"
               }
             ],
-            "title": "Type"
+            "title": "Type",
+            "description": "Extension type."
           },
           "citation": {
             "anyOf": [
@@ -16918,7 +17778,8 @@
                 "type": "null"
               }
             ],
-            "title": "Citation"
+            "title": "Citation",
+            "description": "Source citation text."
           },
           "justification": {
             "anyOf": [
@@ -16929,7 +17790,8 @@
                 "type": "null"
               }
             ],
-            "title": "Justification"
+            "title": "Justification",
+            "description": "Justification argument."
           },
           "falsification": {
             "anyOf": [
@@ -16940,7 +17802,8 @@
                 "type": "null"
               }
             ],
-            "title": "Falsification"
+            "title": "Falsification",
+            "description": "Falsification rationale."
           },
           "theory_link": {
             "anyOf": [
@@ -16951,7 +17814,8 @@
                 "type": "null"
               }
             ],
-            "title": "Theory Link"
+            "title": "Theory Link",
+            "description": "Theory or framework link."
           },
           "risk_flag": {
             "anyOf": [
@@ -16962,7 +17826,8 @@
                 "type": "null"
               }
             ],
-            "title": "Risk Flag"
+            "title": "Risk Flag",
+            "description": "Risk indicator flag."
           },
           "coaching": {
             "anyOf": [
@@ -16973,7 +17838,8 @@
                 "type": "null"
               }
             ],
-            "title": "Coaching"
+            "title": "Coaching",
+            "description": "Coaching feedback text."
           },
           "missing_context": {
             "anyOf": [
@@ -16984,7 +17850,8 @@
                 "type": "null"
               }
             ],
-            "title": "Missing Context"
+            "title": "Missing Context",
+            "description": "Missing context description."
           },
           "remediation_steps": {
             "anyOf": [
@@ -17001,7 +17868,8 @@
                 "type": "null"
               }
             ],
-            "title": "Remediation Steps"
+            "title": "Remediation Steps",
+            "description": "Actionable remediation steps."
           },
           "emotional_sentiment": {
             "anyOf": [
@@ -17012,7 +17880,8 @@
                 "type": "null"
               }
             ],
-            "title": "Emotional Sentiment"
+            "title": "Emotional Sentiment",
+            "description": "Emotional sentiment rating."
           },
           "confidence": {
             "anyOf": [
@@ -17023,7 +17892,8 @@
                 "type": "null"
               }
             ],
-            "title": "Confidence"
+            "title": "Confidence",
+            "description": "Confidence score."
           },
           "source_id": {
             "anyOf": [
@@ -17034,7 +17904,8 @@
                 "type": "null"
               }
             ],
-            "title": "Source Id"
+            "title": "Source Id",
+            "description": "Source identifier."
           },
           "contextual_override": {
             "anyOf": [
@@ -17045,7 +17916,8 @@
                 "type": "null"
               }
             ],
-            "title": "Contextual Override"
+            "title": "Contextual Override",
+            "description": "Contextual override flag."
           },
           "variance_validation": {
             "anyOf": [
@@ -17056,7 +17928,8 @@
                 "type": "null"
               }
             ],
-            "title": "Variance Validation"
+            "title": "Variance Validation",
+            "description": "Variance validation result."
           },
           "authenticity_evaluation": {
             "anyOf": [
@@ -17067,7 +17940,8 @@
                 "type": "null"
               }
             ],
-            "title": "Authenticity Evaluation"
+            "title": "Authenticity Evaluation",
+            "description": "Authenticity evaluation."
           },
           "pedagogical_key": {
             "anyOf": [
@@ -17078,7 +17952,8 @@
                 "type": "null"
               }
             ],
-            "title": "Pedagogical Key"
+            "title": "Pedagogical Key",
+            "description": "Pedagogical taxonomy key."
           },
           "raw_payload": {
             "anyOf": [
@@ -17092,13 +17967,14 @@
                 "type": "null"
               }
             ],
-            "title": "Raw Payload"
+            "title": "Raw Payload",
+            "description": "Raw extension payload."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "title": "RawXAIExtensionDTO",
-        "description": "Raw XAI extension data captured during matrix atom evaluation."
+        "description": "Raw XAI extension data captured during matrix atom evaluation.\n\nAttributes:\n    id: Optional extension identifier.\n    type: Category or classification type of the extension.\n    citation: Verbatim source citation or text anchor.\n    justification: Argumentative justification.\n    falsification: Falsification explanation.\n    theory_link: Academic or ontological framework reference.\n    risk_flag: High-severity risk boolean indicator.\n    coaching: Prescriptive coaching feedback.\n    missing_context: Description of missing contextual data.\n    remediation_steps: Actionable remediation steps.\n    emotional_sentiment: Detected emotional tone.\n    confidence: Numerical confidence score.\n    source_id: Originating source input identifier.\n    contextual_override: Whether contextual override was applied.\n    variance_validation: Variance validation outcome.\n    authenticity_evaluation: Assessment of source authenticity.\n    pedagogical_key: Pedagogical taxonomy key.\n    raw_payload: Untyped or raw JSON dictionary payload."
       },
       "ReasoningStepDTO": {
         "properties": {
@@ -17131,7 +18007,8 @@
           "step_3_evaluate_anti_patterns",
           "step_4_final_conclusion"
         ],
-        "title": "ReasoningStepDTO"
+        "title": "ReasoningStepDTO",
+        "description": "Structured micro-CoT reasoning step schema to prevent JSON escaping issues.\n\nAttributes:\n    step_1_identify_premise: Extract the exact claim from the prompt.\n    step_2_scan_source: Analyze if the source text physically contains evidence.\n    step_3_evaluate_anti_patterns: Check if any strict anti-patterns or exclusions apply.\n    step_4_final_conclusion: Synthesize steps 1-3 into a final logical conclusion."
       },
       "ReasoningTrace": {
         "properties": {
@@ -17185,10 +18062,12 @@
         "properties": {
           "tda_id": {
             "type": "string",
-            "title": "Tda Id"
+            "title": "Tda Id",
+            "description": "Authoritative atom identifier."
           },
           "status": {
-            "$ref": "#/components/schemas/ExecutionStatus"
+            "$ref": "#/components/schemas/ExecutionStatus",
+            "description": "Lax execution status."
           },
           "reasoning": {
             "anyOf": [
@@ -17199,7 +18078,8 @@
                 "type": "null"
               }
             ],
-            "title": "Reasoning"
+            "title": "Reasoning",
+            "description": "Optional evaluation reasoning text."
           },
           "source_quotes": {
             "anyOf": [
@@ -17214,7 +18094,7 @@
               }
             ],
             "title": "Source Quotes",
-            "description": "Verbatim source quote segments"
+            "description": "Verbatim source quote segments."
           },
           "extracted_data": {
             "anyOf": [
@@ -17228,7 +18108,8 @@
                 "type": "null"
               }
             ],
-            "title": "Extracted Data"
+            "title": "Extracted Data",
+            "description": "Optional extracted key-value pairs."
           }
         },
         "additionalProperties": false,
@@ -17237,7 +18118,8 @@
           "tda_id",
           "status"
         ],
-        "title": "ReducedAtomDTO"
+        "title": "ReducedAtomDTO",
+        "description": "Reduced atom data for synthesis, containing only what is strictly necessary.\n\nAttributes:\n    tda_id: Authoritative atom identifier.\n    status: Execution status of the evaluated atom.\n    reasoning: Optional textual rationale for the atom outcome.\n    source_quotes: Verbatim source quote segments as a validated tuple.\n    extracted_data: Optional structured extraction key-value payload."
       },
       "ReferenceDTO": {
         "properties": {
@@ -17642,7 +18524,7 @@
           "updated_at"
         ],
         "title": "ReportArtifactSummaryDTO",
-        "description": "Lightweight summary DTO for list endpoints and selector views."
+        "description": "Lightweight summary DTO for list endpoints and selector views.\n\nAttributes:\n    id: Report artifact Opaque Stripe ID.\n    execution_id: Associated execution ID.\n    profile_id: Associated presentation profile ID.\n    locale: Report locale code.\n    title: Report display title.\n    status: Current lifecycle status.\n    created_at: Creation timestamp.\n    updated_at: Last update timestamp."
       },
       "ReportDataDTO": {
         "properties": {
@@ -18099,7 +18981,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "ReportMetadataDTO",
-        "description": "Execution and FinOps telemetry metadata captured during report generation."
+        "description": "Execution and FinOps telemetry metadata captured during report generation.\n\nAttributes:\n    cost_usd: Total financial cost in USD.\n    duration_ms: Report compilation latency in milliseconds.\n    tokens_used: Total tokens consumed by synthesis.\n    llm_model: Model identifier used for synthesis.\n    provider: LLM provider name.\n    cognitive_tier: Abstract cognitive tier assigned to synthesis.\n    model_registry_id: Resolved SystemConfig model registry ID.\n    thinking_tokens: Reasoning / thinking tokens consumed."
       },
       "ReportRowItemDTO": {
         "properties": {
@@ -18181,7 +19063,7 @@
           "weight"
         ],
         "title": "ReportRowItemDTO",
-        "description": "B2B tabular row delivery DTO representing an evaluated scorecard row item."
+        "description": "B2B tabular row delivery DTO representing an evaluated scorecard row item.\n\nAttributes:\n    execution_id: Parent execution ID.\n    report_id: Parent report artifact ID.\n    metric_key: Canonical metric or prompt block ID.\n    metric_label: Human-readable metric label.\n    score: Evaluated numerical score.\n    max_scale: Maximum score on the evaluation scale.\n    weight: Relative weight of this metric.\n    reasoning: Analytical reasoning justification.\n    quote: Forensic source quote supporting evaluation.\n    is_inverse_evidence: True if assertion evaluates absence of negative evidence."
       },
       "ReportStatus": {
         "type": "string",
@@ -18248,7 +19130,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "ReportStoragePathsDTO",
-        "description": "Storage artifact paths for materialized reports across different formats."
+        "description": "Storage artifact paths for materialized reports across different formats.\n\nAttributes:\n    pdf_path: Storage path for compiled PDF document.\n    sdui_json_path: Storage path for pre-compiled SDUI JSON tree.\n    excel_path: Storage path for generated forensic Excel workbook.\n    csv_path: Storage path for flat CSV export."
       },
       "RiskLevel": {
         "type": "string",
@@ -18280,7 +19162,7 @@
           "n_a_card"
         ],
         "title": "SDUIComponentType",
-        "description": "no_raw_string_enum_mappings: Prevents Magic String crashes in Flutter."
+        "description": "Canonical SDUI card component identifiers for frontend rendering."
       },
       "ScorecardAtomDTO-Input": {
         "properties": {
@@ -19863,6 +20745,14 @@
             "title": "Allowed Mcp Tools",
             "description": "List of allowed MCP tools for this step (e.g. ['mcp_tavily_search'])."
           },
+          "mcp_tool_params": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/MCPToolParamOverrides"
+            },
+            "type": "object",
+            "title": "Mcp Tool Params",
+            "description": "Per-tool static parameter overrides keyed by namespaced MCP tool alias."
+          },
           "cognitive_tier": {
             "anyOf": [
               {
@@ -19893,6 +20783,10 @@
             "$ref": "#/components/schemas/EngineType",
             "description": "Explicit ExecutionEngine responsible for computing this step.",
             "default": "prompt"
+          },
+          "zone": {
+            "$ref": "#/components/schemas/StepZone",
+            "default": "zone_b"
           }
         },
         "additionalProperties": false,
@@ -19909,11 +20803,13 @@
         "properties": {
           "status": {
             "type": "string",
-            "title": "Status"
+            "title": "Status",
+            "description": "Lifecycle state mapping indicating deletion complete."
           },
           "deleted_id": {
             "type": "string",
-            "title": "Deleted Id"
+            "title": "Deleted Id",
+            "description": "Relational tracking code representing deleted target."
           }
         },
         "additionalProperties": false,
@@ -19924,6 +20820,16 @@
         ],
         "title": "StepDeleteResponse",
         "description": "Response returned upon successful removal of a step configuration.\n\nAttributes:\n    status: Lifecycle state mapping indicating deletion complete.\n    deleted_id: Relational tracking code representing deleted target."
+      },
+      "StepFilterScope": {
+        "type": "string",
+        "enum": [
+          "specialists",
+          "system_core",
+          "all"
+        ],
+        "title": "StepFilterScope",
+        "description": "Scope filtering for workflow step blueprints in Admin Studio."
       },
       "StepMetadataDTO": {
         "properties": {
@@ -20338,6 +21244,14 @@
             "title": "Allowed Mcp Tools",
             "description": "List of allowed MCP tools for this step (e.g. ['mcp_tavily_search'])."
           },
+          "mcp_tool_params": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/MCPToolParamOverrides"
+            },
+            "type": "object",
+            "title": "Mcp Tool Params",
+            "description": "Per-tool static parameter overrides keyed by namespaced MCP tool alias."
+          },
           "cognitive_tier": {
             "anyOf": [
               {
@@ -20368,6 +21282,10 @@
             "$ref": "#/components/schemas/EngineType",
             "description": "Explicit ExecutionEngine responsible for computing this step.",
             "default": "prompt"
+          },
+          "zone": {
+            "$ref": "#/components/schemas/StepZone",
+            "default": "zone_b"
           }
         },
         "additionalProperties": false,
@@ -20470,14 +21388,16 @@
       "StepSimulationRequest": {
         "properties": {
           "step": {
-            "$ref": "#/components/schemas/Step"
+            "$ref": "#/components/schemas/Step",
+            "description": "Domain step blueprint context containing prompt configurations."
           },
           "mock_inputs": {
             "additionalProperties": {
               "$ref": "#/components/schemas/DomainInputValue-Input"
             },
             "type": "object",
-            "title": "Mock Inputs"
+            "title": "Mock Inputs",
+            "description": "Static evaluation anchors containing environment variables."
           },
           "target_locale": {
             "type": "string",
@@ -20728,6 +21648,16 @@
         "title": "StepType",
         "description": "Execution taxonomy for workflow steps."
       },
+      "StepZone": {
+        "type": "string",
+        "enum": [
+          "zone_a",
+          "zone_b",
+          "zone_c"
+        ],
+        "title": "StepZone",
+        "description": "Functional workflow zone classification (Zone A Ingestion, Zone B Specialists, Zone C Funnel Anchors)."
+      },
       "StrategicDepth": {
         "type": "string",
         "enum": [
@@ -20875,7 +21805,7 @@
         "title": "SynthesisDistillationDTO",
         "description": "Strongly typed distillation payload emitted by synthesis_distiller_hook.\n\nAttributes:\n    distilled_inputs: Complete concatenated and formatted source inputs.\n    historical_context: Optional historical context from prior executions.\n    title_map: Mapping of block/step IDs to localized display titles.\n    matrices_to_explain: Evaluated matrix contexts requiring qualitative explanation.\n    source_alias_map: Mapping of raw IDs to semantic aliases.\n    output_profile_id: Optional presentation output profile identifier.\n    target_locale: Target localization language code.\n    alias_registry: Full alias registry mapping.\n    max_extensions: Maximum qualitative behavioral extensions allowed."
       },
-      "SystemConfigMCPGateways": {
+      "SystemConfigMCPGateways-Input": {
         "properties": {
           "id": {
             "type": "string",
@@ -20891,6 +21821,30 @@
             "default": "mcp_gateways"
           },
           "slug": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+            "title": "Slug",
+            "description": "Collision-free gateway namespace slug without double underscores.",
+            "default": "default_mcp_gateway"
+          },
+          "endpoint_url": {
+            "type": "string",
+            "title": "Endpoint Url",
+            "description": "HTTP/HTTPS endpoint URL of the external MCP server.",
+            "default": ""
+          },
+          "transport_type": {
+            "$ref": "#/components/schemas/MCPTransportType",
+            "description": "MCP transport protocol.",
+            "default": "streamable_http"
+          },
+          "auth_type": {
+            "$ref": "#/components/schemas/MCPAuthType",
+            "description": "Authentication scheme for the MCP gateway.",
+            "default": "none"
+          },
+          "auth_header_name": {
             "anyOf": [
               {
                 "type": "string"
@@ -20899,12 +21853,32 @@
                 "type": "null"
               }
             ],
-            "title": "Slug",
-            "description": "System Config identifier slug"
+            "title": "Auth Header Name",
+            "description": "Custom HTTP header name when auth_type is api_key_header."
+          },
+          "auth_env_var": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Env Var",
+            "description": "Name of the environment variable holding the secret token or API key."
+          },
+          "timeout_seconds": {
+            "type": "integer",
+            "maximum": 300.0,
+            "minimum": 1.0,
+            "title": "Timeout Seconds",
+            "description": "Request timeout in seconds for this MCP gateway.",
+            "default": 30
           },
           "tools": {
             "items": {
-              "$ref": "#/components/schemas/AllowedMCPTool"
+              "$ref": "#/components/schemas/AllowedMCPTool-Input"
             },
             "type": "array",
             "title": "Tools",
@@ -20917,7 +21891,95 @@
           "id"
         ],
         "title": "mcp_gateways",
-        "description": "System-level registry of available MCP tool gateways."
+        "description": "System-level registry of available MCP tool gateways.\n\nAttributes:\n    id: System config Opaque Stripe ID.\n    type: Config type discriminator ('mcp_gateways').\n    slug: Collision-free gateway namespace slug without double underscores.\n    endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.\n    transport_type: MCP transport protocol.\n    auth_type: Authentication scheme for the MCP gateway.\n    auth_header_name: Custom HTTP header name when auth_type is api_key_header.\n    auth_env_var: Name of the environment variable holding the secret token or API key.\n    timeout_seconds: Request timeout in seconds for this MCP gateway.\n    tools: Registry of all available MCP tools in the system."
+      },
+      "SystemConfigMCPGateways-Output": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "title": "Id",
+            "description": "System config ID"
+          },
+          "type": {
+            "type": "string",
+            "const": "mcp_gateways",
+            "title": "Type",
+            "description": "Config type discriminator.",
+            "default": "mcp_gateways"
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$",
+            "title": "Slug",
+            "description": "Collision-free gateway namespace slug without double underscores.",
+            "default": "default_mcp_gateway"
+          },
+          "endpoint_url": {
+            "type": "string",
+            "title": "Endpoint Url",
+            "description": "HTTP/HTTPS endpoint URL of the external MCP server.",
+            "default": ""
+          },
+          "transport_type": {
+            "$ref": "#/components/schemas/MCPTransportType",
+            "description": "MCP transport protocol.",
+            "default": "streamable_http"
+          },
+          "auth_type": {
+            "$ref": "#/components/schemas/MCPAuthType",
+            "description": "Authentication scheme for the MCP gateway.",
+            "default": "none"
+          },
+          "auth_header_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Header Name",
+            "description": "Custom HTTP header name when auth_type is api_key_header."
+          },
+          "auth_env_var": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Env Var",
+            "description": "Name of the environment variable holding the secret token or API key."
+          },
+          "timeout_seconds": {
+            "type": "integer",
+            "maximum": 300.0,
+            "minimum": 1.0,
+            "title": "Timeout Seconds",
+            "description": "Request timeout in seconds for this MCP gateway.",
+            "default": 30
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/AllowedMCPTool-Output"
+            },
+            "type": "array",
+            "title": "Tools",
+            "description": "Registry of all available MCP tools in the system."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "mcp_gateways",
+        "description": "System-level registry of available MCP tool gateways.\n\nAttributes:\n    id: System config Opaque Stripe ID.\n    type: Config type discriminator ('mcp_gateways').\n    slug: Collision-free gateway namespace slug without double underscores.\n    endpoint_url: HTTP/HTTPS endpoint URL of the external MCP server.\n    transport_type: MCP transport protocol.\n    auth_type: Authentication scheme for the MCP gateway.\n    auth_header_name: Custom HTTP header name when auth_type is api_key_header.\n    auth_env_var: Name of the environment variable holding the secret token or API key.\n    timeout_seconds: Request timeout in seconds for this MCP gateway.\n    tools: Registry of all available MCP tools in the system."
       },
       "SystemConfigModelRegistry": {
         "properties": {
@@ -20976,13 +22038,14 @@
           "tier_definitions"
         ],
         "title": "model_registry",
-        "description": "V2 Flattened Model Registry System Config."
+        "description": "V2 Flattened Model Registry System Config.\n\nAttributes:\n    id: System config Opaque Stripe ID.\n    name: Human-readable title.\n    type: Discriminator literal ('model_registry').\n    slug: System Config identifier slug.\n    default_provider: Default LLM provider.\n    tier_definitions: Direct mapping of the four canonical cognitive tiers to physical profiles."
       },
       "SystemConfigOptionDTO": {
         "properties": {
           "value": {
             "type": "string",
-            "title": "Value"
+            "title": "Value",
+            "description": "Underlying option value."
           },
           "label": {
             "anyOf": [
@@ -20996,7 +22059,8 @@
                 "type": "null"
               }
             ],
-            "title": "Label"
+            "title": "Label",
+            "description": "Display label for the option."
           }
         },
         "additionalProperties": false,
@@ -21005,7 +22069,7 @@
           "value"
         ],
         "title": "SystemConfigOptionDTO",
-        "description": "Selectable option for dropdown/multiselect UI components."
+        "description": "Selectable option for dropdown/multiselect UI components.\n\nAttributes:\n    value: Underlying option value.\n    label: Display label for the option."
       },
       "SystemLocale": {
         "type": "string",
@@ -21146,7 +22210,8 @@
                 "type": "null"
               }
             ],
-            "title": "Min"
+            "title": "Min",
+            "description": "Minimum numeric bound."
           },
           "max": {
             "anyOf": [
@@ -21160,7 +22225,8 @@
                 "type": "null"
               }
             ],
-            "title": "Max"
+            "title": "Max",
+            "description": "Maximum numeric bound."
           },
           "required": {
             "anyOf": [
@@ -21171,7 +22237,8 @@
                 "type": "null"
               }
             ],
-            "title": "Required"
+            "title": "Required",
+            "description": "Whether the field is mandatory."
           },
           "pattern": {
             "anyOf": [
@@ -21182,13 +22249,14 @@
                 "type": "null"
               }
             ],
-            "title": "Pattern"
+            "title": "Pattern",
+            "description": "Regex validation pattern."
           }
         },
         "additionalProperties": false,
         "type": "object",
         "title": "SystemValidationRulesDTO",
-        "description": "Validation rules for SDUI dynamic data dictionary fields."
+        "description": "Validation rules for SDUI dynamic data dictionary fields.\n\nAttributes:\n    min: Minimum numeric bound.\n    max: Maximum numeric bound.\n    required: Whether the field is mandatory.\n    pattern: Regex validation pattern."
       },
       "TDAAssertion": {
         "properties": {
@@ -21728,6 +22796,17 @@
         ],
         "title": "TombstoneEvent",
         "description": "Specific event representing GDPR-redacted or deleted data.\n\nAttributes:\n    event_type: Constant 'tombstone' event type.\n    redacted_hash: Cryptographic hash or identifier of the original redacted data."
+      },
+      "ToolCapability": {
+        "type": "string",
+        "enum": [
+          "search",
+          "document_reader",
+          "action",
+          "general"
+        ],
+        "title": "ToolCapability",
+        "description": "Operational capability category of an MCP tool."
       },
       "ToulminComponent": {
         "properties": {
@@ -23154,7 +24233,8 @@
               "type": "string"
             },
             "type": "array",
-            "title": "Available Extensions"
+            "title": "Available Extensions",
+            "description": "Union of all output_extensions defined across all Target Matrices."
           }
         },
         "additionalProperties": false,
@@ -23166,11 +24246,13 @@
         "properties": {
           "status": {
             "type": "string",
-            "title": "Status"
+            "title": "Status",
+            "description": "Action status string."
           },
           "deleted_id": {
             "type": "string",
-            "title": "Deleted Id"
+            "title": "Deleted Id",
+            "description": "Opaque ID representing the deleted workflow resource."
           }
         },
         "additionalProperties": false,
@@ -23543,7 +24625,7 @@
           "historical_context_mode"
         ],
         "title": "WorkflowResponseDTO",
-        "description": "API Response boundary for Workflow ensuring Data Sovereignty.\n\nAttributes:\n    organization_id: Explicitly exposed for Admin Studio UI routing."
+        "description": "API Response boundary for Workflow ensuring Data Sovereignty.\n\nAttributes:\n    organization_id: Explicitly exposed for Admin Studio UI routing.\n    output_profiles: Dictionary of fully hydrated OutputProfiles attached to this workflow."
       },
       "WorkflowSchemaResponseDTO": {
         "properties": {

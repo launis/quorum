@@ -15,7 +15,7 @@ on:
 jobs:
   quality:
     name: Lint, Type Check & Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code
@@ -48,7 +48,7 @@ jobs:
       - name: Run Tests (Pytest)
         env:
             # Emulates the 'cloud' environment as closely as possible without credentials
-            STORAGE_BACKEND: TINYDB 
+            STORAGE_BACKEND: POSTGRES
             USE_MOCK_LLM: "true"
             USE_MOCK_DB: "true"
         run: uv run pytest

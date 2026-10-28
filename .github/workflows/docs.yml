@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install uv
@@ -23,7 +23,7 @@ jobs:
           VERTEX_LOCATION: "europe-north1"
           USE_MOCK_LLM: "true"
           USE_MOCK_DB: "true"
-          STORAGE_BACKEND: "TINYDB"
+          STORAGE_BACKEND: "POSTGRES"
         run: uv run backend_v2/scripts/generate_openapi.py
 
       - name: Configure Git Credentials
