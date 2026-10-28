@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -46,9 +46,243 @@ class VarianceExplanationResult(BaseModel):
         explanation: Synthesized cognitive-mechanical variance explanation.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    explanation: str = Field(description="Synthesized cognitive-mechanical variance explanation")
+    explanation: Annotated[str, Field(description="Synthesized cognitive-mechanical variance explanation")]
+
+
+def _has_variance_extension(active_profile_dto: OutputProfile) -> bool:
+    """Check whether variance validation is enabled in the output profile.
+
+    Args:
+        active_profile_dto: Active output profile configuration.
+
+    Returns:
+        True if variance validation extension or target block is enabled, else False.
+    """
+    has_ext = any(
+        ext
+        in (
+            XaiExtensionType.VARIANCE_VALIDATION,
+            XaiExtensionType.VARIANCE_VALIDATION.value,
+            "variance_validation",
+            "authenticity_evaluation",
+        )
+        for ext in active_profile_dto.visible_workflow_extensions
+    )
+    has_block = any(
+        t
+        in (
+            TargetBlockType.VARIANCE_VALIDATION_BLOCK,
+            TargetBlockType.VARIANCE_VALIDATION_BLOCK.value,
+            "variance_validation_block",
+        )
+        for t in active_profile_dto.target_block_order
+    )
+    return has_ext or has_block
+
+
+def _extract_linguistics_from_execution(execution: ExecutionRecord) -> LinguisticsResultDTO | None:
+    """Extract and validate step_linguistics from context variables or trace events.
+
+    Args:
+        execution: Active execution record containing context variables and trace events.
+
+    Returns:
+        Hydrated LinguisticsResultDTO if present, else None.
+
+    Raises:
+        AppException: ErrorCodes.VALIDATION_FAILED if step_linguistics in trace events
+            is corrupted and fails model validation.
+    """
+    cv = execution.context_variables
+    if cv is not None and "step_linguistics" in cv:
+        step_ling = cv["step_linguistics"]
+        if step_ling is not None:
+            ling_out = LinguisticsResultDTO.model_validate(step_ling, strict=False)
+            if isinstance(ling_out.performative_patterns, list):
+                return ling_out
+
+    for event in reversed(execution.execution_trace):
+        if not isinstance(event, TraceEvent) or event.event_type != "decision":
+            continue
+        if type(event.content) is dict and "step_linguistics" in event.content:
+            try:
+                raw_ling = event.content["step_linguistics"]
+                ling_out = (
+                    raw_ling
+                    if isinstance(raw_ling, LinguisticsResultDTO)
+                    else LinguisticsResultDTO.model_validate(raw_ling, strict=False)
+                )
+                if isinstance(ling_out.performative_patterns, list):
+                    return ling_out
+            except (ValidationError, TypeError, ValueError) as err:
+                logger.error(
+                    "[variance_synthesis] Failed to validate step_linguistics: %s",
+                    err,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+                raise AppException(
+                    message=f"Corrupted step_linguistics in execution trace: {err}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from err
+    return None
+
+
+def _extract_authenticity_score_from_trace(
+    execution_trace: list[Any],
+    target_block_id: str,
+) -> float | None:
+    """Extract and validate cognitive authenticity score for target block from trace events.
+
+    Args:
+        execution_trace: Sequence of execution trace events.
+        target_block_id: Canonical Opaque Stripe ID of the target matrix prompt block.
+
+    Returns:
+        Extracted authenticity score as float if found, else None.
+
+    Raises:
+        AppException: ErrorCodes.VALIDATION_FAILED if LightweightMatrixOutput in trace
+            events is corrupted and fails model validation.
+    """
+    for event in reversed(execution_trace):
+        if not isinstance(event, TraceEvent) or event.event_type != "output":
+            continue
+        if isinstance(event.content, LightweightMatrixOutput):
+            if event.content.raw_score is not None:
+                return float(event.content.raw_score)
+        elif type(event.content) is dict and target_block_id in event.content:
+            try:
+                raw_mat = event.content[target_block_id]
+                det_out = (
+                    raw_mat
+                    if isinstance(raw_mat, LightweightMatrixOutput)
+                    else LightweightMatrixOutput.model_validate(raw_mat, strict=False)
+                )
+                if det_out.raw_score is not None:
+                    return float(det_out.raw_score)
+            except (ValidationError, TypeError, ValueError) as err:
+                logger.error(
+                    "[variance_synthesis] Failed to validate LightweightMatrixOutput for %s: %s",
+                    target_block_id,
+                    err,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+                raise AppException(
+                    message=f"Corrupted LightweightMatrixOutput for {target_block_id}: {err}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from err
+    return None
+
+
+async def _resolve_max_cognitive_score(
+    repo: UnifiedWorkflowRepository,
+    target_block_id: str,
+) -> float:
+    """Fetch target matrix prompt block and resolve its maximum cognitive scale score.
+
+    Args:
+        repo: Unified workflow repository instance.
+        target_block_id: Canonical Opaque Stripe ID of the target matrix prompt block.
+
+    Returns:
+        Maximum cognitive scale score as float.
+
+    Raises:
+        AppException: ErrorCodes.CONFIGURATION_ERROR if target block is missing or
+            lacks valid positive scale extrema definitions.
+    """
+    target_block = await repo.get_prompt_block(target_block_id)
+    if not target_block:
+        msg = f"Target prompt block '{target_block_id}' not found in repository."
+        logger.error(
+            "[variance_synthesis] %s: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+    if (
+        not isinstance(target_block, MatrixPromptBlock)
+        or target_block.computed_max is None
+        or target_block.computed_max <= 0.0
+    ):
+        msg = f"Target prompt block '{target_block_id}' lacks valid scale extrema definitions."
+        logger.error(
+            "[variance_synthesis] %s: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+    return float(target_block.computed_max)
+
+
+def _build_variance_messages(
+    active_profile_dto: OutputProfile,
+    var_directive_str: str,
+    accept_language: str,
+    authenticity_score: float,
+    performative_phrases_count: int,
+    jargon_density: float,
+) -> list[ChatMessageDTO]:
+    """Compile system and user ChatMessageDTO list for variance synthesis task.
+
+    Args:
+        active_profile_dto: Active output profile configuration.
+        var_directive_str: Stripped variance synthesis directive string.
+        accept_language: Target locale code for linguistic parameters.
+        authenticity_score: Extracted cognitive authenticity score.
+        performative_phrases_count: Count of detected performative phrases.
+        jargon_density: Calculated performative phrases per 100 words.
+
+    Returns:
+        List of system and user ChatMessageDTO instances.
+    """
+    var_sys_prompt = f"{VARIANCE_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
+    var_lang_params = build_linguistic_parameters(source_language="Unknown", target_locale=accept_language)
+    var_dynamic_parts = [var_lang_params]
+    if active_profile_dto.tone_instruction:
+        tone = active_profile_dto.tone_instruction.strip()
+        if tone:
+            var_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
+    var_dynamic_parts.append(var_directive_str)
+    if active_profile_dto.variance_length_constraint:
+        var_dynamic_parts.append(f"<section_budget>{active_profile_dto.variance_length_constraint}</section_budget>")
+    var_dynamic_ctx = "\n\n".join(var_dynamic_parts)
+
+    return [
+        ChatMessageDTO(role="system", content=var_sys_prompt),
+        ChatMessageDTO(
+            role="user",
+            content=(
+                f"<dynamic_context>\n{var_dynamic_ctx}\n</dynamic_context>\n\n"
+                "SCORES TO EXPLAIN:\n"
+                f"Cognitive Authenticity Score: {authenticity_score} "
+                "(Scale: 1.0 = Routine / Superficial / Illusion of Control / Low Originality, "
+                "2.0 = Competent / Consistent & Pertinent Guidance, "
+                "3.0 = High Cognitive Authenticity / Deep Original Contribution & Strong Voice)\n"
+                f"Mechanical Phrases Load: {performative_phrases_count} phrases "
+                f"({jargon_density:.2f} per 100 words) "
+                "(Scale: 0.0 = Zero Clichés, 5.0+ = Heavy Jargon/Cliché Load)"
+            ),
+        ),
+    ]
 
 
 async def build_variance_metrics_and_task(
@@ -79,29 +313,7 @@ async def build_variance_metrics_and_task(
         AppException: ErrorCodes.VALIDATION_FAILED if step_linguistics or lightweight
             matrix outputs in trace events are corrupted and fail model validation.
     """
-    if not active_profile_dto:
-        return None, None
-
-    has_variance_ext = any(
-        ext
-        in (
-            XaiExtensionType.VARIANCE_VALIDATION,
-            XaiExtensionType.VARIANCE_VALIDATION.value,
-            "variance_validation",
-            "authenticity_evaluation",
-        )
-        for ext in active_profile_dto.visible_workflow_extensions
-    ) or any(
-        t
-        in (
-            TargetBlockType.VARIANCE_VALIDATION_BLOCK,
-            TargetBlockType.VARIANCE_VALIDATION_BLOCK.value,
-            "variance_validation_block",
-        )
-        for t in active_profile_dto.target_block_order
-    )
-
-    if not has_variance_ext:
+    if not active_profile_dto or not _has_variance_extension(active_profile_dto):
         return None, None
 
     if not active_profile_dto.variance_target_block:
@@ -113,6 +325,7 @@ async def build_variance_metrics_and_task(
             "[variance_synthesis] %s: %s",
             ErrorCodes.CONFIGURATION_ERROR.name,
             msg,
+            exc_info=True,
             extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
         raise AppException(
@@ -122,82 +335,14 @@ async def build_variance_metrics_and_task(
         )
 
     target_block_id = active_profile_dto.variance_target_block
-    authenticity_score: float | None = None
+    ling_out = _extract_linguistics_from_execution(execution)
     performative_phrases_count: int | None = None
     total_word_count: int | None = None
-    cv = execution.context_variables
-
-    if cv is not None and "step_linguistics" in cv:
-        step_ling = cv["step_linguistics"]
-        if step_ling is not None:
-            ling_out = LinguisticsResultDTO.model_validate(step_ling, strict=False)
-            patterns = ling_out.performative_patterns
-            if isinstance(patterns, list):
-                performative_phrases_count = len(patterns)
-            if ling_out.total_word_count is not None:
-                total_word_count = int(ling_out.total_word_count)
-
-    if authenticity_score is None or performative_phrases_count is None:
-        for event in reversed(execution.execution_trace):
-            if not isinstance(event, TraceEvent):
-                continue
-            if event.event_type == "decision" and performative_phrases_count is None:
-                if type(event.content) is dict and "step_linguistics" in event.content:
-                    try:
-                        raw_ling = event.content["step_linguistics"]
-                        ling_out = (
-                            raw_ling
-                            if isinstance(raw_ling, LinguisticsResultDTO)
-                            else LinguisticsResultDTO.model_validate(raw_ling, strict=False)
-                        )
-                        patterns = ling_out.performative_patterns
-                        if isinstance(patterns, list):
-                            performative_phrases_count = len(patterns)
-                        if ling_out.total_word_count is not None:
-                            total_word_count = int(ling_out.total_word_count)
-                    except (ValidationError, TypeError, ValueError) as err:
-                        logger.error(
-                            "[variance_synthesis] Failed to validate step_linguistics: %s",
-                            err,
-                            exc_info=True,
-                            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        )
-                        raise AppException(
-                            message=f"Corrupted step_linguistics in execution trace: {err}",
-                            status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        ) from err
-
-            if event.event_type == "output" and authenticity_score is None:
-                if isinstance(event.content, LightweightMatrixOutput):
-                    if event.content.raw_score is not None:
-                        authenticity_score = float(event.content.raw_score)
-                elif type(event.content) is dict and target_block_id in event.content:
-                    try:
-                        raw_mat = event.content[target_block_id]
-                        det_out = (
-                            raw_mat
-                            if isinstance(raw_mat, LightweightMatrixOutput)
-                            else LightweightMatrixOutput.model_validate(raw_mat, strict=False)
-                        )
-                        if det_out.raw_score is not None:
-                            authenticity_score = float(det_out.raw_score)
-                    except (ValidationError, TypeError, ValueError) as err:
-                        logger.error(
-                            "[variance_synthesis] Failed to validate LightweightMatrixOutput for %s: %s",
-                            target_block_id,
-                            err,
-                            exc_info=True,
-                            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        )
-                        raise AppException(
-                            message=f"Corrupted LightweightMatrixOutput for {target_block_id}: {err}",
-                            status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        ) from err
-
-            if authenticity_score is not None and performative_phrases_count is not None:
-                break
+    if ling_out is not None:
+        performative_phrases_count = len(ling_out.performative_patterns)
+        if ling_out.total_word_count is not None:
+            total_word_count = int(ling_out.total_word_count)
+    authenticity_score = _extract_authenticity_score_from_trace(execution.execution_trace, target_block_id)
 
     if authenticity_score is None or performative_phrases_count is None:
         logger.warning(
@@ -210,67 +355,24 @@ async def build_variance_metrics_and_task(
         )
         return None, None
 
-    target_block = await repo.get_prompt_block(target_block_id)
-    if not target_block:
-        msg = f"Target prompt block '{target_block_id}' not found in repository."
-        logger.error("[variance_synthesis] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-        raise AppException(
-            message=msg,
-            status_code=500,
-            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-        )
-    if (
-        not isinstance(target_block, MatrixPromptBlock)
-        or target_block.computed_max is None
-        or target_block.computed_max <= 0.0
-    ):
-        msg = f"Target prompt block '{target_block_id}' lacks valid scale extrema definitions."
-        logger.error("[variance_synthesis] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-        raise AppException(
-            message=msg,
-            status_code=500,
-            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-        )
-
+    max_cognitive_score = await _resolve_max_cognitive_score(repo, target_block_id)
     variance_res = variance_engine.calculate_mechanical_cognitive_variance(
         llm_authenticity_score=authenticity_score,
         performative_phrases_count=performative_phrases_count,
         total_word_count=total_word_count,
-        max_cognitive_score=float(target_block.computed_max),
+        max_cognitive_score=max_cognitive_score,
     )
     jargon_density = 0.0
     if total_word_count is not None and total_word_count > 0:
         jargon_density = round((performative_phrases_count / max(1, total_word_count)) * 100.0, 2)
-
-    int_word_count = None
-    if total_word_count is not None:
-        int_word_count = int(total_word_count)
-
     ext_metrics = ExtensionMetricsDTO(
         authenticity_score=float(authenticity_score),
         performative_phrases_count=float(performative_phrases_count),
         variance_score=float(variance_res.variance_score),
         alignment_verdict=str(variance_res.alignment_verdict),
         jargon_density=float(jargon_density),
-        total_word_count=int_word_count,
+        total_word_count=total_word_count,
     )
-
-    var_provider = None
-    var_reg_id = None
-    if execution.metadata:
-        var_provider = execution.metadata.provider_override
-        var_reg_id = execution.metadata.model_registry_id
-    if not var_reg_id:
-        var_reg_id = workflow_registry_id
-
-    client_var = await LLMClient.from_tier(
-        CognitiveTier.DEEP,
-        repository=repo,
-        provider=var_provider,
-        registry_id=var_reg_id,
-    )
-    var_sys_prompt = f"{VARIANCE_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
-    var_lang_params = build_linguistic_parameters(source_language="Unknown", target_locale=accept_language)
 
     if (
         not active_profile_dto.variance_synthesis_directive
@@ -283,35 +385,27 @@ async def build_variance_metrics_and_task(
         )
         return ext_metrics, None
 
-    var_directive_str = active_profile_dto.variance_synthesis_directive.strip()
-    var_dynamic_parts = [var_lang_params]
-    if active_profile_dto.tone_instruction:
-        tone = active_profile_dto.tone_instruction.strip()
-        if tone:
-            var_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
-    var_dynamic_parts.append(var_directive_str)
-    if active_profile_dto.variance_length_constraint:
-        var_dynamic_parts.append(f"<section_budget>{active_profile_dto.variance_length_constraint}</section_budget>")
-    var_dynamic_ctx = "\n\n".join(var_dynamic_parts)
-
-    var_messages: list[ChatMessageDTO] = [
-        ChatMessageDTO(role="system", content=var_sys_prompt),
-        ChatMessageDTO(
-            role="user",
-            content=(
-                f"<dynamic_context>\n{var_dynamic_ctx}\n</dynamic_context>\n\n"
-                "SCORES TO EXPLAIN:\n"
-                f"Cognitive Authenticity Score: {authenticity_score} "
-                "(Scale: 1.0 = Routine / Superficial / Illusion of Control / Low Originality, "
-                "2.0 = Competent / Consistent & Pertinent Guidance, "
-                "3.0 = High Cognitive Authenticity / Deep Original Contribution & Strong Voice)\n"
-                f"Mechanical Phrases Load: {performative_phrases_count} phrases "
-                f"({jargon_density:.2f} per 100 words) "
-                "(Scale: 0.0 = Zero Clichés, 5.0+ = Heavy Jargon/Cliché Load)"
-            ),
-        ),
-    ]
-
+    var_provider = None
+    var_reg_id = None
+    if execution.metadata:
+        var_provider = execution.metadata.provider_override
+        var_reg_id = execution.metadata.model_registry_id
+    if not var_reg_id:
+        var_reg_id = workflow_registry_id
+    client_var = await LLMClient.from_tier(
+        CognitiveTier.DEEP,
+        repository=repo,
+        provider=var_provider,
+        registry_id=var_reg_id,
+    )
+    var_messages = _build_variance_messages(
+        active_profile_dto=active_profile_dto,
+        var_directive_str=active_profile_dto.variance_synthesis_directive.strip(),
+        accept_language=accept_language,
+        authenticity_score=authenticity_score,
+        performative_phrases_count=performative_phrases_count,
+        jargon_density=jargon_density,
+    )
     var_task = await sem_runner(
         client_var.run_structured_task(
             messages=var_messages,

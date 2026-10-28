@@ -94,9 +94,10 @@ def _make_profile(
 
 
 def test_variance_explanation_result_schema() -> None:
-    """Test VarianceExplanationResult strict schema."""
+    """Test VarianceExplanationResult strict and frozen schema."""
     res = VarianceExplanationResult(explanation="Clear explanation")
     assert res.explanation == "Clear explanation"
+    assert VarianceExplanationResult.model_config["frozen"] is True
     with pytest.raises(ValidationError):
         VarianceExplanationResult.model_validate({"explanation": "x", "extra": "forbidden"})
 
