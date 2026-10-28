@@ -108,6 +108,14 @@ async def test_synthesis_worker_empty_accept_language_raises() -> None:
 
 
 @pytest.mark.asyncio
+async def test_synthesis_worker_whitespace_accept_language_raises() -> None:
+    """Test generate_profile_synthesis_and_pdf_task raises AppException when accept_language is whitespace only."""
+    with pytest.raises(AppException) as exc_info:
+        await generate_profile_synthesis_and_pdf_task(execution_id="exe_1", accept_language="   ", profile_id="pro_1")
+    assert exc_info.value.status_code == 400
+
+
+@pytest.mark.asyncio
 async def test_synthesis_worker_missing_execution_returns() -> None:
     """Test generate_profile_synthesis_and_pdf_task returns early if execution does not exist."""
     mock_repo = InMemoryUnifiedWorkflowRepository()

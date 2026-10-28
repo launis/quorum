@@ -52,10 +52,9 @@ from backend_v2.models.prompts import (
     build_linguistic_parameters,
 )
 from backend_v2.models.state import StateProjector
+from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.localization import set_language
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
-
-# Phase 4, Step 1: Rewire ReportService import to canonical report package
 from backend_v2.services.report import ReportService
 from backend_v2.settings import get_settings
 from backend_v2.workers.synthesis_reducers import (
@@ -104,6 +103,7 @@ async def generate_profile_synthesis_and_pdf_task(
         redis: Optional Redis context.
 
     Raises:
+        ResourceNotFoundError: If the requested OutputProfile does not exist (RESOURCE_NOT_FOUND).
         AppException: If synthesis or execution update fails with VALIDATION_FAILED,
             CONFIGURATION_ERROR, or INTERNAL_SERVER_ERROR.
     """
@@ -159,6 +159,11 @@ async def generate_profile_synthesis_and_pdf_task(
             return
 
         async def _update_render_status(msg: str) -> None:
+            """Update the execution step state for the active profile synthesis task.
+
+            Args:
+                msg: Status label message to persist on the execution step.
+            """
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
                 exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
@@ -236,7 +241,7 @@ async def generate_profile_synthesis_and_pdf_task(
             logger.error("[Worker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
         workflow_def = Workflow.model_validate(w_dict)
-        hook_metadata = execution.metadata or ExecutionMetadata()
+        hook_metadata = execution.metadata if execution.metadata is not None else ExecutionMetadata()
         hook_state = HookState(
             execution_id=execution_id,
             workflow_id=execution.workflow_id,
@@ -279,14 +284,14 @@ async def generate_profile_synthesis_and_pdf_task(
 
         is_synthesis_expected = True
         if active_profile_dto is not None:
-            if active_profile_dto.requires_executive_synthesis:
-                is_synthesis_expected = True
-            elif active_profile_dto.requires_group_synthesis:
-                is_synthesis_expected = True
-            elif active_profile_dto.visible_block_extensions or active_profile_dto.visible_workflow_extensions:
-                is_synthesis_expected = True
-            else:
-                is_synthesis_expected = False
+            is_synthesis_expected = any(
+                (
+                    active_profile_dto.requires_executive_synthesis,
+                    active_profile_dto.requires_group_synthesis,
+                    bool(active_profile_dto.visible_block_extensions),
+                    bool(active_profile_dto.visible_workflow_extensions),
+                )
+            )
 
         has_sources_block = active_profile_dto is not None and any(
             t
@@ -345,6 +350,14 @@ async def generate_profile_synthesis_and_pdf_task(
         synthesis_sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
 
         async def _run_with_sem(coro: Any) -> Any:
+            """Execute a synthesis coroutine bounded by the LLM concurrency semaphore.
+
+            Args:
+                coro: Awaitable synthesis task coroutine.
+
+            Returns:
+                Result of the awaited coroutine.
+            """
             async with synthesis_sem if synthesis_sem is not None else contextlib.nullcontext():
                 return await coro
 
@@ -367,19 +380,18 @@ async def generate_profile_synthesis_and_pdf_task(
 
         if causal_payload is None and execution.step_states:
             for state_val in execution.step_states.values():
-                if isinstance(state_val, StepOutputDTO):
-                    match state_val.payload:
-                        case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
-                            causal_payload = state_val.payload
-                            break
-                        case _:
-                            continue
-                elif isinstance(state_val, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
-                    causal_payload = state_val
-                    break
+                match state_val:
+                    case StepOutputDTO(payload=CausalTdaFusionResultDTO() | CausalGraphPayloadDTO() as inner_payload):
+                        causal_payload = inner_payload
+                        break
+                    case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
+                        causal_payload = state_val
+                        break
+                    case _:
+                        continue
 
-        if causal_payload is not None:
-            if isinstance(causal_payload, CausalTdaFusionResultDTO):
+        match causal_payload:
+            case CausalTdaFusionResultDTO():
                 intact = sum(1 for n in causal_payload.graph.nodes if n.status == ExecutionStatus.PASSED)
                 total = len(causal_payload.graph.nodes)
                 diag_lines = [
@@ -398,7 +410,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     for rem in causal_payload.prescriptive_remediations:
                         diag_lines.append(f"- Node {rem.target_node_id}: {rem.required_action}")
                 causal_diagnosis_text = "\n".join(diag_lines)
-            elif isinstance(causal_payload, CausalGraphPayloadDTO):
+            case CausalGraphPayloadDTO():
                 diag_lines = [
                     f"Total Propositions: {len(causal_payload.nodes)}",
                     f"Cycle Detected: {causal_payload.cycle_detected}",
@@ -406,6 +418,8 @@ async def generate_profile_synthesis_and_pdf_task(
                 if causal_payload.root_cause_node_ids:
                     diag_lines.append(f"Root Cause Node IDs: {', '.join(causal_payload.root_cause_node_ids)}")
                 causal_diagnosis_text = "\n".join(diag_lines)
+            case None:
+                pass
 
         async with asyncio.TaskGroup() as tg:
             if is_synthesis_expected:
@@ -458,6 +472,11 @@ async def generate_profile_synthesis_and_pdf_task(
             )
 
             async def _var_runner() -> tuple[Any, Any]:
+                """Build variance metrics and execute the variance synthesis task.
+
+                Returns:
+                    Tuple of (ExtensionMetricsDTO | None, VarianceExplanationResult | None).
+                """
                 return await build_variance_metrics_and_task(
                     repo=repo,
                     execution=execution,
@@ -476,7 +495,7 @@ async def generate_profile_synthesis_and_pdf_task(
 
         synth_cost = 0.0
         synth_tokens = 0
-        sec_dict = {}
+        sec_dict: dict[str, list[AnySduiBlock]] = {}
 
         exec_summary_res = None
         if t_exec_summary is not None:
