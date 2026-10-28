@@ -6,6 +6,9 @@ sentence-boundary character budgeting, empty/whitespace inputs, and malformed ps
 
 from __future__ import annotations
 
+import pytest
+
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.services.sdui.sanitizers.mcp_presentation_sanitizer import McpPresentationSanitizer
 
 
@@ -114,3 +117,38 @@ def test_plain_text_without_cdata_gets_terminal_punctuation() -> None:
 
     assert result is not None
     assert result == "Tämä on vahvistettu ulkoinen havainto."
+
+
+def test_sanitize_finding_zero_max_chars_raises_app_exception() -> None:
+    """TC-SAN-06: Negative boundary (min-1): max_chars=0 raises AppException even if raw_summary is None."""
+    with pytest.raises(AppException) as exc_info:
+        McpPresentationSanitizer.sanitize_finding(None, max_chars=0)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_sanitize_finding_negative_max_chars_raises_app_exception() -> None:
+    """TC-SAN-07: Negative boundary: negative max_chars raises AppException with VALIDATION_FAILED."""
+    with pytest.raises(AppException) as exc_info:
+        McpPresentationSanitizer.sanitize_finding("Valid empirical finding.", max_chars=-15)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_wrapping_quotes_and_html_tags_stripped() -> None:
+    """TC-SAN-08: Verify HTML tags and outer wrapping quotes are stripped cleanly."""
+    raw_payload = '<p>"Tutkimus vahvistaa autonomian lisäävän työtyytyväisyyttä."</p>'
+    result = McpPresentationSanitizer.sanitize_finding(raw_payload)
+
+    assert result is not None
+    assert result == "Tutkimus vahvistaa autonomian lisäävän työtyytyväisyyttä."
+
+
+def test_html_only_or_empty_json_object_returns_none() -> None:
+    """TC-SAN-09: Negative equivalence: HTML tags with no text or empty JSON brackets return None."""
+    assert McpPresentationSanitizer.sanitize_finding("<div>  <span> </span> </div>") is None
+    assert McpPresentationSanitizer.sanitize_finding("{}") is None
+
+

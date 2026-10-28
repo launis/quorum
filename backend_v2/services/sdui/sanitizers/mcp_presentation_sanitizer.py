@@ -7,15 +7,21 @@ sentence-boundary character budgeting, and ensures Dumb Painter presentation par
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Annotated
 
 from pydantic import ConfigDict, Field, ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.mcp import MCPStructuredContentDTO
 from backend_v2.services.length_budget_enforcer import enforce_sentence_boundary_budget
 from backend_v2.settings import get_settings
+
+logger = logging.getLogger(__name__)
+
+__all__ = ["McpExtractionResult", "McpPresentationSanitizer"]
 
 
 class McpExtractionResult(V2CoreBase):
@@ -65,6 +71,32 @@ class McpPresentationSanitizer:
             return McpExtractionResult(text=None)
 
     @staticmethod
+    def _strip_envelopes(candidate: str) -> str:
+        """Strip outer CDATA envelopes and Markdown code fences from raw tool text.
+
+        Args:
+            candidate: Trimmed raw tool response string.
+
+        Returns:
+            Inner payload string with CDATA and Markdown code fences removed.
+        """
+        if candidate.startswith("<![CDATA["):
+            candidate = candidate[9:]
+        if candidate.endswith("]]>"):
+            candidate = candidate[:-3]
+        candidate = candidate.strip()
+        if not candidate:
+            return ""
+
+        if candidate.startswith("```json"):
+            candidate = candidate[7:]
+        elif candidate.startswith("```"):
+            candidate = candidate[3:]
+        if candidate.endswith("```"):
+            candidate = candidate[:-3]
+        return candidate.strip()
+
+    @staticmethod
     def sanitize_finding(raw_summary: str | None, max_chars: int | None = None) -> str | None:
         """Sanitize an external tool finding or audit response summary for presentation.
 
@@ -81,31 +113,29 @@ class McpPresentationSanitizer:
         Returns:
             Sanitized, sentence-budgeted text concluding on terminal punctuation,
             or None if input is empty, whitespace-only, or contains no extractable text.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if the resolved max_chars budget is <= 0.
         """
+        budget = max_chars if max_chars is not None else get_settings().mcp_presentation_max_chars
+        if budget <= 0:
+            msg = f"max_chars must be a positive integer, but received {budget}."
+            logger.error(
+                "[McpPresentationSanitizer] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
         if raw_summary is None:
             return None
 
-        candidate = raw_summary.strip()
-        if not candidate:
-            return None
-
-        # Strip CDATA envelope if present
-        if candidate.startswith("<![CDATA["):
-            candidate = candidate[9:]
-        if candidate.endswith("]]>"):
-            candidate = candidate[:-3]
-        candidate = candidate.strip()
-        if not candidate:
-            return None
-
-        # Strip Markdown code fences if present
-        if candidate.startswith("```json"):
-            candidate = candidate[7:]
-        elif candidate.startswith("```"):
-            candidate = candidate[3:]
-        if candidate.endswith("```"):
-            candidate = candidate[:-3]
-        candidate = candidate.strip()
+        candidate = McpPresentationSanitizer._strip_envelopes(raw_summary.strip())
         if not candidate:
             return None
 
@@ -133,7 +163,6 @@ class McpPresentationSanitizer:
             return None
 
         # Apply sentence-boundary character budgeting
-        budget = max_chars if max_chars is not None else get_settings().mcp_presentation_max_chars
         if len(candidate_text) > budget:
             candidate_text = enforce_sentence_boundary_budget(candidate_text, budget)
 
