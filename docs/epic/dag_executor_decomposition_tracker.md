@@ -50,7 +50,7 @@
 ### Phase 4: Atomic Package Cutover, 1-Hop Caller Verification & QGR017 Guardrail Lockdown (Epoch 1 Cutover)
 - **Plan:** @[docs/epic/tasks_dag_executor/phase4_package_cutover_and_guardrails.md]
 - [x] **[SKIPPED] Research:** Complete 4-Phase Strangler Fig Decomposition pre-researched in Tier 3
-- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_dag_executor/phase4_package_cutover_and_guardrails.md] @[docs/epic/dag_executor_decomposition_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_dag_executor/phase4_package_cutover_and_guardrails.md] @[docs/epic/dag_executor_decomposition_tracker.md]` (`35e0e6376`)
   - [x] Step 1: Atomically create `[NEW] @[backend_v2/services/orchestrator/dag_executor/__init__.py]` (`< 180` lines), physically delete `[DELETE] @[backend_v2/services/orchestrator/dag_executor.py]`, verify 1-hop production callers (`@[backend_v2/api/dependencies.py#L376-L417]`, `@[backend_v2/services/execution/facade.py#L47-L118]`, `@[backend_v2/worker.py#L44-L85]`), and create `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_dag_executor_facade.py]`.
   - [x] Step 2: Remove `"backend_v2/services/orchestrator/dag_executor.py"` from `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES` and `RESIDUAL_FUTURE_PHASE_QGR028_FILES` and lock `"backend_v2/services/orchestrator/dag_executor.py"` under `QGR017` in `@[scripts/_ast_guardrails.py#L737-L827]`, update `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py#L1637-L1644]`, `@[backend_v2/tests/unit/test_ast_concurrency_guardrails.py#L89-L121]`, `@[backend_v2/tests/unit/test_ast_concurrency_guardrails.py#L124-L134]`, `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py#L400-L416]`, and `@[backend_v2/tests/unit/test_rest_only_pipeline_boundary.py#L117-L122]`, and synchronize `@[.agents/rules/04_directory_reference.md]`.
   - [x] Step 3: Run `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/dag_executor/ --test --ast-strict`, `uv run python scripts/backend_audit_loop.py scripts/_ast_guardrails.py --test --ast-strict`, `uv run python scripts/backend_audit_loop.py backend_v2/api/dependencies.py --test --ast-strict`, `uv run python scripts/backend_audit_loop.py backend_v2/services/execution/facade.py --test --ast-strict`, `uv run python scripts/backend_audit_loop.py backend_v2/worker.py --test --ast-strict`, and `uv run python backend_v2/seed/run_seed.py local`.
@@ -59,7 +59,7 @@
 ### Post-Implementation Gates
 
 - [ ] **[NOK] Tier 2 Hardening (Backend)** (`[NEW]` sub-modules & 1-hop callers): Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/epic/dag_executor_decomposition_tracker.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
-  - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
+  - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/execution_committer.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/node_executor.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
