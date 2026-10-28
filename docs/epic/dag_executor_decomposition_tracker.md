@@ -65,7 +65,7 @@
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
-  - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/__init__.py]
+  - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/__init__.py]
   - [ ] @[backend_v2/api/dependencies.py#L376-L417]
   - [ ] @[backend_v2/services/execution/facade.py#L47-L118]
   - [ ] @[backend_v2/worker.py#L44-L85]
