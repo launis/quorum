@@ -7,7 +7,7 @@
 > 1. **PostgreSQL 19 Zero-ORM Perusta & Cutover** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]`)
 > 1b. **Järjestelmällinen Ennaltaehkäisy, AST-vartija QGR030 & Testitehtaat** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md]`, `@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]`)
 > 2. **`dag_executor.py` God Code -purku modulaariseksi SRP-paketiksi** (1 803 LOC -> 6 erillistä SRP-moduulia & ohut fasaadi, QGR017-lukittu) (`@[docs/epic/dag_executor_decomposition_tracker.md]`)
-> 3. **Kohdennettu Tausta- ja Apukerroksen Karkaisu (36 tiedostoa)** (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`)
+> 3. **Kohdennettu Tausta- ja Apukerroksen Karkaisu (Aallot 1–4: 36 + 36 + 27 + 34 = 133 tiedostoa)** (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`)
 > 4. **B2B SaaS IAM, Token Exchange & Enterprise Hardening** (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`)
 > 5. **Firebase Storage & Direct-to-Cloud Signed URLs** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]`)
 > 6. **Frontend & Studio UI Hardening** (Flutter Web & Desktop: Error Boundaries & Dumb Painter)
@@ -334,8 +334,8 @@ Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytke
 │        QGR030 FATAL, heksa-Opaque ID:t, Polyfactory, Macro-Audit PASSED │
 │    2C. dag_executor.py (1 640 LOC) purku Event Sourcing -malliin      │
 │        wave_scheduler, state_machine, cancellation_manager, telemetria │
-│    2D. Kohdennettu Taustakerroksen Karkaisu (36 tiedostoa)             │
-│        Workers (6 kpl), SDUI-adapterit (15 kpl), Utilities (15 kpl)    │
+│    2D. Kohdennettu Taustakerroksen Karkaisu (Aallot 1-4: 133 tiedostoa)│
+│        Aalto 1 (36), Aalto 2 (36), Aalto 3 (27), Aalto 4 (34)          │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
 ┌───────────────────────────────────▼────────────────────────────────────┐
@@ -574,8 +574,180 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
   14. `@[backend_v2/services/sdui/sanitizers/mcp_presentation_sanitizer.py]`
   15. `@[backend_v2/services/orchestrator/localization_compiler.py]`
 
-#### Laatuvarmennus:
+#### Laatuvarmennus (Aalto 1):
 Jokaisen karkaisupaketin jälkeen ajetaan koko backendin kattava laatuportti:
+```powershell
+uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
+```
+
+---
+
+### Askel 3.2b–3.2d: Koko `backend_v2/`-Koodikannan Karkaisuaallot 2–4 (Bottom-Up Hardening Roadmap)
+
+Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, docstring-, yksikkötesti- ja poikkeuslista-auditointi jakaa koodikannan kahdeksaan tarkkaan kategoriaan:
+1. **`47` tiedostoa:** Pakettien `__init__.py`-fasaadit (valvottu suoraan `scripts/audit_clean_imports.py`-laatuportilla).
+2. **`162` tiedostoa:** Jo aiemmissa monoliittipuruissa ja cutover-trackereissa (`llm_strategy/`, `llm/provider/`, `dag_executor/`, `postgres/`, `QGR030`, `export/`, `report/`, `matrix_parser/`, `anchor_validation/`, `pdf_extractor/`) 100 % karkaistut tiedostot.
+3. **`49` tiedostoa:** Jo valmiiksi 100 % puhtaat tiedostot (`__all__` määritelty, 0 AST-rikkomusta, 0 puuttuvaa docstringiä, 0 `.get()`-kutsua).
+4. **`36` tiedostoa — Aalto 1 (Askel 3.2 / Vaihe 2c-1):** Workers (6), SDUI-adapterit (15) ja Utilities (15) (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`).
+5. **`36` tiedostoa — Aalto 2 (Askel 3.2b / Vaihe 2c-2):** Core, Observability, Deterministic Hooks, LLM Provider Adapters & Studio/Execution Services (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]`).
+6. **`27` tiedostoa — Aalto 3 (Askel 3.2c / Vaihe 2c-3):** Repositories (11), Orchestrator Services (6) ja non-IAM FastAPI Routers (10) (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]`).
+7. **`34` tiedostoa — Aalto 4 (Askel 3.2d / Vaihe 2c-4):** Domain Models (23) ja DTO Schemas (11) sekä `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`-poikkeuslistan tyhjennys (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`).
+8. **`12` tiedostoa — Eristetyt tulevat arkkitehtuurivaiheet (Askeleet 4 & 5):** B2B SaaS IAM (`backend_v2/api/routers/iam/*`, `backend_v2/services/auth/*`, `backend_v2/models/auth.py` — 9 tiedostoa) ja Firebase Storage Signed URLs (`file_driver.py`, `local_file_driver.py`, `storage.py` — 3 tiedostoa), jotka kirjoitetaan uusiksi ja karkaistaan omissa toteutustrackereissaan.
+
+> [!IMPORTANT]
+> **Miksi karkaisujärjestys etenee alhaalta ylös (Bottom-Up)?**
+> 1. **Kutsuketjujen vakaus:** Kun alimman tason apukirjastot (`context.py`, `rate_limit.py`, `telemetry.py`, `stemmer.py`), deterministiset koukut (`hooks/*`) ja LLM-palveluntarjoaja-adapterit (`llm/adapters/*`) karkaistaan ensin Aallossa 2, niiden tyyppisopimukset (`__all__`), poikkeuskoodit (`ErrorCodes`) ja DTO-rajat lukittuvat ennen kuin niitä kutsuvat Studio- ja suorituspalvelut (`services/studio/*`, `services/execution/*`) tai Aallon 3 FastAPI-reitittimet (`api/routers/*`) käydään läpi.
+> 2. **Teknisen velan poikkeuslistojen tyhjentäminen:** Aallot 2–4 puhdistavat kaikki `scripts/_ast_guardrails.py`-tiedoston `RESIDUAL_FUTURE_PHASE_QGR028_FILES`- ja `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`-listoilla sekä `scripts/audit_dict_eradication.py`-tiedoston `FROZEN_APPROVED_PER_FILE_IGNORE_PATHS`-listalla olevat jäännöstiedostot, minkä jälkeen poikkeuslistat voidaan lukita tyhjiksi (`frozenset()`).
+
+---
+
+### Askel 3.2b: Karkaisuaalto 2 — Core, Hooks, LLM Adapters & Studio/Execution Services (Vaihe 2c-2)
+* **Seurantadokumentti (SSOT Tracker):** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]`
+* **Laajuus & Kesto:** 36 tiedostoa (4 pakettia), kestoarvio **~3,5 – 4 h**.
+* **Suorituskomento:**
+  ```powershell
+  uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md --gate backend --model gemini-4-argon-medium --continue-on-failure
+  ```
+
+#### Paketti 1: Core, Observability & Shared Utilities (8 tiedostoa)
+1. `@[backend_v2/context.py]`
+2. `@[backend_v2/core/rate_limit.py]`
+3. `@[backend_v2/core/template_processor.py]`
+4. `@[backend_v2/core/telemetry.py]`
+5. `@[backend_v2/utils/linguistics/stemmer.py]`
+6. `@[backend_v2/services/pii_analyzer.py]`
+7. `@[backend_v2/services/usage_service.py]`
+8. `@[backend_v2/services/progress.py]`
+
+#### Paketti 2: Deterministic & Hybrid Pipeline Hooks + Scoring Base (10 tiedostoa)
+1. `@[backend_v2/utils/scoring/base_engine.py]`
+2. `@[backend_v2/hooks/hydration.py]`
+3. `@[backend_v2/hooks/metadata.py]`
+4. `@[backend_v2/hooks/dlq_guard.py]`
+5. `@[backend_v2/hooks/context_mapper.py]`
+6. `@[backend_v2/hooks/references.py]`
+7. `@[backend_v2/hooks/interaction_hook.py]`
+8. `@[backend_v2/hooks/archival.py]`
+9. `@[backend_v2/hooks/metrics.py]`
+10. `@[backend_v2/hooks/input_processing.py]`
+
+#### Paketti 3: LLM Provider Adapters & Prompt Utilities (8 tiedostoa)
+1. `@[backend_v2/llm/directives.py]`
+2. `@[backend_v2/llm/prompt_builder.py]`
+3. `@[backend_v2/llm/adapters/deepseek_adapter.py]`
+4. `@[backend_v2/llm/adapters/mock_adapter.py]`
+5. `@[backend_v2/llm/adapters/adapter_factory.py]`
+6. `@[backend_v2/llm/adapters/anthropic_adapter.py]`
+7. `@[backend_v2/llm/adapters/openai_adapter.py]`
+8. `@[backend_v2/llm/adapters/ai_studio_adapter.py]`
+
+#### Paketti 4: Studio, Ingress & Execution Services (10 tiedostoa)
+1. `@[backend_v2/services/web_fetcher.py]`
+2. `@[backend_v2/services/ingress/multi_channel_ingress_service.py]`
+3. `@[backend_v2/services/source_verification_service.py]`
+4. `@[backend_v2/services/factories/output_profile_factory.py]`
+5. `@[backend_v2/services/studio/auth_validator.py]`
+6. `@[backend_v2/services/studio/prompt_block_service.py]`
+7. `@[backend_v2/services/studio/output_profile_service.py]`
+8. `@[backend_v2/services/execution/context_service.py]`
+9. `@[backend_v2/services/execution/resumption_service.py]`
+10. `@[backend_v2/services/execution/override_service.py]`
+
+---
+
+### Askel 3.2c: Karkaisuaalto 3 — Repositories, Orchestrator Services & FastAPI Routers (Vaihe 2c-3)
+* **Seurantadokumentti (SSOT Tracker):** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]`
+* **Laajuus & Kesto:** 27 tiedostoa (3 pakettia), kestoarvio **~2,5 – 3 h**.
+* **Miksi tasan 27 tiedostoa?** Aalto 3 kattaa kaikki jäljellä olevat ei-IAM-toiminnalliset palvelu-, tietokantarepositorio- ja HTTP-reititintiedostot (11 Repository-tiedostoa + 6 jäljellä olevaa orkestrointipalvelua + 10 non-IAM FastAPI -reititintä), kun taas 9 IAM-reititin-/autentikointitiedostoa on eristetty Askeleen 4 (`EPIC 160`) yhteyteen ja 3 tiedostopalvelua Askeleen 5 (`Storage Signed URLs`) yhteyteen.
+* **Suorituskomento:**
+  ```powershell
+  uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md --gate backend --model gemini-4-argon-medium --continue-on-failure
+  ```
+
+#### Paketti 1: Repository & Persistence Layer (`backend_v2/database/`) (11 tiedostoa)
+1. `@[backend_v2/database/repository.py]`
+2. `@[backend_v2/database/repositories/component.py]`
+3. `@[backend_v2/database/repositories/report_artifact.py]`
+4. `@[backend_v2/database/repositories/components/agent.py]`
+5. `@[backend_v2/database/repositories/components/execution_persona.py]`
+6. `@[backend_v2/database/repositories/components/extraction_protocol.py]`
+7. `@[backend_v2/database/repositories/components/matrix.py]`
+8. `@[backend_v2/database/repositories/components/output_profile.py]`
+9. `@[backend_v2/database/repositories/components/prompt_block.py]`
+10. `@[backend_v2/database/repositories/components/role.py]`
+11. `@[backend_v2/database/repositories/components/task_blueprint.py]`
+
+#### Paketti 2: Orchestrator & Schema Services (`backend_v2/services/orchestrator/`) (6 tiedostoa)
+1. `@[backend_v2/services/orchestrator/schema_factory.py]`
+2. `@[backend_v2/services/orchestrator/chunking_service.py]`
+3. `@[backend_v2/services/orchestrator/atomizer.py]`
+4. `@[backend_v2/services/orchestrator/dag_compiler.py]`
+5. `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`
+6. `@[backend_v2/services/orchestrator/enriched_dag_executor.py]`
+
+#### Paketti 3: FastAPI Routers — System, Studio & Execution (`backend_v2/api/routers/`) (10 tiedostoa)
+1. `@[backend_v2/api/routers/system/health.py]`
+2. `@[backend_v2/api/routers/system/telemetry.py]`
+3. `@[backend_v2/api/routers/system/configs.py]`
+4. `@[backend_v2/api/routers/output_profiles.py]`
+5. `@[backend_v2/api/routers/studio/model_registry.py]`
+6. `@[backend_v2/api/routers/studio/prompt_blocks.py]`
+7. `@[backend_v2/api/routers/studio/system_configs.py]`
+8. `@[backend_v2/api/routers/studio/workflows.py]`
+9. `@[backend_v2/api/routers/execution/workflows.py]`
+10. `@[backend_v2/api/routers/execution/reports.py]`
+
+---
+
+### Askel 3.2d: Karkaisuaalto 4 — Domain Models & DTO Schemas (Vaihe 2c-4)
+* **Seurantadokumentti (SSOT Tracker):** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`
+* **Laajuus & Kesto:** 34 tiedostoa (2 pakettia), kestoarvio **~2,5 – 3 h**.
+* **Tavoite:** Eksplisiittiset `__all__`-määrittelyt, PEP 257 Google-tyyliset docstringit, `ConfigDict(extra="forbid", strict=True)` -varmennus sekä `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`-poikkeuslistan sulkeminen.
+* **Suorituskomento:**
+  ```powershell
+  uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md --gate backend --model gemini-4-argon-medium --continue-on-failure
+  ```
+
+#### Paketti 1: Domain Models (`backend_v2/models/domain/`) (23 tiedostoa)
+1. `@[backend_v2/models/domain/base.py]`
+2. `@[backend_v2/models/domain/metadata.py]`
+3. `@[backend_v2/models/domain/usage.py]`
+4. `@[backend_v2/models/domain/references.py]`
+5. `@[backend_v2/models/domain/retrieval.py]`
+6. `@[backend_v2/models/domain/hydration.py]`
+7. `@[backend_v2/models/domain/interaction.py]`
+8. `@[backend_v2/models/domain/integrity.py]`
+9. `@[backend_v2/models/domain/archivist.py]`
+10. `@[backend_v2/models/domain/causal.py]`
+11. `@[backend_v2/models/domain/coach.py]`
+12. `@[backend_v2/models/domain/evaluation.py]`
+13. `@[backend_v2/models/domain/falsifier.py]`
+14. `@[backend_v2/models/domain/judge.py]`
+15. `@[backend_v2/models/domain/knowledge.py]`
+16. `@[backend_v2/models/domain/logician.py]`
+17. `@[backend_v2/models/domain/overseer.py]`
+18. `@[backend_v2/models/domain/performativity.py]`
+19. `@[backend_v2/models/domain/profiler.py]`
+20. `@[backend_v2/models/domain/scoring.py]`
+21. `@[backend_v2/models/domain/source_verification.py]`
+22. `@[backend_v2/models/domain/synthesis.py]`
+23. `@[backend_v2/models/domain/workflow.py]`
+
+#### Paketti 2: DTO Schemas & Prompt Models (`backend_v2/models/dtos/` + `models/prompt.py`) (11 tiedostoa)
+1. `@[backend_v2/models/prompt.py]`
+2. `@[backend_v2/models/dtos/system.py]`
+3. `@[backend_v2/models/dtos/inputs.py]`
+4. `@[backend_v2/models/dtos/prompt.py]`
+5. `@[backend_v2/models/dtos/prompt_context.py]`
+6. `@[backend_v2/models/dtos/retrieval.py]`
+7. `@[backend_v2/models/dtos/evaluation_steps.py]`
+8. `@[backend_v2/models/dtos/schema_manifest.py]`
+9. `@[backend_v2/models/dtos/state.py]`
+10. `@[backend_v2/models/dtos/variance.py]`
+11. `@[backend_v2/models/dtos/workflow_schema.py]`
+
+#### Laatuvarmennus (Kaikki aallot 1–4):
+Jokaisen karkaisuaallon päätteeksi ajetaan koko backendin kattava laatuportti:
 ```powershell
 uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
 ```

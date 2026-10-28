@@ -1,5 +1,6 @@
 import pytest
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
@@ -632,3 +633,58 @@ def test_build_section_syntheses_with_bullet_list_and_causal_graph() -> None:
     assert isinstance(blocks[1], SduiCausalGraphBlock)
     assert isinstance(blocks[2], BulletListBlock)
     assert len(blocks[2].items) == 2
+
+
+def test_build_missing_localization_key_raises_app_exception_negative(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Negative Test: Verify AppException (CONFIGURATION_ERROR) is raised when role translation key is missing."""
+    from backend_v2.services.localization import LocaleTranslationsDTO, LocalizationService
+
+    LocalizationService.load_if_needed()
+    monkeypatch.setitem(LocalizationService._translations, "en", LocaleTranslationsDTO(translations={}))
+    monkeypatch.setitem(LocalizationService._translations, "fi", LocaleTranslationsDTO(translations={}))
+
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+        name=I18nText(translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[],
+        user_role_target_block="blk_53f32679aa514fcb",
+    )
+    matrix_row = _make_matrix_row(score=3.0)
+    context = _make_context(
+        locale="fi",
+        profile=profile,
+        parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        ExecutiveSummaryAdapter.build(context)
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+def test_build_corrupted_user_role_label_raises_app_exception_negative() -> None:
+    """Negative Test: Verify AppException (VALIDATION_FAILED) is raised when user_role_label fails to resolve."""
+    corrupted_label = I18nText.model_construct(translations={"de": "   "})
+    profile = OutputProfile.model_construct(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+        name=I18nText(translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[],
+        user_role_label=corrupted_label,
+        user_role_target_block="blk_53f32679aa514fcb",
+    )
+    matrix_row = _make_matrix_row(score=4.0)
+    context = _make_context(
+        locale="fi",
+        profile=profile,
+        parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        ExecutiveSummaryAdapter.build(context)
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+

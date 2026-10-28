@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Unit tests for the XAI Highlights adapter."""
+
+from __future__ import annotations
 
 import logging
 
@@ -14,10 +14,16 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.dtos.sdui_rules import XaiAestheticsRulesDTO
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
-from backend_v2.models.enums import VisualIntent, XaiExtensionType
+from backend_v2.models.enums import (
+    XAI_EXTENSION_SCOPE,
+    VisualIntent,
+    XaiExtensionScope,
+    XaiExtensionType,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
+from backend_v2.services.sdui.adapters import xai_highlights_adapter
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.xai_highlights_adapter import (
     XAI_AESTHETICS_RULES,
@@ -258,19 +264,16 @@ def test_build_ranked_round_robin_distribution(valid_output_profile_fixture: Out
     profile = valid_output_profile_fixture.model_copy(update={"max_extension_items": 2})
 
     highlights = [
-        # Coaching items of varying lengths
         XaiHighlightItem(extension_type="coaching", content="C1 short"),
         XaiHighlightItem(extension_type="coaching", content="C2 medium length insight"),
         XaiHighlightItem(extension_type="coaching", content="C3 longer coaching recommendation item"),
         XaiHighlightItem(extension_type="coaching", content="C4 the absolute longest coaching guidance sentence"),
-        # Falsification items of varying lengths
         XaiHighlightItem(extension_type="falsification", content="F1 short"),
         XaiHighlightItem(extension_type="falsification", content="F2 medium length critique"),
         XaiHighlightItem(extension_type="falsification", content="F3 longer falsification analysis item"),
         XaiHighlightItem(
             extension_type="falsification", content="F4 the absolute longest falsification argument sentence"
         ),
-        # Remediation items of varying lengths
         XaiHighlightItem(extension_type="remediation_steps", content="R1 short"),
         XaiHighlightItem(extension_type="remediation_steps", content="R2 medium length remediation"),
         XaiHighlightItem(extension_type="remediation_steps", content="R3 longer remediation action item"),
@@ -302,12 +305,10 @@ def test_build_ranked_round_robin_distribution(valid_output_profile_fixture: Out
     falsification_block = next(b for b in blocks if isinstance(b, AccordionBlock) and b.title == "Falsification")
     remediation_block = next(b for b in blocks if isinstance(b, AccordionBlock) and b.title == "Remediation Steps")
 
-    # Each accordion should receive exactly max_extension_items (2) items
     assert len(coaching_block.children) == 2
     assert len(falsification_block.children) == 2
     assert len(remediation_block.children) == 2
 
-    # Verify longest items were selected
     coaching_texts = [c.text for c in coaching_block.children if isinstance(c, AlertBlock)]
     assert "C4 the absolute longest coaching guidance sentence" in coaching_texts
     assert "C3 longer coaching recommendation item" in coaching_texts
@@ -328,8 +329,6 @@ def test_build_malformed_highlight_item_skipped(
     valid_output_profile_fixture: OutputProfile, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Error path: hallucinated or empty extension type is skipped with warning log."""
-    from backend_v2.models.dtos.synthesis import XaiHighlightItem
-
     execution = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
@@ -377,9 +376,6 @@ def test_build_missing_aesthetics_rule_raises_app_exception(
     valid_output_profile_fixture: OutputProfile, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Error path: missing aesthetics rule mapping raises AppException with CONFIGURATION_ERROR."""
-    from backend_v2.models.dtos.synthesis import XaiHighlightItem
-    from backend_v2.services.sdui.adapters import xai_highlights_adapter
-
     execution = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
@@ -415,10 +411,7 @@ def test_build_missing_aesthetics_rule_raises_app_exception(
 
 @pytest.mark.parametrize("locale", ["en", "fi"])
 def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) -> None:
-    """Regression test (Tier 4): All block-level XaiExtensionType enum values configured as visible block extensions MUST have aesthetic rules and build without KeyError/AppException across locales."""
-    from backend_v2.models.dtos.synthesis import XaiHighlightItem
-    from backend_v2.models.enums import XAI_EXTENSION_SCOPE, XaiExtensionScope
-
+    """Regression test: All block-level XaiExtensionType values have aesthetic rules across locales."""
     execution = ExecutionRecord(
         id="exe_0123456789abcdef",
         workflow_id="wfw_test",
@@ -428,7 +421,6 @@ def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) 
         metadata=ExecutionMetadata(),
     )
 
-    # Test each block-level extension type individually
     block_extensions = [
         e for e in XaiExtensionType if e in XAI_EXTENSION_SCOPE and XAI_EXTENSION_SCOPE[e] == XaiExtensionScope.BLOCK
     ]
@@ -468,3 +460,100 @@ def test_xai_aesthetics_rules_attributes() -> None:
     assert XAI_AESTHETICS_RULES.model_config["extra"] == "forbid"
     assert "coaching" in XAI_AESTHETICS_RULES
     assert XAI_AESTHETICS_RULES["coaching"].severity == VisualIntent.SUCCESS
+
+
+def test_build_negative_max_extension_items_returns_empty_list(valid_output_profile_fixture: OutputProfile) -> None:
+    """Negative boundary (BVA min-1): max_extension_items < 0 returns empty list."""
+    execution = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wfw_test",
+        output_profile_id="prf_0123456789abcdef",
+        execution_trace=[],
+        target_locale="fi",
+        metadata=ExecutionMetadata(),
+    )
+    negative_max_profile = valid_output_profile_fixture.model_copy(update={"max_extension_items": -1})
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=negative_max_profile,
+        profile_cache=RenderedSynthesisCache(
+            section_syntheses={},
+            cited_sources=[],
+            xai_highlights=[XaiHighlightItem(extension_type="coaching", content="Good job!")],
+        ),
+        user_name=None,
+        org_name=None,
+    )
+    blocks = XaiHighlightsAdapter.build(context)
+    assert blocks == []
+
+
+def test_build_empty_or_invisible_highlights_returns_empty_list(valid_output_profile_fixture: OutputProfile) -> None:
+    """Negative: highlights with empty fields or non-visible extension types return empty list."""
+    execution = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wfw_test",
+        output_profile_id="prf_0123456789abcdef",
+        execution_trace=[],
+        target_locale="fi",
+        metadata=ExecutionMetadata(),
+    )
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=RenderedSynthesisCache(
+            section_syntheses={},
+            cited_sources=[],
+            xai_highlights=[
+                XaiHighlightItem(extension_type="", content="Missing extension type"),
+                XaiHighlightItem(extension_type="coaching", content=""),
+                XaiHighlightItem(extension_type="theory_link", content="Not in visible_block_extensions"),
+            ],
+        ),
+        user_name=None,
+        org_name=None,
+    )
+    blocks = XaiHighlightsAdapter.build(context)
+    assert blocks == []
+
+
+def test_build_deduplicates_identical_highlight_content(valid_output_profile_fixture: OutputProfile) -> None:
+    """Boundary: duplicate highlight content within the same extension group is added only once."""
+    execution = ExecutionRecord(
+        id="exe_0123456789abcdef",
+        workflow_id="wfw_test",
+        output_profile_id="prf_0123456789abcdef",
+        execution_trace=[],
+        target_locale="fi",
+        metadata=ExecutionMetadata(),
+    )
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=RenderedSynthesisCache(
+            section_syntheses={},
+            cited_sources=[],
+            xai_highlights=[
+                XaiHighlightItem(extension_type="coaching", content="Identical coaching insight"),
+                XaiHighlightItem(extension_type="coaching", content="Identical coaching insight"),
+            ],
+        ),
+        user_name=None,
+        org_name=None,
+    )
+    blocks = XaiHighlightsAdapter.build(context)
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], AccordionBlock)
+    assert len(blocks[0].children) == 1

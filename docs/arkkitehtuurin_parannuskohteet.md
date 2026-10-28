@@ -610,3 +610,165 @@ PostgreSQL 19 -kovennuskierroksen (18 tiedostoa) pohjalta tunnistetut jatkokehit
 2. **`scripts/`-hakemiston dynaaminen automaattiskannaus:** Korvaa kovakoodatut skriptilistat dynaamisella `scripts/*.py` -globilla, estäen varjoskriptien ja vanhentuneiden aputyökalujen syntymisen laatuporttien ulkopuolelle.
 3. **Polyfactory-mallitehtaiden invarianttivartija (`QGR032` & metatestit):** Varmistaa, että testitehtaat käyttävät heksadesimaalisia Opaque ID -generaattoreita ja että jokainen tehdas palauttaa aina oletusarvoilla `.build()` validoituvan Pydantic V2 -mallin.
 
+---
+
+## Luku 8: Backend-koodikannan Kokonaisvaltainen Karkaisujärjestys (403 Tiedoston Census & Aallot 1–4)
+> **STATUS: KÄYNNISSÄ (Aalto 1 ajossa, Aallot 2–4 aikataulutettu)**
+> *Selite: Synkronoitu päätoteutussuunnitelman `@[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md]` (Askeleet 3.2 – 3.2d) kanssa.*
+
+### 8.1 Koko `backend_v2/`-Tuotantokoodikannan Tilannekuva (403 `.py`-tiedostoa)
+
+Koko `backend_v2/`-hakemiston (pl. `tests/`) 403 tuotantotiedoston AST-, docstring-, yksikkötesti- ja poikkeuslista-auditointi jakaa koodikannan kahdeksaan tarkkaan ryhmään:
+
+| Kategoria | Tiedostomäärä | Tila ja seurantadokumentti |
+| :--- | :--- | :--- |
+| **1. Pakettien `__init__.py` -fasaadit** | `47` kpl | Valvottu suoraan `@[scripts/audit_clean_imports.py]`-laatuportilla. |
+| **2. Aiemmissa puruissa ja cutovereissa karkaistut** | `162` kpl | Karkaistu kokonaisuuksissa `llm_strategy/`, `llm/provider/`, `dag_executor/`, `postgres/`, `QGR030`, `export/`, `report/`, `matrix_parser/`, `anchor_validation/` ja `pdf_extractor/`. |
+| **3. Valmiiksi 100 % puhtaat tiedostot** | `49` kpl | Sisältävät `__all__`-määrittelyn, 0 AST-rikkomusta, 0 puuttuvaa docstringiä ja 0 `.get()`-kutsua. |
+| **4. Karkaisuaalto 1 (Workers, SDUI & Utilities)** | `36` kpl | `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]` |
+| **5. Karkaisuaalto 2 (Core, Hooks, LLM Adapters & Services)** | `36` kpl | `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]` |
+| **6. Karkaisuaalto 3 (Repositories, Orchestrator & Routers)** | `27` kpl | `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]` |
+| **7. Karkaisuaalto 4 (Domain Models & DTO Schemas)** | `34` kpl | `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` |
+| **8. Tulevat arkkitehtuurivaiheet (IAM & Storage)** | `12` kpl | Eristetty vaiheisiin `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` (9 tiedostoa) ja `[NEW]` `@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]` (3 tiedostoa). |
+| **YHTEENSÄ** | **403 kpl** | **100 % koodikannasta kartoitettu ja lukittu** |
+
+---
+
+### 8.2 Karkaisuaaltojen Etenemisjärjestys (Bottom-Up Dependency Order)
+
+Karkaisu suoritetaan alhaalta ylös (Bottom-Up), jotta matalan tason apukirjastojen, koukkujen ja adapterien tyyppisopimukset (`__all__`), poikkeuskoodit (`ErrorCodes`) ja DTO-rajat lukittuvat ennen kuin niitä kutsuvat ylemmän tason palvelut ja FastAPI-reitittimet karkaistaan:
+
+#### Aalto 1 (36 tiedostoa) — `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`
+* **Paketti 1 (6 tiedostoa):** Asynkroniset taustatyöntekijät (`backend_v2/workers/*`).
+* **Paketti 2 (15 tiedostoa):** SDUI-adapterit ja kartoitin (`backend_v2/services/sdui/*`).
+* **Paketti 3 (15 tiedostoa):** Yleiset apukirjastot ja käännös-/välimuistipalvelut (`backend_v2/utils/*`, `translation_service.py`, `caching_service.py`, `llm_task_executor.py`, `chat_normalizer.py`, `mcp_presentation_sanitizer.py`, `localization_compiler.py`).
+* **Suorituskomento:**
+  ```powershell
+  uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md --gate backend --model gemini-4-argon-medium --continue-on-failure
+  ```
+
+#### Aalto 2 (36 tiedostoa) — `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]`
+* **Paketti 1 — Core, Observability & Shared Utilities (8 tiedostoa):**
+  1. `@[backend_v2/context.py]`
+  2. `@[backend_v2/core/rate_limit.py]`
+  3. `@[backend_v2/core/template_processor.py]`
+  4. `@[backend_v2/core/telemetry.py]`
+  5. `@[backend_v2/utils/linguistics/stemmer.py]`
+  6. `@[backend_v2/services/pii_analyzer.py]`
+  7. `@[backend_v2/services/usage_service.py]`
+  8. `@[backend_v2/services/progress.py]`
+* **Paketti 2 — Deterministic & Hybrid Pipeline Hooks + Scoring Base (10 tiedostoa):**
+  1. `@[backend_v2/utils/scoring/base_engine.py]`
+  2. `@[backend_v2/hooks/hydration.py]`
+  3. `@[backend_v2/hooks/metadata.py]`
+  4. `@[backend_v2/hooks/dlq_guard.py]`
+  5. `@[backend_v2/hooks/context_mapper.py]`
+  6. `@[backend_v2/hooks/references.py]`
+  7. `@[backend_v2/hooks/interaction_hook.py]`
+  8. `@[backend_v2/hooks/archival.py]`
+  9. `@[backend_v2/hooks/metrics.py]`
+  10. `@[backend_v2/hooks/input_processing.py]`
+* **Paketti 3 — LLM Provider Adapters & Prompt Utilities (8 tiedostoa):**
+  1. `@[backend_v2/llm/directives.py]`
+  2. `@[backend_v2/llm/prompt_builder.py]`
+  3. `@[backend_v2/llm/adapters/deepseek_adapter.py]`
+  4. `@[backend_v2/llm/adapters/mock_adapter.py]`
+  5. `@[backend_v2/llm/adapters/adapter_factory.py]`
+  6. `@[backend_v2/llm/adapters/anthropic_adapter.py]`
+  7. `@[backend_v2/llm/adapters/openai_adapter.py]`
+  8. `@[backend_v2/llm/adapters/ai_studio_adapter.py]`
+* **Paketti 4 — Studio, Ingress & Execution Services (10 tiedostoa):**
+  1. `@[backend_v2/services/web_fetcher.py]`
+  2. `@[backend_v2/services/ingress/multi_channel_ingress_service.py]`
+  3. `@[backend_v2/services/source_verification_service.py]`
+  4. `@[backend_v2/services/factories/output_profile_factory.py]`
+  5. `@[backend_v2/services/studio/auth_validator.py]`
+  6. `@[backend_v2/services/studio/prompt_block_service.py]`
+  7. `@[backend_v2/services/studio/output_profile_service.py]`
+  8. `@[backend_v2/services/execution/context_service.py]`
+  9. `@[backend_v2/services/execution/resumption_service.py]`
+  10. `@[backend_v2/services/execution/override_service.py]`
+* **Suorituskomento:**
+  ```powershell
+  uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md --gate backend --model gemini-4-argon-medium --continue-on-failure
+  ```
+
+#### Aalto 3 (27 tiedostoa) — `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]`
+* **Paketti 1 — Repository & Persistence Layer (11 tiedostoa):**
+  1. `@[backend_v2/database/repository.py]`
+  2. `@[backend_v2/database/repositories/component.py]`
+  3. `@[backend_v2/database/repositories/report_artifact.py]`
+  4. `@[backend_v2/database/repositories/components/agent.py]`
+  5. `@[backend_v2/database/repositories/components/execution_persona.py]`
+  6. `@[backend_v2/database/repositories/components/extraction_protocol.py]`
+  7. `@[backend_v2/database/repositories/components/matrix.py]`
+  8. `@[backend_v2/database/repositories/components/output_profile.py]`
+  9. `@[backend_v2/database/repositories/components/prompt_block.py]`
+  10. `@[backend_v2/database/repositories/components/role.py]`
+  11. `@[backend_v2/database/repositories/components/task_blueprint.py]`
+* **Paketti 2 — Orchestrator & Schema Services (6 tiedostoa):**
+  1. `@[backend_v2/services/orchestrator/schema_factory.py]`
+  2. `@[backend_v2/services/orchestrator/chunking_service.py]`
+  3. `@[backend_v2/services/orchestrator/atomizer.py]`
+  4. `@[backend_v2/services/orchestrator/dag_compiler.py]`
+  5. `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`
+  6. `@[backend_v2/services/orchestrator/enriched_dag_executor.py]`
+* **Paketti 3 — FastAPI Routers: System, Studio & Execution (10 tiedostoa):**
+  1. `@[backend_v2/api/routers/system/health.py]`
+  2. `@[backend_v2/api/routers/system/telemetry.py]`
+  3. `@[backend_v2/api/routers/system/configs.py]`
+  4. `@[backend_v2/api/routers/output_profiles.py]`
+  5. `@[backend_v2/api/routers/studio/model_registry.py]`
+  6. `@[backend_v2/api/routers/studio/prompt_blocks.py]`
+  7. `@[backend_v2/api/routers/studio/system_configs.py]`
+  8. `@[backend_v2/api/routers/studio/workflows.py]`
+  9. `@[backend_v2/api/routers/execution/workflows.py]`
+  10. `@[backend_v2/api/routers/execution/reports.py]`
+* **Suorituskomento:**
+  ```powershell
+  uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md --gate backend --model gemini-4-argon-medium --continue-on-failure
+  ```
+
+#### Aalto 4 (34 tiedostoa) — `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`
+* **Paketti 1 — Domain Models (`backend_v2/models/domain/`) (23 tiedostoa):**
+  1. `@[backend_v2/models/domain/base.py]`
+  2. `@[backend_v2/models/domain/metadata.py]`
+  3. `@[backend_v2/models/domain/usage.py]`
+  4. `@[backend_v2/models/domain/references.py]`
+  5. `@[backend_v2/models/domain/retrieval.py]`
+  6. `@[backend_v2/models/domain/hydration.py]`
+  7. `@[backend_v2/models/domain/interaction.py]`
+  8. `@[backend_v2/models/domain/integrity.py]`
+  9. `@[backend_v2/models/domain/archivist.py]`
+  10. `@[backend_v2/models/domain/causal.py]`
+  11. `@[backend_v2/models/domain/coach.py]`
+  12. `@[backend_v2/models/domain/evaluation.py]`
+  13. `@[backend_v2/models/domain/falsifier.py]`
+  14. `@[backend_v2/models/domain/judge.py]`
+  15. `@[backend_v2/models/domain/knowledge.py]`
+  16. `@[backend_v2/models/domain/logician.py]`
+  17. `@[backend_v2/models/domain/overseer.py]`
+  18. `@[backend_v2/models/domain/performativity.py]`
+  19. `@[backend_v2/models/domain/profiler.py]`
+  20. `@[backend_v2/models/domain/scoring.py]`
+  21. `@[backend_v2/models/domain/source_verification.py]`
+  22. `@[backend_v2/models/domain/synthesis.py]`
+  23. `@[backend_v2/models/domain/workflow.py]`
+* **Paketti 2 — DTO Schemas & Prompt Models (`backend_v2/models/dtos/` + `models/prompt.py`) (11 tiedostoa):**
+  1. `@[backend_v2/models/prompt.py]`
+  2. `@[backend_v2/models/dtos/system.py]`
+  3. `@[backend_v2/models/dtos/inputs.py]`
+  4. `@[backend_v2/models/dtos/prompt.py]`
+  5. `@[backend_v2/models/dtos/prompt_context.py]`
+  6. `@[backend_v2/models/dtos/retrieval.py]`
+  7. `@[backend_v2/models/dtos/evaluation_steps.py]`
+  8. `@[backend_v2/models/dtos/schema_manifest.py]`
+  9. `@[backend_v2/models/dtos/state.py]`
+  10. `@[backend_v2/models/dtos/variance.py]`
+  11. `@[backend_v2/models/dtos/workflow_schema.py]`
+* **Suorituskomento:**
+  ```powershell
+  uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md --gate backend --model gemini-4-argon-medium --continue-on-failure
+  ```
+
+

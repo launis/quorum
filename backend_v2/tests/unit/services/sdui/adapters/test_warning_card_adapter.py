@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Unit tests for the WarningCardAdapter."""
+
+from __future__ import annotations
 
 import pytest
 from fastapi import status
@@ -25,7 +25,7 @@ def base_output_profile() -> OutputProfile:
     return OutputProfile(
         id="prf_0123456789abcdef",
         slug="test-profile",
-        workflow_id="wfw_test",
+        workflow_id="wor_0123456789abcdef",
         name=I18nText(translations={"en": "Test Profile"}),
         target_block_order=[],
     )
@@ -117,6 +117,35 @@ def test_warning_card_adapter_missing_rule_fail_fast(base_output_profile: Output
         reason="Test unmapped event",
     )
     cache = RenderedSynthesisCache.model_construct(data_starvation=starvation_unmapped)
+
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=base_output_profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        WarningCardAdapter.build(context)
+
+    assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+def test_warning_card_adapter_empty_event_type_boundary_fail_fast(base_output_profile: OutputProfile) -> None:
+    """Tests that an empty string event_type boundary value triggers AppException with CONFIGURATION_ERROR."""
+    starvation_empty = DataStarvationEvent.model_construct(
+        total_atoms=0,
+        event_type="",
+        reason="Boundary empty event type",
+    )
+    cache = RenderedSynthesisCache.model_construct(data_starvation=starvation_empty)
 
     context = AdapterContext(
         execution=None,
