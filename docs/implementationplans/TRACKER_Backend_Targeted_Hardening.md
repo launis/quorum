@@ -55,7 +55,7 @@
   - [x] @[backend_v2/services/llm_task_executor.py]
   - [x] @[backend_v2/services/chat_normalizer.py]
   - [x] @[backend_v2/services/sdui/sanitizers/mcp_presentation_sanitizer.py]
-  - [ ] @[backend_v2/services/orchestrator/localization_compiler.py]
+  - [x] @[backend_v2/services/orchestrator/localization_compiler.py]
 
 - [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]" --gate frontend --model gemini-4-argon-medium` (Zero frontend targets in backend targeted hardening).
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
