@@ -14,7 +14,11 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.causal_discovery import (
     AntiFluffAuditDTO,
+    CausalEdgeDTO,
+    CausalGraphPayloadDTO,
+    CausalNodeDTO,
     CausalTdaFusionResultDTO,
+    FairScoringBreakdownDTO,
 )
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.view.sdui import AnySduiBlock, SduiCausalGraphBlock
@@ -73,54 +77,37 @@ class CausalGraphAdapter:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        if isinstance(causal, CausalTdaFusionResultDTO):
-            graph = causal.graph
-            root_cause_diagnoses = list(causal.root_cause_diagnoses)
-            anti_fluff_audit = causal.anti_fluff_audit
-            prescriptive_remediations = list(causal.prescriptive_remediations)
-            fair_scoring = causal.fair_scoring
-        else:
-            graph = causal
-            root_cause_diagnoses = []
-            anti_fluff_audit = AntiFluffAuditDTO(
-                isolated_concept_count=len(graph.isolated_node_ids),
-                cycle_detected=graph.cycle_detected,
-                unsupported_claims_count=0,
-                logical_cohesion_score=1.0 if not graph.cycle_detected else 0.5,
-                detected_hollow_terms=[],
-            )
-            prescriptive_remediations = []
-            fair_scoring = None
+        fair_scoring: FairScoringBreakdownDTO | None
+        match causal:
+            case CausalTdaFusionResultDTO():
+                graph = causal.graph
+                root_cause_diagnoses = list(causal.root_cause_diagnoses)
+                anti_fluff_audit = causal.anti_fluff_audit
+                prescriptive_remediations = list(causal.prescriptive_remediations)
+                fair_scoring = causal.fair_scoring
+            case CausalGraphPayloadDTO():
+                graph = causal
+                root_cause_diagnoses = []
+                anti_fluff_audit = AntiFluffAuditDTO(
+                    isolated_concept_count=len(graph.isolated_node_ids),
+                    cycle_detected=graph.cycle_detected,
+                    unsupported_claims_count=0,
+                    logical_cohesion_score=1.0 if not graph.cycle_detected else 0.5,
+                    detected_hollow_terms=[],
+                )
+                prescriptive_remediations = []
+                fair_scoring = None
 
-        # Critical path nodes: root cause nodes, nodes with blame parents, failing nodes, or all if none
-        critical_node_ids: set[str] = set(graph.root_cause_node_ids)
-        for node in graph.nodes:
-            if node.blame_parent_ids or node.status == ExecutionStatus.FAILED:
-                critical_node_ids.add(node.node_id)
-                critical_node_ids.update(node.blame_parent_ids)
-
-        if not critical_node_ids:
-            critical_path_nodes = list(graph.nodes)
-        else:
-            critical_path_nodes = [n for n in graph.nodes if n.node_id in critical_node_ids]
-
-        critical_node_id_set = {n.node_id for n in critical_path_nodes}
-        critical_edges = [
-            e for e in graph.edges if e.source_id in critical_node_id_set and e.target_id in critical_node_id_set
-        ]
+        critical_path_nodes = CausalGraphAdapter._resolve_critical_nodes(graph)
+        critical_edges = CausalGraphAdapter._resolve_critical_edges(graph, critical_path_nodes)
 
         total_claims_count = len(graph.nodes)
         intact_claims_count = sum(1 for n in graph.nodes if n.status == ExecutionStatus.PASSED)
-
-        en_summary = (
-            f"{intact_claims_count}/{total_claims_count} propositions intact. "
-            f"{len(root_cause_diagnoses)} root cause fault chains identified."
+        summary = CausalGraphAdapter._build_summary_text(
+            intact_claims_count=intact_claims_count,
+            total_claims_count=total_claims_count,
+            diagnoses_count=len(root_cause_diagnoses),
         )
-        fi_summary = (
-            f"{intact_claims_count}/{total_claims_count} väitettä ehjänä. "
-            f"{len(root_cause_diagnoses)} juurisyyn ketjua tunnistettu."
-        )
-        summary = I18nText(translations={"en": en_summary, "fi": fi_summary})
 
         return SduiCausalGraphBlock(
             critical_path_nodes=critical_path_nodes,
@@ -133,3 +120,66 @@ class CausalGraphAdapter:
             total_claims_count=total_claims_count,
             summary=summary,
         )
+
+    @staticmethod
+    def _resolve_critical_nodes(graph: CausalGraphPayloadDTO) -> list[CausalNodeDTO]:
+        """Selects critical path nodes from the causal graph.
+
+        Args:
+            graph: Evaluated causal graph payload.
+
+        Returns:
+            Ordered list of critical path nodes, or all graph nodes if no faults exist.
+        """
+        critical_node_ids: set[str] = set(graph.root_cause_node_ids)
+        for node in graph.nodes:
+            if node.blame_parent_ids or node.status == ExecutionStatus.FAILED:
+                critical_node_ids.add(node.node_id)
+                critical_node_ids.update(node.blame_parent_ids)
+
+        if not critical_node_ids:
+            return list(graph.nodes)
+        return [n for n in graph.nodes if n.node_id in critical_node_ids]
+
+    @staticmethod
+    def _resolve_critical_edges(
+        graph: CausalGraphPayloadDTO,
+        critical_nodes: list[CausalNodeDTO],
+    ) -> list[CausalEdgeDTO]:
+        """Filters graph edges to those connecting critical path nodes.
+
+        Args:
+            graph: Evaluated causal graph payload.
+            critical_nodes: Resolved critical path nodes.
+
+        Returns:
+            List of edges whose source and target both belong to the critical path.
+        """
+        critical_node_id_set = {n.node_id for n in critical_nodes}
+        return [e for e in graph.edges if e.source_id in critical_node_id_set and e.target_id in critical_node_id_set]
+
+    @staticmethod
+    def _build_summary_text(
+        intact_claims_count: int,
+        total_claims_count: int,
+        diagnoses_count: int,
+    ) -> I18nText:
+        """Builds localized summary text for the Unified Causal Action Card.
+
+        Args:
+            intact_claims_count: Count of propositions with PASSED status.
+            total_claims_count: Total count of propositions in the graph.
+            diagnoses_count: Count of identified root cause fault chains.
+
+        Returns:
+            I18nText containing English and Finnish summary strings.
+        """
+        en_summary = (
+            f"{intact_claims_count}/{total_claims_count} propositions intact. "
+            f"{diagnoses_count} root cause fault chains identified."
+        )
+        fi_summary = (
+            f"{intact_claims_count}/{total_claims_count} väitettä ehjänä. "
+            f"{diagnoses_count} juurisyyn ketjua tunnistettu."
+        )
+        return I18nText(translations={"en": en_summary, "fi": fi_summary})

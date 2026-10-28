@@ -269,3 +269,63 @@ def test_causal_graph_adapter_no_critical_nodes_falls_back_to_all_nodes() -> Non
     card = CausalGraphAdapter.build_action_card(ctx)
     assert len(card.critical_path_nodes) == 1
     assert card.critical_path_nodes[0].node_id == "atm_clean"
+
+
+def test_causal_graph_adapter_with_cycle_and_isolated_nodes_boundary() -> None:
+    """Asserts boundary values when raw CausalGraphPayloadDTO has cycle_detected=True and isolated nodes."""
+    node = CausalNodeDTO(
+        node_id="atm_iso",
+        claim="Isolated proposition in cycle.",
+        source_quotes=("Isolated quote.",),
+        paragraph_ref="Section 3",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+        tda_score=1.0,
+        tda_level_key="L1",
+    )
+    graph = CausalGraphPayloadDTO(
+        nodes=[node],
+        edges=[],
+        root_cause_node_ids=["atm_iso"],
+        cycle_detected=True,
+        isolated_node_ids=["atm_iso"],
+        partition_node_ids={},
+        edge_root_causes=[],
+    )
+    ctx = _build_sample_adapter_context(causal_result=graph)
+    card = CausalGraphAdapter.build_action_card(ctx)
+    assert card.anti_fluff_audit.cycle_detected is True
+    assert card.anti_fluff_audit.isolated_concept_count == 1
+    assert card.anti_fluff_audit.logical_cohesion_score == 0.5
+    assert card.intact_claims_count == 0
+    assert card.total_claims_count == 1
+
+
+def test_adapter_context_invalid_causal_result_type_raises() -> None:
+    """Asserts AdapterContext rejects invalid causal_result types under strict Pydantic validation."""
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test_executive_profile",
+        workflow_id="wor_0123456789abcdef0123456789abcdef",
+        name=I18nText(translations={"en": "Test Executive Profile"}),
+        content_blocks=[],
+        target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
+    )
+    with pytest.raises(pydantic.ValidationError):
+        AdapterContext.model_validate(
+            {
+                "execution": None,
+                "locale": "en",
+                "penalties_applied": [],
+                "mcp_audit_map": None,
+                "global_score": None,
+                "profile": profile,
+                "profile_cache": None,
+                "user_name": None,
+                "org_name": None,
+                "parsed_matrices": {},
+                "mcp_tools_map": {},
+                "causal_result": "invalid_untyped_payload",
+            }
+        )
