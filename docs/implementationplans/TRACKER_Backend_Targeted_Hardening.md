@@ -35,7 +35,7 @@
   - [x] @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]
   - [x] @[backend_v2/services/sdui/adapters/mcp_audit_adapter.py]
   - [x] @[backend_v2/services/sdui/adapters/metadata_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/penalties_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/penalties_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/variance_adapter.py]
