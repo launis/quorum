@@ -45,7 +45,7 @@
   - [x] @[scripts/reconcile_storage.py]
   - [x] @[scripts/run_e2e_variance_test.py]
   - [x] @[scripts/backend_audit_loop.py]
-  - [ ] @[backend_v2/tests/factories/model_factories.py]
+  - [x] @[backend_v2/tests/factories/model_factories.py]
   - [ ] @[backend_v2/tests/unit/scripts/test_ast_guardrails.py]
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]" --gate frontend --model gemini-4-argon-medium`. (Zero frontend `.dart` production targets in this plan).
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
