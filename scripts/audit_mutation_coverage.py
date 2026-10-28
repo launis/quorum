@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import os
 import subprocess
 import sys
 import time
@@ -366,11 +367,13 @@ def audit_target_mutations(
         mutated_code = apply_mutation(original_code, spec)
         try:
             target_path.write_text(mutated_code, encoding="utf-8")
+            env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
             proc = subprocess.run(
-                [sys.executable, "-m", "pytest", str(test_path), "-q", "--tb=no"],
+                [sys.executable, "-B", "-m", "pytest", str(test_path), "-q", "--tb=no", "-p", "no:cacheprovider"],
                 capture_output=True,
                 text=True,
                 timeout=timeout,
+                env=env,
             )
             if proc.returncode != 0:
                 killed = True

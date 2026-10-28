@@ -128,14 +128,14 @@ def test_mutation_engine_detects_surviving_mutant() -> None:
         dummy_src = tmp_path / "dummy_math.py"
         dummy_test = tmp_path / "test_dummy_math.py"
 
-        # Source code has two operations
+        # Source code has a single operation
         dummy_src.write_text(
-            "def add_and_double(a: int, b: int) -> int:\n    sum_val = a + b\n    return sum_val * 2\n",
+            "def double_val(a: int) -> int:\n    return a * 2\n",
             encoding="utf-8",
         )
         # Test only tests that result is positive (loose assert), so mutating * 2 to / 2 still produces > 0!
         dummy_test.write_text(
-            "from dummy_math import add_and_double\ndef test_add_and_double() -> None:\n    res = add_and_double(10, 10)\n    assert res > 0\n",
+            "from dummy_math import double_val\ndef test_double_val() -> None:\n    res = double_val(10)\n    assert res > 0\n",
             encoding="utf-8",
         )
 

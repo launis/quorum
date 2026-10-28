@@ -91,6 +91,10 @@ os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 # Set environment to development so all automated tests run under the fast, deterministic profile
 os.environ["ENVIRONMENT"] = "development"
 os.environ["LOG_FILE_NAME"] = "tests_debug.log"
+os.environ.setdefault("OPENAI_API_KEY", "mock-openai-key")
+os.environ.setdefault("ANTHROPIC_API_KEY", "mock-anthropic-key")
+os.environ.setdefault("GOOGLE_API_KEY", "mock-google-key")
+os.environ.setdefault("GEMINI_API_KEY", "mock-gemini-key")
 
 get_settings.cache_clear()
 
