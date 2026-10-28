@@ -37,7 +37,7 @@
   - [x] @[backend_v2/services/sdui/adapters/metadata_adapter.py]
   - [x] @[backend_v2/services/sdui/adapters/penalties_adapter.py]
   - [x] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/variance_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/warning_card_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]
