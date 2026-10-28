@@ -12,11 +12,15 @@ from typing import Any
 from arq.connections import RedisSettings
 from arq.typing import StartupShutdown, WorkerCoroutine
 from arq.worker import Function
+from fastapi import status
 
-from backend_v2.core.registry import TaskRegistry
+# Phase 1, Step 1.1: Register all mandatory workflow hooks in the Arq worker entrypoint
+import backend_v2.hooks as _hooks
+from backend_v2.core.hook_registry import hook_registry
 from backend_v2.core.telemetry import configure_telemetry
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import (
     log_startup_system_parameters,
@@ -31,6 +35,8 @@ from backend_v2.workers import (
     generate_report_artifact_job,
 )
 
+_ = _hooks
+
 __all__ = [
     "WorkerSettings",
     "health_check",
@@ -44,16 +50,35 @@ logger = logging.getLogger(__name__)
 async def startup(ctx: Any) -> None:
     """Called when the Arq worker starts.
 
-    Initializes dependencies and registers tasks.
+    Initializes dependencies and verifies mandatory hook registration.
 
     Args:
         ctx: Arq worker context to store initialized services.
+
+    Raises:
+        AppException: If mandatory workflow hooks are missing from HookRegistry
+            (ErrorCodes.CONFIGURATION_ERROR).
     """
     setup_logging()
     configure_telemetry(get_settings(), service_name_override="quorum-worker")
     log_startup_system_parameters(logger, "ARQ WORKER")
 
-    logger.info("TaskRegistry initialized. Registered tasks: %s", list(TaskRegistry._tasks.keys()))
+    # Phase 1, Step 1.1: Enforce Fail-Fast HookRegistry verification at worker startup
+    registered_hooks = list(hook_registry.get_all_hooks())
+    if "input_processing" not in registered_hooks:
+        logger.error(
+            "[WorkerStartup] %s: Mandatory hook 'input_processing' not registered in HookRegistry.",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+        )
+        raise AppException(
+            message="Mandatory hook 'input_processing' not registered in HookRegistry.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={
+                "error_code": ErrorCodes.CONFIGURATION_ERROR.value,
+                "missing_hook": "input_processing",
+            },
+        )
+    logger.info("HookRegistry initialized. Registered hooks (%d): %s", len(registered_hooks), registered_hooks)
 
     driver = await get_driver(get_settings())
     repository = UnifiedWorkflowRepository(driver)
