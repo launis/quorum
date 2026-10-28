@@ -5,12 +5,8 @@ from database drivers to complex service layer instantiations.
 """
 
 import logging
-from typing import TYPE_CHECKING, Annotated, Any, cast
-
-logger = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    pass
+from collections.abc import Awaitable, Callable
+from typing import Annotated, Any, cast
 
 from arq.connections import ArqRedis
 from fastapi import Depends, Query, Request, Security
@@ -60,8 +56,6 @@ from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
-
-# Phase 4, Step 1: Rewire ReportService import to canonical report package
 from backend_v2.services.report import ReportService
 from backend_v2.services.studio import (
     StudioOutputProfileService,
@@ -72,6 +66,75 @@ from backend_v2.services.studio import (
 )
 from backend_v2.services.usage_service import UsageService
 from backend_v2.settings import Settings, get_settings
+
+logger = logging.getLogger(__name__)
+
+__all__ = [
+    "AgentRepoDep",
+    "ArqPoolDep",
+    "AuditRepoDep",
+    "AuthServiceDep",
+    "ComponentRepoDep",
+    "CurrentUserDep",
+    "DocumentExtractionServiceDep",
+    "DriverDep",
+    "ExecutionRepoDep",
+    "ExecutionServiceDep",
+    "ExecutorDep",
+    "ExportServiceDep",
+    "IdentityRepoDep",
+    "KnowledgeRepoDep",
+    "LLMHandlerDep",
+    "LLMTaskExecutorDep",
+    "OutputProfileRepoDep",
+    "PromptBlockRepoDep",
+    "PromptCompilerDep",
+    "ReportArtifactRepoDep",
+    "ReportServiceDep",
+    "StudioOutputProfileServiceDep",
+    "StudioPromptBlockServiceDep",
+    "StudioSimulationServiceDep",
+    "StudioSystemConfigServiceDep",
+    "StudioWorkflowServiceDep",
+    "SystemRepoDep",
+    "TaskBlueprintRepoDep",
+    "UsageServiceDep",
+    "UserDep",
+    "WorkflowRepoDep",
+    "get_agent_repo",
+    "get_arq_pool",
+    "get_audit_repo",
+    "get_auth_service",
+    "get_component_repo",
+    "get_current_admin_user",
+    "get_current_user_from_header",
+    "get_dag_executor",
+    "get_db_driver",
+    "get_document_extraction_service",
+    "get_execution_repo",
+    "get_execution_service",
+    "get_export_service",
+    "get_identity_repo",
+    "get_knowledge_repo",
+    "get_llm_handler",
+    "get_llm_task_executor",
+    "get_output_profile_repo",
+    "get_prompt_block_repo",
+    "get_prompt_compiler",
+    "get_report_artifact_repo",
+    "get_report_service",
+    "get_studio_output_profile_service",
+    "get_studio_prompt_block_service",
+    "get_studio_simulation_service",
+    "get_studio_system_config_service",
+    "get_studio_workflow_service",
+    "get_system_repo",
+    "get_task_blueprint_repo",
+    "get_usage_service",
+    "get_workflow_repo",
+    "require_role",
+    "security",
+]
 
 security = HTTPBearer(auto_error=False)
 
@@ -174,6 +237,14 @@ ComponentRepoDep = Annotated[
 
 
 async def get_prompt_block_repo(driver: DriverDep) -> IPromptBlockRepository:
+    """Instantiate the prompt block repository.
+
+    Args:
+        driver: Storage driver.
+
+    Returns:
+        Prompt block repository instance.
+    """
     return PromptBlockRepositoryImpl(driver)
 
 
@@ -181,6 +252,14 @@ PromptBlockRepoDep = Annotated[IPromptBlockRepository, Depends(get_prompt_block_
 
 
 async def get_agent_repo(driver: DriverDep) -> IAgentRepository:
+    """Instantiate the agent repository.
+
+    Args:
+        driver: Storage driver.
+
+    Returns:
+        Agent repository instance.
+    """
     return AgentRepositoryImpl(driver)
 
 
@@ -188,6 +267,14 @@ AgentRepoDep = Annotated[IAgentRepository, Depends(get_agent_repo)]
 
 
 async def get_task_blueprint_repo(driver: DriverDep) -> ITaskBlueprintRepository:
+    """Instantiate the task blueprint repository.
+
+    Args:
+        driver: Storage driver.
+
+    Returns:
+        Task blueprint repository instance.
+    """
     return TaskBlueprintRepositoryImpl(driver)
 
 
@@ -195,6 +282,14 @@ TaskBlueprintRepoDep = Annotated[ITaskBlueprintRepository, Depends(get_task_blue
 
 
 async def get_output_profile_repo(driver: DriverDep) -> IOutputProfileRepository:
+    """Instantiate the output profile repository.
+
+    Args:
+        driver: Storage driver.
+
+    Returns:
+        Output profile repository instance.
+    """
     return OutputProfileRepositoryImpl(driver)
 
 
@@ -297,7 +392,7 @@ async def get_current_user_from_header(
         Verified token data.
 
     Raises:
-        AuthenticationError: If the token is missing or invalid.
+        AuthenticationError: If the token is missing (AUTH_TOKEN_MISSING) or invalid.
     """
     raw_token = token.credentials if token is not None else token_query
     if not raw_token:
@@ -312,8 +407,8 @@ UserDep = Annotated[TokenData, Depends(get_current_user_from_header)]
 CurrentUserDep = UserDep
 
 
-def require_role(required_role: UserRole) -> Any:
-    """Returns a dependency that validates the user has the required role.
+def require_role(required_role: UserRole) -> Callable[..., Awaitable[TokenData]]:
+    """Return a dependency that validates the user has the required role.
 
     Implicitly allows ROOT for everything.
 
@@ -325,11 +420,33 @@ def require_role(required_role: UserRole) -> Any:
     """
 
     async def _role_checker(user: TokenData = Depends(get_current_user_from_header)) -> TokenData:
+        """Verify that the authenticated user possesses the required role.
+
+        Args:
+            user: Authenticated user token data.
+
+        Returns:
+            Verified user token data.
+
+        Raises:
+            PermissionDeniedError: If the user lacks the required role (PERMISSION_DENIED).
+        """
         if user.role == UserRole.ROOT:
             return user
         if user.role != required_role:
+            msg = f"Insufficient privileges. Required: {required_role.value}"
+            error_code = "PERMISSION_DENIED"
+            logger.error(
+                "[Dependencies] %s",
+                msg,
+                extra={
+                    "error_code": error_code,
+                    "required_role": required_role.value,
+                    "current_role": user.role.value,
+                },
+            )
             raise PermissionDeniedError(
-                message=f"Insufficient privileges. Required: {required_role.value}",
+                message=msg,
                 details={"required_role": required_role.value, "current_role": user.role.value},
             )
         return user
@@ -394,6 +511,8 @@ async def get_dag_executor(
         audit_repo: Audit repository.
         system_repo: System repository.
         prompt_compiler: Prompt compiler.
+        prompt_block_repo: Prompt block repository.
+        output_profile_repo: Output profile repository.
 
     Returns:
         DAG executor instance.
@@ -441,6 +560,8 @@ async def get_execution_service(
         system_repo: System repository.
         usage_service: Usage service.
         executor: DAG executor.
+        prompt_block_repo: Prompt block repository.
+        output_profile_repo: Output profile repository.
 
     Returns:
         Execution service instance.
