@@ -46,7 +46,7 @@
   - [x] @[backend_v2/utils/normalization.py]
   - [x] @[backend_v2/utils/paths.py]
   - [x] @[backend_v2/utils/pydantic_utils.py]
-  - [ ] @[backend_v2/utils/ranked_round_robin.py]
+  - [x] @[backend_v2/utils/ranked_round_robin.py]
   - [ ] @[backend_v2/utils/redis_patcher.py]
   - [ ] @[backend_v2/utils/static_charts.py]
   - [ ] @[backend_v2/utils/finops_trace_analyzer.py]
