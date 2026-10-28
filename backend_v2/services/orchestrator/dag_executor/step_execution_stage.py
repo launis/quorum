@@ -41,20 +41,39 @@ _DAG_EXECUTOR_MODULE = "backend_v2.services.orchestrator.dag_executor"
 
 
 def _resolve_matrix_reducer() -> Any:
-    """Resolve MatrixReducer dynamically from dag_executor module when loaded for test patch compatibility."""
+    """Resolve MatrixReducer dynamically from dag_executor module when loaded for test patch compatibility.
+
+    Returns:
+        MatrixReducer class reference from the loaded facade module or local import.
+    """
     if _DAG_EXECUTOR_MODULE in sys.modules:
         return sys.modules[_DAG_EXECUTOR_MODULE].MatrixReducer
     return MatrixReducer
 
 
 def _resolve_settings() -> Any:
-    """Resolve settings dynamically from dag_executor.get_settings when loaded for test patch compatibility."""
+    """Resolve settings dynamically from dag_executor.get_settings when loaded for test patch compatibility.
+
+    Returns:
+        Active Settings instance resolved via the facade module or global settings getter.
+    """
     getter = sys.modules[_DAG_EXECUTOR_MODULE].get_settings if _DAG_EXECUTOR_MODULE in sys.modules else get_settings
     return getter()
 
 
 def _parse_causal_graph_candidate(raw_candidate: Any, err_prefix: str) -> CausalGraphPayloadDTO:
-    """Validate and hydrate a CausalGraphPayloadDTO from trace output or snapshot payload."""
+    """Validate and hydrate a CausalGraphPayloadDTO from trace output or snapshot payload.
+
+    Args:
+        raw_candidate: Raw trace event content, StepOutputContentDTO, or CausalGraphPayloadDTO instance.
+        err_prefix: Contextual error message prefix logged and raised on validation failure.
+
+    Returns:
+        Validated CausalGraphPayloadDTO instance.
+
+    Raises:
+        AppException: Triggered with VALIDATION_FAILED when payload schema validation fails.
+    """
     try:
         unwrapped = raw_candidate.data if isinstance(raw_candidate, StepOutputContentDTO) else raw_candidate
         payload = unwrapped["graph"] if type(unwrapped) is dict and "graph" in unwrapped else unwrapped
@@ -62,7 +81,13 @@ def _parse_causal_graph_candidate(raw_candidate: Any, err_prefix: str) -> Causal
             return payload
         return TypeAdapter(CausalGraphPayloadDTO).validate_python(payload, strict=False)
     except ValidationError as err:
-        logger.error("[DAGExecutor] %s: %s: %s", ErrorCodes.VALIDATION_FAILED.name, err_prefix, err)
+        logger.error(
+            "[DAGExecutor] %s: %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            err_prefix,
+            err,
+            exc_info=True,
+        )
         raise AppException(
             message=f"{err_prefix}: {err}",
             status_code=500,
@@ -70,12 +95,25 @@ def _parse_causal_graph_candidate(raw_candidate: Any, err_prefix: str) -> Causal
         ) from err
 
 
-# Phase 3, Step 1: Extract upstream causal discovery resolution and MatrixReducer pre-synthesis preparation
 async def prepare_step_strategy_context(
     state: WorkflowExecutionState,
     step_id: str,
 ) -> tuple[CausalGraphPayloadDTO | None, Step | None]:
-    """Prepare upstream causal discovery atoms and pre-synthesis MatrixReducer state for a DAG step."""
+    """Prepare upstream causal discovery atoms and pre-synthesis MatrixReducer state for a DAG step.
+
+    Args:
+        state: Active WorkflowExecutionState containing execution record, projector, and locks.
+        step_id: Canonical Opaque Stripe ID of the step being prepared.
+
+    Returns:
+        Two-element tuple of (resolved upstream CausalGraphPayloadDTO or None, Step blueprint definition or None).
+
+    Raises:
+        AppException: Triggered with VALIDATION_FAILED if causal_source_step_id is invalid or graph
+            validation fails, or CAUSAL_DISCOVERY_DATA_STARVATION if upstream causal step did not pass
+            or produced zero proposition nodes.
+        WorkflowExecutionError: Triggered with WORKFLOW_EXECUTION_FAILED if pre-synthesis MatrixReducer fails.
+    """
     step_obj = state.steps_by_id[step_id]
     _update_lock = state.update_lock
     upstream_graph: CausalGraphPayloadDTO | None = None
@@ -84,7 +122,7 @@ async def prepare_step_strategy_context(
         src_id = step_obj.causal_source_step_id
         if src_id not in state.steps_by_id:
             msg = f"Step '{step_id}' references causal_source_step_id '{src_id}' which does not exist in workflow."
-            logger.error("[DAGExecutor] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[DAGExecutor] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         if (
@@ -95,6 +133,7 @@ async def prepare_step_strategy_context(
                 "[DAGExecutor] %s: Upstream causal step '%s' did not complete successfully.",
                 ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION.name,
                 src_id,
+                exc_info=True,
             )
             raise AppException(
                 message="Upstream causal discovery step produced 0 valid proposition nodes for downstream evaluation.",
@@ -127,7 +166,12 @@ async def prepare_step_strategy_context(
 
         if upstream_graph is None or not upstream_graph.nodes:
             msg = "Upstream causal discovery step produced 0 valid proposition nodes for downstream evaluation."
-            logger.error("[DAGExecutor] %s: %s", ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION.name, msg)
+            logger.error(
+                "[DAGExecutor] %s: %s",
+                ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION.name,
+                msg,
+                exc_info=True,
+            )
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION}
             )
@@ -135,10 +179,11 @@ async def prepare_step_strategy_context(
         fusion_atoms = transform_causal_nodes_to_atoms(upstream_graph.nodes)
         async with _update_lock:
             state.global_context_vars = state.global_context_vars.model_copy(update={"shuffled_atoms": fusion_atoms})
-            base_meta = state.exec_record.metadata or ExecutionMetadata(
+            default_meta = ExecutionMetadata(
                 workflow_version=state.workflow.version,
                 model_registry_id=state.workflow.model_registry_id,
             )
+            base_meta = state.exec_record.metadata if state.exec_record.metadata is not None else default_meta
             state.exec_record = state.exec_record.model_copy(
                 update={"metadata": base_meta.model_copy(update={"global_context_vars": state.global_context_vars})}
             )
@@ -165,14 +210,26 @@ async def prepare_step_strategy_context(
                     state.exec_record = state.exec_record.model_copy(update={"context_variables": new_cv})
                 logger.info("[DAGExecutor] Successfully applied MatrixReducer pre-synthesis.")
             except Exception as e:
-                logger.error("[DAGExecutor] Failed to project and reduce matrix pre-synthesis: %s", e, exc_info=True)
+                logger.error(
+                    "[DAGExecutor] %s: Failed to project and reduce matrix pre-synthesis: %s",
+                    ErrorCodes.WORKFLOW_EXECUTION_FAILED.name,
+                    e,
+                    exc_info=True,
+                )
                 raise WorkflowExecutionError(step_id=step_id, task_key=step_obj.task_blueprint, original_error=e) from e
 
     return upstream_graph, step_def
 
 
 def _extract_app_exception_error_code(exc: BaseException) -> str:
-    """Resolve canonical error_code string from an exception instance."""
+    """Resolve canonical error_code string from an exception instance.
+
+    Args:
+        exc: Exception instance caught at the DAG step execution boundary.
+
+    Returns:
+        Canonical error code string or UNKNOWN_ERROR if not present on the exception.
+    """
     err_code = "UNKNOWN_ERROR"
     if isinstance(exc, AppException):
         if isinstance(exc.error_code, ErrorCodes):
@@ -190,7 +247,6 @@ def _extract_app_exception_error_code(exc: BaseException) -> str:
     return err_code
 
 
-# Phase 3, Step 1: Extract execute_dag_step_wrapper and progress_callback
 async def execute_dag_step_wrapper(
     state: WorkflowExecutionState,
     step_id: str,
@@ -200,7 +256,23 @@ async def execute_dag_step_wrapper(
     dlq_on_step_failure: Callable[[str, str, BaseException], None] = dlq_record_step_failure,
     dlq_on_progress_commit_error: Callable[[str, Exception], None] = dlq_handle_progress_commit_error,
 ) -> None:
-    """Execute a single DAG step with dependency gating, retry loop, progress callback, and trace commit."""
+    """Execute a single DAG step with dependency gating, retry loop, progress callback, and trace commit.
+
+    Args:
+        state: Active WorkflowExecutionState holding execution record, locks, and step definitions.
+        step_id: Canonical Opaque Stripe ID of the step to execute.
+        node_executor: NodeExecutor instance dispatching strategy execution.
+        committer: ExecutionCommitter persisting step state and trace events.
+        causal_cohesion_evaluator: Optional evaluator computing post-step causal cohesion telemetry.
+        dlq_on_step_failure: Callback recording dead-letter error telemetry when the step fails.
+        dlq_on_progress_commit_error: Callback handling non-terminal progress commit failures.
+
+    Raises:
+        AppException: Triggered with VALIDATION_FAILED or CAUSAL_DISCOVERY_DATA_STARVATION when
+            context preparation or node strategy execution fails with a domain error.
+        WorkflowExecutionError: Triggered with WORKFLOW_EXECUTION_FAILED when pre-synthesis reduction
+            or step execution fails.
+    """
     step_obj = state.steps_by_id[step_id]
     if state.exec_record.step_states[step_id].status == ExecutionStatus.PASSED:
         return
@@ -279,15 +351,16 @@ async def execute_dag_step_wrapper(
             before_sleep=before_sleep_log(logger, logging.WARNING),
         ):
             with attempt:
+                default_exec_meta = ExecutionMetadata(
+                    workflow_version=state.workflow.version,
+                    model_registry_id=state.workflow.model_registry_id,
+                )
+                step_meta = state.exec_record.metadata if state.exec_record.metadata is not None else default_exec_meta
                 events = await node_executor.execute(
                     step=step_obj,
                     execution_id=state.execution_id,
                     workflow_id=state.workflow.id,
-                    metadata=state.exec_record.metadata
-                    or ExecutionMetadata(
-                        workflow_version=state.workflow.version,
-                        model_registry_id=state.workflow.model_registry_id,
-                    ),
+                    metadata=step_meta,
                     target_locale=state.exec_record.target_locale,
                     output_profile_id=state.exec_record.output_profile_id,
                     organization_id=state.exec_record.organization_id,

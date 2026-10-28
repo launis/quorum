@@ -40,6 +40,8 @@ from backend_v2.services.orchestrator.dag_executor.execution_committer import Ex
 from backend_v2.services.orchestrator.dag_executor.node_executor import NodeExecutor
 from backend_v2.services.orchestrator.dag_executor.step_execution_stage import (
     _extract_app_exception_error_code,
+    _parse_causal_graph_candidate,
+    _resolve_matrix_reducer,
     execute_dag_step_wrapper,
     prepare_step_strategy_context,
 )
@@ -446,9 +448,69 @@ async def test_execute_dag_step_wrapper_resumption_skip_blocked_dependency_and_e
     assert dlq_calls == [(dep_step.id, "UNEXPECTED_STEP_EXCEPTION")]
 
     # Verify _extract_app_exception_error_code branches
+    class _EnumCodeAppException(AppException):
+        @property
+        def error_code(self) -> ErrorCodes:
+            return ErrorCodes.VALIDATION_FAILED
+
+    assert _extract_app_exception_error_code(_EnumCodeAppException(message="err", status_code=400)) == (
+        "VALIDATION_FAILED"
+    )
     app_exc_details_enum = AppException(
         message="err", status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED}
     )
     assert _extract_app_exception_error_code(app_exc_details_enum) == "VALIDATION_FAILED"
     app_exc_str = AppException(message="err", status_code=400, details={"error_code": "CUSTOM_STR_CODE"})
     assert _extract_app_exception_error_code(app_exc_str) == "CUSTOM_STR_CODE"
+
+    # Verify _parse_causal_graph_candidate direct CausalGraphPayloadDTO branch and snapshot dict branch
+    causal_step_snap = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444")
+    tda_step_snap = StepRule(
+        id="stp_5555666677778888",
+        task_blueprint="stp_5555666677778888",
+        depends_on=[causal_step_snap.id],
+        causal_source_step_id=causal_step_snap.id,
+    )
+    graph_dto = CausalGraphPayloadDTO(
+        nodes=[
+            CausalNodeDTO(
+                node_id="tda_1111222233334444",
+                claim="Claim A",
+                source_quotes=("Quote A",),
+                paragraph_ref="P1",
+                status=ExecutionStatus.PASSED,
+                blame_parent_ids=[],
+                dependent_child_ids=[],
+            )
+        ],
+        edges=[],
+        root_cause_node_ids=[],
+        cycle_detected=False,
+        isolated_node_ids=[],
+        partition_node_ids={},
+        edge_root_causes=[],
+    )
+    assert _parse_causal_graph_candidate(StepOutputContentDTO(data={"graph": graph_dto}), "err") == graph_dto
+
+    state_snap_raw = _build_state(
+        steps=[causal_step_snap, tda_step_snap],
+        step_definitions={},
+        step_statuses={causal_step_snap.id: ExecutionStatus.PASSED},
+    )
+    state_snap_raw.projector.apply_delta(
+        TraceEvent(
+            step_name=causal_step_snap.id,
+            event_type="output",
+            content=StepOutputContentDTO(data={"graph": graph_dto.model_dump(mode="json")}),
+        )
+    )
+    snap_resolved, _ = await prepare_step_strategy_context(state=state_snap_raw, step_id=tda_step_snap.id)
+    assert snap_resolved is not None
+    assert len(snap_resolved.nodes) == 1
+
+    # Verify _resolve_matrix_reducer fallback when facade module is not in sys.modules
+    with patch(
+        "backend_v2.services.orchestrator.dag_executor.step_execution_stage._DAG_EXECUTOR_MODULE",
+        "__unloaded_dag_executor__",
+    ):
+        assert _resolve_matrix_reducer() is not None
