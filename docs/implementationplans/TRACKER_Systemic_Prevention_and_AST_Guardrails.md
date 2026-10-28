@@ -36,7 +36,7 @@
   - [x] @[backend_v2/database/postgres/pool.py]
   - [x] @[backend_v2/database/postgres/storage_driver.py]
   - [x] @[backend_v2/main.py]
-  - [ ] @[backend_v2/models/core_base.py]
+  - [x] @[backend_v2/models/core_base.py]
   - [ ] @[backend_v2/seed/run_seed.py]
   - [ ] @[backend_v2/services/storage.py]
   - [ ] @[backend_v2/settings.py]
