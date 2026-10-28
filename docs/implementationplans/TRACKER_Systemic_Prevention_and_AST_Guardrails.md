@@ -28,7 +28,7 @@
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[backend_v2/database/driver.py]
   - [x] @[backend_v2/database/factory.py]
   - [x] @[backend_v2/database/interfaces.py]
@@ -46,14 +46,14 @@
   - [x] @[scripts/run_e2e_variance_test.py]
   - [x] @[scripts/backend_audit_loop.py]
   - [x] @[backend_v2/tests/factories/model_factories.py]
-  - [ ] @[backend_v2/tests/unit/scripts/test_ast_guardrails.py]
+  - [x] @[backend_v2/tests/unit/scripts/test_ast_guardrails.py]
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]" --gate frontend --model gemini-4-argon-medium`. (Zero frontend `.dart` production targets in this plan).
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md] @[ki_god_code_prevention.md] @[ki_zero_permissive_typing.md] @[ki_python_314_concurrency_strictness.md] @[ki_seed_vault_verification_and_sanitization.md]
   ```
@@ -116,6 +116,7 @@
   - Step 5 (`84fb17755`): Updated Polyfactory models in `@[backend_v2/tests/factories/model_factories.py]` (`WorkflowFactory`, `SystemRulePromptBlockFactory`, `OutputProfileFactory`, `MatrixPromptBlockFactory`, `ExecutionStepFactory`, `ExecutionRecordFactory`), added `ReportArtifactFactory`, and verified `OPAQUE_STRIPE_ID_REGEX` compliance and ISTQB negative boundary cases in `@[backend_v2/tests/factories/test_model_factories.py]`.
 - Updated `@[.agents/rules/04_directory_reference.md]` and synchronized AST line boundaries across both the implementation plan and this tracker.
 - Completed `/tier8-audit-plan` (`PASSED` with 0 findings: 6,146 passed tests, 96.86% total line coverage, 0 `QGR001`–`QGR030` violations, 0 `ZORM001`–`ZORM006` violations, 0 technical debt findings across 17 targets and 65 1-hop callers).
+- Completed `/tier7-describe-architecture` As-Built Architectural Sync: synchronized all 4 target Knowledge Items (`@[ki_god_code_prevention.md]`, `@[ki_zero_permissive_typing.md]`, `@[ki_python_314_concurrency_strictness.md]`, `@[ki_seed_vault_verification_and_sanitization.md]` and their `metadata.json` manifests), registered `test_ast_guardrails.py` and `test_reconcile_storage.py` in `@[.agents/rules/04_directory_reference.md]`, and updated the 3 target architecture pillars (`@[docs/architecture/01_system_context_and_invariants.md]`, `@[docs/architecture/02_data_seeding_and_ontology.md]`, `@[docs/architecture/05_resilience_and_observability.md]`).
 
 ## Learned
 - `CausalGraphPayloadDTOFactory` requires deterministic empty defaults for `partition_node_ids` and `edge_root_causes` so `CausalGraphPayloadDTO.validate_referential_integrity` succeeds on default `.build()` calls.
@@ -123,7 +124,7 @@
 
 ## Remaining
 - Execute `### Post-Implementation Gates` (`Tier 2 Hardening (Backend)`).
-- Execute `### Documentation & Knowledge Item Update` (`/tier7-describe-architecture`).
+- Complete remaining target `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]` in `### Post-Implementation Gates` (`Tier 2 Hardening (Backend)`).
 
 ## Resume Command
 ```powershell
