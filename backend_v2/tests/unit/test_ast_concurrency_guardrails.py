@@ -90,15 +90,20 @@ def test_ast_semaphore_guardrail() -> None:
     """Verify that semaphore usage is decoupled and present only where authorized."""
     base = Path(__file__).resolve().parents[2]
     provider_path = base / "llm" / "provider" / "litellm_provider.py"
-    dag_executor_path = base / "services" / "orchestrator" / "dag_executor.py"
+    dag_executor_dir = base / "services" / "orchestrator" / "dag_executor"
 
     assert provider_path.exists(), f"Target missing: {provider_path}"
     res = scan_file_for_concurrency(provider_path)
     assert res["semaphore"] is True, f"Missing asyncio.Semaphore in {provider_path}"
 
-    assert dag_executor_path.exists(), f"Target missing: {dag_executor_path}"
-    res_dag = scan_file_for_concurrency(dag_executor_path)
-    assert res_dag["semaphore"] is False, f"Leaky asyncio.Semaphore found in {dag_executor_path}"
+    # Phase 4, Step 2: Scan all sub-modules in backend_v2/services/orchestrator/dag_executor/
+    assert dag_executor_dir.is_dir(), f"Target directory missing: {dag_executor_dir}"
+    dag_py_files = sorted(dag_executor_dir.glob("*.py"))
+    assert dag_py_files, f"No Python files found in {dag_executor_dir}"
+    for dag_file in dag_py_files:
+        res_dag = scan_file_for_concurrency(dag_file)
+        assert res_dag["semaphore"] is False, f"Leaky asyncio.Semaphore found in {dag_file}"
+        assert res_dag["event"] is False, f"Leaky asyncio.Event found in {dag_file}"
 
     decoupled_modules = [
         base / "models" / "dtos" / "engine.py",
@@ -124,8 +129,10 @@ def test_ast_semaphore_guardrail() -> None:
 def test_ast_taskgroup_guardrail() -> None:
     """Verify that TaskGroup usage is present in required modules."""
     base = Path(__file__).resolve().parents[2]
+    # Phase 4, Step 2: Verify asyncio.TaskGroup usage in workflow_bootstrap_stage.py and wave_orchestrator_stage.py
     files = [
-        base / "services" / "orchestrator" / "dag_executor.py",
+        base / "services" / "orchestrator" / "dag_executor" / "workflow_bootstrap_stage.py",
+        base / "services" / "orchestrator" / "dag_executor" / "wave_orchestrator_stage.py",
         base / "workers" / "synthesis_worker.py",
     ]
     for path in files:

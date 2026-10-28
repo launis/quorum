@@ -1,13 +1,13 @@
-"""Asynchronous Directed Acyclic Graph (DAG) Executor for V3 Workflows.
+"""Asynchronous Directed Acyclic Graph (DAG) Executor package facade.
 
 Strictly follows Event Sourcing, Fail-Fast principles (RFC 7807) and O(1) Concurrency.
-God object refactored into: DAGOrchestrator, NodeExecutor, ExecutionCommitter.
+Orchestrates workflow execution across causal_tda_fusion, execution_committer, node_executor,
+workflow_bootstrap_stage, step_execution_stage, and wave_orchestrator_stage.
 """
 
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 from typing import Any
 
 from backend_v2.core.hook_registry import hook_registry as hook_registry
@@ -34,63 +34,35 @@ from backend_v2.services.orchestrator.strategies.registry import (
 )
 from backend_v2.settings import get_settings as get_settings
 
-# Phase 1, Phase 2 & Phase 3: Declare __path__ submodule bridging and explicit redundant re-exports
-__path__: list[str] = [str(Path(__file__).resolve().with_suffix(""))]
-
-from backend_v2.services.orchestrator.dag_executor.causal_tda_fusion import (
+# Phase 4, Step 1: Explicit redundant re-exports for package facade and test patch compatibility
+from .causal_tda_fusion import (
     compute_causal_tda_fusion_result as compute_causal_tda_fusion_result,
 )
-from backend_v2.services.orchestrator.dag_executor.causal_tda_fusion import (
-    transform_causal_nodes_to_atoms as transform_causal_nodes_to_atoms,
-)
-from backend_v2.services.orchestrator.dag_executor.execution_committer import (
-    ExecutionCommitter as ExecutionCommitter,
-)
-from backend_v2.services.orchestrator.dag_executor.execution_committer import (
-    ExecutionRecordUpdate as ExecutionRecordUpdate,
-)
-from backend_v2.services.orchestrator.dag_executor.execution_committer import (
-    FrozenContextUpdate as FrozenContextUpdate,
-)
-from backend_v2.services.orchestrator.dag_executor.execution_committer import (
-    StepOutputContentValue as StepOutputContentValue,
-)
-from backend_v2.services.orchestrator.dag_executor.node_executor import (
-    NodeExecutor as NodeExecutor,
-)
-from backend_v2.services.orchestrator.dag_executor.step_execution_stage import (
-    execute_dag_step_wrapper as execute_dag_step_wrapper,
-)
-from backend_v2.services.orchestrator.dag_executor.step_execution_stage import (
-    prepare_step_strategy_context as prepare_step_strategy_context,
-)
-from backend_v2.services.orchestrator.dag_executor.wave_orchestrator_stage import (
+from .causal_tda_fusion import transform_causal_nodes_to_atoms as transform_causal_nodes_to_atoms
+from .execution_committer import ExecutionCommitter as ExecutionCommitter
+from .execution_committer import ExecutionRecordUpdate as ExecutionRecordUpdate
+from .execution_committer import FrozenContextUpdate as FrozenContextUpdate
+from .execution_committer import StepOutputContentValue as StepOutputContentValue
+from .node_executor import NodeExecutor as NodeExecutor
+from .step_execution_stage import execute_dag_step_wrapper as execute_dag_step_wrapper
+from .step_execution_stage import prepare_step_strategy_context as prepare_step_strategy_context
+from .wave_orchestrator_stage import (
     execute_topological_waves_stage as execute_topological_waves_stage,
 )
-from backend_v2.services.orchestrator.dag_executor.wave_orchestrator_stage import (
+from .wave_orchestrator_stage import (
     finalize_step_output_and_commit as finalize_step_output_and_commit,
 )
-from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
-    WorkflowExecutionState as WorkflowExecutionState,
-)
-from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
+from .workflow_bootstrap_stage import WorkflowExecutionState as WorkflowExecutionState
+from .workflow_bootstrap_stage import (
     bootstrap_workflow_execution_state as bootstrap_workflow_execution_state,
 )
-from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
-    dlq_fallback_step_exceptions as dlq_fallback_step_exceptions,
-)
-from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
+from .workflow_bootstrap_stage import dlq_fallback_step_exceptions as dlq_fallback_step_exceptions
+from .workflow_bootstrap_stage import (
     dlq_handle_progress_commit_error as dlq_handle_progress_commit_error,
 )
-from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
-    dlq_record_step_failure as dlq_record_step_failure,
-)
-from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
-    execute_rag_preflight_stage as execute_rag_preflight_stage,
-)
-from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
-    safe_commit_execution_state as safe_commit_execution_state,
-)
+from .workflow_bootstrap_stage import dlq_record_step_failure as dlq_record_step_failure
+from .workflow_bootstrap_stage import execute_rag_preflight_stage as execute_rag_preflight_stage
+from .workflow_bootstrap_stage import safe_commit_execution_state as safe_commit_execution_state
 
 __all__ = [
     "DAGExecutor",
@@ -179,7 +151,7 @@ class DAGExecutor:
         self.node_executor = NodeExecutor(deps=self.deps)
         self._causal_cohesion_evaluator = CausalCohesionEvaluator()
 
-    # Phase 3, Step 2: Delegate step execution and topological wave orchestration
+    # Phase 4, Step 1: Delegate workflow bootstrap and topological wave execution
     async def execute_workflow(
         self,
         execution_id: str,

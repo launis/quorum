@@ -148,7 +148,6 @@ RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset(
         "backend_v2/services/llm_task_executor.py",
         # Orchestrator and DAG
         "backend_v2/services/orchestrator/context_router.py",
-        "backend_v2/services/orchestrator/dag_executor.py",
         "backend_v2/services/orchestrator/dag_executor/execution_committer.py",
         "backend_v2/services/orchestrator/dag_executor/step_execution_stage.py",
         "backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py",
@@ -178,7 +177,6 @@ RESIDUAL_FUTURE_PHASE_QGR028_FILES: frozenset[str] = frozenset(
         "backend_v2/services/execution/ingress_service.py",
         "backend_v2/services/execution/override_service.py",
         "backend_v2/services/execution/resumption_service.py",
-        "backend_v2/services/orchestrator/dag_executor.py",
         "backend_v2/services/orchestrator/dag_executor/step_execution_stage.py",
         "backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py",
         "backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py",
@@ -786,6 +784,17 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "QGR017",
                 "Banned legacy God file `backend_v2/llm/provider.py` detected.",
                 "LLM provider functionality must reside exclusively in the modular package `backend_v2.llm.provider` (`backend_v2/llm/provider/`).",
+                severity=GuardrailSeverity.FATAL,
+            )
+        elif norm_path == "backend_v2/services/orchestrator/dag_executor.py" or norm_path.endswith(
+            "/backend_v2/services/orchestrator/dag_executor.py"
+        ):
+            # Phase 4, Step 2: Lock retired path backend_v2/services/orchestrator/dag_executor.py under QGR017
+            self._add_violation(
+                node,
+                "QGR017",
+                "Banned legacy God file `backend_v2/services/orchestrator/dag_executor.py` detected.",
+                "DAG orchestration functionality must reside exclusively in the modular package `backend_v2.services.orchestrator.dag_executor` (`backend_v2/services/orchestrator/dag_executor/`).",
                 severity=GuardrailSeverity.FATAL,
             )
         else:

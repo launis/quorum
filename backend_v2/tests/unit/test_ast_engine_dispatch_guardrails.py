@@ -398,22 +398,23 @@ def test_source_verification_hook_registered_and_safe() -> None:
 
 
 def test_node_strategy_registry_ast_has_no_procedural_string_routing() -> None:
-    """Verify dag_executor.py and node_executor.py contain zero procedural string comparisons for step types."""
-    dag_file = Path("backend_v2/services/orchestrator/dag_executor.py")
-    assert dag_file.exists(), f"Missing target file: {dag_file}"
+    """Verify dag_executor package contains zero procedural string comparisons for step types."""
+    # Phase 4, Step 2: Scan all sub-modules in backend_v2/services/orchestrator/dag_executor/
+    dag_dir = Path("backend_v2/services/orchestrator/dag_executor")
+    assert dag_dir.is_dir(), f"Missing target package directory: {dag_dir}"
+    dag_files = sorted(dag_dir.glob("*.py"))
+    assert dag_files, f"No Python files found in {dag_dir}"
 
-    res = scan_file_for_dag_routing(dag_file)
-    assert res.has_procedural_string_routing is False, (
-        f"Procedural string routing found in {dag_file}: {res.procedural_string_comparisons}"
-    )
+    for dag_file in dag_files:
+        res = scan_file_for_dag_routing(dag_file)
+        assert res.has_procedural_string_routing is False, (
+            f"Procedural string routing found in {dag_file}: {res.procedural_string_comparisons}"
+        )
 
-    node_file = Path("backend_v2/services/orchestrator/dag_executor/node_executor.py")
-    target_dispatch_file = node_file if node_file.exists() else dag_file
-    res_dispatch = scan_file_for_dag_routing(target_dispatch_file)
-    assert res_dispatch.has_procedural_string_routing is False, (
-        f"Procedural string routing found in {target_dispatch_file}: {res_dispatch.procedural_string_comparisons}"
-    )
-    assert res_dispatch.uses_step_type_enum is True, f"{target_dispatch_file} must utilize StepType enum for dispatch"
+    node_file = dag_dir / "node_executor.py"
+    assert node_file.exists(), f"Missing target dispatch file: {node_file}"
+    res_dispatch = scan_file_for_dag_routing(node_file)
+    assert res_dispatch.uses_step_type_enum is True, f"{node_file} must utilize StepType enum for dispatch"
 
 
 def test_llm_strategy_ast_has_no_frozen_ctx_generated_schemas_mutation() -> None:

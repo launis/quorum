@@ -1644,6 +1644,34 @@ def test_qgr017_banned_provider_god_file_path_fatal() -> None:
     assert "backend_v2/llm/provider.py" in qgr017[0].message
 
 
+# Phase 4, Step 2: Test Contracts for QGR017 on backend_v2/services/orchestrator/dag_executor
+def test_qgr017_modular_dag_executor_package_allowed() -> None:
+    """QGR017: scanning backend_v2/services/orchestrator/dag_executor/__init__.py and its submodules produces zero QGR017 violations."""
+    code = "from backend_v2.services.orchestrator.dag_executor import DAGExecutor\n"
+    for pkg_file in (
+        "backend_v2/services/orchestrator/dag_executor/__init__.py",
+        "backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py",
+        "backend_v2/services/orchestrator/dag_executor/execution_committer.py",
+        "backend_v2/services/orchestrator/dag_executor/node_executor.py",
+        "backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py",
+        "backend_v2/services/orchestrator/dag_executor/step_execution_stage.py",
+        "backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py",
+    ):
+        violations = _scan_snippet(code, filepath=pkg_file)
+        qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+        assert len(qgr017) == 0
+
+
+def test_qgr017_banned_dag_executor_god_file_path_fatal() -> None:
+    """QGR017: scanning retired path backend_v2/services/orchestrator/dag_executor.py triggers a FATAL QGR017 violation."""
+    code = "x = 1\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/orchestrator/dag_executor.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2/services/orchestrator/dag_executor.py" in qgr017[0].message
+
+
 def test_qgr017_eradicated_mcp_wrappers_fatal() -> None:
     """QGR017: importing or scanning eradicated legacy MCP static wrapper modules emits FATAL violation."""
     banned_imports = [
