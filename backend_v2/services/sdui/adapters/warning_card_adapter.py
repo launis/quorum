@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """Warning Card SDUI Adapter.
 
-Transforms system events (such as data starvation) into polymorphic AlertBlocks
+Transforms system data starvation events into polymorphic AlertBlocks
 for Server-Driven UI rendering. Visual rules are co-located as a module-level
 WARNING_CARD_RULES DTO to enforce separation of presentation from logic.
 """
+
+from __future__ import annotations
 
 import logging
 
