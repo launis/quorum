@@ -37,6 +37,7 @@ from scripts.auto_hardening_runner import (
     run_hardening_pipeline,
     run_macro_quality_gate,
     run_quality_gate,
+    unquote_git_path,
 )
 
 
@@ -1127,3 +1128,26 @@ def test_resilient_backtick_tracker_parsing_and_marking(tmp_path: Path) -> None:
     assert "- [x] [NEW] `@[backend_v2/services/file2.py]`" in updated
     assert "- [x] `[MODIFY] @[backend_v2/services/file3.py#L1-L10]`" in updated
     assert "- [x] **[OK] Tier 2 Hardening (Backend)**" in updated
+
+
+def test_unquote_git_path_and_capture_workspace_snapshot_octal_filtering(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """TC-AHR-043: Verify unquote_git_path decodes octal escapes and capture_workspace_snapshot filters PUA paths."""
+    assert unquote_git_path('"_requested\\357\\200\\272"') == "_requested\uf03a"
+    assert unquote_git_path('"docs/my\\tfile\\"1\\".md"') == 'docs/my\tfile"1".md'
+    assert unquote_git_path("old/file.py -> new/file.py") == "new/file.py"
+
+    porcelain_out = (
+        " M backend_v2/services/target.py\n"
+        ' D "_requested\\357\\200\\272"\n'
+        "?? backend_v2/services/new_file.py\n"
+        '?? "corrupt\\357\\200\\272.txt"\n'
+    )
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *a, **k: subprocess.CompletedProcess(args=[], returncode=0, stdout=porcelain_out, stderr=""),
+    )
+    snap = capture_workspace_snapshot(tmp_path)
+    assert snap.modified_files == ["backend_v2/services/target.py"]
+    assert snap.untracked_files == ["backend_v2/services/new_file.py"]

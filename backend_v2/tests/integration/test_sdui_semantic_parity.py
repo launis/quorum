@@ -267,7 +267,10 @@ async def test_sdui_semantic_parity() -> None:
         # Step 5: Extract PDF text
         import pymupdf4llm
 
-        md_text = pymupdf4llm.to_markdown(str(pdf_path))
+        try:
+            md_text = pymupdf4llm.to_markdown(str(pdf_path))
+        finally:
+            pymupdf4llm.use_layout(False)
 
         # Step 6: Compare
         flutter_tokens = TypeAdapter(list[SduiSemanticTokenDTO]).validate_json(dump_path.read_text(encoding="utf-8"))

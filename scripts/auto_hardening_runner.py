@@ -117,6 +117,7 @@ __all__ = [
     "run_hardening_pipeline",
     "run_macro_quality_gate",
     "run_quality_gate",
+    "unquote_git_path",
 ]
 
 
@@ -285,6 +286,54 @@ def clean_path_arg(val: str | Path | None) -> Path | None:
     if not raw_str:
         return None
     return Path(raw_str)
+
+
+def unquote_git_path(raw_path: str) -> str:
+    """Decode and strip C-quoted octal escape sequences from a git status --porcelain path.
+
+    Args:
+        raw_path: Raw path entry extracted from git status --porcelain output.
+
+    Returns:
+        Unquoted UTF-8 path string with forward slashes.
+    """
+    cleaned = raw_path.strip()
+    if " -> " in cleaned:
+        cleaned = cleaned.split(" -> ", 1)[1].strip()
+    if len(cleaned) >= 2 and cleaned.startswith('"') and cleaned.endswith('"'):
+        inner = cleaned[1:-1]
+        byte_buf = bytearray()
+        idx = 0
+        n = len(inner)
+        escape_map = {"n": ord("\n"), "t": ord("\t"), "r": ord("\r"), '"': ord('"'), "\\": ord("\\")}
+        while idx < n:
+            ch = inner[idx]
+            if ch == "\\" and idx + 1 < n:
+                nxt = inner[idx + 1]
+                if idx + 3 < n and all(c in "01234567" for c in inner[idx + 1 : idx + 4]):
+                    byte_buf.append(int(inner[idx + 1 : idx + 4], 8))
+                    idx += 4
+                    continue
+                if nxt in escape_map:
+                    byte_buf.append(escape_map[nxt])
+                    idx += 2
+                    continue
+            byte_buf.extend(ch.encode("utf-8"))
+            idx += 1
+        cleaned = byte_buf.decode("utf-8", errors="replace")
+    return cleaned.replace("\\", "/")
+
+
+def _has_invalid_git_path_chars(path_str: str) -> bool:
+    """Check whether a decoded git path contains control or Private Use Area characters.
+
+    Args:
+        path_str: Unquoted git path string.
+
+    Returns:
+        True if the path contains invalid control characters or Unicode Private Use Area codepoints.
+    """
+    return any(ord(c) < 32 or (0xE000 <= ord(c) <= 0xF8FF) for c in path_str)
 
 
 def parse_tracker_unhardened_targets(tracker_content: str, gate: HardeningGate) -> list[str]:
@@ -781,10 +830,9 @@ def capture_workspace_snapshot(repo_root: Path | None = None) -> WorkspaceSnapsh
         if not line or len(line) < 3:
             continue
         status_code = line[:2]
-        filepath = line[3:].strip()
-        if filepath.startswith('"') and filepath.endswith('"'):
-            filepath = filepath[1:-1]
-        norm_path = filepath.replace("\\", "/")
+        norm_path = unquote_git_path(line[3:].strip())
+        if not norm_path or _has_invalid_git_path_chars(norm_path):
+            continue
         if status_code == "??":
             untracked.append(norm_path)
         else:
@@ -1030,7 +1078,10 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
     skipped_count = total_targets - processed_count
 
     if args.dry_run:
-        print(f"\n{ANSIColors.CYAN}--- DRY RUN: Target Hardening Queue ({processed_count} files) ---{ANSIColors.RESET}")
+        print(
+            f"\n{ANSIColors.CYAN}--- DRY RUN: Target Hardening Queue ({processed_count} files) ---{ANSIColors.RESET}",
+            flush=True,
+        )
         micro_flags = " --micro --no-logfire" if args.micro_audit else ""
         for idx, target in enumerate(targets_to_run, 1):
             is_backend = args.gate == HardeningGate.BACKEND or (
@@ -1041,7 +1092,7 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
                 if is_backend
                 else f"uv run python scripts/flutter_audit_loop.py {target} --build"
             )
-            print(f"  [{idx}/{processed_count}] {target} -> Planned: {gate_cmd}")
+            print(f"  [{idx}/{processed_count}] {target} -> Planned: {gate_cmd}", flush=True)
         return HardeningRunSummaryDTO(
             total_targets=total_targets,
             processed_count=processed_count,
@@ -1055,26 +1106,41 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
     success_count = 0
     failure_count = 0
 
-    print(f"\n{ANSIColors.BOLD}Starting Autonomous Hardening Queue: {processed_count} targets{ANSIColors.RESET}")
+    print(
+        f"\n{ANSIColors.BOLD}Starting Autonomous Hardening Queue: {processed_count} targets{ANSIColors.RESET}",
+        flush=True,
+    )
 
     for idx, target in enumerate(targets_to_run, 1):
-        print(f"\n{ANSIColors.CYAN}[{idx}/{processed_count}] Target: {target} ({args.gate.value}){ANSIColors.RESET}")
+        print(
+            f"\n{ANSIColors.CYAN}[{idx}/{processed_count}] Target: {target} ({args.gate.value}){ANSIColors.RESET}",
+            flush=True,
+        )
         iter_res = process_target_with_retries(target, args, repo_root=root)
         iterations.append(iter_res)
 
         if iter_res.success:
             success_count += 1
             dur = iter_res.duration_seconds
-            print(f"  {ANSIColors.GREEN}✅ SUCCESS: {target} (att: {iter_res.attempts}, {dur:.1f}s){ANSIColors.RESET}")
+            print(
+                f"  {ANSIColors.GREEN}✅ SUCCESS: {target} (att: {iter_res.attempts}, {dur:.1f}s){ANSIColors.RESET}",
+                flush=True,
+            )
         else:
             failure_count += 1
             dur = iter_res.duration_seconds
-            print(f"  {ANSIColors.RED}❌ FAILED: {target} (att: {iter_res.attempts}, {dur:.1f}s){ANSIColors.RESET}")
+            print(
+                f"  {ANSIColors.RED}❌ FAILED: {target} (att: {iter_res.attempts}, {dur:.1f}s){ANSIColors.RESET}",
+                flush=True,
+            )
             if iter_res.error_message and args.verbose:
-                print(f"     Error summary: {iter_res.error_message[:400]}")
+                print(f"     Error summary: {iter_res.error_message[:400]}", flush=True)
 
             if args.fail_fast and not args.continue_on_failure:
-                print(f"{ANSIColors.YELLOW}⚡ Circuit breaker tripped (fail-fast). Halting queue.{ANSIColors.RESET}")
+                print(
+                    f"{ANSIColors.YELLOW}⚡ Circuit breaker tripped (fail-fast). Halting queue.{ANSIColors.RESET}",
+                    flush=True,
+                )
                 break
 
     # Step 2: Execute universal macro-audit once across all hardened backend targets at queue completion
@@ -1082,16 +1148,17 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
     if args.micro_audit and successful_backend_targets and (failure_count == 0 or args.continue_on_failure):
         print(
             f"\n{ANSIColors.CYAN}🔍 Executing Final Macro-Audit Completion Gate across "
-            f"{len(successful_backend_targets)} hardened backend target(s)...{ANSIColors.RESET}"
+            f"{len(successful_backend_targets)} hardened backend target(s)...{ANSIColors.RESET}",
+            flush=True,
         )
         macro_res = run_macro_quality_gate(successful_backend_targets, args.timeout_seconds, repo_root=root)
         if macro_res.success:
-            print(f"  {ANSIColors.GREEN}✅ Final Macro-Audit Completion Gate PASSED.{ANSIColors.RESET}")
+            print(f"  {ANSIColors.GREEN}✅ Final Macro-Audit Completion Gate PASSED.{ANSIColors.RESET}", flush=True)
         else:
             failure_count += 1
-            print(f"  {ANSIColors.RED}❌ Final Macro-Audit Completion Gate FAILED!{ANSIColors.RESET}")
+            print(f"  {ANSIColors.RED}❌ Final Macro-Audit Completion Gate FAILED!{ANSIColors.RESET}", flush=True)
             if macro_res.output:
-                print(macro_res.output)
+                print(macro_res.output, flush=True)
 
     return HardeningRunSummaryDTO(
         total_targets=total_targets,

@@ -144,6 +144,30 @@ def clear_litellm_provider_caches() -> Generator[None]:
     LiteLLMProvider._httpx_clients.clear()
 
 
+def _cleanup_pymupdf_layout() -> None:
+    """Helper to cleanly reset PyMuPDF layout state without reflection."""
+    if "pymupdf4llm" in sys.modules:
+        import pymupdf4llm
+
+        pymupdf4llm.use_layout(False)
+    if "pymupdf" in sys.modules:
+        import pymupdf
+
+        pymupdf._get_layout = None
+
+
+@pytest.fixture(autouse=True)
+def reset_pymupdf_layout_state() -> Generator[None]:
+    """Ensures PyMuPDF layout analyzer is deactivated before and after each test.
+
+    This prevents ML layout engine activation from suppressing native vector table
+    and drawing detection in subsequent tests.
+    """
+    _cleanup_pymupdf_layout()
+    yield
+    _cleanup_pymupdf_layout()
+
+
 def make_llm_message(
     role: Literal["system", "user", "assistant", "tool"],
     content: str,

@@ -31,8 +31,6 @@ from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.services.orchestrator.dag_executor.causal_tda_fusion import compute_causal_tda_fusion_result
 from backend_v2.services.orchestrator.dag_executor.execution_committer import (
     ExecutionCommitter,
-    ExecutionRecordUpdate,
-    FrozenContextUpdate,
 )
 from backend_v2.services.orchestrator.dag_executor.node_executor import NodeExecutor
 from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
@@ -51,24 +49,13 @@ _DAG_EXECUTOR_MODULE = "backend_v2.services.orchestrator.dag_executor"
 
 
 def _resolve_settings() -> Any:
-    """Resolve settings using dag_executor.get_settings when present for patch compatibility.
-
-    Returns:
-        Active Settings instance resolved from the dag_executor package or global settings getter.
-    """
+    """Resolve settings using dag_executor.get_settings when present for patch compatibility."""
     getter = sys.modules[_DAG_EXECUTOR_MODULE].get_settings if _DAG_EXECUTOR_MODULE in sys.modules else get_settings
     return getter()
 
 
 def _extract_evaluated_atoms(events: list[TraceEvent]) -> list[AtomResultDTO]:
-    """Extract evaluated AtomResultDTO items from step output TraceEvents.
-
-    Args:
-        events: List of TraceEvent instances emitted by a step execution.
-
-    Returns:
-        List of validated AtomResultDTO instances extracted from the trace events.
-    """
+    """Extract evaluated AtomResultDTO items from step output TraceEvents."""
     evaluated_atoms: list[AtomResultDTO] = []
     atom_adapter = TypeAdapter(AtomResultDTO)
     for evt in events:
@@ -87,20 +74,9 @@ def _extract_evaluated_atoms(events: list[TraceEvent]) -> list[AtomResultDTO]:
 async def _commit_record_snapshot(
     committer: ExecutionCommitter, rec: ExecutionRecord, error: str | None = None
 ) -> None:
-    """Persist ExecutionRecord trace, status, step_states, and context_variables via ExecutionCommitter.
-
-    Args:
-        committer: ExecutionCommitter instance managing repository writes.
-        rec: Current ExecutionRecord state snapshot to persist.
-        error: Optional terminal error message string to persist on the execution record.
-    """
+    """Persist ExecutionRecord trace, status, step_states, and context_variables via ExecutionCommitter."""
     await committer.commit_trace(
-        trace=rec.execution_trace,
-        status=rec.status,
-        step_states=rec.step_states,
-        error=error,
-        context_variables=rec.context_variables,
-        steps=rec.steps,
+        rec.execution_trace, rec.status, rec.step_states, error, None, rec.context_variables, rec.steps
     )
 
 
@@ -112,16 +88,7 @@ def _append_causal_fusion_and_cohesion_events(
     upstream_graph: CausalGraphPayloadDTO,
     causal_cohesion_evaluator: CausalCohesionEvaluator | None,
 ) -> None:
-    """Evaluate causal TDA fusion and BARS causal cohesion, appending output and decision TraceEvents.
-
-    Args:
-        state: Active WorkflowExecutionState holding workflow rules and global context variables.
-        step_id: Canonical Opaque Stripe ID of the step being finalized.
-        src_step_id: Canonical Opaque Stripe ID of the upstream causal source step.
-        events: Mutable list of step TraceEvents to append fusion and cohesion events into.
-        upstream_graph: Upstream CausalGraphPayloadDTO resolved for causal fusion.
-        causal_cohesion_evaluator: Optional CausalCohesionEvaluator instance override.
-    """
+    """Evaluate causal TDA fusion and BARS causal cohesion, appending output and decision TraceEvents."""
     settings = _resolve_settings()
     evaluated_atoms = _extract_evaluated_atoms(events)
     atoms_arg: list[AtomResultDTO] | None = None
@@ -142,6 +109,7 @@ def _append_causal_fusion_and_cohesion_events(
             strictness_level=state.workflow.default_strictness_level,
             matrix_block_id=settings.causal_cohesion_matrix_block_id,
         )
+        m_dump = eval_dto.matrix_output.model_dump(mode="json", exclude_none=True)
         events.append(
             TraceEvent(
                 step_name=src_step_id,
@@ -149,7 +117,7 @@ def _append_causal_fusion_and_cohesion_events(
                 content={
                     "results": eval_dto.atom_results,
                     "hydrated_references": eval_dto.hydrated_references,
-                    eval_dto.matrix_block_id: eval_dto.matrix_output.model_dump(mode="json", exclude_none=True),
+                    eval_dto.matrix_block_id: m_dump,
                 },
             )
         )
@@ -159,15 +127,7 @@ def _append_causal_fusion_and_cohesion_events(
 
 
 def _merge_global_context_vars(state: WorkflowExecutionState, parsed: GlobalContextVarsDTO) -> bool:
-    """Merge validated GlobalContextVarsDTO fields from a decision event into state.
-
-    Args:
-        state: Active WorkflowExecutionState whose global_context_vars will be updated.
-        parsed: Validated GlobalContextVarsDTO containing context variable updates.
-
-    Returns:
-        True if global_context_vars was updated, False otherwise.
-    """
+    """Merge validated GlobalContextVarsDTO fields from a decision event into state."""
     has_gvar_updates = False
     if parsed.evaluative_matrices is not None:
         cur = state.global_context_vars.evaluative_matrices
@@ -185,15 +145,7 @@ def _merge_global_context_vars(state: WorkflowExecutionState, parsed: GlobalCont
 def _deduplicate_mcp_traces(
     current_traces: list[MCPAuditTrace], step_mcp_traces: list[MCPAuditTrace]
 ) -> list[MCPAuditTrace]:
-    """Deduplicate step MCPAuditTrace entries against existing FrozenContext traces by ID.
-
-    Args:
-        current_traces: Existing list of MCPAuditTrace records from FrozenContext.
-        step_mcp_traces: Newly emitted MCPAuditTrace records from the current step.
-
-    Returns:
-        List of newly discovered unique MCPAuditTrace records to append.
-    """
+    """Deduplicate step MCPAuditTrace entries against existing FrozenContext traces by ID."""
     seen_ids: set[str] = {t.id for t in current_traces if t.id}
     new_unique: list[MCPAuditTrace] = []
     for trace_item in step_mcp_traces:
@@ -205,34 +157,22 @@ def _deduplicate_mcp_traces(
 
 
 async def _apply_step_events_to_record(
-    state: WorkflowExecutionState,
-    step_id: str,
-    events: list[TraceEvent],
-    has_error_evt: bool,
+    state: WorkflowExecutionState, step_id: str, events: list[TraceEvent], has_error_evt: bool
 ) -> None:
-    """Apply step TraceEvents, context updates, MCP traces, and schemas to state.exec_record.
-
-    Args:
-        state: Active WorkflowExecutionState mutated under state.update_lock.
-        step_id: Canonical Opaque Stripe ID of the completed step.
-        events: List of TraceEvent instances emitted by the step.
-        has_error_evt: Whether any event in events is an ErrorTraceEvent.
-    """
+    """Apply step TraceEvents, context updates, MCP traces, and schemas to state.exec_record."""
     _update_lock = state.update_lock
     async with _update_lock:
         step_mcp_traces: list[MCPAuditTrace] = []
         step_generated_schemas: dict[str, JsonValue] = {}
         new_cv = state.exec_record.context_variables
-        has_cv_updates = False
-        has_gvar_updates = False
+        has_cv_updates, has_gvar_updates = False, False
         for evt in events:
             state.exec_record.execution_trace.append(evt)
             state.projector.apply_delta(evt)
             is_ctx_upd = evt.event_type == "decision" and bool(evt.metadata and evt.metadata.is_context_update)
             if is_ctx_upd and evt.content is not None and not isinstance(evt.content, (str, int, float, bool, list)):
                 content_dict = dict(evt.content)
-                new_cv = new_cv.with_update(**content_dict)
-                has_cv_updates = True
+                new_cv, has_cv_updates = new_cv.with_update(**content_dict), True
                 gvar_data = {k: v for k, v in content_dict.items() if k in GlobalContextVarsDTO.model_fields}
                 if gvar_data and _merge_global_context_vars(state, GlobalContextVarsDTO.model_validate(gvar_data)):
                     has_gvar_updates = True
@@ -241,31 +181,45 @@ async def _apply_step_events_to_record(
             elif evt.metadata and evt.metadata.generated_schema is not None:
                 step_generated_schemas[evt.step_name] = evt.metadata.generated_schema
         schema_manifest = GeneratedSchemaManifestDTO(schemas=step_generated_schemas)
-        updates: dict[str, ExecutionRecordUpdate] = {}
+
         if has_cv_updates:
-            updates["context_variables"] = new_cv
+            state.exec_record = state.exec_record.model_copy(update={"context_variables": new_cv})
+
         if has_gvar_updates:
             default_meta = ExecutionMetadata(
                 workflow_version=state.workflow.version, model_registry_id=state.workflow.model_registry_id
             )
             base_meta = state.exec_record.metadata if state.exec_record.metadata is not None else default_meta
-            updates["metadata"] = base_meta.model_copy(update={"global_context_vars": state.global_context_vars})
-        fc_updates: dict[str, FrozenContextUpdate] = {}
+            updated_meta = base_meta.model_copy(update={"global_context_vars": state.global_context_vars})
+            state.exec_record = state.exec_record.model_copy(update={"metadata": updated_meta})
+
         base_fc = state.exec_record.frozen_context if state.exec_record.frozen_context is not None else FrozenContext()
+        new_mcp_traces = list(base_fc.mcp_tool_audit)
         if step_mcp_traces:
-            current_traces = list(base_fc.mcp_tool_audit)
-            new_unique = _deduplicate_mcp_traces(current_traces, step_mcp_traces)
+            new_unique = _deduplicate_mcp_traces(new_mcp_traces, step_mcp_traces)
             if new_unique:
-                fc_updates["mcp_tool_audit"] = current_traces + new_unique
+                new_mcp_traces = new_mcp_traces + new_unique
+
+        merged_schemas = base_fc.generated_schemas.schemas
         if schema_manifest.schemas:
             merged_schemas = {**base_fc.generated_schemas.schemas, **schema_manifest.schemas}
-            fc_updates["generated_schemas"] = GeneratedSchemaManifestDTO(schemas=merged_schemas)
-        if fc_updates:
-            updates["frozen_context"] = base_fc.model_copy(update=fc_updates)
-        step_status = ExecutionStatus.FAILED if has_error_evt else ExecutionStatus.PASSED
-        step_prog = 100 if step_status == ExecutionStatus.PASSED else None
-        if updates:
-            state.exec_record = state.exec_record.model_copy(update=updates)
+
+        if new_mcp_traces != list(base_fc.mcp_tool_audit) or merged_schemas != base_fc.generated_schemas.schemas:
+            updated_fc = base_fc.model_copy(
+                update={
+                    "mcp_tool_audit": new_mcp_traces,
+                    "generated_schemas": GeneratedSchemaManifestDTO(schemas=merged_schemas),
+                }
+            )
+            state.exec_record = state.exec_record.model_copy(update={"frozen_context": updated_fc})
+
+        if has_error_evt:
+            step_status = ExecutionStatus.FAILED
+            step_prog = None
+        else:
+            step_status = ExecutionStatus.PASSED
+            step_prog = 100
+
         state.exec_record = state.exec_record.transition_step(step_id=step_id, status=step_status, progress=step_prog)
 
 
@@ -293,12 +247,7 @@ async def finalize_step_output_and_commit(
     step_obj = state.steps_by_id[step_id]
     if step_obj.causal_source_step_id is not None and upstream_graph is not None:
         _append_causal_fusion_and_cohesion_events(
-            state=state,
-            step_id=step_id,
-            src_step_id=step_obj.causal_source_step_id,
-            events=events,
-            upstream_graph=upstream_graph,
-            causal_cohesion_evaluator=causal_cohesion_evaluator,
+            state, step_id, step_obj.causal_source_step_id, events, upstream_graph, causal_cohesion_evaluator
         )
     has_error_evt = any(isinstance(evt, ErrorTraceEvent) for evt in events)
     await _apply_step_events_to_record(state=state, step_id=step_id, events=events, has_error_evt=has_error_evt)
@@ -322,18 +271,7 @@ async def _transition_and_commit_wave_failure(
     primary_err: BaseException,
     dlq_on_step_failure: Callable[[str, str, BaseException], None],
 ) -> None:
-    """Transition wave and downstream steps on TaskGroup failure and commit the failed record snapshot.
-
-    Args:
-        state: Active WorkflowExecutionState mutated under state.update_lock.
-        committer: ExecutionCommitter persisting the failed execution snapshot.
-        orch_span: Active OpenTelemetry span for dag.orchestration.
-        waves: Complete list of topological step waves.
-        wave_idx: Index of the failing topological wave.
-        wave: List of StepRule instances in the failing wave.
-        primary_err: Primary exception extracted from the TaskGroup ExceptionGroup.
-        dlq_on_step_failure: Callback recording dead-letter step failure telemetry.
-    """
+    """Transition wave and downstream steps on TaskGroup failure and commit the failed record snapshot."""
     async with state.update_lock:
         for s_rule in wave:
             curr_st = state.exec_record.step_states[s_rule.id]
@@ -364,14 +302,7 @@ async def _transition_and_commit_unexpected_error(
     orch_span: otel_trace.Span,
     unexpected_err: Exception,
 ) -> None:
-    """Transition running steps to FAILED on outer orchestration error and commit state.
-
-    Args:
-        state: Active WorkflowExecutionState mutated under state.update_lock.
-        committer: ExecutionCommitter persisting the failed execution snapshot.
-        orch_span: Active OpenTelemetry span for dag.orchestration.
-        unexpected_err: Exception caught at the outer orchestration boundary.
-    """
+    """Transition running steps to FAILED on outer orchestration error and commit state."""
     async with state.update_lock:
         for s in state.exec_record.steps:
             if s.status == ExecutionStatus.RUNNING:
@@ -412,8 +343,7 @@ async def execute_topological_waves_stage(
         Updated ExecutionRecord after all topological waves complete.
 
     Raises:
-        AppException: Triggered with WORKFLOW_EXECUTION_FAILED (or upstream domain error code) when
-            a wave fails, any step terminates in FAILED/BLOCKED status, or preflight/orchestration fails.
+        AppException: Triggered with WORKFLOW_EXECUTION_FAILED when a wave or step fails.
     """
     tracer = get_tracer(__name__)
     orch_stack = contextlib.ExitStack()

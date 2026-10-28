@@ -183,11 +183,18 @@ class TrackAConfig(BaseModel):
 # Dual-Track Rubric Architecture: Track A Developmental Matrices configuration
 DUAL_TRACK_A_CONFIG: dict[str, TrackAConfig] = {
     "blk_f921c7c0989b47e8": TrackAConfig(
-        scale_name=I18nText(translations={"fi": "Muistaminen ja nimeäminen (Remembering)", "en": "Remembering and Naming (Novice)"}),
+        scale_name=I18nText(
+            translations={"fi": "Muistaminen ja nimeäminen (Remembering)", "en": "Remembering and Naming (Novice)"}
+        ),
         ai_label="NOVICE - DECLARATIVE RECALL",
         claim_updates={
             "tda_b36d3ec7b1f94fe9ad4b45795a8a104b": ClaimUpdateConfig(
-                label=I18nText(translations={"fi": "Tiedon mekaaninen toistaminen ja nimeäminen", "en": "Mechanical Rote Recall and Naming"}),
+                label=I18nText(
+                    translations={
+                        "fi": "Tiedon mekaaninen toistaminen ja nimeäminen",
+                        "en": "Mechanical Rote Recall and Naming",
+                    }
+                ),
                 concept="Standalone declarative recall of factual definitions or nomenclature without causal elaboration.",
                 rule="Locate and extract statements reciting a definition or nomenclature without elaborating on functional interactions or causal mechanisms.",
             )
@@ -198,12 +205,22 @@ DUAL_TRACK_A_CONFIG: dict[str, TrackAConfig] = {
         ai_label="NOVICE - BASELINE PROMPTING",
         claim_updates={
             "tda_682186093ed65428b0c2d3120a5c90ca": ClaimUpdateConfig(
-                label=I18nText(translations={"fi": "Aiheen tai tehtävän alustava nimeäminen", "en": "Initial Identification of Core Topic or Task"}),
+                label=I18nText(
+                    translations={
+                        "fi": "Aiheen tai tehtävän alustava nimeäminen",
+                        "en": "Initial Identification of Core Topic or Task",
+                    }
+                ),
                 concept="Author states a primary topic, subject, or desired outcome without operational guidelines or execution constraints.",
                 rule="Locate and extract statements specifying a core topic, subject, or desired task outcome.",
             ),
             "tda_c4ec19d4b2dc5a3e8778181878ca03a6": ClaimUpdateConfig(
-                label=I18nText(translations={"fi": "Tekoälyn aloitusehdotuksen hyödyntäminen", "en": "Baseline Utilization of AI Suggestions"}),
+                label=I18nText(
+                    translations={
+                        "fi": "Tekoälyn aloitusehdotuksen hyödyntäminen",
+                        "en": "Baseline Utilization of AI Suggestions",
+                    }
+                ),
                 concept="Author adopts model suggestions or initial outputs as a starting baseline for task progression.",
                 rule="Locate and extract sections where author adopts model suggestions or initial outputs as starting baseline.",
             ),
@@ -214,34 +231,58 @@ DUAL_TRACK_A_CONFIG: dict[str, TrackAConfig] = {
         ai_label="NOVICE - BASIC INTERACTION",
         claim_updates={
             "tda_3ee4fe63a8ac50d24595bd3e90a6b016": ClaimUpdateConfig(
-                label=I18nText(translations={"fi": "Perusvuorovaikutus ja tehtävän käynnistäminen", "en": "Basic Interaction and Task Initiation"}),
+                label=I18nText(
+                    translations={
+                        "fi": "Perusvuorovaikutus ja tehtävän käynnistäminen",
+                        "en": "Basic Interaction and Task Initiation",
+                    }
+                ),
                 concept="Author opens interaction by stating a clear question, prompt, or task assignment for AI execution.",
                 rule="Locate and extract the initial prompt, inquiry, or question opening the interaction.",
             ),
             "tda_daf7e137f58333015ad078c35a873ecc": ClaimUpdateConfig(
-                label=I18nText(translations={"fi": "Vastauksen vastaanotto ja perustason jatko-ohjaus", "en": "Response Reception and Baseline Follow-up"}),
+                label=I18nText(
+                    translations={
+                        "fi": "Vastauksen vastaanotto ja perustason jatko-ohjaus",
+                        "en": "Response Reception and Baseline Follow-up",
+                    }
+                ),
                 concept="Author receives generative response and provides baseline follow-up or acknowledgment.",
                 rule="Locate and extract author follow-up acknowledging or building upon the generated output.",
             ),
         },
     ),
     "blk_ff72c2d79edb4ebf": TrackAConfig(
-        scale_name=I18nText(translations={"fi": "Pinnallinen arviointi (Noviisi)", "en": "Superficial Evaluation (Novice)"}),
+        scale_name=I18nText(
+            translations={"fi": "Pinnallinen arviointi (Noviisi)", "en": "Superficial Evaluation (Novice)"}
+        ),
         ai_label="NOVICE - SUPERFICIAL EVALUATION",
         claim_updates={
             "tda_f93df8c0534f4d459c5c35c1ee717b54": ClaimUpdateConfig(
-                label=I18nText(translations={"fi": "Pinnallinen arviointipäätös ja perusperustelu", "en": "Superficial Evaluation Decision with Basic Justification"}),
+                label=I18nText(
+                    translations={
+                        "fi": "Pinnallinen arviointipäätös ja perusperustelu",
+                        "en": "Superficial Evaluation Decision with Basic Justification",
+                    }
+                ),
                 concept="Author provides an explicit pass/fail decision or initial assessment stance with basic justification.",
                 rule="Locate and extract an explicit pass/fail decision, rating, or evaluative stance accompanied by basic justification.",
             )
         },
     ),
     "blk_f6e286f050c94d60": TrackAConfig(
-        scale_name=I18nText(translations={"fi": "Alustava jäsentely (Noviisi)", "en": "Preliminary Structuring (Novice)"}),
+        scale_name=I18nText(
+            translations={"fi": "Alustava jäsentely (Noviisi)", "en": "Preliminary Structuring (Novice)"}
+        ),
         ai_label="NOVICE - PRELIMINARY STRUCTURING",
         claim_updates={
             "tda_2f6c6565bf10f613d787c03fc97bfb91": ClaimUpdateConfig(
-                label=I18nText(translations={"fi": "Kommunikatiivisen tavoitteen ja ydinteeman tunnistaminen", "en": "Identification of Communicative Goal and Core Theme"}),
+                label=I18nText(
+                    translations={
+                        "fi": "Kommunikatiivisen tavoitteen ja ydinteeman tunnistaminen",
+                        "en": "Identification of Communicative Goal and Core Theme",
+                    }
+                ),
                 concept="The text identifies the primary communicative goal, core theme, or foundational topic of the deliverable.",
                 rule="Locate and extract explicit statements identifying the communicative goal, primary topic, or core theme.",
             )
@@ -252,12 +293,22 @@ DUAL_TRACK_A_CONFIG: dict[str, TrackAConfig] = {
         ai_label="NOVICE - BASIC CONSENSUS",
         claim_updates={
             "tda_7f4854aefcb144faa4ee448081ac0c03": ClaimUpdateConfig(
-                label=I18nText(translations={"fi": "Peruskonsensus ja yhteisten havaintojen tunnistaminen", "en": "Basic Consensus and Shared Findings Identification"}),
+                label=I18nText(
+                    translations={
+                        "fi": "Peruskonsensus ja yhteisten havaintojen tunnistaminen",
+                        "en": "Basic Consensus and Shared Findings Identification",
+                    }
+                ),
                 concept="Identifies basic shared findings, consensus points, or common ground across evaluated viewpoints.",
                 rule="Locate and extract statements identifying shared findings, baseline consensus, or common themes across sources.",
             ),
             "tda_16f0d5b6d78dd7d15006bcc1bef2eb00": ClaimUpdateConfig(
-                label=I18nText(translations={"fi": "Suositusten kytkentä analyyttisiin havaintoihin", "en": "Traceable Connection Linking Recommendations to Analytical Findings"}),
+                label=I18nText(
+                    translations={
+                        "fi": "Suositusten kytkentä analyyttisiin havaintoihin",
+                        "en": "Traceable Connection Linking Recommendations to Analytical Findings",
+                    }
+                ),
                 concept="Documents identifiable evidentiary anchors or step references connecting recommendations back to analytical inputs.",
                 rule="Locate and extract clear, traceable references connecting specific recommendations to prior findings or analytical inputs.",
             ),

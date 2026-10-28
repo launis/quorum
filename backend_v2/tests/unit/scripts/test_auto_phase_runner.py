@@ -30,6 +30,7 @@ from scripts.auto_phase_runner import (
     run_phase_pipeline,
     run_phase_quality_gate,
     run_post_hardening_gate,
+    unquote_git_path,
 )
 
 
@@ -571,7 +572,7 @@ def test_execute_subagent_cmd_wrapper_on_windows(tmp_path: Path) -> None:
 
 
 def test_commit_phase_checkpoint_dirty_files_staged(tmp_path: Path) -> None:
-    """TC-APR-018: Verify specific staging of modified domain files excluding scratch/tmp."""
+    """TC-APR-018: Verify specific staging of modified domain files excluding scratch/tmp and corrupt paths."""
     phase = PhaseItemDTO(
         phase_num=3,
         title="Phase 3: Domain Service",
@@ -583,6 +584,7 @@ def test_commit_phase_checkpoint_dirty_files_staged(tmp_path: Path) -> None:
 
     porcelain_output = (
         " M backend_v2/services/execution.py\n"
+        ' D "_requested\\357\\200\\272"\n'
         "?? scratch/temp_script.py\n"
         "?? .system_generated/logs/test.jsonl\n"
         " M docs/tracker.md\n"
@@ -606,8 +608,44 @@ def test_commit_phase_checkpoint_dirty_files_staged(tmp_path: Path) -> None:
         staged_items = git_add_calls[0]
         assert "backend_v2/services/execution.py" in staged_items
         assert "docs/tracker.md" in staged_items
+        assert not any("_requested" in item for item in staged_items)
         assert not any("scratch/" in item for item in staged_items)
         assert not any(".system_generated/" in item for item in staged_items)
+
+
+def test_unquote_git_path_and_stream_line_sanitization(tmp_path: Path) -> None:
+    """Verify unquote_git_path decodes octal C-escapes and _sanitize_stream_line strips bare CR/erase codes."""
+    assert unquote_git_path("backend_v2/services/foo.py") == "backend_v2/services/foo.py"
+    assert unquote_git_path("old/file.py -> new/file.py") == "new/file.py"
+    assert unquote_git_path('"_requested\\357\\200\\272"') == "_requested\uf03a"
+    assert unquote_git_path('"docs/path\\twith\\nquote\\"and\\\\slash.md"') == 'docs/path\twith\nquote"and\\slash.md'
+
+    phase = PhaseItemDTO(
+        phase_num=4,
+        title="Stream Sanitization Test",
+        plan_path=Path("plan.md"),
+        is_completed=False,
+        command="/tier2-execute",
+    )
+    args = AutoPhaseRunnerArgsDTO(tracker=tmp_path / "tracker.md")
+    mock_proc = MagicMock()
+    mock_proc.pid = 5555
+    mock_proc.returncode = 0
+    mock_proc.stdout.readline.side_effect = [
+        "\x1b[2K\rLine without overwrite\r\n",
+        "Second\r line\n",
+        "",
+    ]
+
+    with (
+        patch("scripts.auto_phase_runner.resolve_agy_binary", return_value=Path("agy.exe")),
+        patch("subprocess.Popen", return_value=mock_proc),
+    ):
+        res = execute_phase_subagent(phase, args, tmp_path)
+        assert res.exit_code == 0
+        assert "\x1b[2K" not in res.output
+        assert "Line without overwrite\r\n" in res.output
+        assert "Second line\n" in res.output
 
 
 def test_mark_phase_completed_bounded_to_exact_phase_section(tmp_path: Path) -> None:

@@ -54,23 +54,7 @@ _DAG_EXECUTOR_MODULE = "backend_v2.services.orchestrator.dag_executor"
 
 @dataclasses.dataclass
 class WorkflowExecutionState:
-    """Execution-scoped state and Two-Lock synchronization primitives for a single workflow run.
-
-    Attributes:
-        execution_id: Canonical Opaque Stripe ID of the active execution run.
-        workflow: Hydrated Workflow domain definition being executed.
-        exec_record: Current mutable reference to the immutable ExecutionRecord snapshot.
-        global_context_vars: Global context variables DTO shared across steps.
-        projector: Event-sourced StateProjector tracking upstream step outputs.
-        step_definitions: Pre-fetched Step blueprint definitions keyed by blueprint ID.
-        steps_by_id: Workflow StepRule nodes keyed by step ID.
-        strictness_level: Mathematical scoring strictness anchor level.
-        lexical_strictness_level: Lexical citation verification strictness anchor level.
-        step_exceptions: Tuple of exception types trapped at the step boundary.
-        update_lock: Fast in-memory asyncio.Lock guarding state transitions.
-        commit_lock: Dedicated I/O asyncio.Lock serializing repository commits.
-        evaluated_causal_sources: Set of causal discovery source step IDs already evaluated.
-    """
+    """Execution-scoped state and Two-Lock synchronization primitives for a single workflow run."""
 
     execution_id: str
     workflow: Workflow
@@ -88,56 +72,30 @@ class WorkflowExecutionState:
 
     @property
     def exec_id(self) -> str:
-        """Return the execution ID alias for stage compatibility.
-
-        Returns:
-            Canonical execution identifier string.
-        """
+        """Return the execution ID alias for stage compatibility."""
         return self.execution_id
 
 
 def dlq_record_step_failure(step_id: str, err_code: str, exc: BaseException) -> None:
-    """Record dead-letter error log for a failed DAG step execution.
-
-    Args:
-        step_id: Canonical identifier of the failed workflow step.
-        err_code: Enumerated or structural error code string.
-        exc: Exception instance raised during step execution.
-    """
+    """Record dead-letter error log for a failed DAG step execution."""
     logger.error("[DAGExecutor] Step %s failed with error [%s]: %s", step_id, err_code, exc, exc_info=True)
 
 
 def dlq_handle_progress_commit_error(step_id: str, commit_err: Exception) -> None:
-    """Handle non-terminal progress commit error by logging a warning.
-
-    Args:
-        step_id: Canonical identifier of the step emitting progress.
-        commit_err: Non-terminal exception raised during progress persistence.
-    """
+    """Handle non-terminal progress commit error by logging a warning."""
     msg = "[DAGExecutor] %s: Non-terminal progress commit skipped for step %s: %s"
     logger.warning(msg, ErrorCodes.PROGRESS_UPDATE_FAILED.name, step_id, commit_err)
 
 
 def dlq_fallback_step_exceptions() -> tuple[type[BaseException], ...]:
-    """Return fallback step exceptions tuple when litellm is not imported.
-
-    Returns:
-        Tuple of standard runtime and validation exception classes trapped by step execution.
-    """
+    """Return fallback step exceptions tuple when litellm is not imported."""
     t1 = (AppException, ValidationError, RuntimeError, ValueError, TypeError)
     t2 = (KeyError, OSError, TimeoutError, ConnectionError, ExceptionGroup)
     return (*t1, *t2)
 
 
 def _extract_input_delta_dict(state_delta: Any) -> dict[str, StepOutputContentValue]:
-    """Extract normalized input delta dictionary from HookResult.state_delta.
-
-    Args:
-        state_delta: HookDeltaDTO wrapper, Pydantic model, or primitive delta payload.
-
-    Returns:
-        Normalized mapping of input keys to StepOutputContentValue payloads.
-    """
+    """Extract normalized input delta dictionary from HookResult.state_delta."""
     payload = state_delta.delta if isinstance(state_delta, HookDeltaDTO) else state_delta
     if payload is None:
         return {}
@@ -172,8 +130,7 @@ async def bootstrap_workflow_execution_state(
         Initialized WorkflowExecutionState ready for topological wave execution.
 
     Raises:
-        AppException: Triggered with CONFIGURATION_ERROR if a step blueprint is missing, or
-            VALIDATION_FAILED if pre-hydration input processing fails.
+        AppException: Triggered with CONFIGURATION_ERROR or VALIDATION_FAILED on failure.
     """
     DAGCompilerService.validate_workflow(workflow)
     blueprint_ids = {s.task_blueprint for s in workflow.steps if s.task_blueprint}
@@ -358,13 +315,7 @@ async def safe_commit_execution_state(
         st = status_override if status_override is not None else cur.status
         err = error_override if error_override is not None else cur.error
         await committer.commit_trace(
-            trace=cur.execution_trace,
-            status=st,
-            step_states=cur.step_states,
-            error=err,
-            frozen_context=cur.frozen_context,
-            context_variables=cur.context_variables,
-            steps=cur.steps,
+            cur.execution_trace, st, cur.step_states, err, cur.frozen_context, cur.context_variables, cur.steps
         )
         return cur
 
@@ -398,8 +349,7 @@ async def execute_rag_preflight_stage(
         return
 
     vid = f"sys_rag_{uuid.uuid4().hex[:16]}"
-    _update_lock = state.update_lock
-    run_st = ExecutionStatus.RUNNING
+    _update_lock, run_st = state.update_lock, ExecutionStatus.RUNNING
 
     async with _update_lock:
         state.exec_record = state.exec_record.transition_step(vid, run_st, 0, "system.rag.preflight", has_warning=False)
@@ -434,11 +384,6 @@ async def execute_rag_preflight_stage(
         async with _update_lock:
             state.exec_record = state.exec_record.transition_step(vid, fail_st, last_error=str(e), has_warning=True)
         await safe_commit_execution_state(state, committer, status_override=fail_st, error_override=str(e))
-        logger.error(
-            "[DAGExecutor] %s: RAG preflight failed for step %s: %s",
-            ErrorCodes.WORKFLOW_EXECUTION_FAILED.name,
-            vid,
-            e,
-            exc_info=True,
-        )
+        msg = "[DAGExecutor] %s: RAG preflight failed for step %s: %s"
+        logger.error(msg, ErrorCodes.WORKFLOW_EXECUTION_FAILED.name, vid, e, exc_info=True)
         raise WorkflowExecutionError(step_id=vid, task_key="system.rag.preflight", original_error=e) from e

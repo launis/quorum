@@ -41,39 +41,20 @@ _DAG_EXECUTOR_MODULE = "backend_v2.services.orchestrator.dag_executor"
 
 
 def _resolve_matrix_reducer() -> Any:
-    """Resolve MatrixReducer dynamically from dag_executor module when loaded for test patch compatibility.
-
-    Returns:
-        MatrixReducer class reference from the loaded facade module or local import.
-    """
+    """Resolve MatrixReducer dynamically from dag_executor module when loaded for test patch compatibility."""
     if _DAG_EXECUTOR_MODULE in sys.modules:
         return sys.modules[_DAG_EXECUTOR_MODULE].MatrixReducer
     return MatrixReducer
 
 
 def _resolve_settings() -> Any:
-    """Resolve settings dynamically from dag_executor.get_settings when loaded for test patch compatibility.
-
-    Returns:
-        Active Settings instance resolved via the facade module or global settings getter.
-    """
+    """Resolve settings dynamically from dag_executor.get_settings when loaded for test patch compatibility."""
     getter = sys.modules[_DAG_EXECUTOR_MODULE].get_settings if _DAG_EXECUTOR_MODULE in sys.modules else get_settings
     return getter()
 
 
 def _parse_causal_graph_candidate(raw_candidate: Any, err_prefix: str) -> CausalGraphPayloadDTO:
-    """Validate and hydrate a CausalGraphPayloadDTO from trace output or snapshot payload.
-
-    Args:
-        raw_candidate: Raw trace event content, StepOutputContentDTO, or CausalGraphPayloadDTO instance.
-        err_prefix: Contextual error message prefix logged and raised on validation failure.
-
-    Returns:
-        Validated CausalGraphPayloadDTO instance.
-
-    Raises:
-        AppException: Triggered with VALIDATION_FAILED when payload schema validation fails.
-    """
+    """Validate and hydrate a CausalGraphPayloadDTO from trace output or snapshot payload."""
     try:
         unwrapped = raw_candidate.data if isinstance(raw_candidate, StepOutputContentDTO) else raw_candidate
         payload = unwrapped["graph"] if type(unwrapped) is dict and "graph" in unwrapped else unwrapped
@@ -81,23 +62,14 @@ def _parse_causal_graph_candidate(raw_candidate: Any, err_prefix: str) -> Causal
             return payload
         return TypeAdapter(CausalGraphPayloadDTO).validate_python(payload, strict=False)
     except ValidationError as err:
-        logger.error(
-            "[DAGExecutor] %s: %s: %s",
-            ErrorCodes.VALIDATION_FAILED.name,
-            err_prefix,
-            err,
-            exc_info=True,
-        )
+        logger.error("[DAGExecutor] %s: %s: %s", ErrorCodes.VALIDATION_FAILED.name, err_prefix, err, exc_info=True)
         raise AppException(
-            message=f"{err_prefix}: {err}",
-            status_code=500,
-            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            message=f"{err_prefix}: {err}", status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED}
         ) from err
 
 
 async def prepare_step_strategy_context(
-    state: WorkflowExecutionState,
-    step_id: str,
+    state: WorkflowExecutionState, step_id: str
 ) -> tuple[CausalGraphPayloadDTO | None, Step | None]:
     """Prepare upstream causal discovery atoms and pre-synthesis MatrixReducer state for a DAG step.
 
@@ -109,9 +81,7 @@ async def prepare_step_strategy_context(
         Two-element tuple of (resolved upstream CausalGraphPayloadDTO or None, Step blueprint definition or None).
 
     Raises:
-        AppException: Triggered with VALIDATION_FAILED if causal_source_step_id is invalid or graph
-            validation fails, or CAUSAL_DISCOVERY_DATA_STARVATION if upstream causal step did not pass
-            or produced zero proposition nodes.
+        AppException: Triggered with VALIDATION_FAILED or CAUSAL_DISCOVERY_DATA_STARVATION on invalid causal state.
         WorkflowExecutionError: Triggered with WORKFLOW_EXECUTION_FAILED if pre-synthesis MatrixReducer fails.
     """
     step_obj = state.steps_by_id[step_id]
@@ -130,13 +100,14 @@ async def prepare_step_strategy_context(
             or state.exec_record.step_states[src_id].status != ExecutionStatus.PASSED
         ):
             logger.error(
-                "[DAGExecutor] %s: Upstream causal step '%s' did not complete successfully.",
+                "[DAGExecutor] %s: Upstream causal step '%s' did not pass.",
                 ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION.name,
                 src_id,
                 exc_info=True,
             )
+            msg = "Upstream causal discovery step produced 0 valid proposition nodes for downstream evaluation."
             raise AppException(
-                message="Upstream causal discovery step produced 0 valid proposition nodes for downstream evaluation.",
+                message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION},
             )
@@ -173,15 +144,16 @@ async def prepare_step_strategy_context(
                 exc_info=True,
             )
             raise AppException(
-                message=msg, status_code=500, details={"error_code": ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION}
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION},
             )
 
         fusion_atoms = transform_causal_nodes_to_atoms(upstream_graph.nodes)
         async with _update_lock:
             state.global_context_vars = state.global_context_vars.model_copy(update={"shuffled_atoms": fusion_atoms})
             default_meta = ExecutionMetadata(
-                workflow_version=state.workflow.version,
-                model_registry_id=state.workflow.model_registry_id,
+                workflow_version=state.workflow.version, model_registry_id=state.workflow.model_registry_id
             )
             base_meta = state.exec_record.metadata if state.exec_record.metadata is not None else default_meta
             state.exec_record = state.exec_record.model_copy(
@@ -210,26 +182,15 @@ async def prepare_step_strategy_context(
                     state.exec_record = state.exec_record.model_copy(update={"context_variables": new_cv})
                 logger.info("[DAGExecutor] Successfully applied MatrixReducer pre-synthesis.")
             except Exception as e:
-                logger.error(
-                    "[DAGExecutor] %s: Failed to project and reduce matrix pre-synthesis: %s",
-                    ErrorCodes.WORKFLOW_EXECUTION_FAILED.name,
-                    e,
-                    exc_info=True,
-                )
+                err_name = ErrorCodes.WORKFLOW_EXECUTION_FAILED.name
+                logger.error("[DAGExecutor] %s: Failed to project and reduce matrix: %s", err_name, e, exc_info=True)
                 raise WorkflowExecutionError(step_id=step_id, task_key=step_obj.task_blueprint, original_error=e) from e
 
     return upstream_graph, step_def
 
 
 def _extract_app_exception_error_code(exc: BaseException) -> str:
-    """Resolve canonical error_code string from an exception instance.
-
-    Args:
-        exc: Exception instance caught at the DAG step execution boundary.
-
-    Returns:
-        Canonical error code string or UNKNOWN_ERROR if not present on the exception.
-    """
+    """Resolve canonical error_code string from an exception instance."""
     err_code = "UNKNOWN_ERROR"
     if isinstance(exc, AppException):
         if isinstance(exc.error_code, ErrorCodes):
@@ -268,10 +229,8 @@ async def execute_dag_step_wrapper(
         dlq_on_progress_commit_error: Callback handling non-terminal progress commit failures.
 
     Raises:
-        AppException: Triggered with VALIDATION_FAILED or CAUSAL_DISCOVERY_DATA_STARVATION when
-            context preparation or node strategy execution fails with a domain error.
-        WorkflowExecutionError: Triggered with WORKFLOW_EXECUTION_FAILED when pre-synthesis reduction
-            or step execution fails.
+        AppException: Triggered when context preparation or strategy execution fails with a domain error.
+        WorkflowExecutionError: Triggered when pre-synthesis reduction or step execution fails.
     """
     step_obj = state.steps_by_id[step_id]
     if state.exec_record.step_states[step_id].status == ExecutionStatus.PASSED:
@@ -293,18 +252,12 @@ async def execute_dag_step_wrapper(
                 and state.exec_record.step_states[dep].status != ExecutionStatus.PASSED
             ):
                 async with _update_lock:
+                    blk_err = f"Dependency {dep} did not pass"
                     state.exec_record = state.exec_record.transition_step(
-                        step_id=step_id,
-                        status=ExecutionStatus.BLOCKED,
-                        last_error=f"Dependency {dep} did not pass",
-                        has_warning=True,
+                        step_id=step_id, status=ExecutionStatus.BLOCKED, last_error=blk_err, has_warning=True
                     )
                 await safe_commit_execution_state(state=state, committer=committer)
-                logger.warning(
-                    "[DAGExecutor] Cascading failure: Step %s blocked because dependency %s did not pass.",
-                    step_id,
-                    dep,
-                )
+                logger.warning("[DAGExecutor] Step %s blocked because dependency %s did not pass.", step_id, dep)
                 return
 
         upstream_graph, node_step_def = await prepare_step_strategy_context(state=state, step_id=step_id)
@@ -316,20 +269,17 @@ async def execute_dag_step_wrapper(
         async def progress_callback(completed: int, total: int) -> None:
             if total == 100:
                 prog = completed
-                label = f"Processing... {prog}%"
+                label = f"Processing... {completed}%"
+            elif total > 0:
+                prog = int((completed / total) * 100)
+                label = f"Evaluating batch {completed}/{total}..."
             else:
                 prog = 0
-                if total > 0:
-                    prog = int((completed / total) * 100)
                 label = f"Evaluating batch {completed}/{total}..."
 
             async with _update_lock:
-                state.exec_record = state.exec_record.transition_step(
-                    step_id=step_id,
-                    status=state.exec_record.step_states[step_id].status,
-                    progress=prog,
-                    label=label,
-                )
+                cur_st = state.exec_record.step_states[step_id].status
+                state.exec_record = state.exec_record.transition_step(step_id, cur_st, prog, label)
                 state.exec_record = state.exec_record.model_copy(update={"progress": prog, "status_message": label})
             try:
                 await safe_commit_execution_state(state=state, committer=committer)
@@ -339,50 +289,47 @@ async def execute_dag_step_wrapper(
 
         settings = _resolve_settings()
         events: list[TraceEvent] = []
-        async for attempt in AsyncRetrying(
+        w_exp = wait_exponential(
+            multiplier=settings.llm_retry_multiplier,
+            min=settings.llm_retry_min_seconds,
+            max=settings.llm_retry_max_seconds,
+        )
+        retrying = AsyncRetrying(
             stop=stop_after_attempt(settings.llm_max_transient_retries),
-            wait=wait_exponential(
-                multiplier=settings.llm_retry_multiplier,
-                min=settings.llm_retry_min_seconds,
-                max=settings.llm_retry_max_seconds,
-            ),
+            wait=w_exp,
             retry=retry_if_exception(_is_transient_llm_error),
             reraise=True,
             before_sleep=before_sleep_log(logger, logging.WARNING),
-        ):
+        )
+        async for attempt in retrying:
             with attempt:
                 default_exec_meta = ExecutionMetadata(
-                    workflow_version=state.workflow.version,
-                    model_registry_id=state.workflow.model_registry_id,
+                    workflow_version=state.workflow.version, model_registry_id=state.workflow.model_registry_id
                 )
                 step_meta = state.exec_record.metadata if state.exec_record.metadata is not None else default_exec_meta
+                rec = state.exec_record
                 events = await node_executor.execute(
                     step=step_obj,
                     execution_id=state.execution_id,
                     workflow_id=state.workflow.id,
                     metadata=step_meta,
-                    target_locale=state.exec_record.target_locale,
-                    output_profile_id=state.exec_record.output_profile_id,
-                    organization_id=state.exec_record.organization_id,
+                    target_locale=rec.target_locale,
+                    output_profile_id=rec.output_profile_id,
+                    organization_id=rec.organization_id,
                     projector=state.projector,
                     expected_inputs=state.workflow.expected_inputs,
-                    frozen_ctx=state.exec_record.frozen_context,
-                    trace=state.exec_record.execution_trace,
+                    frozen_ctx=rec.frozen_context,
+                    trace=rec.execution_trace,
                     strictness_level=state.strictness_level,
                     lexical_strictness_level=state.lexical_strictness_level,
-                    context_variables=state.exec_record.context_variables,
+                    context_variables=rec.context_variables,
                     progress_callback=progress_callback,
                     step_def=node_step_def,
                     global_context_vars=state.global_context_vars,
                 )
 
         await finalize_step_output_and_commit(
-            state=state,
-            step_id=step_id,
-            events=events,
-            committer=committer,
-            upstream_graph=upstream_graph,
-            causal_cohesion_evaluator=causal_cohesion_evaluator,
+            state, step_id, events, committer, upstream_graph, causal_cohesion_evaluator
         )
 
     except state.step_exceptions as e:
@@ -393,17 +340,13 @@ async def execute_dag_step_wrapper(
             state.exec_record = state.exec_record.transition_step(
                 step_id=step_id, status=ExecutionStatus.FAILED, last_error=str(e), has_warning=True
             )
+            err_content = {"error_code": err_code, "message": str(e)}
             error_evt = ErrorTraceEvent(
-                step_name=step_id,
-                error_code=err_code,
-                error_message=str(e),
-                content={"error_code": err_code, "message": str(e)},
+                step_name=step_id, error_code=err_code, error_message=str(e), content=err_content
             )
             state.exec_record.execution_trace.append(error_evt)
             state.projector.apply_delta(error_evt)
-        await safe_commit_execution_state(
-            state=state, committer=committer, status_override=ExecutionStatus.FAILED, error_override=str(e)
-        )
+        await safe_commit_execution_state(state, committer, ExecutionStatus.FAILED, str(e))
         dlq_on_step_failure(step_id, err_code, e)
         raise
     except Exception as e:
@@ -413,9 +356,7 @@ async def execute_dag_step_wrapper(
             state.exec_record = state.exec_record.transition_step(
                 step_id=step_id, status=ExecutionStatus.FAILED, last_error=str(e), has_warning=True
             )
-        await safe_commit_execution_state(
-            state=state, committer=committer, status_override=ExecutionStatus.FAILED, error_override=str(e)
-        )
+        await safe_commit_execution_state(state, committer, ExecutionStatus.FAILED, str(e))
         dlq_on_step_failure(step_id, "UNEXPECTED_STEP_EXCEPTION", e)
         raise
     finally:

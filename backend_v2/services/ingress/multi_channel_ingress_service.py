@@ -79,9 +79,17 @@ class MultiChannelIngressService:
             import pymupdf4llm
 
             try:
-                return str(pymupdf4llm.to_markdown(doc))
+                md_text = str(pymupdf4llm.to_markdown(doc))
             finally:
                 pymupdf4llm.use_layout(False)
+
+            if not md_text or not md_text.strip() or "<!-- Start of picture text -->" in md_text:
+                plain_pages = [page.get_text("text") for page in doc]
+                plain_text = "\n\n".join(plain_pages).strip()
+                if plain_text:
+                    md_text = plain_text
+
+            return md_text
         finally:
             doc.close()
 

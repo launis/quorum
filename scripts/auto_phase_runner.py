@@ -109,6 +109,7 @@ __all__ = [
     "run_phase_pipeline",
     "run_phase_quality_gate",
     "run_post_hardening_gate",
+    "unquote_git_path",
 ]
 
 
@@ -234,6 +235,55 @@ def clean_path_arg(val: str | Path | None) -> Path | None:
     if not raw_str:
         return None
     return Path(raw_str)
+
+
+def unquote_git_path(raw_path: str) -> str:
+    """Unquote and decode C-escaped octal/escaped file paths from git status --porcelain.
+
+    Args:
+        raw_path: Raw path extracted from a git status --porcelain line.
+
+    Returns:
+        Decoded UTF-8 file path with surrounding quotes stripped.
+    """
+    cleaned = raw_path.strip()
+    if " -> " in cleaned:
+        cleaned = cleaned.split(" -> ")[1].strip()
+    if not (cleaned.startswith('"') and cleaned.endswith('"') and len(cleaned) >= 2):
+        return cleaned
+    inner = cleaned[1:-1]
+    out_bytes = bytearray()
+    idx = 0
+    length = len(inner)
+    while idx < length:
+        ch = inner[idx]
+        if ch == "\\" and idx + 1 < length:
+            nxt = inner[idx + 1]
+            if idx + 3 < length and all(c in "01234567" for c in inner[idx + 1 : idx + 4]):
+                out_bytes.append(int(inner[idx + 1 : idx + 4], 8))
+                idx += 4
+                continue
+            escape_map = {"\\": ord("\\"), '"': ord('"'), "t": ord("\t"), "n": ord("\n"), "r": ord("\r")}
+            if nxt in escape_map:
+                out_bytes.append(escape_map[nxt])
+                idx += 2
+                continue
+        out_bytes.extend(ch.encode("utf-8"))
+        idx += 1
+    return out_bytes.decode("utf-8", errors="replace")
+
+
+def _has_invalid_git_path_chars(path_str: str) -> bool:
+    """Check whether a decoded path contains control or Private Use Area characters invalid on Windows."""
+    return any(ord(c) < 32 or (0xE000 <= ord(c) <= 0xF8FF) or c in '<>:"|?*' for c in path_str)
+
+
+_CARRIAGE_AND_ERASE_RE: Final[re.Pattern[str]] = re.compile(r"\r(?!\n)|\x1b\[[0-9;]*[GK]")
+
+
+def _sanitize_stream_line(line: str) -> str:
+    """Remove bare carriage returns and ANSI cursor-horizontal/line-erase codes that overwrite console lines."""
+    return _CARRIAGE_AND_ERASE_RE.sub("", line)
 
 
 def parse_tracker_phases(tracker_path: Path, repo_root: Path | None = None) -> list[PhaseItemDTO]:
@@ -547,12 +597,13 @@ def _execute_single_subagent_attempt(
                     break
                 if not line:
                     break
-                collected_output.append(line)
+                sanitized_line = _sanitize_stream_line(line)
+                collected_output.append(sanitized_line)
                 try:
-                    sys.stdout.write(line)
+                    sys.stdout.write(sanitized_line)
                     sys.stdout.flush()
                 except UnicodeEncodeError:
-                    sys.stdout.buffer.write(line.encode("utf-8", errors="replace"))
+                    sys.stdout.buffer.write(sanitized_line.encode("utf-8", errors="replace"))
                     sys.stdout.buffer.flush()
     finally:
         timer.cancel()
@@ -673,8 +724,15 @@ def run_phase_quality_gate(phase: PhaseItemDTO, repo_root: Path) -> QualityGateR
     dirty_scripts: list[str] = []
     if dirty_proc.returncode == 0:
         for line in dirty_proc.stdout.splitlines():
-            line_str = line[3:].strip()
-            if line_str.startswith("scripts/") and line_str.endswith(".py") and Path(repo_root / line_str).exists():
+            if len(line) < 4:
+                continue
+            line_str = unquote_git_path(line[3:])
+            if (
+                not _has_invalid_git_path_chars(line_str)
+                and line_str.startswith("scripts/")
+                and line_str.endswith(".py")
+                and Path(repo_root / line_str).exists()
+            ):
                 dirty_scripts.append(line_str)
 
     targets = ["backend_v2/"] + sorted(dirty_scripts)
@@ -730,16 +788,21 @@ def commit_phase_checkpoint(
     if not raw_lines:
         return None
 
-    # Filter files: exclude scratch, tmp, and system generated paths
+    # Filter files: exclude scratch, tmp, system generated, and corrupt/invalid pathspecs
     staged_candidates: list[str] = []
     for line in raw_lines:
-        file_path = line[3:].strip()
-        # Handle rename arrow "A -> B"
-        if " -> " in file_path:
-            file_path = file_path.split(" -> ")[1].strip()
+        if len(line) < 4:
+            continue
+        status_code = line[:2]
+        file_path = unquote_git_path(line[3:])
+        if not file_path or _has_invalid_git_path_chars(file_path):
+            continue
 
         # Exclude ephemeral/scratch paths
         if any(file_path.startswith(prefix) for prefix in (".gemini/", ".system_generated/", "scratch/", "tmp/")):
+            continue
+        # Skip non-existent untracked/corrupt paths unless marked as a tracked deletion
+        if "D" not in status_code and (repo_root / ".git").exists() and not (repo_root / file_path).exists():
             continue
         staged_candidates.append(file_path)
 
@@ -757,16 +820,34 @@ def commit_phase_checkpoint(
 
     if only_tracker:
         commit_msg = f"docs(tracker): mark phase {phase.phase_num} complete in {Path(tracker_str).name}"
-        subprocess.run(["git", "add", tracker_str], cwd=repo_root, check=False)
+        subprocess.run(
+            ["git", "add", tracker_str],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            cwd=repo_root,
+            check=False,
+        )
     else:
         # Sanitize title removing redundant "Phase N:" prefix
         title_cleaned = re.sub(r"^Phase\s+\d+[:\-]?\s*", "", phase.title, flags=re.IGNORECASE).strip()
         commit_msg = f"feat(phase{phase.phase_num}): complete {title_cleaned}"
         # Stage filtered candidates and tracker
         add_cmd = ["git", "add"] + staged_candidates
-        if tracker_str not in staged_candidates:
+        if tracker_str not in staged_candidates and (
+            not (repo_root / ".git").exists() or (repo_root / tracker_str).exists()
+        ):
             add_cmd.append(tracker_str)
-        subprocess.run(add_cmd, cwd=repo_root, check=False)
+        subprocess.run(
+            add_cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            cwd=repo_root,
+            check=False,
+        )
 
     commit_proc = subprocess.run(
         ["git", "commit", "-m", commit_msg],
@@ -905,7 +986,10 @@ def run_post_hardening_gate(
 
     resolved_tracker = cleaned_tracker if cleaned_tracker.is_absolute() else (repo_root / cleaned_tracker)
     if not resolved_tracker.exists():
-        print(f"{ANSIColors.RED}[ERROR] Tracker file not found for hardening: {tracker_path}{ANSIColors.RESET}")
+        print(
+            f"{ANSIColors.RED}[ERROR] Tracker file not found for hardening: {tracker_path}{ANSIColors.RESET}",
+            flush=True,
+        )
         return 1
 
     tracker_content = resolved_tracker.read_text(encoding="utf-8")
@@ -924,12 +1008,14 @@ def run_post_hardening_gate(
             print(
                 f"{ANSIColors.RED}[ERROR] Tracker {tracker_path} has pending Tier 2 Hardening "
                 f"({', '.join(unparsed_gates)}) checklist items, but zero targets could be parsed "
-                f"into valid file paths. Check markdown formatting!{ANSIColors.RESET}"
+                f"into valid file paths. Check markdown formatting!{ANSIColors.RESET}",
+                flush=True,
             )
             return 1
 
         print(
-            f"\n{ANSIColors.GREEN}--- No unhardened targets discovered in tracker for backend or frontend gates. ---{ANSIColors.RESET}"
+            f"\n{ANSIColors.GREEN}--- No unhardened targets discovered in tracker for backend or frontend gates. ---{ANSIColors.RESET}",
+            flush=True,
         )
         return 0
 
@@ -939,7 +1025,8 @@ def run_post_hardening_gate(
     if backend_targets:
         print(
             f"\n{ANSIColors.CYAN}--- Handing off to Post-Implementation Hardening Runner "
-            f"(Backend: {len(backend_targets)} targets) ---{ANSIColors.RESET}"
+            f"(Backend: {len(backend_targets)} targets) ---{ANSIColors.RESET}",
+            flush=True,
         )
         backend_cmd = [
             "uv",
@@ -967,7 +1054,8 @@ def run_post_hardening_gate(
         if proc_backend.returncode != 0:
             print(
                 f"{ANSIColors.RED}[FAILED] Backend post-implementation hardening failed "
-                f"with code {proc_backend.returncode}. Halting pipeline.{ANSIColors.RESET}"
+                f"with code {proc_backend.returncode}. Halting pipeline.{ANSIColors.RESET}",
+                flush=True,
             )
             return proc_backend.returncode
 
@@ -975,7 +1063,8 @@ def run_post_hardening_gate(
     if frontend_targets:
         print(
             f"\n{ANSIColors.CYAN}--- Handing off to Post-Implementation Hardening Runner "
-            f"(Frontend: {len(frontend_targets)} targets) ---{ANSIColors.RESET}"
+            f"(Frontend: {len(frontend_targets)} targets) ---{ANSIColors.RESET}",
+            flush=True,
         )
         frontend_cmd = [
             "uv",
@@ -1001,7 +1090,8 @@ def run_post_hardening_gate(
         if proc_frontend.returncode != 0:
             print(
                 f"{ANSIColors.RED}[FAILED] Frontend post-implementation hardening failed "
-                f"with code {proc_frontend.returncode}. Halting pipeline.{ANSIColors.RESET}"
+                f"with code {proc_frontend.returncode}. Halting pipeline.{ANSIColors.RESET}",
+                flush=True,
             )
             return proc_frontend.returncode
 
@@ -1031,15 +1121,17 @@ def run_phase_pipeline(
         f"Tracker: {args.tracker}\n"
         f"Discovered Phases: {len(all_phases)} total, {len(pending_phases)} pending execution\n"
         f"Model: {args.model} | Timeout: {args.timeout}s"
-        f"{ANSIColors.RESET}\n"
+        f"{ANSIColors.RESET}\n",
+        flush=True,
     )
 
     if args.dry_run:
         print(
-            f"{ANSIColors.YELLOW}[DRY-RUN] Simulating phase execution without launching subprocesses:{ANSIColors.RESET}"
+            f"{ANSIColors.YELLOW}[DRY-RUN] Simulating phase execution without launching subprocesses:{ANSIColors.RESET}",
+            flush=True,
         )
         for p in pending_phases:
-            print(f"  - Phase {p.phase_num}: {p.title} -> {p.command}")
+            print(f"  - Phase {p.phase_num}: {p.title} -> {p.command}", flush=True)
         return AutoPhaseRunSummaryDTO(
             tracker_path=args.tracker,
             total_phases=len(all_phases),
@@ -1060,7 +1152,8 @@ def run_phase_pipeline(
             f"\n{ANSIColors.BOLD}{ANSIColors.GREEN}"
             f"=== Starting Phase {phase.phase_num}: {phase.title} ==="
             f"{ANSIColors.RESET}\n"
-            f"Command: {phase.command}\n"
+            f"Command: {phase.command}\n",
+            flush=True,
         )
 
         subagent_res = execute_phase_subagent(phase, args, root)
@@ -1068,7 +1161,8 @@ def run_phase_pipeline(
         if subagent_res.is_timeout:
             print(
                 f"\n{ANSIColors.RED}[TIMEOUT] Phase {phase.phase_num} timed out after "
-                f"{subagent_res.duration_seconds:.1f}s. Subprocess tree killed.{ANSIColors.RESET}"
+                f"{subagent_res.duration_seconds:.1f}s. Subprocess tree killed.{ANSIColors.RESET}",
+                flush=True,
             )
             failed_count += 1
             results.append(
@@ -1085,7 +1179,8 @@ def run_phase_pipeline(
         if subagent_res.exit_code != 0:
             print(
                 f"\n{ANSIColors.RED}[FAILED] Phase {phase.phase_num} failed with exit code "
-                f"{subagent_res.exit_code}. Halting pipeline immediately (circuit breaker).{ANSIColors.RESET}"
+                f"{subagent_res.exit_code}. Halting pipeline immediately (circuit breaker).{ANSIColors.RESET}",
+                flush=True,
             )
             failed_count += 1
             results.append(
@@ -1099,18 +1194,22 @@ def run_phase_pipeline(
             )
             break
 
-        print(f"\n{ANSIColors.CYAN}Verifying Phase {phase.phase_num} Universal Quality Gate...{ANSIColors.RESET}")
+        print(
+            f"\n{ANSIColors.CYAN}Verifying Phase {phase.phase_num} Universal Quality Gate...{ANSIColors.RESET}",
+            flush=True,
+        )
         qg_res = run_phase_quality_gate(phase, root)
 
         if not qg_res.success:
             print(
                 f"\n{ANSIColors.RED}[QUALITY GATE FAILED] Phase {phase.phase_num} audit loops failed "
-                f"with code {qg_res.exit_code}. Halting pipeline immediately.{ANSIColors.RESET}"
+                f"with code {qg_res.exit_code}. Halting pipeline immediately.{ANSIColors.RESET}",
+                flush=True,
             )
             if qg_res.output:
-                print(f"\n{ANSIColors.YELLOW}--- Quality Gate Output ---{ANSIColors.RESET}")
-                print(qg_res.output)
-                print(f"{ANSIColors.YELLOW}--- End Quality Gate Output ---{ANSIColors.RESET}\n")
+                print(f"\n{ANSIColors.YELLOW}--- Quality Gate Output ---{ANSIColors.RESET}", flush=True)
+                print(qg_res.output, flush=True)
+                print(f"{ANSIColors.YELLOW}--- End Quality Gate Output ---{ANSIColors.RESET}\n", flush=True)
             failed_count += 1
             results.append(
                 PhaseExecutionResultDTO(
@@ -1143,7 +1242,8 @@ def run_phase_pipeline(
             f"{ANSIColors.BOLD}{ANSIColors.GREEN}"
             f"=== Successfully Completed Phase {phase.phase_num}: {phase.title} "
             f"({subagent_res.duration_seconds:.1f}s) ==="
-            f"{ANSIColors.RESET}"
+            f"{ANSIColors.RESET}",
+            flush=True,
         )
 
     # If all pending phases succeeded, run post-implementation hardening handoff
@@ -1152,7 +1252,8 @@ def run_phase_pipeline(
         if hardening_code != 0:
             print(
                 f"{ANSIColors.YELLOW}[WARNING] Post-implementation hardening gate "
-                f"exited with code {hardening_code}.{ANSIColors.RESET}"
+                f"exited with code {hardening_code}.{ANSIColors.RESET}",
+                flush=True,
             )
 
     return AutoPhaseRunSummaryDTO(
