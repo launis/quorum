@@ -265,7 +265,7 @@ async def create_xai_highlights_task(
         A tuple of (XaiHighlightsResult, TokenUsage) if generated, or None if skipped.
 
     Raises:
-        AppException: If max_extension_items is missing when extensions are visible
+        AppException: If max_extension_items is missing or non-positive when extensions are visible
             (ErrorCodes.VALIDATION_FAILED).
     """
     if not active_profile_dto or not (
@@ -274,9 +274,9 @@ async def create_xai_highlights_task(
         return None
 
     max_ext = active_profile_dto.max_extension_items
-    if max_ext is None:
+    if max_ext is None or max_ext <= 0:
         logger.error(
-            "[synthesis_tasks] %s: max_extension_items is mandatory if extensions are visible.",
+            "[synthesis_tasks] %s: max_extension_items is mandatory and must be positive if extensions are visible.",
             ErrorCodes.VALIDATION_FAILED.name,
             exc_info=True,
         )

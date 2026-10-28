@@ -286,6 +286,25 @@ async def test_create_xai_highlights_task_missing_max_items_raises() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("invalid_max_items", [0, -1])
+async def test_create_xai_highlights_task_out_of_bounds_max_items_raises(invalid_max_items: int) -> None:
+    """Test create_xai_highlights_task raises AppException on ISTQB boundary violations (0 and -1)."""
+    prof = OutputProfile.model_construct(
+        id="pro_0123456789abcdef01",
+        visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
+        max_extension_items=invalid_max_items,
+        xai_synthesis_directive="Synthesize highlights.",
+    )
+
+    async def dummy_sem(coro: Any) -> Any:
+        return await coro
+
+    with pytest.raises(AppException) as exc_info:
+        await create_xai_highlights_task(AsyncMock(), "sys", [], "distilled", "matrix", prof, dummy_sem)
+    assert exc_info.value.status_code == 400
+
+
+@pytest.mark.asyncio
 async def test_create_xai_highlights_task_happy_path() -> None:
     """Test create_xai_highlights_task compiles curation prompt and executes."""
     prof = _make_profile(
