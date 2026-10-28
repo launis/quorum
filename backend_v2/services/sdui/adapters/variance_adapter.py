@@ -13,7 +13,9 @@ from pydantic import JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
+from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.dtos.sdui_rules import VarianceRuleItemDTO, VarianceRulesDTO
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
@@ -78,44 +80,22 @@ class VarianceAdapter:
     """
 
     @staticmethod
-    def build(context: AdapterContext) -> list[AnySduiBlock]:
-        """Build SDUI blocks from the adapter context.
+    def _validate_metrics(context: AdapterContext) -> ExtensionMetricsDTO:
+        """Validate execution and extension metrics presence and completeness.
 
         Args:
-            context: Frozen, immutable adapter context containing all
-                required data for block construction.
+            context: Frozen, immutable adapter context.
 
         Returns:
-            Ordered list of polymorphic SDUI blocks ready for rendering.
+            Validated ExtensionMetricsDTO instance with required fields populated.
 
         Raises:
-            KeyError: If an unmapped key is encountered in VARIANCE_RULES.
-                This is intentional Fail-Fast behavior indicating incomplete
-                rules configuration.
-            AppException: If domain validation fails (ErrorCodes.VALIDATION_FAILED,
-                ErrorCodes.CONFIGURATION_ERROR, ErrorCodes.INTERNAL_SERVER_ERROR).
+            AppException: If execution, extension_metrics, or required metric fields
+                are missing (ErrorCodes.VALIDATION_FAILED).
         """
-        blocks: list[AnySduiBlock] = []
-
-        # 1. READ: Extract only the data this adapter needs from the context
-        if (
-            not context.profile.visible_workflow_extensions
-            or XaiExtensionType.VARIANCE_VALIDATION not in context.profile.visible_workflow_extensions
-        ):
-            return blocks
-
-        # Starvation Circuit Breaker: If data starvation occurred, skip extension metrics
-        if context.is_data_starved:
-            return blocks
-
         if context.execution is None:
             msg = "Strict Fail-Fast: context.execution cannot be None for variance calculation."
-            logger.error(
-                "[VarianceAdapter] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                exc_info=True,
-            )
+            logger.error("[VarianceAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -148,28 +128,32 @@ class VarianceAdapter:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        authenticity_score = metrics.authenticity_score
-        performative_phrases_count = metrics.performative_phrases_count
+        return metrics
 
-        lbl_mech = LocalizationService.translate("variance_mechanical", context.locale)
-        lbl_cog = LocalizationService.translate("variance_cognitive", context.locale)
-        lbl_var = LocalizationService.translate("variance_total", context.locale)
-        lbl_jargon = LocalizationService.translate("jargon_score", context.locale)
-        lbl_align = LocalizationService.translate("alignment_verdict", context.locale)
+    @staticmethod
+    def _resolve_alert_block(alignment_verdict: str, locale: str) -> AlertBlock:
+        """Resolve alignment verdict aesthetics from VARIANCE_RULES and build AlertBlock.
 
-        auth_score_rounded = round(float(authenticity_score), 2)
-        var_score_rounded = round(float(metrics.variance_score), 2)
-        phrase_count_rounded = round(float(performative_phrases_count), 2)
+        Args:
+            alignment_verdict: Raw alignment verdict string from extension metrics.
+            locale: Active presentation locale code.
 
-        verdict_upper = str(metrics.alignment_verdict).upper()
-        if verdict_upper == "ALIGNED":
-            lvl_key = "aligned"
-        elif verdict_upper == "MISALIGNED_SYCOPHANCY":
-            lvl_key = "misaligned_sycophancy"
-        else:
-            lvl_key = "misaligned"
+        Returns:
+            Configured AlertBlock representing the variance alignment verdict.
 
-        # 2. TRANSFORM: Look up visual rules
+        Raises:
+            AppException: If verdict rule mapping is missing in VARIANCE_RULES
+                (ErrorCodes.CONFIGURATION_ERROR).
+        """
+        verdict_upper = str(alignment_verdict).upper()
+        match verdict_upper:
+            case "ALIGNED":
+                lvl_key = "aligned"
+            case "MISALIGNED_SYCOPHANCY":
+                lvl_key = "misaligned_sycophancy"
+            case _:
+                lvl_key = "misaligned"
+
         try:
             aesthetics = VARIANCE_RULES[lvl_key]
         except KeyError as e:
@@ -181,13 +165,33 @@ class VarianceAdapter:
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             ) from e
 
-        alert_severity = aesthetics.severity
-        align_val = LocalizationService.translate(f"alignment_{lvl_key}", context.locale)
+        lbl_align = LocalizationService.translate("alignment_verdict", locale)
+        align_val = LocalizationService.translate(f"alignment_{lvl_key}", locale)
 
-        # 3. EXTRACT PERFORMATIVE PATTERNS (if available)
+        return AlertBlock(
+            severity=aesthetics.severity,
+            text=f"{lbl_align}: {align_val}",
+            exact_quotes=[],
+            citations=[],
+        )
+
+    @staticmethod
+    def _extract_performative_patterns(execution: ExecutionRecord) -> list[str]:
+        """Extract detected performative phrase strings from execution context variables.
+
+        Args:
+            execution: Execution record containing runtime context variables.
+
+        Returns:
+            Ordered list of detected performative phrase strings.
+
+        Raises:
+            AppException: If step_linguistics payload fails LinguisticsResultDTO validation
+                (ErrorCodes.INTERNAL_SERVER_ERROR).
+        """
         performative_patterns: list[str] = []
-        if context.execution.context_variables and "step_linguistics" in context.execution.context_variables:
-            raw_ling = context.execution.context_variables["step_linguistics"]
+        if execution.context_variables and "step_linguistics" in execution.context_variables:
+            raw_ling = execution.context_variables["step_linguistics"]
             if raw_ling is not None:
                 try:
                     ling_out = LinguisticsResultDTO.model_validate(raw_ling, strict=False)
@@ -207,17 +211,32 @@ class VarianceAdapter:
                         status_code=500,
                         details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                     ) from e
+        return performative_patterns
 
-        # 4. CONSTRUCT 2D AXES & SCATTER PLOT BLOCK
+    @staticmethod
+    def _resolve_target_matrix(context: AdapterContext) -> MatrixScorecardRowDTO:
+        """Resolve and validate the configured variance target matrix row.
+
+        Args:
+            context: Frozen, immutable adapter context.
+
+        Returns:
+            Target MatrixScorecardRowDTO with verified scale boundaries.
+
+        Raises:
+            AppException: If variance_target_block is unset, missing from parsed_matrices,
+                or has invalid scale extrema (ErrorCodes.CONFIGURATION_ERROR).
+        """
         target_block_id = context.profile.variance_target_block
         if not target_block_id:
             msg = f"OutputProfile '{context.profile.id}' requires 'variance_target_block' when variance validation is active."
-            logger.error("[VarianceAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+            logger.error("[VarianceAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
+
         target_matrix = next(
             (axis for axis in context.parsed_matrices.values() if axis.block_id == target_block_id),
             None,
@@ -230,7 +249,7 @@ class VarianceAdapter:
                 f"Variance target block '{target_block_id}' not found in evaluated scorecard matrices. "
                 f"Available evaluated matrices: {available_blocks}."
             )
-            logger.error("[VarianceAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+            logger.error("[VarianceAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -240,22 +259,41 @@ class VarianceAdapter:
                     "available_matrices": available_blocks,
                 },
             )
+
         scale_min = target_matrix.scale_min
         scale_max = target_matrix.scale_max
         if scale_min is None or scale_max is None or scale_max <= scale_min:
             msg = f"Target matrix '{target_block_id}' has invalid scale boundaries: min={scale_min}, max={scale_max}."
-            logger.error("[VarianceAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+            logger.error("[VarianceAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=500,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
+
+        return target_matrix
+
+    @staticmethod
+    def _build_x_axis(
+        auth_score_rounded: float,
+        scale_min: float,
+        scale_max: float,
+        locale: str,
+    ) -> MatrixScorecardRowDTO:
+        """Construct the cognitive depth X-axis row for the 2D quadrant matrix.
+
+        Args:
+            auth_score_rounded: Rounded cognitive authenticity score.
+            scale_min: Target matrix minimum scale bound.
+            scale_max: Target matrix maximum scale bound.
+            locale: Active presentation locale code.
+
+        Returns:
+            MatrixScorecardRowDTO representing the X-axis.
+        """
         scale_range = scale_max - scale_min
-
-        axis_cog_title = LocalizationService.translate("axis_cognitive_depth_title", context.locale)
-        axis_mech_title = LocalizationService.translate("axis_mechanical_load_title", context.locale)
-
-        x_axis = MatrixScorecardRowDTO(
+        axis_cog_title = LocalizationService.translate("axis_cognitive_depth_title", locale)
+        return MatrixScorecardRowDTO(
             block_id="axis_cognitive_depth",
             name=axis_cog_title,
             label_i18n=I18nText(
@@ -303,14 +341,29 @@ class VarianceAdapter:
             tda_state=None,
         )
 
+    @staticmethod
+    def _build_y_axis(
+        phrase_count_rounded: float,
+        jargon_density: float | None,
+        locale: str,
+    ) -> MatrixScorecardRowDTO:
+        """Construct the mechanical load Y-axis row for the 2D quadrant matrix.
+
+        Args:
+            phrase_count_rounded: Rounded performative phrase count.
+            jargon_density: Optional length-invariant jargon density per 100 words.
+            locale: Active presentation locale code.
+
+        Returns:
+            MatrixScorecardRowDTO representing the Y-axis.
+        """
         settings = get_settings()
-        if metrics.jargon_density is not None:
+        if jargon_density is not None:
             normalized_load = min(
-                (metrics.jargon_density / settings.variance_jargon_density_normalizer)
-                * settings.variance_max_performative_cap,
+                (jargon_density / settings.variance_jargon_density_normalizer) * settings.variance_max_performative_cap,
                 settings.variance_max_performative_cap,
             )
-            mech_score = round(float(metrics.jargon_density), 2)
+            mech_score = round(float(jargon_density), 2)
         else:
             normalized_load = min(
                 (phrase_count_rounded / settings.variance_performative_normalizer)
@@ -319,7 +372,8 @@ class VarianceAdapter:
             )
             mech_score = phrase_count_rounded
 
-        y_axis = MatrixScorecardRowDTO(
+        axis_mech_title = LocalizationService.translate("axis_mechanical_load_title", locale)
+        return MatrixScorecardRowDTO(
             block_id="axis_mechanical_load",
             name=axis_mech_title,
             label_i18n=I18nText(
@@ -367,23 +421,42 @@ class VarianceAdapter:
             tda_state=None,
         )
 
-        scatter_block = SduiQuadrantMatrixBlock(
-            title=None,
-            axes=[x_axis, y_axis],
+    @staticmethod
+    def _build_summary_grid(
+        phrase_count_rounded: float,
+        auth_score_rounded: float,
+        var_score_rounded: float,
+        scale_max: float,
+        performative_patterns: list[str],
+        jargon_density: float | None,
+        locale: str,
+    ) -> SduiGridBlock:
+        """Construct the 4-metric summary SduiGridBlock.
+
+        Args:
+            phrase_count_rounded: Rounded performative phrase count.
+            auth_score_rounded: Rounded cognitive authenticity score.
+            var_score_rounded: Rounded total variance score.
+            scale_max: Target matrix maximum scale bound.
+            performative_patterns: Extracted performative phrases list.
+            jargon_density: Optional length-invariant jargon density per 100 words.
+            locale: Active presentation locale code.
+
+        Returns:
+            SduiGridBlock containing the 4 localized metric paragraphs.
+        """
+        lbl_mech = LocalizationService.translate("variance_mechanical", locale)
+        lbl_cog = LocalizationService.translate("variance_cognitive", locale)
+        lbl_var = LocalizationService.translate("variance_total", locale)
+        lbl_jargon = LocalizationService.translate("jargon_score", locale)
+        unit_pcs = LocalizationService.translate("unit_pcs", locale)
+
+        jargon_count = len(performative_patterns) if performative_patterns else int(phrase_count_rounded)
+        jargon_display = (
+            f"{jargon_count} ({jargon_density:.1f}/100w)" if jargon_density is not None else str(jargon_count)
         )
 
-        # 5. CONSTRUCT 4-METRIC SUMMARY GRID
-        unit_pcs = LocalizationService.translate("unit_pcs", context.locale)
-        if performative_patterns:
-            jargon_count = len(performative_patterns)
-        else:
-            jargon_count = int(performative_phrases_count)
-        if metrics.jargon_density is not None:
-            jargon_display = f"{jargon_count} ({metrics.jargon_density:.1f}/100w)"
-        else:
-            jargon_display = str(jargon_count)
-
-        grid_block = SduiGridBlock(
+        return SduiGridBlock(
             items=[
                 ParagraphBlock(
                     text=f"{lbl_mech}: {int(phrase_count_rounded)} {unit_pcs}", exact_quotes=[], citations=[]
@@ -396,55 +469,112 @@ class VarianceAdapter:
             ]
         )
 
-        # 6. CONSTRUCT ALERT BANNER
-        alert_block = AlertBlock(
-            severity=alert_severity,
-            text=f"{lbl_align}: {align_val}",
-            exact_quotes=[],
-            citations=[],
-        )
+    @staticmethod
+    def _resolve_explanation(
+        context: AdapterContext,
+        performative_phrases_count: float,
+        auth_score_rounded: float,
+    ) -> str:
+        """Resolve variance synthesis explanation or localized fallback text.
 
-        # 7. RESOLVE SYNTHESIS EXPLANATION
-        llm_explanation = ""
+        Args:
+            context: Frozen, immutable adapter context.
+            performative_phrases_count: Raw performative phrases count.
+            auth_score_rounded: Rounded cognitive authenticity score.
+
+        Returns:
+            Resolved variance explanation string.
+        """
         if context.profile_cache and context.profile_cache.variance_explanation:
-            llm_explanation = context.profile_cache.variance_explanation
+            return context.profile_cache.variance_explanation
+        fallback_template = LocalizationService.translate("variance_fallback_explanation", context.locale)
+        return fallback_template.format(performative_phrases_count, auth_score_rounded)
 
-        if not llm_explanation:
-            fallback_template = LocalizationService.translate("variance_fallback_explanation", context.locale)
-            llm_explanation = fallback_template.format(performative_phrases_count, auth_score_rounded)
+    @staticmethod
+    def build(context: AdapterContext) -> list[AnySduiBlock]:
+        """Build SDUI blocks from the adapter context.
 
+        Args:
+            context: Frozen, immutable adapter context containing all
+                required data for block construction.
+
+        Returns:
+            Ordered list of polymorphic SDUI blocks ready for rendering.
+
+        Raises:
+            AppException: If domain validation or configuration resolution fails
+                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.CONFIGURATION_ERROR,
+                ErrorCodes.INTERNAL_SERVER_ERROR).
+        """
+        blocks: list[AnySduiBlock] = []
+
+        if (
+            not context.profile.visible_workflow_extensions
+            or XaiExtensionType.VARIANCE_VALIDATION not in context.profile.visible_workflow_extensions
+            or context.is_data_starved
+        ):
+            return blocks
+
+        metrics = VarianceAdapter._validate_metrics(context)
+        assert context.execution is not None
+        assert metrics.authenticity_score is not None
+        assert metrics.performative_phrases_count is not None
+        assert metrics.variance_score is not None
+        assert metrics.alignment_verdict is not None
+
+        auth_score_rounded = round(float(metrics.authenticity_score), 2)
+        var_score_rounded = round(float(metrics.variance_score), 2)
+        phrase_count_rounded = round(float(metrics.performative_phrases_count), 2)
+
+        alert_block = VarianceAdapter._resolve_alert_block(metrics.alignment_verdict, context.locale)
+        performative_patterns = VarianceAdapter._extract_performative_patterns(context.execution)
+        target_matrix = VarianceAdapter._resolve_target_matrix(context)
+        assert target_matrix.scale_min is not None
+        assert target_matrix.scale_max is not None
+
+        x_axis = VarianceAdapter._build_x_axis(
+            auth_score_rounded=auth_score_rounded,
+            scale_min=target_matrix.scale_min,
+            scale_max=target_matrix.scale_max,
+            locale=context.locale,
+        )
+        y_axis = VarianceAdapter._build_y_axis(
+            phrase_count_rounded=phrase_count_rounded,
+            jargon_density=metrics.jargon_density,
+            locale=context.locale,
+        )
+        scatter_block = SduiQuadrantMatrixBlock(title=None, axes=[x_axis, y_axis])
+        grid_block = VarianceAdapter._build_summary_grid(
+            phrase_count_rounded=phrase_count_rounded,
+            auth_score_rounded=auth_score_rounded,
+            var_score_rounded=var_score_rounded,
+            scale_max=target_matrix.scale_max,
+            performative_patterns=performative_patterns,
+            jargon_density=metrics.jargon_density,
+            locale=context.locale,
+        )
+        llm_explanation = VarianceAdapter._resolve_explanation(
+            context=context,
+            performative_phrases_count=metrics.performative_phrases_count,
+            auth_score_rounded=auth_score_rounded,
+        )
         title_str = LocalizationService.translate(
             f"xai_ext_{XaiExtensionType.VARIANCE_VALIDATION.value}", context.locale
         )
 
-        # 8. ASSEMBLE: Canonical Flat Dumb Painter sequence
-        # Element 1: Localized Markdown Header
         blocks.append(MarkdownBlock(text=f"### {title_str}"))
-
-        # Element 2: LLM Explanation Paragraph (if present)
         if llm_explanation:
             blocks.append(ParagraphBlock(text=llm_explanation, exact_quotes=[], citations=[]))
-
-        # Element 3: 2D Cartesian Quadrant Scatter Plot
         blocks.append(scatter_block)
-
-        # Element 4: Summary 4-Metric Grid
         blocks.append(grid_block)
 
-        # Element 5: Detected Jargon Phrases (if present)
         if performative_patterns:
             phrases_label = LocalizationService.translate("phrases_detected_label", context.locale)
             bullet_items = [
-                BulletListItem(
-                    text=f"{phrases_label}: {phrase}",
-                    exact_quotes=[],
-                    citations=[],
-                )
+                BulletListItem(text=f"{phrases_label}: {phrase}", exact_quotes=[], citations=[])
                 for phrase in performative_patterns
             ]
             blocks.append(BulletListBlock(items=bullet_items))
 
-        # Element 6: Verdict Banner Alert Block
         blocks.append(alert_block)
-
         return blocks
