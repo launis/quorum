@@ -41,7 +41,7 @@
   - [x] @[backend_v2/services/storage.py]
   - [x] @[backend_v2/settings.py]
   - [x] @[scripts/_ast_guardrails.py]
-  - [ ] @[scripts/audit_zero_orm_strictness.py]
+  - [x] @[scripts/audit_zero_orm_strictness.py]
   - [ ] @[scripts/reconcile_storage.py]
   - [ ] @[scripts/run_e2e_variance_test.py]
   - [ ] @[scripts/backend_audit_loop.py]
