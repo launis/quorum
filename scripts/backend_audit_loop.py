@@ -57,6 +57,7 @@ from scripts._ast_guardrails import (
 )
 
 __all__ = [
+    "find_transitional_strangler_proxy_files",
     "main",
     "run_tests_with_strict_coverage",
 ]
@@ -82,6 +83,33 @@ if isinstance(sys.stdout, io.TextIOWrapper):
         sys.stdout.reconfigure(encoding="utf-8")
     except AttributeError, io.UnsupportedOperation:
         pass
+
+
+def find_transitional_strangler_proxy_files(targets: list[str]) -> list[str]:
+    """Discover in-flight Strangler Fig proxy files coexisting with same-stem subdirectories.
+
+    When MyPy scans a parent folder (e.g. backend_v2/), its file crawler skips any foo.py
+    if a directory named foo/ exists in the same folder. Adding foo.py explicitly ensures
+    MyPy loads the proxy module symbols during multi-phase strangler fig migrations.
+
+    Args:
+        targets: List of target file or directory paths.
+
+    Returns:
+        List of transitional proxy file paths discovered.
+    """
+    discovered: list[str] = []
+    for target in targets:
+        t_path = Path(target)
+        if t_path.is_dir():
+            for child_dir in sorted(t_path.rglob("*")):
+                if child_dir.is_dir():
+                    sibling_file = child_dir.with_suffix(".py")
+                    if sibling_file.is_file():
+                        sibling_str = sibling_file.as_posix()
+                        if sibling_str not in targets and sibling_str not in discovered:
+                            discovered.append(sibling_str)
+    return discovered
 
 
 def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
@@ -505,6 +533,10 @@ Optional steps:
         for script_path in _MACRO_AUTHORITATIVE_SCRIPTS:
             if script_path not in stage_targets:
                 stage_targets.append(script_path)
+
+    for proxy_path in find_transitional_strangler_proxy_files(stage_targets):
+        if proxy_path not in stage_targets:
+            stage_targets.append(proxy_path)
 
     targets_str = ", ".join(stage_targets)
     print(f"\n🚀 Executing quality-loop for targets: {targets_str}")

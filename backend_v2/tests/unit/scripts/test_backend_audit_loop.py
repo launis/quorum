@@ -16,7 +16,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from scripts._ast_guardrails import GuardrailSeverity, GuardrailViolation
-from scripts.backend_audit_loop import main, run_tests_with_strict_coverage
+from scripts.backend_audit_loop import (
+    find_transitional_strangler_proxy_files,
+    main,
+    run_tests_with_strict_coverage,
+)
 
 
 def _mock_completed_process(
@@ -741,3 +745,30 @@ def test_coverage_runner_tests_factories_sibling_resolution(mock_sub: MagicMock)
     run_tests_with_strict_coverage("backend_v2/tests/factories/model_factories.py")
     run_tests_with_strict_coverage("backend_v2/tests/factories/test_model_factories.py")
     assert mock_sub.call_count == 4
+
+
+def test_find_transitional_strangler_proxy_files_discovers_coexisting_py(tmp_path: Path) -> None:
+    """Verify in-flight Strangler Fig proxy files coexisting with same-stem directories are discovered."""
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    sub_dir = pkg / "module"
+    sub_dir.mkdir()
+    (sub_dir / "leaf.py").write_text("# leaf", encoding="utf-8")
+    proxy_file = pkg / "module.py"
+    proxy_file.write_text("# proxy", encoding="utf-8")
+
+    discovered = find_transitional_strangler_proxy_files([str(pkg)])
+    assert str(proxy_file).replace("\\", "/") in discovered
+
+
+def test_find_transitional_strangler_proxy_files_empty_when_no_coexisting(tmp_path: Path) -> None:
+    """Verify empty result when directories do not have same-stem sibling .py files."""
+    pkg = tmp_path / "normal_pkg"
+    pkg.mkdir()
+    (pkg / "file.py").write_text("# normal file", encoding="utf-8")
+    sub_dir = pkg / "sub"
+    sub_dir.mkdir()
+    (sub_dir / "leaf.py").write_text("# normal leaf", encoding="utf-8")
+
+    discovered = find_transitional_strangler_proxy_files([str(pkg)])
+    assert discovered == []
