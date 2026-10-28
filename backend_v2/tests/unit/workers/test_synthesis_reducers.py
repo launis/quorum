@@ -79,7 +79,7 @@ def test_extract_user_role_from_trace_dict_with_matrix_output() -> None:
         content={"blk_role": matrix_out.model_dump(mode="json")},
     )
     exec_rec = _make_execution([evt])
-    role, just = extract_user_role_from_trace(exec_rec, "blk_role")
+    role, _ = extract_user_role_from_trace(exec_rec, "blk_role")
     assert role == RoleClassification.ARCHITECT.value
 
 
@@ -483,6 +483,12 @@ def test_process_row_explanations_result_real_id_fallback() -> None:
 
 def test_process_row_explanations_result_empty_real_id_continues() -> None:
     """Test process_row_explanations_result skips items with empty real_matrix_id."""
+    item = SynthesisRowExplanationDTO(
+        matrix_id="alias_mat",
+        row_explanation="Explanation for real matrix.",
+        curated_quotes=[],
+    )
+    mat_res = MatrixExplanationsResult(explanations=[item])
     ctx_dto = MatrixExplanationContextDTO(
         matrix_id="alias_mat",
         real_matrix_id="",
@@ -490,7 +496,7 @@ def test_process_row_explanations_result_empty_real_id_continues() -> None:
         score=0.8,
         justification="Justification",
     )
-    res = process_row_explanations_result(None, [ctx_dto], None)
+    res = process_row_explanations_result((mat_res, None), [ctx_dto], None)
     assert res.cache_explanations == {}
 
 
@@ -557,12 +563,15 @@ async def test_handle_synthesis_failure_state_db_error_raises() -> None:
     """Test handle_synthesis_failure_state raises AppException on repository exception."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
     mock_repo.inject_fault("get_execution", OSError("DB unavailable"), trigger_count=1)
-    with patch("backend_v2.workers.synthesis_reducers.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.workers.synthesis_reducers.UnifiedWorkflowRepository", return_value=mock_repo):
-            with pytest.raises(AppException) as exc_info:
-                await handle_synthesis_failure_state(
-                    "exe_0123456789abcdef01",
-                    "pro_0123456789abcdef01",
-                    ValueError("Synthesis error"),
-                )
-            assert exc_info.value.status_code == 500
+    try:
+        with patch("backend_v2.workers.synthesis_reducers.get_driver", new_callable=AsyncMock):
+            with patch("backend_v2.workers.synthesis_reducers.UnifiedWorkflowRepository", return_value=mock_repo):
+                with pytest.raises(AppException) as exc_info:
+                    await handle_synthesis_failure_state(
+                        "exe_0123456789abcdef01",
+                        "pro_0123456789abcdef01",
+                        ValueError("Synthesis error"),
+                    )
+                assert exc_info.value.status_code == 500
+    finally:
+        mock_repo.clear_faults()

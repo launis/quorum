@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import Annotated, Any, cast
 
 from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
 
@@ -59,60 +59,104 @@ __all__ = [
 
 
 class ExecutiveSummaryReductionDTO(V2CoreBase):
-    """Reduction result for executive summary processing."""
+    """Reduction result for executive summary processing.
+
+    Attributes:
+        exec_dto: Optional executive summary section result DTO.
+        blocks: Reduced SDUI blocks for executive summary.
+        cost_usd: Total LLM execution cost in USD.
+        total_tokens: Total LLM tokens consumed.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    exec_dto: ExecutiveSummarySectionResult | None = Field(default=None, description="Executive summary DTO")
-    blocks: list[AnySduiBlock] = Field(default_factory=list, description="SDUI blocks for executive summary")
-    cost_usd: float = Field(default=0.0, description="Cost in USD")
-    total_tokens: int = Field(default=0, description="Total tokens consumed")
+    exec_dto: Annotated[
+        ExecutiveSummarySectionResult | None,
+        Field(default=None, description="Executive summary DTO"),
+    ] = None
+    blocks: Annotated[
+        list[AnySduiBlock],
+        Field(default_factory=list, description="SDUI blocks for executive summary"),
+    ]
+    cost_usd: Annotated[float, Field(default=0.0, description="Cost in USD")] = 0.0
+    total_tokens: Annotated[int, Field(default=0, description="Total tokens consumed")] = 0
 
 
 class MatrixSectionsReductionDTO(V2CoreBase):
-    """Reduction result for matrix synthesis sections."""
+    """Reduction result for matrix synthesis sections.
+
+    Attributes:
+        sec_dict: Dictionary mapping layout IDs to lists of SDUI blocks.
+        cost_usd: Total LLM execution cost in USD.
+        total_tokens: Total LLM tokens consumed.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    sec_dict: dict[str, list[AnySduiBlock]] = Field(
-        default_factory=dict, description="Dictionary of layout IDs to SDUI blocks"
-    )
-    cost_usd: float = Field(default=0.0, description="Cost in USD")
-    total_tokens: int = Field(default=0, description="Total tokens consumed")
+    sec_dict: Annotated[
+        dict[str, list[AnySduiBlock]],
+        Field(default_factory=dict, description="Dictionary of layout IDs to SDUI blocks"),
+    ]
+    cost_usd: Annotated[float, Field(default=0.0, description="Cost in USD")] = 0.0
+    total_tokens: Annotated[int, Field(default=0, description="Total tokens consumed")] = 0
 
 
 class XaiHighlightsReductionDTO(V2CoreBase):
-    """Reduction result for XAI highlights."""
+    """Reduction result for XAI highlights.
+
+    Attributes:
+        highlights: List of highlighted XAI items.
+        cost_usd: Total LLM execution cost in USD.
+        total_tokens: Total LLM tokens consumed.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    highlights: list[Any] = Field(default_factory=list, description="List of highlighted XAI items")
-    cost_usd: float = Field(default=0.0, description="Cost in USD")
-    total_tokens: int = Field(default=0, description="Total tokens consumed")
+    highlights: Annotated[
+        list[Any],
+        Field(default_factory=list, description="List of highlighted XAI items"),
+    ]
+    cost_usd: Annotated[float, Field(default=0.0, description="Cost in USD")] = 0.0
+    total_tokens: Annotated[int, Field(default=0, description="Total tokens consumed")] = 0
 
 
 class RowExplanationsReductionDTO(V2CoreBase):
-    """Reduction result for row explanations."""
+    """Reduction result for row explanations.
+
+    Attributes:
+        cache_explanations: Map of explanation cache keys to explanations.
+        cost_usd: Total LLM execution cost in USD.
+        total_tokens: Total LLM tokens consumed.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    cache_explanations: dict[str, str] = Field(
-        default_factory=dict, description="Map of explanation cache keys to explanations"
-    )
-    cost_usd: float = Field(default=0.0, description="Cost in USD")
-    total_tokens: int = Field(default=0, description="Total tokens consumed")
+    cache_explanations: Annotated[
+        dict[str, str],
+        Field(default_factory=dict, description="Map of explanation cache keys to explanations"),
+    ]
+    cost_usd: Annotated[float, Field(default=0.0, description="Cost in USD")] = 0.0
+    total_tokens: Annotated[int, Field(default=0, description="Total tokens consumed")] = 0
 
 
 class RecoveredTelemetryDTO(V2CoreBase):
-    """Recovered telemetry metrics from execution trace blob."""
+    """Recovered telemetry metrics from execution trace blob.
+
+    Attributes:
+        final_cost: Recovered DAG execution cost in USD.
+        prompt_tokens: Optional recovered prompt tokens.
+        completion_tokens: Optional recovered completion tokens.
+        cached_tokens: Optional recovered cached tokens.
+        reasoning_tokens: Optional recovered reasoning tokens.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    final_cost: float = Field(description="Recovered DAG execution cost in USD")
-    prompt_tokens: int | None = Field(default=None, description="Recovered prompt tokens")
-    completion_tokens: int | None = Field(default=None, description="Recovered completion tokens")
-    cached_tokens: int | None = Field(default=None, description="Recovered cached tokens")
-    reasoning_tokens: int | None = Field(default=None, description="Recovered reasoning tokens")
+    final_cost: Annotated[float, Field(description="Recovered DAG execution cost in USD")]
+    prompt_tokens: Annotated[int | None, Field(default=None, description="Recovered prompt tokens")] = None
+    completion_tokens: Annotated[int | None, Field(default=None, description="Recovered completion tokens")] = None
+    cached_tokens: Annotated[int | None, Field(default=None, description="Recovered cached tokens")] = None
+    reasoning_tokens: Annotated[int | None, Field(default=None, description="Recovered reasoning tokens")] = None
 
 
 logger = logging.getLogger(__name__)
@@ -150,6 +194,7 @@ def extract_user_role_from_trace(
                                 "[synthesis_reducers] Corrupted LightweightMatrixOutput in trace for %s: %s",
                                 role_target_block_id,
                                 err,
+                                exc_info=True,
                                 extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                             )
                             raise AppException(
@@ -371,6 +416,7 @@ async def handle_starvation_if_detected(
                         logger.error(
                             "[synthesis_reducers] Corrupted DataStarvationEvent in trace: %s",
                             err,
+                            exc_info=True,
                             extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
                         raise AppException(
@@ -470,6 +516,7 @@ async def recover_trace_telemetry(
                                 logger.error(
                                     "[Task] Corrupted TraceEventMetadataEnvelope in storage blob: %s",
                                     err,
+                                    exc_info=True,
                                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                                 )
                                 raise AppException(
@@ -485,6 +532,7 @@ async def recover_trace_telemetry(
             logger.error(
                 "[Task] Failed to recover DAG telemetry from storage blob: %s",
                 err,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.DATA_CORRUPTION.value},
             )
             raise AppException(
