@@ -2,19 +2,27 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from backend_v2.exceptions import (
+    AppException,
+    ErrorCodes,
+    PermissionDeniedError,
+    ResourceNotFoundError,
+)
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord
-from backend_v2.models.domain.inputs import WorkflowInputsIngress
+from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord, FrozenContext
+from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
 from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.execution.facade import ExecutionService, create_execution_record
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryExecutionRepository,
+    InMemoryUnifiedWorkflowRepository,
     InMemoryWorkflowRepository,
 )
 
@@ -141,6 +149,7 @@ async def test_start_execution(
         workflow_id="wor_0123456789abcdef",
         target_locale="fi",
         raw_inputs=WorkflowInputsIngress(dynamic_inputs={"key": "val"}),
+        matrix_sampling_strategy=10,
     )
     arq_pool = AsyncMock()
 
@@ -196,7 +205,7 @@ async def test_override_atom(
     service, subs = mock_execution_service
     subs["override"].override_atom = AsyncMock()
 
-    payload = HumanOverrideRequest(new_status=ExecutionStatus.PASSED, reason="Human override test")
+    payload = HumanOverrideRequest(new_status=ExecutionStatus.PASSED, reason="Human override test", evidence_quotes=[])
     await service.override_atom(initiator, "exe_123", "atm_123", payload)
     subs["override"].override_atom.assert_awaited_once_with(initiator, "exe_123", "atm_123", payload)
 
@@ -232,7 +241,7 @@ async def test_stream_status(
     """Verify stream_status delegates to _stream.stream_status."""
     service, subs = mock_execution_service
 
-    async def sample_stream(init: TokenData, eid: str):
+    async def sample_stream(init: TokenData, eid: str) -> AsyncGenerator[str]:
         yield "event: progress\ndata: {}\n\n"
         yield "event: done\ndata: {}\n\n"
 
@@ -256,3 +265,76 @@ async def test_get_frozen_context_bytes(
     result = await service.get_frozen_context_bytes(initiator, "exe_123")
     assert result == expected
     subs["context"].get_frozen_context_bytes.assert_awaited_once_with(initiator, "exe_123")
+
+
+@pytest.mark.asyncio
+async def test_facade_negative_missing_resources_raise_app_exception(initiator: TokenData) -> None:
+    """ISTQB Negative: Verify facade raises ResourceNotFoundError (AppException) on missing execution or workflow."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    service = ExecutionService(exec_repo=repo, workflow_repo=repo)
+
+    with pytest.raises(ResourceNotFoundError) as exc_get:
+        await service.get_execution(initiator, "exe_0000000000000000")
+    assert exc_get.value.status_code == 404
+    assert exc_get.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+    with pytest.raises(ResourceNotFoundError) as exc_del:
+        await service.delete_execution(initiator, "exe_0000000000000000")
+    assert exc_del.value.status_code == 404
+
+    with pytest.raises(ResourceNotFoundError) as exc_schema:
+        await service.get_workflow_ui_schema("wor_0000000000000000")
+    assert exc_schema.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_facade_negative_permission_denied_and_unresumable_state() -> None:
+    """ISTQB Negative & Boundary: Verify cross-tenant access denial and unresumable execution state via real callbacks."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    service = ExecutionService(exec_repo=repo, workflow_repo=repo)
+
+    record = create_execution_record(
+        execution_id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        raw_inputs=WorkflowInputs(),
+        frozen_context=FrozenContext(),
+        source_identity_manifest={},
+        created_by="usr_owner0000000000",
+        organization_id="org_owner0000000000",
+        status=ExecutionStatus.PENDING,
+    )
+    repo.set_execution(record)
+
+    outsider = TokenData(id="usr_outsider0000000", role=UserRole.MEMBER, organization_id="org_outsider0000000")
+    with pytest.raises(PermissionDeniedError) as exc_perm:
+        await service.get_execution(outsider, "exe_0123456789abcdef")
+    assert exc_perm.value.status_code == 403
+    assert exc_perm.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value
+
+    owner = TokenData(id="usr_owner0000000000", role=UserRole.MEMBER, organization_id="org_owner0000000000")
+    with pytest.raises(AppException) as exc_resume:
+        await service.resume_execution(owner, "exe_0123456789abcdef", AsyncMock())
+    assert exc_resume.value.status_code == 400
+    assert exc_resume.value.details["error_code"] == ErrorCodes.UNRESUMABLE_STATE_ERROR.value
+
+    override_payload = HumanOverrideRequest(
+        new_status=ExecutionStatus.PASSED, reason="Missing target atom test", evidence_quotes=[]
+    )
+    with pytest.raises(AppException) as exc_override:
+        await service.override_atom(owner, "exe_0123456789abcdef", "atm_missing00000000", override_payload)
+    assert exc_override.value.status_code == 404
+    assert exc_override.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+
+def test_create_execution_record_negative_invalid_id_raises_app_exception() -> None:
+    """ISTQB Boundary/Negative: Verify create_execution_record fails fast on malformed execution_id."""
+    with pytest.raises(AppException) as exc_info:
+        create_execution_record(
+            execution_id="invalid id with spaces",
+            workflow_id="wor_0123456789abcdef",
+            raw_inputs=WorkflowInputs(),
+            frozen_context=FrozenContext(),
+            source_identity_manifest={},
+        )
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

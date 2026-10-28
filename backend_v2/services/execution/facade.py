@@ -27,7 +27,12 @@ from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
 from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
 from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.execution.context_service import ExecutionContextService
-from backend_v2.services.execution.ingress_service import ExecutionIngressService, create_execution_record
+from backend_v2.services.execution.ingress_service import (
+    ExecutionIngressService,
+)
+from backend_v2.services.execution.ingress_service import (
+    create_execution_record as create_execution_record,
+)
 from backend_v2.services.execution.lifecycle_service import ExecutionLifecycleService
 from backend_v2.services.execution.override_service import ExecutionOverrideService
 from backend_v2.services.execution.resumption_service import ExecutionResumptionService
@@ -42,7 +47,20 @@ __all__ = ["ExecutionService", "create_execution_record"]
 
 
 class ExecutionService:
-    """Consolidated facade delegating execution operations to decomposed domain services."""
+    """Consolidated facade delegating execution operations to decomposed domain services.
+
+    Attributes:
+        exec_repo: Repository for execution records.
+        workflow_repo: Repository for workflow blueprints.
+        comp_repo: Optional repository for workflow components.
+        prompt_block_repo: Optional repository for prompt blocks.
+        output_profile_repo: Optional repository for output profiles.
+        identity_repo: Optional repository for user and organization identities.
+        system_repo: Optional repository for system configuration and model registries.
+        usage_service: Optional service for organization token usage and quota telemetry.
+        executor: Optional DAGExecutor instance.
+        storage: FileDriver storage backend for execution artifacts.
+    """
 
     def __init__(
         self,
@@ -125,6 +143,9 @@ class ExecutionService:
 
         Returns:
             List of execution records belonging to user's organization.
+
+        Raises:
+            AppException: If repository lookup or resumability evaluation fails (ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         return await self._lifecycle.list_executions(initiator)
 
@@ -141,6 +162,10 @@ class ExecutionService:
 
         Returns:
             Retrieved execution record.
+
+        Raises:
+            ResourceNotFoundError: If the execution record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            PermissionDeniedError: If the initiator lacks access to the execution (ErrorCodes.PERMISSION_DENIED).
         """
         return await self._lifecycle.get_execution(initiator, execution_id, hydrate, skip_resumability)
 
@@ -153,6 +178,11 @@ class ExecutionService:
 
         Returns:
             True if execution was successfully deleted.
+
+        Raises:
+            ResourceNotFoundError: If the execution record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            PermissionDeniedError: If the initiator lacks deletion rights (ErrorCodes.PERMISSION_DENIED).
+            AppException: If cascading storage or repository deletion fails (ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         return await self._lifecycle.delete_execution(initiator, execution_id)
 
@@ -173,6 +203,14 @@ class ExecutionService:
 
         Returns:
             Newly initialized execution record.
+
+        Raises:
+            ResourceNotFoundError: If workflow, profile, or model registry does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            PermissionDeniedError: If the initiator lacks access to the workflow (ErrorCodes.PERMISSION_DENIED).
+            ConfigurationError: If a referenced step or prompt block blueprint is missing (ErrorCodes.CONFIGURATION_ERROR).
+            AppException: If quota is exceeded (ErrorCodes.RATE_LIMIT_EXCEEDED), input or profile validation fails
+                (ErrorCodes.VALIDATION_FAILED), or a required repository dependency is missing
+                (ErrorCodes.SERVICE_DEPENDENCY_MISSING).
         """
         return await self._ingress.start_execution(initiator, payload, arq_pool, doc_service)
 
@@ -184,6 +222,9 @@ class ExecutionService:
 
         Returns:
             Workflow schema response containing input definitions and rules.
+
+        Raises:
+            ResourceNotFoundError: If the target workflow does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
         """
         return await self._ingress.get_workflow_ui_schema(workflow_id)
 
@@ -208,6 +249,12 @@ class ExecutionService:
 
         Returns:
             Updated execution record scheduled for resumption.
+
+        Raises:
+            ResourceNotFoundError: If the execution record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            PermissionDeniedError: If the initiator lacks access to the execution (ErrorCodes.PERMISSION_DENIED).
+            AppException: If the execution state is unresumable (ErrorCodes.UNRESUMABLE_STATE_ERROR) or organization
+                quota is exceeded (ErrorCodes.RATE_LIMIT_EXCEEDED).
         """
         return await self._resumption.resume_execution(initiator, execution_id, arq_pool)
 
@@ -221,6 +268,12 @@ class ExecutionService:
             execution_id: Canonical Opaque Stripe ID of target execution.
             atom_id: Target atom identifier to override.
             payload: Override parameters including verdict and explanation.
+
+        Raises:
+            ResourceNotFoundError: If the execution record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            PermissionDeniedError: If the initiator lacks permission to modify the execution (ErrorCodes.PERMISSION_DENIED).
+            AppException: If the target atom is not found (ErrorCodes.RESOURCE_NOT_FOUND) or required repositories are
+                missing (ErrorCodes.CONFIGURATION_ERROR).
         """
         await self._override.override_atom(initiator, execution_id, atom_id, payload)
 
@@ -232,6 +285,10 @@ class ExecutionService:
             execution_id: Canonical Opaque Stripe ID of target execution.
             evq_id: Unique quote evidence identifier to reject.
             reason: Text explanation for quote rejection.
+
+        Raises:
+            ResourceNotFoundError: If the execution record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            PermissionDeniedError: If the initiator lacks permission to modify the execution (ErrorCodes.PERMISSION_DENIED).
         """
         await self._override.reject_evidence_quote(initiator, execution_id, evq_id, reason)
 
@@ -242,6 +299,11 @@ class ExecutionService:
             initiator: Authentication token data of requesting user.
             execution_id: Canonical Opaque Stripe ID of target execution.
             profile_id: Canonical Opaque Stripe ID of output profile.
+
+        Raises:
+            ResourceNotFoundError: If the execution or workflow record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            PermissionDeniedError: If the initiator lacks access to the execution (ErrorCodes.PERMISSION_DENIED).
+            AppException: If deleting the cached PDF report blob fails (ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         await self._override.clear_profile_synthesis(initiator, execution_id, profile_id)
 
@@ -254,6 +316,11 @@ class ExecutionService:
 
         Yields:
             Serialized Server-Sent Events chunks reporting status updates.
+
+        Raises:
+            ResourceNotFoundError: If the execution record does not exist on preflight check (ErrorCodes.RESOURCE_NOT_FOUND).
+            PermissionDeniedError: If the initiator lacks access to the execution on preflight check
+                (ErrorCodes.PERMISSION_DENIED).
         """
         async for chunk in self._stream.stream_status(initiator, execution_id):
             yield chunk
@@ -267,5 +334,10 @@ class ExecutionService:
 
         Returns:
             Tuple of (raw bytes of frozen context JSON, suggested filename).
+
+        Raises:
+            ResourceNotFoundError: If the execution record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+            PermissionDeniedError: If the initiator lacks access to the execution (ErrorCodes.PERMISSION_DENIED).
+            AppException: If reading the offloaded frozen context blob from storage fails (ErrorCodes.RESOURCE_NOT_FOUND).
         """
         return await self._context.get_frozen_context_bytes(initiator, execution_id)
