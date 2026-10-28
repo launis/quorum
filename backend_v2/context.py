@@ -14,6 +14,17 @@ from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "clear_execution_context",
+    "clear_request_context",
+    "execution_id_var",
+    "get_execution_context",
+    "get_request_context",
+    "request_id_var",
+    "set_execution_context",
+    "set_request_context",
+]
+
 # Global context variable for Execution ID (Workflow Runs)
 execution_id_var: ContextVar[str | None] = ContextVar("execution_id", default=None)
 
