@@ -1,4 +1,4 @@
-"""Backend Audit Loop Script (Antigravity Quality Gate)
+"""Backend Audit Loop Script (Antigravity Quality Gate).
 
 **What this script does:**
 This script is the Automated Quality Gate for the Python backend. It runs a multi-stage pipeline:
@@ -13,27 +13,29 @@ Additionally, the script can update OpenAPI specifications (--openapi) and run u
 **Usage Instructions:**
 Execute this script from the workspace root using `uv run python`:
 
-```bash
+```powershell
 uv run python scripts/backend_audit_loop.py <target_folder_or_file> [--permissive-warn] [--openapi] [--test]
 ```
 
 **Examples:**
 
 1. Check and format a single file (executes strict AST guardrails by default):
-```bash
+```powershell
 uv run python scripts/backend_audit_loop.py backend_v2/hooks/scoring.py
 ```
 
 2. Check in advisory mode for emergency diagnostics:
-```bash
+```powershell
 uv run python scripts/backend_audit_loop.py scripts/backend_audit_loop.py --permissive-warn
 ```
 
 3. Check an entire folder and execute tests with coverage:
-```bash
+```powershell
 uv run python scripts/backend_audit_loop.py backend_v2/ --test
 ```
 """
+
+from __future__ import annotations
 
 import argparse
 import io
@@ -59,7 +61,7 @@ __all__ = [
     "run_tests_with_strict_coverage",
 ]
 
-# Phase 3, Step 3: Authoritative operational and guardrail scripts audited in macro completion gate
+# Authoritative operational and guardrail scripts audited in macro completion gate
 _MACRO_AUTHORITATIVE_SCRIPTS: tuple[str, ...] = (
     "scripts/reconcile_storage.py",
     "scripts/_ast_guardrails.py",
@@ -99,7 +101,10 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
     Args:
         target: File path or directory path to test with coverage.
         logfire: When True, enables Logfire distributed tracing plugin in Pytest.
-            Defaults to True.
+            Defaults to False.
+
+    Raises:
+        SystemExit: If test execution fails or line coverage falls below 90%.
     """
     print("🚀 Verifying Strict 90% TDD Coverage...")
 
@@ -194,7 +199,7 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
             cov_filter_name = filename
 
             test_paths = []
-            # Phase 3, Step 3: First-class operational and guardrail scripts test discovery
+            # First-class operational and guardrail scripts test discovery
             if parts[0] == "scripts":
                 for cand in candidates:
                     cand_path = Path("backend_v2/tests/unit/scripts") / cand
@@ -216,7 +221,7 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
                             if sib_str not in test_paths:
                                 test_paths.append(sib_str)
                         break
-                    # 1b. Parent package subfolder test file (e.g. backend_v2/models/prompts/execution/matrix_evaluation.py -> tests/unit/models/prompts/test_matrix_evaluation.py)
+                    # 1b. Parent package subfolder test file (specifically: backend_v2/models/prompts/execution/matrix_evaluation.py -> tests/unit/models/prompts/test_matrix_evaluation.py)
                     for i in range(len(parts) - 2, 0, -1):
                         parent_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / cand
                         if parent_cand.exists():
@@ -228,7 +233,7 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
                             break
                     if test_paths:
                         break
-                    # 2. Parent package test file (e.g. backend_v2/hooks/scoring/passivity_hook.py -> test_scoring.py or test_hooks.py)
+                    # 2. Parent package test file (specifically: backend_v2/hooks/scoring/passivity_hook.py -> test_scoring.py or test_hooks.py)
                     for i in range(len(parts) - 2, 0, -1):
                         parent_pkg = parts[i]
                         parent_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / f"test_{parent_pkg}.py"
@@ -372,7 +377,7 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
             "🤖 AI INSTRUCTION: Read the report above and fix either failing tests (-v or --tb=short explains the cause) OR add tests for missing lines (Miss column)."
         )
         print(
-            "🚨 THE ANTI-TDD TRAP MANDATE: The architectural laws in `.agents/rules/` are ABSOLUTE. Do NOT fall into the 'Test-Driven Development Trap' where you preserve legacy dict-parsing, fallback hacks, or hardcoded strings just to satisfy existing unit tests. If old tests conflict with the new rules (e.g., No-String Mandate, De-Generator, Pydantic V2), you MUST ruthlessly tear down the legacy code AND rewrite the tests. A green test suite that violates architectural sovereignty is a failed state."
+            "🚨 THE ANTI-TDD TRAP MANDATE: The architectural laws in `.agents/rules/` are ABSOLUTE. Do NOT fall into the 'Test-Driven Development Trap' where you preserve legacy dict-parsing, fallback hacks, or hardcoded strings just to satisfy existing unit tests. If old tests conflict with the new rules (specifically: No-String Mandate, De-Generator, Pydantic V2), you MUST ruthlessly tear down the legacy code AND rewrite the tests. A green test suite that violates architectural sovereignty is a failed state."
         )
         sys.exit(result.returncode)
     else:
@@ -380,12 +385,18 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
-    """Main CLI entrypoint executing the sequential backend quality gate pipeline.
+    """Execute the sequential backend quality gate pipeline.
 
     Parses command line arguments and runs the validation sequence:
     Ruff lint, Ruff format, MyPy strict type checking, AST guardrail validation,
     Jinja template validation, Seed dry-run verification, Clean imports verification,
     DTO parity verification, and Warning & Residual Debt baseline verification.
+
+    Args:
+        argv: Optional list of CLI argument strings to parse. Defaults to None.
+
+    Raises:
+        SystemExit: If CLI arguments are invalid or any quality gate stage fails.
     """
     parser = argparse.ArgumentParser(
         description="""Sequential backend quality gate pipeline.
@@ -449,7 +460,7 @@ Optional steps:
         action="store_false",
         help="Enable advisory AST mode for emergency diagnostics only (warn on advisory violations, fail on fatal).",
     )
-    # Step 1: Add Micro-Audit Mode to backend_audit_loop.py
+    # Configure fast targeted micro-audit mode for single-file iterations
     parser.add_argument(
         "--micro",
         "--fast",
@@ -487,7 +498,7 @@ Optional steps:
         print("Error: Script must be executed from the project root (where backend_v2 is located).")
         sys.exit(1)
 
-    # Phase 3, Step 3: Expand macro completion gate targets with authoritative operational and guardrail scripts
+    # Expand macro completion gate targets with authoritative operational and guardrail scripts
     is_macro_backend_gate = not args.micro and any(t.replace("\\", "/").rstrip("/") == "backend_v2" for t in targets)
     stage_targets: list[str] = list(targets)
     if is_macro_backend_gate:
@@ -539,7 +550,7 @@ Optional steps:
     else:
         print("✅ AST Guardrails passed cleanly.")
 
-    # Step 1: Defer repository-wide scans (Stages 5-10) when --micro is active
+    # Defer repository-wide scans (Stages 5-10) when --micro is active
     if not args.micro:
         print("\n⏳ 5/10: Validating UI templates (Jinja Dumb Painter Enforcement)...")
         jinja_dir = Path("backend_v2/templates")

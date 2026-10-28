@@ -706,7 +706,7 @@ def test_backend_audit_loop_micro_mode_explicit_logfire_override(
 @patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
 @patch("subprocess.run", return_value=_mock_completed_process(0))
 def test_macro_gate_expands_authoritative_scripts_and_runs_zero_orm(mock_sub: MagicMock, mock_scan: MagicMock) -> None:
-    """Phase 3, Step 3: Verify macro gate on backend_v2/ audits authoritative scripts and runs Zero-ORM strictness."""
+    """Verify macro gate on backend_v2/ audits authoritative scripts and runs Zero-ORM strictness."""
     main(["backend_v2/", "scripts/reconcile_storage.py"])
     assert mock_scan.called
     scanned_targets = mock_scan.call_args[0][0]
@@ -720,7 +720,7 @@ def test_macro_gate_expands_authoritative_scripts_and_runs_zero_orm(mock_sub: Ma
 @patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
 @patch("sys.exit")
 def test_subprocess_zero_orm_strictness_failure(mock_exit: MagicMock, mock_scan: MagicMock) -> None:
-    """Phase 3, Step 3: Verify failure in audit_zero_orm_strictness.py triggers Fail-Fast exit(1)."""
+    """Verify failure in audit_zero_orm_strictness.py triggers Fail-Fast exit(1)."""
     mock_exit.side_effect = SystemExit(1)
 
     def sub_side_effect(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
