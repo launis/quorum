@@ -15,6 +15,11 @@ from unittest.mock import patch
 import pytest
 
 from scripts._ast_guardrails import (
+    BOUNDARY_EXEMPTION_FILES,
+    OPEN_JSON_EXEMPTION_FILES,
+    REPO_ROOT,
+    RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES,
+    RESIDUAL_FUTURE_PHASE_QGR028_FILES,
     GuardrailSeverity,
     GuardrailViolation,
     _find_nested_dict_subscript,
@@ -25,14 +30,34 @@ from scripts._ast_guardrails import (
     scan_source_code_for_guardrails,
 )
 
+__all__ = [
+    "_get_ann",
+    "_scan_snippet",
+]
+
 
 def _scan_snippet(code: str, filepath: str = "backend_v2/services/sample.py") -> list[GuardrailViolation]:
-    """Helper to scan a Python code snippet as source bytes."""
+    """Scan a Python code snippet as UTF-8 source bytes against AST guardrails.
+
+    Args:
+        code: Raw Python source snippet to scan.
+        filepath: Virtual relative file path used for domain severity classification.
+
+    Returns:
+        List of detected GuardrailViolation objects.
+    """
     return scan_source_code_for_guardrails(filepath, code.encode("utf-8"))
 
 
 def _get_ann(code: str) -> ast.AST:
-    """Helper to extract an AnnAssign annotation AST node cleanly for strict typing."""
+    """Extract an AnnAssign annotation AST node cleanly for strict typing tests.
+
+    Args:
+        code: Single-statement annotated assignment Python snippet.
+
+    Returns:
+        Extracted annotation AST node.
+    """
     stmt = ast.parse(code).body[0]
     assert isinstance(stmt, ast.AnnAssign)
     assert stmt.annotation is not None
@@ -45,6 +70,7 @@ def _get_ann(code: str) -> ast.AST:
 
 
 def test_qgr000_syntax_error_resilience() -> None:
+    """Verify QGR000 catches broken syntax with FATAL severity."""
     code = "def broken(\n"
     violations = _scan_snippet(code)
     assert len(violations) == 1
@@ -55,6 +81,7 @@ def test_qgr000_syntax_error_resilience() -> None:
 
 
 def test_qgr000_indentation_error_resilience() -> None:
+    """Verify QGR000 catches indentation errors with FATAL severity."""
     code = "def foo():\npass\n"
     violations = _scan_snippet(code)
     assert len(violations) == 1
@@ -64,8 +91,9 @@ def test_qgr000_indentation_error_resilience() -> None:
 
 
 def test_qgr000_tokenize_error_resilience() -> None:
+    """Verify QGR000 catches tokenizer errors with FATAL severity."""
     code = "x = 1\n"
-    with patch("tokenize.tokenize", side_effect=tokenize.TokenError("Unclosed string")):
+    with patch("scripts._ast_guardrails.tokenize.tokenize", side_effect=tokenize.TokenError("Unclosed string")):
         violations = _scan_snippet(code)
         assert len(violations) == 1
         v = violations[0]
@@ -75,8 +103,9 @@ def test_qgr000_tokenize_error_resilience() -> None:
 
 
 def test_qgr000_recursion_error_resilience() -> None:
+    """Verify QGR000 catches AST recursion limit errors with FATAL severity."""
     code = "x = 1\n"
-    with patch("ast.NodeVisitor.visit", side_effect=RecursionError("Maximum depth exceeded")):
+    with patch("scripts._ast_guardrails.ast.NodeVisitor.visit", side_effect=RecursionError("Maximum depth exceeded")):
         violations = _scan_snippet(code)
         assert len(violations) == 1
         assert violations[0].rule_code == "QGR000"
@@ -85,6 +114,7 @@ def test_qgr000_recursion_error_resilience() -> None:
 
 
 def test_qgr000_unicode_decode_error() -> None:
+    """Verify QGR000 catches invalid UTF-8 byte sequences with FATAL severity."""
     invalid_bytes = b"\xff\xfe\x00\x00Invalid"
     violations = scan_source_code_for_guardrails("test.py", invalid_bytes)
     assert len(violations) == 1
@@ -94,6 +124,7 @@ def test_qgr000_unicode_decode_error() -> None:
 
 
 def test_qgr000_immunity_against_suppression() -> None:
+    """Verify QGR000 syntax violations cannot be suppressed via noqa comments."""
     code = "def broken(  # noqa: QGR000\n"
     violations = _scan_snippet(code)
     assert len(violations) == 1
@@ -101,6 +132,11 @@ def test_qgr000_immunity_against_suppression() -> None:
 
 
 def test_qgr000_os_read_error(tmp_path: Path) -> None:
+    """Verify QGR000 catches missing file OS read errors with FATAL severity.
+
+    Args:
+        tmp_path: Pytest temporary directory path fixture.
+    """
     missing_file = tmp_path / "non_existent.py"
     violations = scan_file_for_guardrails(missing_file)
     assert len(violations) == 1
@@ -115,6 +151,7 @@ def test_qgr000_os_read_error(tmp_path: Path) -> None:
 
 
 def test_qgr001_getattr_detection() -> None:
+    """Verify QGR001 detects dynamic getattr() calls."""
     code = "val = getattr(obj, 'attr', None)\n"
     violations = _scan_snippet(code)
     unsuppressed = violations
@@ -124,6 +161,7 @@ def test_qgr001_getattr_detection() -> None:
 
 
 def test_qgr001_hasattr_detection() -> None:
+    """Verify QGR001 detects dynamic hasattr() calls."""
     code = "if hasattr(obj, 'attr'):\n    pass\n"
     violations = _scan_snippet(code)
     unsuppressed = violations
@@ -133,6 +171,7 @@ def test_qgr001_hasattr_detection() -> None:
 
 
 def test_qgr001_setattr_detection() -> None:
+    """Verify QGR001 detects dynamic setattr() calls."""
     code = "setattr(obj, 'attr', 42)\n"
     violations = _scan_snippet(code)
     unsuppressed = violations
@@ -142,6 +181,7 @@ def test_qgr001_setattr_detection() -> None:
 
 
 def test_qgr001_object_setattr_detection() -> None:
+    """Verify QGR001 detects object.__setattr__() calls bypassing frozen models."""
     code = "object.__setattr__(obj, 'attr', 42)\n"
     violations = _scan_snippet(code)
     unsuppressed = violations
@@ -151,6 +191,7 @@ def test_qgr001_object_setattr_detection() -> None:
 
 
 def test_qgr001_vars_detection() -> None:
+    """Verify QGR001 detects vars() reflection calls with FATAL severity."""
     code = "d = vars(obj)\n"
     violations = _scan_snippet(code)
     unsuppressed = violations
@@ -161,6 +202,7 @@ def test_qgr001_vars_detection() -> None:
 
 
 def test_qgr001_dict_attribute_detection() -> None:
+    """Verify QGR001 detects .__dict__ attribute access with FATAL severity."""
     code = "d = obj.__dict__\n"
     violations = _scan_snippet(code)
     unsuppressed = violations
@@ -171,6 +213,7 @@ def test_qgr001_dict_attribute_detection() -> None:
 
 
 def test_qgr001_attrgetter_detection() -> None:
+    """Verify QGR001 detects operator.attrgetter() usage with FATAL severity."""
     code = "getter = operator.attrgetter('name')\n"
     violations = _scan_snippet(code)
     unsuppressed = violations
@@ -181,6 +224,7 @@ def test_qgr001_attrgetter_detection() -> None:
 
 
 def test_qgr001_test_file_fatal_severity() -> None:
+    """Verify QGR001 emits FATAL severity even inside unit test files."""
     code = "val = getattr(obj, 'attr', None)\n"
     violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
     unsuppressed = violations
@@ -195,6 +239,7 @@ def test_qgr001_test_file_fatal_severity() -> None:
 
 
 def test_qgr002_get_default_detection() -> None:
+    """Verify QGR002 detects two-argument .get(key, default) fallback calls."""
     code = "val = data.get('missing_key', 'fallback_value')\n"
     violations = _scan_snippet(code)
     unsuppressed = violations
@@ -205,6 +250,7 @@ def test_qgr002_get_default_detection() -> None:
 
 
 def test_qgr002_single_arg_get_detection() -> None:
+    """Verify QGR002 detects single-argument .get(key) calls in domain code."""
     code = "val = data.get('key')\n"
     violations = _scan_snippet(code)
     unsuppressed = violations
@@ -214,6 +260,7 @@ def test_qgr002_single_arg_get_detection() -> None:
 
 
 def test_qgr002_client_get_network_exempt() -> None:
+    """Verify HTTP client.get() network calls with keyword arguments are exempt from QGR002."""
     code = "resp = client.get('https://api.example.com', headers={'Auth': 'Bearer'})\n"
     violations = _scan_snippet(code)
     qgr002 = [v for v in violations if v.rule_code == "QGR002"]
@@ -221,6 +268,7 @@ def test_qgr002_client_get_network_exempt() -> None:
 
 
 def test_qgr002_zero_arg_contextvar_get_exempt() -> None:
+    """Verify zero-argument ContextVar.get() calls are exempt from QGR002."""
     code = "resp = _last_response_var.get()\n"
     violations = _scan_snippet(code)
     qgr002 = [v for v in violations if v.rule_code == "QGR002"]
@@ -228,6 +276,7 @@ def test_qgr002_zero_arg_contextvar_get_exempt() -> None:
 
 
 def test_qgr002_request_kwargs_exempt() -> None:
+    """Verify HTTP session.get() calls with request keyword arguments are exempt from QGR002."""
     code = "res = session.get(url, params={'q': 'test'})\n"
     violations = _scan_snippet(code)
     qgr002 = [v for v in violations if v.rule_code == "QGR002"]
@@ -240,6 +289,7 @@ def test_qgr002_request_kwargs_exempt() -> None:
 
 
 def test_qgr003_silent_except_pass_detection() -> None:
+    """Verify QGR003 detects silent `except Exception: pass` blocks."""
     code = """
 try:
     do_something()
@@ -253,6 +303,7 @@ except Exception:
 
 
 def test_qgr003_except_return_dict_detection() -> None:
+    """Verify QGR003 detects exception handlers returning empty dictionary fallbacks."""
     code = """
 try:
     do_something()
@@ -266,6 +317,7 @@ except (Exception, BaseException):
 
 
 def test_qgr003_bare_except_detection() -> None:
+    """Verify QGR003 detects bare `except:` blocks."""
     code = """
 try:
     do_something()
@@ -279,6 +331,7 @@ except:
 
 
 def test_qgr003_typed_exception_swallowing_fatal() -> None:
+    """Verify QGR003 detects typed exception handlers returning empty collection fallbacks."""
     code = """
 try:
     do_something()
@@ -293,6 +346,7 @@ except (ValidationError, TypeError):
 
 
 def test_qgr003_dlq_push_exempt() -> None:
+    """Verify exception handlers routing failures to DLQ push are exempt from QGR003."""
     code = """
 try:
     do_something()
@@ -305,6 +359,7 @@ except Exception as e:
 
 
 def test_qgr003_tuple_return_typed_dispatch_exempt() -> None:
+    """Verify exception handlers returning typed failure result tuples are exempt from QGR003."""
     code = """
 try:
     do_something()
@@ -322,6 +377,7 @@ except Exception as e:
 
 
 def test_qgr004_new_on_basemodel_detection() -> None:
+    """Verify QGR004 detects overriding `__new__` on BaseModel subclasses."""
     code = """
 class ChameleonModel(BaseModel):
     def __new__(cls, *args, **kwargs):
@@ -335,6 +391,7 @@ class ChameleonModel(BaseModel):
 
 
 def test_qgr004_model_construct_on_basemodel_detection() -> None:
+    """Verify QGR004 detects overriding `model_construct` on BaseModel subclasses."""
     code = """
 class ChameleonModel(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -355,6 +412,7 @@ class ChameleonModel(BaseModel):
 
 
 def test_qgr005_raw_string_category_routing() -> None:
+    """Verify QGR005 detects raw string literal comparisons on category identifiers."""
     code = """
 if block.category_id == "matrix":
     do_matrix()
@@ -373,6 +431,7 @@ elif category == "system_rule":
 
 
 def test_qgr006_asyncio_gather_detection() -> None:
+    """Verify QGR006 detects legacy asyncio.gather() calls."""
     code = "results = await asyncio.gather(task1(), task2())\n"
     violations = _scan_snippet(code)
     unsuppressed = violations
@@ -386,6 +445,7 @@ def test_qgr006_asyncio_gather_detection() -> None:
 
 
 def test_qgr007_basemodel_missing_strictness_config() -> None:
+    """Verify QGR007 detects BaseModel classes missing `model_config = ConfigDict(...)`."""
     code = """
 class BadModel(BaseModel):
     name: str
@@ -398,6 +458,7 @@ class BadModel(BaseModel):
 
 
 def test_qgr007_basemodel_incomplete_strictness_config() -> None:
+    """Verify QGR007 detects BaseModel classes missing `extra='forbid'` in ConfigDict."""
     code = """
 class LooseModel(BaseModel):
     model_config = ConfigDict(strict=True)  # missing extra='forbid'
@@ -410,6 +471,7 @@ class LooseModel(BaseModel):
 
 
 def test_qgr007_annassign_config_detection() -> None:
+    """Verify QGR007 accepts annotated `model_config: ConfigDict = ConfigDict(strict=True, extra='forbid')`."""
     code = """
 class ValidAnnModel(BaseModel):
     model_config: ConfigDict = ConfigDict(strict=True, extra="forbid")
@@ -421,6 +483,7 @@ class ValidAnnModel(BaseModel):
 
 
 def test_qgr007_inherited_local_model() -> None:
+    """Verify QGR007 allows child models inheriting strict ConfigDict from a local base model."""
     code = """
 class BaseParentDTO(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -440,6 +503,7 @@ class ChildDTO(BaseParentDTO):
 
 
 def test_qgr008_hardcoded_timeout_and_sleep() -> None:
+    """Verify QGR008 detects hardcoded numeric timeouts and asyncio.sleep durations in services."""
     code = """
 client = httpx.AsyncClient(timeout=10)
 await asyncio.sleep(5)
@@ -456,6 +520,7 @@ await asyncio.sleep(5)
 
 
 def test_qgr009_app_exception_untyped_error_code() -> None:
+    """Verify QGR009 detects AppException raises missing typed ErrorCodes enum values."""
     code = """
 raise AppException("Direct raw string message")
 raise AppException(error_code="invalid_string", message="error")
@@ -473,6 +538,7 @@ raise AppException()
 
 
 def test_qgr010_naive_datetime_and_utcnow() -> None:
+    """Verify QGR010 detects naive `datetime.now()` and deprecated `datetime.utcnow()` calls."""
     code = """
 t1 = datetime.now()
 t2 = datetime.utcnow()
@@ -490,6 +556,7 @@ t3 = datetime.now(tz=None)
 
 
 def test_false_positive_immunity_string_literals() -> None:
+    """Verify string literals containing banned keywords do not trigger violations."""
     code = """
 label1 = "getattr"
 label2 = "hasattr"
@@ -501,6 +568,7 @@ label4 = "matrix"
 
 
 def test_false_positive_immunity_comments_and_docstrings() -> None:
+    """Verify comments and docstrings mentioning banned constructs do not trigger violations."""
     code = '''
 """
 This docstring mentions getattr(), hasattr(), datetime.now(), and asyncio.gather().
@@ -514,6 +582,7 @@ def safe_func():
 
 
 def test_false_positive_immunity_environ_and_headers() -> None:
+    """Verify os.environ.get and request.headers.get are exempt from QGR002."""
     code = """
 port = os.environ.get("PORT", "8000")
 auth = request.headers.get("Authorization", "")
@@ -525,6 +594,7 @@ env_port = environ.get("HOST", "localhost")
 
 
 def test_false_positive_immunity_enum_label_map() -> None:
+    """Verify static uppercase `_MAP.get()` lookups are exempt from QGR002."""
     code = """
 label = _LABEL_MAP.get(key, "Unknown")
 other = LABEL_MAP.get(key, "Default")
@@ -535,6 +605,7 @@ val = _VALUE_MAP.get(k, 0)
 
 
 def test_false_positive_immunity_datetime_utc() -> None:
+    """Verify timezone-aware `datetime.now(UTC)` calls pass QGR010 cleanly."""
     code = """
 t1 = datetime.now(UTC)
 t2 = datetime.now(timezone.utc)
@@ -545,6 +616,7 @@ t3 = datetime.now(tz=UTC)
 
 
 def test_false_positive_immunity_taskgroup() -> None:
+    """Verify `asyncio.TaskGroup()` passes QGR006 cleanly."""
     code = """
 async with asyncio.TaskGroup() as tg:
     tg.create_task(task1())
@@ -555,6 +627,7 @@ async with asyncio.TaskGroup() as tg:
 
 
 def test_false_positive_immunity_app_exception_typed() -> None:
+    """Verify `AppException` raises with typed ErrorCodes pass QGR009 cleanly."""
     code = """
 raise AppException(ErrorCodes.VALIDATION_FAILED, "Payload is invalid")
 raise AppException(error_code=ErrorCodes.RESOURCE_NOT_FOUND, message="Missing item")
@@ -568,6 +641,7 @@ raise AppException("Failed", details={"error_code": CustomErrors.OPERATION_FAILE
 
 
 def test_false_positive_immunity_timeouts_in_test_files() -> None:
+    """Verify hardcoded timeouts and test fixture models inside test paths are exempt from QGR007/QGR008."""
     code = """
 client = httpx.AsyncClient(timeout=10)
 await asyncio.sleep(5)
@@ -584,6 +658,7 @@ class TestFixtureModel(BaseModel):
 
 
 def test_inline_suppression_single_line_with_valid_reason() -> None:
+    """Verify inline `# noqa: QGR001` comments with reasons still emit violations."""
     code = "val = getattr(obj, 'attr', None)  # noqa: QGR001 [REASON: Third-party LiteLLM model attribute]\n"
     violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/sample.py")
     assert len(violations) == 1
@@ -591,6 +666,7 @@ def test_inline_suppression_single_line_with_valid_reason() -> None:
 
 
 def test_inline_suppression_missing_reason_fails_fatal() -> None:
+    """Verify bare `# noqa: QGR001` comments without reasons still emit violations."""
     code = "val = getattr(obj, 'attr', None)  # noqa: QGR001\n"
     violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/sample.py")
     assert len(violations) == 1
@@ -598,6 +674,7 @@ def test_inline_suppression_missing_reason_fails_fatal() -> None:
 
 
 def test_inline_suppression_placeholder_reason_fails_fatal() -> None:
+    """Verify placeholder suppression reasons still emit QGR001 violations."""
     for placeholder in ["test", "n/a", "ok", "todo", "short"]:
         code = f"val = getattr(obj, 'attr', None)  # noqa: QGR001 [REASON: {placeholder}]\n"
         violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/sample.py")
@@ -606,6 +683,7 @@ def test_inline_suppression_placeholder_reason_fails_fatal() -> None:
 
 
 def test_multiline_suppression_call_span_with_reason() -> None:
+    """Verify multiline function call spans with trailing `# noqa` comments still emit violations."""
     code = """
 val = getattr(
     obj,
@@ -619,6 +697,7 @@ val = getattr(
 
 
 def test_multiline_suppression_except_span_with_reason() -> None:
+    """Verify multiline except handler spans with `# noqa` comments still emit QGR003 violations."""
     code = """
 try:
     do_something()
@@ -634,6 +713,7 @@ except (
 
 
 def test_inline_suppression_all_rules_with_reasons() -> None:
+    """Verify inline `# noqa` comments across QGR001 and QGR006-QGR010 do not suppress violations."""
     code = """
 r1 = await asyncio.gather(t1(), t2())  # noqa: QGR006 [REASON: Legacy migration in-flight step]
 class LooseDTO(BaseModel):  # noqa: QGR007 [REASON: External third-party payload DTO]
@@ -648,7 +728,7 @@ val = getattr(obj, "attr", None)  # noqa [REASON: Bare noqa wildcard rule suppre
 
 
 def test_qgr000_domain_suppression_fatal() -> None:
-    """Any AST violation in domain code emits FATAL violation regardless of # noqa comment."""
+    """Verify any AST violation in domain code emits FATAL violation regardless of `# noqa` comment."""
     code = "val = getattr(obj, 'attr', None)  # noqa: QGR001 [REASON: Legitimate reason for third party]\n"
     violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
     assert len(violations) == 1
@@ -657,6 +737,7 @@ def test_qgr000_domain_suppression_fatal() -> None:
 
 
 def test_valid_except_exception_with_raise() -> None:
+    """Verify exception handlers that log and re-raise `AppException` pass QGR003 cleanly."""
     code = """
 try:
     process()
@@ -674,6 +755,11 @@ except Exception as e:
 
 
 def test_multifile_scanning_resilience(tmp_path: Path) -> None:
+    """Verify `scan_files_for_guardrails` isolates syntax errors per file and continues scanning.
+
+    Args:
+        tmp_path: Pytest temporary directory path fixture.
+    """
     file1 = tmp_path / "broken.py"
     file1.write_text("def broken(\n", encoding="utf-8")
 
@@ -689,7 +775,11 @@ def test_multifile_scanning_resilience(tmp_path: Path) -> None:
 
 
 def test_multifile_scanning_qgr013_fatal(tmp_path: Path) -> None:
-    # QGR013 (TypeVar instantiation) is FATAL severity
+    """Verify `scan_files_for_guardrails` fails in non-strict mode when a FATAL QGR013 violation occurs.
+
+    Args:
+        tmp_path: Pytest temporary directory path fixture.
+    """
     file1 = tmp_path / "warning_only.py"
     file1.write_text("from typing import TypeVar\nT = TypeVar('T')\n", encoding="utf-8")
 
@@ -701,6 +791,7 @@ def test_multifile_scanning_qgr013_fatal(tmp_path: Path) -> None:
 
 
 def test_format_violations_table() -> None:
+    """Verify `format_violations_table` formats both empty and populated violation lists."""
     v_clean = format_violations_table([])
     assert "No AST guardrail violations found" in v_clean
 
@@ -722,6 +813,11 @@ def test_format_violations_table() -> None:
 
 
 def test_cli_execution_clean(tmp_path: Path) -> None:
+    """Verify CLI `main()` exits with code 0 when scanning a clean Python file.
+
+    Args:
+        tmp_path: Pytest temporary directory path fixture.
+    """
     clean_file = tmp_path / "clean.py"
     clean_file.write_text("x = 1\n", encoding="utf-8")
 
@@ -732,6 +828,11 @@ def test_cli_execution_clean(tmp_path: Path) -> None:
 
 
 def test_cli_execution_violation_failure(tmp_path: Path) -> None:
+    """Verify CLI `main()` exits with code 1 when scanning a file containing violations.
+
+    Args:
+        tmp_path: Pytest temporary directory path fixture.
+    """
     dirty_file = tmp_path / "dirty.py"
     dirty_file.write_text("val = getattr(obj, 'x', None)\n", encoding="utf-8")
 
@@ -742,6 +843,7 @@ def test_cli_execution_violation_failure(tmp_path: Path) -> None:
 
 
 def test_cli_execution_no_args() -> None:
+    """Verify CLI `main()` exits with code 0 when invoked with no target arguments."""
     with patch.object(sys, "argv", ["_ast_guardrails.py"]):
         with pytest.raises(SystemExit) as exc:
             main()
@@ -749,7 +851,7 @@ def test_cli_execution_no_args() -> None:
 
 
 def test_zero_reflection_self_verification() -> None:
-    """Verifies that the guardrail engine scripts themselves contain zero getattr/hasattr calls."""
+    """Verify that the guardrail engine scripts themselves contain zero getattr/hasattr calls."""
     engine_path = Path("scripts/_ast_guardrails.py")
     audit_loop_path = Path("scripts/backend_audit_loop.py")
     test_path = Path("backend_v2/tests/unit/scripts/test_ast_guardrails.py")
@@ -769,6 +871,7 @@ def test_zero_reflection_self_verification() -> None:
 
 
 def test_qgr011_detects_id_in_create_dto() -> None:
+    """Verify QGR011 detects client-defined `id` fields on `*CreateDTO` models."""
     code = """
 class ItemCreateDTO(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -782,6 +885,7 @@ class ItemCreateDTO(BaseModel):
 
 
 def test_qgr011_detects_id_in_create_request() -> None:
+    """Verify QGR011 detects client-defined `id` fields on `*CreateRequest` models."""
     code = """
 class ItemCreateRequest(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -795,6 +899,7 @@ class ItemCreateRequest(BaseModel):
 
 
 def test_qgr011_allows_id_in_response_or_domain() -> None:
+    """Verify QGR011 permits `id` fields on `*ResponseDTO` and domain models."""
     code = """
 class ItemResponseDTO(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -811,6 +916,7 @@ class DomainItem(BaseModel):
 
 
 def test_qgr011_allows_create_dto_without_id() -> None:
+    """Verify QGR011 permits `*CreateDTO` models that omit the `id` field."""
     code = """
 class ItemCreateDTO(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -827,6 +933,7 @@ class ItemCreateDTO(BaseModel):
 
 
 def test_qgr012_detects_direct_isinstance_dict() -> None:
+    """Verify QGR012 detects direct `isinstance(payload, dict)` checks in domain services."""
     code = "if isinstance(payload, dict):\n    pass\n"
     violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
     assert len(violations) == 1
@@ -836,6 +943,7 @@ def test_qgr012_detects_direct_isinstance_dict() -> None:
 
 
 def test_qgr012_detects_tuple_isinstance_with_dict() -> None:
+    """Verify QGR012 detects tuple `isinstance(payload, (str, dict, list))` checks."""
     code = "if isinstance(payload, (str, dict, list)):\n    pass\n"
     violations = _scan_snippet(code, filepath="backend_v2/hooks/scoring.py")
     assert len(violations) == 1
@@ -844,12 +952,14 @@ def test_qgr012_detects_tuple_isinstance_with_dict() -> None:
 
 
 def test_qgr012_allows_isinstance_non_dict() -> None:
+    """Verify QGR012 allows `isinstance` checks against non-dictionary types."""
     code = "if isinstance(payload, (str, list, int)):\n    pass\n"
     violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
     assert len(violations) == 0
 
 
 def test_qgr012_boundary_exemption_honored() -> None:
+    """Verify QGR012 exempts authorized persistence boundary driver files."""
     code = "if isinstance(payload, dict):\n    pass\n"
     violations = _scan_snippet(code, filepath="backend_v2/database/postgres/storage_driver.py")
     qgr012 = [v for v in violations if v.rule_code == "QGR012"]
@@ -857,6 +967,7 @@ def test_qgr012_boundary_exemption_honored() -> None:
 
 
 def test_qgr012_isinstance_dict_in_domain_fatal() -> None:
+    """Verify `isinstance(payload, dict)` in domain services emits FATAL QGR012 severity."""
     code = "if isinstance(payload, dict):\n    pass\n"
     violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
     qgr012 = [v for v in violations if v.rule_code == "QGR012"]
@@ -940,7 +1051,7 @@ def test_qgr012_match_case_dict_patterns() -> None:
 
 
 # ==============================================================================
-# Contract Tests: Explicit Epic 150 Phase 4 Test Contracts
+# Contract Tests: Explicit Guardrail Severity & Boundary Test Contracts
 # ==============================================================================
 
 
@@ -1144,9 +1255,7 @@ def test_qgr015_typeguard_import_and_usage_fatal() -> None:
 
 
 def test_purged_boundary_exemption_files() -> None:
-    """Verify non-driver files are purged and BOUNDARY_EXEMPTION_FILES contains exactly the 15 SSOT paths."""
-    from scripts._ast_guardrails import BOUNDARY_EXEMPTION_FILES
-
+    """Verify non-driver files are purged and BOUNDARY_EXEMPTION_FILES contains the 15 SSOT paths."""
     purged = [
         "backend_v2/database/tinydb_driver.py",
         "backend_v2/database/firestore_driver.py",
@@ -1512,7 +1621,7 @@ def test_qgr017_modular_report_package_allowed() -> None:
     assert len(qgr017) == 0
 
 
-# Phase 4, Step 3: Test Contracts 2 & 3 for QGR017 on backend_v2/llm/provider
+# Test Contracts for QGR017 on backend_v2/llm/provider
 def test_qgr017_modular_provider_package_allowed() -> None:
     """QGR017: scanning backend_v2/llm/provider/__init__.py and its submodules produces zero QGR017 violations."""
     code = "from backend_v2.llm.provider import LiteLLMProvider\n"
@@ -1584,6 +1693,7 @@ def test_qgr017_eradicated_mcp_wrappers_fatal() -> None:
 
 
 def test_qgr018_typeadapter_dict_laundering_fatal() -> None:
+    """Verify QGR018 detects `TypeAdapter` untyped dictionary laundering with FATAL severity."""
     code = "adapter = TypeAdapter(dict" + "[str, Any])\n"
     violations = _scan_snippet(code)
     qgr018 = [v for v in violations if v.rule_code == "QGR018"]
@@ -1593,6 +1703,7 @@ def test_qgr018_typeadapter_dict_laundering_fatal() -> None:
 
 
 def test_qgr018_typeadapter_dto_allowed() -> None:
+    """Verify QGR018 allows `TypeAdapter` wrapping strongly typed DTO classes."""
     code = "adapter = TypeAdapter(WorkflowResponseDTO)\n"
     violations = _scan_snippet(code)
     qgr018 = [v for v in violations if v.rule_code == "QGR018"]
@@ -1600,6 +1711,7 @@ def test_qgr018_typeadapter_dto_allowed() -> None:
 
 
 def test_qgr018_typeadapter_mapping_laundering_fatal() -> None:
+    """Verify QGR018 detects `TypeAdapter(Mapping[str, JsonValue])` laundering with FATAL severity."""
     code = "from collections.abc import Mapping\nfrom pydantic import JsonValue, TypeAdapter\nadapter = TypeAdapter(Mapping[str, JsonValue])\n"
     violations = _scan_snippet(code)
     qgr018 = [v for v in violations if v.rule_code == "QGR018"]
@@ -1609,6 +1721,7 @@ def test_qgr018_typeadapter_mapping_laundering_fatal() -> None:
 
 
 def test_boundary_exemption_files_preserved() -> None:
+    """Verify QGR001 reflection calls inside boundary exemption files still emit FATAL severity."""
     code = "val = getattr(obj, 'k', None)\n"
     for exempt_file in ["storage_driver.py", "entity_adapter.py", "graph_adapter.py", "logging_config.py"]:
         violations = _scan_snippet(code, filepath=f"backend_v2/database/postgres/{exempt_file}")
@@ -1718,8 +1831,6 @@ def test_qgr011_plain_assign_id_detected() -> None:
 
 def test_qgr020_duplicate_field_on_annotated_detected() -> None:
     """QGR020: Duplicate Field() assignment on Annotated field triggers QGR020."""
-    from scripts._ast_guardrails import GuardrailSeverity
-
     code = (
         "from typing import Annotated\n"
         "from pydantic import BaseModel, Field\n\n"
@@ -1736,8 +1847,6 @@ def test_qgr020_duplicate_field_on_annotated_detected() -> None:
 
 def test_qgr020_mutable_class_default_detected() -> None:
     """QGR020: Class-level mutable defaults (list, dict, set) trigger QGR020."""
-    from scripts._ast_guardrails import GuardrailSeverity
-
     code = (
         "class ConfigData:\n"
         "    fields_to_translate: list[str] = []\n"
@@ -1755,8 +1864,6 @@ def test_qgr020_mutable_class_default_detected() -> None:
 
 def test_qgr021_llm_debug_logger_import_detected() -> None:
     """QGR021: Banned direct imports of eradicated llm_debug_logger trigger FATAL violation."""
-    from scripts._ast_guardrails import GuardrailSeverity
-
     code = (
         "import llm_debug_logger\n"
         "from backend_v2.utils import llm_debug_logger as legacy_logger\n"
@@ -1773,8 +1880,6 @@ def test_qgr021_llm_debug_logger_import_detected() -> None:
 
 def test_qgr022_unshielded_fstring_prompt_xml_detected() -> None:
     """QGR022: Unshielded f-strings containing prompt XML tags or raw payload variables trigger FATAL violation."""
-    from scripts._ast_guardrails import GuardrailSeverity
-
     code1 = 'prompt = f"<user_payload>{content}</user_payload>"\n'
     v1 = _scan_snippet(code1, filepath="backend_v2/services/orchestrator/pipeline.py")
     qgr022_1 = [v for v in v1 if v.rule_code == "QGR022"]
@@ -1922,9 +2027,7 @@ async def sync_progress():
 
 
 def test_boundary_exemption_files_contains_only_relative_paths() -> None:
-    """Verifies that all 15 BOUNDARY_EXEMPTION_FILES members are workspace-relative POSIX paths matching physical files."""
-    from scripts._ast_guardrails import BOUNDARY_EXEMPTION_FILES, REPO_ROOT
-
+    """Verify that all 15 BOUNDARY_EXEMPTION_FILES members are workspace-relative POSIX paths matching physical files."""
     assert len(BOUNDARY_EXEMPTION_FILES) == 15
     for file_path_str in BOUNDARY_EXEMPTION_FILES:
         path = Path(file_path_str)
@@ -1935,9 +2038,7 @@ def test_boundary_exemption_files_contains_only_relative_paths() -> None:
 
 
 def test_boundary_exemption_files_rejects_models_services_hooks_api() -> None:
-    """Negative test verifying zero exemption members belong to core domain directories (models, services, hooks, api)."""
-    from scripts._ast_guardrails import BOUNDARY_EXEMPTION_FILES
-
+    """Verify zero exemption members belong to core domain directories (models, services, hooks, api)."""
     banned_prefixes = (
         "backend_v2/models",
         "backend_v2/services",
@@ -1952,9 +2053,7 @@ def test_boundary_exemption_files_rejects_models_services_hooks_api() -> None:
 
 
 def test_admission_ratchet_asserts_clean_baseline_for_new_members() -> None:
-    """Admission ratchet: 9 newly admitted boundary files scanned with empty exemption set return 0 AST violations."""
-    from scripts._ast_guardrails import REPO_ROOT, scan_file_for_guardrails
-
+    """Verify 9 admitted boundary files scanned with empty exemption set return 0 AST violations."""
     nine_new_members = [
         "backend_v2/database/driver.py",
         "backend_v2/database/postgres/graph_adapter.py",
@@ -2072,7 +2171,7 @@ class SimulationResponse(BaseModel):
     assert len(qgr027) == 1
     assert qgr027[0].severity == GuardrailSeverity.FATAL
     assert "Open-JSON" in qgr027[0].message
-    assert "StepSimulationTraceDTO" in qgr027[0].remediation or "EPIC 157" in qgr027[0].remediation
+    assert "StepSimulationTraceDTO" in qgr027[0].remediation
 
 
 def test_qgr027_open_json_exemption_permitted() -> None:
@@ -2277,15 +2376,7 @@ def test_find_nested_dict_subscript_coverage() -> None:
 
 
 def test_boundary_and_residual_exemption_sets_exist_on_disk() -> None:
-    """Phase 2, Step 2: Verify every file in BOUNDARY_EXEMPTION_FILES and residual exemption sets exists on disk."""
-    from scripts._ast_guardrails import (
-        BOUNDARY_EXEMPTION_FILES,
-        OPEN_JSON_EXEMPTION_FILES,
-        REPO_ROOT,
-        RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES,
-        RESIDUAL_FUTURE_PHASE_QGR028_FILES,
-    )
-
+    """Verify every file in BOUNDARY_EXEMPTION_FILES and residual exemption sets exists on disk."""
     exemption_sets: list[tuple[str, frozenset[str]]] = [
         ("BOUNDARY_EXEMPTION_FILES", BOUNDARY_EXEMPTION_FILES),
         ("OPEN_JSON_EXEMPTION_FILES", OPEN_JSON_EXEMPTION_FILES),
