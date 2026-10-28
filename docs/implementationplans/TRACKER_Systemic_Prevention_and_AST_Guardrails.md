@@ -38,7 +38,7 @@
   - [x] @[backend_v2/main.py]
   - [x] @[backend_v2/models/core_base.py]
   - [x] @[backend_v2/seed/run_seed.py]
-  - [ ] @[backend_v2/services/storage.py]
+  - [x] @[backend_v2/services/storage.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/audit_zero_orm_strictness.py]
