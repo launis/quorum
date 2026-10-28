@@ -1581,6 +1581,7 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
     assert len(await driver.query("custom_items", filters=[Filter("score", "<=", 40)])) == 1
     assert len(await driver.query("custom_items", filters=[Filter("meta.rank", "==", 1)])) == 1
     assert len(await driver.query("custom_items", filters=[Filter("meta.missing", ">", 0)])) == 0
+    assert len(await driver.query("custom_items", filters=[Filter("name", "<", 999)])) == 0
     assert (
         len(
             await driver.query(
@@ -1592,8 +1593,42 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
         )
         == 1
     )
+    assert (
+        len(
+            await driver.query(
+                "custom_items",
+                order_by="meta.nonexistent",
+                descending=False,
+            )
+        )
+        == 2
+    )
 
-    # 3. Delete and Clear
+    # 3. Verify uninitialized pool fallback vs. auto_initialize_pool=True routing through PostgresEntityAdapter
+    uninit_pool = InMemoryAsyncPgPool()
+    uninit_pool_manager = PostgresPoolManager(settings=settings)
+    uninit_driver = PostgresStorageDriver(
+        pool_manager=uninit_pool_manager,
+        settings=settings,
+        auto_initialize_pool=False,
+    )
+    await uninit_driver.upsert("organizations", org_payload, "org_1111111111111111")
+    assert await uninit_driver.get("organizations", "org_1111111111111111") is not None
+
+    auto_pool_manager = PostgresPoolManager(settings=settings, pool=uninit_pool)
+    auto_driver = PostgresStorageDriver(
+        pool_manager=auto_pool_manager,
+        settings=settings,
+        auto_initialize_pool=True,
+    )
+    auto_driver._collections["organizations"] = {"org_1111111111111111": dict(org_payload)}
+    await auto_driver.upsert("organizations", org_payload, "org_1111111111111111")
+    queried_orgs = await auto_driver.query("organizations")
+    assert len(queried_orgs) == 1
+    assert queried_orgs[0]["id"] == "org_1111111111111111"
+    await auto_driver.close()
+
+    # 4. Delete and Clear
     assert await driver.delete("custom_items", "itm_2222222222222222") is True
     assert await driver.delete("custom_items", "itm_missing") is False
     assert await driver.delete("organizations", doc_id) is True
@@ -1602,7 +1637,7 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
     assert await driver.get_all("custom_items") == []
     await driver.close()
 
-    # 4. Negative boundaries: empty collection name or empty doc_id raises AppException(VALIDATION_FAILED)
+    # 5. Negative boundaries: empty collection name or empty doc_id raises AppException(VALIDATION_FAILED)
     with pytest.raises(AppException) as exc_empty_col:
         await driver.get("   ", "org_1111111111111111")
     assert exc_empty_col.value.error_code == ErrorCodes.VALIDATION_FAILED.value

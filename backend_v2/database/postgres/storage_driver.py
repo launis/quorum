@@ -10,6 +10,7 @@ import copy
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import override
 
 from fastapi import status
 
@@ -43,7 +44,17 @@ _CANONICAL_COLLECTION_ALIASES: dict[str, str] = {
 
 
 def _normalize_collection_name(collection: str) -> str:
-    """Validate and normalize a collection name."""
+    """Validate and normalize a collection name to its canonical PostgreSQL 19 table alias.
+
+    Args:
+        collection: Raw collection or table name string to normalize.
+
+    Returns:
+        Canonical collection name with leading and trailing whitespace stripped.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if the collection name is empty.
+    """
     cleaned = collection.strip()
     if not cleaned:
         msg = "Collection name cannot be empty."
@@ -52,6 +63,7 @@ def _normalize_collection_name(collection: str) -> str:
             ErrorCodes.VALIDATION_FAILED.name,
             msg,
             extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            exc_info=True,
         )
         raise AppException(
             message=msg,
@@ -64,7 +76,17 @@ def _normalize_collection_name(collection: str) -> str:
 
 
 def _validate_doc_id(doc_id: str) -> str:
-    """Validate that a document identifier is non-empty."""
+    """Validate that a document identifier is non-empty.
+
+    Args:
+        doc_id: Raw document identifier string to validate.
+
+    Returns:
+        Normalized document identifier with leading and trailing whitespace stripped.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if the document identifier is empty.
+    """
     cleaned = doc_id.strip()
     if not cleaned:
         msg = "Document ID cannot be empty."
@@ -73,6 +95,7 @@ def _validate_doc_id(doc_id: str) -> str:
             ErrorCodes.VALIDATION_FAILED.name,
             msg,
             extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            exc_info=True,
         )
         raise AppException(
             message=msg,
@@ -83,7 +106,15 @@ def _validate_doc_id(doc_id: str) -> str:
 
 
 def _resolve_nested_field(doc: StorageDocument, field_path: str) -> StorageValue:
-    """Resolve a potentially dot-separated field path inside a StorageDocument."""
+    """Resolve a potentially dot-separated field path inside a StorageDocument.
+
+    Args:
+        doc: Storage document dictionary to traverse.
+        field_path: Dot-separated attribute path to resolve.
+
+    Returns:
+        Resolved nested value if present, or None when any path segment is missing.
+    """
     current: StorageValue = doc
     for part in field_path.split("."):
         if isinstance(current, dict) and part in current:
@@ -94,7 +125,15 @@ def _resolve_nested_field(doc: StorageDocument, field_path: str) -> StorageValue
 
 
 def _matches_filter(doc: StorageDocument, flt: Filter) -> bool:
-    """Evaluate a single Filter against a StorageDocument."""
+    """Evaluate a single Filter condition against a StorageDocument.
+
+    Args:
+        doc: Storage document dictionary under evaluation.
+        flt: Immutable Filter specification containing field, operator, and target value.
+
+    Returns:
+        True if the document satisfies the filter condition, otherwise False.
+    """
     actual = _resolve_nested_field(doc, flt.field)
     op = flt.operator
     target = flt.value
@@ -128,7 +167,15 @@ def _matches_filter(doc: StorageDocument, flt: Filter) -> bool:
 
 
 def _resolve_sort_key(doc: StorageDocument, field_path: str) -> str:
-    """Resolve a sort key string for a field path."""
+    """Resolve a deterministic string sort key for a document field path.
+
+    Args:
+        doc: Storage document dictionary to inspect.
+        field_path: Dot-separated field path used for ordering.
+
+    Returns:
+        Stringified field value, or an empty string if the field resolves to None.
+    """
     val = _resolve_nested_field(doc, field_path)
     if val is None:
         return ""
@@ -160,12 +207,27 @@ class PostgresStorageDriver(StorageDriver):
 
     @property
     def pool_manager(self) -> PostgresPoolManager:
-        """Return the underlying PostgresPoolManager."""
+        """Return the underlying PostgresPoolManager.
+
+        Returns:
+            Configured PostgresPoolManager instance managing asyncpg connections.
+        """
         return self._pool_manager
 
     @asynccontextmanager
     async def _optional_adapter(self, collection: str) -> AsyncIterator[PostgresEntityAdapter | None]:
-        """Yield a PostgresEntityAdapter if collection is a core table and pool is available."""
+        """Yield a PostgresEntityAdapter if collection is a canonical table and pool is available.
+
+        Args:
+            collection: Normalized collection name.
+
+        Yields:
+            Connected PostgresEntityAdapter instance for canonical tables, or None.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if pool initialization
+                or connection acquisition fails.
+        """
         if collection not in _CANONICAL_COLLECTION_ALIASES.values():
             yield None
             return
@@ -184,7 +246,18 @@ class PostgresStorageDriver(StorageDriver):
             )
 
     async def _get_document(self, norm_col: str, clean_id: str) -> StorageDocument | None:
-        """Internal document retrieval helper."""
+        """Retrieve a document by normalized collection name and validated ID.
+
+        Args:
+            norm_col: Normalized collection name.
+            clean_id: Validated non-empty document identifier.
+
+        Returns:
+            Deep copy of the stored document dictionary, or None if not found.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if database retrieval fails.
+        """
         async with self._optional_adapter(norm_col) as adapter:
             if adapter is not None:
                 pg_doc = await adapter.get_collection_document(norm_col, clean_id)
@@ -195,14 +268,41 @@ class PostgresStorageDriver(StorageDriver):
             return copy.deepcopy(self._collections[norm_col][clean_id])
         return None
 
+    @override
     async def get(self, collection: str, doc_id: str) -> StorageDocument | None:
-        """Retrieve a document by ID from PostgreSQL 19."""
+        """Retrieve a document by ID from PostgreSQL 19.
+
+        Args:
+            collection: Target collection name.
+            doc_id: Unique document identifier.
+
+        Returns:
+            Document dictionary if found, or None when absent.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if collection or doc_id is empty,
+                or ErrorCodes.STORAGE_ACCESS_FAILED on database errors.
+        """
         norm_col = _normalize_collection_name(collection)
         clean_id = _validate_doc_id(doc_id)
         return await self._get_document(norm_col, clean_id)
 
+    @override
     async def upsert(self, collection: str, data: StorageDocument, doc_id: str) -> str:
-        """Create or update a document in PostgreSQL 19."""
+        """Create or update a document in PostgreSQL 19.
+
+        Args:
+            collection: Target collection name.
+            data: Document payload dictionary to persist.
+            doc_id: Unique document identifier.
+
+        Returns:
+            Persisted document identifier string.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if collection or doc_id is empty,
+                or ErrorCodes.STORAGE_ACCESS_FAILED on database errors.
+        """
         norm_col = _normalize_collection_name(collection)
         clean_id = _validate_doc_id(doc_id)
 
@@ -222,8 +322,22 @@ class PostgresStorageDriver(StorageDriver):
         self._collections[norm_col][clean_id] = doc_copy
         return clean_id
 
+    @override
     async def update(self, collection: str, doc_id: str, updates: StorageDocument) -> bool:
-        """Apply a partial update to an existing document in PostgreSQL 19."""
+        """Apply a partial update to an existing document in PostgreSQL 19.
+
+        Args:
+            collection: Target collection name.
+            doc_id: Unique document identifier to update.
+            updates: Partial key-value updates to merge into the existing document.
+
+        Returns:
+            True if the document existed and was updated, False if not found.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if collection or doc_id is empty,
+                or ErrorCodes.STORAGE_ACCESS_FAILED on database errors.
+        """
         norm_col = _normalize_collection_name(collection)
         clean_id = _validate_doc_id(doc_id)
 
@@ -238,8 +352,21 @@ class PostgresStorageDriver(StorageDriver):
         await self.upsert(norm_col, existing, clean_id)
         return True
 
+    @override
     async def delete(self, collection: str, doc_id: str) -> bool:
-        """Delete a document by ID from PostgreSQL 19."""
+        """Delete a document by ID from PostgreSQL 19.
+
+        Args:
+            collection: Target collection name.
+            doc_id: Unique document identifier to delete.
+
+        Returns:
+            True if the document was removed, False if it did not exist.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if collection or doc_id is empty,
+                or ErrorCodes.STORAGE_ACCESS_FAILED on database errors.
+        """
         norm_col = _normalize_collection_name(collection)
         clean_id = _validate_doc_id(doc_id)
 
@@ -254,6 +381,7 @@ class PostgresStorageDriver(StorageDriver):
 
         return deleted
 
+    @override
     async def query(
         self,
         collection: str,
@@ -262,7 +390,22 @@ class PostgresStorageDriver(StorageDriver):
         order_by: str | None = None,
         descending: bool = False,
     ) -> list[StorageDocument]:
-        """Query a collection in PostgreSQL 19 with filters, sorting, and limits."""
+        """Query a collection in PostgreSQL 19 with filters, sorting, and limits.
+
+        Args:
+            collection: Target collection name.
+            filters: Optional list of Filter predicates to apply.
+            limit: Optional maximum number of documents to return.
+            order_by: Optional dot-separated field path to sort results by.
+            descending: Whether to sort in descending order.
+
+        Returns:
+            List of matching StorageDocument dictionaries.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if collection is empty,
+                or ErrorCodes.STORAGE_ACCESS_FAILED on database errors.
+        """
         norm_col = _normalize_collection_name(collection)
         merged_by_id: dict[str, StorageDocument] = {}
 
@@ -293,24 +436,69 @@ class PostgresStorageDriver(StorageDriver):
 
         return results
 
+    @override
     async def count(self, collection: str, filters: list[Filter] | None = None) -> int:
-        """Count documents matching the provided filters."""
+        """Count documents matching the provided filters.
+
+        Args:
+            collection: Target collection name.
+            filters: Optional list of Filter predicates to apply.
+
+        Returns:
+            Total count of matching documents.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if collection is empty,
+                or ErrorCodes.STORAGE_ACCESS_FAILED on database errors.
+        """
         matched = await self.query(collection, filters=filters)
         return len(matched)
 
     async def get_all(self, collection: str) -> list[StorageDocument]:
-        """Return all documents in the specified collection."""
+        """Return all documents in the specified collection.
+
+        Args:
+            collection: Target collection name.
+
+        Returns:
+            List of all documents stored in the collection.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if collection is empty,
+                or ErrorCodes.STORAGE_ACCESS_FAILED on database errors.
+        """
         return await self.query(collection)
 
     async def insert(self, collection: str, data: StorageDocument) -> str:
-        """Insert a document using its embedded 'id' field."""
+        """Insert a document using its embedded 'id' field.
+
+        Args:
+            collection: Target collection name.
+            data: Document dictionary containing a non-empty string 'id' key.
+
+        Returns:
+            Persisted document identifier string.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if collection or embedded 'id' is empty,
+                or ErrorCodes.STORAGE_ACCESS_FAILED on database errors.
+        """
         doc_id = ""
         if "id" in data and isinstance(data["id"], str):
             doc_id = data["id"]
         return await self.upsert(collection, data, doc_id)
 
+    @override
     async def clear(self, collection: str) -> None:
-        """Remove all documents from a collection."""
+        """Remove all documents from a collection.
+
+        Args:
+            collection: Target collection name to truncate.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if collection is empty,
+                or ErrorCodes.STORAGE_ACCESS_FAILED on database errors.
+        """
         norm_col = _normalize_collection_name(collection)
         async with self._optional_adapter(norm_col) as adapter:
             if adapter is not None:
@@ -319,6 +507,10 @@ class PostgresStorageDriver(StorageDriver):
             self._collections[norm_col].clear()
 
     async def close(self) -> None:
-        """Close the underlying connection pool if initialized."""
+        """Close the underlying connection pool if initialized.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if closing the pool fails.
+        """
         if self._pool_manager.is_initialized:
             await self._pool_manager.close()
