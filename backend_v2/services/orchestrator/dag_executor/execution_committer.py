@@ -7,7 +7,6 @@ into persistent storage via IExecutionRepository.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from pydantic import JsonValue
 
@@ -32,7 +31,6 @@ __all__ = [
     "StepOutputContentValue",
 ]
 
-# Phase 1, Step 1: Extract PEP 695 state update type aliases and ExecutionCommitter
 type FrozenContextUpdate = list[MCPAuditTrace] | GeneratedSchemaManifestDTO
 type ExecutionRecordUpdate = (
     ContextVariablesDTO | FrozenContext | ExecutionMetadata | dict[str, ExecutionStepState] | list[ExecutionStep]
@@ -41,7 +39,12 @@ type StepOutputContentValue = DomainInputValue | JsonValue
 
 
 class ExecutionCommitter:
-    """Handles Checkpointing of the Event Sourced Trace conforming to Phase 9 directives."""
+    """Handles checkpointing of the Event Sourced trace into persistent storage.
+
+    Attributes:
+        exec_repo: Repository interface for execution state persistence.
+        execution_id: Unique identifier for the active execution run.
+    """
 
     def __init__(self, exec_repo: IExecutionRepository, execution_id: str) -> None:
         """Initialize the ExecutionCommitter with database access properties.
@@ -59,25 +62,30 @@ class ExecutionCommitter:
         status: ExecutionStatus,
         step_states: dict[str, ExecutionStepState],
         error: str | None = None,
-        frozen_context: Any | None = None,
+        frozen_context: FrozenContext | None = None,
         context_variables: ContextVariablesDTO | None = None,
         steps: list[ExecutionStep] | None = None,
     ) -> None:
-        """Flushes the event array to persistent DB safely.
+        """Flush the event array and execution state snapshot to persistent storage safely.
 
         Args:
             trace: Current sequence of workflow events.
             status: Target execution status boundary.
             step_states: Execution state dictionary mapping per-step states.
             error: Optional execution failure message to record.
-            frozen_context: Serialized snapshot state if provided.
+            frozen_context: Frozen context snapshot state if provided.
             context_variables: Execution level global variables.
             steps: Optional list of ExecutionStep objects to persist.
 
+        Returns:
+            None.
+
         Raises:
-            AppException: Triggered with PROGRESS_UPDATE_FAILED if db commit transaction fails.
+            AppException: Triggered with PROGRESS_UPDATE_FAILED if db commit transaction or validation fails.
         """
         try:
+            if not self.execution_id.strip():
+                raise ValueError("Execution ID cannot be empty when committing trace.")
             update_node = NodeExecutionUpdateDTO(
                 status=status,
                 execution_trace=trace,
