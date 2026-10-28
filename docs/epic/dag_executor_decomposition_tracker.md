@@ -58,7 +58,7 @@
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Tier 2 Hardening (Backend)** (`[NEW]` sub-modules & 1-hop callers): Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/epic/dag_executor_decomposition_tracker.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
+- [x] **[OK] Tier 2 Hardening (Backend)** (`[NEW]` sub-modules & 1-hop callers): Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/epic/dag_executor_decomposition_tracker.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/execution_committer.py]
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/node_executor.py]
@@ -68,7 +68,7 @@
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/__init__.py]
   - [x] @[backend_v2/api/dependencies.py#L376-L417]
   - [x] @[backend_v2/services/execution/facade.py#L47-L118]
-  - [ ] @[backend_v2/worker.py#L44-L85]
+  - [x] @[backend_v2/worker.py#L44-L85]
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Pure backend Python decomposition with zero `.dart` changes.
 - [ ] **[NOK] Pre-Delete Audit**: Verify `git status` and `grep_search` confirm physical removal of `[DELETE] @[backend_v2/services/orchestrator/dag_executor.py]`, with `QGR017` blocking re-creation of `backend_v2/services/orchestrator/dag_executor.py`.
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Verify all 76 baseline unit tests pass across `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_atom_ceiling.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_causal_fusion.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_dlq_routing.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_audit.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_concurrency.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_preflight.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_telemetry.py]`, and the new per-submodule unit test suites under `backend_v2/tests/unit/services/orchestrator/dag_executor/` with `>= 90%` line coverage.
