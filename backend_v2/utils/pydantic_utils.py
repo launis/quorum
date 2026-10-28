@@ -1,28 +1,28 @@
 """Pydantic utility functions for data inflation and validation."""
 
 import logging
-from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 
+__all__ = ["inflate"]
+
 logger = logging.getLogger(__name__)
 
 
-def inflate[T: BaseModel](data: Any, model_class: type[T]) -> T | None:
-    """Safely inflates a dictionary or object into a strict Pydantic model.
+def inflate[T: BaseModel](data: object, model_class: type[T]) -> T | None:
+    """Safely inflate a dictionary or object into a strict Pydantic model.
 
     Args:
-        data: The input data (dict, existing model instance, or None).
+        data: The input payload to validate into the target model.
         model_class: The target Pydantic model class.
 
     Returns:
-        The inflated Pydantic model instance.
-        Returns None ONLY if the input data itself is fundamentally empty (early return).
+        The inflated Pydantic model instance, or None if the input data is empty.
 
     Raises:
-        AppException: If data is present but invalid (INVALID_OUTPUT_SCHEMA).
+        AppException: If data is present but fails schema validation (INVALID_OUTPUT_SCHEMA).
     """
     if not data:
         return None
