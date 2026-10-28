@@ -51,7 +51,7 @@
   - [x] @[backend_v2/utils/static_charts.py]
   - [x] @[backend_v2/utils/finops_trace_analyzer.py]
   - [x] @[backend_v2/services/translation_service.py]
-  - [ ] @[backend_v2/llm/caching_service.py]
+  - [x] @[backend_v2/llm/caching_service.py]
   - [ ] @[backend_v2/services/llm_task_executor.py]
   - [ ] @[backend_v2/services/chat_normalizer.py]
   - [ ] @[backend_v2/services/sdui/sanitizers/mcp_presentation_sanitizer.py]
