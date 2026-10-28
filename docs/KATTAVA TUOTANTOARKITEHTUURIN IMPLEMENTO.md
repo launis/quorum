@@ -6,7 +6,7 @@
 > Tämä asiakirja kokoaa yhteen Cognitive Quorumin tuotantopystytyksen kokonaiskuvan Google Cloud Platformilla (`europe-north1` / Hamina, Suomi). Se korvaa vanhentuneet SQLAlchemy 2.0-, Alembic- ja TinyDB-luonnokset ja nojaa suoraan Quorumin virallisiin 2026-arkkitehtuuristandardeihin:
 > 1. **PostgreSQL 19 Zero-ORM Perusta & Cutover** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]`)
 > 1b. **Järjestelmällinen Ennaltaehkäisy, AST-vartija QGR030 & Testitehtaat** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md]`, `@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]`)
-> 2. **`dag_executor.py` God Code -purku Event Sourcing -malliin** (1 640 LOC -> 4 erillistä SRP-moduulia & ohut fasaadi)
+> 2. **`dag_executor.py` God Code -purku modulaariseksi SRP-paketiksi** (1 803 LOC -> 6 erillistä SRP-moduulia & ohut fasaadi, QGR017-lukittu) (`@[docs/epic/dag_executor_decomposition_tracker.md]`)
 > 3. **Kohdennettu Tausta- ja Apukerroksen Karkaisu (36 tiedostoa)** (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`)
 > 4. **B2B SaaS IAM, Token Exchange & Enterprise Hardening** (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`)
 > 5. **Firebase Storage & Direct-to-Cloud Signed URLs** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]`)
@@ -483,53 +483,23 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
 
 ---
 
-### Askel 3.1b: `dag_executor.py` God Code -purku Event Sourcing -malliin (Vaihe 2b-2)
-* **Tavoite ja Arkkitehtoninen Rooli:**
-  Nyt kun PostgreSQL 19 Cutover on suoritettu ja TinyDB-tiedostolukitukset (`_update_lock`, `msvcrt/fcntl`) poistettu, puretaan koko järjestelmän suurin monoliitti `backend_v2/services/orchestrator/dag_executor.py` (1 640 LOC, `execute_workflow` 1 118 LOC) neljään itsenäiseen moduuliin pakettiin `backend_v2/services/orchestrator/execution/` ja ohueksi fasaadiksi Luvun 7 arkkitehtuurisopimuksen mukaisesti:
-  1. `wave_scheduler.py` (~250 LOC): Kahnin topologinen aallotus (`find_independent_steps`), aaltojen suoritus rinnakkaisissa `asyncio.TaskGroup`-lohkoissa, ja Post-Wave Atomic Commit Invariant.
-  2. `state_machine.py` (~300 LOC): Tapahtumapohjainen tilasiirtymä (`ExecutionRecord.transition_step`) ja `trace_events` append-only -tallennus PostgreSQL 19:ään `PostgresUnitOfWork`:in kautta ilman `_update_lock`-tiedostolukituksia.
-  3. `cancellation_manager.py` (~150 LOC): DLQ-virheluokittelu, asynkroninen TaskGroup-peruutus (`cancel_remaining_steps`) ja transienttien virheiden käsittely.
-  4. `telemetry_broadcaster.py` (~150 LOC): Reaaliaikainen SSE- ja WebSocket-tapahtumien lähetys Redis PubSubin ja Uvicorn-yhteyksien kautta ilman suoraa couplingia taustatyöjonoon.
-  5. `dag_executor.py` (< 150 LOC): Ohut julkinen fasaadi, joka säilyttää 100 % taaksepäin yhteensopivan ulkoisen rajapintasopimuksen (`execute_dag_workflow`).
-* **Kokonaiskestoarvio:** ~2 – 2,5 h.
-
-* **Toteutus Quorumin Normaalilla Projektiprosessilla (6 vaihetta):**
-  1. **Tier 3 God Code Decomposition -suunnittelu:**
-     Käynnistetään dekompositiosuunnittelija, joka generoi modulaariset tehtävät ja seurantatiedoston:
-     ```powershell
-     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier3-god-code-decomposition --target="backend_v2/services/orchestrator/dag_executor.py""
-     ```
-     *Tämä tuottaa tehtävät hakemistoon `docs/epic/tasks_dag_executor/` ja trackerin `docs/epic/dag_executor_decomposition_tracker.md`.*
-
-  2. **Tier 2 Autonominen Suoritus (`auto_phase_runner.py`):**
-     Toteutetaan uudet moduulit ja karsitaan monoliitti vaiheittain automaattisella ajurilla:
-     ```powershell
-     uv run python scripts/auto_phase_runner.py --tracker docs/epic/dag_executor_decomposition_tracker.md --model gemini-4-argon-high
-     ```
-
-  3. **Tier 2 Autonominen Hardening (Tiedostokohtainen laatuportti):**
-     Karkaistaan uudet eristetyt moduulit ja fasaadi:
-     ```powershell
-     uv run python scripts/auto_hardening_runner.py --tracker docs/epic/dag_executor_decomposition_tracker.md --gate backend --model gemini-4-argon-medium
-     ```
-
-  4. **AST Guardrail QGR017 -lukitus:**
-     Varmistetaan, että `dag_executor.py` pysyy alle 200 rivin ohuena fasaadina eikä palaa monoliitiksi:
-     ```powershell
-     uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/ --test --ast-strict
-     ```
-
-  5. **Täysi Live E2E Workflow -pariteettivarmennus:**
-     Ajetaan täysi simulaatio varmistaen, että työnkulku kulkee onnistuneesti uusien moduulien ja PostgreSQL 19 `trace_events` -tapahtumien läpi:
-     ```powershell
-     uv run python backend_v2/scripts/run_workflow_simulation.py
-     ```
-
-  6. **Tier 7 Dokumentointi & Tier 8 Auditointi:**
-     ```powershell
-     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier7-describe-architecture docs/epic/dag_executor_decomposition_tracker.md"
-     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier8-audit-plan docs/epic/dag_executor_decomposition_tracker.md"
-     ```
+### Askel 3.1b: `dag_executor.py` God Code -purku modulaariseksi paketiksi (Vaihe 2b-2) — [SUORITETTU & KOVENNETTU]
+* **Tila & Git Commit:** 🟢 **100 % SUORITETTU, 10/10 KOHDETTA KOVENNETTU, 10/10 LAATUPORTTIA JA AST-VARTIJA QGR017 LÄPÄISTY**
+* **Saavutetut tulokset:**
+  1. **Monoliitin täydellinen eliminointi:** 1 803 rivin monoliitti `dag_executor.py` on poistettu kokonaan levyltä ja korvattu eristetyllä SRP-alipaketilla `backend_v2/services/orchestrator/dag_executor/` (jossa jokainen vaihemoduuli < 380 riviä).
+  2. **Ohut julkinen fasaadi (`__init__.py`):** 175 rivin fasaadi (`< 180` rivin katto) toteuttaa täyden symboli- ja tyyppipariteetin sekä re-exportoi `DAGExecutor`-pääluokan säilyttäen 1-hop kutsujien (`dependencies.py`, `facade.py`, `worker.py`) rajapintasopimukset.
+  3. **Kuusi eristettyä SRP-vaihemoduulia:**
+     - `causal_tda_fusion.py` (Kausaaligraafin ja TDA-atomien fuusio & BARS-arviointi)
+     - `execution_committer.py` (Kaksoistallennus PostgreSQL 19:ään ja kevyt tilanpäivitys)
+     - `node_executor.py` (Yksittäisen askeleen moottorireititys ja DLQ-käsittely)
+     - `workflow_bootstrap_stage.py` (Työnkulun alustus, blueprint-esihaku `TaskGroupilla` ja RAG-preflight)
+     - `step_execution_stage.py` (Askeleen strategiakontekstin rakennus ja asynkroninen suoritus)
+     - `wave_orchestrator_stage.py` (Kahnin topologinen aaltosuoritus ja rinnakkaiset TaskGroup-aallot)
+  4. **AST Guardrail QGR017 (`FATAL`) -lukitus:** `scripts/_ast_guardrails.py` estää pysyvästi monoliittisen `dag_executor.py` -tiedoston luomisen uudelleen ja sallii ainoastaan modulaarisen paketin.
+  5. **10/10 laatuporttia & 99.26 % testikattavuus:** 27 uutta kohdennettua yksikkötestiä (`test_causal_tda_fusion_unit.py`, `test_dag_executor_facade.py`, `test_execution_committer.py`, `test_node_executor.py`, `test_step_execution_stage.py`, `test_wave_orchestrator_stage.py`, `test_workflow_bootstrap_stage.py`) sekä kaikki 76 baseline-testiä läpäisty virheettömästi.
+  6. **10 kohteen autonominen Tier 2 Hardening:** `auto_hardening_runner.py` ajoi läpi kaikki 7 uutta moduulia ja 3 1-hop kutsujaa (0 tiedostoa jäljellä).
+  7. **Tier 7 & Tier 8 arkkitehtuurisynkronointi:** Suoritettu `dag_executor_decomposition_tracker.md` -seurannalla (`/tier7-describe-architecture` ja `/tier8-audit-plan`).
+* **Toteutussuunnitelmat & Seurantadokumentti:** `@[docs/epic/tasks_dag_executor/symbol_migration_map.md]`, `@[docs/epic/dag_executor_decomposition_tracker.md]`
 
 ---
 
