@@ -49,6 +49,7 @@ jobs:
         env:
             # Emulates the 'cloud' environment as closely as possible without credentials
             STORAGE_BACKEND: POSTGRES
-            USE_MOCK_LLM: "true"
             USE_MOCK_DB: "true"
+            VERTEX_PROJECT_ID: "mock-vertex-project"
+            VERTEX_LOCATION: "europe-north1"
         run: uv run pytest

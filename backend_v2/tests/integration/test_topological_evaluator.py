@@ -25,7 +25,7 @@ def create_mock_atom(tda_id: str) -> ExtractedAtom:
         tda_id=tda_id,
         reasoning="Test reasoning",
         resolved_claim="Test claim",
-        source_quote="Test quote",
+        source_quotes="Test quote",
         source_id="chunk_1",
         source_sequence_index=0,
     )
@@ -58,7 +58,7 @@ async def test_topological_evaluator_successful_run(evaluator: TopologicalEvalua
             node.atom.tda_id: AtomEvaluationResultDTO(
                 status=ExecutionStatus.PASSED,
                 reasoning="OK",
-                source_quote="Test quote",
+                source_quotes="Test quote",
                 extensions={},
             )
             for node in batch_nodes
@@ -99,14 +99,14 @@ async def test_topological_evaluator_short_circuit(evaluator: TopologicalEvaluat
                 results[node.atom.tda_id] = AtomEvaluationResultDTO(
                     status=ExecutionStatus.FAILED,
                     reasoning="FAILED",
-                    source_quote=None,
+                    source_quotes=None,
                     extensions={},
                 )
             else:
                 results[node.atom.tda_id] = AtomEvaluationResultDTO(
                     status=ExecutionStatus.PASSED,
                     reasoning="PASSED",
-                    source_quote="Test quote",
+                    source_quotes="Test quote",
                     extensions={},
                 )
         return results
@@ -149,14 +149,14 @@ async def test_topological_evaluator_blocked_cascade(evaluator: TopologicalEvalu
                 results[node.atom.tda_id] = AtomEvaluationResultDTO(
                     status=ExecutionStatus.SYSTEM_ERROR,
                     reasoning="SYSTEM_ERROR",
-                    source_quote=None,
+                    source_quotes=None,
                     extensions={},
                 )
             else:
                 results[node.atom.tda_id] = AtomEvaluationResultDTO(
                     status=ExecutionStatus.PASSED,
                     reasoning="PASSED",
-                    source_quote="Test quote",
+                    source_quotes="Test quote",
                     extensions={},
                 )
         return results
@@ -204,7 +204,7 @@ async def test_topological_evaluator_cycle_breaker(evaluator: TopologicalEvaluat
             node.atom.tda_id: AtomEvaluationResultDTO(
                 status=ExecutionStatus.PASSED,
                 reasoning="OK",
-                source_quote="Test quote",
+                source_quotes="Test quote",
                 extensions={},
             )
             for node in batch_nodes

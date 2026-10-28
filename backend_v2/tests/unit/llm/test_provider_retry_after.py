@@ -130,6 +130,7 @@ async def test_client_strategy_scoping_in_provider_pacing(monkeypatch: pytest.Mo
         nonlocal captured_pacing_kwargs
         captured_pacing_kwargs = kwargs
 
+    monkeypatch.setattr(get_settings(), "use_mock_llm", False)
     monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", fake_apply_provider_pacing)
 
     from litellm.router import Router

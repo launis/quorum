@@ -34,14 +34,14 @@ def test_lazy_llm_unauthorized_override_failed() -> None:
                 "This is a long semantic explanation referencing page 3 to satisfy "
                 "the strict spatial referencing and length constraints."
             ),
-            source_quote=None,
+            source_quotes=None,
             extracted_data=None,
             error_details=None,
             extensions={},
             depends_on_tda_ids=[],
             short_circuit_reason_tda_ids=[],
         )
-    assert "source_quote is mandatory unless contextual_override" in str(exc.value)
+    assert "source_quotes is mandatory unless contextual_override" in str(exc.value)
 
 
 def test_lazy_llm_spatial_anchoring_rules() -> None:
@@ -56,7 +56,7 @@ def test_lazy_llm_spatial_anchoring_rules() -> None:
             status=ExecutionStatus.PASSED,
             contextual_override=True,
             evaluation_reasoning=None,
-            source_quote=None,
+            source_quotes=None,
             extracted_data=None,
             error_details=None,
             extensions={},
@@ -115,7 +115,7 @@ def test_chronomnesia_spatial_slicing_and_negative_state() -> None:
         status=ExecutionStatus.FAILED,
         contextual_override=False,
         evaluation_reasoning="No evidence found for failure before phase 2 in the sliced context.",
-        source_quote=None,
+        source_quotes=None,
         extracted_data=None,
         error_details=None,
         extensions={},
@@ -146,7 +146,7 @@ def test_zero_variance_shannon_entropy_and_kappa_benchmark() -> None:
             status=ExecutionStatus.PASSED,
             contextual_override=True,
             evaluation_reasoning=reasoning_text,
-            source_quote=None,
+            source_quotes=None,
             extracted_data=None,
             error_details=None,
             extensions={},

@@ -21,7 +21,7 @@ def test_llm_factory_create_provider_missing_api_key_raises_configuration_error(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Verifies that LLMFactory.create_provider logs an RFC 7807 error and raises ConfigurationError when required provider API keys are missing."""
-    # Phase 1, Step 1: Enforce hermetic Settings without legacy storage_backend override
+    monkeypatch.setenv("VERTEX_PROJECT_ID", "test-vertex-proj")
     empty_key_settings = Settings(
         use_mock_llm=False,
         google_api_key=None,
@@ -29,6 +29,7 @@ def test_llm_factory_create_provider_missing_api_key_raises_configuration_error(
         anthropic_api_key=None,
         vertex_location="europe-north1",
         discovery_location="us-central1",
+        vertex_project_id="test-vertex-proj",
     )
     monkeypatch.setattr(factory_mod, "get_settings", lambda: empty_key_settings)
 

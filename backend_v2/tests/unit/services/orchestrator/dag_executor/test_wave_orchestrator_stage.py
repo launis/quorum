@@ -350,3 +350,53 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
         )
     assert exc_unexp.value.status_code == 500
     assert state_unexp.exec_record.step_states[causal_step.id].status == ExecutionStatus.FAILED
+
+
+@pytest.mark.asyncio
+async def test_execute_topological_waves_stage_traps_direct_runtime_error_and_app_exception_in_wave(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify non-AppException outer error marks RUNNING step FAILED and wave AppException re-raises."""
+    from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
+
+    repo = InMemoryUnifiedWorkflowRepository()
+    step_a = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
+    state_app_exc = _build_state(steps=[step_a])
+    repo.set_execution(state_app_exc.exec_record)
+    committer = ExecutionCommitter(exec_repo=repo, execution_id=state_app_exc.execution_id)
+
+    async def _app_exc_runner(_st: WorkflowExecutionState, _sid: str, *_args: Any) -> None:
+        raise AppException(
+            message="Domain step failure",
+            status_code=422,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+        )
+
+    with pytest.raises(AppException) as exc_wave_app:
+        await execute_topological_waves_stage(
+            state=state_app_exc,
+            node_executor=NodeExecutor(deps=_build_deps(repo)),
+            committer=committer,
+            step_runner_fn=_app_exc_runner,
+        )
+    assert exc_wave_app.value.status_code == 422
+
+    state_outer_rt = _build_state(
+        steps=[step_a],
+        step_statuses={step_a.id: ExecutionStatus.RUNNING},
+    )
+    repo.set_execution(state_outer_rt.exec_record)
+
+    def _boom_waves(_steps: list[StepRule]) -> list[list[StepRule]]:
+        raise RuntimeError("compiler crash while step running")
+
+    monkeypatch.setattr(DAGCompilerService, "compute_topological_waves", _boom_waves)
+    with pytest.raises(AppException) as exc_outer_rt:
+        await execute_topological_waves_stage(
+            state=state_outer_rt,
+            node_executor=NodeExecutor(deps=_build_deps(repo)),
+            committer=committer,
+        )
+    assert exc_outer_rt.value.status_code == 500
+    assert state_outer_rt.exec_record.step_states[step_a.id].status == ExecutionStatus.FAILED
+    assert state_outer_rt.exec_record.step_states[step_a.id].last_error == "compiler crash while step running"

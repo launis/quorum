@@ -160,7 +160,12 @@ def test_istqb_equivalence_enabled_providers_independence() -> None:
         assert "google" not in enabled
 
     # Case B: Only service-account.json present -> vertex_ai enabled, ai_studio disabled
-    with patch("os.path.exists", side_effect=lambda p: p == "service-account.json"):
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch.dict(
+            "os.environ", {"VERTEX_PROJECT_ID": "test-proj", "GOOGLE_APPLICATION_CREDENTIALS": "service-account.json"}
+        ),
+    ):
         settings_vertex_only = Settings(
             use_mock_llm=False,
             google_api_key=None,
@@ -179,7 +184,15 @@ def test_istqb_isolation_non_vertex_discovery_without_location() -> None:
     """ISTQB Boundary Test 4: Querying AI Studio models does not require target_location."""
     handler = LLMHandler(repo=InMemorySystemRepository())
 
-    with patch.object(handler, "_fetch_ai_studio_models", return_value=["gemini-2.5-flash", "gemini-2.5-pro"]):
+    with (
+        patch.object(handler, "_fetch_ai_studio_models", return_value=["gemini-2.5-flash", "gemini-2.5-pro"]),
+        patch("backend_v2.llm.handler.get_settings") as mock_settings_fn,
+    ):
+        mock_settings = MagicMock()
+        mock_settings.use_mock_llm = False
+        mock_settings.vertex_location = "europe-north1"
+        mock_settings_fn.return_value = mock_settings
+
         # location is explicitly None
         result = handler.fetch_all_available_models(
             platform=LLMPlatformType.AI_STUDIO.value,

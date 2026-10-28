@@ -49,8 +49,8 @@ async def test_vertex_adapter_caching_name_format_bug() -> None:
 
         mock_import.side_effect = fake_import
 
-        flat_messages, kwargs = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
+        payload_result = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
 
-        assert "cached_content" in kwargs
+        assert "cached_content" in payload_result.kwargs
         expected_cache_id = "projects/cognitive-quorum/locations/europe-north1/cachedContents/1317893878505799680"
-        assert kwargs["cached_content"] == expected_cache_id, "Cache ID was not fully qualified!"
+        assert payload_result.kwargs["cached_content"] == expected_cache_id, "Cache ID was not fully qualified!"

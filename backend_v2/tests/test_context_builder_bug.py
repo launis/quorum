@@ -8,8 +8,15 @@ from backend_v2.services.orchestrator.strategies.llm_execution.context_builder i
 
 def test_context_builder_json_serialization_crash():
     # Simulate the exact scenario that crashed the execution
-    # A step (sr_aaaaaaaaaaaaaaaa) which has a payload containing nested StepOutputDTO objects
-    nested_dto = StepOutputDTO(step_id="sr_previous", block_id="blk_1", data_type="text", payload="some text")
+    from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
+    from backend_v2.models.enums import LaxExecutionStatus
+
+    nested_dto = ReducedAtomDTO(
+        tda_id="tda_11111111111111111111111111111111",
+        status=LaxExecutionStatus.PASSED,
+        reasoning="some text",
+        source_quotes=None,
+    )
 
     dtos = [
         StepOutputDTO(

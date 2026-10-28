@@ -225,17 +225,17 @@ async def test_epic_95_na_cascade_e2e() -> None:
                 depends_on_tda_ids=[],
                 evaluation_reasoning="Skipped",
                 contextual_override=False,
-                source_quote=None,
+                source_quotes=None,
             )
         ],
         hydrated_references={
             tda_id: HydratedAtomDTO(
                 sdui_component=SDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="This is the NA reason claim",
-                source_quote=None,
+                source_quotes=None,
             ),
             "tda_target123": HydratedAtomDTO(
-                sdui_component=SDUIComponentType.BOOLEAN_CARD, resolved_claim="Target claim", source_quote=None
+                sdui_component=SDUIComponentType.BOOLEAN_CARD, resolved_claim="Target claim", source_quotes=None
             ),
         },
     )

@@ -92,7 +92,7 @@ def normalize_target_path(raw_path: str) -> str:
         Normalized POSIX file path string.
     """
     cleaned = raw_path.strip().strip("`").strip("@").strip("[").strip("]")
-    cleaned = cleaned.split("#")[0].strip()
+    cleaned = cleaned.split("#")[0].strip().replace("\\", "/")
     return Path(cleaned).as_posix()
 
 

@@ -18,7 +18,7 @@ def sample_report() -> ReportDataDTO:
         tda_id=tda_id_1,
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Found proof.",
-        source_quote="Proof text",
+        source_quotes=("Proof text",),
         contextual_override=False,
         error_details=None,
         extracted_data=None,
@@ -30,7 +30,7 @@ def sample_report() -> ReportDataDTO:
         tda_id_1: HydratedAtomDTO(
             sdui_component=SDUIComponentType.BOOLEAN_CARD,
             resolved_claim="Claim **with markdown**",
-            source_quote=None,
+            source_quotes=None,
         )
     }
 

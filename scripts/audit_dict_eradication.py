@@ -60,6 +60,7 @@ FROZEN_APPROVED_RUFF_IGNORES: frozenset[str] = frozenset(
     {
         "B008",
         "E402",
+        "E501",
         "D100",
         "D101",
         "D102",

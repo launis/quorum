@@ -112,3 +112,48 @@ async def test_execution_committer_repository_failure_raises_progress_update_fai
     assert exc_info.value.details is not None
     assert exc_info.value.details["error_code"] == ErrorCodes.PROGRESS_UPDATE_FAILED.value
     assert execution_id in exc_info.value.message
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("invalid_exec_id", ["", "   "])
+async def test_execution_committer_empty_execution_id_raises_progress_update_failed(
+    invalid_exec_id: str,
+) -> None:
+    """Verify ExecutionCommitter.commit_trace fails fast when execution_id is empty or whitespace."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    committer = ExecutionCommitter(exec_repo=repo, execution_id=invalid_exec_id)
+
+    with pytest.raises(AppException) as exc_info:
+        await committer.commit_trace(
+            trace=[],
+            status=ExecutionStatus.RUNNING,
+            step_states={},
+        )
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.PROGRESS_UPDATE_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_execution_committer_timeout_failure_raises_progress_update_failed() -> None:
+    """Verify ExecutionCommitter.commit_trace translates repository TimeoutError into AppException."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    execution_id = "exe_9999000011112222"
+    committer = ExecutionCommitter(exec_repo=repo, execution_id=execution_id)
+
+    repo.inject_fault("update_execution", TimeoutError("Database commit timed out"))
+    try:
+        with pytest.raises(AppException) as exc_info:
+            await committer.commit_trace(
+                trace=[],
+                status=ExecutionStatus.RUNNING,
+                step_states={},
+            )
+    finally:
+        repo.clear_faults()
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.PROGRESS_UPDATE_FAILED.value
+    assert execution_id in exc_info.value.message

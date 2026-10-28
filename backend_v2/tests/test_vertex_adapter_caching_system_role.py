@@ -61,7 +61,9 @@ async def test_vertex_adapter_caching_system_role_bug() -> None:
         mock_import.side_effect = fake_import
 
         # Execute
-        flat_messages, kwargs = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
+        payload_result = await adapter.prepare_caching_payload(prompt, "gemini-2.5-flash")
 
         # Assert - if fail-soft was triggered due to InvalidArgument, 'cached_content' will be missing
-        assert "cached_content" in kwargs, "Cache creation failed! Vertex AI cannot accept 'system' role in contents."
+        assert "cached_content" in payload_result.kwargs, (
+            "Cache creation failed! Vertex AI cannot accept 'system' role in contents."
+        )
