@@ -44,7 +44,7 @@
   - [x] @[backend_v2/utils/math_utils.py]
   - [x] @[backend_v2/utils/alias_engine.py]
   - [x] @[backend_v2/utils/normalization.py]
-  - [ ] @[backend_v2/utils/paths.py]
+  - [x] @[backend_v2/utils/paths.py]
   - [ ] @[backend_v2/utils/pydantic_utils.py]
   - [ ] @[backend_v2/utils/ranked_round_robin.py]
   - [ ] @[backend_v2/utils/redis_patcher.py]
