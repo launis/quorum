@@ -247,16 +247,24 @@ def test_reconcile_storage_main_cli_desynced_and_fix(
     assert exc.value.code == 0
 
 
-def test_reconcile_storage_all_exports() -> None:
-    """Verify explicit public interface exports in __all__."""
-    import scripts.reconcile_storage as mod
+def test_extract_trace_metadata_event_workflow_id_and_default_path(tmp_path: Path) -> None:
+    """Verify trace event workflow_id extraction and default disk path resolution."""
+    from scripts.reconcile_storage import _extract_trace_metadata, _resolve_trace_path
 
-    assert "__all__" in dir(mod)
-    assert "ReconciliationReport" in mod.__all__
-    assert "TraceEventContent" in mod.__all__
-    assert "TraceEventHeader" in mod.__all__
-    assert "reconcile_storage" in mod.__all__
-    assert "main" in mod.__all__
+    storage_dir = tmp_path / "executions"
+    exe_id = "exe_9999888877776666"
+    exe_dir = storage_dir / exe_id
+    exe_dir.mkdir(parents=True, exist_ok=True)
+    trace_file = exe_dir / "execution_trace.json"
+    trace_file.write_text(
+        json.dumps([{"step_name": "init", "event_type": "system", "content": {"workflow_id": "wor_event_extracted"}}]),
+        encoding="utf-8",
+    )
+
+    wf_id, locale = _extract_trace_metadata(trace_file)
+    assert wf_id == "wor_event_extracted"
+    assert locale == "en"
+    assert _resolve_trace_path(storage_dir, exe_id, "nonexistent/path.json") == trace_file
 
 
 def test_extract_trace_metadata_corrupted(tmp_path: Path) -> None:

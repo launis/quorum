@@ -14,6 +14,7 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Annotated
 
 # Ensure workspace root is in sys.path for direct script execution
 _workspace_root = str(Path(__file__).resolve().parent.parent)
@@ -55,11 +56,17 @@ ExecutionRecord.model_rebuild(
 
 
 class ExecutionSnapshotDTO(BaseModel):
-    """Snapshot container for execution records."""
+    """Snapshot container for execution records.
+
+    Attributes:
+        executions: Indexed mapping of execution records.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    executions: dict[str, ExecutionRecord] = Field(default_factory=dict)
+    executions: dict[str, ExecutionRecord] = Field(
+        default_factory=dict, description="Indexed mapping of execution records."
+    )
 
 
 ExecutionSnapshotDTO.model_rebuild()
@@ -112,13 +119,17 @@ class ReconciliationReport(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    db_path: str
-    storage_dir: str
-    orphaned_db_ids: list[str] = Field(default_factory=list)
-    unindexed_disk_ids: list[str] = Field(default_factory=list)
-    pruned_db_ids: list[str] = Field(default_factory=list)
-    recovered_disk_ids: list[str] = Field(default_factory=list)
-    is_synced: bool
+    db_path: Annotated[str, Field(description="Path to the execution snapshot file.")]
+    storage_dir: Annotated[str, Field(description="Path to the physical storage directory.")]
+    orphaned_db_ids: list[str] = Field(
+        default_factory=list, description="Execution IDs present in snapshot but missing from disk."
+    )
+    unindexed_disk_ids: list[str] = Field(
+        default_factory=list, description="Execution IDs present on disk but missing from snapshot."
+    )
+    pruned_db_ids: list[str] = Field(default_factory=list, description="Execution IDs removed during fix mode.")
+    recovered_disk_ids: list[str] = Field(default_factory=list, description="Execution IDs registered during fix mode.")
+    is_synced: Annotated[bool, Field(description="True if storage artifacts and snapshot are fully synchronized.")]
 
 
 def _extract_trace_metadata(trace_file: Path) -> tuple[str, str]:
@@ -264,31 +275,37 @@ def _reconstitute_execution_record(
     status = ExecutionStatus.PASSED
 
     if template_record is not None:
-        rec_dict = template_record.model_dump(mode="json")
-        rec_dict["id"] = exe_id
-        if workflow_id != "wor_default":
-            rec_dict["workflow_id"] = workflow_id
-        elif "workflow_id" not in rec_dict or not rec_dict["workflow_id"]:
-            rec_dict["workflow_id"] = "wor_default"
-        if profile_id:
-            rec_dict["output_profile_id"] = profile_id
-        rec_dict["target_locale"] = target_locale
-        rec_dict["status"] = status.value
-        rec_dict["execution_trace_storage_path"] = trace_storage_path
-        rec_dict["context_variables_storage_path"] = cv_storage_path
-        rec_dict["pdf_report_path"] = pdf_storage_path
-        rec_dict["steps"] = []
-        rec_dict["execution_trace"] = []
-        rec_dict["context_variables"] = {}
-        rec_dict["frozen_context"] = None
-        rec_dict["is_resumable"] = False
-        now_iso = datetime.now(timezone.utc).isoformat()
-        rec_dict["updated_at"] = now_iso
-        if "created_at" not in rec_dict:
-            rec_dict["created_at"] = now_iso
-        if pdf_file.exists() and "completed_at" not in rec_dict:
-            rec_dict["completed_at"] = now_iso
-        return ExecutionRecord.model_validate(rec_dict, strict=False)
+        now_dt = datetime.now(timezone.utc)
+        resolved_wf_id = (
+            workflow_id
+            if workflow_id != "wor_default"
+            else (template_record.workflow_id if template_record.workflow_id else "wor_default")
+        )
+        resolved_prf_id = profile_id if profile_id else template_record.output_profile_id
+        completed_dt = (
+            template_record.completed_at
+            if template_record.completed_at is not None
+            else (now_dt if pdf_file.exists() else None)
+        )
+        return template_record.model_copy(
+            update={
+                "id": exe_id,
+                "workflow_id": resolved_wf_id,
+                "output_profile_id": resolved_prf_id,
+                "target_locale": target_locale,
+                "status": status,
+                "execution_trace_storage_path": trace_storage_path,
+                "context_variables_storage_path": cv_storage_path,
+                "pdf_report_path": pdf_storage_path,
+                "steps": [],
+                "execution_trace": [],
+                "context_variables": ContextVariablesDTO(),
+                "frozen_context": None,
+                "is_resumable": False,
+                "updated_at": now_dt,
+                "completed_at": completed_dt,
+            }
+        )
 
     return ExecutionRecord(
         id=exe_id,
