@@ -1,5 +1,8 @@
 import ast
 from pathlib import Path
+from typing import Literal, overload
+
+from pydantic import BaseModel, ConfigDict
 
 
 class DomainSecurityVisitor(ast.NodeVisitor):
@@ -28,12 +31,12 @@ class DomainSecurityVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        if node.name == "_safe_commit":
+        if node.name in ("_safe_commit", "safe_commit_execution_state"):
             self.found_safe_commit = True
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        if node.name == "_safe_commit":
+        if node.name in ("_safe_commit", "safe_commit_execution_state"):
             self.found_safe_commit = True
         self.generic_visit(node)
 
@@ -99,32 +102,84 @@ class DomainSecurityVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def scan_code_for_domain_security(code: str):
+class DomainSecurityScanResult(BaseModel):
+    """Scan results for domain security AST guardrails."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    llmclient_strategy: bool
+    safe_commit: bool
+    streaming_response: bool
+    run_chat: bool
+    hasattr: bool
+    html_escape: bool
+    pydantic_classes: list[tuple[str, bool, bool]]
+
+    @overload
+    def __getitem__(self, key: Literal["pydantic_classes"]) -> list[tuple[str, bool, bool]]: ...
+
+    @overload
+    def __getitem__(
+        self,
+        key: Literal[
+            "llmclient_strategy",
+            "safe_commit",
+            "streaming_response",
+            "run_chat",
+            "hasattr",
+            "html_escape",
+        ],
+    ) -> bool: ...
+
+    def __getitem__(self, key: str) -> bool | list[tuple[str, bool, bool]]:
+        """Index access supporting literal keys."""
+        match key:
+            case "llmclient_strategy":
+                return self.llmclient_strategy
+            case "safe_commit":
+                return self.safe_commit
+            case "streaming_response":
+                return self.streaming_response
+            case "run_chat":
+                return self.run_chat
+            case "hasattr":
+                return self.hasattr
+            case "html_escape":
+                return self.html_escape
+            case "pydantic_classes":
+                return self.pydantic_classes
+            case _:
+                raise KeyError(key)
+
+
+def scan_code_for_domain_security(code: str) -> DomainSecurityScanResult:
+    """Scans code string for domain security constructs."""
     tree = ast.parse(code)
     visitor = DomainSecurityVisitor()
     visitor.visit(tree)
-    return {
-        "llmclient_strategy": visitor.found_llmclient_strategy,
-        "safe_commit": visitor.found_safe_commit,
-        "streaming_response": visitor.found_streaming_response,
-        "run_chat": visitor.found_run_chat,
-        "hasattr": visitor.found_hasattr,
-        "html_escape": visitor.found_html_escape,
-        "pydantic_classes": visitor.pydantic_classes,
-    }
+    return DomainSecurityScanResult(
+        llmclient_strategy=visitor.found_llmclient_strategy,
+        safe_commit=visitor.found_safe_commit,
+        streaming_response=visitor.found_streaming_response,
+        run_chat=visitor.found_run_chat,
+        hasattr=visitor.found_hasattr,
+        html_escape=visitor.found_html_escape,
+        pydantic_classes=visitor.pydantic_classes,
+    )
 
 
-def scan_file_for_domain_security(filepath: Path):
+def scan_file_for_domain_security(filepath: Path) -> DomainSecurityScanResult:
+    """Scans file path for domain security constructs."""
     if not filepath.exists():
-        return {
-            "llmclient_strategy": False,
-            "safe_commit": False,
-            "streaming_response": False,
-            "run_chat": False,
-            "hasattr": False,
-            "html_escape": False,
-            "pydantic_classes": [],
-        }
+        return DomainSecurityScanResult(
+            llmclient_strategy=False,
+            safe_commit=False,
+            streaming_response=False,
+            run_chat=False,
+            hasattr=False,
+            html_escape=False,
+            pydantic_classes=[],
+        )
     code = filepath.read_text(encoding="utf-8")
     return scan_code_for_domain_security(code)
 
@@ -173,7 +228,7 @@ def test_ast_required_constructs() -> None:
                 found_streaming = True
 
     assert found_llm, "LLMClient.from_strategy not found anywhere"
-    assert found_commit, "_safe_commit not found anywhere"
+    assert found_commit, "_safe_commit or safe_commit_execution_state not found anywhere"
     assert found_streaming, "StreamingResponse not found anywhere"
 
 
