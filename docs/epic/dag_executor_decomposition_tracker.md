@@ -62,7 +62,7 @@
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/execution_committer.py]
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/node_executor.py]
-  - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
+  - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
   - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/__init__.py]
