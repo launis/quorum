@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import logging
+
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.dtos.sdui_rules import MatrixSummaryAestheticsDTO
+from backend_v2.models.dtos.trace import DataStarvationEvent
 from backend_v2.models.view.sdui import SduiMatrixTableBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import (
@@ -106,9 +111,6 @@ def test_matrix_summary_table_adapter_success() -> None:
 
 
 def test_matrix_summary_table_adapter_starved() -> None:
-    from backend_v2.models.domain.synthesis import RenderedSynthesisCache
-    from backend_v2.models.dtos.trace import DataStarvationEvent
-
     profile = OutputProfile(
         id="prf_1234567890abcdef",
         slug="test",
@@ -256,10 +258,10 @@ def test_matrix_summary_table_adapter_empty_visible_columns_preserved() -> None:
     assert blocks[0].matrix_column_labels == {}
 
 
-def test_matrix_summary_table_adapter_unmapped_column_fails_fast() -> None:
+def test_matrix_summary_table_adapter_unmapped_column_fails_fast(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Negative: unmapped column in matrix_visible_columns triggers Fail-Fast AppException with VALIDATION_FAILED."""
-    from backend_v2.exceptions import AppException
-
     profile = OutputProfile.model_construct(
         id="prf_1234567890abcdef",
         slug="test",
@@ -291,7 +293,47 @@ def test_matrix_summary_table_adapter_unmapped_column_fails_fast() -> None:
             )
         },
     )
-    with pytest.raises(AppException) as excinfo:
+    with caplog.at_level(logging.ERROR), pytest.raises(AppException) as excinfo:
         MatrixSummaryTableAdapter.build(context)
     assert excinfo.value.details["error_code"] == "VALIDATION_FAILED"
     assert "Unknown matrix summary column: 'unmapped_column_xyz'" in excinfo.value.message
+    assert any(r.exc_info is not None for r in caplog.records)
+
+
+def test_matrix_summary_table_adapter_empty_column_boundary_fails_fast() -> None:
+    """Negative (Boundary): empty string column identifier in matrix_visible_columns raises AppException."""
+    profile = OutputProfile.model_construct(
+        id="prf_1234567890abcdef",
+        slug="test_empty_col",
+        workflow_id="wf_123",
+        name=I18nText(translations={"en": "test"}),
+        target_block_order=[],
+        matrix_visible_columns=[""],
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={
+            "m1": MatrixScorecardRowDTO(
+                block_id="m1",
+                name="M1",
+                score=5.0,
+                scale_min=1.0,
+                scale_max=5.0,
+                is_evaluative=True,
+                label_i18n=I18nText(translations={"en": "M1"}),
+                row_explanation="expl",
+            )
+        },
+    )
+    with pytest.raises(AppException) as excinfo:
+        MatrixSummaryTableAdapter.build(context)
+    assert excinfo.value.details["error_code"] == "VALIDATION_FAILED"
+    assert "Unknown matrix summary column: ''" in excinfo.value.message

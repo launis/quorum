@@ -59,11 +59,13 @@ class MatrixSummaryTableAdapter:
             Ordered list of polymorphic SDUI blocks ready for rendering.
 
         Raises:
-            AppException: If an unmapped column is specified in matrix_visible_columns (ErrorCodes.VALIDATION_FAILED).
+            AppException: If an unmapped column is specified in matrix_visible_columns
+                (ErrorCodes.VALIDATION_FAILED) or if column header translation fails
+                (ErrorCodes.CONFIGURATION_ERROR).
         """
         blocks: list[AnySduiBlock] = []
 
-        if context.is_data_starved or not context.parsed_matrices:
+        if context.is_data_starved or len(context.parsed_matrices) < MATRIX_SUMMARY_RULES["matrix_summary"].min_axes:
             return blocks
 
         axes = list(context.parsed_matrices.values())
@@ -80,6 +82,7 @@ class MatrixSummaryTableAdapter:
                     ErrorCodes.VALIDATION_FAILED.name,
                     col,
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "column": col},
+                    exc_info=True,
                 )
                 raise AppException(
                     message=f"Unknown matrix summary column: '{col}'",
