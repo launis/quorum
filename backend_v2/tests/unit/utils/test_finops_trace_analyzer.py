@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.utils.finops_trace_analyzer import (
     MonitorState,
     TelemetryRecord,
@@ -145,3 +146,134 @@ def test_finops_models_strictness() -> None:
 
     with pytest.raises(ValidationError):
         TraceStepRecord.model_validate({"extra_field": 123})
+
+
+@pytest.mark.parametrize(
+    ("state_path", "telemetry_path"),
+    [
+        ("", "valid_telemetry.jsonl"),
+        ("   ", "valid_telemetry.jsonl"),
+        ("valid_state.json", ""),
+        ("valid_state.json", "   "),
+    ],
+)
+def test_analyze_monitor_state_empty_paths_raises_app_exception(
+    state_path: str,
+    telemetry_path: str,
+) -> None:
+    """Verify empty or whitespace file paths raise AppException with VALIDATION_FAILED."""
+    with pytest.raises(AppException) as exc_info:
+        analyze_monitor_state(state_path, telemetry_path)
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_analyze_monitor_state_corrupted_json_raises_app_exception(tmp_path: Path) -> None:
+    """Verify malformed state or telemetry JSON raises AppException with VALIDATION_FAILED."""
+    state_file = tmp_path / "monitor_state.json"
+    telemetry_file = tmp_path / "llm_telemetry.jsonl"
+    state_file.write_text("{not_valid_json", encoding="utf-8")
+
+    with pytest.raises(AppException) as exc_info:
+        analyze_monitor_state(str(state_file), str(telemetry_file))
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_analyze_monitor_state_corrupted_telemetry_line_raises_app_exception(tmp_path: Path) -> None:
+    """Verify malformed telemetry JSONL line in analyze_monitor_state raises AppException."""
+    state_file = tmp_path / "monitor_state.json"
+    telemetry_file = tmp_path / "llm_telemetry.jsonl"
+    telemetry_file.write_text("{malformed_line\n", encoding="utf-8")
+
+    with pytest.raises(AppException) as exc_info:
+        analyze_monitor_state(str(state_file), str(telemetry_file))
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.parametrize(
+    ("trace_path", "telemetry_path"),
+    [
+        ("", "valid_telemetry.jsonl"),
+        ("   ", "valid_telemetry.jsonl"),
+        ("valid_trace.json", ""),
+        ("valid_trace.json", "   "),
+    ],
+)
+def test_finalize_execution_empty_paths_raises_app_exception(
+    trace_path: str,
+    telemetry_path: str,
+) -> None:
+    """Verify empty or whitespace paths in finalize_execution raise AppException with VALIDATION_FAILED."""
+    with pytest.raises(AppException) as exc_info:
+        finalize_execution(trace_path, telemetry_path)
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_finalize_execution_corrupted_trace_raises_app_exception(tmp_path: Path) -> None:
+    """Verify malformed execution_trace.json raises AppException with VALIDATION_FAILED."""
+    trace_file = tmp_path / "execution_trace.json"
+    telemetry_file = tmp_path / "llm_telemetry.jsonl"
+    trace_file.write_text("{invalid_json", encoding="utf-8")
+
+    with pytest.raises(AppException) as exc_info:
+        finalize_execution(str(trace_file), str(telemetry_file))
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_finalize_execution_corrupted_telemetry_raises_app_exception(tmp_path: Path) -> None:
+    """Verify malformed telemetry JSONL line in finalize_execution raises AppException."""
+    trace_file = tmp_path / "execution_trace.json"
+    telemetry_file = tmp_path / "llm_telemetry.jsonl"
+    trace_file.write_text("[]", encoding="utf-8")
+    telemetry_file.write_text("{bad_telemetry_line\n", encoding="utf-8")
+
+    with pytest.raises(AppException) as exc_info:
+        finalize_execution(str(trace_file), str(telemetry_file))
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_finalize_execution_with_trace_events_and_explicit_cost_usd(tmp_path: Path) -> None:
+    """Verify TraceEvent, ErrorTraceEvent, blank lines, and explicit cost_usd branches."""
+    from backend_v2.models.domain.system_config import MCPAuditTrace
+    from backend_v2.models.state import ErrorTraceEvent, TraceEvent
+
+    trace_file = tmp_path / "execution_trace.json"
+    telemetry_file = tmp_path / "llm_telemetry.jsonl"
+
+    err_event = ErrorTraceEvent(
+        step_name="stp_err",
+        error_code="SchemaValidationError",
+        error_message="Failed schema",
+    )
+    out_event = TraceEvent(
+        step_name="stp_out",
+        event_type="output",
+        content="identical_output",
+        mcp_audit_traces=[
+            MCPAuditTrace(
+                tool_id="search",
+                step_name="stp_out",
+                query="mcp_q1",
+            )
+        ],
+    )
+    trace_payload = [
+        err_event.model_dump(mode="json", exclude_none=True),
+        out_event.model_dump(mode="json", exclude_none=True),
+    ]
+    trace_file.write_text(json.dumps(trace_payload), encoding="utf-8")
+
+    telemetry_file.write_text(
+        "\n" + json.dumps({"total_tokens": 500, "model_strategy": "fast", "cost_usd": 0.042}) + "\n\n",
+        encoding="utf-8",
+    )
+
+    res = finalize_execution(str(trace_file), str(telemetry_file))
+    assert res.healing_cost_events == 1
+    assert res.usd_cost == pytest.approx(0.042)
+

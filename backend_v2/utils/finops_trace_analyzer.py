@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import logging
 import sys
 from pathlib import Path
 
@@ -14,10 +15,14 @@ if sys_root not in sys.path:
 
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from fastapi import status
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.finops import FinOpsFinalizeSummaryDTO, FinOpsMonitorSummaryDTO
 from backend_v2.models.state import ErrorTraceEvent, TraceEvent
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "MonitorState",
@@ -57,6 +62,7 @@ class TelemetryRecord(BaseModel):
         execution_id: Canonical execution identifier.
         step_id: Canonical step identifier.
         trigger_reason: Diagnostic reason for invocation.
+        cost_usd: Optional calculated USD cost for the telemetry event.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -114,14 +120,48 @@ def analyze_monitor_state(state_file_path: str, telemetry_file_path: str) -> Fin
 
     Returns:
         A FinOpsMonitorSummaryDTO containing total duration, total calls, and alerts.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if file paths are empty or
+            state/telemetry JSON fails schema validation.
     """
+    if not state_file_path.strip() or not telemetry_file_path.strip():
+        msg = "State file path and telemetry file path cannot be empty."
+        logger.error(
+            "[FinOpsTraceAnalyzer] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+            exc_info=True,
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
     state_file = Path(state_file_path)
     telemetry_file = Path(telemetry_file_path)
 
     if not state_file.exists():
         state_file.write_text(MonitorState(cursors={}).model_dump_json(), encoding="utf-8")
 
-    state = MonitorState.model_validate_json(state_file.read_text(encoding="utf-8"))
+    try:
+        state = MonitorState.model_validate_json(state_file.read_text(encoding="utf-8"))
+    except ValidationError as exc:
+        msg = "Invalid monitor state JSON payload."
+        logger.error(
+            "[FinOpsTraceAnalyzer] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+            exc_info=True,
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        ) from exc
 
     if "llm_telemetry.jsonl" in state.cursors:
         cursor = state.cursors["llm_telemetry.jsonl"]
@@ -138,7 +178,22 @@ def analyze_monitor_state(state_file_path: str, telemetry_file_path: str) -> Fin
         for line in new_lines:
             if not line.strip():
                 continue
-            record = TelemetryRecord.model_validate_json(line)
+            try:
+                record = TelemetryRecord.model_validate_json(line)
+            except ValidationError as exc:
+                msg = "Invalid telemetry record JSONL line."
+                logger.error(
+                    "[FinOpsTraceAnalyzer] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                    exc_info=True,
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from exc
             total_duration += record.duration_ms
             total_calls += 1
             if not record.cache_hit:
@@ -173,7 +228,26 @@ def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> FinOps
     Returns:
         A FinOpsFinalizeSummaryDTO containing structural warnings, MCP warnings,
         hashing warnings, healing cost events, and total USD cost.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if file paths are empty or
+            trace/telemetry JSON fails schema validation.
     """
+    if not trace_file_path.strip() or not telemetry_file_path.strip():
+        msg = "Trace file path and telemetry file path cannot be empty."
+        logger.error(
+            "[FinOpsTraceAnalyzer] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+            exc_info=True,
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
     trace_file = Path(trace_file_path)
     telemetry_file = Path(telemetry_file_path)
 
@@ -188,9 +262,24 @@ def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> FinOps
     seen_mcps: set[str] = set()
 
     if trace_file.exists():
-        trace_steps = TypeAdapter(list[TraceStepRecord | ErrorTraceEvent | TraceEvent]).validate_json(
-            trace_file.read_text(encoding="utf-8")
-        )
+        try:
+            trace_steps = TypeAdapter(list[TraceStepRecord | ErrorTraceEvent | TraceEvent]).validate_json(
+                trace_file.read_text(encoding="utf-8")
+            )
+        except ValidationError as exc:
+            msg = "Invalid execution trace JSON payload."
+            logger.error(
+                "[FinOpsTraceAnalyzer] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from exc
         for step in trace_steps:
             if isinstance(step, TraceStepRecord):
                 step_id = step.step_id
@@ -250,7 +339,22 @@ def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> FinOps
         for line in lines:
             if not line.strip():
                 continue
-            record = TelemetryRecord.model_validate_json(line)
+            try:
+                record = TelemetryRecord.model_validate_json(line)
+            except ValidationError as exc:
+                msg = "Invalid telemetry record JSONL line in finalization."
+                logger.error(
+                    "[FinOpsTraceAnalyzer] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                    exc_info=True,
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from exc
             tokens = record.total_tokens
             if record.cost_usd is not None:
                 total_usd += record.cost_usd
@@ -269,7 +373,15 @@ def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> FinOps
 
 
 def main() -> None:
-    """Execute CLI entrypoint for FinOps trace analysis."""
+    """Execute CLI entrypoint for FinOps trace analysis.
+
+    Returns:
+        None
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if underlying monitor or
+            finalize analysis encounters invalid state or telemetry data.
+    """
     parser = argparse.ArgumentParser(description="FinOps Trace Analyzer")
     parser.add_argument("--monitor", type=str, help="Path to monitor_state.json")
     parser.add_argument("--finalize", type=str, help="Execution ID")
