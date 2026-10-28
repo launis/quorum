@@ -22,7 +22,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`
   - [x] @[backend_v2/workers/execution_worker.py]
   - [x] @[backend_v2/workers/report_worker.py]
-  - [ ] @[backend_v2/workers/synthesis_reducers.py]
+  - [x] @[backend_v2/workers/synthesis_reducers.py]
   - [ ] @[backend_v2/workers/synthesis_tasks.py]
   - [ ] @[backend_v2/workers/synthesis_worker.py]
   - [ ] @[backend_v2/workers/variance_synthesis.py]
