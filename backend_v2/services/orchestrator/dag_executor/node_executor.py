@@ -33,22 +33,44 @@ _DAG_EXECUTOR_MODULE = "backend_v2.services.orchestrator.dag_executor"
 
 
 def _hydrate_step_definition(step_candidate: Any) -> Step:
-    """Hydrate a Step blueprint model using dag_executor.Step when loaded for patch compatibility."""
+    """Hydrate a Step blueprint model using dag_executor.Step when loaded for patch compatibility.
+
+    Args:
+        step_candidate: Raw step payload or Step domain instance to validate.
+
+    Returns:
+        Validated Step domain model instance.
+    """
     step_cls: type[Step] = sys.modules[_DAG_EXECUTOR_MODULE].Step if _DAG_EXECUTOR_MODULE in sys.modules else Step
     return step_cls.model_validate(step_candidate)
 
 
-# Phase 2, Step 1: Relocate NodeExecutor into dedicated sub-module
 class NodeExecutor:
-    """Executes a single step in pure isolation, emitting TraceEvents."""
+    """Executes a single step in pure isolation, emitting TraceEvents.
+
+    Attributes:
+        deps: Immutable container holding repository and compiler dependencies.
+    """
 
     def __init__(self, deps: StrategyDependencies) -> None:
-        """Initialize NodeExecutor with typed StrategyDependencies container."""
+        """Initialize NodeExecutor with typed StrategyDependencies container.
+
+        Args:
+            deps: Immutable dependency container for strategy execution.
+        """
         self.deps = deps
 
     @staticmethod
     def _dlq_record_node_error(step_id: str, exc: Exception) -> list[TraceEvent]:
-        """Dead-letter error recording for failed step execution returning error trace."""
+        """Record dead-letter error trace event for a failed step execution.
+
+        Args:
+            step_id: Canonical Opaque Stripe ID of the failing step.
+            exc: Caught runtime or validation exception.
+
+        Returns:
+            Single-element list containing the structured ErrorTraceEvent.
+        """
         logger.error("[NodeExecutor] Dual-Reporting Exception for step %s: %s", step_id, str(exc), exc_info=True)
         return [
             ErrorTraceEvent(
@@ -59,7 +81,15 @@ class NodeExecutor:
     def _resolve_execution_engine(
         self, step_def: Step, prompt_blocks: list[PromptBlock] | None = None
     ) -> ExecutionEngine:
-        """Resolve ExecutionEngine orthogonally from model_strategy based on step engine_type."""
+        """Resolve ExecutionEngine orthogonally from model_strategy based on step engine_type.
+
+        Args:
+            step_def: Hydrated Step blueprint definition.
+            prompt_blocks: Optional preloaded PromptBlock domain models for the step.
+
+        Returns:
+            Configured ExecutionEngine instance matching step_def.engine_type.
+        """
         _ = prompt_blocks
         return build_execution_engine(step_def.engine_type, self.deps.prompt_compiler)
 
@@ -86,6 +116,29 @@ class NodeExecutor:
     ) -> list[TraceEvent]:
         """Execute a pipeline node strategy with static parameters and OpenTelemetry span wrapping.
 
+        Args:
+            step: Workflow step rule defining blueprint binding and input mappings.
+            execution_id: Canonical execution identifier.
+            workflow_id: Canonical workflow identifier.
+            metadata: Execution metadata envelope carrying model registry and global context.
+            projector: Event-sourced state projector holding upstream step snapshots.
+            expected_inputs: Optional workflow expected input definitions.
+            frozen_ctx: Optional immutable execution context snapshot.
+            trace: Optional accumulated trace event list.
+            strictness_level: Mathematical scoring strictness anchor level.
+            lexical_strictness_level: Lexical citation verification strictness level.
+            arq_pool: Optional Arq Redis connection pool for sub-task dispatch.
+            context_variables: Optional runtime context variables DTO.
+            progress_callback: Optional async callback reporting completed and total sub-steps.
+            step_def: Optional pre-fetched Step blueprint definition.
+            global_context_vars: Optional global context variables DTO override.
+            target_locale: Target output language locale code.
+            output_profile_id: Optional output profile identifier.
+            organization_id: Optional tenant organization identifier for quota enforcement.
+
+        Returns:
+            List of emitted TraceEvent instances from strategy execution or DLQ fallback.
+
         Raises:
             AppException: Triggered with CONFIGURATION_ERROR if node configuration or blueprint is missing.
         """
@@ -105,7 +158,7 @@ class NodeExecutor:
                 blueprint_id = step.task_blueprint
                 if not blueprint_id:
                     msg = f"Step {step.id} has no task_blueprint configured."
-                    logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                    logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
                     raise AppException(
                         message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
                     )
@@ -114,7 +167,7 @@ class NodeExecutor:
                     step_def_data = await self.deps.workflow_repo.get_step_by_id(blueprint_id)
                     if not step_def_data:
                         msg = f"Step definition not found: {blueprint_id}"
-                        logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                        logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
                         raise AppException(
                             message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR}
                         )
