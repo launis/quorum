@@ -74,7 +74,7 @@ import sys
 import time
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 type JSONRaw = Any
 
@@ -109,6 +109,7 @@ from backend_v2.models.domain.system_config import (
     ChatMessageDTO,
 )
 from backend_v2.services.orchestrator.anchor_validation import AnchorValidationService
+from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.unified_engine import calculate_strictness_exponent
 from scripts.ablation_live_executor import (
     AblationMode,
@@ -150,7 +151,17 @@ __all__ = [
 ]
 
 
-def check_backend(base_url: str = "http://127.0.0.1:8000/docs", max_retries: int = 45) -> bool:
+def _resolve_api_root() -> str:
+    """Resolve the base API root URL from centralized Settings.
+
+    Returns:
+        Stripped base URL string without trailing slash.
+    """
+    settings = get_settings()
+    return settings.api_url.rstrip("/") if settings.api_url is not None else ""
+
+
+def check_backend(base_url: str | None = None, max_retries: int = 45) -> bool:
     """Check if the backend FastAPI service is online and responding.
 
     Args:
@@ -162,7 +173,9 @@ def check_backend(base_url: str = "http://127.0.0.1:8000/docs", max_retries: int
     """
     for attempt in range(max_retries):
         try:
-            r = requests.get(base_url, timeout=READINESS_PROBE_TIMEOUT)
+            r = requests.get(
+                base_url if base_url is not None else f"{_resolve_api_root()}/docs", timeout=READINESS_PROBE_TIMEOUT
+            )
             if r.status_code == 200:
                 return True
         except requests.RequestException as e:
@@ -416,13 +429,17 @@ class RunMarkerMetadataDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    run_index: int = Field(..., description="0-indexed run number")
-    injected_char: str = Field(..., description="Injected Unicode character")
-    injected_char_hex: str = Field(..., description="Hex codepoint of injected character (e.g. U+00A0)")
-    injected_char_name: str = Field(..., description="Human-readable name of injected character")
-    replacement_offset: int = Field(..., description="Positional offset used for modulo replacement in 2D encoding")
-    stride: int = Field(..., description="Stride interval used for multi-point whitespace injection")
-    injected_keys: list[str] = Field(..., description="List of input keys where markers were successfully injected")
+    run_index: Annotated[int, Field(description="0-indexed run number")]
+    injected_char: Annotated[str, Field(description="Injected Unicode character")]
+    injected_char_hex: Annotated[str, Field(description="Hex codepoint of injected character (e.g. U+00A0)")]
+    injected_char_name: Annotated[str, Field(description="Human-readable name of injected character")]
+    replacement_offset: Annotated[
+        int, Field(description="Positional offset used for modulo replacement in 2D encoding")
+    ]
+    stride: Annotated[int, Field(description="Stride interval used for multi-point whitespace injection")]
+    injected_keys: Annotated[
+        list[str], Field(description="List of input keys where markers were successfully injected")
+    ]
 
 
 class MarkedInputsPayloadDTO(BaseModel):
@@ -430,8 +447,10 @@ class MarkedInputsPayloadDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    marked_inputs: dict[str, JsonValue] = Field(..., description="Deep copy of inputs dictionary with injected markers")
-    marker_metadata: RunMarkerMetadataDTO = Field(..., description="Metadata describing the injected marker")
+    marked_inputs: Annotated[
+        dict[str, JsonValue], Field(description="Deep copy of inputs dictionary with injected markers")
+    ]
+    marker_metadata: Annotated[RunMarkerMetadataDTO, Field(description="Metadata describing the injected marker")]
 
 
 class ScaleTelemetryDTO(BaseModel):
@@ -439,12 +458,12 @@ class ScaleTelemetryDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    score: int = Field(..., description="Numerical score level")
-    name: str = Field(..., description="Localized name of scale level")
-    ai_label: str = Field(default="", description="AI instruction label for this scale")
-    claim_count: int = Field(default=0, description="Total claims linked to this scale")
-    atom_count: int = Field(default=0, description="Total atoms linked to this scale")
-    high_entropy_count: int = Field(default=0, description="Count of high-entropy atoms in this scale")
+    score: Annotated[int, Field(description="Numerical score level")]
+    name: Annotated[str, Field(description="Localized name of scale level")]
+    ai_label: Annotated[str, Field(default="", description="AI instruction label for this scale")] = ""
+    claim_count: Annotated[int, Field(default=0, description="Total claims linked to this scale")] = 0
+    atom_count: Annotated[int, Field(default=0, description="Total atoms linked to this scale")] = 0
+    high_entropy_count: Annotated[int, Field(default=0, description="Count of high-entropy atoms in this scale")] = 0
 
 
 class MatrixTelemetryDTO(BaseModel):
@@ -452,17 +471,21 @@ class MatrixTelemetryDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    block_id: str = Field(..., description="Matrix block identifier")
-    label: str = Field(..., description="Display label for the matrix")
-    category: str = Field(default="matrix", description="Category identifier")
-    computed_min: int = Field(..., description="Minimum score of the matrix")
-    computed_max: int = Field(..., description="Maximum score of the matrix")
-    allow_contextual_override: bool = Field(default=False, description="Whether contextual override is allowed")
-    target_input_key: str | None = Field(default=None, description="Optional target input slot key")
-    total_claims: int = Field(default=0, description="Total claims in the matrix")
-    total_atoms: int = Field(default=0, description="Total atoms in the matrix")
-    high_entropy_atoms: int = Field(default=0, description="Count of high-entropy atoms in the matrix")
-    scales: list[ScaleTelemetryDTO] = Field(default_factory=list, description="List of scale level telemetries")
+    block_id: Annotated[str, Field(description="Matrix block identifier")]
+    label: Annotated[str, Field(description="Display label for the matrix")]
+    category: Annotated[str, Field(default="matrix", description="Category identifier")] = "matrix"
+    computed_min: Annotated[int, Field(description="Minimum score of the matrix")]
+    computed_max: Annotated[int, Field(description="Maximum score of the matrix")]
+    allow_contextual_override: Annotated[
+        bool, Field(default=False, description="Whether contextual override is allowed")
+    ] = False
+    target_input_key: Annotated[str | None, Field(default=None, description="Optional target input slot key")] = None
+    total_claims: Annotated[int, Field(default=0, description="Total claims in the matrix")] = 0
+    total_atoms: Annotated[int, Field(default=0, description="Total atoms in the matrix")] = 0
+    high_entropy_atoms: Annotated[int, Field(default=0, description="Count of high-entropy atoms in the matrix")] = 0
+    scales: Annotated[
+        list[ScaleTelemetryDTO], Field(default_factory=list, description="List of scale level telemetries")
+    ]
 
 
 class StepTelemetryDTO(BaseModel):
@@ -470,14 +493,16 @@ class StepTelemetryDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    step_rule_id: str = Field(..., description="Step rule identifier")
-    blueprint_id: str = Field(..., description="Task blueprint identifier")
-    name: str = Field(..., description="Step name")
-    type: str = Field(..., description="Step execution type")
-    cognitive_tier: str | None = Field(default=None, description="Cognitive tier or model strategy")
-    model_strategy: str | None = Field(default=None, description="Model strategy alias")
-    is_synthesis_source: bool = Field(default=True, description="Whether step is a synthesis source")
-    matrices: list[MatrixTelemetryDTO] = Field(default_factory=list, description="Attached matrix telemetries")
+    step_rule_id: Annotated[str, Field(description="Step rule identifier")]
+    blueprint_id: Annotated[str, Field(description="Task blueprint identifier")]
+    name: Annotated[str, Field(description="Step name")]
+    type: Annotated[str, Field(description="Step execution type")]
+    cognitive_tier: Annotated[str | None, Field(default=None, description="Cognitive tier or model strategy")] = None
+    model_strategy: Annotated[str | None, Field(default=None, description="Model strategy alias")] = None
+    is_synthesis_source: Annotated[bool, Field(default=True, description="Whether step is a synthesis source")] = True
+    matrices: Annotated[
+        list[MatrixTelemetryDTO], Field(default_factory=list, description="Attached matrix telemetries")
+    ]
 
 
 class WorkflowTelemetryDTO(BaseModel):
@@ -485,23 +510,29 @@ class WorkflowTelemetryDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    source_path: str = Field(..., description="Source path where workflow was loaded from")
-    workflow_id: str = Field(..., description="Canonical workflow identifier")
-    workflow_name: str = Field(..., description="Localized workflow name")
-    workflow_slug: str = Field(default="", description="Workflow slug")
-    strictness_level: int = Field(default=50, description="Evaluator strictness percentage 0-100")
-    strictness_exponent: float = Field(..., description="Calculated strictness exponent")
-    enable_contextual_overrides: bool = Field(default=False, description="Whether contextual overrides are enabled")
-    security_penalty: float = Field(default=0.0, description="Security penalty multiplier")
-    post_hoc_penalty: float = Field(default=0.0, description="Post-hoc penalty multiplier")
-    passivity_penalty: float = Field(default=0.0, description="Passivity penalty multiplier")
-    default_profile_id: str | None = Field(default=None, description="Default output profile identifier")
-    total_matrices: int = Field(default=0, description="Total matrices bound to workflow")
-    total_scales: int = Field(default=0, description="Total scale levels across matrices")
-    total_claims: int = Field(default=0, description="Total claims across matrices")
-    total_atoms: int = Field(default=0, description="Total atoms across matrices")
-    total_high_entropy_atoms: int = Field(default=0, description="Total high-entropy atoms across matrices")
-    steps: list[StepTelemetryDTO] = Field(default_factory=list, description="List of step telemetries")
+    source_path: Annotated[str, Field(description="Source path where workflow was loaded from")]
+    workflow_id: Annotated[str, Field(description="Canonical workflow identifier")]
+    workflow_name: Annotated[str, Field(description="Localized workflow name")]
+    workflow_slug: Annotated[str, Field(default="", description="Workflow slug")] = ""
+    strictness_level: Annotated[int, Field(default=50, description="Evaluator strictness percentage 0-100")] = 50
+    strictness_exponent: Annotated[float, Field(description="Calculated strictness exponent")]
+    enable_contextual_overrides: Annotated[
+        bool, Field(default=False, description="Whether contextual overrides are enabled")
+    ] = False
+    security_penalty: Annotated[float, Field(default=0.0, description="Security penalty multiplier")] = 0.0
+    post_hoc_penalty: Annotated[float, Field(default=0.0, description="Post-hoc penalty multiplier")] = 0.0
+    passivity_penalty: Annotated[float, Field(default=0.0, description="Passivity penalty multiplier")] = 0.0
+    default_profile_id: Annotated[str | None, Field(default=None, description="Default output profile identifier")] = (
+        None
+    )
+    total_matrices: Annotated[int, Field(default=0, description="Total matrices bound to workflow")] = 0
+    total_scales: Annotated[int, Field(default=0, description="Total scale levels across matrices")] = 0
+    total_claims: Annotated[int, Field(default=0, description="Total claims across matrices")] = 0
+    total_atoms: Annotated[int, Field(default=0, description="Total atoms across matrices")] = 0
+    total_high_entropy_atoms: Annotated[
+        int, Field(default=0, description="Total high-entropy atoms across matrices")
+    ] = 0
+    steps: Annotated[list[StepTelemetryDTO], Field(default_factory=list, description="List of step telemetries")]
 
 
 # Phase 1, Step 1.6: Guarantee user-turn marker injection for conversational inputs
@@ -861,13 +892,16 @@ def trigger_execution(
 
     Returns:
         Generated execution ID.
+
+    Raises:
+        RuntimeError: If no workflows exist, target workflow is missing, or profile cannot be resolved.
+        requests.HTTPError: If the backend HTTP request fails.
     """
     print("Triggering E2E execution natively via Python requests...")
-    from backend_v2.settings import get_settings
 
     settings = get_settings()
     headers = {"Authorization": f"Bearer mock-token:{settings.mock_admin_user_id}"}
-    base_url = "http://127.0.0.1:8000/api/v2"
+    base_url = f"{_resolve_api_root()}/api/v2"
 
     w_res = requests.get(f"{base_url}/studio/workflows/", headers=headers, timeout=settings.mcp_default_timeout_seconds)
     w_res.raise_for_status()
@@ -969,7 +1003,7 @@ def validate_execution_kelvollisuus(
         trace_path: Optional path to execution_trace.json for deep trace event validation.
 
     Returns:
-        Tuple of (is_valid: bool, reason: str).
+        Tuple of validation status boolean and human-readable reason string.
     """
     status = str(target_exec.get("status", "")).upper()
     if status != "PASSED":
@@ -1506,7 +1540,7 @@ def poll_database_for_execution(
     target_db_path: Path,
     exec_id: str,
     timeout_seconds: int = 1800,
-    base_url: str = "http://127.0.0.1:8000/api/v2",
+    base_url: str | None = None,
 ) -> Mapping[str, JsonValue] | None:
     """Poll execution endpoint or local database until execution reaches terminal status.
 
@@ -1520,11 +1554,11 @@ def poll_database_for_execution(
         Execution dictionary if terminal status reached, otherwise None.
     """
     print(f"Polling database for execution {exec_id} completion (max {timeout_seconds // 60} mins)...")
-    from backend_v2.settings import get_settings
 
     settings = get_settings()
     headers = {"Authorization": f"Bearer mock-token:{settings.mock_admin_user_id}"}
-    endpoint = f"{base_url}/execution/executions/{exec_id}"
+    resolved_base_url = base_url if base_url is not None else f"{_resolve_api_root()}/api/v2"
+    endpoint = f"{resolved_base_url}/execution/executions/{exec_id}"
 
     start = time.time()
     while time.time() - start < timeout_seconds:
@@ -1534,7 +1568,7 @@ def poll_database_for_execution(
             resp = requests.get(endpoint, headers=headers, timeout=settings.mcp_default_timeout_seconds)
             if resp.status_code == 200:
                 found_exec = resp.json()
-                if isinstance(found_exec, dict):
+                if type(found_exec) is dict:
                     status = str(found_exec.get("status")).upper()
                     if status in ["PASSED", "FAILED", "SYSTEM_ERROR"]:
                         print(f"Execution {exec_id} finished with status: {status}")
@@ -1548,7 +1582,7 @@ def poll_database_for_execution(
                     db_data = json.load(f)
                 execs = list(db_data.get("executions", {}).values())
                 if execs:
-                    found_exec = next((e for e in execs if isinstance(e, dict) and e.get("id") == exec_id), None)
+                    found_exec = next((e for e in execs if type(e) is dict and e.get("id") == exec_id), None)
                     if found_exec:
                         status = str(found_exec.get("status")).upper()
                         if status in ["PASSED", "FAILED", "SYSTEM_ERROR"]:
@@ -1597,6 +1631,10 @@ def run_variance_test(
 
     Returns:
         List of generated execution IDs.
+
+    Raises:
+        ValueError: If invalid provider, strategy, or registry comparison arguments are supplied.
+        RuntimeError: If workflow/profile resolution, pre-flight hash verification, or noise injection fails.
     """
     target_db_path = Path(db_path) if db_path else Path("backend_v2/seed/seed_data.json")
 
@@ -1784,11 +1822,10 @@ def run_variance_test(
         print("Backend is ready. Checking workflows...")
 
         # Dynamic workflow and expected inputs resolution
-        from backend_v2.settings import get_settings
 
         settings = get_settings()
         headers = {"Authorization": f"Bearer mock-token:{settings.mock_admin_user_id}"}
-        base_url = "http://127.0.0.1:8000/api/v2"
+        base_url = f"{_resolve_api_root()}/api/v2"
 
         w_res = requests.get(
             f"{base_url}/studio/workflows/", headers=headers, timeout=settings.mcp_default_timeout_seconds
@@ -2026,7 +2063,14 @@ def verify_offline_ablation_benchmark(
 
 
 def main(argv: list[str] | None = None) -> list[str]:
-    """CLI entrypoint for end-to-end variance test runner."""
+    """CLI entrypoint for end-to-end variance test runner.
+
+    Args:
+        argv: Optional list of command-line arguments.
+
+    Returns:
+        List of generated execution IDs, or empty list for inspection/ablation modes.
+    """
     parser = argparse.ArgumentParser(
         description=(
             "End-to-End Variance and Reliability Test Runner.\n\n"
@@ -2158,7 +2202,6 @@ def main(argv: list[str] | None = None) -> list[str]:
     inputs_path = args.inputs_opt or args.inputs_target
     if args.logfire:
         from backend_v2.core.telemetry import configure_telemetry, get_tracer
-        from backend_v2.settings import get_settings
 
         settings = get_settings().model_copy(update={"otel_enabled": True})
         configure_telemetry(settings)

@@ -1638,3 +1638,34 @@ class TestCoverageExpansion:
         print_model_telemetry(empty_db)
         out = capsys.readouterr().out
         assert "Warning: Model registry not found" in out
+
+    def test_poll_http_endpoint_terminal_status_and_non_dict_ignored(self, tmp_path: Path) -> None:
+        """Verify poll_database_for_execution handles HTTP 200 non-dict and dict terminal responses."""
+        db_file = tmp_path / "missing_db.json"
+        mock_non_dict = MagicMock(status_code=200)
+        mock_non_dict.json.return_value = ["not_a_dict"]
+        mock_passed = MagicMock(status_code=200)
+        mock_passed.json.return_value = {"id": "exe_http_1", "status": "PASSED"}
+
+        with (
+            patch("time.sleep"),
+            patch("scripts.run_e2e_variance_test.requests.get", side_effect=[mock_non_dict, mock_passed]),
+        ):
+            res = poll_database_for_execution(db_file, "exe_http_1", timeout_seconds=15)
+            assert res is not None
+            assert res["id"] == "exe_http_1"
+            assert res["status"] == "PASSED"
+
+    def test_verify_offline_ablation_benchmark_thresholds(self) -> None:
+        """Verify verify_offline_ablation_benchmark passes valid thresholds and raises on boundary violations."""
+        from scripts.run_e2e_variance_test import verify_offline_ablation_benchmark
+
+        report = verify_offline_ablation_benchmark(min_pass_rate=50.0, max_chimera_rate=0.0, selected_configs=[1])
+        assert len(report.config_results) == 1
+        assert report.config_results[0].config_id == 1
+
+        with pytest.raises(AssertionError, match="empirical pass rate"):
+            verify_offline_ablation_benchmark(min_pass_rate=101.0, max_chimera_rate=0.0, selected_configs=[1])
+
+        with pytest.raises(AssertionError, match="chimera acceptance rate"):
+            verify_offline_ablation_benchmark(min_pass_rate=0.0, max_chimera_rate=-1.0, selected_configs=[1])
