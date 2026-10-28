@@ -90,8 +90,7 @@ def dlq_handle_progress_commit_error(step_id: str, commit_err: Exception) -> Non
 def dlq_fallback_step_exceptions() -> tuple[type[BaseException], ...]:
     """Return fallback step exceptions tuple when litellm is not imported."""
     t1 = (AppException, ValidationError, RuntimeError, ValueError, TypeError)
-    t2 = (KeyError, OSError, TimeoutError, ConnectionError, ExceptionGroup)
-    return (*t1, *t2)
+    return (*t1, KeyError, OSError, TimeoutError, ConnectionError, ExceptionGroup)
 
 
 def _extract_input_delta_dict(state_delta: Any) -> dict[str, StepOutputContentValue]:
@@ -150,8 +149,7 @@ async def bootstrap_workflow_execution_state(
             tasks = [tg.create_task(_fetch_and_validate(b_id)) for b_id in blueprint_ids]
         step_definitions = dict([t.result() for t in tasks])
 
-    has_criteria_matrices = any(bool(s_def.criteria_block_ids) for s_def in step_definitions.values() if s_def)
-    if not has_criteria_matrices:
+    if not any(bool(s_def.criteria_block_ids) for s_def in step_definitions.values() if s_def):
         for bp_id, s_def in step_definitions.items():
             if "apply_scoring_logic_hook" in s_def.post_hooks or "apply_scoring_logic" in s_def.post_hooks:
                 posts = [h for h in s_def.post_hooks if h not in ("apply_scoring_logic_hook", "apply_scoring_logic")]
@@ -160,7 +158,6 @@ async def bootstrap_workflow_execution_state(
     s_lvl = workflow.default_strictness_level if strictness_level is None else strictness_level
     lex_default = workflow.default_lexical_strictness_level
     lex_lvl = lex_default if lexical_strictness_level is None else lexical_strictness_level
-
     raw_rec = await deps.exec_repo.get_execution(execution_id)
     existing_record = None if not isinstance(raw_rec, ExecutionRecord) else raw_rec
     if existing_record is None and raw_rec is not None:
@@ -170,40 +167,38 @@ async def bootstrap_workflow_execution_state(
     target_loc = ex_loc if ex_loc else ("en" if not in_loc else in_loc)
 
     steps: list[ExecutionStep] = []
-    step_states: dict[str, ExecutionStep] = {}
     for step in workflow.steps:
         bp_id = step.task_blueprint
-        bp_def: Step | None = None if bp_id not in step_definitions else step_definitions[bp_id]
+        bp_def = None if bp_id not in step_definitions else step_definitions[bp_id]
         s_name = None if bp_def is None else bp_def.name
         raw_lbl = s_name if isinstance(s_name, str) and s_name.strip() else step.id
         step_label = s_name.resolve(target_loc) if isinstance(s_name, I18nText) else raw_lbl
-        st = ExecutionStep(id=step.id, label=step_label, status=ExecutionStatus.PENDING)
-        steps.append(st)
-        step_states[step.id] = st
+        steps.append(ExecutionStep(id=step.id, label=step_label, status=ExecutionStatus.PENDING))
 
+    step_states = {s.id: s for s in steps}
     default_meta = ExecutionMetadata(workflow_version=workflow.version, model_registry_id=workflow.model_registry_id)
+    run_st = ExecutionStatus.RUNNING
     if existing_record:
         effective_meta = existing_record.metadata if existing_record.metadata is not None else default_meta
         if effective_meta.model_registry_id is None:
             effective_meta = effective_meta.model_copy(update={"model_registry_id": workflow.model_registry_id})
-        exec_record = existing_record.model_copy(update={"status": ExecutionStatus.RUNNING, "metadata": effective_meta})
-        if not exec_record.steps:
-            exec_record = exec_record.model_copy(update={"steps": steps, "step_states": step_states})
-        else:
-
-            def _sync_lbl(s: ExecutionStep) -> ExecutionStep:
-                lbl = step_states[s.id].label if s.id in step_states else s.label
-                return s.model_copy(update={"label": lbl}) if (s.label == s.id or not s.label) else s
-
-            up_steps = [_sync_lbl(s) for s in exec_record.steps]
-            exec_record = exec_record.model_copy(update={"steps": up_steps, "step_states": {s.id: s for s in up_steps}})
+        base_steps = existing_record.steps if existing_record.steps else steps
+        up_steps = [
+            s.model_copy(update={"label": step_states[s.id].label if s.id in step_states else s.label})
+            if (s.label == s.id or not s.label)
+            else s
+            for s in base_steps
+        ]
+        up_map = {s.id: s for s in up_steps}
+        exec_record = existing_record.model_copy(
+            update={"status": run_st, "metadata": effective_meta, "steps": up_steps, "step_states": up_map}
+        )
     else:
         tel = default_meta.telemetry if default_meta.telemetry is not None else inject_trace_context()
-        res_meta = default_meta.model_copy(update={"telemetry": tel})
+        res_meta, def_prof = default_meta.model_copy(update={"telemetry": tel}), workflow.default_profile_id
         rec_base = ExecutionRecord(
             id=execution_id, workflow_id=workflow.id, target_locale="en", metadata=res_meta, raw_inputs=raw_inputs
         )
-        def_prof, run_st = workflow.default_profile_id, ExecutionStatus.RUNNING
         exec_record = rec_base.model_copy(
             update={"status": run_st, "steps": steps, "step_states": step_states, "output_profile_id": def_prof}
         )
@@ -211,8 +206,7 @@ async def bootstrap_workflow_execution_state(
     if exec_record.target_locale:
         set_language(exec_record.target_locale)
     resolved_language: str | None = None
-    in_uid = None if not exec_record.raw_inputs else exec_record.raw_inputs.user_id
-    user_id = exec_record.created_by if exec_record.created_by else in_uid
+    user_id = exec_record.created_by if exec_record.created_by else exec_record.raw_inputs.user_id
     if user_id is not None:
         user_data = await deps.identity_repo.get_user(user_id)
         if isinstance(user_data, User) and user_data.language:
@@ -225,15 +219,14 @@ async def bootstrap_workflow_execution_state(
         g_lang = egv.language if egv.language else resolved_language
         g_loc = egv.target_locale if egv.target_locale else exec_record.target_locale
         g_prof = egv.profile_id if egv.profile_id else workflow.default_profile_id
-        global_context_vars = egv.model_copy(update={"language": g_lang, "target_locale": g_loc, "profile_id": g_prof})
+        gvars = egv.model_copy(update={"language": g_lang, "target_locale": g_loc, "profile_id": g_prof})
     else:
-        global_context_vars = GlobalContextVarsDTO(
+        gvars = GlobalContextVarsDTO(
             language=resolved_language, target_locale=exec_record.target_locale, profile_id=workflow.default_profile_id
         )
         base_meta = exec_record.metadata if exec_record.metadata is not None else default_meta
-        exec_record = exec_record.model_copy(
-            update={"metadata": base_meta.model_copy(update={"global_context_vars": global_context_vars})}
-        )
+        new_meta = base_meta.model_copy(update={"global_context_vars": gvars})
+        exec_record = exec_record.model_copy(update={"metadata": new_meta})
     projector = StateProjector()
     for evt in exec_record.execution_trace:
         projector.apply_delta(evt)
@@ -244,20 +237,15 @@ async def bootstrap_workflow_execution_state(
         try:
             r1 = (deps.exec_repo, deps.workflow_repo, deps.comp_repo, deps.prompt_block_repo)
             r2 = (deps.output_profile_repo, deps.identity_repo, deps.system_repo, deps.audit_repo)
-            global_hook_deps = HookDependencies(*r1, *r2)
             dyn_in = exec_record.raw_inputs.dynamic_inputs
             h_meta = exec_record.metadata if exec_record.metadata is not None else ExecutionMetadata()
-            h_in = ExecutionInputsDTO(raw_inputs=dyn_in, dynamic_inputs=dyn_in)
-            global_hook_state = HookState(
-                execution_id=execution_id,
-                workflow_id=workflow.id,
-                inputs=h_in,
-                metadata=h_meta,
-                global_context_vars=global_context_vars,
+            h_in, w_id = ExecutionInputsDTO(raw_inputs=dyn_in, dynamic_inputs=dyn_in), workflow.id
+            h_state = HookState(
+                execution_id=execution_id, workflow_id=w_id, inputs=h_in, metadata=h_meta, global_context_vars=gvars
             )
             dm = sys.modules
             reg: Any = dm[_DAG_EXECUTOR_MODULE].hook_registry if _DAG_EXECUTOR_MODULE in dm else hook_registry
-            processed_result = await reg.execute("input_processing", global_hook_state, global_hook_deps)
+            processed_result = await reg.execute("input_processing", h_state, HookDependencies(*r1, *r2))
             if processed_result.success and processed_result.state_delta is not None:
                 delta_dict = _extract_input_delta_dict(processed_result.state_delta)
                 delta_content = StepOutputContentDTO.model_validate({"data": delta_dict})
@@ -283,8 +271,7 @@ async def bootstrap_workflow_execution_state(
     for step_id, s_state in list(exec_record.step_states.items()):
         if s_state.status == ExecutionStatus.FAILED:
             exec_record = exec_record.transition_step(step_id=step_id, status=ExecutionStatus.PENDING)
-    exec_id = execution_id
-    state = WorkflowExecutionState(exec_id, workflow, exec_record, global_context_vars, projector, step_definitions)
+    state = WorkflowExecutionState(execution_id, workflow, exec_record, gvars, projector, step_definitions)
     state.steps_by_id = {step.id: step for step in workflow.steps}
     state.strictness_level, state.lexical_strictness_level, state.step_exceptions = s_lvl, lex_lvl, step_exceptions
     return state
@@ -315,7 +302,13 @@ async def safe_commit_execution_state(
         st = status_override if status_override is not None else cur.status
         err = error_override if error_override is not None else cur.error
         await committer.commit_trace(
-            cur.execution_trace, st, cur.step_states, err, cur.frozen_context, cur.context_variables, cur.steps
+            trace=cur.execution_trace,
+            status=st,
+            step_states=cur.step_states,
+            error=err,
+            frozen_context=cur.frozen_context,
+            context_variables=cur.context_variables,
+            steps=cur.steps,
         )
         return cur
 
@@ -337,20 +330,16 @@ async def execute_rag_preflight_stage(
     Raises:
         WorkflowExecutionError: Triggered with WORKFLOW_EXECUTION_FAILED when RAG preflight fails.
     """
-    preflight_target_step: StepRule | None = None
-    for step in state.workflow.steps:
-        if step.task_blueprint and step.task_blueprint in state.step_definitions:
-            step_b = state.step_definitions[step.task_blueprint]
-            if "atom_flattening_hook" in step_b.pre_hooks or "synthesis_distiller_hook" in step_b.pre_hooks:
-                preflight_target_step = step
+    target_step: StepRule | None = None
+    for s in state.workflow.steps:
+        if s.task_blueprint in state.step_definitions:
+            pre = state.step_definitions[s.task_blueprint].pre_hooks
+            if "atom_flattening_hook" in pre or "synthesis_distiller_hook" in pre:
+                target_step = s
                 break
-
-    if preflight_target_step is None:
+    if target_step is None or target_step.task_blueprint is None:
         return
-
-    vid = f"sys_rag_{uuid.uuid4().hex[:16]}"
-    _update_lock, run_st = state.update_lock, ExecutionStatus.RUNNING
-
+    vid, _update_lock, run_st = f"sys_rag_{uuid.uuid4().hex[:16]}", state.update_lock, ExecutionStatus.RUNNING
     async with _update_lock:
         state.exec_record = state.exec_record.transition_step(vid, run_st, 0, "system.rag.preflight", has_warning=False)
     await safe_commit_execution_state(state, committer)
@@ -370,13 +359,11 @@ async def execute_rag_preflight_stage(
             dlq_on_progress_commit_error(vid, commit_err)
 
     try:
-        bp_def = state.step_definitions[preflight_target_step.task_blueprint]
-        blackboard_payload = await rag_preflight.execute(
-            preflight_target_step, bp_def, state.exec_record, _emit_preflight_progress
-        )
+        bp_def = state.step_definitions[target_step.task_blueprint]
+        bb_payload = await rag_preflight.execute(target_step, bp_def, state.exec_record, _emit_preflight_progress)
         async with _update_lock:
             state.exec_record = state.exec_record.transition_step(vid, ExecutionStatus.PASSED, progress=100)
-            new_cv = state.exec_record.context_variables.with_update(__GLOBAL_ATOM_BLACKBOARD__=blackboard_payload)
+            new_cv = state.exec_record.context_variables.with_update(__GLOBAL_ATOM_BLACKBOARD__=bb_payload)
             state.exec_record = state.exec_record.model_copy(update={"context_variables": new_cv})
         await safe_commit_execution_state(state, committer)
     except Exception as e:
