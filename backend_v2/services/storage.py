@@ -15,20 +15,23 @@ from backend_v2.settings import StorageBackend, get_settings
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["get_storage_driver"]
+
 
 @lru_cache
 def get_storage_driver() -> FileDriver:
-    """Returns the singleton FileDriver instance for PostgreSQL 19 runtime.
+    """Return the singleton FileDriver instance for PostgreSQL 19 runtime.
 
     The driver is selected based on settings.active_backend (StorageBackend.POSTGRES):
     - GCSFileDriver if settings.storage_bucket_name is configured.
     - LocalFileDriver (using settings.files_dir) otherwise.
 
     Returns:
-        FileDriver: The initialized file storage driver.
+        The initialized file storage driver.
 
     Raises:
-        AppException: If an unsupported StorageBackend is configured.
+        AppException: With ErrorCodes.CONFIGURATION_ERROR if an unsupported
+            StorageBackend is configured.
     """
     settings = get_settings()
     backend = settings.active_backend
@@ -48,7 +51,7 @@ def get_storage_driver() -> FileDriver:
 
     # Fail Fast on unknown backends
     msg = f"Unsupported StorageBackend configured: {backend}"
-    logger.error("[StorageService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+    logger.error("[StorageService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
     raise AppException(
         message=msg,
         status_code=500,
