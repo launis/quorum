@@ -663,6 +663,136 @@ def test_matrix_graphs_adapter_unsupported_view_type_fails_fast() -> None:
     assert excinfo.value.details["error_code"] == "CONFIGURATION_ERROR"
 
 
+def test_matrix_graphs_adapter_empty_view_type_boundary_fails_fast() -> None:
+    """Negative (Boundary): Empty string view_type raises Fail-Fast AppException with CONFIGURATION_ERROR."""
+    p_empty_view = OutputProfile(
+        id="prf_8888888888888888",
+        slug="test_empty_view",
+        workflow_id="wf_123",
+        name=I18nText(translations={"en": "Empty View"}),
+        target_block_order=[],
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup.model_construct(
+                id="grp_8888888888888888",
+                title=I18nText(translations={"en": "Empty View"}),
+                target_blocks=["m1"],
+                view_type="",
+            )
+        ],
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=p_empty_view,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={
+            "m1": MatrixScorecardRowDTO(
+                block_id="m1",
+                name="M1",
+                score=5.0,
+                scale_min=1.0,
+                scale_max=5.0,
+                is_evaluative=True,
+                label_i18n=I18nText(translations={"en": "M1"}),
+                row_explanation="expl",
+            )
+        },
+    )
+    with pytest.raises(AppException) as excinfo:
+        MatrixGraphsAdapter.build(context)
+    assert excinfo.value.details["error_code"] == "CONFIGURATION_ERROR"
+
+
+def test_matrix_graphs_adapter_2d_boundary_insufficient_axes() -> None:
+    """Boundary (min_axes - 1): 2d_compare with only 1 matched axis omits scatter plot block."""
+    p_2d_under = OutputProfile(
+        id="prf_7777777777777777",
+        slug="test_2d_under",
+        workflow_id="wf_123",
+        name=I18nText(translations={"en": "2D Under"}),
+        target_block_order=[],
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_7777777777777777",
+                title=I18nText(translations={"en": "2D Under"}),
+                target_blocks=["m1", "m2"],
+                view_type=PresetView.COMPARE_2D,
+            )
+        ],
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=p_2d_under,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={
+            "m1": MatrixScorecardRowDTO(
+                block_id="m1",
+                name="M1",
+                score=5.0,
+                scale_min=1.0,
+                scale_max=5.0,
+                is_evaluative=True,
+                label_i18n=I18nText(translations={"en": "M1"}),
+                row_explanation="expl",
+            )
+        },
+    )
+    blocks = MatrixGraphsAdapter.build(context)
+    assert blocks == []
+
+
+def test_matrix_graphs_adapter_1d_boundary_insufficient_axes_with_section_syntheses() -> None:
+    """Boundary (min_axes - 1): 1d_metrics with 0 matched axes but section_syntheses present emits MarkdownBlock."""
+    p_1d_under = OutputProfile(
+        id="prf_6666666666666666",
+        slug="test_1d_under",
+        workflow_id="wf_123",
+        name=I18nText(translations={"en": "1D Under"}),
+        target_block_order=[],
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_6666666666666666",
+                title=I18nText(translations={"en": "1D Under Header"}),
+                target_blocks=["m_missing"],
+                view_type=PresetView.METRICS_1D,
+            )
+        ],
+    )
+    cache = RenderedSynthesisCache(
+        section_syntheses={
+            "grp_6666666666666666": [ParagraphBlock(text="1D fallback prose.", exact_quotes=[], citations=[])]
+        }
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=p_1d_under,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={},
+    )
+    blocks = MatrixGraphsAdapter.build(context)
+    assert len(blocks) == 2
+    assert isinstance(blocks[0], MarkdownBlock)
+    assert blocks[0].text == "### 1D Under Header"
+    assert isinstance(blocks[1], ParagraphBlock)
+
+
 def test_matrix_graphs_rules() -> None:
     """Verify MATRIX_GRAPHS_RULES export is a valid MatrixGraphsAestheticsDTO with correct thresholds."""
     assert isinstance(MATRIX_GRAPHS_RULES, MatrixGraphsAestheticsDTO)
