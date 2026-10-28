@@ -12,6 +12,8 @@ from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["normalize_evaluation_input"]
+
 
 def normalize_evaluation_input(text: str) -> str:
     """Normalize input text to reduce layout and formatting variance for the LLM.
@@ -28,12 +30,16 @@ def normalize_evaluation_input(text: str) -> str:
         The normalized string.
 
     Raises:
-        AppException: If text normalization fails critically.
+        AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if text normalization fails.
     """
-    if not text:
+    if text == "":
         return ""
 
     try:
+        if "\x00" in text:
+            raise ValueError("Null bytes are not permitted in evaluation input text.")
+        text.encode("utf-8")
+
         # Unicode NFC normalization
         normalized = unicodedata.normalize("NFC", text)
 

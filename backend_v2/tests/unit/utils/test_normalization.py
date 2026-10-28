@@ -1,5 +1,8 @@
 """Unit tests for text normalization utilities."""
 
+import pytest
+
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.utils.normalization import normalize_evaluation_input
 
 
@@ -31,10 +34,10 @@ def test_normalize_evaluation_input_strips_line_padding() -> None:
     assert normalize_evaluation_input(raw) == expected
 
 
-def test_normalize_evaluation_input_handles_empty_or_none() -> None:
-    """Verify that empty inputs are handled safely without throwing exceptions."""
+def test_normalize_evaluation_input_handles_empty_and_whitespace_strings() -> None:
+    """Verify that empty and whitespace-only strings return an empty string."""
     assert normalize_evaluation_input("") == ""
-    assert normalize_evaluation_input(None) == ""
+    assert normalize_evaluation_input("   \n\t  \n  ") == ""
 
 
 def test_normalize_evaluation_input_unicode_and_quotes() -> None:
@@ -45,6 +48,24 @@ def test_normalize_evaluation_input_unicode_and_quotes() -> None:
     raw_zw = "Hello\u200bWorld\u200c!\ufeff\u00ad"
     assert normalize_evaluation_input(raw_zw) == "HelloWorld!"
 
-    raw_quotes = "“Smart double” and ‘smart single’ quotes — en–dash."
+    raw_quotes = "\u201cSmart double\u201d and \u2018smart single\u2019 quotes \u2014 en\u2013dash."
     expected = "\"Smart double\" and 'smart single' quotes - en-dash."
     assert normalize_evaluation_input(raw_quotes) == expected
+
+
+def test_normalize_evaluation_input_rejects_null_bytes_with_app_exception() -> None:
+    """Verify that embedded null bytes raise AppException with INTERNAL_SERVER_ERROR."""
+    with pytest.raises(AppException) as exc_info:
+        normalize_evaluation_input("Payload with\x00null byte")
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details == {"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+
+
+def test_normalize_evaluation_input_rejects_unpaired_surrogates_with_app_exception() -> None:
+    """Verify that unpaired UTF-16 surrogates raise AppException with INTERNAL_SERVER_ERROR."""
+    with pytest.raises(AppException) as exc_info:
+        normalize_evaluation_input("Invalid surrogate \ud800 in text")
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details == {"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
