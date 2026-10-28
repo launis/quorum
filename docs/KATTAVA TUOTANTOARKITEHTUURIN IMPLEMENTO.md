@@ -4,7 +4,8 @@
 > [!NOTE]
 > **Arkkitehtuurin tila ja Single Source of Truth (SSOT)**
 > Tämä asiakirja kokoaa yhteen Cognitive Quorumin tuotantopystytyksen kokonaiskuvan Google Cloud Platformilla (`europe-north1` / Hamina, Suomi). Se korvaa vanhentuneet SQLAlchemy 2.0-, Alembic- ja TinyDB-luonnokset ja nojaa suoraan Quorumin virallisiin 2026-arkkitehtuuristandardeihin:
-> 1. **PostgreSQL 19 Zero-ORM Perusta & Cutover** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`, `@[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]`)
+> 1. **PostgreSQL 19 Zero-ORM Perusta & Cutover** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]`, `@[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]`)
+> 1b. **Järjestelmällinen Ennaltaehkäisy, AST-vartija QGR030 & Testitehtaat** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md]`, `@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]`, `@[docs/BACKLOG_AST_GUARDRAIL_EXPANSIONS.md]`)
 > 2. **`dag_executor.py` God Code -purku Event Sourcing -malliin** (1 640 LOC -> 4 erillistä SRP-moduulia & ohut fasaadi)
 > 3. **Kohdennettu Tausta- ja Apukerroksen Karkaisu (36 tiedostoa)** (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`)
 > 4. **B2B SaaS IAM, Token Exchange & Enterprise Hardening** (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`)
@@ -330,8 +331,9 @@ Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytke
 │ 2. PostgreSQL 19 Zero-ORM, Cutover & dag_executor.py -purku (EPIC 151) │
 │    2A. PostgreSQL 19 Perusta [SUORITETTU & AUDITOITU - commit 4e56873c4]│
 │        asyncpg-allas, PrefixedUUID7, 12 taulua, Zero-ORM               │
-│    2B. PostgreSQL 19 Cutover [SUORITUKSESSA - TRACKER_Cutover]         │
-│        TinyDB:n fyysinen poisto, run_local.bat, QGR017-lukitus         │
+│    2B. PostgreSQL 19 Cutover [SUORITETTU & LUKITTU - TinyDB poistettu] │
+│    2B-1. Järjestelmällinen Ennaltaehkäisy & QGR030 [18/18 karkaistu]   │
+│        QGR030 FATAL, heksa-Opaque ID:t, Polyfactory, Macro-Audit PASSED │
 │    2C. dag_executor.py (1 640 LOC) purku Event Sourcing -malliin      │
 │        wave_scheduler, state_machine, cancellation_manager, telemetria │
 │    2D. Kohdennettu Taustakerroksen Karkaisu (36 tiedostoa)             │
@@ -373,7 +375,7 @@ Koodikannassa on kartoitettu ja aikataulutettu kaikki 13 kriittistä monoliittia
 | **1. DAG Workflow Executor** | `backend_v2/services/orchestrator/dag_executor.py`<br>**1 640 LOC** (koko järjestelmän suurin tiedosto, `execute_workflow` 1 118 LOC). Raskas TinyDB-lukitus (`_update_lock`), tilablobien uudelleenkirjoitus. | Puretaan 4 itsenäiseen moduuliin:<br>1. `wave_scheduler.py` (Kahnin aallot)<br>2. `state_machine.py` (`trace_events` append-only)<br>3. `cancellation_manager.py` (DLQ/TaskGroup)<br>4. `telemetry_broadcaster.py` (SSE/WS) | **PostgreSQL 19 & Event Sourcing**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`<br>`@[docs/epic/EPIC_151_PostgreSQL_Clean_Slate_Migration_and_TinyDB_Eradication.md]` | **Vaihe 2**<br>Puretaan PostgreSQL-migraation yhteydessä (ks. perustelu alla) |
 | **2. LLM Provider Core & Engine** | `backend_v2/llm/provider.py`<br>**1 846 LOC**. Yhdisti semaforit, dynaamisen nopeusrajoituksen, LiteLLM-kutsut, hinnoittelun ja transienttien virheiden luokittelun. | Purettu 7 modulaariseen alitiedostoon paketissa `backend_v2/llm/provider/`: `env_and_schema_utils.py`, `transient_retry_policy.py`, `base_and_mock_provider.py`, `provider_factory.py`, `litellm_response_stage.py`, `litellm_provider.py` ja 93 LOC fasaadi `__init__.py`. Monoliitti poistettu ja lukittu AST-säännöllä `QGR017`. | **Provider Decomposition Plan**<br>`@[docs/epic/provider_decomposition_tracker.md]`<br>`@[docs/epic/tasks_provider/]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017`, 52 yksikkötestiä läpäisty (99 % kattavuus), 0 sanakirjarikkomusta, Tier 8 Red-Team auditoitu |
 | **3. LLM Strategy & Orchestrator** | `backend_v2/services/orchestrator/strategies/llm.py`<br>**1 090 LOC**. Vastasi yhtä aikaa prompteista, skeemoista, työkaluista, LLM-kutsusta ja telemetriasta. | 4-vaiheinen Strangler Fig -pilkonta pakettiin `llm_strategy/`: `blueprint_and_metadata_stage`, `prompt_and_schema_stage`, `engine_retry_stage`, `trace_event_stage` ja fasaadi `__init__.py` (< 200 LOC). Monoliitti tuhotaan. | **EPIC 157**<br>`@[docs/epic/llm_decomposition_tracker.md]`<br>`@[docs/epic/tasks_llm/]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` (hashit `b9d66471a`, `3f04a6e2f`) |
-| **4. Tietokantaydin & Tallennus** | `tinydb_driver.py`, `firestore_driver.py` ja `db_v2.json.lock`. Keräsivät sanakirjoja (`dict[str, Any]`), estivät rinnakkaisuuden ja lukitsivat levyn. | Korvataan puhtaalla Zero-ORM -arkkitehtuurilla: heksagonaaliset CQRS-portit (`GraphMutationPort`, `EntityPersistencePort`), `PostgresPoolManager` (`asyncpg`) ja binääriset `pydantic_core` Rust-koodekit. | **PostgreSQL 19 Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` | **Vaihe 2**<br>Valmis suunnitelma, alkaa heti LLM-purkujen jälkeen |
+| **4. Tietokantaydin & Tallennus** | `tinydb_driver.py`, `firestore_driver.py` ja `db_v2.json.lock`. Keräsivät sanakirjoja (`dict[str, Any]`), estivät rinnakkaisuuden ja lukitsivat levyn. | Korvattu puhtaalla Zero-ORM -arkkitehtuurilla: heksagonaaliset CQRS-portit (`GraphMutationPort`, `EntityPersistencePort`), `PostgresPoolManager` (`asyncpg`), binääriset `pydantic_core` Rust-koodekit ja AST-vartija `QGR030` (`FATAL`). TinyDB ja Firestore tuhottu kokonaan. | **PostgreSQL 19 Cutover & QGR030**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]`<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md]` | **SUORITETTU, KOVENNETTU & LUKITTU**<br>18/18 kohdetta karkaistu, Tier 7 synkronoitu, QGR030 aktiivisena |
 | **5. Taustatyöntekijät (Workers)** | `backend_v2/worker.py`<br>**2 000+ LOC**. Sekoitti Arq-daemonin käynnistyksen, raskaat DAG-analyysit ja raporttien generoinnin yhteen sekamelskaan. | Pilkottu kolmeen: `worker.py` on pelkkä ohut daemon-käynnistys; raskas laskenta on `backend_v2/workers/execution_worker.py` ja raporttien renderöinti `backend_v2/workers/report_worker.py`. | **Worker Decoupling Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]` | **SUORITETTU & LUKITTU**<br>Kovennettu AST-säännöllä `QGR017` |
 | **6. Raportointipalvelu** | `backend_v2/services/report_service.py`<br>**749 LOC**. Käsitteli raporttien elinkaarta, Markdown/PDF-kasausta ja tiedostolukua. | Purettu pakettiin `backend_v2/services/report/`: `lifecycle_service.py`, `compilation_service.py`, `format_reader_service.py`. | **Report Service Decomposition**<br>`@[docs/koodikannan_purku_ja_migraatiojarjestys.md]` | **SUORITETTU & LUKITTU**<br>Vanha tiedosto poistettu |
 | **7. Raporttiviennin Flattenerit** | `backend_v2/services/export_service.py` (**1 123 LOC**) & aiemmin määritelty (defined) `FlatFileService`. Keräsivät sanakirjamutaatioita ja konvertoivat graafeja löyhästi yhden rivin konevektoreiksi. | Monoliittinen flattener tuhottu; korvattu tyypitetyillä Pydantic V2 DTO-virroilla (`ExportMatrixSummaryRowDTO`, `ExportForensicAtomDTO`, `ExportPayloadDTO`) ja modulaarisella `backend_v2/services/export/` -paketilla. | **Export Tables SSOT Plan**<br>`@[docs/implementationplans/IMPLEMENTATION_PLAN_Report_Tables_SSOT_and_Causal_Export.md]` | **SUORITETTU & LUKITTU**<br>`ki_god_code_prevention.md` |
@@ -459,41 +461,27 @@ Alla on ihmiselle tarkoitettu selkeä, komentotasoinen etenemispolku askel askel
 
 ---
 
-### Askel 3.1: PostgreSQL 19 Lopullinen Cutover, TinyDB:n Poisto & Täysi Live E2E -Testiajo (Vaihe 2b) — [SUORITUKSESSA]
-* **Siirtymä ja Lähtötilanteen Vaikutusanalyysi:**
-  Kun PostgreSQL 19 -perusinfrastruktuuri ja sen tiedostokohtainen hardening (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]` ja `@[docs/implementationplans/TRACKER_PostgreSQL.md]`) saavuttavat 100 % hyväksynnän, toteutetaan **Lopullinen Cutover (TinyDB Eradication)** vaatimusmäärittelyn `@[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]` mukaisesti ennen siirtymistä B2B SaaS IAM -vaiheeseen (Askel 4).
-  * **Vaikutus ja saavutettu pohja:** `IMPLEMENTATION_PLAN_PostgreSQL.md`:n ja `TRACKER_PostgreSQL.md`:n valmistuttua DDL-skeema (`001_pg19_uuidv7_schema.sql`), `PostgresPoolManager`, `PostgresEntityAdapter`, `PostgresGraphAdapter` ja `PostgresUnitOfWork` ovat jo valmiina, karkaistuina ja 100 % Zero-ORM AST -valvottuina.
-  * **Cutoverin täsmällinen fokus:** Cutoverissa keskitytään puhtaasti TinyDB:n ja tiedostolukitusten fyysiseen poistamiseen, `run_seed.py`:n uudelleenohjaukseen PostgreSQL 19:ään, `run_local.bat`:n pysyvään siirtämiseen `STORAGE_BACKEND=POSTGRES` -tilaan, `tinydb`-paketin poistoon `pyproject.toml`:sta sekä `QGR017`-AST-laatuportin lukitsemiseen.
-* **Toteutus Quorumin Normaalilla Projektitavalla:**
-  1. **Tier 0 Tutkimus ja Vaikutusanalyysi:**
-     ```powershell
-     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier0-research-plan @[docs/POSTGRESQL_CUTOVER_REQUIREMENTS.md]"
-     ```
-  2. **Tier 1 Suunnittelu ja Seuranta:**
-     Luodaan `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]` ja `@[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`:
-     ```powershell
-     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier1-plan-tracker-generator @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]"
-     ```
-  3. **Tier 2 Autonominen Suoritus:**
-     ```powershell
-     uv run python scripts/auto_phase_runner.py --tracker docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md --model gemini-4-argon-high
-     ```
-  4. **Tier 2 Autonominen Hardening (Tiedostokohtainen Laatuportti):**
-     ```powershell
-     uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
-     ```
-  5. **Täysi Live E2E -Testiajo (Gate 8 Pariteetti- ja Toimintavarmennus):**
-     Käynnistetään järjestelmä `run_local.bat`-skriptillä PostgreSQL 19 -kontin kanssa ja ajetaan täydellinen monivaiheinen E2E-ajo (`run_workflow_simulation.py` tai `/tier6-execution-monitor`), joka verifioi:
-     * **Vaihe 1 (DAG Heavy LLM Execution):** Tilasiirtymät ja Kahn-aallot tallentuvat suoraan PostgreSQL:n `executions`- ja `trace_events`-tauluihin ilman tiedostolukituksia.
-     * **Vaihe 2 (Asynkroninen synteesi):** Varianssianalyysi ja synteesit tuotetaan rinnakkain.
-     * **Vaihe 3 (Monikanavainen vienti):** Koostetaan ja tallennetaan `report.pdf`, `report.sdui.json`, `report.xlsx` ja `report.csv`.
-     * **Vaihe 4 (Frontend-pariteetti):** Flutter Desktop ja Web noutavat raportin ja SDUI-lohkot virheettömästi (HTTP 200).
-     * **FinOps & Observability:** 0 itseparannustoistoa (`healing_cost_events = 0`), täysi pariteetti aiempaan `exe_2af2f7665e7c477b`-ajoon.
-  6. **Tier 7 Dokumentointi & Tier 8 Auditointi:**
-     ```powershell
-     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier7-describe-architecture @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]"
-     agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md] @[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]"
-     ```
+### Askel 3.1: PostgreSQL 19 Lopullinen Cutover & TinyDB:n Poisto (Vaihe 2b) — [SUORITETTU & LUKITTU]
+* **Tila & Git Commit:** 🟢 **100 % SUORITETTU, KOVENNETTU JA LUKITTU**
+* **Saavutetut tulokset:**
+  1. `tinydb_driver.py` ja vanhat tiedostokantariippuvuudet poistettu kokonaan koodipohjasta ja `pyproject.toml`:sta.
+  2. `run_local.bat` ja taustatyökalut siirretty pysyvästi `STORAGE_BACKEND=POSTGRES` -tilaan.
+  3. Tietokantaseeding (`run_seed.py`) kytketty suoraan PostgreSQL 19:ään `ValidatedSeedBufferDTO`:n kautta.
+* **Toteutussuunnitelma & Seurantadokumentti:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]`, `@[docs/implementationplans/TRACKER_PostgreSQL_Final_Cutover.md]`
+
+---
+
+### Askel 3.1a: Järjestelmällinen Ennaltaehkäisy, AST-vartija QGR030 & Testitehtaat (Vaihe 2b-1) — [SUORITETTU & AUDITOITU]
+* **Tila & Git Commit:** 🟢 **100 % SUORITETTU, 18/18 KOHDETTA KOVENNETTU JA AUDITOITU**
+* **Saavutetut tulokset (4 järjestelmällistä parannusta):**
+  1. **Zero-Bifurcation Mandate & AST-vartija `QGR030` (`FATAL`):** Kieltää repo-laajuisesti kaikki viittaukset legacy-säilytysbackendeihin (`LOCAL`, `FIRESTORE`) ja pakottaa heksadesimaaliset Opaque Stripe ID:t (`^([a-z]{2,5})_[a-fA-F0-9]{16,32}$`).
+  2. **Itsetarkistavat poikkeuslistat (Self-Verifying Exemption Lists):** AST-vartija validoi levyltä poikkeuslistojen (`BOUNDARY_EXEMPTION_FILES` ym.) olemassaolon, estäen olemattomien tiedostojen roikkumisen linterin ohituksissa.
+  3. **Operatiiviset skriptit 1. luokan laatuportteihin:** `scripts/reconcile_storage.py`, `scripts/run_e2e_variance_test.py` ja `scripts/audit_zero_orm_strictness.py` liitetty viralliseen `scripts/backend_audit_loop.py` -ajoon.
+  4. **Polyfactory-mallitehtaat (`model_factories.py`):** Kaikki domain-entiteetit generoivat 100 % skeemavalideja Pydantic V2 -malleja heksadesimaalisilla Opaque Stripe ID:illä ilman kovakoodattuja mockeja.
+  5. **18 kohteen autonominen karkaisu:** `auto_hardening_runner.py` ajoi kaikki 18 cutover- ja guardrail-kohdetta läpi (18/18 läpäisty ensimmäisellä yrityksellä, Final Macro-Audit PASSED).
+  6. **Tier 7 As-Built -arkkitehtuurisynkronointi:** 4 Knowledge Itemiä, 3 arkkitehtuuripilaria ja hakemistoviite päivitetty preesensissä.
+  7. **Tuleva AST-backlog:** Dokumentoitu `@[docs/BACKLOG_AST_GUARDRAIL_EXPANSIONS.md]` (QGR031 Filter-strictness, dynaaminen skriptiskannaus, Polyfactory zero-crash).
+* **Toteutussuunnitelma & Seurantadokumentti:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md]`, `@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]`
 
 ---
 

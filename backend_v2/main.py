@@ -44,7 +44,11 @@ from backend_v2.context import set_request_context
 from backend_v2.core.rate_limit import rate_limit_exceeded_handler
 from backend_v2.core.telemetry import configure_telemetry
 from backend_v2.database.driver import StorageDriver
-from backend_v2.database.factory import create_unit_of_work
+from backend_v2.database.factory import (
+    close_shared_pool_manager,
+    create_unit_of_work,
+    get_shared_pool_manager,
+)
 from backend_v2.database.interfaces import QuorumUnitOfWork
 from backend_v2.exceptions import AppException, ErrorCodes, format_validation_error
 from backend_v2.logging_config import log_startup_system_parameters, setup_logging
@@ -194,6 +198,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     log_startup_system_parameters(logger, "FASTAPI API SERVER")
 
     app.state.arq_pool = None
+    app.state.pool_manager = None
 
     try:
         workflow_dir = Path("data/workflows")
@@ -202,6 +207,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             logger.info(f"[StartupAudit] Workflows Detected: {len(files)} files in {workflow_dir.as_posix()}.")
 
         await _validate_database_preflight(logger)
+        # Step 2: Bind shared singleton PostgresPoolManager to app.state on startup
+        app.state.pool_manager = get_shared_pool_manager(settings)
 
         if "PYTEST_CURRENT_TEST" in os.environ:
             logger.info("Test environment detected. Forcing FakeRedis.")
@@ -230,6 +237,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         pool = app.state.arq_pool
         if pool is not None and isinstance(pool, (ArqRedis, FakeRedis)):
             await pool.aclose()
+        # Step 2: Drain and close shared PostgresPoolManager on shutdown
+        await close_shared_pool_manager()
 
 
 # --- 2. Application Setup ---

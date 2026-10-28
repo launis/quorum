@@ -591,5 +591,24 @@ Tier 8 -auditoinnin pohjalta kokonaisuus toteutetaan neljänä itsenäisenä ja 
 | PAKETTI 4: Esitysprofiilin L10n & Ryhmittelyn Uudistus (Luku 5)                   |
 |  - metric_mappings ym. sanakirjojen poisto seed_data.jsonista ja .arb-siirto      |
 |  - layouts -> matrix_synthesis_groups refaktorointi (Python, Flutter Tab, worker) |
+|                                                                                   |
+| TULEVA PAKETTI 5: AST Guardrails Expansion (Luku 7 / BACKLOG)                     |
+|  - QGR031 Filter-suodattimien staattinen validointi                               |
+|  - scripts/*.py dynaaminen laatuporttiskannaus                                    |
+|  - Polyfactory ModelFactory Zero-Crash -metatestit                                |
 +-----------------------------------------------------------------------------------+
 ```
+
+---
+
+## Luku 7: AST- ja Laatuporttilaajennukset (Post-PostgreSQL 19 Hardening Learnings)
+> **STATUS: DOKUMENTOITU BACKLOGIIN ([`BACKLOG_AST_GUARDRAIL_EXPANSIONS.md`](file:///c:/src/quorum/docs/BACKLOG_AST_GUARDRAIL_EXPANSIONS.md))**
+
+PostgreSQL 19 -kovennuskierroksen (18 tiedostoa) pohjalta tunnistetut jatkokehityskohteet staattiselle analyysille ja laadunvalvonnalle:
+
+1. **`QGR031` (Kyselysuodattimien staattinen validointi):** Estää virheelliset operaattorit (`"eq"`, `"LIKE"`, `"="`), tyhjät kentät sekä `"in"`-operaattorin vahingolliset merkkijonoliteraalit staattisesti AST-tasolla.
+2. **`scripts/`-hakemiston dynaaminen automaattiskannaus:** Korvaa kovakoodatut skriptilistat dynaamisella `scripts/*.py` -globilla, estäen varjoskriptien ja vanhentuneiden aputyökalujen syntymisen laatuporttien ulkopuolelle.
+3. **Polyfactory-mallitehtaiden invarianttivartija (`QGR032` & metatestit):** Varmistaa, että testitehtaat käyttävät heksadesimaalisia Opaque ID -generaattoreita ja että jokainen tehdas palauttaa aina oletusarvoilla `.build()` validoituvan Pydantic V2 -mallin.
+
+Yksityiskohtainen kuvaus, AST-solmutason säännöt ja koodiesimerkit löytyvät erillisestä dokumentista: [`BACKLOG_AST_GUARDRAIL_EXPANSIONS.md`](file:///c:/src/quorum/docs/BACKLOG_AST_GUARDRAIL_EXPANSIONS.md).
+

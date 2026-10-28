@@ -81,10 +81,27 @@ async def test_validate_database_preflight_empty_table_raises_runtime_error() ->
 @pytest.mark.asyncio
 async def test_lifespan_test_environment() -> None:
     """Test lifespan startup and shutdown in test environment."""
+    from backend_v2.database.postgres.pool import PostgresPoolManager
+
     test_app = FastAPI()
     with patch("backend_v2.main._validate_database_preflight", new_callable=AsyncMock):
         async with lifespan(test_app):
             assert test_app.state.arq_pool is not None
+            assert isinstance(test_app.state.pool_manager, PostgresPoolManager)
+
+
+@pytest.mark.asyncio
+async def test_lifespan_shutdown_drains_shared_pool_manager() -> None:
+    """Test lifespan shutdown calls close_shared_pool_manager in finally block."""
+    from backend_v2.tests.fakes.in_memory_uow import InMemoryAsyncPgPool
+
+    test_app = FastAPI()
+    fake_pool = InMemoryAsyncPgPool()
+    with patch("backend_v2.main._validate_database_preflight", new_callable=AsyncMock):
+        async with lifespan(test_app):
+            test_app.state.pool_manager._pool = fake_pool
+            assert test_app.state.pool_manager.is_initialized is True
+    assert fake_pool.closed is True
 
 
 @pytest.mark.asyncio

@@ -1,0 +1,134 @@
+<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/04_directory_reference.md]</rule>
+  <rule>@[.agents/rules/05_llm_architecture.md]</rule>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+  <knowledge_item>@[ki_deterministic_hardening_state.md]</knowledge_item>
+  <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
+</required_context_rules>
+
+# Master Decomposition Tracker: `backend_v2/services/orchestrator/dag_executor.py` (`DAGExecutor`, `NodeExecutor`, `ExecutionCommitter`, Causal-TDA Fusion)
+
+- **Target Monolith**: `[DELETE] @[backend_v2/services/orchestrator/dag_executor.py]` (1,803 lines)
+- **Target Domain Package**: `backend_v2/services/orchestrator/dag_executor/` (`< 380` lines per sub-module, `< 180` lines for `__init__.py` facade)
+- **Symbol & Blast-Radius Map**: `@[docs/epic/tasks_dag_executor/symbol_migration_map.md]`
+- **Monolith Archetype**: **Archetype D: Macro Orchestrator & Concurrency Core** (Two-Tier Concurrency SSOT, Two-Lock Execution State & Persistence Synchronization via `_update_lock` and `_commit_lock`, `asyncio.TaskGroup` Topological Wave Execution with `except* BaseException` Trapping, OpenTelemetry `dag.orchestration` and `dag.node.{step_id}` Spans, and RFC 7807 + DLQ Error Routing)
+- **Pre-Flight Test Baseline (`[BASELINE]`)**: **76 passed unit tests, 90% line coverage** (`785` statements, `81` missed across `test_dag_executor.py`, `test_dag_executor_atom_ceiling.py`, `test_dag_executor_causal_fusion.py`, `test_dag_executor_dlq_routing.py`, `test_dag_executor_mcp_audit.py`, `test_dag_executor_mcp_concurrency.py`, `test_dag_executor_preflight.py`, and `test_dag_executor_telemetry.py`). Exceeds the `75%` minimum coverage gate (`Phase 0` skipped).
+
+---
+
+## Phase Execution Status
+
+### Phase 1: Leaf Causal TDA Fusion & ExecutionCommitter Extraction (Epoch 1 Leaf & Persistence)
+- **Plan:** @[docs/epic/tasks_dag_executor/phase1_causal_fusion_and_committer_extraction.md]
+- [x] **[SKIPPED] Research:** Complete 4-Phase Strangler Fig Decomposition pre-researched in Tier 3
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_dag_executor/phase1_causal_fusion_and_committer_extraction.md] @[docs/epic/dag_executor_decomposition_tracker.md]`
+  - [ ] Step 1: Create `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/__init__.py]`, register `"backend_v2/services/orchestrator/dag_executor/execution_committer.py"` in `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES` in `@[scripts/_ast_guardrails.py]`, and create `[NEW] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]` (`transform_causal_nodes_to_atoms`, `compute_causal_tda_fusion_result`) and `[NEW] @[backend_v2/services/orchestrator/dag_executor/execution_committer.py]` (`FrozenContextUpdate`, `ExecutionRecordUpdate`, `StepOutputContentValue`, `ExecutionCommitter`) without creating `backend_v2/services/orchestrator/dag_executor/__init__.py`.
+  - [ ] Step 2: Declare `__path__` submodule bridging and wire explicit redundant re-exports (`Symbol as Symbol`) in `[DELETE] @[backend_v2/services/orchestrator/dag_executor.py]`, and create `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_causal_tda_fusion_unit.py]` and `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_execution_committer.py]`.
+  - [ ] Step 3: Run `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py --test --ast-strict`, `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/dag_executor/execution_committer.py --test --ast-strict`, `uv run python scripts/backend_audit_loop.py scripts/_ast_guardrails.py --test --ast-strict`, and `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/dag_executor.py --test --ast-strict`.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_dag_executor/phase1_causal_fusion_and_committer_extraction.md] @[docs/epic/dag_executor_decomposition_tracker.md]`
+
+### Phase 2: NodeExecutor & Workflow Bootstrap/Preflight Stage Extraction (Epoch 1 Node & Bootstrap)
+- **Plan:** @[docs/epic/tasks_dag_executor/phase2_node_executor_and_bootstrap_stage_extraction.md]
+- [x] **[SKIPPED] Research:** Complete 4-Phase Strangler Fig Decomposition pre-researched in Tier 3
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_dag_executor/phase2_node_executor_and_bootstrap_stage_extraction.md] @[docs/epic/dag_executor_decomposition_tracker.md]`
+  - [ ] Step 1: Register `"backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py"` in `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES` and `RESIDUAL_FUTURE_PHASE_QGR028_FILES` in `@[scripts/_ast_guardrails.py]`, create `[NEW] @[backend_v2/services/orchestrator/dag_executor/node_executor.py]` (`NodeExecutor`), and create `[NEW] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]` (`WorkflowExecutionState`, `dlq_record_step_failure`, `dlq_handle_progress_commit_error`, `dlq_fallback_step_exceptions`, `bootstrap_workflow_execution_state`, `safe_commit_execution_state`, `execute_rag_preflight_stage`).
+  - [ ] Step 2: Update `[DELETE] @[backend_v2/services/orchestrator/dag_executor.py]` to re-export `NodeExecutor` and delegate workflow bootstrap, `_safe_commit`, and RAG pre-flight stages to `workflow_bootstrap_stage.py`, and create `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_node_executor.py]` and `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_workflow_bootstrap_stage.py]`.
+  - [ ] Step 3: Run `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/dag_executor/node_executor.py --test --ast-strict`, `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py --test --ast-strict`, `uv run python scripts/backend_audit_loop.py scripts/_ast_guardrails.py --test --ast-strict`, and `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/dag_executor.py --test --ast-strict`.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_dag_executor/phase2_node_executor_and_bootstrap_stage_extraction.md] @[docs/epic/dag_executor_decomposition_tracker.md]`
+
+### Phase 3: Step Execution Stage & Topological Wave Orchestrator Extraction (Epoch 1 Orchestration Core)
+- **Plan:** @[docs/epic/tasks_dag_executor/phase3_step_runner_and_wave_orchestrator_extraction.md]
+- [x] **[SKIPPED] Research:** Complete 4-Phase Strangler Fig Decomposition pre-researched in Tier 3
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_dag_executor/phase3_step_runner_and_wave_orchestrator_extraction.md] @[docs/epic/dag_executor_decomposition_tracker.md]`
+  - [ ] Step 1: Register `"backend_v2/services/orchestrator/dag_executor/step_execution_stage.py"` and `"backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py"` in `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES` and `RESIDUAL_FUTURE_PHASE_QGR028_FILES` in `@[scripts/_ast_guardrails.py]`, create `[NEW] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]` (`prepare_step_strategy_context`, `execute_dag_step_wrapper`), and create `[NEW] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]` (`finalize_step_output_and_commit`, `execute_topological_waves_stage`).
+  - [ ] Step 2: Update `[DELETE] @[backend_v2/services/orchestrator/dag_executor.py]` to delegate step execution and topological wave orchestration in `DAGExecutor.execute_workflow` to `step_execution_stage.py` and `wave_orchestrator_stage.py`, and create `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_step_execution_stage.py]` and `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_wave_orchestrator_stage.py]`.
+  - [ ] Step 3: Run `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/dag_executor/step_execution_stage.py --test --ast-strict`, `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py --test --ast-strict`, `uv run python scripts/backend_audit_loop.py scripts/_ast_guardrails.py --test --ast-strict`, and `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/dag_executor.py --test --ast-strict`.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_dag_executor/phase3_step_runner_and_wave_orchestrator_extraction.md] @[docs/epic/dag_executor_decomposition_tracker.md]`
+
+### Phase 4: Atomic Package Cutover, 1-Hop Caller Verification & QGR017 Guardrail Lockdown (Epoch 1 Cutover)
+- **Plan:** @[docs/epic/tasks_dag_executor/phase4_package_cutover_and_guardrails.md]
+- [x] **[SKIPPED] Research:** Complete 4-Phase Strangler Fig Decomposition pre-researched in Tier 3
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_dag_executor/phase4_package_cutover_and_guardrails.md] @[docs/epic/dag_executor_decomposition_tracker.md]`
+  - [ ] Step 1: Atomically create `[NEW] @[backend_v2/services/orchestrator/dag_executor/__init__.py]` (`< 180` lines), physically delete `[DELETE] @[backend_v2/services/orchestrator/dag_executor.py]`, verify 1-hop production callers (`@[backend_v2/api/dependencies.py#L376-L417]`, `@[backend_v2/services/execution/facade.py#L47-L118]`, `@[backend_v2/worker.py#L44-L85]`), and create `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_dag_executor_facade.py]`.
+  - [ ] Step 2: Remove `"backend_v2/services/orchestrator/dag_executor.py"` from `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES` and `RESIDUAL_FUTURE_PHASE_QGR028_FILES` and lock `"backend_v2/services/orchestrator/dag_executor.py"` under `QGR017` in `@[scripts/_ast_guardrails.py#L730-L820]`, update `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py#L1637-L1644]`, `@[backend_v2/tests/unit/test_ast_concurrency_guardrails.py#L89-L121]`, `@[backend_v2/tests/unit/test_ast_concurrency_guardrails.py#L124-L134]`, `@[backend_v2/tests/unit/test_ast_engine_dispatch_guardrails.py#L400-L409]`, and `@[backend_v2/tests/unit/test_rest_only_pipeline_boundary.py#L117-L122]`, and synchronize `@[.agents/rules/04_directory_reference.md]`.
+  - [ ] Step 3: Run `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/dag_executor/ --test --ast-strict`, `uv run python scripts/backend_audit_loop.py scripts/_ast_guardrails.py --test --ast-strict`, `uv run python scripts/backend_audit_loop.py backend_v2/api/dependencies.py --test --ast-strict`, `uv run python scripts/backend_audit_loop.py backend_v2/services/execution/facade.py --test --ast-strict`, `uv run python scripts/backend_audit_loop.py backend_v2/worker.py --test --ast-strict`, and `uv run python backend_v2/seed/run_seed.py local`.
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_dag_executor/phase4_package_cutover_and_guardrails.md] @[docs/epic/dag_executor_decomposition_tracker.md]`
+
+### Post-Implementation Gates
+
+- [ ] **[NOK] Tier 2 Hardening (Backend)** (`[NEW]` sub-modules & 1-hop callers): Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/epic/dag_executor_decomposition_tracker.md]" --gate backend --model gemini-4-argon-medium --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
+  - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
+  - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/execution_committer.py]
+  - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/node_executor.py]
+  - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
+  - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]
+  - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
+  - [ ] [NEW] @[backend_v2/services/orchestrator/dag_executor/__init__.py]
+  - [ ] @[backend_v2/api/dependencies.py#L376-L417]
+  - [ ] @[backend_v2/services/execution/facade.py#L47-L118]
+  - [ ] @[backend_v2/worker.py#L44-L85]
+- [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Pure backend Python decomposition with zero `.dart` changes.
+- [ ] **[NOK] Pre-Delete Audit**: Verify `git status` and `grep_search` confirm physical removal of `[DELETE] @[backend_v2/services/orchestrator/dag_executor.py]`, with `QGR017` blocking re-creation of `backend_v2/services/orchestrator/dag_executor.py`.
+- [ ] **[NOK] Golden Master & Test Restoration Audit**: Verify all 76 baseline unit tests pass across `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_atom_ceiling.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_causal_fusion.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_dlq_routing.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_audit.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_mcp_concurrency.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_preflight.py]`, `@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_telemetry.py]`, and the new per-submodule unit test suites under `backend_v2/tests/unit/services/orchestrator/dag_executor/` with `>= 90%` line coverage.
+- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Verify 100% symbol parity ($\mathcal{I}_{orig} \subseteq \bigcup \mathcal{I}_{sub}$) and execute `uv run pytest backend_v2/tests/unit/scripts/test_ast_guardrails.py`, `uv run python scripts/audit_dict_eradication.py`, and `uv run python scripts/audit_clean_imports.py`.
+
+#### Epoch 2: 12-Item Technical Debt Inventory (Target Scope for Tier 2 Hardening)
+1. **Item 1 & Item 2 (`QGR028` Repository Reconstitution & `step_states` Dict Conversion Eradication)**: In `[NEW] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]`, `[NEW] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]`, and `[NEW] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]`, replace `dict(state.exec_record.step_states)` mutations and redundant `Step.model_validate(step_data)` calls with typed domain transition methods on `ExecutionRecord`, and remove all `dag_executor` submodules from `RESIDUAL_FUTURE_PHASE_QGR028_FILES` in `@[scripts/_ast_guardrails.py]`.
+2. **Item 1 & Item 5 (`QGR027` Open-JSON & `model_copy` Update Tightening)**: Audit `FrozenContextUpdate`, `ExecutionRecordUpdate`, and `StepOutputContentValue` in `[NEW] @[backend_v2/services/orchestrator/dag_executor/execution_committer.py]` and `global_context_vars` in `[NEW] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]`, tightening intermediate state types where compatible with 1-hop callers.
+3. **Item 4 (`the_duct_tape_ban` / `QGR003` Exception Handling & OpenTelemetry DLP Audit)**: Audit all exception handlers and OpenTelemetry `span.set_attribute` calls across `[NEW] @[backend_v2/services/orchestrator/dag_executor/node_executor.py]`, `[NEW] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]`, and `[NEW] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]` to verify zero raw user prompt, input payload, or PII serialization into spans or logs.
+4. **Item 6 (`python_314_modern_syntax` & `taskgroup_exceptiongroup_mandate`)**: Verify PEP 695 type aliases, `asyncio.TaskGroup` usage, and modern `except* BaseException` / `except A, B:` syntax across all submodules in `backend_v2/services/orchestrator/dag_executor/`.
+5. **Item 8 (`docstring_fail_fast_ban` & `pep257_google_style_docstrings`)**: Ensure all classes, methods, and stage functions across `backend_v2/services/orchestrator/dag_executor/` possess complete PEP 257 Google-style docstrings with `Args:`, `Returns:`, and explicit `Raises:` error codes (`BlueprintNotFoundError`, `CausalCohesionGateError`, `CausalDiscoveryError`, `ConfigurationError`, `ExecutionNotFoundError`, `OrchestrationError`, `ValidationFailedError`, `WorkflowNotFoundError`).
+6. **Item 10 (`anti_happy_path_mandate` — ISTQB Negative & Boundary Partitions)**: Add negative and boundary unit tests covering the 81 missed baseline statements (`lines 227, 231, 487-495, 621, 763, 779-782, 849, 852-856, 917-934, 974-975, 1011, 1023-1036, 1083, 1102-1124, 1138-1159, 1172, 1178, 1343-1351, 1360-1361, 1520, 1737-1747, 1767, 1795-1797` of `dag_executor.py`) across `backend_v2/tests/unit/services/orchestrator/dag_executor/` to achieve `>= 95%` line coverage.
+7. **Item 11 (`stateless_sub_services`)**: Verify that `NodeExecutor`, `ExecutionCommitter`, and `DAGExecutor` never mutate execution-scoped attributes (`self.<attr> = ...`) across concurrent coroutines, routing all execution-scoped state through `WorkflowExecutionState`.
+
+#### Architectural Documentation Synchronization
+- [ ] **[NOK] As-Built Architectural Sync**: Run `/tier7-describe-architecture @[docs/epic/dag_executor_decomposition_tracker.md] @[ki_god_code_prevention.md] @[ki_deterministic_hardening_state.md]`
+  - **Target KIs to Synchronize**: `@[ki_god_code_prevention.md]`, `@[ki_deterministic_hardening_state.md]`
+  - **Directory Reference Sync**: Verify `@[.agents/rules/04_directory_reference.md]` reflects `backend_v2/services/orchestrator/dag_executor/` and `backend_v2/tests/unit/services/orchestrator/dag_executor/`
+  - **Pillar Documentation Sync**: Update Pillar 3 Orchestration documentation in `docs/architecture/` to reflect the modular `backend_v2/services/orchestrator/dag_executor/` package
+
+### Final Epic Audit
+- [ ] **[NOK] System 2 Red-Team Audit**: Run `/tier8-audit-plan @[docs/epic/tasks_dag_executor/phase4_package_cutover_and_guardrails.md] @[docs/epic/dag_executor_decomposition_tracker.md]` and verify 100% completion across all phases and gates.
+
+## Instructions for the Execution Agent
+1. **Strict Two-Epoch Firewall**: During Epoch 1 (Phases 1–4), perform ONLY pure structural lift-and-shift extraction, closure unnesting into `WorkflowExecutionState`, and atomic package cutover with **zero behavioral changes**. Do NOT mix Epoch 2 tech debt fixes into Epoch 1.
+2. **Two-Phase Package Strangler Protocol**: Do NOT create `backend_v2/services/orchestrator/dag_executor/__init__.py` during Phases 1, 2, or 3 while `backend_v2/services/orchestrator/dag_executor.py` exists on disk. Use `__path__` bridging in `dag_executor.py` during Phases 1–3, then create `__init__.py` and delete `dag_executor.py` atomically in Phase 4 Step 1.
+3. **Quality Gate Enforcement**: Run `uv run python scripts/backend_audit_loop.py <target> --test --ast-strict` after every phase step and create an atomic Conventional Commit before advancing to the next phase.
+
+## Requirements Traceability Matrix
+
+| Requirement ID | Architectural Requirement | Phase & Step Mapping | Verification Target |
+| :--- | :--- | :--- | :--- |
+| `REQ-DAG-01` | Create test package marker, update `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`, and extract `causal_tda_fusion.py` and `execution_committer.py` | Phase 1, Step 1 | `[NEW] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]`, `[NEW] @[backend_v2/services/orchestrator/dag_executor/execution_committer.py]` |
+| `REQ-DAG-02` | Wire `__path__` submodule bridging and Phase 1 explicit redundant re-exports in `dag_executor.py` and add unit tests for causal fusion and `ExecutionCommitter` | Phase 1, Step 2 | `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_causal_tda_fusion_unit.py]`, `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_execution_committer.py]` |
+| `REQ-DAG-03` | Verify Phase 1 extraction passes 10/10 backend audit gates and all 76 baseline unit tests | Phase 1, Step 3 | `[DELETE] @[backend_v2/services/orchestrator/dag_executor.py]` |
+| `REQ-DAG-04` | Extract `NodeExecutor` into `node_executor.py` and `WorkflowExecutionState`, DLQ helpers, bootstrap, `_safe_commit`, and RAG preflight into `workflow_bootstrap_stage.py` | Phase 2, Step 1 | `[NEW] @[backend_v2/services/orchestrator/dag_executor/node_executor.py]`, `[NEW] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]` |
+| `REQ-DAG-05` | Wire Phase 2 explicit redundant re-exports and delegations in `dag_executor.py` and add unit tests for `NodeExecutor` and `workflow_bootstrap_stage.py` | Phase 2, Step 2 | `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_node_executor.py]`, `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_workflow_bootstrap_stage.py]` |
+| `REQ-DAG-06` | Verify Phase 2 extraction passes 10/10 backend audit gates and all 76 baseline unit tests | Phase 2, Step 3 | `[DELETE] @[backend_v2/services/orchestrator/dag_executor.py]` |
+| `REQ-DAG-07` | Extract step preparation and execution (`prepare_step_strategy_context`, `execute_dag_step_wrapper`) into `step_execution_stage.py` and post-step causal fusion/wave orchestration (`finalize_step_output_and_commit`, `execute_topological_waves_stage`) into `wave_orchestrator_stage.py` | Phase 3, Step 1 | `[NEW] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]`, `[NEW] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]` |
+| `REQ-DAG-08` | Wire Phase 3 explicit redundant re-exports and wave orchestration delegation in `dag_executor.py` and add unit tests for `step_execution_stage.py` and `wave_orchestrator_stage.py` | Phase 3, Step 2 | `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_step_execution_stage.py]`, `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_wave_orchestrator_stage.py]` |
+| `REQ-DAG-09` | Verify Phase 3 extraction passes 10/10 backend audit gates, AST guardrail suites, and all 76 baseline unit tests | Phase 3, Step 3 | `[DELETE] @[backend_v2/services/orchestrator/dag_executor.py]` |
+| `REQ-DAG-10` | Atomically replace `dag_executor.py` with `dag_executor/__init__.py` (`< 180` lines), verify 1-hop callers (`dependencies.py`, `facade.py`, `worker.py`), and add `test_dag_executor_facade.py` | Phase 4, Step 1 | `[NEW] @[backend_v2/services/orchestrator/dag_executor/__init__.py]`, `[NEW] @[backend_v2/tests/unit/services/orchestrator/dag_executor/test_dag_executor_facade.py]` |
+| `REQ-DAG-11` | Lock retired `backend_v2/services/orchestrator/dag_executor.py` in `QGR017`, update AST guardrail suites (`test_ast_concurrency_guardrails.py`, `test_ast_engine_dispatch_guardrails.py`, `test_rest_only_pipeline_boundary.py`), and synchronize `04_directory_reference.md` | Phase 4, Step 2 | `@[scripts/_ast_guardrails.py#L730-L820]`, `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py#L1637-L1644]` |
+| `REQ-DAG-12` | Verify Phase 4 package cutover passes 10/10 backend audit gates across `dag_executor/`, 1-hop callers, AST guardrails, and `run_seed.py local` | Phase 4, Step 3 | `[NEW] @[backend_v2/services/orchestrator/dag_executor/__init__.py]` |
+
+# Session Handover Context
+
+## Achieved
+- Completed Tier 3 God Code Decomposition pre-flight AST analysis of `[DELETE] @[backend_v2/services/orchestrator/dag_executor.py]` (`1,803` lines, `19` AST symbol definitions), test baseline verification (`76 passed, 90% line coverage` across `785` statements), and 1-hop caller and AST guardrail blast-radius inventory (`@[docs/epic/tasks_dag_executor/symbol_migration_map.md]`).
+- Generated and boundary-audited all 4 Epoch 1 Strangler Fig implementation plans (`@[docs/epic/tasks_dag_executor/phase1_causal_fusion_and_committer_extraction.md]`, `@[docs/epic/tasks_dag_executor/phase2_node_executor_and_bootstrap_stage_extraction.md]`, `@[docs/epic/tasks_dag_executor/phase3_step_runner_and_wave_orchestrator_extraction.md]`, and `@[docs/epic/tasks_dag_executor/phase4_package_cutover_and_guardrails.md]`).
+- Generated the Master Two-Epoch Decomposition Tracker (`@[docs/epic/dag_executor_decomposition_tracker.md]`) with complete Epoch 1 Phase Execution Status, Epoch 2 12-Item Technical Debt Inventory, Tier 2 Hardening checklist, and bidirectional Requirements Traceability Matrix.
+
+## Learned
+- Because `backend_v2/services/orchestrator/dag_executor.py` transitions to package `backend_v2/services/orchestrator/dag_executor/__init__.py`, `dag_executor/__init__.py` MUST NOT exist during Phases 1–3 while `dag_executor.py` exists on disk (`strangler_fig_mandate`), and `dag_executor.py` must declare `__path__: list[str] = [str(Path(__file__).resolve().with_suffix(""))]` before importing from `backend_v2.services.orchestrator.dag_executor.<submodule>`.
+- Existing unit tests monkeypatch `backend_v2.services.orchestrator.dag_executor.hook_registry`, `get_settings`, `Step.model_validate`, `MatrixReducer.reduce_matrix`, and `NodeStrategyFactory.create_strategy`; extracted submodules must resolve these collaborators dynamically from `sys.modules.get("backend_v2.services.orchestrator.dag_executor")` when present, and `dag_executor/__init__.py` must explicitly re-export them.
+- `visit_AsyncWith` in `@[scripts/_ast_guardrails.py]` tracks `async with _update_lock:` via the identifier name `_update_lock` for `QGR025` validation, so extracted stage functions must bind `_update_lock = state.update_lock` locally before entering `async with _update_lock:`.
+
+## Resume Command
+`/tier2-execute @[docs/epic/tasks_dag_executor/phase1_causal_fusion_and_committer_extraction.md] @[docs/epic/dag_executor_decomposition_tracker.md]`
+
+## Remaining
+- Execute Phase 1 (`@[docs/epic/tasks_dag_executor/phase1_causal_fusion_and_committer_extraction.md]`) through Phase 4 (`@[docs/epic/tasks_dag_executor/phase4_package_cutover_and_guardrails.md]`) via `/tier2-execute`.
+- Execute Post-Implementation Gates (Epoch 2 Tier 2 Backend Hardening, Pre-Delete Audit, Golden Master & Test Restoration Audit, Semantic Coverage & Zero-Loss Audit, and `/tier7-describe-architecture`).

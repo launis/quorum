@@ -1,10 +1,15 @@
-"""Unit tests for backend_v2.database.factory (get_driver and create_unit_of_work)."""
+"""Unit tests for backend_v2.database.factory (get_driver, create_unit_of_work, and shared pool lifecycle)."""
 
 from unittest.mock import PropertyMock, patch
 
 import pytest
 
-from backend_v2.database.factory import create_unit_of_work, get_driver
+from backend_v2.database.factory import (
+    close_shared_pool_manager,
+    create_unit_of_work,
+    get_driver,
+    get_shared_pool_manager,
+)
 from backend_v2.database.interfaces import QuorumUnitOfWork
 from backend_v2.database.postgres.pool import PostgresPoolManager
 from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
@@ -40,6 +45,48 @@ async def test_get_driver_postgres_default_and_injected_pool() -> None:
 
     driver_default = await get_driver(settings)
     assert isinstance(driver_default, PostgresStorageDriver)
+
+
+@pytest.mark.asyncio
+async def test_get_driver_postgres_reuses_singleton_pool_manager() -> None:
+    """Verify repeated get_driver calls without pool_manager reuse the singleton pool_manager."""
+    await close_shared_pool_manager()
+    settings = Settings(storage_backend="POSTGRES")
+    driver1 = await get_driver(settings)
+    driver2 = await get_driver(settings)
+    assert isinstance(driver1, PostgresStorageDriver)
+    assert isinstance(driver2, PostgresStorageDriver)
+    assert driver1.pool_manager is driver2.pool_manager
+    await close_shared_pool_manager()
+
+
+@pytest.mark.asyncio
+async def test_close_shared_pool_manager_cleans_up() -> None:
+    """Verify close_shared_pool_manager closes active pool and resets singleton instance."""
+    await close_shared_pool_manager()
+    settings = Settings(storage_backend="POSTGRES")
+    mgr1 = get_shared_pool_manager(settings)
+    fake_pool = InMemoryAsyncPgPool()
+    mgr1._pool = fake_pool
+    assert mgr1.is_initialized is True
+
+    await close_shared_pool_manager()
+    assert fake_pool.closed is True
+    assert mgr1.is_initialized is False
+
+    mgr2 = get_shared_pool_manager(settings)
+    assert mgr2 is not mgr1
+    await close_shared_pool_manager()
+
+
+@pytest.mark.asyncio
+async def test_get_shared_pool_manager_non_postgres_raises_configuration_error() -> None:
+    """Verify get_shared_pool_manager fails fast with ConfigurationError when active_backend is not POSTGRES."""
+    await close_shared_pool_manager()
+    valid_settings = Settings(storage_backend="POSTGRES")
+    with patch.object(Settings, "active_backend", new_callable=PropertyMock, return_value=invalid_backend_sentinel()):
+        with pytest.raises(ConfigurationError, match="get_shared_pool_manager requires StorageBackend.POSTGRES"):
+            get_shared_pool_manager(valid_settings)
 
 
 @pytest.mark.asyncio
