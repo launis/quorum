@@ -5,12 +5,16 @@ on:
     branches: [ main ]
     paths:
       - 'backend_v2/**'
+      - 'scripts/**'
       - 'pyproject.toml'
+      - '.github/workflows/backend-quality.yml'
   pull_request:
     branches: [ main ]
     paths:
       - 'backend_v2/**'
+      - 'scripts/**'
       - 'pyproject.toml'
+      - '.github/workflows/backend-quality.yml'
 
 jobs:
   quality:
@@ -39,8 +43,11 @@ jobs:
 
       - name: Linting (Ruff)
         run: |
-          uv run ruff check backend_v2
-          uv run ruff format --check backend_v2
+          uv run ruff check backend_v2 scripts
+          uv run ruff format --check backend_v2 scripts
+
+      - name: AST Architectural Guardrails
+        run: uv run python scripts/audit_warning_baseline.py
 
       - name: Type Checking (Mypy)
         run: uv run mypy backend_v2 --strict
