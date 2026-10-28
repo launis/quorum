@@ -53,7 +53,7 @@
   - [x] @[backend_v2/services/translation_service.py]
   - [x] @[backend_v2/llm/caching_service.py]
   - [x] @[backend_v2/services/llm_task_executor.py]
-  - [ ] @[backend_v2/services/chat_normalizer.py]
+  - [x] @[backend_v2/services/chat_normalizer.py]
   - [ ] @[backend_v2/services/sdui/sanitizers/mcp_presentation_sanitizer.py]
   - [ ] @[backend_v2/services/orchestrator/localization_compiler.py]
 
