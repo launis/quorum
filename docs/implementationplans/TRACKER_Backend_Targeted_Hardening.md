@@ -41,7 +41,7 @@
   - [x] @[backend_v2/services/sdui/adapters/variance_adapter.py]
   - [x] @[backend_v2/services/sdui/adapters/warning_card_adapter.py]
   - [x] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]
-  - [ ] @[backend_v2/utils/math_utils.py]
+  - [x] @[backend_v2/utils/math_utils.py]
   - [ ] @[backend_v2/utils/alias_engine.py]
   - [ ] @[backend_v2/utils/normalization.py]
   - [ ] @[backend_v2/utils/paths.py]
