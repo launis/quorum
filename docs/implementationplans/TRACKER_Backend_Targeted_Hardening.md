@@ -27,7 +27,7 @@
   - [x] @[backend_v2/workers/synthesis_worker.py]
   - [x] @[backend_v2/workers/variance_synthesis.py]
   - [x] @[backend_v2/services/sdui/sdui_mapper_service.py]
-  - [ ] @[backend_v2/services/sdui/adapters/base_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/base_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/causal_graph_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/global_score_adapter.py]
