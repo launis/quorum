@@ -43,7 +43,7 @@
   - [x] @[scripts/_ast_guardrails.py]
   - [x] @[scripts/audit_zero_orm_strictness.py]
   - [x] @[scripts/reconcile_storage.py]
-  - [ ] @[scripts/run_e2e_variance_test.py]
+  - [x] @[scripts/run_e2e_variance_test.py]
   - [ ] @[scripts/backend_audit_loop.py]
   - [ ] @[backend_v2/tests/factories/model_factories.py]
   - [ ] @[backend_v2/tests/unit/scripts/test_ast_guardrails.py]
