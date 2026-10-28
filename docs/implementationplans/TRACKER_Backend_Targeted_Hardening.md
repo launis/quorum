@@ -29,7 +29,7 @@
   - [x] @[backend_v2/services/sdui/sdui_mapper_service.py]
   - [x] @[backend_v2/services/sdui/adapters/base_adapter.py]
   - [x] @[backend_v2/services/sdui/adapters/causal_graph_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/executive_summary_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/global_score_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]

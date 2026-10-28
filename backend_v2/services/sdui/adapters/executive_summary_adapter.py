@@ -5,6 +5,8 @@ for Server-Driven UI rendering. Zero Fallback Architecture: if user_role_target_
 role badge is omitted without legacy fallbacks.
 """
 
+from __future__ import annotations
+
 import logging
 
 from backend_v2.models.enums import RoleClassification, TargetBlockType
@@ -34,6 +36,11 @@ class ExecutiveSummaryAdapter:
 
         Returns:
             Ordered list of polymorphic SDUI blocks ready for rendering.
+
+        Raises:
+            AppException: If localization key resolution fails (ErrorCodes.CONFIGURATION_ERROR,
+                ErrorCodes.VALIDATION_FAILED) or if causal action card construction fails
+                (ErrorCodes.VALIDATION_FAILED).
         """
         blocks: list[AnySduiBlock] = []
 
