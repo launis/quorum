@@ -91,6 +91,7 @@ def _validate_non_empty_payload(
                 "payload_length": len(clean_payload_text),
                 "min_length": settings.llm_min_payload_length,
             },
+            exc_info=True,
         )
         raise AppException(
             message=(
@@ -124,6 +125,190 @@ class LLMTaskExecutor:
         """
         self.prompt_compiler = prompt_compiler
         self.default_validation_context = default_validation_context
+
+    def _compile_base_prompt(
+        self,
+        messages: Sequence[ChatMessageDTO | LLMMessageDTO] | CompiledPrompt | PromptContextDTO,
+    ) -> CompiledPrompt:
+        """Normalize incoming messages or prompt context into an immutable CompiledPrompt.
+
+        Args:
+            messages: Raw message sequence, PromptContextDTO, or pre-compiled prompt.
+
+        Returns:
+            Deep-copied CompiledPrompt ready for execution and self-healing retries.
+        """
+        if isinstance(messages, CompiledPrompt):
+            compiled_prompt = messages
+        elif isinstance(messages, PromptContextDTO):
+            meta = PromptMetadataDTO.model_validate(messages.metadata) if messages.metadata else PromptMetadataDTO()
+            compiled_prompt = CompiledPrompt(
+                static_messages=messages.static_messages,
+                dynamic_messages=messages.dynamic_messages,
+                metadata=meta,
+            )
+        else:
+            prompt_adapter = PromptCompilerAdapter()
+            compiled_prompt = prompt_adapter.compile_prompt(messages)
+        return compiled_prompt.model_copy(deep=True)
+
+    def _extract_strictness_level(self, effective_validation_context: Mapping[str, JsonValue]) -> int | None:
+        """Extract integer strictness level from the active validation context if present.
+
+        Args:
+            effective_validation_context: Active validation context mapping.
+
+        Returns:
+            Integer strictness level if present and numeric, otherwise None.
+        """
+        if "strictness_level" in effective_validation_context:
+            raw_strict = effective_validation_context["strictness_level"]
+            if isinstance(raw_strict, int):
+                return raw_strict
+            if isinstance(raw_strict, float):
+                return int(raw_strict)
+        return None
+
+    def _append_healing_message(
+        self,
+        base_compiled_prompt: CompiledPrompt,
+        healing_content: str,
+    ) -> CompiledPrompt:
+        """Append self-healing error feedback to the tail of dynamic messages.
+
+        Args:
+            base_compiled_prompt: Original unmutated compiled prompt prefix and dynamic tail.
+            healing_content: XML-fenced error correction directive to append.
+
+        Returns:
+            Updated CompiledPrompt with healing instructions appended to the user message tail.
+        """
+        typed_dynamic: list[LLMMessageDTO] = [
+            m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m)
+            for m in base_compiled_prompt.dynamic_messages
+        ]
+        if typed_dynamic:
+            last_msg = typed_dynamic[-1]
+            if isinstance(last_msg.content, str):
+                merged_content = last_msg.content + healing_content
+            else:
+                merged_content = json.dumps(last_msg.content) + healing_content
+            typed_dynamic[-1] = LLMMessageDTO(
+                role=last_msg.role,
+                content=merged_content,
+            )
+        else:
+            typed_dynamic.append(LLMMessageDTO(role="user", content=healing_content.strip()))
+        return base_compiled_prompt.model_copy(update={"dynamic_messages": typed_dynamic})
+
+    def _log_contextual_override(self, validated_model: BaseModel, schema_name: str) -> None:
+        """Log quality telemetry when the LLM applies a contextual override on a validated model.
+
+        Args:
+            validated_model: Validated Pydantic response model instance.
+            schema_name: Name of the response model schema for structured logging.
+        """
+        model_dict = validated_model.model_dump(exclude_unset=False)
+        if "contextual_override" in model_dict and model_dict["contextual_override"]:
+            override_reason = "No reason provided"
+            if "override_reason" in model_dict:
+                raw_override_reason = model_dict["override_reason"]
+                if raw_override_reason:
+                    override_reason = str(raw_override_reason)
+            logger.info(
+                "[QUALITY] LLM applied Contextual Override.",
+                extra={
+                    "reason": override_reason,
+                    "schema": schema_name,
+                },
+            )
+
+    def _build_schema_healing_prompt(
+        self,
+        error: LLMSchemaValidationError,
+        base_compiled_prompt: CompiledPrompt,
+        effective_validation_context: Mapping[str, JsonValue],
+    ) -> CompiledPrompt:
+        """Construct an updated CompiledPrompt with schema error correction instructions.
+
+        Args:
+            error: Caught LLMSchemaValidationError instance.
+            base_compiled_prompt: Base compiled prompt to append healing feedback onto.
+            effective_validation_context: Active validation context mapping.
+
+        Returns:
+            Updated CompiledPrompt containing schema healing instructions.
+        """
+        error_msg = error.validation_error_msg
+        logger.warning(
+            f"LLM Schema Validation Failed. Error: {error_msg}",
+            extra={"raw_payload_dump": error.raw_llm_payload, "validation_error": error_msg},
+        )
+        strictness_lvl_val = self._extract_strictness_level(effective_validation_context)
+        correction_prompt = self.prompt_compiler.get_schema_healing_prompt(
+            error_msg=error_msg,
+            is_logical_error=False,
+            is_eof=error.is_eof,
+            strictness_level=strictness_lvl_val,
+        )
+        healing_content = f"\n\n<PREVIOUS_SCHEMA_ERROR>\n{correction_prompt}\n</PREVIOUS_SCHEMA_ERROR>"
+        return self._append_healing_message(base_compiled_prompt, healing_content)
+
+    def _build_logical_healing_prompt(
+        self,
+        error: LogicalValidationError,
+        validated_model: BaseModel | None,
+        base_compiled_prompt: CompiledPrompt,
+        effective_validation_context: Mapping[str, JsonValue],
+    ) -> CompiledPrompt:
+        """Construct an updated CompiledPrompt with logical error correction and coaching instructions.
+
+        Args:
+            error: Caught LogicalValidationError instance.
+            validated_model: Last syntactically valid model that failed logical validation.
+            base_compiled_prompt: Base compiled prompt to append healing feedback onto.
+            effective_validation_context: Active validation context mapping.
+
+        Returns:
+            Updated CompiledPrompt containing logical healing and coaching instructions.
+        """
+        error_msg = error.validation_error_msg
+        strictness_lvl = self._extract_strictness_level(effective_validation_context)
+        correction_prompt = self.prompt_compiler.get_schema_healing_prompt(
+            error_msg=error_msg,
+            is_logical_error=True,
+            is_eof=False,
+            strictness_level=strictness_lvl,
+        )
+
+        failed_json = "{}"
+        if validated_model is not None:
+            failed_json = validated_model.model_dump_json()
+
+        logger.warning(
+            f"LLM Logical Validation Failed. Error: {error_msg}",
+            extra={"failed_json_dump": failed_json, "logical_error": error_msg},
+        )
+
+        # Smart Coaching: Anti-ellipsis and anti-bracket guidance
+        coaching_notes: list[str] = []
+        if "..." in failed_json:
+            coaching_notes.append(
+                "COACHING: You used ellipses (...) to bridge or shorten text. This is STRICTLY FORBIDDEN. "
+                "You must extract a continuous, unbroken, verbatim string of text."
+            )
+        if "[" in failed_json or "]" in failed_json:
+            coaching_notes.append(
+                "COACHING: You injected square brackets [...] to add context. This is STRICTLY FORBIDDEN. "
+                "Do not alter the text. Extract exactly what is written."
+            )
+        if coaching_notes:
+            correction_prompt += "\n\n" + "\n".join(coaching_notes)
+
+        healing_content = (
+            f"\n\n<PREVIOUS_SCHEMA_ERROR>\nFailed Output: {failed_json}\n{correction_prompt}\n</PREVIOUS_SCHEMA_ERROR>"
+        )
+        return self._append_healing_message(base_compiled_prompt, healing_content)
 
     async def execute_structured_task[T: BaseModel](
         self,
@@ -170,21 +355,8 @@ class LLMTaskExecutor:
         elif validation_context is not None:
             effective_validation_context.update(validation_context)
 
-        prompt_adapter = PromptCompilerAdapter()
-
-        if isinstance(messages, CompiledPrompt):
-            compiled_prompt = messages
-        elif isinstance(messages, PromptContextDTO):
-            meta = PromptMetadataDTO.model_validate(messages.metadata) if messages.metadata else PromptMetadataDTO()
-            compiled_prompt = CompiledPrompt(
-                static_messages=messages.static_messages,
-                dynamic_messages=messages.dynamic_messages,
-                metadata=meta,
-            )
-        else:
-            compiled_prompt = prompt_adapter.compile_prompt(messages)
-
-        base_compiled_prompt = compiled_prompt.model_copy(deep=True)
+        base_compiled_prompt = self._compile_base_prompt(messages)
+        compiled_prompt = base_compiled_prompt
 
         # --- EMPTY PAYLOAD FAIL-FAST ---
         _validate_non_empty_payload(base_compiled_prompt)
@@ -221,20 +393,7 @@ class LLMTaskExecutor:
                     await validator_hook(validated_model)
 
                 if isinstance(validated_model, BaseModel):
-                    model_dict = validated_model.model_dump(exclude_unset=False)
-                    if "contextual_override" in model_dict and model_dict["contextual_override"]:
-                        override_reason = "No reason provided"
-                        if "override_reason" in model_dict:
-                            raw_override_reason = model_dict["override_reason"]
-                            if raw_override_reason:
-                                override_reason = str(raw_override_reason)
-                        logger.info(
-                            "[QUALITY] LLM applied Contextual Override.",
-                            extra={
-                                "reason": override_reason,
-                                "schema": response_model.__name__,
-                            },
-                        )
+                    self._log_contextual_override(validated_model, response_model.__name__)
 
                 if attempt > 0:
                     logger.info(
@@ -245,7 +404,6 @@ class LLMTaskExecutor:
                 return validated_model, cumulative_usage
 
             except LLMSchemaValidationError as e:
-                is_eof = e.is_eof
                 raw_payload = e.raw_llm_payload
                 error_msg = e.validation_error_msg
 
@@ -260,6 +418,7 @@ class LLMTaskExecutor:
                             "schema_attempts": schema_attempts,
                             "logical_attempts": logical_attempts,
                         },
+                        exc_info=True,
                     )
                     err = AgentExecutionError(
                         detail=ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED,
@@ -267,7 +426,6 @@ class LLMTaskExecutor:
                     )
                     raise err from e
 
-                # Stuck Loop Detection
                 if raw_payload == previous_raw_payload or error_msg == previous_error_msg:
                     logger.error(
                         "Stuck Loop Detected in Schema Validation. Breaking immediately.",
@@ -276,6 +434,7 @@ class LLMTaskExecutor:
                             "schema_attempts": schema_attempts,
                             "logical_attempts": logical_attempts,
                         },
+                        exc_info=True,
                     )
                     err = AgentExecutionError(
                         detail=ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED,
@@ -286,46 +445,11 @@ class LLMTaskExecutor:
                 previous_raw_payload = raw_payload
                 previous_error_msg = error_msg
                 schema_attempts += 1
-
-                logger.warning(
-                    f"LLM Schema Validation Failed. Error: {error_msg}",
-                    extra={"raw_payload_dump": raw_payload, "validation_error": error_msg},
+                compiled_prompt = self._build_schema_healing_prompt(
+                    error=e,
+                    base_compiled_prompt=base_compiled_prompt,
+                    effective_validation_context=effective_validation_context,
                 )
-
-                strictness_lvl_val: int | None = None
-                if "strictness_level" in effective_validation_context:
-                    raw_strict = effective_validation_context["strictness_level"]
-                    if isinstance(raw_strict, int):
-                        strictness_lvl_val = raw_strict
-                    elif isinstance(raw_strict, float):
-                        strictness_lvl_val = int(raw_strict)
-
-                correction_prompt = self.prompt_compiler.get_schema_healing_prompt(
-                    error_msg=error_msg,
-                    is_logical_error=False,
-                    is_eof=is_eof,
-                    strictness_level=strictness_lvl_val,
-                )
-
-                healing_content = f"\n\n<PREVIOUS_SCHEMA_ERROR>\n{correction_prompt}\n</PREVIOUS_SCHEMA_ERROR>"
-
-                typed_dynamic: list[LLMMessageDTO] = [
-                    m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m)
-                    for m in base_compiled_prompt.dynamic_messages
-                ]
-                if typed_dynamic:
-                    last_msg = typed_dynamic[-1]
-                    if isinstance(last_msg.content, str):
-                        merged_content = last_msg.content + healing_content
-                    else:
-                        merged_content = json.dumps(last_msg.content) + healing_content
-                    typed_dynamic[-1] = LLMMessageDTO(
-                        role=last_msg.role,
-                        content=merged_content,
-                    )
-                else:
-                    typed_dynamic.append(LLMMessageDTO(role="user", content=healing_content.strip()))
-                compiled_prompt = base_compiled_prompt.model_copy(update={"dynamic_messages": typed_dynamic})
 
             except LogicalValidationError as e:
                 error_msg = e.validation_error_msg
@@ -340,6 +464,7 @@ class LLMTaskExecutor:
                             "schema_attempts": schema_attempts,
                             "logical_attempts": logical_attempts,
                         },
+                        exc_info=True,
                     )
                     err = AgentExecutionError(
                         detail=ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED,
@@ -347,7 +472,6 @@ class LLMTaskExecutor:
                     )
                     raise err from e
 
-                # Stuck Loop Detection
                 if error_msg == previous_error_msg:
                     logger.error(
                         "Stuck Loop Detected in Logical Validation for %s. Breaking immediately.",
@@ -357,6 +481,7 @@ class LLMTaskExecutor:
                             "schema_attempts": schema_attempts,
                             "logical_attempts": logical_attempts,
                         },
+                        exc_info=True,
                     )
                     err = AgentExecutionError(
                         detail=ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED,
@@ -366,71 +491,12 @@ class LLMTaskExecutor:
 
                 previous_error_msg = error_msg
                 logical_attempts += 1
-
-                strictness_lvl: int | None = None
-                if "strictness_level" in effective_validation_context:
-                    raw_strict_log = effective_validation_context["strictness_level"]
-                    if isinstance(raw_strict_log, int):
-                        strictness_lvl = raw_strict_log
-                    elif isinstance(raw_strict_log, float):
-                        strictness_lvl = int(raw_strict_log)
-
-                correction_prompt = self.prompt_compiler.get_schema_healing_prompt(
-                    error_msg=error_msg,
-                    is_logical_error=True,
-                    is_eof=False,
-                    strictness_level=strictness_lvl,
+                compiled_prompt = self._build_logical_healing_prompt(
+                    error=e,
+                    validated_model=validated_model,
+                    base_compiled_prompt=base_compiled_prompt,
+                    effective_validation_context=effective_validation_context,
                 )
-
-                failed_json = "{}"
-                if validated_model is not None:
-                    failed_json = validated_model.model_dump_json()
-
-                logger.warning(
-                    f"LLM Logical Validation Failed. Error: {error_msg}",
-                    extra={"failed_json_dump": failed_json, "logical_error": error_msg},
-                )
-
-                # Smart Coaching: Anti-ellipsis and anti-bracket guidance
-                coaching_notes = []
-                if "..." in failed_json:
-                    coaching_notes.append(
-                        "COACHING: You used ellipses (...) to bridge or shorten text. This is STRICTLY FORBIDDEN. "
-                        "You must extract a continuous, unbroken, verbatim string of text."
-                    )
-                if "[" in failed_json or "]" in failed_json:
-                    coaching_notes.append(
-                        "COACHING: You injected square brackets [...] to add context. This is STRICTLY FORBIDDEN. "
-                        "Do not alter the text. Extract exactly what is written."
-                    )
-
-                if coaching_notes:
-                    correction_prompt += "\n\n" + "\n".join(coaching_notes)
-
-                healing_content = (
-                    f"\n\n<PREVIOUS_SCHEMA_ERROR>\n"
-                    f"Failed Output: {failed_json}\n"
-                    f"{correction_prompt}\n"
-                    f"</PREVIOUS_SCHEMA_ERROR>"
-                )
-
-                typed_dynamic_logical: list[LLMMessageDTO] = [
-                    m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m)
-                    for m in base_compiled_prompt.dynamic_messages
-                ]
-                if typed_dynamic_logical:
-                    last_msg = typed_dynamic_logical[-1]
-                    if isinstance(last_msg.content, str):
-                        merged_logical = last_msg.content + healing_content
-                    else:
-                        merged_logical = json.dumps(last_msg.content) + healing_content
-                    typed_dynamic_logical[-1] = LLMMessageDTO(
-                        role=last_msg.role,
-                        content=merged_logical,
-                    )
-                else:
-                    typed_dynamic_logical.append(LLMMessageDTO(role="user", content=healing_content.strip()))
-                compiled_prompt = base_compiled_prompt.model_copy(update={"dynamic_messages": typed_dynamic_logical})
 
         logger.error(
             "LLM task failed to complete within retry budgets.",
@@ -439,6 +505,7 @@ class LLMTaskExecutor:
                 "schema_attempts": schema_attempts,
                 "logical_attempts": logical_attempts,
             },
+            exc_info=True,
         )
         raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)
 

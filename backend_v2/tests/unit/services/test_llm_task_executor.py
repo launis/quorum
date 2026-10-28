@@ -6,11 +6,11 @@ and token usage telemetry with strict DTO typing and Fail-Fast guarantees.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import (
     AgentExecutionError,
@@ -31,15 +31,19 @@ from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 class MockResponseSchema(BaseModel):
     """Mock response model for structured task execution testing."""
 
-    value: str
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    value: Annotated[str, Field(description="Mock response value.")]
 
 
 class MockOverrideSchema(BaseModel):
     """Mock response model with contextual override fields."""
 
-    value: str
-    contextual_override: bool = False
-    override_reason: str | None = None
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    value: Annotated[str, Field(description="Mock response value.")]
+    contextual_override: Annotated[bool, Field(default=False, description="Contextual override flag.")]
+    override_reason: Annotated[str | None, Field(default=None, description="Reason for contextual override.")]
 
 
 @pytest.fixture
@@ -597,3 +601,70 @@ async def test_execute_structured_task_loop_exhaustion(mock_prompt_compiler: Mag
             max_logical_retries=-1,
         )
     assert exc_info.value.error_code == str(ErrorCodes.AGENT_EXECUTION_CRITICAL)
+
+
+@pytest.mark.asyncio
+async def test_rfc7807_dual_logging_and_structured_content_healing(
+    mock_prompt_compiler: MagicMock,
+    mock_client: AsyncMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """PROMISE: Prove RFC 7807 dual-logging emits exc_info and structured list content heals cleanly."""
+    executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
+
+    with caplog.at_level("ERROR"):
+        with pytest.raises(AppException):
+            _validate_non_empty_payload([LLMMessageDTO(role="user", content="x")])
+    assert any(record.exc_info is not None for record in caplog.records)
+
+    structured_msg = LLMMessageDTO(
+        role="user",
+        content=[{"type": "text", "text": "Structured list payload with sufficient length for validation."}],
+    )
+    compiled = CompiledPrompt(
+        static_messages=[],
+        dynamic_messages=[structured_msg],
+        metadata=PromptMetadataDTO(),
+    )
+
+    schema_err = LLMSchemaValidationError(
+        raw_llm_payload="bad_json",
+        validation_error_msg="schema fail",
+        is_eof=False,
+    )
+
+    async def failing_then_passing_validator(model: MockResponseSchema) -> None:
+        if model.value == "logic_fail":
+            raise LogicalValidationError(validation_error_msg="logical fail")
+
+    mock_client.run_structured_task.side_effect = [
+        schema_err,
+        (MockResponseSchema(value="logic_fail"), TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)),
+        (MockResponseSchema(value="ok"), TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)),
+    ]
+
+    res, usage = await executor.execute_structured_task(
+        client=mock_client,
+        messages=compiled,
+        response_model=MockResponseSchema,
+        max_schema_retries=1,
+        max_logical_retries=1,
+        validator_hook=failing_then_passing_validator,
+        validation_context={"strictness_level": 80.0},
+    )
+    assert res.value == "ok"
+    assert usage.total_tokens == 20
+
+    mock_client.run_structured_task.side_effect = [
+        (MockResponseSchema(value="logic_fail"), TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)),
+        (MockResponseSchema(value="ok2"), TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)),
+    ]
+    res2, _ = await executor.execute_structured_task(
+        client=mock_client,
+        messages=compiled,
+        response_model=MockResponseSchema,
+        max_logical_retries=1,
+        validator_hook=failing_then_passing_validator,
+        validation_context={"strictness_level": 90},
+    )
+    assert res2.value == "ok2"
