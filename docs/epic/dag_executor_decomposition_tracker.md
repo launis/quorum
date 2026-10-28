@@ -67,7 +67,7 @@
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
   - [x] [NEW] @[backend_v2/services/orchestrator/dag_executor/__init__.py]
   - [x] @[backend_v2/api/dependencies.py#L376-L417]
-  - [ ] @[backend_v2/services/execution/facade.py#L47-L118]
+  - [x] @[backend_v2/services/execution/facade.py#L47-L118]
   - [ ] @[backend_v2/worker.py#L44-L85]
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Pure backend Python decomposition with zero `.dart` changes.
 - [ ] **[NOK] Pre-Delete Audit**: Verify `git status` and `grep_search` confirm physical removal of `[DELETE] @[backend_v2/services/orchestrator/dag_executor.py]`, with `QGR017` blocking re-creation of `backend_v2/services/orchestrator/dag_executor.py`.
