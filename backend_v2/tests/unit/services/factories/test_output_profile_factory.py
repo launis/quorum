@@ -1,5 +1,8 @@
 """Unit tests for OutputProfile factory and baseline templates."""
 
+import pytest
+
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import PresetView, TargetBlockType
 from backend_v2.services.factories.output_profile_factory import (
     DEFAULT_FACTORY_EXECUTIVE_SUMMARY_DIRECTIVE,
@@ -91,3 +94,64 @@ def test_factory_constants_integrity() -> None:
     for directive in directives:
         assert isinstance(directive, str)
         assert len(directive) > 20
+
+
+def test_build_draft_output_profile_non_opaque_initial_target_block_skips_variance() -> None:
+    """Verify non-opaque initial_target_block populates matrix group without enabling variance block."""
+    profile = build_draft_output_profile(
+        profile_id="prf_0000000000000003",
+        workflow_id="wor_0000000000000003",
+        initial_target_block="blk_matrix_001",
+    )
+
+    assert profile.variance_target_block is None
+    assert TargetBlockType.MATRIX_GRAPHS_BLOCK in profile.target_block_order
+    assert TargetBlockType.VARIANCE_VALIDATION_BLOCK not in profile.target_block_order
+    assert len(profile.matrix_synthesis_groups) == 1
+    assert profile.matrix_synthesis_groups[0].target_blocks == ["blk_matrix_001"]
+
+
+@pytest.mark.parametrize("invalid_profile_id", ["", "   ", "invalid_id", "prf_short"])
+def test_build_draft_output_profile_invalid_profile_id_raises_app_exception(
+    invalid_profile_id: str,
+) -> None:
+    """ISTQB Negative Boundary: Malformed or empty profile_id raises AppException(VALIDATION_FAILED)."""
+    with pytest.raises(AppException) as exc_info:
+        build_draft_output_profile(
+            profile_id=invalid_profile_id,
+            workflow_id="wor_0000000000000001",
+        )
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
+
+
+@pytest.mark.parametrize("invalid_workflow_id", ["", "   "])
+def test_build_draft_output_profile_empty_workflow_id_raises_app_exception(
+    invalid_workflow_id: str,
+) -> None:
+    """ISTQB Negative Boundary: Empty or whitespace workflow_id raises AppException(VALIDATION_FAILED)."""
+    with pytest.raises(AppException) as exc_info:
+        build_draft_output_profile(
+            profile_id="prf_0000000000000001",
+            workflow_id=invalid_workflow_id,
+        )
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
+
+
+@pytest.mark.parametrize("blank_block_id", ["", "   "])
+def test_build_draft_output_profile_blank_initial_target_block_raises_app_exception(
+    blank_block_id: str,
+) -> None:
+    """ISTQB Negative Boundary: Empty or whitespace initial_target_block raises AppException(VALIDATION_FAILED)."""
+    with pytest.raises(AppException) as exc_info:
+        build_draft_output_profile(
+            profile_id="prf_0000000000000001",
+            workflow_id="wor_0000000000000001",
+            initial_target_block=blank_block_id,
+        )
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED

@@ -4,13 +4,17 @@ Provides baseline default templates as plain English str constants used exclusiv
 for seeding and Studio UI 'New Profile' creation. Never invoked during runtime synthesis.
 """
 
+import logging
 import re
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.enums import PresetView, TargetBlockType
 from backend_v2.settings import get_settings
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "DEFAULT_FACTORY_EXECUTIVE_SUMMARY_DIRECTIVE",
@@ -85,7 +89,36 @@ def build_draft_output_profile(
     organization_id: str | None = None,
     initial_target_block: str | None = None,
 ) -> OutputProfile:
-    """Build a fully populated, runnable OutputProfile draft for headless API and Studio creation."""
+    """Build a fully populated, runnable OutputProfile draft for headless API and Studio creation.
+
+    Args:
+        profile_id: Canonical Opaque Stripe ID for the new OutputProfile.
+        workflow_id: Identifier of the associated Workflow.
+        organization_id: Optional tenant organization ID owning the draft profile.
+        initial_target_block: Optional initial PromptBlock ID to bind to default synthesis group and variance.
+
+    Returns:
+        Validated OutputProfile instance populated with baseline synthesis directives and constraints.
+
+    Raises:
+        AppException (ErrorCodes.VALIDATION_FAILED): If profile_id fails OPAQUE_STRIPE_ID_REGEX,
+            workflow_id is empty, or initial_target_block is an empty/whitespace string.
+    """
+    if not profile_id or not re.match(OPAQUE_STRIPE_ID_REGEX, profile_id):
+        msg = f"Invalid profile_id '{profile_id}'. Must conform to OPAQUE_STRIPE_ID_REGEX."
+        logger.error("[OutputProfileFactory] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+        raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
+    if not workflow_id or not workflow_id.strip():
+        msg = f"workflow_id cannot be empty for OutputProfile '{profile_id}'."
+        logger.error("[OutputProfileFactory] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+        raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
+    if initial_target_block is not None and not initial_target_block.strip():
+        msg = f"initial_target_block cannot be blank when provided for OutputProfile '{profile_id}'."
+        logger.error("[OutputProfileFactory] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+        raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
     settings = get_settings()
 
     target_block_order: list[TargetBlockType] = [
