@@ -1,4 +1,4 @@
-"""Comprehensive automated CLI verification suite across all 32 scripts in scripts/.
+"""Comprehensive automated CLI verification suite across all 31 scripts in scripts/.
 
 Verifies CLI argument parsing, help documentation, sub-second execution latency,
 exit code semantics, and zero filesystem side effects on -h and --help.
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-# Step 3: Canonical list of all 32 operational scripts in scripts/
+# Step 3: Canonical list of all 31 operational scripts in scripts/
 ALL_SCRIPTS: list[str] = sorted(
     [
         "ablation_live_executor.py",
@@ -25,7 +25,6 @@ ALL_SCRIPTS: list[str] = sorted(
         "audit_flutter_theme_sovereignty.py",
         "audit_manifest_generator.py",
         "audit_markdown_boundaries.py",
-        "audit_matrix_manager.py",
         "audit_mutation_coverage.py",
         "audit_planner_output.py",
         "audit_plan_tracker_parity.py",
@@ -60,7 +59,7 @@ def test_script_count_is_exhaustive() -> None:
     assert ALL_SCRIPTS == physical_scripts, (
         f"Mismatch in script inventory. Expected {len(physical_scripts)}, got {len(ALL_SCRIPTS)}"
     )
-    assert len(ALL_SCRIPTS) == 32
+    assert len(ALL_SCRIPTS) == 31
 
 
 @pytest.mark.parametrize("script_name", ALL_SCRIPTS)

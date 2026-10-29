@@ -239,8 +239,53 @@ async def test_update_component_not_found(
     sample_system_rule: SystemRulePromptBlock,
 ) -> None:
     """Negative: update_component raises ResourceNotFoundError when component missing."""
-    with pytest.raises(ResourceNotFoundError):
+    with pytest.raises(ResourceNotFoundError) as exc_info:
         await repo.update_component("blk_0000000000000000", sample_system_rule)
+    assert exc_info.value.details["resource_type"] == "PromptBlock"
+    assert exc_info.value.details["resource_id"] == "blk_0000000000000000"
+
+
+@pytest.mark.asyncio
+async def test_get_all_components_corrupted_record(
+    repo: ComponentRepositoryImpl,
+    fake_driver: _FakeStorageDriver,
+) -> None:
+    """Negative: get_all_components raises AppException when a stored record is corrupted."""
+    await fake_driver.upsert("components", {"id": "blk_9999999999999999", "corrupted": True}, "blk_9999999999999999")
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_all_components()
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_get_all_components_corrupted_record_without_id(
+    repo: ComponentRepositoryImpl,
+    fake_driver: _FakeStorageDriver,
+) -> None:
+    """Negative boundary: get_all_components raises AppException when corrupted record lacks id."""
+    await fake_driver.upsert("components", {"corrupted": True}, "blk_8888888888888888")
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_all_components()
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_get_component_by_name_not_found_and_corrupted(
+    repo: ComponentRepositoryImpl,
+    fake_driver: _FakeStorageDriver,
+) -> None:
+    """Negative: get_component_by_name returns None when missing and raises AppException when corrupted."""
+    missing = await repo.get_component_by_name("NonExistentComponent")
+    assert missing is None
+
+    await fake_driver.upsert(
+        "components",
+        {"id": "blk_7777777777777777", "name": "CorruptedByName", "corrupted": True},
+        "blk_7777777777777777",
+    )
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_component_by_name("CorruptedByName")
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio

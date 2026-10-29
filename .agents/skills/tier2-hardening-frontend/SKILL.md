@@ -22,8 +22,8 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
     </rule_block>
     <rule_block id="anti_laziness_mandate">
       <banned_pattern>Fabricating justifications, rubber-stamping rules, or bypassing the automated verification gate to save time.</banned_pattern>
-      <mandatory_pattern>Every rule in `@[.agents/rules/02_flutter_desktop.md]` and core rules MUST be verified programmatically via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_matrix_manager.py verify --file <matrix_file> --target <target_file>`. To prevent context window bloat and truncation crashes, you MUST NOT print the full 50-row matrix table into chat. Output ONLY the substantive code evidence for the 7 Architecture Invariants (6 Profile-Specific + Subsystem KI Contract) into the chat.</mandatory_pattern>
-      <catastrophic_reason>Dumping 50-row tables per file into chat exhausts context tokens and triggers Context Amnesia, while bypassing the verify script allows unvalidated code into production.</catastrophic_reason>
+      <mandatory_pattern>Every target file MUST be verified programmatically via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path>`. To prevent context window bloat and truncation crashes, you MUST NOT print a 50-row matrix table into chat. Output ONLY the substantive code evidence for the 7 Architecture Invariants (6 Profile-Specific + Subsystem KI Contract) into the chat.</mandatory_pattern>
+      <catastrophic_reason>Dumping 50-row tables per file into chat exhausts context tokens and triggers Context Amnesia, while bypassing the audit loop allows unvalidated code into production.</catastrophic_reason>
     </rule_block>
     <rule_block id="audit_loop_circuit_breaker">
       <banned_pattern>Attempting to run random terminal commands like `flutter gen-l10n` directly in ad-hoc ways, or continuously trying to duct-tape failing tests more than 3 times.</banned_pattern>
@@ -85,8 +85,8 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
         7. SUBSYSTEM KI INVARIANT PARITY: Cite exact line evidence for applicable KI or state `NA - Generic Widget/Component (No Subsystem KI applies)`.
       </constraint>
 
-      <constraint name="MANDATED TRACEABILITY MATRIX">
-        Before auditing EVERY file, generate a fresh matrix: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_matrix_manager.py generate --type frontend --target <target_file>`. Populate substantive justifications and verify via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_matrix_manager.py verify --file tmp/audit_matrix.json --target <target_file>`. Print ONLY the substantive code evidence summary for the 7 Architecture Invariants to the user.
+      <constraint name="DETERMINISTIC_AUDIT_GATE">
+        For EVERY audited file, run the Frontend Quality Gate: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path>`. Print ONLY the substantive code evidence summary for the 7 Architecture Invariants to the user.
       </constraint>
 
       <constraint name="DTO_SDUI_PARITY_GATE">
