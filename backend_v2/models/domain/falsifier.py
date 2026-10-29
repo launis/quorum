@@ -20,6 +20,15 @@ from backend_v2.models.enums import LaxFidelityLevel
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "FalsifierDTO",
+    "FalsifierData",
+    "FalsifierInput",
+    "FalsifierOutput",
+    "ReasoningFidelity",
+    "WaltonStressTest",
+]
+
 
 class FalsifierInput(V2CoreBase):
     """Strict input schema for LogicalFalsifierAgent.
@@ -30,7 +39,7 @@ class FalsifierInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(min_length=1, description="Mandatory chatlog to analyze.")]
     step_analyst: Annotated[
@@ -48,7 +57,7 @@ class WaltonStressTest(V2CoreBase):
         observation: Observation notes.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     question: Annotated[
         str,
@@ -88,7 +97,7 @@ class ReasoningFidelity(V2CoreBase):
         post_hoc_rationalization: True if reasoning was constructed after the fact.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     fidelity_score: Annotated[
         LaxFidelityLevel,
@@ -152,11 +161,11 @@ class ReasoningFidelity(V2CoreBase):
             Validated score.
 
         Raises:
-            AppException: If score is out of bounds.
+            AppException: If score is out of bounds (ErrorCodes.VALIDATION_FAILED).
         """
         if not (1.0 <= v <= 3.0):
             msg = "Score must be between 1.0 and 3.0"
-            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[FalsifierModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -169,7 +178,7 @@ class FalsifierData(V2CoreBase):
         fidelity_audit: Comprehensive reasoning fidelity results.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     stress_test_findings: Annotated[
         list[WaltonStressTest],
@@ -195,7 +204,7 @@ class FalsifierDTO(ReasoningTraceDTO):
         falsifier_data: Falsification audit result containing stress tests and fidelity.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     falsifier_data: Annotated[
         FalsifierData,
@@ -213,6 +222,4 @@ class FalsifierOutput(FalsifierDTO, ReasoningTrace):
         falsifier_data: Falsification audit result containing stress tests and fidelity.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    pass
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
