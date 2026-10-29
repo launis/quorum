@@ -971,7 +971,7 @@
           "System"
         ],
         "summary": "Get System Hooks",
-        "description": "Retrieves all registered system hooks.\n\nThis endpoint returns a sorted list of all hook names currently registered\nwithin the system's hook registry. Requires admin privileges.\n\nReturns:\n    An object containing a sorted list of all registered hook names.\n\nRaises:\n    AppException: With error code `INTERNAL_SERVER_ERROR` if an unexpected\n                  internal system failure occurs.",
+        "description": "Retrieves all registered system hooks.\n\nThis endpoint returns a sorted list of all hook names currently registered\nwithin the system's hook registry. Requires admin privileges.\n\nReturns:\n    An object containing a sorted list of all registered hook names.\n\nRaises:\n    AppException: With error code `INTERNAL_SERVER_ERROR` if an unexpected\n        internal system failure occurs, or re-raises any upstream `AppException`.",
         "operationId": "get_system_hooks_api_v2_system_system_hooks_get",
         "responses": {
           "200": {
