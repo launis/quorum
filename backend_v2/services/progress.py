@@ -1,9 +1,11 @@
 """Progress Tracking Service for async operations."""
 
+from __future__ import annotations
+
 import json
 import logging
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated, Protocol, override, runtime_checkable
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -12,6 +14,7 @@ from backend_v2.database.interfaces import IExecutionRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import ArqCompatibleFakeRedis
 
 logger = logging.getLogger(__name__)
@@ -21,6 +24,18 @@ STATUS_STARTED = ExecutionStatus.RUNNING
 STATUS_RUNNING = ExecutionStatus.RUNNING
 STATUS_COMPLETED = ExecutionStatus.PASSED
 STATUS_FAILED = ExecutionStatus.FAILED
+
+__all__ = [
+    "DatabaseProgressTracker",
+    "InMemoryProgressTracker",
+    "ProgressService",
+    "ProgressState",
+    "ProgressTrackerProtocol",
+    "STATUS_COMPLETED",
+    "STATUS_FAILED",
+    "STATUS_RUNNING",
+    "STATUS_STARTED",
+]
 
 
 class ProgressState(BaseModel):
@@ -51,15 +66,18 @@ class ProgressTrackerProtocol(Protocol):
     """
 
     async def start(self) -> None:
-        """Signals the process has started.
+        """Signal that the process has started.
 
         Returns:
             None
+
+        Raises:
+            AppException: With ErrorCodes.PROGRESS_UPDATE_FAILED if starting progress tracking fails.
         """
         ...
 
     async def update(self, current_step: str, progress: int) -> None:
-        """Updates progress with current step and progress percentage.
+        """Update progress with current step and progress percentage.
 
         Args:
             current_step: Description of current activity or step name.
@@ -67,25 +85,35 @@ class ProgressTrackerProtocol(Protocol):
 
         Returns:
             None
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.PROGRESS_UPDATE_FAILED
+                if updating progress fails.
         """
         ...
 
     async def complete(self) -> None:
-        """Signals successful completion.
+        """Signal successful completion.
 
         Returns:
             None
+
+        Raises:
+            AppException: With ErrorCodes.PROGRESS_UPDATE_FAILED if completing progress tracking fails.
         """
         ...
 
     async def fail(self, error: str) -> None:
-        """Signals failure/halt.
+        """Signal failure or halt.
 
         Args:
-            error: Error message.
+            error: Error message describing the failure.
 
         Returns:
             None
+
+        Raises:
+            AppException: With ErrorCodes.PROGRESS_UPDATE_FAILED if recording failure state fails.
         """
         ...
 
@@ -97,31 +125,48 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
 
     Attributes:
         repository: Data access layer interface.
-        execution_id: UUID of the execution.
+        execution_id: Opaque identifier of the execution.
     """
 
     def __init__(self, repository: IExecutionRepository, execution_id: str) -> None:
-        """Initializes the tracker for a specific execution.
+        """Initialize the tracker for a specific execution.
 
         Args:
             repository: Data access layer.
-            execution_id: UUID of the execution.
+            execution_id: Opaque identifier of the execution.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if execution_id is empty or whitespace.
         """
+        if not execution_id or not execution_id.strip():
+            msg = "DatabaseProgressTracker requires a non-empty execution_id."
+            logger.error(
+                "[ProgressTracker] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            )
         self.repository = repository
         self.execution_id = execution_id
 
     @override
     async def start(self) -> None:
-        """Sets status to 'started'.
+        """Set execution status to 'started' in the database.
 
         Returns:
             None
 
         Raises:
-            AppException: If updating the execution in the repository fails.
+            AppException: With ErrorCodes.PROGRESS_UPDATE_FAILED if updating the execution in the repository fails.
         """
         try:
-            now_dt = datetime.now(timezone.utc)
+            now_dt = datetime.now(UTC)
             payload = ExecutionUpdateDTO(
                 status=STATUS_STARTED,
                 created_at=now_dt,
@@ -130,7 +175,14 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to start progress tracking for {self.execution_id}"
-            logger.error("[ProgressTracker] %s: %s - %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, e)
+            logger.error(
+                "[ProgressTracker] %s: %s - %s",
+                ErrorCodes.PROGRESS_UPDATE_FAILED.name,
+                msg,
+                e,
+                extra={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED.value},
+                exc_info=True,
+            )
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -139,7 +191,7 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
 
     @override
     async def update(self, current_step: str, progress: int) -> None:
-        """Updates 'current_step' and 'progress' fields in DB.
+        """Update 'current_step' and 'progress' fields in the database.
 
         Args:
             current_step: Description of current activity or step name.
@@ -149,7 +201,7 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
             None
 
         Raises:
-            AppException: If updating the execution in the repository fails.
+            AppException: With ErrorCodes.PROGRESS_UPDATE_FAILED if updating the execution in the repository fails.
         """
         try:
             payload = ExecutionUpdateDTO(
@@ -157,12 +209,19 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
                 current_step=current_step,
                 current_step_name=current_step,
                 progress=progress,
-                updated_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(UTC),
             )
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to update progress for {self.execution_id}"
-            logger.error("[ProgressTracker] %s: %s - %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, e)
+            logger.error(
+                "[ProgressTracker] %s: %s - %s",
+                ErrorCodes.PROGRESS_UPDATE_FAILED.name,
+                msg,
+                e,
+                extra={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED.value},
+                exc_info=True,
+            )
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -171,16 +230,16 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
 
     @override
     async def complete(self) -> None:
-        """Sets status to 'completed'.
+        """Set execution status to 'completed' in the database.
 
         Returns:
             None
 
         Raises:
-            AppException: If updating the execution in the repository fails.
+            AppException: With ErrorCodes.PROGRESS_UPDATE_FAILED if updating the execution in the repository fails.
         """
         try:
-            now_dt = datetime.now(timezone.utc)
+            now_dt = datetime.now(UTC)
             payload = ExecutionUpdateDTO(
                 status=STATUS_COMPLETED,
                 completed_at=now_dt,
@@ -189,7 +248,14 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to complete progress tracking for {self.execution_id}"
-            logger.error("[ProgressTracker] %s: %s - %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, e)
+            logger.error(
+                "[ProgressTracker] %s: %s - %s",
+                ErrorCodes.PROGRESS_UPDATE_FAILED.name,
+                msg,
+                e,
+                extra={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED.value},
+                exc_info=True,
+            )
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -198,19 +264,19 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
 
     @override
     async def fail(self, error: str) -> None:
-        """Sets status to 'failed' and saves error message.
+        """Set execution status to 'failed' and persist error message in the database.
 
         Args:
-            error: Error message.
+            error: Error message describing the failure.
 
         Returns:
             None
 
         Raises:
-            AppException: If updating the execution in the repository fails.
+            AppException: With ErrorCodes.PROGRESS_UPDATE_FAILED if updating the execution in the repository fails.
         """
         try:
-            now_dt = datetime.now(timezone.utc)
+            now_dt = datetime.now(UTC)
             payload = ExecutionUpdateDTO(
                 status=STATUS_FAILED,
                 error=error,
@@ -220,7 +286,14 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
             await self.repository.update_execution(self.execution_id, payload)
         except Exception as e:
             msg = f"Failed to report failure for {self.execution_id}"
-            logger.critical("[ProgressTracker] %s: %s - %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, e)
+            logger.error(
+                "[ProgressTracker] %s: %s - %s",
+                ErrorCodes.PROGRESS_UPDATE_FAILED.name,
+                msg,
+                e,
+                extra={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED.value},
+                exc_info=True,
+            )
             raise AppException(
                 message=msg,
                 status_code=500,
@@ -231,7 +304,7 @@ class DatabaseProgressTracker(ProgressTrackerProtocol):
 class InMemoryProgressTracker(ProgressTrackerProtocol):
     """Tracks progress in-memory via a callback function emitting ProgressState.
 
-    Used by short-lived API tasks like File Ingestion.
+    Used by short-lived API tasks such as file ingestion.
 
     Attributes:
         callback: Function receiving ProgressState updates.
@@ -239,7 +312,7 @@ class InMemoryProgressTracker(ProgressTrackerProtocol):
     """
 
     def __init__(self, callback: Callable[[ProgressState], None]) -> None:
-        """Initializes the tracker with a ProgressState callback.
+        """Initialize the tracker with a ProgressState callback.
 
         Args:
             callback: Function receiving ProgressState updates.
@@ -254,7 +327,7 @@ class InMemoryProgressTracker(ProgressTrackerProtocol):
         progress: int | None = None,
         error: str | None = None,
     ) -> None:
-        """Internal helper to emit structured ProgressState.
+        """Emit structured ProgressState to the registered callback.
 
         Args:
             status: Status string.
@@ -267,7 +340,7 @@ class InMemoryProgressTracker(ProgressTrackerProtocol):
         """
         state = ProgressState(
             status=status,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             current_step=current_step,
             progress=progress,
             error=error,
@@ -277,7 +350,7 @@ class InMemoryProgressTracker(ProgressTrackerProtocol):
 
     @override
     async def start(self) -> None:
-        """Signals start.
+        """Signal start of in-memory progress tracking.
 
         Returns:
             None
@@ -286,7 +359,7 @@ class InMemoryProgressTracker(ProgressTrackerProtocol):
 
     @override
     async def update(self, current_step: str, progress: int) -> None:
-        """Signals update.
+        """Signal progress update after validating step name and percentage bounds.
 
         Args:
             current_step: Description of current activity or step name.
@@ -294,12 +367,44 @@ class InMemoryProgressTracker(ProgressTrackerProtocol):
 
         Returns:
             None
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if current_step is empty
+                or progress is outside [0, 100].
         """
+        if not current_step or not current_step.strip():
+            msg = "InMemoryProgressTracker.update requires a non-empty current_step."
+            logger.error(
+                "[InMemoryProgressTracker] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            )
+        if not 0 <= progress <= 100:
+            msg = f"Invalid progress={progress} in InMemoryProgressTracker.update; must be within [0, 100]."
+            logger.error(
+                "[InMemoryProgressTracker] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            )
         self._emit(status=STATUS_RUNNING, current_step=current_step, progress=progress)
 
     @override
     async def complete(self) -> None:
-        """Signals completion.
+        """Signal completion of in-memory progress tracking.
 
         Returns:
             None
@@ -308,10 +413,10 @@ class InMemoryProgressTracker(ProgressTrackerProtocol):
 
     @override
     async def fail(self, error: str) -> None:
-        """Signals failure.
+        """Signal failure of in-memory progress tracking.
 
         Args:
-            error: Error message.
+            error: Error message describing the failure.
 
         Returns:
             None
@@ -320,7 +425,11 @@ class InMemoryProgressTracker(ProgressTrackerProtocol):
 
 
 class ProgressService:
-    """Service for real-time progress reporting via Redis."""
+    """Service for real-time progress reporting via Redis.
+
+    Attributes:
+        redis: Asynchronous Redis client instance.
+    """
 
     def __init__(self, redis_client: ArqCompatibleFakeRedis) -> None:
         """Initialize with a Redis client (ArqRedis, ArqCompatibleFakeRedis, or compatible).
@@ -331,38 +440,86 @@ class ProgressService:
         self.redis = redis_client
 
     async def emit_progress(self, execution_id: str, task_key: str, message: str, progress: float) -> None:
-        """Emits a progress event to Redis.
+        """Emit a progress event to Redis with TTL governed by Settings SSOT.
 
         Args:
-            execution_id: The ID of the execution.
-            task_key: Identifier for the task (e.g., 'pdf_gen').
+            execution_id: Opaque identifier of the execution.
+            task_key: Identifier for the task.
             message: Human-readable status message.
-            progress: Float between 0.0 and 1.0.
+            progress: Completion ratio between 0.0 and 1.0.
 
         Returns:
             None
 
         Raises:
-            AppException: If Redis connection fails.
+            AppException: With ErrorCodes.VALIDATION_FAILED if execution_id, task_key, or progress
+                is invalid, or ErrorCodes.PROGRESS_UPDATE_FAILED if Redis persistence fails.
         """
+        if not execution_id or not execution_id.strip():
+            msg = "ProgressService.emit_progress requires a non-empty execution_id."
+            logger.error(
+                "[ProgressService] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            )
+        if not task_key or not task_key.strip():
+            msg = "ProgressService.emit_progress requires a non-empty task_key."
+            logger.error(
+                "[ProgressService] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            )
+        if not 0.0 <= progress <= 1.0:
+            msg = f"Invalid progress={progress} in ProgressService.emit_progress; must be within [0.0, 1.0]."
+            logger.error(
+                "[ProgressService] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            )
+
+        settings = get_settings()
         key = f"progress:{execution_id}:{task_key}"
         payload = {
             "execution_id": execution_id,
             "task_key": task_key,
             "message": message,
             "progress": progress,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
 
         try:
-            # Set with 1-hour expiry
-            await self.redis.set(key, json.dumps(payload), ex=3600)
-
-            # Optionally publish for real-time websockets if needed
-            # await self.redis.publish(f"progress_updates:{execution_id}", json.dumps(payload))
+            await self.redis.set(key, json.dumps(payload), ex=settings.context_cache_passive_ttl_seconds)
         except Exception as e:
             msg = "Failed to emit progress update."
-            logger.error("[ProgressService] %s: %s - %s", ErrorCodes.PROGRESS_UPDATE_FAILED.name, msg, e)
+            logger.error(
+                "[ProgressService] %s: %s - %s",
+                ErrorCodes.PROGRESS_UPDATE_FAILED.name,
+                msg,
+                e,
+                extra={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED.value},
+                exc_info=True,
+            )
             raise AppException(
                 message=msg,
                 status_code=500,
