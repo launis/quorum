@@ -31,7 +31,7 @@
   - [x] @[backend_v2/models/domain/archivist.py]
   - [x] @[backend_v2/models/domain/causal.py]
   - [x] @[backend_v2/models/domain/coach.py]
-  - [ ] @[backend_v2/models/domain/evaluation.py]
+  - [x] @[backend_v2/models/domain/evaluation.py]
   - [ ] @[backend_v2/models/domain/falsifier.py]
   - [ ] @[backend_v2/models/domain/judge.py]
   - [ ] @[backend_v2/models/domain/knowledge.py]
