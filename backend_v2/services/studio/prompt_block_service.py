@@ -22,9 +22,16 @@ from backend_v2.services.studio.auth_validator import (
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["StudioPromptBlockService"]
+
 
 class StudioPromptBlockService:
-    """Domain Service for managing Prompt Blocks."""
+    """Domain Service for managing Prompt Blocks.
+
+    Attributes:
+        prompt_block_repo: Repository interface for prompt block persistence.
+        system_repo: Repository interface for system configuration and LLM strategy lookup.
+    """
 
     def __init__(
         self,
@@ -114,6 +121,7 @@ class StudioPromptBlockService:
                 initiator.id,
                 id,
                 e,
+                exc_info=True,
             )
             raise AppException(
                 message=f"Atomization failed: {e}",
@@ -171,7 +179,9 @@ class StudioPromptBlockService:
             The drafted PromptBlock.
 
         Raises:
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after save.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): If atomization fails prior to save.
         """
         new_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
         target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
@@ -202,6 +212,7 @@ class StudioPromptBlockService:
         Raises:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): If atomization fails prior to save.
         """
         block = await self.prompt_block_repo.get_prompt_block_by_id(id)
         if not block:

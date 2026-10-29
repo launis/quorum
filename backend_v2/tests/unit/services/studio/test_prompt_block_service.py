@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from backend_v2.exceptions import PermissionDeniedError, ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock
@@ -162,8 +162,44 @@ async def test_save_prompt_block_missing_after_save_raises(
         "get_prompt_block_by_id",
         ResourceNotFoundError(resource_type="prompt_block", resource_id="blk_1234567890abcdef"),
     )
-    with pytest.raises(ResourceNotFoundError):
+    try:
+        with pytest.raises(ResourceNotFoundError):
+            await prompt_block_service.save_prompt_block(admin_token, "blk_1234567890abcdef", sample_block)
+    finally:
+        prompt_block_repo.clear_faults()
+
+
+async def test_save_prompt_block_atomization_failure_raises(
+    prompt_block_service: StudioPromptBlockService,
+    admin_token: TokenData,
+    sample_block: PersonaPromptBlock,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def _fail_atomize(*_args: object, **_kwargs: object) -> PersonaPromptBlock:
+        raise RuntimeError("Atomizer engine failure")
+
+    monkeypatch.setattr(
+        "backend_v2.services.studio.prompt_block_service.PromptAtomizer.atomize_prompt_block",
+        _fail_atomize,
+    )
+    with pytest.raises(AppException) as exc_info:
         await prompt_block_service.save_prompt_block(admin_token, "blk_1234567890abcdef", sample_block)
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details == {"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL}
+
+
+async def test_save_prompt_block_id_mismatch_normalizes_id(
+    prompt_block_service: StudioPromptBlockService,
+    prompt_block_repo: InMemoryPromptBlockRepository,
+    admin_token: TokenData,
+    sample_block: PersonaPromptBlock,
+) -> None:
+    authoritative_id = "blk_abcdef1234567890"
+    res = await prompt_block_service.save_prompt_block(admin_token, authoritative_id, sample_block)
+    assert res.id == authoritative_id
+    persisted = await prompt_block_repo.get_prompt_block_by_id(authoritative_id)
+    assert persisted is not None
+    assert persisted.id == authoritative_id
 
 
 async def test_delete_prompt_block_success(
