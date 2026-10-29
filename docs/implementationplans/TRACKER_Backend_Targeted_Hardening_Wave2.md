@@ -16,11 +16,11 @@
 
 **Plan:** @[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md] (Askel 3.2: Vaihe 2c - Wave 2)
 
-- [ ] **[NOK] Execution:** `uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md --gate backend --model gemini-4-argon-medium --continue-on-failure`
+- [ ] **[NOK] Execution:** `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md --gate backend --model gemini-4-argon-medium --continue-on-failure`
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`
   - [x] @[backend_v2/context.py]
   - [x] @[backend_v2/core/rate_limit.py]
   - [x] @[backend_v2/core/template_processor.py]
@@ -58,13 +58,12 @@
   - [x] @[backend_v2/services/execution/resumption_service.py]
   - [x] @[backend_v2/services/execution/override_service.py]
 
-- [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]" --gate frontend --model gemini-4-argon-medium` (Zero frontend targets in backend targeted hardening).
+- [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]" --gate frontend --model gemini-4-argon-medium` (Zero frontend targets in backend targeted hardening).
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Final Verification Quality Gate
 - [ ] **[NOK]** Universal Backend Quality Gate:
   ```powershell
-  uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
+  $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
   ```
-

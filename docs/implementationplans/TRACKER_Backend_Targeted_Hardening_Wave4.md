@@ -15,11 +15,11 @@
 
 **Plan:** @[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md] (Askel 3.2d: Vaihe 2c-4)
 
-- [ ] **[NOK] Execution:** `uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md --gate backend --model gemini-4-argon-medium --continue-on-failure`
+- [ ] **[NOK] Execution:** `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md --gate backend --model gemini-4-argon-medium --continue-on-failure`
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`
   - [ ] @[backend_v2/models/domain/base.py]
   - [ ] @[backend_v2/models/domain/metadata.py]
   - [ ] @[backend_v2/models/domain/usage.py]
@@ -55,13 +55,13 @@
   - [ ] @[backend_v2/models/dtos/variance.py]
   - [ ] @[backend_v2/models/dtos/workflow_schema.py]
 
-- [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]" --gate frontend --model gemini-4-argon-medium` (Zero frontend targets in backend targeted hardening).
+- [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]" --gate frontend --model gemini-4-argon-medium` (Zero frontend targets in backend targeted hardening).
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Final Verification Quality Gate
 - [ ] **[NOK]** Universal Backend Quality Gate:
   ```powershell
-  uv run python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
+  $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
   ```
 

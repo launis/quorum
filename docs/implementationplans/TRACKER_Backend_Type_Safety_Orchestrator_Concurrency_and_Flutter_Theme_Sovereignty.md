@@ -43,7 +43,7 @@
 
 ### Post-Implementation Gates
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains (5,180 passed, 0 skipped, 0 commented-out tests verified).
-- [x] **[SKIPPED] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` on modified production backend files (Skipped per user mandate).
+- [x] **[SKIPPED] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Type_Safety_Orchestrator_Concurrency_and_Flutter_Theme_Sovereignty.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure` (Skipped per user mandate).
   - [x] @[backend_v2/llm/caching_service.py]
   - [x] @[backend_v2/models/domain/execution.py]
   - [x] @[backend_v2/models/domain/matrix.py]
@@ -66,7 +66,7 @@
   - [x] @[backend_v2/services/sdui_mapper_service.py]
   - [x] @[scripts/_ast_guardrails.py]
   - [x] @[scripts/audit_flutter_theme_sovereignty.py]
-- [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` on modified production frontend files (Skipped per user mandate).
+- [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Type_Safety_Orchestrator_Concurrency_and_Flutter_Theme_Sovereignty.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure` (Skipped per user mandate).
   - [x] @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]
   - [x] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
   - [x] @[client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart]
@@ -110,11 +110,12 @@
 
 ## Instructions for the Execution Agent
 
-1. **Step-by-Step Execution**: By default, execute ONE step at a time. Run localized tests via `backend_audit_loop.py` or `flutter_audit_loop.py` after each step, then stop and report status to the user.
+1. **Step-by-Step Execution**: By default, execute ONE step at a time. Run localized tests via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py` or `flutter_audit_loop.py` after each step, then stop and report status to the user.
 2. **Continuous Full-Auto Mode**: If the user provides `--full-auto` or grants explicit continuous permission, proceed autonomously across steps as long as quality gates pass 100%. Halt immediately on failure or when triggering `context_amnesia_prevention` handover.
 3. **Atomic Commit Mandate**: After each step's quality gate passes, instruct the user to execute an atomic `git commit` formatted according to Conventional Commits before proceeding.
 4. **Zero Permissive Typing & SSOT Compliance**: Enforce strict Pydantic V2/Freezed schemas and 100% typed domain transit. Never create runtime dictionaries (`d = {}`, `d[k] = v`, `_EvaluativeMatricesWrapperDTO`) in state reduction or service layers.
 5. **Theme Sovereignty Compliance**: In Flutter widgets, never instantiate raw `Color(...)`, `Colors.*`, or naked `TextStyle(...)`. Derive all colors from `Theme.of(context).colorScheme` or `AppSemanticColors`, and all text styles from `Theme.of(context).textTheme`.
+6. **Offline / No-Sync Hardening Execution**: Always prefix `uv run` hardening and audit commands with `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py ...` to prevent `uv` from attempting network/DNS metadata resolution (`os error 11001`) on direct GitHub wheel URLs in `pyproject.toml`.
 
 ## Requirements Traceability Matrix
 
