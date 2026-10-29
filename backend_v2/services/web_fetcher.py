@@ -1,113 +1,193 @@
 """Web Fetcher service for retrieving and cleaning external content."""
 
+from __future__ import annotations
+
 import logging
 import re
 
 import httpx
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+_MAX_EXTRACTED_TEXT_CHARS = 5000
+_MIN_EXTRACTED_TEXT_CHARS = 150
+_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) CognitiveQuorum/1.0"
+_PAYWALL_CUES: tuple[str, ...] = (
+    "access denied",
+    "log in to",
+    "login required",
+    "please verify you are a human",
+    "enable javascript",
+    "registration required",
+)
+
+__all__ = [
+    "WebFetcher",
+]
+
 
 class WebFetcher:
-    """Simple service to fetch text content from URLs.
+    """Service to fetch and sanitize plain text content from external HTTP(S) URLs.
 
-    Uses httpx to perform asynchronous non-blocking network requests.
+    Performs bounded HTTP GET requests via httpx and strips HTML markup for reference validation.
     """
 
     @staticmethod
-    def fetch_text(url: str, timeout: int = 5) -> str:
-        """Fetches the content of a URL synchronously using httpx and extracts visible text using naive parsing.
-
-        Useful for quick checkups or reference validation.
-        Limits output to first 5000 chars.
+    def _validate_request(url: str, timeout: int) -> None:
+        """Validate target URL scheme and connection timeout bounds before network execution.
 
         Args:
-            url (str): The target URL.
-            timeout (int): Connection timeout in seconds.
+            url: Target HTTP or HTTPS URL string.
+            timeout: Connection timeout in seconds (must be > 0).
 
         Returns:
-            str: Cleaned plain text content.
+            None
 
         Raises:
-            AppException: If fetching fails or URL is invalid.
+            AppException: With ErrorCodes.URL_INVALID (400) if URL does not start with http:// or https://,
+                or ErrorCodes.VALIDATION_FAILED (400) if timeout is less than or equal to 0.
         """
+        if not url or not url.strip() or not url.startswith(("http://", "https://")):
+            msg = "URL must start with http:// or https://"
+            logger.error(
+                "[WebFetcher] %s: Invalid URL format: %s",
+                ErrorCodes.URL_INVALID.name,
+                msg,
+                extra={"error_code": ErrorCodes.URL_INVALID.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.URL_INVALID},
+            )
+
+        if timeout <= 0:
+            msg = f"Invalid timeout={timeout} for WebFetcher; must be a positive integer."
+            logger.error(
+                "[WebFetcher] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            )
+
+    @staticmethod
+    def _extract_clean_text(html_bytes: bytes) -> str:
+        """Decode raw HTML bytes and strip scripts, styles, and tags into bounded plain text.
+
+        Args:
+            html_bytes: Raw HTTP response body bytes.
+
+        Returns:
+            Cleaned plain text truncated to the maximum context character budget.
+        """
+        html_text = html_bytes.decode("utf-8", errors="ignore")
+
+        # Strip executable script and style blocks before tag removal to prevent code leakage into grounding text.
+        text = re.sub(r"<(script|style).*?>.*?</\1>", "", html_text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<.*?>", " ", text)
+        text = re.sub(r"\s+", " ", text).strip()
+
+        # Truncate extracted text to prevent downstream context window bloat.
+        return text[:_MAX_EXTRACTED_TEXT_CHARS]
+
+    @staticmethod
+    def _warn_if_compromised_content(final_text: str, url: str) -> None:
+        """Emit structured warnings when extracted text indicates a paywall, bot challenge, or empty page.
+
+        Args:
+            final_text: Sanitized plain text extracted from the response.
+            url: Source URL for diagnostic attribution.
+
+        Returns:
+            None
+        """
+        # Warn when extracted payload is too short or matches anti-bot/paywall patterns to surface grounding risks.
+        if len(final_text) < _MIN_EXTRACTED_TEXT_CHARS:
+            logger.warning(
+                "[WebFetcher] %s: Fetched content from '%s' is suspiciously short (%d chars). "
+                "It may be an empty page, bot-protection, or a paywall. RAG Grounding may be compromised.",
+                ErrorCodes.FETCH_FAILED.name,
+                url,
+                len(final_text),
+            )
+            return
+
+        lower_text = final_text.lower()
+        if any(cue in lower_text for cue in _PAYWALL_CUES):
+            logger.warning(
+                "[WebFetcher] %s: Fetched content from '%s' contains keywords indicative of a paywall, "
+                "redirect, or anti-bot challenge. RAG Grounding may be compromised.",
+                ErrorCodes.FETCH_FAILED.name,
+                url,
+            )
+
+    @staticmethod
+    def fetch_text(url: str, timeout: int | None = None) -> str:
+        """Fetch the content of a URL synchronously using httpx and extract visible plain text.
+
+        Useful for quick checkups or reference validation. Limits output to first 5000 characters.
+
+        Args:
+            url: The target HTTP or HTTPS URL.
+            timeout: Optional connection timeout in seconds; defaults to settings.mcp_discovery_timeout_seconds.
+
+        Returns:
+            Cleaned plain text content.
+
+        Raises:
+            AppException: With ErrorCodes.URL_INVALID (400) if the URL scheme is invalid,
+                ErrorCodes.VALIDATION_FAILED (400) if timeout is non-positive,
+                ErrorCodes.FETCH_FAILED (502) if network transport or HTTP status fails,
+                or ErrorCodes.INTERNAL_SERVER_ERROR (500) on unexpected runtime errors.
+        """
+        resolved_timeout = timeout if timeout is not None else get_settings().mcp_discovery_timeout_seconds
+        WebFetcher._validate_request(url, resolved_timeout)
+
         try:
-            if not url.startswith(("http://", "https://")):
-                raise ValueError("URL must start with http:// or https://")
+            headers = {"User-Agent": _USER_AGENT}
 
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) CognitiveQuorum/1.0"}
-
-            with httpx.Client(headers=headers, timeout=timeout, follow_redirects=True) as client:
+            with httpx.Client(headers=headers, timeout=resolved_timeout, follow_redirects=True) as client:
                 response = client.get(url)
                 response.raise_for_status()
-                html_bytes = response.content
-                html_text = html_bytes.decode("utf-8", errors="ignore")
+                final_text = WebFetcher._extract_clean_text(response.content)
+                WebFetcher._warn_if_compromised_content(final_text, url)
 
-                # Naive HTML to Text
-                # 1. Remove scripts and styles
-                text = re.sub(r"<(script|style).*?>.*?</\1>", "", html_text, flags=re.DOTALL | re.IGNORECASE)
-                # 2. Remove tags
-                text = re.sub(r"<.*?>", " ", text)
-                # 3. Collapse whitespace
-                text = re.sub(r"\s+", " ", text).strip()
-
-                final_text = text[:5000]  # Limit context size
-
-                # Epic 12: Paywall and Empty Result Warning
-                if len(final_text) < 150:
-                    logger.warning(
-                        "[WebFetcher] %s: Fetched content from '%s' is suspiciously short (%d chars). "
-                        "It may be an empty page, bot-protection, or a paywall. RAG Grounding may be compromised.",
-                        ErrorCodes.FETCH_FAILED.name,
-                        url,
-                        len(final_text),
-                    )
-                else:
-                    lower_text = final_text.lower()
-                    paywall_cues = [
-                        "access denied",
-                        "log in to",
-                        "login required",
-                        "please verify you are a human",
-                        "enable javascript",
-                        "registration required",
-                    ]
-                    if any(cue in lower_text for cue in paywall_cues):
-                        logger.warning(
-                            "[WebFetcher] %s: Fetched content from '%s' contains keywords indicative of a paywall, "
-                            "redirect, or anti-bot challenge. RAG Grounding may be compromised.",
-                            ErrorCodes.FETCH_FAILED.name,
-                            url,
-                        )
-
-                # Log success without logging potentially sensitive content
+                # Emit telemetry summary without logging raw payload content to enforce DLP.
                 logger.info("[WebFetcher] Successfully fetched '%s' (%d chars).", url, len(final_text))
-
                 return final_text
 
-        except ValueError as e:
-            # Invalid URL format
-            logger.error("[WebFetcher] %s: Invalid URL format: %s", ErrorCodes.URL_INVALID.name, e, exc_info=True)
-            raise AppException(message=str(e), status_code=400, details={"error_code": ErrorCodes.URL_INVALID}) from e
-
         except httpx.RequestError as e:
-            # Network or Protocol error
-            logger.error("[WebFetcher] %s: Failed to fetch %s: %s", ErrorCodes.FETCH_FAILED.name, url, e, exc_info=True)
+            logger.error(
+                "[WebFetcher] %s: Failed to fetch %s: %s",
+                ErrorCodes.FETCH_FAILED.name,
+                url,
+                e,
+                extra={"error_code": ErrorCodes.FETCH_FAILED.value},
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Failed to fetch content from {url}",
-                status_code=502,  # Bad Gateway / Upstream Error
+                status_code=502,
                 details={"error_code": ErrorCodes.FETCH_FAILED, "original_error": str(e)},
             ) from e
 
         except httpx.HTTPStatusError as e:
-            # HTTP Error response
             logger.error(
                 "[WebFetcher] %s: HTTP error %s for %s",
                 ErrorCodes.FETCH_FAILED.name,
                 e.response.status_code,
                 url,
+                extra={"error_code": ErrorCodes.FETCH_FAILED.value},
                 exc_info=True,
             )
             raise AppException(
@@ -116,16 +196,16 @@ class WebFetcher:
                 details={"error_code": ErrorCodes.FETCH_FAILED, "original_error": str(e)},
             ) from e
 
-        except Exception as e:
-            # Unknown error
-            if isinstance(e, AppException):
-                raise e
+        except AppException:
+            raise
 
+        except Exception as e:
             logger.error(
                 "[WebFetcher] %s: Unexpected error for %s: %s",
                 ErrorCodes.INTERNAL_SERVER_ERROR.name,
                 url,
                 e,
+                extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                 exc_info=True,
             )
             raise AppException(
