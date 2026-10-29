@@ -32,7 +32,7 @@
   - [x] @[backend_v2/models/domain/causal.py]
   - [x] @[backend_v2/models/domain/coach.py]
   - [x] @[backend_v2/models/domain/evaluation.py]
-  - [ ] @[backend_v2/models/domain/falsifier.py]
+  - [x] @[backend_v2/models/domain/falsifier.py]
   - [ ] @[backend_v2/models/domain/judge.py]
   - [ ] @[backend_v2/models/domain/knowledge.py]
   - [ ] @[backend_v2/models/domain/logician.py]
