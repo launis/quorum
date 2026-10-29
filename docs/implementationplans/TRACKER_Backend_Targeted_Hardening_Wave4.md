@@ -24,7 +24,7 @@
   - [x] @[backend_v2/models/domain/metadata.py]
   - [x] @[backend_v2/models/domain/usage.py]
   - [x] @[backend_v2/models/domain/references.py]
-  - [ ] @[backend_v2/models/domain/retrieval.py]
+  - [x] @[backend_v2/models/domain/retrieval.py]
   - [ ] @[backend_v2/models/domain/hydration.py]
   - [ ] @[backend_v2/models/domain/interaction.py]
   - [ ] @[backend_v2/models/domain/integrity.py]
