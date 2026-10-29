@@ -41,7 +41,7 @@
   - [x] @[backend_v2/api/routers/system/telemetry.py]
   - [x] @[backend_v2/api/routers/system/configs.py]
   - [x] @[backend_v2/api/routers/output_profiles.py]
-  - [ ] @[backend_v2/api/routers/studio/model_registry.py]
+  - [x] @[backend_v2/api/routers/studio/model_registry.py]
   - [ ] @[backend_v2/api/routers/studio/prompt_blocks.py]
   - [ ] @[backend_v2/api/routers/studio/system_configs.py]
   - [ ] @[backend_v2/api/routers/studio/workflows.py]
