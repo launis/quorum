@@ -12,15 +12,20 @@ from backend_v2.models.dtos.studio import StepUpdateDTO
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["TaskBlueprintRepositoryImpl"]
+
 
 class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
     """Implementation of the Task Blueprint Repository.
 
     This repository is responsible for CRUD operations on task blueprints.
     It inherits from AppendOnlyRepositoryBase to support versioned documents.
+
+    Attributes:
+        driver: The underlying storage driver for database operations.
     """
 
-    def __init__(self, driver: StorageDriver):
+    def __init__(self, driver: StorageDriver) -> None:
         """Initializes the repository with a storage driver.
 
         Args:
@@ -38,7 +43,8 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
             The validated Step domain model if found, otherwise None.
 
         Raises:
-            AppException: If parsing fails.
+            AppException: If the database query or model validation fails
+                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         doc = await self.driver.get("task_blueprints", blueprint_id)
         if not doc:
@@ -46,7 +52,13 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
         try:
             return Step.model_validate(doc, strict=False)
         except Exception as e:
-            logger.error("Failed to parse Step blueprint %s: %s", blueprint_id, e, exc_info=True)
+            logger.error(
+                "[TaskBlueprintRepository] %s: Failed to parse Step blueprint %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                blueprint_id,
+                e,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Failed to parse task blueprint {blueprint_id} from database",
                 status_code=500,
@@ -58,6 +70,10 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             A list of validated Step domain models.
+
+        Raises:
+            AppException: If the database query or model validation fails
+                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         data = await self.driver.query("task_blueprints")
         blueprints: list[Step] = []
@@ -68,7 +84,13 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
                 item_id = "unknown"
                 if "id" in b:
                     item_id = str(b["id"])
-                logger.error("Failed to parse Step blueprint %s: %s", item_id, e, exc_info=True)
+                logger.error(
+                    "[TaskBlueprintRepository] %s: Failed to parse Step blueprint %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Failed to parse task blueprint {item_id} from database",
                     status_code=500,
@@ -86,11 +108,11 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
             The ID of the created task blueprint.
 
         Raises:
-            AppException: Propagated from driver if the upsert operation fails.
+            AppException: Propagated from driver if the upsert operation fails
+                (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         payload = blueprint_data.model_dump(mode="json")
-        doc_id = payload["id"]
-        return await self.driver.upsert("task_blueprints", payload, doc_id)
+        return await self.driver.upsert("task_blueprints", payload, blueprint_data.id)
 
     async def update_task_blueprint(self, blueprint_id: str, updates: StepUpdateDTO) -> bool:
         """Updates an existing task blueprint using versioned append-only logic.
@@ -103,7 +125,8 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
             True if the update was successful, False if the document was not found.
 
         Raises:
-            AppException: Propagated from driver if database operations fail.
+            AppException: Propagated from driver if database operations fail
+                (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         old_doc = await self.driver.get("task_blueprints", blueprint_id)
         if not old_doc:
@@ -133,7 +156,8 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
             True if successfully deleted, False if the document did not exist.
 
         Raises:
-            AppException: Propagated from driver if database operations fail.
+            AppException: Propagated from driver if database operations fail
+                (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         doc = await self.driver.get("task_blueprints", blueprint_id)
         if not doc:

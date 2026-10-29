@@ -7,7 +7,7 @@ import pytest
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.database.repositories.components.task_blueprint import TaskBlueprintRepositoryImpl
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.studio import StepUpdateDTO
@@ -16,19 +16,34 @@ from backend_v2.models.enums import CognitiveTier
 
 @pytest.fixture
 def driver() -> StorageDriver:
-    """Provides a PostgresStorageDriver instance."""
+    """Provide an in-memory PostgresStorageDriver instance for hermetic testing.
+
+    Returns:
+        Configured StorageDriver instance with pool initialization disabled.
+    """
     return PostgresStorageDriver(auto_initialize_pool=False)
 
 
 @pytest.fixture
 def repo(driver: StorageDriver) -> TaskBlueprintRepositoryImpl:
-    """Provides a TaskBlueprintRepositoryImpl instance with the PostgresStorageDriver."""
+    """Provide a TaskBlueprintRepositoryImpl instance backed by the stateful driver.
+
+    Args:
+        driver: Stateful in-memory storage driver.
+
+    Returns:
+        Configured TaskBlueprintRepositoryImpl instance.
+    """
     return TaskBlueprintRepositoryImpl(driver)
 
 
 @pytest.fixture
 def sample_step() -> Step:
-    """Valid Step domain model fixture."""
+    """Provide a valid Step domain model fixture.
+
+    Returns:
+        Validated Step domain model.
+    """
     return Step(
         id="stp_1234567890abcdef",
         slug="step_guard",
@@ -36,6 +51,7 @@ def sample_step() -> Step:
         cognitive_tier=CognitiveTier.FAST,
         criteria_block_ids=["blk_1234567890abcdef"],
         extraction_protocol_block_id="blk_1234567890abcdef",
+        mcp_tool_params={},
     )
 
 
@@ -82,22 +98,51 @@ async def test_update_task_blueprint(
 
 @pytest.mark.asyncio
 async def test_task_blueprint_parsing_failures(repo: TaskBlueprintRepositoryImpl, driver: StorageDriver) -> None:
-    """Negative: corrupted Step blueprint data raises AppException."""
-    await driver.upsert("task_blueprints", {"id": "invalid_id"}, "invalid_id")
+    """Negative: corrupted Step blueprint data raises AppException with VALIDATION_FAILED."""
+    await driver.upsert("task_blueprints", {"id": "stp_1111111111111111", "invalid": "data"}, "stp_1111111111111111")
 
-    with pytest.raises(AppException):
-        await repo.get_task_blueprint_by_id("invalid_id")
+    with pytest.raises(AppException) as exc_info_by_id:
+        await repo.get_task_blueprint_by_id("stp_1111111111111111")
+    assert exc_info_by_id.value.status_code == 500
+    assert exc_info_by_id.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "stp_1111111111111111" in exc_info_by_id.value.message
 
-    with pytest.raises(AppException):
+    with pytest.raises(AppException) as exc_info_all:
         await repo.get_all_task_blueprints()
+    assert exc_info_all.value.status_code == 500
+    assert exc_info_all.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "stp_1111111111111111" in exc_info_all.value.message
 
 
 @pytest.mark.asyncio
-async def test_task_blueprint_not_found(repo: TaskBlueprintRepositoryImpl, sample_step: Step) -> None:
-    """Negative: tests not found branches for get, update, and delete."""
-    assert await repo.get_task_blueprint_by_id("stp_missing") is None
+async def test_get_all_task_blueprints_corrupted_without_id_raises_app_exception(
+    repo: TaskBlueprintRepositoryImpl,
+    driver: StorageDriver,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Negative boundary: get_all_task_blueprints logs 'unknown' when corrupted record lacks id."""
+
+    async def _query_corrupted(collection: str, *args: object, **kwargs: object) -> list[dict[str, str]]:
+        return [{"invalid_field": "corrupted"}]
+
+    monkeypatch.setattr(driver, "query", _query_corrupted)
+
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_all_task_blueprints()
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "unknown" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_task_blueprint_not_found(repo: TaskBlueprintRepositoryImpl) -> None:
+    """Negative boundary: tests not found branches for get, update, and delete."""
+    assert await repo.get_task_blueprint_by_id("stp_0000000000000000") is None
     assert (
-        await repo.update_task_blueprint("stp_missing", StepUpdateDTO(name=I18nText(translations={"en": "missing"})))
+        await repo.update_task_blueprint(
+            "stp_0000000000000000", StepUpdateDTO(name=I18nText(translations={"en": "missing"}))
+        )
         is False
     )
-    assert await repo.delete_task_blueprint("stp_missing") is False
+    assert await repo.delete_task_blueprint("stp_0000000000000000") is False
