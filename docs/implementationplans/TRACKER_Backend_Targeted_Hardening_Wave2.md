@@ -41,7 +41,7 @@
   - [x] @[backend_v2/hooks/input_processing.py]
   - [x] @[backend_v2/llm/directives.py]
   - [x] @[backend_v2/llm/prompt_builder.py]
-  - [ ] @[backend_v2/llm/adapters/deepseek_adapter.py]
+  - [x] @[backend_v2/llm/adapters/deepseek_adapter.py]
   - [ ] @[backend_v2/llm/adapters/mock_adapter.py]
   - [ ] @[backend_v2/llm/adapters/adapter_factory.py]
   - [ ] @[backend_v2/llm/adapters/anthropic_adapter.py]
