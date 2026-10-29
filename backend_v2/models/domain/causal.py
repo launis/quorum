@@ -20,6 +20,15 @@ from backend_v2.models.enums import LaxAbductiveConclusion, LaxPlausibilityLevel
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "CausalAnalysis",
+    "CausalAnalysisData",
+    "CausalDTO",
+    "CausalInput",
+    "CausalOutput",
+    "CounterfactualTest",
+]
+
 
 class CausalInput(V2CoreBase):
     """Strict input schema for CausalAnalystAgent.
@@ -30,7 +39,7 @@ class CausalInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(min_length=1, description="Mandatory chatlog to analyze.")]
     step_analyst: Annotated[
@@ -47,7 +56,7 @@ class CausalAnalysisData(V2CoreBase):
         observation: General observations.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     timeline_valid: Annotated[
         bool,
@@ -69,7 +78,7 @@ class CounterfactualTest(V2CoreBase):
         simulation_result: Simulation outcome.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     plausibility_score: Annotated[
         LaxPlausibilityLevel,
@@ -98,11 +107,11 @@ class CounterfactualTest(V2CoreBase):
             Validated float amount.
 
         Raises:
-            AppException: If score is out of bounds (VALIDATION_FAILED).
+            AppException: If score is out of bounds (ErrorCodes.VALIDATION_FAILED).
         """
         if not (1.0 <= v <= 3.0):
             msg = "plausibility_numeric must be between 1.0 and 3.0 inclusive"
-            logger.error("[CausalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[CausalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -126,7 +135,7 @@ class CausalAnalysis(V2CoreBase):
         hypothesis: Hypothesis.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     abductive_conclusion: Annotated[
         LaxAbductiveConclusion,
@@ -155,11 +164,11 @@ class CausalAnalysis(V2CoreBase):
             Validated float amount.
 
         Raises:
-            AppException: If score is out of bounds (VALIDATION_FAILED).
+            AppException: If score is out of bounds (ErrorCodes.VALIDATION_FAILED).
         """
         if not (1.0 <= v <= 3.0):
             msg = "abductive_score must be between 1.0 and 3.0 inclusive"
-            logger.error("[CausalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[CausalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -182,7 +191,7 @@ class CausalDTO(ReasoningTraceDTO):
         causal_analysis: Causal audit result.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     causal_analysis: Annotated[
         CausalAnalysis,
@@ -197,6 +206,4 @@ class CausalOutput(CausalDTO, ReasoningTrace):
         causal_analysis: Causal audit result inherited from CausalDTO.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    pass
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
