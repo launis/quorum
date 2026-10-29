@@ -43,7 +43,7 @@
   - [x] @[backend_v2/models/domain/source_verification.py]
   - [x] @[backend_v2/models/domain/synthesis.py]
   - [x] @[backend_v2/models/domain/workflow.py]
-  - [ ] @[backend_v2/models/prompt.py]
+  - [x] @[backend_v2/models/prompt.py]
   - [ ] @[backend_v2/models/dtos/system.py]
   - [ ] @[backend_v2/models/dtos/inputs.py]
   - [ ] @[backend_v2/models/dtos/prompt.py]
