@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Final, override
 
 from pydantic import BaseModel
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
-from backend_v2.models.llm import CachingPayloadResultDTO
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.settings import Settings
 
@@ -18,10 +19,15 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["OpenAICacheAdapter"]
 
+_DEFAULT_CACHE_READ_DISCOUNT: Final[float] = 0.50
+_LOW_REASONING_BUDGET_THRESHOLD: Final[int] = 2048
+_MEDIUM_REASONING_BUDGET_THRESHOLD: Final[int] = 4096
+
 
 class OpenAICacheAdapter(BaseLLMAdapter):
     """Caching and pricing adapter for OpenAI models."""
 
+    @override
     async def prepare_caching_payload(
         self, compiled_prompt: CompiledPrompt, model_name: str
     ) -> CachingPayloadResultDTO:
@@ -36,24 +42,56 @@ class OpenAICacheAdapter(BaseLLMAdapter):
 
         Returns:
             A CachingPayloadResultDTO containing flat messages and empty kwargs.
+
+        Raises:
+            AppException: VALIDATION_FAILED if model_name is empty or whitespace.
         """
+        if not model_name or not model_name.strip():
+            logger.error(
+                "[OpenAICacheAdapter] %s: Target model_name cannot be empty.",
+                ErrorCodes.VALIDATION_FAILED.name,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message="Target model_name cannot be empty for OpenAI cache payload preparation.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
         flat_messages = compiled_prompt.to_flat_messages()
         return CachingPayloadResultDTO(messages=flat_messages, kwargs={})
 
+    @override
     async def teardown_cache(self, workflow_run_id: str) -> None:
-        """No-Op teardown for OpenAI.
+        """Validate workflow_run_id and execute passive cache teardown for OpenAI.
 
         Args:
             workflow_run_id: The execution tracking workflow identifier.
-        """
-        pass
 
+        Raises:
+            AppException: VALIDATION_FAILED if workflow_run_id is empty or whitespace.
+        """
+        if not workflow_run_id or not workflow_run_id.strip():
+            logger.error(
+                "[OpenAICacheAdapter] %s: workflow_run_id cannot be empty during cache teardown.",
+                ErrorCodes.VALIDATION_FAILED.name,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message="workflow_run_id cannot be empty for OpenAI cache teardown.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
+    @override
     def calculate_cost(self, usage: TokenUsage, pricing_config: PricingConfig) -> TokenUsage:
         """Calculate the precise OpenAI cost and savings.
 
         Formula:
-            Cost = (regular_input_tokens * P_in) + (cached_tokens * P_in * discount_factor) + (output_tokens * P_out)
-            Savings = cached_tokens * P_in * savings_factor
+            Cost = (regular_input_tokens * P_in) + (cached_tokens * P_cached) + (output_tokens * P_out)
+            Savings = cached_tokens * max(0.0, P_in - P_cached)
 
         Args:
             usage: The source TokenUsage object.
@@ -64,37 +102,39 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         """
         p_in = pricing_config.input_token_price
         p_out = pricing_config.output_token_price
+        p_cached = (
+            pricing_config.cached_input_token_price
+            if pricing_config.cached_input_token_price is not None
+            else p_in * _DEFAULT_CACHE_READ_DISCOUNT
+        )
 
         prompt_tokens = usage.prompt_tokens
         completion_tokens = usage.completion_tokens
         cached_tokens = usage.cached_tokens
         reasoning_tokens = usage.reasoning_tokens
 
-        # OpenAI has fixed 50% read discount and 50% savings factor
-        discount_factor = 0.50
-        savings_factor = 0.50
-
         regular_input = max(0, prompt_tokens - cached_tokens)
 
         # Compute cost and savings
         cost_regular = regular_input * p_in
-        cost_cached = cached_tokens * p_in * discount_factor
+        cost_cached = cached_tokens * p_cached
         cost_output = completion_tokens * p_out
 
         cost_usd = cost_regular + cost_cached + cost_output
-        estimated_savings_usd = cached_tokens * p_in * savings_factor
-        total_tokens = usage.total_tokens
+        estimated_savings_usd = cached_tokens * max(0.0, p_in - p_cached)
 
         return TokenUsage(
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
-            total_tokens=total_tokens,
+            total_tokens=usage.total_tokens,
             cached_tokens=cached_tokens,
             reasoning_tokens=reasoning_tokens,
+            cache_creation_input_tokens=usage.cache_creation_input_tokens,
             cost_usd=cost_usd,
             estimated_savings_usd=estimated_savings_usd,
         )
 
+    @override
     def prepare_provider_kwargs(self, model_name: str) -> dict[str, Any]:
         """Prepare provider specific arguments for LiteLLM.
 
@@ -103,13 +143,29 @@ class OpenAICacheAdapter(BaseLLMAdapter):
 
         Returns:
             An empty dictionary as no special static arguments are needed.
+
+        Raises:
+            AppException: VALIDATION_FAILED if model_name is empty or whitespace.
         """
+        if not model_name or not model_name.strip():
+            logger.error(
+                "[OpenAICacheAdapter] %s: Target model_name cannot be empty.",
+                ErrorCodes.VALIDATION_FAILED.name,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message="Target model_name cannot be empty for OpenAI provider kwargs.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
         return {}
 
+    @override
     def prepare_kwargs(
         self,
         call_kwargs: dict[str, Any],
-        config: ModelProfile | None = None,
+        config: LLMProviderConfig | ModelProfile | None = None,
         settings: Settings | None = None,
     ) -> dict[str, Any]:
         """Prepare OpenAI specific kwargs, translating reasoning effort and stripping unsupported sampling params.
@@ -122,12 +178,18 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         Returns:
             The potentially modified call_kwargs dictionary.
         """
+        super().prepare_kwargs(call_kwargs, config=config, settings=settings)
+
         resolved_model: str = ""
         if "model" in call_kwargs and call_kwargs["model"]:
             resolved_model = str(call_kwargs["model"])
-        elif isinstance(config, ModelProfile):
+        elif isinstance(config, LLMProviderConfig | ModelProfile):
             resolved_model = config.model_name
         model_name = resolved_model.lower()
+
+        thinking_budget: int | None = None
+        if isinstance(config, ModelProfile) and config.thinking_budget_tokens is not None:
+            thinking_budget = int(config.thinking_budget_tokens)
 
         # Epistemic SSOT: Query authoritative LiteLLM registry dynamically instead of hardcoded prefix guessing
         is_reasoning_model = False
@@ -148,12 +210,8 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         except Exception as exc:
             if isinstance(exc, (KeyboardInterrupt, SystemExit)):
                 raise
-            # Fallback for local, mock, unmapped, or cutting-edge unindexed models
-            is_reasoning_model = any(prefix in model_name for prefix in ("o1", "o3", "o4", "o5", "gpt-5"))
-
-        thinking_budget: int | None = None
-        if isinstance(config, ModelProfile) and config.thinking_budget_tokens is not None:
-            thinking_budget = int(config.thinking_budget_tokens)
+            # For unindexed models, rely strictly on Studio-configured thinking_budget_tokens contract
+            is_reasoning_model = thinking_budget is not None and thinking_budget > 0
 
         if is_reasoning_model:
             # Map thinking budget tokens to reasoning effort
@@ -164,9 +222,9 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             elif settings is not None and settings.environment == "development":
                 call_kwargs["reasoning_effort"] = "low"
             elif thinking_budget is not None and thinking_budget > 0:
-                if thinking_budget <= 2048:
+                if thinking_budget <= _LOW_REASONING_BUDGET_THRESHOLD:
                     call_kwargs["reasoning_effort"] = "low"
-                elif thinking_budget <= 4096:
+                elif thinking_budget <= _MEDIUM_REASONING_BUDGET_THRESHOLD:
                     call_kwargs["reasoning_effort"] = "medium"
                 else:
                     call_kwargs["reasoning_effort"] = "high"
@@ -235,6 +293,7 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             for item in node:
                 self._apply_strict_schema_invariants(item)
 
+    @override
     def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, Any] | type[BaseModel]:
         """Convert a Pydantic model into OpenAI specific strict structured output format.
 
@@ -246,7 +305,23 @@ class OpenAICacheAdapter(BaseLLMAdapter):
 
         Returns:
             A dictionary matching LiteLLM's structured output format.
+
+        Raises:
+            AppException: VALIDATION_FAILED if response_model is not a Pydantic BaseModel subclass.
         """
+        if not isinstance(response_model, type) or not issubclass(response_model, BaseModel):
+            logger.error(
+                "[OpenAICacheAdapter] %s: response_model must be a Pydantic BaseModel subclass.",
+                ErrorCodes.VALIDATION_FAILED.name,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message="response_model must be a Pydantic BaseModel subclass for OpenAI structured output.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
         json_schema = response_model.model_json_schema()
         self._enforce_openai_strict_schema(json_schema)
 

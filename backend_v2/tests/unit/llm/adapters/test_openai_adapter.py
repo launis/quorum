@@ -1,19 +1,18 @@
-"""Unit tests for OpenAICacheAdapter strict JSON schema transformations and request preparations."""
+"""Unit, FinOps ROI precision, and ISTQB negative boundary tests for OpenAICacheAdapter."""
 
-from typing import Annotated, Literal
+from __future__ import annotations
+
+from typing import Annotated, Any, Literal, NoReturn
 
 import pytest
-from pydantic import BaseModel, Field, JsonValue
+from pydantic import BaseModel, Field, JsonValue, ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.openai_adapter import OpenAICacheAdapter
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
+from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
-
-
-def test_lazy_import_proof() -> None:
-    """Pytest sys.modules check is unreliable."""
-    pass
 
 
 @pytest.mark.asyncio
@@ -23,11 +22,11 @@ async def test_openai_adapter_preparer() -> None:
 
     prompt = CompiledPrompt(
         static_messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "User static content."},
+            LLMMessageDTO(role="system", content="You are a helpful assistant."),
+            LLMMessageDTO(role="user", content="User static content."),
         ],
         dynamic_messages=[
-            {"role": "assistant", "content": "Response."},
+            LLMMessageDTO(role="assistant", content="Response."),
         ],
     )
 
@@ -37,10 +36,38 @@ async def test_openai_adapter_preparer() -> None:
 
 
 @pytest.mark.asyncio
+async def test_openai_adapter_prepare_caching_payload_empty_model_raises_app_exception() -> None:
+    """Negative test: Verify prepare_caching_payload raises AppException on empty or whitespace model_name."""
+    adapter = OpenAICacheAdapter()
+    prompt = CompiledPrompt(
+        static_messages=[LLMMessageDTO(role="system", content="System instruction.")],
+        dynamic_messages=[LLMMessageDTO(role="user", content="Dynamic user query.")],
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await adapter.prepare_caching_payload(prompt, "   ")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
 async def test_openai_teardown_is_noop() -> None:
     """Verify teardown is successfully executed as No-Op."""
     adapter = OpenAICacheAdapter()
     await adapter.teardown_cache("run_12345")
+
+
+@pytest.mark.asyncio
+async def test_openai_adapter_teardown_cache_empty_run_id_raises_app_exception() -> None:
+    """Negative test: Verify teardown_cache raises AppException when workflow_run_id is empty or whitespace."""
+    adapter = OpenAICacheAdapter()
+
+    with pytest.raises(AppException) as exc_info:
+        await adapter.teardown_cache("   ")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 def test_openai_precision_calculation_scenarios() -> None:
@@ -57,7 +84,7 @@ def test_openai_precision_calculation_scenarios() -> None:
     assert result.cost_usd == pytest.approx(0.0125)
     assert result.estimated_savings_usd == 0.0
 
-    # Scenario 2: OpenAI with cached tokens (50% read discount)
+    # Scenario 2: OpenAI with cached tokens (50% default read discount)
     usage_cached = TokenUsage(prompt_tokens=1000, completion_tokens=500, total_tokens=1500, cached_tokens=600)
     result_cached = openai_adapter.calculate_cost(usage_cached, pricing)
     assert isinstance(result_cached, TokenUsage)
@@ -68,11 +95,36 @@ def test_openai_precision_calculation_scenarios() -> None:
     assert result_cached.cost_usd == pytest.approx(0.011)
     assert result_cached.estimated_savings_usd == pytest.approx(0.0015)
 
+    # Scenario 3: Explicit cached_input_token_price from LiteLLM PricingConfig SSOT
+    explicit_pricing = PricingConfig(
+        input_token_price=0.000005,
+        output_token_price=0.000015,
+        cached_input_token_price=0.00000125,
+    )
+    result_explicit = openai_adapter.calculate_cost(usage_cached, explicit_pricing)
+    # regular = 400 * 0.000005 = 0.002
+    # cached = 600 * 0.00000125 = 0.00075
+    # output = 500 * 0.000015 = 0.0075 -> total = 0.01025
+    # savings = 600 * (0.000005 - 0.00000125) = 0.00225
+    assert result_explicit.cost_usd == pytest.approx(0.01025)
+    assert result_explicit.estimated_savings_usd == pytest.approx(0.00225)
+
 
 def test_openai_adapter_prepare_provider_kwargs() -> None:
     """Verify prepare_provider_kwargs returns empty dictionary."""
     adapter = OpenAICacheAdapter()
     assert adapter.prepare_provider_kwargs("gpt-4o") == {}
+
+
+def test_openai_adapter_prepare_provider_kwargs_empty_model_raises_app_exception() -> None:
+    """Negative test: Verify prepare_provider_kwargs raises AppException on empty or whitespace model_name."""
+    adapter = OpenAICacheAdapter()
+
+    with pytest.raises(AppException) as exc_info:
+        adapter.prepare_provider_kwargs("")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 def test_openai_adapter_prepare_kwargs_reasoning_and_param_stripping() -> None:
@@ -100,6 +152,44 @@ def test_openai_adapter_prepare_kwargs_reasoning_and_param_stripping() -> None:
     assert "top_p" not in result
     assert "frequency_penalty" not in result
     assert "presence_penalty" not in result
+
+
+def test_openai_adapter_prepare_kwargs_resolves_model_from_config_and_unindexed_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify prepare_kwargs resolves model from config when missing in call_kwargs and handles unindexed models."""
+    import litellm
+
+    adapter = OpenAICacheAdapter()
+
+    def _raise_unindexed(_model: str) -> NoReturn:
+        raise ValueError("Model not indexed in litellm registry")
+
+    monkeypatch.setattr(litellm, "get_model_info", _raise_unindexed)
+
+    config = ModelProfile(
+        provider="openai",
+        model_name="openai/custom-reasoning-v1",
+        temperature=0.5,
+        thinking_budget_tokens=2048,
+    )
+    call_kwargs: dict[str, JsonValue] = {"temperature": 0.5}
+
+    result = adapter.prepare_kwargs(call_kwargs, config=config)
+    assert result["reasoning_effort"] == "low"
+    assert "temperature" not in result
+
+    provider_cfg = LLMProviderConfig(
+        id="cfg_1234567890abcdef",
+        provider="openai",
+        model_name="openai/gpt-4o-mini",
+        tpm_limit=10000,
+        rpm_limit=100,
+    )
+    call_kwargs_non_reasoning: dict[str, JsonValue] = {"temperature": 0.2}
+    result_non_reasoning = adapter.prepare_kwargs(call_kwargs_non_reasoning, config=provider_cfg)
+    assert "reasoning_effort" not in result_non_reasoning
+    assert result_non_reasoning["temperature"] == 0.2
 
 
 def test_openai_adapter_dev_environment_clamping() -> None:
@@ -143,6 +233,18 @@ def test_openai_adapter_prepare_structured_output() -> None:
     assert result["json_schema"]["name"] == "SampleOutputModel"
     assert result["json_schema"]["strict"] is True
     assert "properties" in result["json_schema"]["schema"]
+
+
+def test_openai_adapter_prepare_structured_output_invalid_type_raises_app_exception() -> None:
+    """Negative test: Verify prepare_structured_output raises AppException when given a non-BaseModel type."""
+    adapter = OpenAICacheAdapter()
+    invalid_model: Any = dict
+
+    with pytest.raises(AppException) as exc_info:
+        adapter.prepare_structured_output(invalid_model)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 def test_openai_adapter_strict_json_schema_compliance() -> None:
@@ -298,8 +400,9 @@ def test_openai_adapter_handles_empty_and_malformed_unions_safely() -> None:
             "empty_union": {"oneOf": []},
             "discriminated_empty": {"oneOf": [], "discriminator": {"propertyName": "type"}},
         },
+        "required": ["empty_union"],
     }
-    adapter._enforce_openai_strict_schema(raw_schema)
+    adapter._enforce_openai_strict_schema(raw_schema, known_discriminators={"type"})
 
     empty_union = raw_schema["properties"]["empty_union"]
     assert "oneOf" not in empty_union
@@ -371,6 +474,7 @@ def test_gpt_5_4_mini_zero_thinking_budget() -> None:
     call_kwargs: dict[str, JsonValue] = {
         "model": "openai/gpt-5.4-mini",
         "temperature": 0.0,
+        "reasoning_effort": "medium",
     }
 
     result = adapter.prepare_kwargs(call_kwargs, config=config, settings=dev_settings)
@@ -431,3 +535,12 @@ def test_gpt_5_4_reasoning_effort_mappings() -> None:
     )
     assert res_high["reasoning_effort"] == "high"
     assert "temperature" not in res_high
+
+
+def test_openai_adapter_negative_boundary_schema_validation() -> None:
+    """Negative boundary test: Verify negative token counts or negative prices fail fast at DTO boundary."""
+    with pytest.raises(ValidationError):
+        PricingConfig(input_token_price=-0.0001, output_token_price=0.000015)
+
+    with pytest.raises(ValidationError):
+        TokenUsage(prompt_tokens=-1, completion_tokens=10, total_tokens=9)
