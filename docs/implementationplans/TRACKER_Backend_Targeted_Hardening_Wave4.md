@@ -45,7 +45,7 @@
   - [x] @[backend_v2/models/domain/workflow.py]
   - [x] @[backend_v2/models/prompt.py]
   - [x] @[backend_v2/models/dtos/system.py]
-  - [ ] @[backend_v2/models/dtos/inputs.py]
+  - [x] @[backend_v2/models/dtos/inputs.py]
   - [ ] @[backend_v2/models/dtos/prompt.py]
   - [ ] @[backend_v2/models/dtos/prompt_context.py]
   - [ ] @[backend_v2/models/dtos/retrieval.py]
