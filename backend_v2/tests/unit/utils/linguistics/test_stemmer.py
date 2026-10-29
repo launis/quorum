@@ -1,10 +1,14 @@
 """Unit tests for StemmerService, SnowballLanguageStemmer, and PassthroughStemmer."""
 
+import pytest
+from pydantic import ValidationError
+
 from backend_v2.utils.linguistics.stemmer import (
     DEFAULT_MIN_COVERAGE,
     MIN_STEMMABLE_WORD_LENGTH,
     PassthroughStemmer,
     SnowballLanguageStemmer,
+    StemmedMatchResultDTO,
     StemmerService,
 )
 
@@ -216,3 +220,19 @@ def test_stemmer_continuous_normalized_source_matching() -> None:
     assert result.total_content_stems == 3
     assert len(result.matched_content_stems) == 3
     assert result.matched_source_span is not None
+
+
+def test_stemmed_match_result_dto_strict_validation_negative() -> None:
+    """Negative test asserting StemmedMatchResultDTO rejects extra fields and loose type coercion."""
+    with pytest.raises(ValidationError):
+        StemmedMatchResultDTO.model_validate_json(
+            '{"is_match": true, "similarity_score": 100.0, "matched_content_stems": ["johtajuu"], '
+            '"total_content_stems": "invalid_int", "content_coverage_ratio": 1.0}'
+        )
+
+    with pytest.raises(ValidationError):
+        StemmedMatchResultDTO.model_validate_json(
+            '{"is_match": true, "similarity_score": 100.0, "matched_content_stems": ["johtajuu"], '
+            '"total_content_stems": 1, "content_coverage_ratio": 1.0, "unexpected_extra_field": "forbidden"}'
+        )
+
