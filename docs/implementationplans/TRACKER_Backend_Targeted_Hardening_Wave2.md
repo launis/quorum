@@ -50,7 +50,7 @@
   - [x] @[backend_v2/services/web_fetcher.py]
   - [x] @[backend_v2/services/ingress/multi_channel_ingress_service.py]
   - [x] @[backend_v2/services/source_verification_service.py]
-  - [ ] @[backend_v2/services/factories/output_profile_factory.py]
+  - [x] @[backend_v2/services/factories/output_profile_factory.py]
   - [ ] @[backend_v2/services/studio/auth_validator.py]
   - [ ] @[backend_v2/services/studio/prompt_block_service.py]
   - [ ] @[backend_v2/services/studio/output_profile_service.py]
