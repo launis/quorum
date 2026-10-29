@@ -77,7 +77,7 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
 
     <step id="5">COMPLETION GAP ANALYSIS: 
       - Identify any "Orphan Requirements".
-      - TASK TRACKER VERIFICATION: Verify all implementation checkboxes are marked `[x]` and run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_plan_tracker_parity.py --plan <plan_path> --tracker <tracker_path>`.
+      - TASK TRACKER VERIFICATION: Verify all implementation checkboxes are marked `[x]` and run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_plan_tracker_parity.py --plan <plan_path> --tracker <tracker_path>`. When auditing PR or CI deliverables, use `@[.agents/plugins/github/mcp_config.json]` (`quorum-github-mcp`: `get_pull_request`, `get_pull_request_status`, `list_issues`) to verify PR review comments and CI status.
     </step>
 
     <step id="6">RETROSPECTIVE REPORT GENERATION &amp; HANDOVER: 

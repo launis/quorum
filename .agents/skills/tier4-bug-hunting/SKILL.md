@@ -88,7 +88,7 @@ description: Tier 4 (Bug Hunting & RCA) - Skill for deep root cause analysis and
     <step id="1">PRIOR FIX VERIFICATION &amp; OBSERVABILITY FIRST (Root Cause Analysis):
       - Run `git log --oneline -n 30` to verify if a recent commit already addresses this bug.
       - Do NOT modify any business logic files until the Root Cause has been mathematically proven via a failing unit test.
-      - If a `--context` parameter is provided or `crash_context.json` exists in `<appDataDir>\brain\<conversation-id>/scratch/crash_context.json`, ingest it via `view_file`. Otherwise inspect `data/files/traces/latest_execution_trace.json` or bounded `frozen_context.json` / `backend_debug.log` ranges using `grep_search` first and `view_file` with `StartLine`/`EndLine`.
+      - If a `--context` parameter is provided or `crash_context.json` exists in `<appDataDir>\brain\<conversation-id>/scratch/crash_context.json`, ingest it via `view_file`. Otherwise inspect `data/files/traces/latest_execution_trace.json`, query live OpenTelemetry spans via `@[.agents/plugins/logfire/mcp_config.json]` (`logfire` MCP: `query_spans`, `get_trace`), inspect read-only PostgreSQL 19 state via `@[.agents/plugins/postgres/mcp_config.json]` (`quorum-postgres-mcp`), inspect Flutter analyzer/runtime errors via `@[.agents/plugins/flutter-dart/mcp_config.json]` (`quorum-dart-mcp`), or read bounded `frozen_context.json` / `backend_debug.log` ranges using `grep_search` first and `view_file` with `StartLine`/`EndLine`.
     </step>
     
     <step id="2">REGRESSION TEST MANDATE (RED):

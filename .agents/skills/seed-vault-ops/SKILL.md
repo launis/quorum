@@ -30,7 +30,7 @@ description: Safely inspect, validate, sanitize, and re-seed seed_data.json and 
 
   <execution_protocol>
     <step id="1" name="LOAD SEED VAULT RULES &amp; BOUNDED TARGETING">
-      <action>Load `@[.agents/rules/03_seed_vault.md]` via `view_file`. Use `grep_search` on `@[backend_v2/seed/seed_data.json]` to locate the exact line bounds of the target entity ID.</action>
+      <action>Load `@[.agents/rules/03_seed_vault.md]` via `view_file`. Use `grep_search` on `@[backend_v2/seed/seed_data.json]` to locate the exact line bounds of the target entity ID. When inspecting live PostgreSQL 19 seeded tables, JSONB columns, or query plans, use the read-only `@[.agents/plugins/postgres/mcp_config.json]` (`quorum-postgres-mcp`, `DB_READONLY=true`) instead of writing ad-hoc scripts.</action>
     </step>
 
     <step id="2" name="SANITIZE &amp; VALIDATE SEED VAULT">

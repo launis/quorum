@@ -29,8 +29,8 @@ description: Diagnose LLM token usage, context caching hits, execution latency, 
   </architectural_invariants>
 
   <execution_protocol>
-    <step id="1" name="INSPECT LATEST OTLP TRACE SNAPSHOT">
-      <action>Inspect `data/files/traces/latest_execution_trace.json` using bounded `view_file` (or `grep_search` for `"status": "ERROR"`, `exception.type`, `gen_ai.usage`, or `gen_ai.cache.hit`) to identify failing root/child spans, model names, and latency bottlenecks.</action>
+    <step id="1" name="INSPECT LATEST OTLP TRACE SNAPSHOT &amp; LOGFIRE MCP">
+      <action>Inspect `data/files/traces/latest_execution_trace.json` using bounded `view_file` (or `grep_search` for `"status": "ERROR"`, `exception.type`, `gen_ai.usage`, or `gen_ai.cache.hit`), or query live OpenTelemetry spans via the `@[.agents/plugins/logfire/mcp_config.json]` (`logfire` MCP: `query_spans`, `get_trace`) to identify failing root/child spans, model names, and latency bottlenecks.</action>
     </step>
 
     <step id="2" name="BOUNDED PROMPT &amp; FROZEN CONTEXT INSPECTION">

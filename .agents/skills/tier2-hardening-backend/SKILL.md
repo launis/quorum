@@ -55,7 +55,7 @@ description: Tier 2 (Backend Hardening) - Step-by-step auditing loop for Python 
       <constraint name="DOMAIN_KI_RESOLUTION_GATE">
         BEFORE auditing or modifying ANY target file, you MUST inspect the Knowledge Item (KI) summaries injected at the start of the conversation:
         1. Identify the target file's subsystem domain (e.g., quotes/evidence -> `ki_structured_forensic_quotes.md`, DAG/topology -> `ki_topological_engine.md`, SDUI/views -> `ki_dumb_painter_sdui.md`, scoring/strictness -> `ki_unified_matrix_scoring_strictness.md`, prompt architecture -> `ki_prompt_orchestration_and_matrix_evaluation.md`).
-        2. If a relevant KI exists, you MUST read the artifact file via `view_file` BEFORE auditing or refactoring the code.
+        2. If a relevant KI exists, you MUST read the artifact file via `view_file` BEFORE auditing or refactoring the code. When auditing LLM provider adapters (`backend_v2/llm/adapters/`) or Google Cloud integrations, additionally consult `gemini_search_docs` / `gemini_get_doc` (`gemini-api` plugin) and `retrieving-developer-knowledge` (`google-developer-knowledge` plugin) while enforcing `@[.agents/rules/05_llm_architecture.md]`.
         3. Extract and enforce the subsystem-specific architectural invariants and constraints from the KI, adding them to the file's inspection checklist alongside the 6 Core Architecture Invariants.
       </constraint>
 

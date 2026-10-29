@@ -1,8 +1,9 @@
 """ISTQB Unit Test Suite for scripts/audit_skills_architecture.py.
 
 Verifies SKL001 (legacy workflow remnant), SKL002 (missing/mismatched skill frontmatter),
-SKL003 (broken relative skill resource/reference links), and SKL004 (always_on rule
-byte budget boundary value analysis).
+SKL003 (broken relative skill resource/reference links), SKL004 (always_on rule
+byte budget boundary value analysis), and SKL005 (workspace plugin manifest and MCP
+security invariants).
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from scripts.audit_skills_architecture import (
     MAX_ALWAYS_ON_BYTES,
     MAX_SINGLE_RULE_FILE_BYTES,
     REQUIRED_QUORUM_SKILLS,
+    REQUIRED_WORKSPACE_PLUGINS,
     SkillsArchitectureAuditor,
     SkillsAuditFindingDTO,
     SkillsAuditSummaryDTO,
@@ -24,7 +26,7 @@ from scripts.audit_skills_architecture import (
 
 
 def _populate_compliant_workspace(root: Path) -> None:
-    """Create a compliant workspace tree with all 27 required skills and valid rules.
+    """Create a compliant workspace tree with all required skills, plugins, and rules.
 
     Args:
         root: Temporary directory root representing the repository.
@@ -58,9 +60,43 @@ def _populate_compliant_workspace(root: Path) -> None:
             encoding="utf-8",
         )
 
+    plugins_dir = root / ".agents" / "plugins"
+    for plugin_name in REQUIRED_WORKSPACE_PLUGINS:
+        p_dir = plugins_dir / plugin_name
+        p_dir.mkdir(parents=True, exist_ok=True)
+        (p_dir / "plugin.json").write_text(
+            f'{{"name": "quorum-{plugin_name}", "description": "Plugin {plugin_name}"}}\n',
+            encoding="utf-8",
+        )
+        if plugin_name == "logfire":
+            (p_dir / "mcp_config.json").write_text(
+                '{"mcpServers": {"logfire": {"url": "https://logfire-eu.pydantic.dev/mcp", '
+                '"headers": {"Authorization": "Bearer ${LOGFIRE_MCP_TOKEN}"}}}}\n',
+                encoding="utf-8",
+            )
+        elif plugin_name == "postgres":
+            (p_dir / "mcp_config.json").write_text(
+                '{"mcpServers": {"quorum-postgres-mcp": {"command": "npx", '
+                '"args": ["-y", "@modelcontextprotocol/server-postgres", "${POSTGRES_MCP_URL}"], '
+                '"env": {"DB_READONLY": "true"}}}}\n',
+                encoding="utf-8",
+            )
+        elif plugin_name == "github":
+            (p_dir / "mcp_config.json").write_text(
+                '{"mcpServers": {"quorum-github-mcp": {"command": "npx", '
+                '"args": ["-y", "@modelcontextprotocol/server-github"], '
+                '"env": {"GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"}}}}\n',
+                encoding="utf-8",
+            )
+        else:
+            (p_dir / "mcp_config.json").write_text(
+                '{"mcpServers": {"quorum-dart-mcp": {"command": "dart", "args": ["mcp-server"]}}}\n',
+                encoding="utf-8",
+            )
+
 
 def test_scenario_1_happy_path_valid_skills_and_rule_budget(tmp_path: Path) -> None:
-    """Verify compliant skills topology and always_on budget produce zero findings."""
+    """Verify compliant skills, plugins, and always_on budget produce zero findings."""
     _populate_compliant_workspace(tmp_path)
     auditor = SkillsArchitectureAuditor(repo_root=tmp_path)
     summary = auditor.run_audit()
@@ -68,6 +104,7 @@ def test_scenario_1_happy_path_valid_skills_and_rule_budget(tmp_path: Path) -> N
     assert isinstance(summary, SkillsAuditSummaryDTO)
     assert summary.findings == []
     assert summary.verified_skills_count == len(REQUIRED_QUORUM_SKILLS)
+    assert summary.verified_plugins_count == len(REQUIRED_WORKSPACE_PLUGINS)
     assert 0 < summary.always_on_total_bytes < MAX_ALWAYS_ON_BYTES
     assert main(["--repo-root", str(tmp_path)]) == 0
 
@@ -146,10 +183,11 @@ def test_scenario_4_negative_rule_budget_boundary_violation_skl004(
 
 
 def test_missing_skills_directory_and_dto_strictness(tmp_path: Path) -> None:
-    """Verify missing .agents/skills directory emits SKL002 and DTOs reject invalid fields."""
+    """Verify missing .agents/skills and .agents/plugins directories emit SKL002/SKL005 and DTOs reject invalid fields."""
     auditor = SkillsArchitectureAuditor(repo_root=tmp_path)
     summary = auditor.run_audit()
     assert any(f.rule_code == "SKL002" and f.file_path == ".agents/skills" for f in summary.findings)
+    assert any(f.rule_code == "SKL005" and f.file_path == ".agents/plugins" for f in summary.findings)
 
     with pytest.raises(ValidationError):
         SkillsAuditFindingDTO(
@@ -158,3 +196,66 @@ def test_missing_skills_directory_and_dto_strictness(tmp_path: Path) -> None:
             message="Invalid code",
             remediation="Fix code",
         )
+
+
+def test_scenario_5_negative_loose_mcp_config_and_missing_plugin_skl005(tmp_path: Path) -> None:
+    """Verify loose .agents/mcp_config.json and missing/malformed plugin manifests trigger SKL005."""
+    _populate_compliant_workspace(tmp_path)
+
+    # 1. Loose .agents/mcp_config.json at root
+    (tmp_path / ".agents" / "mcp_config.json").write_text('{"mcpServers": {}}\n', encoding="utf-8")
+
+    # 2. Malformed plugin.json inside logfire
+    (tmp_path / ".agents" / "plugins" / "logfire" / "plugin.json").write_text(
+        '{"name": ""}\n',
+        encoding="utf-8",
+    )
+
+    # 3. Missing mcp_config.json inside github
+    (tmp_path / ".agents" / "plugins" / "github" / "mcp_config.json").unlink()
+
+    # 4. Extra plugin directory missing plugin.json and having invalid mcp_config.json
+    extra_plugin = tmp_path / ".agents" / "plugins" / "broken-plugin"
+    extra_plugin.mkdir(parents=True, exist_ok=True)
+    (extra_plugin / "mcp_config.json").write_text("not-json", encoding="utf-8")
+
+    auditor = SkillsArchitectureAuditor(repo_root=tmp_path)
+    summary = auditor.run_audit()
+
+    skl005_findings = [f for f in summary.findings if f.rule_code == "SKL005"]
+    assert len(skl005_findings) >= 5
+    assert any(f.file_path == ".agents/mcp_config.json" for f in skl005_findings)
+
+
+def test_scenario_6_negative_plugin_hardcoded_credentials_localhost_and_readonly_skl005(
+    tmp_path: Path,
+) -> None:
+    """Verify hardcoded tokens, localhost URLs, and non-readonly postgres config trigger SKL005."""
+    _populate_compliant_workspace(tmp_path)
+
+    # 1. Hardcoded Authorization token and localhost URL in logfire
+    (tmp_path / ".agents" / "plugins" / "logfire" / "mcp_config.json").write_text(
+        '{"mcpServers": {"logfire": {"url": "http://localhost:8000/mcp", '
+        '"headers": {"Authorization": "Bearer sk_live_hardcoded_secret"}}}}\n',
+        encoding="utf-8",
+    )
+
+    # 2. Hardcoded token in env and missing command/url in github
+    (tmp_path / ".agents" / "plugins" / "github" / "mcp_config.json").write_text(
+        '{"mcpServers": {"quorum-github-mcp": {"env": {"GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_raw_secret"}}}}\n',
+        encoding="utf-8",
+    )
+
+    # 3. Postgres plugin missing DB_READONLY="true" and using hardcoded localhost URL in args
+    (tmp_path / ".agents" / "plugins" / "postgres" / "mcp_config.json").write_text(
+        '{"mcpServers": {"quorum-postgres-mcp": {"command": "npx", '
+        '"args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://127.0.0.1:5432/db"], '
+        '"env": {"DB_READONLY": "false"}}}}\n',
+        encoding="utf-8",
+    )
+
+    auditor = SkillsArchitectureAuditor(repo_root=tmp_path)
+    summary = auditor.run_audit()
+
+    skl005_findings = [f for f in summary.findings if f.rule_code == "SKL005"]
+    assert len(skl005_findings) >= 5

@@ -37,7 +37,7 @@ description: Enforce 1:1 Cross-Domain DTO, Jinja PDF, and Flutter Freezed SDUI s
       <action>Verify 1:1 field name, type, discriminator, and nullability alignment across:
         1. Python Pydantic V2 schema (`@[backend_v2/models/view/sdui.py]` or `backend_v2/models/dtos/`)
         2. Python SDUI adapter (`backend_v2/services/sdui/adapters/`) and PDF renderer (`@[backend_v2/services/pdf_generator.py]`)
-        3. Dart Freezed schema (`@[client_app_v2/lib/shared/models/sdui_block_dto.dart]` or feature model) and `build_runner` generated `.freezed.dart` / `.g.dart` artifacts
+        3. Dart Freezed schema (`@[client_app_v2/lib/shared/models/sdui_block_dto.dart]` or feature model) and `build_runner` generated `.freezed.dart` / `.g.dart` artifacts (use `@[.agents/plugins/flutter-dart/mcp_config.json]` `quorum-dart-mcp` `analyze_files` and `resolve_workspace_symbol` for instant pre-flight diagnostics during edits)
         4. Cross-language enums (`@[backend_v2/models/enums.py]` and `@[client_app_v2/lib/core/models/enums.dart]`)
       </action>
     </step>

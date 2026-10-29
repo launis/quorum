@@ -96,10 +96,10 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
 
       <action name="AUTONOMOUS REMEDIATION PIPELINE">
         STAGE 2A: STATIC STRUCTURAL, THEME &amp; LOCALIZATION HARDENING:
-        - Execute direct surgical code fixes and verify via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path>` (append `--build` ONLY when `@freezed`, `@riverpod`, `@JsonSerializable`, or `.arb` files were modified).
+        - Execute direct surgical code fixes. Use `@[.agents/plugins/flutter-dart/mcp_config.json]` (`quorum-dart-mcp`: `analyze_files`, `resolve_workspace_symbol`, `hover`) for rapid sub-second analyzer feedback during edits, and consult `retrieving-developer-knowledge` (`google-developer-knowledge` plugin) when verifying official Flutter/Dart 3 APIs. Verify completion via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path>` (append `--build` ONLY when `@freezed`, `@riverpod`, `@JsonSerializable`, or `.arb` files were modified).
 
         STAGE 2B: RUNTIME BEHAVIORAL &amp; WIDGET TEST HARDENING:
-        - Execute TDD RED-GREEN-REFACTOR in `client_app_v2/test/` and verify via `flutter_audit_loop.py`.
+        - Execute TDD RED-GREEN-REFACTOR in `client_app_v2/test/` (using `quorum-dart-mcp` `run_tests` for fast iteration) and verify final compliance via `flutter_audit_loop.py`.
       </action>
 
       <constraint name="DESTRUCTIVE VETO">You operate autonomously EXCEPT for deleting physical files, discarding user-facing routes, or altering public network schemas without authorization.</constraint>

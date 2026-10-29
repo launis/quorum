@@ -59,7 +59,7 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
 
   <execution_protocol level="0_research_plan">
     <step id="1" name="DYNAMIC CONTEXT ACQUISITION">
-      <action>Read target `[implementation_plan]`. Target referenced files in `backend_v2/` and `seed_data.json` with bounded `view_file`. Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_planner_output.py --epic [epic_path] --plan-dir [dir]` if Epic exists to verify line boundaries.</action>
+      <action>Read target `[implementation_plan]`. Target referenced files in `backend_v2/` and `seed_data.json` with bounded `view_file`. When red-teaming Gemini/Vertex AI, Google Cloud, or Flutter SDK integrations, verify upstream specifications via the `gemini-api` plugin (`gemini_search_docs`, `gemini_get_doc`) and `google-developer-knowledge` plugin (`retrieving-developer-knowledge` skill), and verify PostgreSQL 19 schemas via read-only `@[.agents/plugins/postgres/mcp_config.json]` (`quorum-postgres-mcp`). Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_planner_output.py --epic [epic_path] --plan-dir [dir]` if Epic exists to verify line boundaries.</action>
       <constraint>Do NOT read entire codebase blindly.</constraint>
     </step>
 

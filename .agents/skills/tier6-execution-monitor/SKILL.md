@@ -58,7 +58,7 @@ description: Tier 6 (Execution Monitor) - Real-time background log auditing, Fin
     
     <step id="2">SCHEDULE: Use the `schedule` tool to activate a cron task (`CronExpression="* * * * *"`). On wakeup, read the latest lines from `backend_debug.log`, `client_debug.log`, and `llm_telemetry.jsonl` using ONLY `view_file` with `StartLine` set to your saved cursor.</step>
     
-    <step id="3">ACCRUE &amp; ANALYZE: Use `manage_task status` to verify the background task is running. Inspect `data/files/traces/latest_execution_trace.json` using `view_file` to detect stalled workers or error states. Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python backend_v2/utils/finops_trace_analyzer.py --monitor <path_to_monitor_state.json>` to calculate cumulative sums and check for FinOps alerts.</step>
+    <step id="3">ACCRUE &amp; ANALYZE: Use `manage_task status` to verify the background task is running. Inspect `data/files/traces/latest_execution_trace.json` using `view_file` (or query live spans via `@[.agents/plugins/logfire/mcp_config.json]` `logfire` MCP `query_spans` / `get_trace`) to detect stalled workers or error states. Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python backend_v2/utils/finops_trace_analyzer.py --monitor <path_to_monitor_state.json>` to calculate cumulative sums and check for FinOps alerts.</step>
     
     <step id="4">REPORT (SILENT LOOP): Update a persistent `monitoring_dashboard.md` artifact in your scratch directory. ONLY output a message to the chat UI if a CRITICAL exception occurs or if the execution finalizes.</step>
     

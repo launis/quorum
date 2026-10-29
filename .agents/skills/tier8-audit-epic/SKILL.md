@@ -77,7 +77,7 @@ description: Tier 8 (Audit Epic) - System 2 reverse verification of an implement
     </step>
 
     <step id="5">COMPLETION GAP ANALYSIS: 
-      - Identify any "Orphan Requirements" requested by the Epic Phase that cannot be found or are only partially implemented.
+      - Identify any "Orphan Requirements" requested by the Epic Phase that cannot be found or are only partially implemented (and cross-check linked GitHub issues/PRs via `@[.agents/plugins/github/mcp_config.json]` `quorum-github-mcp` when applicable).
     </step>
 
     <step id="6">RETROSPECTIVE REPORT GENERATION &amp; HANDOVER: 
