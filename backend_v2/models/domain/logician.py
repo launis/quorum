@@ -4,6 +4,8 @@ This module contains the schemas for the Logician Agent,
 including Toulmin argumentation analysis and Walton schemes.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Annotated
 
@@ -16,6 +18,16 @@ from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.enums import LaxBloomLevel, LaxStrategicDepth
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "CognitiveLevel",
+    "LogicianData",
+    "LogicianInput",
+    "LogicianOutput",
+    "LogicianOutputDTO",
+    "ToulminComponent",
+    "WaltonScheme",
+]
 
 
 class LogicianInput(V2CoreBase):
@@ -30,7 +42,7 @@ class LogicianInput(V2CoreBase):
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     chat_log: Annotated[
         str,
@@ -61,7 +73,7 @@ class ToulminComponent(V2CoreBase):
         qualifier: Degree of certainty.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     id: Annotated[
         str,
@@ -118,7 +130,7 @@ class CognitiveLevel(V2CoreBase):
         description: Localized description.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     bloom_level: Annotated[
         LaxBloomLevel,
@@ -171,11 +183,11 @@ class CognitiveLevel(V2CoreBase):
             The validated score if within bounds.
 
         Raises:
-            AppException: If bloom_score is not between 0.0 and 6.0.
+            AppException: If bloom_score is not between 0.0 and 6.0 (ErrorCodes.VALIDATION_FAILED).
         """
         if not (0.0 <= v <= 6.0):
             msg = "bloom_score must be between 0.0 and 6.0"
-            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -191,11 +203,11 @@ class CognitiveLevel(V2CoreBase):
             The validated score if within bounds.
 
         Raises:
-            AppException: If strategic_score is not between 1.0 and 4.0.
+            AppException: If strategic_score is not between 1.0 and 4.0 (ErrorCodes.VALIDATION_FAILED).
         """
         if not (1.0 <= v <= 4.0):
             msg = "strategic_score must be between 1.0 and 4.0"
-            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
@@ -211,7 +223,7 @@ class WaltonScheme(V2CoreBase):
         critical_questions: Critical Questions posed.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     identified_scheme: Annotated[
         str,
@@ -243,7 +255,7 @@ class LogicianData(V2CoreBase):
         description: Localized description.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     toulmin_analysis: Annotated[
         list[ToulminComponent],
@@ -294,11 +306,11 @@ class LogicianData(V2CoreBase):
             The validated score if within bounds.
 
         Raises:
-            AppException: If toulmin_score is not between 0.0 and 6.0.
+            AppException: If toulmin_score is not between 0.0 and 6.0 (ErrorCodes.VALIDATION_FAILED).
         """
         if not (0.0 <= v <= 6.0):
             msg = "toulmin_score must be between 0.0 and 6.0"
-            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[LogicianModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED},
@@ -313,7 +325,7 @@ class LogicianOutputDTO(ReasoningTraceDTO):
         logician_data: Logic analysis results.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     logician_data: Annotated[
         LogicianData,
@@ -325,5 +337,10 @@ class LogicianOutputDTO(ReasoningTraceDTO):
 
 
 class LogicianOutput(LogicianOutputDTO, ReasoningTrace):
-    model_config = ConfigDict(strict=True, extra="forbid")
-    """Output schema for the Logician Agent (Domain Authority)."""
+    """Output schema for the Logician Agent (Domain Authority).
+
+    Attributes:
+        logician_data: Logic analysis results inherited from LogicianOutputDTO.
+    """
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
