@@ -24,6 +24,11 @@ from backend_v2.models.domain.references import (
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "generate_bibliography",
+    "generate_bibliography_hook",
+]
+
 
 def generate_bibliography(
     text_dump: str, knowledge_base: dict[str, str | int | float | bool | list[str]] | None
@@ -41,18 +46,18 @@ def generate_bibliography(
         A list of unique reference domain objects found in the text.
 
     Raises:
-        AppException: If bibliography generation fails.
+        AppException: If bibliography generation fails (ErrorCodes.CITATION_PARSING_FAILED).
     """
     try:
         # Stubbed implementation of ReferenceManager (Not ported to V2)
         refs: list[ReferenceDTO] = [
             ReferenceDTO(
                 source_id=f"ref_{uuid.uuid4().hex[:8]}",
-                title="[MOCK REFERENCE] Lähdeluettelon generaattori (ReferenceManager) - Ei Kytketty",
+                title="[MOCK REFERENCE] Bibliography Generator (ReferenceManager) - Not Connected",
                 snippet=(
-                    "Järjestelmän automaattinen lähdeluettelogeneraattori (Reference Hook) "
-                    "pyörii onnistuneesti, mutta itse tekstin Parsija-moottoria ei ole vielä "
-                    "asennettu V2-versioon. Tämä on Dummy-viite."
+                    "The automated bibliography generator (Reference Hook) executed successfully, "
+                    "but the text citation parser engine has not yet been connected in V2. "
+                    "This is a placeholder reference."
                 ),
                 url="https://github.com/v2-migration-pending",
             )
@@ -89,7 +94,9 @@ async def generate_bibliography_hook(state: HookState | None, deps: HookDependen
         A HookResult containing the generated bibliography in the state_delta.
 
     Raises:
-        AppException: If input validation fails or the hook execution encounters an error.
+        AppException: If input validation fails or the hook execution encounters an error
+            (ErrorCodes.INVALID_JSON_PAYLOAD, ErrorCodes.VALIDATION_FAILED,
+            ErrorCodes.CITATION_PARSING_FAILED, ErrorCodes.HOOK_EXECUTION_FAILED).
     """
     logger.debug("[ReferenceHook] Running generate_bibliography_hook...")
 
@@ -107,7 +114,12 @@ async def generate_bibliography_hook(state: HookState | None, deps: HookDependen
                     if val:
                         text_dump += str(val) + "\n"
         except ValidationError as e:
-            logger.error("[ReferenceHook] %s: Invalid inputs schema: %s", ErrorCodes.INVALID_JSON_PAYLOAD.name, e)
+            logger.error(
+                "[ReferenceHook] %s: Invalid inputs schema: %s",
+                ErrorCodes.INVALID_JSON_PAYLOAD.name,
+                e,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Invalid inputs schema: {e}",
                 status_code=400,
@@ -116,7 +128,7 @@ async def generate_bibliography_hook(state: HookState | None, deps: HookDependen
 
         if state.global_context_vars is None:
             msg = "state.global_context_vars is strictly required but missing."
-            logger.error("[ReferenceHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[ReferenceHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         if state.global_context_vars.step_coach:
@@ -129,7 +141,7 @@ async def generate_bibliography_hook(state: HookState | None, deps: HookDependen
         knowledge_base = state.global_context_vars.knowledge_base
 
         # 3. Generate References
-        # This might raise REFERENCES_GENERATION_FAILED (AppException)
+        # This might raise CITATION_PARSING_FAILED (AppException)
         generated_references: list[ReferenceDTO] = generate_bibliography(text_dump, knowledge_base)
 
         # 4. Map to Domain Models
