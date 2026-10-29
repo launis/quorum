@@ -37,7 +37,7 @@
   - [x] @[backend_v2/models/domain/knowledge.py]
   - [x] @[backend_v2/models/domain/logician.py]
   - [x] @[backend_v2/models/domain/overseer.py]
-  - [ ] @[backend_v2/models/domain/performativity.py]
+  - [x] @[backend_v2/models/domain/performativity.py]
   - [ ] @[backend_v2/models/domain/profiler.py]
   - [ ] @[backend_v2/models/domain/scoring.py]
   - [ ] @[backend_v2/models/domain/source_verification.py]
