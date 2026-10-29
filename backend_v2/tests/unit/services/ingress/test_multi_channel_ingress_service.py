@@ -10,7 +10,10 @@ import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import fitz
+import pymupdf4llm
 import pytest
+from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
@@ -65,6 +68,42 @@ class TestMultiChannelIngressService:
             await service.process_chat(corrupt_bytes, mock_system_repo, key="chat_log")
 
         assert excinfo.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    @pytest.mark.asyncio
+    async def test_process_chat_llm_parser_app_exception_passthrough(
+        self, mock_system_repo: InMemorySystemRepository
+    ) -> None:
+        """Negative: AppException raised by ChatParserService propagates directly without re-wrapping."""
+        mock_parser = MagicMock()
+        expected_exc = AppException(
+            message="Model configuration missing",
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "input_key": "chat_log"},
+        )
+        mock_parser.parse_pasted_chat = AsyncMock(side_effect=expected_exc)
+
+        service = MultiChannelIngressService(parser_service=mock_parser)
+        with pytest.raises(AppException) as excinfo:
+            await service.process_chat("Unstructured prose without colons", mock_system_repo, key="chat_log")
+
+        assert excinfo.value is expected_exc
+        assert excinfo.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+    @pytest.mark.asyncio
+    async def test_process_chat_llm_parser_unexpected_exception_wraps_parsing_failed(
+        self, mock_system_repo: InMemorySystemRepository
+    ) -> None:
+        """Negative: Unexpected runtime error in ChatParserService wraps into AppException(PARSING_FAILED)."""
+        mock_parser = MagicMock()
+        mock_parser.parse_pasted_chat = AsyncMock(side_effect=RuntimeError("Unexpected tokenizer crash"))
+
+        service = MultiChannelIngressService(parser_service=mock_parser)
+        with pytest.raises(AppException) as excinfo:
+            await service.process_chat("Unstructured prose without colons", mock_system_repo, key="chat_log")
+
+        assert excinfo.value.status_code == status.HTTP_400_BAD_REQUEST
+        assert excinfo.value.details["error_code"] == ErrorCodes.PARSING_FAILED.value
+        assert excinfo.value.details["input_key"] == "chat_log"
 
     @pytest.mark.asyncio
     async def test_process_chat_structured_json_channel(self, mock_system_repo: InMemorySystemRepository) -> None:
@@ -139,9 +178,6 @@ class TestMultiChannelIngressService:
 
         service = MultiChannelIngressService(pdf_extractor=mock_pdf_extractor)
 
-        import fitz
-
-        # Create minimal PDF bytes in memory
         doc = fitz.open()
         doc.new_page()
         pdf_bytes = doc.tobytes()
@@ -171,8 +207,6 @@ class TestMultiChannelIngressService:
             parser_service=mock_parser,
         )
 
-        import fitz
-
         doc = fitz.open()
         page = doc.new_page()
         page.insert_text((50, 100), "User: Question from doc\nAssistant: Answer from doc")
@@ -185,20 +219,44 @@ class TestMultiChannelIngressService:
         assert any(t.role == "ai" for t in result.conversation)
 
     @pytest.mark.asyncio
+    async def test_extract_pdf_channel_sync_picture_placeholder_falls_back_to_plain_text(
+        self, mock_system_repo: InMemorySystemRepository
+    ) -> None:
+        """Verify PDF extraction falls back to plain page text when pymupdf4llm emits picture placeholders."""
+        mock_pdf_extractor = MagicMock()
+        mock_pdf_extractor.is_conversation_pdf.return_value = False
+
+        service = MultiChannelIngressService(pdf_extractor=mock_pdf_extractor)
+
+        doc = fitz.open()
+        page = doc.new_page()
+        page.insert_text((50, 100), "User: Fallback plain text question\nAssistant: Fallback plain text answer")
+        pdf_bytes = doc.tobytes()
+        doc.close()
+
+        with patch.object(pymupdf4llm, "to_markdown", return_value="<!-- Start of picture text -->"):
+            result = await service.process_chat(pdf_bytes, mock_system_repo, key="chat_log")
+
+        assert len(result.conversation) == 2
+        assert result.conversation[0].role == "user"
+        assert "Fallback plain text question" in result.conversation[0].content
+
+    @pytest.mark.asyncio
     async def test_process_chat_pdf_offloaded_to_thread(self, mock_system_repo: InMemorySystemRepository) -> None:
         """Verify that _extract_pdf_channel_sync is offloaded via asyncio.to_thread."""
         mock_pdf_extractor = MagicMock()
         mock_dto = ChatHistoryDTO(conversation=[ChatMessageDTO(role="user", content="Threaded turn")])
         service = MultiChannelIngressService(pdf_extractor=mock_pdf_extractor)
 
-        import fitz
-
         doc = fitz.open()
         doc.new_page()
         pdf_bytes = doc.tobytes()
         doc.close()
 
-        with patch("asyncio.to_thread", wraps=asyncio.to_thread) as spy_to_thread:
+        with patch(
+            "backend_v2.services.ingress.multi_channel_ingress_service.asyncio.to_thread",
+            wraps=asyncio.to_thread,
+        ) as spy_to_thread:
             with patch.object(service, "_extract_pdf_channel_sync", return_value=mock_dto) as mock_sync_extract:
                 result = await service.process_chat(pdf_bytes, mock_system_repo, key="chat_log")
 

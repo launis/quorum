@@ -23,6 +23,8 @@ from backend_v2.services.ingress.pdf_extractor import PdfChatExtractorService
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["MultiChannelIngressService"]
+
 
 class MultiChannelIngressService:
     """Unified deterministic chat ingress dispatcher across multi-model channels.
@@ -93,9 +95,83 @@ class MultiChannelIngressService:
         finally:
             doc.close()
 
+    async def _decode_or_extract_input(
+        self,
+        raw_input: str | bytes | None,
+        key: str,
+        filename: str | None,
+    ) -> ChatHistoryDTO | str:
+        """Validate, decode, or extract PDF content from raw conversational input.
+
+        Args:
+            raw_input: Raw text string or raw file bytes.
+            key: Input key identifier.
+            filename: Optional source filename to assist in routing or logging.
+
+        Returns:
+            ChatHistoryDTO if PDF speech bubbles were directly extracted, otherwise normalized raw text string.
+
+        Raises:
+            AppException: With ErrorCodes.EMPTY_INPUT if input is None or whitespace-only, or
+                ErrorCodes.VALIDATION_FAILED if raw bytes fail UTF-8 decoding.
+        """
+        if raw_input is None:
+            logger.error(
+                "Null input received for chat key.",
+                extra={"error_code": ErrorCodes.EMPTY_INPUT.name, "input_key": key},
+            )
+            raise AppException(
+                message=f"Empty input received for {key}.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.EMPTY_INPUT.value, "input_key": key},
+            )
+
+        if isinstance(raw_input, bytes) and raw_input.startswith(b"%PDF"):
+            pdf_result = await asyncio.to_thread(
+                self._extract_pdf_channel_sync,
+                pdf_bytes=raw_input,
+                pdf_extractor=self._pdf_extractor,
+                key=key,
+                filename=filename,
+            )
+            if isinstance(pdf_result, ChatHistoryDTO):
+                return pdf_result
+            raw_text = pdf_result
+        elif isinstance(raw_input, bytes):
+            try:
+                raw_text = raw_input.decode("utf-8")
+            except UnicodeDecodeError as e:
+                logger.error(
+                    "[MultiChannelIngress] Failed to decode raw bytes as UTF-8 for %s: %s",
+                    key,
+                    e,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
+                )
+                raise AppException(
+                    message=f"Invalid byte encoding for {key}: expected UTF-8 text.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "input_key": key},
+                ) from e
+        else:
+            raw_text = raw_input
+
+        if not raw_text or not raw_text.strip(" \t\r\n"):
+            logger.error(
+                "Empty input received for chat key.",
+                extra={"error_code": ErrorCodes.EMPTY_INPUT.name, "input_key": key},
+            )
+            raise AppException(
+                message=f"Empty input received for {key}.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.EMPTY_INPUT.value, "input_key": key},
+            )
+
+        return raw_text
+
     async def process_chat(
         self,
-        raw_input: str | bytes,
+        raw_input: str | bytes | None,
         system_repo: ISystemRepository,
         key: str = "chat_log",
         filename: str | None = None,
@@ -116,54 +192,19 @@ class MultiChannelIngressService:
             ChatHistoryDTO containing validated dialogue turns.
 
         Raises:
-            AppException: If input is empty, malformed, or dialogue parsing fails.
+            AppException: With ErrorCodes.EMPTY_INPUT if input is empty,
+                ErrorCodes.VALIDATION_FAILED if byte decoding fails, or
+                ErrorCodes.PARSING_FAILED if LLM dialogue parsing fails.
         """
-        if raw_input is None:
-            logger.error(
-                "Null input received for chat key.",
-                extra={"error_code": ErrorCodes.EMPTY_INPUT.name, "input_key": key},
-            )
-            raise AppException(
-                message=f"Empty input received for {key}.",
-                status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": ErrorCodes.EMPTY_INPUT.value, "input_key": key},
-            )
-
-        # 1. PDF Vector Geometry Channel
-        if isinstance(raw_input, bytes) and raw_input.startswith(b"%PDF"):
-            pdf_result = await asyncio.to_thread(
-                self._extract_pdf_channel_sync,
-                pdf_bytes=raw_input,
-                pdf_extractor=self._pdf_extractor,
-                key=key,
-                filename=filename,
-            )
-            if isinstance(pdf_result, ChatHistoryDTO):
-                return pdf_result
-            raw_text = pdf_result
-        elif isinstance(raw_input, bytes):
-            try:
-                raw_text = raw_input.decode("utf-8")
-            except UnicodeDecodeError as e:
-                logger.error("[MultiChannelIngress] Failed to decode raw bytes as UTF-8: %s", e)
-                raise AppException(
-                    message=f"Invalid byte encoding for {key}: expected UTF-8 text.",
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "input_key": key},
-                ) from e
-        else:
-            raw_text = raw_input
-
-        if not raw_text or not raw_text.strip(" \t\r\n"):
-            logger.error(
-                "Empty input received for chat key.",
-                extra={"error_code": ErrorCodes.EMPTY_INPUT.name, "input_key": key},
-            )
-            raise AppException(
-                message=f"Empty input received for {key}.",
-                status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": ErrorCodes.EMPTY_INPUT.value, "input_key": key},
-            )
+        # 1. Binary / PDF Vector Geometry & Text Decoding Channel
+        resolved_input = await self._decode_or_extract_input(
+            raw_input=raw_input,
+            key=key,
+            filename=filename,
+        )
+        if isinstance(resolved_input, ChatHistoryDTO):
+            return resolved_input
+        raw_text = resolved_input
 
         # 2. Structured JSON Channel (handles pre-extracted JSON or direct JSON submissions)
         chat_dto = self._normalizer.try_parse_json(raw_text)
@@ -196,6 +237,7 @@ class MultiChannelIngressService:
                 "LLM chat parser failed for %s: %s",
                 key,
                 e,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.PARSING_FAILED.name, "input_key": key},
             )
             raise AppException(
