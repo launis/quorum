@@ -20,6 +20,15 @@ from backend_v2.models.enums import EthicalSeverity, LaxEthicalSeverity, LaxVeri
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "EthicalObservation",
+    "FactCheckRFI",
+    "OverseerDTO",
+    "OverseerData",
+    "OverseerInput",
+    "OverseerOutput",
+]
+
 
 class OverseerInput(V2CoreBase):
     """Strict input schema for FactualOverseerAgent.
@@ -32,7 +41,7 @@ class OverseerInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     chat_log: Annotated[
         str,
@@ -57,7 +66,7 @@ class FactCheckRFI(V2CoreBase):
         source_or_reasoning: Source or reasoning.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     claim: Annotated[
         str,
@@ -93,18 +102,22 @@ class FactCheckRFI(V2CoreBase):
             The stripped string.
 
         Raises:
-            AppException: If the string is empty or whitespace only.
+            AppException: If the string is empty or whitespace only (ErrorCodes.VALIDATION_FAILED).
         """
         if not v or not v.strip():
             msg = "Field cannot be empty"
-            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @computed_field
     @property
     def is_verified(self) -> bool:
-        """Boolean verification status."""
+        """Check whether the claim verification result is verified.
+
+        Returns:
+            True if verification_result is VerificationResult.VERIFIED, False otherwise.
+        """
         return self.verification_result == VerificationResult.VERIFIED
 
 
@@ -117,7 +130,7 @@ class EthicalObservation(V2CoreBase):
         description: Description.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     issue_type: Annotated[
         str,
@@ -153,18 +166,22 @@ class EthicalObservation(V2CoreBase):
             The stripped string.
 
         Raises:
-            AppException: If the string is empty or whitespace only.
+            AppException: If the string is empty or whitespace only (ErrorCodes.VALIDATION_FAILED).
         """
         if not v or not v.strip():
             msg = "Field cannot be empty"
-            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v.strip()
 
     @computed_field
     @property
     def is_critical(self) -> bool:
-        """Is the issue critical?"""
+        """Check whether the ethical observation severity is critical.
+
+        Returns:
+            True if severity is EthicalSeverity.CRITICAL, False otherwise.
+        """
         return self.severity == EthicalSeverity.CRITICAL
 
 
@@ -176,7 +193,7 @@ class OverseerData(V2CoreBase):
         ethical_issues: Ethical audit report.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     fact_checks: Annotated[
         list[FactCheckRFI],
@@ -206,11 +223,11 @@ class OverseerData(V2CoreBase):
             The validated list.
 
         Raises:
-            AppException: If the list is empty.
+            AppException: If the list is empty (ErrorCodes.VALIDATION_FAILED).
         """
         if not v:
             msg = "Ethical issues list cannot be empty"
-            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[OverseerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -222,7 +239,7 @@ class OverseerDTO(ReasoningTraceDTO):
         overseer_data: Ethics audit result.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     overseer_data: Annotated[
         OverseerData,
@@ -237,7 +254,7 @@ class OverseerOutput(OverseerDTO, ReasoningTrace):
     """Output schema for the Overseer Agent.
 
     Attributes:
-        No additional attributes.
+        overseer_data: Ethics audit result inherited from OverseerDTO.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
