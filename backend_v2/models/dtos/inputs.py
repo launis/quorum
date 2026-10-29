@@ -13,6 +13,14 @@ from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 
+__all__ = [
+    "Base64Attachment",
+    "GuidedReflectionInputDTO",
+    "IngressInputValue",
+    "ProcessedChatDTO",
+    "QuestionAnswerPair",
+]
+
 
 class QuestionAnswerPair(V2CoreBase):
     """Strictly typed Question-Answer pair for questionnaire blocks.
@@ -22,10 +30,10 @@ class QuestionAnswerPair(V2CoreBase):
         answer: The text of the answer.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    question: str
-    answer: str
+    question: Annotated[str, Field(description="The text of the question")]
+    answer: Annotated[str, Field(description="The text of the answer")]
 
 
 class GuidedReflectionInputDTO(V2CoreBase):
@@ -40,7 +48,7 @@ class GuidedReflectionInputDTO(V2CoreBase):
         metadata: Flat dictionary storing supplemental execution metadata.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     pairs: Annotated[list[QuestionAnswerPair], Field(min_length=1)]
     metadata: Annotated[dict[str, str], Field(default_factory=dict)]
@@ -74,7 +82,6 @@ class GuidedReflectionInputDTO(V2CoreBase):
         return "\n".join(parts).strip()
 
 
-# Phase 1, Step 1.3: Immutable DTO representing processed dialogue streams
 class ProcessedChatDTO(V2CoreBase):
     """Immutable, strongly typed DTO representing processed dialogue streams.
 
@@ -100,11 +107,11 @@ class Base64Attachment(V2CoreBase):
         content_type: Optional MIME type.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     filename: Annotated[str, Field(description="The name of the uploaded file")]
     content_base64: Annotated[str, Field(description="The base64 encoded binary content")]
-    content_type: Annotated[str | None, Field(default=None, description="Optional MIME type")] = None
+    content_type: Annotated[str | None, Field(description="Optional MIME type")] = None
 
 
 type IngressInputValue = Annotated[
