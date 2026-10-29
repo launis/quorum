@@ -7,7 +7,7 @@ from backend_v2.core.hook_registry import (
     GlobalContextVarsDTO,
     HookState,
 )
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.metrics import (
     analyze_text,
     calculate_behavioral_metrics,
@@ -63,7 +63,15 @@ def test_analyze_text_empty_and_valid() -> None:
 
 def test_calculate_control_ratio_speakers() -> None:
     assert calculate_control_ratio("") == 0.0
-    text = "user: Hello there\nai: Hi user\nkäyttäjä: How are you?\ntekoäly: I am fine"
+    assert calculate_control_ratio("user:   \nai:   ") == 0.0
+    text = (
+        "user: Hello there\n"
+        "continuation by user\n"
+        "ai: Hi user\n"
+        "continuation by ai\n"
+        "käyttäjä: How are you?\n"
+        "tekoäly: I am fine"
+    )
     ratio = calculate_control_ratio(text)
     assert 0.0 < ratio < 1.0
 
@@ -77,10 +85,12 @@ def test_calculate_behavioral_metrics() -> None:
     empty_metrics = calculate_behavioral_metrics("", settings)
     assert empty_metrics.automation_bias == 0.0
 
-    text = "user: ok\nuser: kyllä\nuser: tilaa\nuser: vahvista"
+    text = "user: ok\njatka\nai: Sure thing\nignored ai continuation\nuser: kyllä\nuser: tilaa\nuser: vahvista"
     metrics = calculate_behavioral_metrics(text, settings)
     assert metrics.automation_bias == 1.0
     assert metrics.say_do_gap == 1.0
+    assert metrics.illusion_of_competence == 1.0
+    assert metrics.imperative_command_count == 5
 
 
 def test_calculate_control_ratio_hook() -> None:
@@ -94,6 +104,7 @@ def test_calculate_control_ratio_hook() -> None:
     deps = MagicMock()
     res = calculate_control_ratio_hook(state, deps)
     assert res.success is True
+    assert res.state_delta is not None
     assert isinstance(res.state_delta.delta, InputControlRatioResultDTO)
     assert 0.0 < res.state_delta.delta.input_control_ratio < 1.0
 
@@ -140,3 +151,19 @@ def test_text_metrics_invalid_payload_raises() -> None:
     with pytest.raises(AppException) as exc:
         text_metrics(state, deps)
     assert exc.value.status_code == 400
+
+
+@patch("backend_v2.hooks.metrics.get_settings", side_effect=RuntimeError("Settings failure"))
+def test_text_metrics_internal_error_raises_app_exception(mock_settings: MagicMock) -> None:
+    state = HookState(
+        workflow_id="test",
+        execution_id="test",
+        inputs=ExecutionInputsDTO(raw_inputs={"chat_log": "user: Hello world"}),
+        global_context_vars=GlobalContextVarsDTO(),
+        metadata=ExecutionMetadata(),
+    )
+    deps = MagicMock()
+    with pytest.raises(AppException) as exc:
+        text_metrics(state, deps)
+    assert exc.value.status_code == 500
+    assert exc.value.details == {"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}

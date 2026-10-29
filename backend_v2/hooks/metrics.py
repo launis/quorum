@@ -5,7 +5,6 @@ All metrics rules adhere strictly to the Phase 9 architecture standards.
 
 import logging
 import re
-from typing import Any
 
 from fastapi import status
 from pydantic import ValidationError
@@ -25,9 +24,83 @@ from backend_v2.models.domain.metrics import (
     TextMetricsDTO,
 )
 from backend_v2.models.dtos.hook_delta import InputControlRatioResultDTO
-from backend_v2.settings import get_settings
+from backend_v2.settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
+
+_USER_HEADERS: tuple[str, ...] = ("user:", "human:", "k:", "k\u00e4ytt\u00e4j\u00e4:", "me:", "min\u00e4:")
+_AI_HEADERS: tuple[str, ...] = ("ai:", "assistant:", "t:", "teko\u00e4ly:", "gpt:", "bot:")
+_MECHANICAL_KEYWORDS: tuple[str, ...] = ("tilaa", "vahvista", "generoi", "ok", "kyll\u00e4", "jatka")
+
+__all__ = [
+    "analyze_text",
+    "calculate_behavioral_metrics",
+    "calculate_control_ratio",
+    "calculate_control_ratio_hook",
+    "text_metrics",
+]
+
+
+def _validate_metrics_payload(raw_inputs: object) -> MetricsPayloadDTO:
+    """Validates raw hook inputs against MetricsPayloadDTO schema.
+
+    Args:
+        raw_inputs: Unvalidated raw input structure from hook state.
+
+    Returns:
+        Validated metrics payload DTO instance.
+
+    Raises:
+        AppException: With ErrorCodes.INVALID_JSON_PAYLOAD if validation fails.
+    """
+    try:
+        return MetricsPayloadDTO.model_validate(raw_inputs)
+    except ValidationError as e:
+        msg = f"Invalid metrics inputs schema: {e}"
+        logger.error("[MetricsHook] %s: %s", ErrorCodes.INVALID_JSON_PAYLOAD.name, msg, exc_info=True)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD.value},
+        ) from e
+
+
+def _extract_user_lines(text: str) -> list[str]:
+    """Extracts user-authored dialogue lines from a conversation transcript.
+
+    Args:
+        text: The dialogue or document transcript.
+
+    Returns:
+        List of non-empty lines attributed to the user speaker.
+    """
+    user_lines: list[str] = []
+    current_speaker = "user"
+
+    for line in text.split("\n"):
+        lower_line = line.strip().lower()
+        started_new = False
+
+        for h in _USER_HEADERS:
+            if lower_line.startswith(h):
+                current_speaker = "user"
+                content = line[len(h) :].strip()
+                if content:
+                    user_lines.append(content)
+                started_new = True
+                break
+
+        if not started_new:
+            for h in _AI_HEADERS:
+                if lower_line.startswith(h):
+                    current_speaker = "ai"
+                    started_new = True
+                    break
+
+        if not started_new and current_speaker == "user" and line.strip():
+            user_lines.append(line.strip())
+
+    return user_lines
 
 
 def analyze_text(text: str) -> TextMetricsDTO:
@@ -108,13 +181,10 @@ def calculate_control_ratio(text: str) -> float:
     lines = text.split("\n")
     current_speaker = "user"
 
-    user_headers = ["user:", "human:", "k:", "k\u00e4ytt\u00e4j\u00e4:", "me:", "min\u00e4:"]
-    ai_headers = ["ai:", "assistant:", "t:", "teko\u00e4ly:", "gpt:", "bot:"]
-
     for line in lines:
         lower_line = line.strip().lower()
         started_new_block = False
-        for h in user_headers:
+        for h in _USER_HEADERS:
             if lower_line.startswith(h):
                 current_speaker = "user"
                 line_content = line[len(h) :]
@@ -123,7 +193,7 @@ def calculate_control_ratio(text: str) -> float:
                 break
 
         if not started_new_block:
-            for h in ai_headers:
+            for h in _AI_HEADERS:
                 if lower_line.startswith(h):
                     current_speaker = "ai"
                     line_content = line[len(h) :]
@@ -131,15 +201,12 @@ def calculate_control_ratio(text: str) -> float:
                     started_new_block = True
                     break
 
-        if not started_new_block and current_speaker:
+        if not started_new_block:
             clean_len = len(line.strip())
-            match current_speaker:
-                case "user":
-                    user_chars += clean_len
-                case "ai":
-                    ai_chars += clean_len
-                case _:
-                    pass
+            if current_speaker == "user":
+                user_chars += clean_len
+            else:
+                ai_chars += clean_len
 
     total_chars = user_chars + ai_chars
     if total_chars == 0:
@@ -148,7 +215,7 @@ def calculate_control_ratio(text: str) -> float:
     return round(user_chars / total_chars, 4)
 
 
-def calculate_behavioral_metrics(text: str, settings: Any) -> BehavioralMetricsDTO:
+def calculate_behavioral_metrics(text: str, settings: Settings) -> BehavioralMetricsDTO:
     """Calculates heuristic behavioral metrics (Say-Do Gap, Automation Bias).
 
     Args:
@@ -156,7 +223,7 @@ def calculate_behavioral_metrics(text: str, settings: Any) -> BehavioralMetricsD
         settings: Dynamically injected application settings DTO.
 
     Returns:
-        BehavioralMetricsDTO containing the analyzed behavioral patterns.
+        Analyzed behavioral patterns payload.
     """
     say_do_gap = 0.0
     automation_bias = 0.0
@@ -171,35 +238,7 @@ def calculate_behavioral_metrics(text: str, settings: Any) -> BehavioralMetricsD
             imperative_command_count=imperative_command_count,
         )
 
-    lines = text.split("\n")
-    user_lines: list[str] = []
-
-    user_headers = ["user:", "human:", "k:", "k\u00e4ytt\u00e4j\u00e4:", "me:", "min\u00e4:"]
-    ai_headers = ["ai:", "assistant:", "t:", "teko\u00e4ly:", "gpt:", "bot:"]
-    current_speaker = "user"
-
-    for line in lines:
-        lower_line = line.strip().lower()
-        started_new = False
-
-        for h in user_headers:
-            if lower_line.startswith(h):
-                current_speaker = "user"
-                content = line[len(h) :].strip()
-                if content:
-                    user_lines.append(content)
-                started_new = True
-                break
-
-        if not started_new:
-            for h in ai_headers:
-                if lower_line.startswith(h):
-                    current_speaker = "ai"
-                    started_new = True
-                    break
-
-        if not started_new and current_speaker == "user" and line.strip():
-            user_lines.append(line.strip())
+    user_lines = _extract_user_lines(text)
 
     if user_lines:
         threshold = settings.metrics_short_response_word_count
@@ -208,9 +247,8 @@ def calculate_behavioral_metrics(text: str, settings: Any) -> BehavioralMetricsD
         if len(user_lines) > 2 and (short_responses / len(user_lines) > settings.metrics_automation_bias_ratio):
             automation_bias = 1.0
 
-        mechanical_keywords = ["tilaa", "vahvista", "generoi", "ok", "kyll\u00e4", "jatka"]
         mechanical_count = sum(
-            1 for line in user_lines for w in line.split() if any(mk in w.lower() for mk in mechanical_keywords)
+            1 for line in user_lines for w in line.split() if any(mk in w.lower() for mk in _MECHANICAL_KEYWORDS)
         )
         total_words = sum(len(line.split()) for line in user_lines)
 
@@ -237,23 +275,12 @@ def calculate_control_ratio_hook(state: HookState, deps: HookDependencies) -> Ho
         deps: The dynamically injected hook dependencies.
 
     Returns:
-        HookResult: Structured execution output.
+        Structured execution output containing the calculated input control ratio.
 
     Raises:
-        AppException: If input validation fails.
+        AppException: With ErrorCodes.INVALID_JSON_PAYLOAD if input validation fails.
     """
-    raw_inputs = state.inputs.raw_inputs
-    try:
-        payload = MetricsPayloadDTO.model_validate(raw_inputs)
-    except ValidationError as e:
-        msg = f"Invalid metrics inputs schema: {e}"
-        logger.error("[MetricsHook] %s: %s", ErrorCodes.INVALID_JSON_PAYLOAD.name, msg, exc_info=True)
-        raise AppException(
-            message=msg,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD.value},
-        ) from e
-
+    payload = _validate_metrics_payload(state.inputs.raw_inputs)
     inputs = payload.root
     all_text = " ".join(str(v) for v in inputs.values() if v)
     ratio = calculate_control_ratio(all_text)
@@ -272,25 +299,16 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
         deps: Injected dependencies for environment parameters.
 
     Returns:
-        HookResult: Struct containing resulting calculated metrics state delta.
+        Structured execution result containing the calculated metrics state delta.
 
     Raises:
-        AppException: If validation fails or processing encounters an execution error.
+        AppException: With ErrorCodes.INVALID_JSON_PAYLOAD if input validation fails,
+            ErrorCodes.EMPTY_INPUT if input text is empty, or ErrorCodes.INTERNAL_SERVER_ERROR
+            if metric computation encounters an unexpected error.
     """
     logger.debug("[MetricsHook] Running text_metrics hook...")
 
-    raw_inputs = state.inputs.raw_inputs
-    try:
-        payload = MetricsPayloadDTO.model_validate(raw_inputs)
-    except ValidationError as e:
-        msg = f"Invalid metrics inputs schema: {e}"
-        logger.error("[MetricsHook] %s: %s", ErrorCodes.INVALID_JSON_PAYLOAD.name, msg, exc_info=True)
-        raise AppException(
-            message=msg,
-            status_code=status.HTTP_400_BAD_REQUEST,
-            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD.value},
-        ) from e
-
+    payload = _validate_metrics_payload(state.inputs.raw_inputs)
     inputs = payload.root
     all_text = " ".join(str(v) for v in inputs.values() if v)
 
@@ -314,9 +332,7 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
     try:
         base_metrics = analyze_text(text_for_analysis)
         control_ratio = calculate_control_ratio(all_text)
-
-        settings = get_settings()
-        behavioral_metrics = calculate_behavioral_metrics(all_text, settings)
+        behavioral_metrics = calculate_behavioral_metrics(all_text, get_settings())
 
         audit_metrics = ProfilerMetricsDTO(
             word_count=base_metrics.word_count,
