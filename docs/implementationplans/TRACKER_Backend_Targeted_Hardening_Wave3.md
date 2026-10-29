@@ -15,11 +15,11 @@
 
 **Plan:** @[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md] (Askel 3.2c: Vaihe 2c-3)
 
-- [ ] **[NOK] Execution:** `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md --gate backend --model gemini-4-argon-medium --continue-on-failure`
+- [x] **[OK] Execution:** `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md --gate backend --model gemini-4-argon-medium --continue-on-failure`
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`
   - [x] @[backend_v2/database/repository.py]
   - [x] @[backend_v2/database/repositories/component.py]
   - [x] @[backend_v2/database/repositories/report_artifact.py]
@@ -48,13 +48,12 @@
   - [x] @[backend_v2/api/routers/execution/workflows.py]
   - [x] @[backend_v2/api/routers/execution/reports.py]
 
-- [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]" --gate frontend --model gemini-4-argon-medium` (Zero frontend targets in backend targeted hardening).
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+- [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]" --gate frontend --model gemini-4-argon-medium` (Zero frontend targets in backend targeted hardening).
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Final Verification Quality Gate
-- [ ] **[NOK]** Universal Backend Quality Gate:
+- [x] **[OK]** Universal Backend Quality Gate:
   ```powershell
   $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
   ```
-

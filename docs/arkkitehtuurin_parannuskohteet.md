@@ -2,12 +2,12 @@
 
 Tähän dokumenttiin on koottu järjestelmän koodikannassa, tietomalleissa ja laatuporteissa **avoinna ja toteuttamatta olevat** arkkitehtuuriset parannuskohteet, karkaisuaallot ja skeeman yhtenäistykset. Dokumentti noudattaa *The e.g. Ban* -sääntöä (`anti_ambiguity_mandate`), *No Hidden Scope* -periaatetta sekä Quorumin *Zero-Tolerance* -laatuvaatimusta ilman siirtymäajan purkkaratkaisuja.
 
-*(Huomautus: Aiemmin tässä dokumentissa olleet matriisiskaalauksen keskitys `computed_min`/`computed_max`, `theory_grounding` vs. `ai_description` -eriyttäminen, `I18nText.default_locale`-poisto, `MatrixClaim.ai_description` -> `TDAAssertion.concept_description` -keskitys, `OutputProfile.matrix_synthesis_groups` & L10n-siivous sekä Karkaisuaalto 1 ja Karkaisuaallon 2 ensimmäiset 21 tiedostoa on toteutettu ja poistettu tästä työlistasta.)*
+*(Huomautus: Aiemmin tässä dokumentissa olleet matriisiskaalauksen keskitys `computed_min`/`computed_max`, `theory_grounding` vs. `ai_description` -eriyttäminen, `I18nText.default_locale`-poisto, `MatrixClaim.ai_description` -> `TDAAssertion.concept_description` -keskitys, `OutputProfile.matrix_synthesis_groups` & L10n-siivous sekä Karkaisuaallot 1 [36/36], 2 [36/36] ja 3 [27/27] on toteutettu ja poistettu tästä työlistasta.)*
 
 ---
 
-## Luku 1: Backend-koodikannan Jäljellä Oleva Karkaisujärjestys (Aallot 2–4: 76 Tiedostoa)
-> **STATUS: KÄYNNISSÄ (Aalto 1 [36/36] ja Aalto 2:n alkuosa [21/36] valmiit; 76 karkaistavaa tiedostoa jäljellä)**
+## Luku 1: Backend-koodikannan Jäljellä Oleva Karkaisujärjestys (Aalto 4: 34 Tiedostoa)
+> **STATUS: KÄYNNISSÄ (Aallot 1 [36/36], 2 [36/36] ja 3 [27/27] valmiit; 34 karkaistavaa tiedostoa jäljellä Aallossa 4)**
 > *Selite: Synkronoitu päätoteutussuunnitelman `@[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md]` (Askeleet 3.2b – 3.2d) kanssa.*
 
 ### 1.1 Koko `backend_v2/`-Tuotantokoodikannan Tilannekuva (403 `.py`-tiedostoa)
@@ -16,77 +16,16 @@ Koko `backend_v2/`-hakemiston (pl. `tests/`) 403 tuotantotiedoston tilannekuva:
 
 | Kategoria | Tiedostomäärä | Tila ja seurantadokumentti |
 | :--- | :--- | :--- |
-| **1. Valmiiksi karkaistut ja lukitut tuotantotiedostot** | `315` kpl | Sisältää `__init__.py`-fasaadit (`47` kpl), aiemmissa puruissa karkaistut moduulit (`162` kpl), entuudestaan 100 % puhtaat tiedostot (`49` kpl), valmistuneen Karkaisuaallon 1 (`36` kpl) sekä Karkaisuaallon 2 valmistuneet tiedostot (`21` kpl). |
-| **2. Karkaisuaalto 2 — Jäljellä olevat (LLM Adapters & Studio/Execution Services)** | `15` kpl | `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]` (tiedostot 22–36) |
-| **3. Karkaisuaalto 3 — Repositories, Orchestrator & Routers** | `27` kpl | `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]` |
-| **4. Karkaisuaalto 4 — Domain Models & DTO Schemas** | `34` kpl | `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` |
-| **5. Tulevat arkkitehtuurivaiheet (IAM & Storage)** | `12` kpl | Eristetty vaiheisiin `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` (9 tiedostoa) ja `@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]` (3 tiedostoa). |
-| **YHTEENSÄ** | **403 kpl** | **315 / 403 valmiina, 76 kpl karkaisuaalloissa 2–4, 12 kpl IAM/Storage-vaiheissa** |
+| **1. Valmiiksi karkaistut ja lukitut tuotantotiedostot** | `357` kpl | Sisältää `__init__.py`-fasaadit (`47` kpl), aiemmissa puruissa karkaistut moduulit (`162` kpl), entuudestaan 100 % puhtaat tiedostot (`49` kpl) sekä valmistuneet Karkaisuaallot 1 (`36` kpl), 2 (`36` kpl) ja 3 (`27` kpl). |
+| **2. Karkaisuaalto 4 — Domain Models & DTO Schemas** | `34` kpl | `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` |
+| **3. Tulevat arkkitehtuurivaiheet (IAM & Storage)** | `12` kpl | Eristetty vaiheisiin `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` (9 tiedostoa) ja `@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]` (3 tiedostoa). |
+| **YHTEENSÄ** | **403 kpl** | **357 / 403 valmiina (88,6 %), 34 kpl karkaisuaallossa 4, 12 kpl IAM/Storage-vaiheissa** |
 
 ---
 
-### 1.2 Jäljellä Olevien Karkaisuaaltojen Etenemisjärjestys (Bottom-Up Dependency Order)
+### 1.2 Jäljellä Olevan Karkaisuaallon 4 Etenemisjärjestys (Bottom-Up Dependency Order)
 
-#### Aalto 2: Jäljellä olevat 15 tiedostoa — `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]`
-*(Paketit 1 ja 2 [18 tiedostoa] sekä Paketin 3 tiedostot `directives.py`, `prompt_builder.py` ja `deepseek_adapter.py` [3 tiedostoa] ovat valmiit ja commitoitu.)*
-
-* **Paketti 3 — LLM Provider Adapters (jäljellä 5 tiedostoa):**
-  1. `@[backend_v2/llm/adapters/mock_adapter.py]`
-  2. `@[backend_v2/llm/adapters/adapter_factory.py]`
-  3. `@[backend_v2/llm/adapters/anthropic_adapter.py]`
-  4. `@[backend_v2/llm/adapters/openai_adapter.py]`
-  5. `@[backend_v2/llm/adapters/ai_studio_adapter.py]`
-* **Paketti 4 — Studio, Ingress & Execution Services (10 tiedostoa):**
-  1. `@[backend_v2/services/web_fetcher.py]`
-  2. `@[backend_v2/services/ingress/multi_channel_ingress_service.py]`
-  3. `@[backend_v2/services/source_verification_service.py]`
-  4. `@[backend_v2/services/factories/output_profile_factory.py]`
-  5. `@[backend_v2/services/studio/auth_validator.py]`
-  6. `@[backend_v2/services/studio/prompt_block_service.py]`
-  7. `@[backend_v2/services/studio/output_profile_service.py]`
-  8. `@[backend_v2/services/execution/context_service.py]`
-  9. `@[backend_v2/services/execution/resumption_service.py]`
-  10. `@[backend_v2/services/execution/override_service.py]`
-* **Suorituskomento (jatkaa automaattisesti tiedostosta `mock_adapter.py`):**
-  ```powershell
-  uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md --gate backend --model gemini-4-argon-medium --continue-on-failure
-  ```
-
-#### Aalto 3 (27 tiedostoa) — `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]`
-* **Paketti 1 — Repository & Persistence Layer (11 tiedostoa):**
-  1. `@[backend_v2/database/repository.py]`
-  2. `@[backend_v2/database/repositories/component.py]`
-  3. `@[backend_v2/database/repositories/report_artifact.py]`
-  4. `@[backend_v2/database/repositories/components/agent.py]`
-  5. `@[backend_v2/database/repositories/components/execution_persona.py]`
-  6. `@[backend_v2/database/repositories/components/extraction_protocol.py]`
-  7. `@[backend_v2/database/repositories/components/matrix.py]`
-  8. `@[backend_v2/database/repositories/components/output_profile.py]`
-  9. `@[backend_v2/database/repositories/components/prompt_block.py]`
-  10. `@[backend_v2/database/repositories/components/role.py]`
-  11. `@[backend_v2/database/repositories/components/task_blueprint.py]`
-* **Paketti 2 — Orchestrator & Schema Services (6 tiedostoa):**
-  1. `@[backend_v2/services/orchestrator/schema_factory.py]`
-  2. `@[backend_v2/services/orchestrator/chunking_service.py]`
-  3. `@[backend_v2/services/orchestrator/atomizer.py]`
-  4. `@[backend_v2/services/orchestrator/dag_compiler.py]`
-  5. `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`
-  6. `@[backend_v2/services/orchestrator/enriched_dag_executor.py]`
-* **Paketti 3 — FastAPI Routers: System, Studio & Execution (10 tiedostoa):**
-  1. `@[backend_v2/api/routers/system/health.py]`
-  2. `@[backend_v2/api/routers/system/telemetry.py]`
-  3. `@[backend_v2/api/routers/system/configs.py]`
-  4. `@[backend_v2/api/routers/output_profiles.py]`
-  5. `@[backend_v2/api/routers/studio/model_registry.py]`
-  6. `@[backend_v2/api/routers/studio/prompt_blocks.py]`
-  7. `@[backend_v2/api/routers/studio/system_configs.py]`
-  8. `@[backend_v2/api/routers/studio/workflows.py]`
-  9. `@[backend_v2/api/routers/execution/workflows.py]`
-  10. `@[backend_v2/api/routers/execution/reports.py]`
-* **Suorituskomento:**
-  ```powershell
-  uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md --gate backend --model gemini-4-argon-medium --continue-on-failure
-  ```
+*(Karkaisuaallot 1 [36/36], 2 [36/36] ja 3 [27/27] on suoritettu, auditoitu ja commitoitu.)*
 
 #### Aalto 4 (34 tiedostoa) — `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`
 * **Paketti 1 — Domain Models (`backend_v2/models/domain/`) (23 tiedostoa):**
@@ -127,7 +66,7 @@ Koko `backend_v2/`-hakemiston (pl. `tests/`) 403 tuotantotiedoston tilannekuva:
   11. `@[backend_v2/models/dtos/workflow_schema.py]`
 * **Suorituskomento:**
   ```powershell
-  uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md --gate backend --model gemini-4-argon-medium --continue-on-failure
+  $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md --gate backend --model gemini-4-argon-medium --continue-on-failure
   ```
 
 ---
@@ -225,7 +164,7 @@ Malli A toteutetaan viisivaiheisena atomaarisena leikkauksena `@[.agents/rules/0
    * Päivitetään `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]` muuttamalla taulujen 1–7 pääavaimet (`id UUID PRIMARY KEY DEFAULT uuidv7()`) ja kaikki taulujen 1–10 relaatioviiteavaimet `UUID`-tyyppisiksi `CHECK (uuid_extract_version(...) = 7)` -rajoitteilla.
    * Päivitetään `@[backend_v2/database/postgres/entity_adapter.py]` käyttämään `parse_prefixed_uuid7()`- ja `format_prefixed_uuid7()`-funktioita kaikkien 10 entiteetti- ja binääritaulun tallennus- ja lukukyselyissä (`$1::uuid`).
 4. **Vaihe 4 — Kovakoodattujen Oletus-ID-ankkureiden Poisto, Kausaalisen Koheesiomatriisin Sidonta ja `@[docs/tiede.md]`-graafimatematiikan 100 % Synkronointi (Luku 2.5):**
-   * Poistetaan kovakoodatut 16-heksaiset oletus-ID:t Studio-luonnosten luonnista (`@[backend_v2/services/studio/workflow_service.py]` ja `@[backend_v2/models/domain/workflow.py]`), kytketään kausaalinen koheesiomatriisi suoraan `StepType.CAUSAL_DISCOVERY`-stepin `criteria_block_ids`-listaan ja täydennetään 0-tokenin topologiset graafimetriikat (`r_LCC`, `r_conv`, $\kappa_{\text{steer}}$ ja `simulate_counterfactual_retraction`) tiedostoihin `@[backend_v2/models/dtos/causal_discovery.py]`, `@[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]`, `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]`, `@[backend_v2/settings.py]` ja `@[client_app_v2/lib/features/execution/models/causal_discovery_models.dart]` alla olevan Luvun 2.5 mukaisesti.
+   * Poistetaan kovakoodatut 16-heksaiset oletus-ID:t Studio-luonnosten luonnista (`@[backend_v2/services/studio/workflow_service.py]` ja `@[backend_v2/models/domain/workflow.py]`), kytketään kausaalinen koheesiomatriisi suoraan `StepType.CAUSAL_DISCOVERY`-stepin `criteria_block_ids`-listaan ja täydennetään 0-tokenin topologiset graafimetriikat (`r_LCC`, `r_conv`, $\kappa_{\text{steer}}$ ja `simulate_counterfactual_retraction`) tiedostoihin `@[backend_v2/models/dtos/causal_discovery.py]`, `@[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]`, `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]`, `@[backend_v2/settings.py]` ja `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]` alla olevan Luvun 2.5 mukaisesti.
 5. **Vaihe 5 — Flutter-mallien ja Testifikstuurien Synkronointi:**
    * Päivitetään kovakoodatut 16-merkkiset testitunnisteet (`backend_v2/tests/` ja `client_app_v2/test/`) kanonisiksi 32-merkkisiksi `UUIDv7`-tunnisteiksi.
 6. **Vaihe 6 — Laatuportit ja Uudelleensiemennys:**
@@ -265,7 +204,7 @@ Varsinainen DAG-ajomoottori (`DAGExecutor`, `NodeExecutor`, `TDAEngine`, `Synthe
   * Nykyinen `@[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]:compute_causal_tda_fusion_result` tarkistaa vain yksittäiset täysin eristyneet solmut (`isolated_concept_count`), jolloin toisistaan irrallisista kahden solmun väitepareista ($A \to B$, $C \to D$) tai kahden lauseen tynkäteksteistä koostuva tuotos voi läpäistä kaikki 5 BARS-tasoa (`l1_passed`..`l5_passed = True`) tiedostossa `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]`.
   * Lisäksi `@[docs/tiede.md]`-dokumentin Luvun 4.2 mukaiset nollan LLM-tokenin topologiset mittarit (`largest_component_ratio` $r_{\text{LCC}}$, `branch_convergence_ratio` $r_{\text{conv}}$, `steering_coupling_ratio` $\kappa_{\text{steer}}$) sekä kontrafaktuaalinen haavoittuvuussimulaatio (`simulate_counterfactual_retraction`, Algoritmi 1) puuttuvat `AntiFluffAuditDTO`- ja `CausalCohesionEvaluator`-luokista.
 * **Arkkitehtoninen ratkaisu (0 lisätokenia, $< 1\text{ ms}$ suoritusaika):**
-  1. **DTO-sopimus ja Full-Duplex Pariteetti (`@[backend_v2/models/dtos/causal_discovery.py]` & `@[client_app_v2/lib/features/execution/models/causal_discovery_models.dart]`):**
+  1. **DTO-sopimus ja Full-Duplex Pariteetti (`@[backend_v2/models/dtos/causal_discovery.py]` & `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`):**
      * Lisätään `AntiFluffAuditDTO`-luokkaan (ja vastaavaan Flutterin Freezed-malliin) kolme kenttää: `largest_component_ratio: float` ($r_{\text{LCC}} \in [0.0, 1.0]$), `branch_convergence_ratio: float` ($r_{\text{conv}} \in [0.0, 1.0]$) ja `steering_coupling_ratio: float` ($\kappa_{\text{steer}} \in [0.0, 1.0]$).
      * Lisätään `CounterfactualSimulationResultDTO` (kentät nimenomaan ja tyhjentävästi: `retracted_root_id`, `collapsed_node_ids`, `surviving_node_ids`, `collapse_ratio`, `max_cascade_depth`) kontrafaktuaalisen stressitestin paluuarvoksi.
   2. **Topologisten mittareiden laskenta (`@[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]:compute_causal_tda_fusion_result`):**

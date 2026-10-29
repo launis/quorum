@@ -7,7 +7,7 @@
 > 1. **PostgreSQL 19 Zero-ORM Perusta & Cutover — [SUORITETTU & LUKITTU]** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]`)
 > 1b. **Järjestelmällinen Ennaltaehkäisy, AST-vartija QGR030 & Testitehtaat — [SUORITETTU & AUDITOITU]** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md]`, `@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]`)
 > 2. **`dag_executor.py` God Code -purku modulaariseksi SRP-paketiksi — [SUORITETTU & KOVENNETTU]** (1 803 LOC -> 6 erillistä SRP-moduulia & ohut fasaadi, QGR017-lukittu) (`@[docs/epic/dag_executor_decomposition_tracker.md]`)
-> 3. **Backend-koodikannan Karkaisuaallot 1–4 (403 `.py`-tiedoston kokonaiskarkaisu; Aallot 1–4: 36 + 36 + 27 + 34 = 133 tiedostoa) — [KÄYNNISSÄ: Aalto 1 36/36 VALMIS, Aalto 2 21/36 VALMIS, 76 TIEDOSTOA JÄLJELLÄ]** (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`, `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 1)
+> 3. **Backend-koodikannan Karkaisuaallot 1–4 (403 `.py`-tiedoston kokonaiskarkaisu; Aallot 1–4: 36 + 36 + 27 + 34 = 133 tiedostoa) — [KÄYNNISSÄ: Aallot 1–3 (36/36, 36/36 & 27/27 = 99/133) VALMIIT, AALTO 4 (34 TIEDOSTOA) JÄLJELLÄ]** (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`, `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 1)
 > 3b. **Arkkitehtuurin Parannuskohteiden Toteutus & `entity_adapter.py`-purku (Askeleet 3.3–3.5) — [SEURAAVANA BACKEND-KARKAISUAALTOJEN 2–4 JÄLKEEN]**:
 >    * **Askel 3.3 (Malli A):** Yhtenäinen `PrefixedUUID7`-arkkitehtuuri, Natiivi PostgreSQL 19 `UUIDv7` kaikissa 12 taulussa, `@[backend_v2/seed/seed_data.json]` 32-hex Cutover & `@[scripts/sanitize_seed_vault.py]`-automaatio (`@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 2).
 >    * **Askel 3.4:** AST- ja Laatuporttilaajennukset `QGR031` (`FilterOperator`-kurinalaisuus), dynaaminen `scripts/*.py`-skannaus & `QGR032` (Polyfactory 32-hex `UUIDv7` -invarianttivartija) (`@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 3).
@@ -337,8 +337,8 @@ Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytke
 │    2B-1. Järjestelmällinen Ennaltaehkäisy & QGR030 [18/18 karkaistu]   │
 │    2B-2. dag_executor.py (1 803 LOC) purku [SUORITETTU & QGR017-LUKITTU]│
 │    2C-1. Karkaisuaalto 1 (36 tiedostoa) [SUORITETTU & LUKITTU 36/36]   │
-│    2C-2. Karkaisuaalto 2 (36 tiedostoa) [KÄYNNISSÄ: 21/36 VALMIS, 15-> ]│
-│    2C-3. Karkaisuaalto 3 (27 tiedostoa) [SEURAAVANA: Repos & Routers]  │
+│    2C-2. Karkaisuaalto 2 (36 tiedostoa) [SUORITETTU & LUKITTU 36/36]   │
+│    2C-3. Karkaisuaalto 3 (27 tiedostoa) [SUORITETTU & LUKITTU 27/27]   │
 │    2C-4. Karkaisuaalto 4 (34 tiedostoa) [SEURAAVANA: Domain & DTOs]    │
 │    2E. Malli A: Yhtenäinen PrefixedUUID7 & 12 taulun UUIDv7 (Askel 3.3)│
 │        (arkkitehtuurin_parannuskohteet.md Luku 2 + sanitize_seed_vault)│
@@ -414,9 +414,9 @@ Alla oleva taulukko näyttää yhdellä silmäyksellä, mitkä toteutussuunnitel
 | Askel | Vaiheen sisältö | Fyysinen tila levyllä (`docs/implementationplans/` & `docs/epic/`) | Tarvittava esitoimenpide ennen ajoa |
 | :--- | :--- | :--- | :--- |
 | **Askel 1 – 3.2** | `llm_strategy/`, `llm/provider/`, E2E `exe_2af2f7665e7c477b`, PostgreSQL 19 Perusta & Cutover, `QGR030`, `dag_executor.py`-purku & **Karkaisuaalto 1 (36/36)** | 🟢 **100 % SUORITETTU & LUKITTU** | Valmis — ei toimenpiteitä. |
-| **Askel 3.2b** | **Backend Karkaisuaalto 2** (`21/36` valmis, `15` jäljellä alkaen `mock_adapter.py`) | 🟢 **Tracker valmiina levyllä:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]` | Ei esitoimenpidettä — jatka suoraan `auto_hardening_runner.py`-komennolla. |
-| **Askel 3.2c** | **Backend Karkaisuaalto 3** (`27` tiedostoa: Repositories, Orchestrator & Routers) | 🟢 **Tracker valmiina levyllä:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]` | Ei esitoimenpidettä — aja suoraan Aallon 2 jälkeen. |
-| **Askel 3.2d** | **Backend Karkaisuaalto 4** (`34` tiedostoa: Domain Models & DTO Schemas) | 🟢 **Tracker valmiina levyllä:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` | Ei esitoimenpidettä — aja suoraan Aallon 3 jälkeen. |
+| **Askel 3.2b** | **Backend Karkaisuaalto 2** (`36/36` valmis: Core, Hooks, LLM Adapters & Services) | 🟢 **100 % SUORITETTU & LUKITTU:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]` | Valmis — ei toimenpiteitä. |
+| **Askel 3.2c** | **Backend Karkaisuaalto 3** (`27/27` valmis: Repositories, Orchestrator & Routers) | 🟢 **100 % SUORITETTU & LUKITTU:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]` | Valmis — ei toimenpiteitä. |
+| **Askel 3.2d** | **Backend Karkaisuaalto 4** (`34` tiedostoa: Domain Models & DTO Schemas) | 🟢 **Tracker valmiina levyllä:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` | Ei esitoimenpidettä — aja suoraan `auto_hardening_runner.py`-komennolla (seuraava jonossa). |
 | **Askel 3.3 & 3.4** | **Malli A (`PrefixedUUID7` 12 taulussa + `seed_data.json` + `sanitize_seed_vault.py`) & AST (`QGR031`/`QGR032`)** | 🟡 Määritelty tiedostossa `@[docs/arkkitehtuurin_parannuskohteet.md]` (Luvut 2 & 3). | Generoi suunnitelma ja tracker (`/tier0-create-plan` + `/tier1-plan-tracker-generator`) ennen ajoa. |
 | **Askel 3.5** | **`PostgresEntityAdapter` (`entity_adapter.py`, 1 975 LOC) God Code -purku** (4 SRP-adapteriin) | 🟡 Määritelty Luvussa 2.4 ja Luvussa 7 (Kohta 13). | Generoi purkusuunnitelma ja tracker komennolla `/tier3-god-code-decomposition @[backend_v2/database/postgres/entity_adapter.py]`. |
 | **Askel 4** | **B2B SaaS IAM, 2FA, Token Exchange, Redis Kill-Switch & BYOK (`EPIC 160`)** (`9` backend + `9` frontend tiedostoa) | 🟢 Eepos `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` on valmiina ja synkronoituna 32-hex `UUIDv7`:ään. | Generoi vaihesuunnitelmat ja `EPIC_160_tracker.md` komennolla `/tier1-planner @[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`. |
@@ -550,26 +550,22 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
 2. **`162` tiedostoa — Valmis:** Jo aiemmissa monoliittipuruissa ja cutover-trackereissa (`llm_strategy/`, `llm/provider/`, `dag_executor/`, `postgres/`, `QGR030`, `export/`, `report/`, `matrix_parser/`, `anchor_validation/`, `pdf_extractor/`) 100 % karkaistut tiedostot.
 3. **`49` tiedostoa — Valmis:** Jo entuudestaan 100 % puhtaat tiedostot (`__all__` määritelty, 0 AST-rikkomusta, 0 puuttuvaa docstringiä, 0 `.get()`-kutsua).
 4. **`36` tiedostoa — Aalto 1 (Askel 3.2 / Vaihe 2c-1) — [SUORITETTU 36/36]:** Workers (6), SDUI-adapterit (15) ja Utilities (15) (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`).
-5. **`36` tiedostoa — Aalto 2 (Askel 3.2b / Vaihe 2c-2) — [KÄYNNISSÄ: 21/36 SUORITETTU, 15 JÄLJELLÄ]:** Core, Observability, Deterministic Hooks, LLM Provider Adapters & Studio/Execution Services (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]`).
-6. **`27` tiedostoa — Aalto 3 (Askel 3.2c / Vaihe 2c-3) — [SEURAAVANA, 0/27]:** Repositories (11), Orchestrator Services (6) ja non-IAM FastAPI Routers (10) (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]`).
-7. **`34` tiedostoa — Aalto 4 (Askel 3.2d / Vaihe 2c-4) — [SEURAAVANA, 0/34]:** Domain Models (23) ja DTO Schemas (11) sekä `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`-poikkeuslistan tyhjennys (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`).
+5. **`36` tiedostoa — Aalto 2 (Askel 3.2b / Vaihe 2c-2) — [SUORITETTU 36/36]:** Core, Observability, Deterministic Hooks, LLM Provider Adapters & Studio/Execution Services (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]`).
+6. **`27` tiedostoa — Aalto 3 (Askel 3.2c / Vaihe 2c-3) — [SUORITETTU 27/27]:** Repositories (11), Orchestrator Services (6) ja non-IAM FastAPI Routers (10) (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]`).
+7. **`34` tiedostoa — Aalto 4 (Askel 3.2d / Vaihe 2c-4) — [SEURAAVANA JONOSSA, 0/34]:** Domain Models (23) ja DTO Schemas (11) sekä `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`-poikkeuslistan tyhjennys (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`).
 8. **`12` tiedostoa — Eristetyt tulevat arkkitehtuurivaiheet (Askeleet 4 & 5):** B2B SaaS IAM (`backend_v2/api/routers/iam/*`, `backend_v2/services/auth/*`, `backend_v2/models/auth.py` — 9 tiedostoa) ja Firebase Storage Signed URLs (`file_driver.py`, `local_file_driver.py`, `storage.py` — 3 tiedostoa), jotka kirjoitetaan uusiksi ja karkaistaan omissa toteutustrackereissaan.
 
 > [!IMPORTANT]
-> **Miksi Karkaisuaallot 2–4 (jäljellä olevat 76 tiedostoa) kannattaa ajaa valmiiksi JUURI NYT ennen Askelia 3.3–3.5 ja Askelta 4 (`EPIC 160`)?**
-> 1. **315 / 403 backend-tiedostoa (78,2 %) on jo valmiina ja lukittuna:** Jäljellä on enää Aallon 2 loput 15 tiedostoa, Aallon 3 27 tiedostoa ja Aallon 4 34 tiedostoa (yhteensä 76 tiedostoa).
-> 2. **Kutsuketjujen ja poikkeuslistojen nollaus ennen suuria skeema- ja IAM-muutoksia:** Kun Aallot 2–4 ajetaan nyt loppuun, `RESIDUAL_FUTURE_PHASE_QGR028_FILES`, `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES` ja `FROZEN_APPROVED_PER_FILE_IGNORE_PATHS` tyhjenevät kokonaan (`frozenset()`), ja jokaisella moduulilla on omat eristetyt yksikkötestinsä.
-> 3. **Turvaverkko Askeleelle 3.3 (Malli A: `PrefixedUUID7` 12 taulussa):** Kun kaikilla repositorioilla (Aalto 3) ja domain-malleilla (Aalto 4) on 100 % kattavat yksikkötestit ja tiukat tyyppisopimukset valmiina, Askeleen 3.3 `PrefixedUUID7`-yhtenäistys ja Askeleen 3.5 `entity_adapter.py`-purku voidaan ajaa läpi täydellisellä matemaattisella regressiosuojalla ennen kuin Askel 4 (`EPIC 160` IAM) alkaa.
+> **Miksi Karkaisuaalto 4 (jäljellä olevat 34 tiedostoa) kannattaa ajaa valmiiksi JUURI NYT ennen Askelia 3.3–3.5 ja Askelta 4 (`EPIC 160`)?**
+> 1. **357 / 403 backend-tiedostoa (88,6 %) on jo valmiina ja lukittuna:** Aallot 1 (36/36), 2 (36/36) ja 3 (27/27) on läpäisty 100 % puhtaasti. Jäljellä on enää Aallon 4 34 tiedostoa (23 domain-mallia ja 11 DTO-skeemaa).
+> 2. **Kutsuketjujen ja poikkeuslistojen nollaus ennen suuria skeema- ja IAM-muutoksia:** Kun Aalto 4 ajetaan nyt loppuun, `RESIDUAL_FUTURE_PHASE_QGR028_FILES`, `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES` ja `FROZEN_APPROVED_PER_FILE_IGNORE_PATHS` tyhjenevät kokonaan (`frozenset()`), ja jokaisella mallilla ja moduulilla on omat eristetyt yksikkötestinsä.
+> 3. **Turvaverkko Askeleelle 3.3 (Malli A: `PrefixedUUID7` 12 taulussa):** Kun kaikilla repositorioilla (Aalto 3, valmis) ja domain-malleilla (Aalto 4) on 100 % kattavat yksikkötestit ja tiukat tyyppisopimukset valmiina, Askeleen 3.3 `PrefixedUUID7`-yhtenäistys ja Askeleen 3.5 `entity_adapter.py`-purku voidaan ajaa läpi täydellisellä matemaattisella regressiosuojalla ennen kuin Askel 4 (`EPIC 160` IAM) alkaa.
 
 ---
 
-### Askel 3.2b: Karkaisuaalto 2 — Core, Hooks, LLM Adapters & Studio/Execution Services (Vaihe 2c-2) — [KÄYNNISSÄ: 21/36 SUORITETTU, 15 JÄLJELLÄ]
+### Askel 3.2b: Karkaisuaalto 2 — Core, Hooks, LLM Adapters & Studio/Execution Services (Vaihe 2c-2) — [SUORITETTU & LUKITTU 36/36]
 * **Seurantadokumentti (SSOT Tracker):** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]`
-* **Tila:** 🟡 **21/36 SUORITETTU & COMMITOITU** (viimeisin valmistunut tiedosto `@[backend_v2/llm/adapters/deepseek_adapter.py]`, commit `80d9bfef4`). **15 tiedostoa jäljellä** alkaen tiedostosta `@[backend_v2/llm/adapters/mock_adapter.py]`.
-* **Jatkokomento (jatkaa automaattisesti tiedostosta 22/36 `mock_adapter.py`):**
-  ```powershell
-  $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md --gate backend --model gemini-4-argon-medium --continue-on-failure
-  ```
+* **Tila & Git Commit:** 🟢 **100 % SUORITETTU, 36/36 TIEDOSTOA KARKAISTU JA LUKITTU** — Commit `1f5da4a43` (*chore(hardening): audit and fix override_service.py*).
 
 #### Paketti 1: Core, Observability & Shared Utilities (8/8 SUORITETTU)
 1. `[x]` `@[backend_v2/context.py]`
@@ -593,74 +589,70 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
 9. `[x]` `@[backend_v2/hooks/metrics.py]`
 10. `[x]` `@[backend_v2/hooks/input_processing.py]`
 
-#### Paketti 3: LLM Provider Adapters & Prompt Utilities (3/8 SUORITETTU, 5 JÄLJELLÄ)
+#### Paketti 3: LLM Provider Adapters & Prompt Utilities (8/8 SUORITETTU)
 1. `[x]` `@[backend_v2/llm/directives.py]`
 2. `[x]` `@[backend_v2/llm/prompt_builder.py]`
 3. `[x]` `@[backend_v2/llm/adapters/deepseek_adapter.py]`
-4. `[ ]` `@[backend_v2/llm/adapters/mock_adapter.py]` *(Seuraava jonossa)*
-5. `[ ]` `@[backend_v2/llm/adapters/adapter_factory.py]`
-6. `[ ]` `@[backend_v2/llm/adapters/anthropic_adapter.py]`
-7. `[ ]` `@[backend_v2/llm/adapters/openai_adapter.py]`
-8. `[ ]` `@[backend_v2/llm/adapters/ai_studio_adapter.py]`
+4. `[x]` `@[backend_v2/llm/adapters/mock_adapter.py]`
+5. `[x]` `@[backend_v2/llm/adapters/adapter_factory.py]`
+6. `[x]` `@[backend_v2/llm/adapters/anthropic_adapter.py]`
+7. `[x]` `@[backend_v2/llm/adapters/openai_adapter.py]`
+8. `[x]` `@[backend_v2/llm/adapters/ai_studio_adapter.py]`
 
-#### Paketti 4: Studio, Ingress & Execution Services (0/10 SUORITETTU, 10 JÄLJELLÄ)
-1. `[ ]` `@[backend_v2/services/web_fetcher.py]`
-2. `[ ]` `@[backend_v2/services/ingress/multi_channel_ingress_service.py]`
-3. `[ ]` `@[backend_v2/services/source_verification_service.py]`
-4. `[ ]` `@[backend_v2/services/factories/output_profile_factory.py]`
-5. `[ ]` `@[backend_v2/services/studio/auth_validator.py]`
-6. `[ ]` `@[backend_v2/services/studio/prompt_block_service.py]`
-7. `[ ]` `@[backend_v2/services/studio/output_profile_service.py]`
-8. `[ ]` `@[backend_v2/services/execution/context_service.py]`
-9. `[ ]` `@[backend_v2/services/execution/resumption_service.py]`
-10. `[ ]` `@[backend_v2/services/execution/override_service.py]`
+#### Paketti 4: Studio, Ingress & Execution Services (10/10 SUORITETTU)
+1. `[x]` `@[backend_v2/services/web_fetcher.py]`
+2. `[x]` `@[backend_v2/services/ingress/multi_channel_ingress_service.py]`
+3. `[x]` `@[backend_v2/services/source_verification_service.py]`
+4. `[x]` `@[backend_v2/services/factories/output_profile_factory.py]`
+5. `[x]` `@[backend_v2/services/studio/auth_validator.py]`
+6. `[x]` `@[backend_v2/services/studio/prompt_block_service.py]`
+7. `[x]` `@[backend_v2/services/studio/output_profile_service.py]`
+8. `[x]` `@[backend_v2/services/execution/context_service.py]`
+9. `[x]` `@[backend_v2/services/execution/resumption_service.py]`
+10. `[x]` `@[backend_v2/services/execution/override_service.py]`
 
 ---
 
-### Askel 3.2c: Karkaisuaalto 3 — Repositories, Orchestrator Services & FastAPI Routers (Vaihe 2c-3) — [SEURAAVANA: 0/27]
+### Askel 3.2c: Karkaisuaalto 3 — Repositories, Orchestrator Services & FastAPI Routers (Vaihe 2c-3) — [SUORITETTU & LUKITTU 27/27]
 * **Seurantadokumentti (SSOT Tracker):** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]`
-* **Laajuus & Kesto:** 27 tiedostoa (3 pakettia), kestoarvio **~2,5 – 3 h**.
-* **Suorituskomento:**
-  ```powershell
-  $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md --gate backend --model gemini-4-argon-medium --continue-on-failure
-  ```
+* **Tila & Git Commit:** 🟢 **100 % SUORITETTU, 27/27 TIEDOSTOA KARKAISTU, MACRO-AUDIT COMPLETION GATE LÄPÄISTY JA LUKITTU** — Commit `248728871` (*refactor(hardening): tighten reports.py*).
 
-#### Paketti 1: Repository & Persistence Layer (`backend_v2/database/`) (11 tiedostoa)
-1. `[ ]` `@[backend_v2/database/repository.py]`
-2. `[ ]` `@[backend_v2/database/repositories/component.py]`
-3. `[ ]` `@[backend_v2/database/repositories/report_artifact.py]`
-4. `[ ]` `@[backend_v2/database/repositories/components/agent.py]`
-5. `[ ]` `@[backend_v2/database/repositories/components/execution_persona.py]`
-6. `[ ]` `@[backend_v2/database/repositories/components/extraction_protocol.py]`
-7. `[ ]` `@[backend_v2/database/repositories/components/matrix.py]`
-8. `[ ]` `@[backend_v2/database/repositories/components/output_profile.py]`
-9. `[ ]` `@[backend_v2/database/repositories/components/prompt_block.py]`
-10. `[ ]` `@[backend_v2/database/repositories/components/role.py]`
-11. `[ ]` `@[backend_v2/database/repositories/components/task_blueprint.py]`
+#### Paketti 1: Repository & Persistence Layer (`backend_v2/database/`) (11/11 SUORITETTU)
+1. `[x]` `@[backend_v2/database/repository.py]`
+2. `[x]` `@[backend_v2/database/repositories/component.py]`
+3. `[x]` `@[backend_v2/database/repositories/report_artifact.py]`
+4. `[x]` `@[backend_v2/database/repositories/components/agent.py]`
+5. `[x]` `@[backend_v2/database/repositories/components/execution_persona.py]`
+6. `[x]` `@[backend_v2/database/repositories/components/extraction_protocol.py]`
+7. `[x]` `@[backend_v2/database/repositories/components/matrix.py]`
+8. `[x]` `@[backend_v2/database/repositories/components/output_profile.py]`
+9. `[x]` `@[backend_v2/database/repositories/components/prompt_block.py]`
+10. `[x]` `@[backend_v2/database/repositories/components/role.py]`
+11. `[x]` `@[backend_v2/database/repositories/components/task_blueprint.py]`
 
-#### Paketti 2: Orchestrator & Schema Services (`backend_v2/services/orchestrator/`) (6 tiedostoa)
-1. `[ ]` `@[backend_v2/services/orchestrator/schema_factory.py]`
-2. `[ ]` `@[backend_v2/services/orchestrator/chunking_service.py]`
-3. `[ ]` `@[backend_v2/services/orchestrator/atomizer.py]`
-4. `[ ]` `@[backend_v2/services/orchestrator/dag_compiler.py]`
-5. `[ ]` `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`
-6. `[ ]` `@[backend_v2/services/orchestrator/enriched_dag_executor.py]`
+#### Paketti 2: Orchestrator & Schema Services (`backend_v2/services/orchestrator/`) (6/6 SUORITETTU)
+1. `[x]` `@[backend_v2/services/orchestrator/schema_factory.py]`
+2. `[x]` `@[backend_v2/services/orchestrator/chunking_service.py]`
+3. `[x]` `@[backend_v2/services/orchestrator/atomizer.py]`
+4. `[x]` `@[backend_v2/services/orchestrator/dag_compiler.py]`
+5. `[x]` `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`
+6. `[x]` `@[backend_v2/services/orchestrator/enriched_dag_executor.py]`
 
-#### Paketti 3: FastAPI Routers — System, Studio & Execution (`backend_v2/api/routers/`) (10 tiedostoa)
-1. `[ ]` `@[backend_v2/api/routers/system/health.py]`
-2. `[ ]` `@[backend_v2/api/routers/system/telemetry.py]`
-3. `[ ]` `@[backend_v2/api/routers/system/configs.py]`
-4. `[ ]` `@[backend_v2/api/routers/output_profiles.py]`
-5. `[ ]` `@[backend_v2/api/routers/studio/model_registry.py]`
-6. `[ ]` `@[backend_v2/api/routers/studio/prompt_blocks.py]`
-7. `[ ]` `@[backend_v2/api/routers/studio/system_configs.py]`
-8. `[ ]` `@[backend_v2/api/routers/studio/workflows.py]`
-9. `[ ]` `@[backend_v2/api/routers/execution/workflows.py]`
-10. `[ ]` `@[backend_v2/api/routers/execution/reports.py]`
+#### Paketti 3: FastAPI Routers — System, Studio & Execution (`backend_v2/api/routers/`) (10/10 SUORITETTU)
+1. `[x]` `@[backend_v2/api/routers/system/health.py]`
+2. `[x]` `@[backend_v2/api/routers/system/telemetry.py]`
+3. `[x]` `@[backend_v2/api/routers/system/configs.py]`
+4. `[x]` `@[backend_v2/api/routers/output_profiles.py]`
+5. `[x]` `@[backend_v2/api/routers/studio/model_registry.py]`
+6. `[x]` `@[backend_v2/api/routers/studio/prompt_blocks.py]`
+7. `[x]` `@[backend_v2/api/routers/studio/system_configs.py]`
+8. `[x]` `@[backend_v2/api/routers/studio/workflows.py]`
+9. `[x]` `@[backend_v2/api/routers/execution/workflows.py]`
+10. `[x]` `@[backend_v2/api/routers/execution/reports.py]`
 
 ---
 
-### Askel 3.2d: Karkaisuaalto 4 — Domain Models & DTO Schemas (Vaihe 2c-4) — [SEURAAVANA: 0/34]
+### Askel 3.2d: Karkaisuaalto 4 — Domain Models & DTO Schemas (Vaihe 2c-4) — [SEURAAVANA JONOSSA: 0/34]
 * **Seurantadokumentti (SSOT Tracker):** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`
 * **Laajuus & Kesto:** 34 tiedostoa (2 pakettia), kestoarvio **~2,5 – 3 h**.
 * **Tavoite:** Eksplisiittiset `__all__`-määrittelyt, PEP 257 Google-tyyliset docstringit, `ConfigDict(extra="forbid", strict=True)` -varmennus sekä `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`-poikkeuslistan sulkeminen.
@@ -722,7 +714,7 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
   5. **Kovakoodattujen Oletus-ID-ankkureiden Poisto, Kausaalisen Koheesiomatriisin Sidonta ja `@[docs/tiede.md]`-graafimatematiikan 100 % Synkronointi (`@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 2.5):**
      * **Studio-luonnokset (`@[backend_v2/services/studio/workflow_service.py]` & `@[backend_v2/models/domain/workflow.py]`):** Korvataan `StudioWorkflowService.create_step_draft`-metodin kovakoodattu `criteria_block_ids=["blk_440a5fef9331451b"]` dynaamisella tietokantahaulla (`all_blocks`-silmukan ensimmäinen `PromptBlockCategory.MATRIX`- tai `PromptBlockCategory.CRITERIA`-lohko), korvataan `create_workflow_draft`-metodin `default_profile_id="prf_0000000000000000"` arvolla `default_profile_id=None`, ja muutetaan `Workflow.mcp_gateway_id`-kentän oletusarvo `"sys_8172bda70c8641c5"` dynaamiseksi `self.system_repo`-hauksi (`default=None`).
      * **Kausaalisen koheesion matriisi (`@[backend_v2/models/domain/step.py]`, `@[backend_v2/models/domain/workflow.py]`, `@[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]`, `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]` & `@[backend_v2/settings.py]`):** Kytketään BARS-koheesiomatriisi suoraan `StepType.CAUSAL_DISCOVERY`-stepin `criteria_block_ids`-kenttään, poistetaan `causal_cohesion_block_id`-sivukanavaparametri `Workflow.get_allowed_layout_targets`-metodista, luetaan matriisi-ID ja sen 5 BARS-atomia (`TDAAssertion`) suoraan stepin matriisista ajon aikana, ja poistetaan `causal_cohesion_matrix_block_id` tiedostosta `@[backend_v2/settings.py]` sekä kovakoodatut `CAUSAL_COHESION_TDA_IDS`- ja `CAUSAL_COHESION_CLAIMS`-tuplet tiedostosta `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]`.
-     * **`@[docs/tiede.md]`-graafimatematiikan 100 % Synkronointi (`r_LCC`, `r_conv`, $\kappa_{\text{steer}}$ ja `simulate_counterfactual_retraction`):** Lisätään 0 LLM-tokenin topologiset graafimetriikat (`largest_component_ratio`, `branch_convergence_ratio`, `steering_coupling_ratio`) ja `CounterfactualSimulationResultDTO` tiedostoihin `@[backend_v2/models/dtos/causal_discovery.py]` ja `@[client_app_v2/lib/features/execution/models/causal_discovery_models.dart]`, lasketaan ne funktiossa `@[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]:compute_causal_tda_fusion_result`, kytketään `@[docs/tiede.md]`-dokumentin Kaavan (13) Guttman-kynnykset (`total_nodes` $1, 2, 5, 10, 15$, $r_{\text{LCC}}$ ja $r_{\text{conv}}$) sekä Algoritmin 1 kontrafaktuaalinen haavoittuvuussimulaatio (`simulate_counterfactual_retraction`) tiedostoihin `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]` ja `@[backend_v2/settings.py]`.
+     * **`@[docs/tiede.md]`-graafimatematiikan 100 % Synkronointi (`r_LCC`, `r_conv`, $\kappa_{\text{steer}}$ ja `simulate_counterfactual_retraction`):** Lisätään 0 LLM-tokenin topologiset graafimetriikat (`largest_component_ratio`, `branch_convergence_ratio`, `steering_coupling_ratio`) ja `CounterfactualSimulationResultDTO` tiedostoihin `@[backend_v2/models/dtos/causal_discovery.py]` ja `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`, lasketaan ne funktiossa `@[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]:compute_causal_tda_fusion_result`, kytketään `@[docs/tiede.md]`-dokumentin Kaavan (13) Guttman-kynnykset (`total_nodes` $1, 2, 5, 10, 15$, $r_{\text{LCC}}$ ja $r_{\text{conv}}$) sekä Algoritmin 1 kontrafaktuaalinen haavoittuvuussimulaatio (`simulate_counterfactual_retraction`) tiedostoihin `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]` ja `@[backend_v2/settings.py]`.
   6. **Flutter- ja Testipariteetti:** Päivitetään `@[scripts/audit_zero_orm_strictness.py]`, `@[scripts/_ast_guardrails.py]` (`QGR030`) ja `@[client_app_v2/]`-testifikstuurit vaatimaan 32-merkkistä `{prefix}_{32_hex}`-muotoa.
 
 ---
