@@ -8,8 +8,11 @@ from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
+from backend_v2.models.enums import PromptBlockCategory
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["ExecutionPersonaRepositoryImpl"]
 
 
 class ExecutionPersonaRepositoryImpl(AppendOnlyRepositoryBase):
@@ -20,8 +23,12 @@ class ExecutionPersonaRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             List of execution persona PromptBlock models.
+
+        Raises:
+            AppException: If an execution persona record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
-        filters = [Filter("type", "==", "execution_persona")]
+        filters = [Filter("category_id", "==", PromptBlockCategory.EXECUTION_PERSONA.value)]
         raw_items = await self.driver.query("components", filters)
         personas: list[PromptBlock] = []
         for item in raw_items:
@@ -31,7 +38,13 @@ class ExecutionPersonaRepositoryImpl(AppendOnlyRepositoryBase):
                 item_id = "unknown"
                 if "id" in item:
                     item_id = str(item["id"])
-                logger.error("Failed to parse ExecutionPersona %s: %s", item_id, e, exc_info=True)
+                logger.error(
+                    "[ExecutionPersonaRepository] %s: Failed to parse ExecutionPersona %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Failed to parse ExecutionPersona {item_id} from database",
                     status_code=500,
@@ -47,6 +60,10 @@ class ExecutionPersonaRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             The execution persona PromptBlock if found, otherwise None.
+
+        Raises:
+            AppException: If the execution persona record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         doc = await self.driver.get("components", persona_id)
         if not doc:
@@ -54,7 +71,13 @@ class ExecutionPersonaRepositoryImpl(AppendOnlyRepositoryBase):
         try:
             return PromptBlockAdapter.validate_python(doc, strict=False)
         except Exception as e:
-            logger.error("Failed to parse ExecutionPersona %s: %s", persona_id, e, exc_info=True)
+            logger.error(
+                "[ExecutionPersonaRepository] %s: Failed to parse ExecutionPersona %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                persona_id,
+                e,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Failed to parse ExecutionPersona {persona_id} from database",
                 status_code=500,
@@ -72,7 +95,7 @@ class ExecutionPersonaRepositoryImpl(AppendOnlyRepositoryBase):
         """
         payload = persona_data.model_dump(mode="json")
         doc_id = payload["id"]
-        payload["type"] = "execution_persona"
+        payload["category_id"] = PromptBlockCategory.EXECUTION_PERSONA.value
         return await self.driver.upsert("components", payload, doc_id)
 
     async def update_execution_persona(self, persona_id: str, updates: PromptBlock) -> str:
@@ -86,10 +109,18 @@ class ExecutionPersonaRepositoryImpl(AppendOnlyRepositoryBase):
             The updated persona ID.
 
         Raises:
-            ResourceNotFoundError: If the persona does not exist.
+            ResourceNotFoundError: If the execution persona does not exist
+                (ErrorCodes.RESOURCE_NOT_FOUND).
+            AppException: If the existing execution persona record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         comp = await self.get_execution_persona_by_id(persona_id)
         if not comp:
+            logger.error(
+                "[ExecutionPersonaRepository] %s: ExecutionPersona %s not found for update",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                persona_id,
+            )
             raise ResourceNotFoundError(resource_type="ExecutionPersona", resource_id=persona_id)
         payload = updates.model_dump(mode="json", exclude_unset=True)
         await self.driver.update("components", persona_id, payload)
@@ -103,6 +134,10 @@ class ExecutionPersonaRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             True if deleted, False if persona does not exist.
+
+        Raises:
+            AppException: If the existing execution persona record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         comp = await self.get_execution_persona_by_id(persona_id)
         if not comp:
