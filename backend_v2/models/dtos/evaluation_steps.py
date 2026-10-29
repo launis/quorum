@@ -12,14 +12,25 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.prompts.common import DESC_CONTEXTUAL_OVERRIDE, DESC_EXACT_QUOTES
 
+__all__ = [
+    "BaseExtractionDTO",
+    "ParsingLogStepsSemantic",
+    "ParsingLogStepsStrict",
+    "StepDTOSemantic",
+    "StepDTOStrict",
+]
+
 
 class BaseExtractionDTO(V2CoreBase):
     """Base DTO for extraction operations.
 
     Enforces common validation behaviors for all step extraction schemas.
+
+    Attributes:
+        used_source_aliases: List of exact search_result id strings relied upon for extraction.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     used_source_aliases: Annotated[
         list[str],
@@ -32,7 +43,17 @@ class BaseExtractionDTO(V2CoreBase):
     @model_validator(mode="before")
     @classmethod
     def _sanitize_source_aliases(cls, data: Any) -> Any:
-        """Sanitizes source aliases by fixing typos and nullifying invalid ones before Literal validation."""
+        """Sanitizes source aliases by fixing typos and nullifying invalid ones before Literal validation.
+
+        Args:
+            data: Raw dictionary input payload prior to field validation.
+
+        Returns:
+            Sanitized dictionary with normalized source aliases.
+
+        Raises:
+            ValueError: If input data cannot be converted to a dictionary.
+        """
         try:
             d = dict(data)
         except (TypeError, ValueError) as exc:
@@ -92,7 +113,7 @@ class StepDTOStrict(BaseExtractionDTO):
         semantic_reasoning: Short summary statement of decision logic.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     rule_internalization: Annotated[
         str,
@@ -136,6 +157,8 @@ class StepDTOSemantic(StepDTOStrict):
         override_reason: Justification details for the contextual override.
     """
 
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
     override_reason: Annotated[str | None, Field(description="Explanation for the contextual override.")] = None
     contextual_override: Annotated[
         bool,
@@ -144,7 +167,14 @@ class StepDTOSemantic(StepDTOStrict):
 
     @model_validator(mode="after")
     def _enforce_override_exclusivity(self) -> Self:
-        """Enforces that exact_quotes is empty if contextual_override is True."""
+        """Enforces that exact_quotes is empty if contextual_override is True.
+
+        Returns:
+            Validated StepDTOSemantic instance.
+
+        Raises:
+            ValueError: If exact_quotes is non-empty when contextual_override is True.
+        """
         if self.contextual_override and self.exact_quotes:
             raise ValueError("Null hypothesis violation: exact_quotes must be empty when contextual_override is True.")
         return self
@@ -159,7 +189,7 @@ class ParsingLogStepsStrict(BaseExtractionDTO):
         steps: Sequential list of strict evaluation steps.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     steps: Annotated[list[StepDTOStrict], Field(description="The sequence of evaluation steps.")]
 
@@ -173,6 +203,6 @@ class ParsingLogStepsSemantic(BaseExtractionDTO):
         steps: Sequential list of semantic evaluation steps.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     steps: Annotated[list[StepDTOSemantic], Field(description="The sequence of evaluation steps.")]
