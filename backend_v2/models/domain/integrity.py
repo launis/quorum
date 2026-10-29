@@ -17,6 +17,13 @@ from backend_v2.models.dtos.inputs import IngressInputValue
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "CitationAudit",
+    "IntegrityGlobalInputsDTO",
+    "KnowledgeItem",
+    "StepContext",
+]
+
 
 class KnowledgeItem(V2CoreBase):
     """Knowledge item structure representing term definitions.
@@ -81,11 +88,11 @@ class CitationAudit(V2CoreBase):
             The validated integrity score.
 
         Raises:
-            AppException: Raised if the score falls outside the safe mathematical range [0.0, 1.0].
+            AppException: With ``ErrorCodes.VALIDATION_FAILED`` if the score falls outside [0.0, 1.0].
         """
         if not (0.0 <= v <= 1.0):
             msg = "integrity_score must be between 0.0 and 1.0 inclusive"
-            logger.error("[CitationAudit] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[CitationAudit] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 

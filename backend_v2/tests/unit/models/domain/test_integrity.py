@@ -1,3 +1,5 @@
+"""Unit tests for Integrity domain models."""
+
 import pytest
 from pydantic import ValidationError
 
@@ -49,6 +51,9 @@ def test_citation_audit_defaults() -> None:
 
 def test_citation_audit_bounds() -> None:
     """Test that CitationAudit integrity_score bounds are enforced."""
+    valid_audit = CitationAudit(valid_citations=1, integrity_score=0.5)
+    assert valid_audit.integrity_score == 0.5
+
     with pytest.raises(AppException) as exc_info:
         CitationAudit(integrity_score=1.5)
     assert "integrity_score must be between 0.0 and 1.0 inclusive" in str(exc_info.value)
