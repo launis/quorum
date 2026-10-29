@@ -69,9 +69,9 @@ async def create_execution_report(
         Summary of the newly created report artifact in GENERATING status.
 
     Raises:
-        ExecutionNotReadyError: If execution is not in PASSED status (409 Conflict).
-        ConflictError: If a report with the same profile is already generating (409 Conflict).
-        ResourceNotFoundError: If execution or profile does not exist (404 Not Found).
+        ExecutionNotReadyError: If execution is not in PASSED status (ErrorCodes.EXECUTION_NOT_READY).
+        ConflictError: If a report with the same profile is already generating (ErrorCodes.CONFLICT_ERROR).
+        ResourceNotFoundError: If execution or profile does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
     """
     existing_reports = await report_service.list_reports_for_execution(execution_id)
     for existing in existing_reports:
@@ -80,7 +80,7 @@ async def create_execution_report(
                 f"Report generation already in progress for execution '{execution_id}' "
                 f"and profile '{payload.profile_id}'."
             )
-            logger.error("[ReportsRouter] %s: %s", ErrorCodes.CONFLICT_ERROR.name, msg)
+            logger.error("[ReportsRouter] %s: %s", ErrorCodes.CONFLICT_ERROR.name, msg, exc_info=True)
             raise ConflictError(
                 message=msg,
                 details={
@@ -143,7 +143,7 @@ async def list_execution_reports(
         List of report artifact summaries.
 
     Raises:
-        ResourceNotFoundError: If execution does not exist.
+        ResourceNotFoundError: If execution does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
     """
     await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
     return await report_service.list_reports_for_execution(execution_id)
@@ -162,7 +162,23 @@ async def create_execution_report_direct(
     report_service: ReportServiceDep,
     arq_pool: ArqPoolDep,
 ) -> ReportArtifactSummaryDTO:
-    """Subrouter endpoint for creating report artifacts under /executions prefix."""
+    """Subrouter endpoint for creating report artifacts under /executions prefix.
+
+    Args:
+        execution_id: Target execution identifier.
+        payload: Report compilation specification.
+        current_user: Authenticated user initiating compilation.
+        report_service: Injected report domain service.
+        arq_pool: Arq Redis connection pool.
+
+    Returns:
+        Summary of the newly created report artifact in GENERATING status.
+
+    Raises:
+        ExecutionNotReadyError: If execution is not in PASSED status (ErrorCodes.EXECUTION_NOT_READY).
+        ConflictError: If a report with the same profile is already generating (ErrorCodes.CONFLICT_ERROR).
+        ResourceNotFoundError: If execution or profile does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+    """
     return await create_execution_report(
         execution_id=execution_id,
         payload=payload,
@@ -183,7 +199,20 @@ async def list_execution_reports_direct(
     execution_service: ExecutionServiceDep,
     report_service: ReportServiceDep,
 ) -> list[ReportArtifactSummaryDTO]:
-    """Subrouter endpoint for listing report artifacts under /executions prefix."""
+    """Subrouter endpoint for listing report artifacts under /executions prefix.
+
+    Args:
+        execution_id: The unique identifier of the execution.
+        current_user: Authenticated user making the request.
+        execution_service: Injected execution service for existence verification.
+        report_service: Injected report domain service.
+
+    Returns:
+        List of report artifact summaries.
+
+    Raises:
+        ResourceNotFoundError: If execution does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+    """
     return await list_execution_reports(
         execution_id=execution_id,
         current_user=current_user,
@@ -217,7 +246,7 @@ async def get_report_artifact(
         The report artifact domain model.
 
     Raises:
-        ResourceNotFoundError: If report does not exist.
+        ResourceNotFoundError: If report does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
     """
     return await report_service.get_report(report_id)
 
@@ -247,7 +276,9 @@ async def get_report_sdui(
         Pre-compiled ReportDataDTO streamed from disk storage.
 
     Raises:
-        AppException: If report is not in READY status or storage read fails.
+        ResourceNotFoundError: If report does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+        AppException: If report is not in READY status (ErrorCodes.REPORT_NOT_READY) or
+            storage read fails (ErrorCodes.STORAGE_ACCESS_FAILED).
     """
     return await report_service.get_report_sdui(report_id)
 
@@ -275,7 +306,9 @@ async def get_report_pdf(
         Streamed binary PDF response with attachment header.
 
     Raises:
-        AppException: If report is not in READY status or storage read fails.
+        ResourceNotFoundError: If report does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+        AppException: If report is not in READY status (ErrorCodes.REPORT_NOT_READY) or
+            storage read fails (ErrorCodes.STORAGE_ACCESS_FAILED).
     """
     pdf_bytes, filename = await report_service.get_report_pdf_bytes(report_id)
     return Response(
@@ -308,7 +341,9 @@ async def get_report_excel(
         Streamed binary Excel workbook response with attachment header.
 
     Raises:
-        AppException: If report is not in READY status or storage read fails.
+        ResourceNotFoundError: If report does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+        AppException: If report is not in READY status (ErrorCodes.REPORT_NOT_READY) or
+            storage read fails (ErrorCodes.STORAGE_ACCESS_FAILED).
     """
     excel_bytes, filename = await report_service.get_report_excel_bytes(report_id)
     return Response(
@@ -341,7 +376,9 @@ async def get_report_csv(
         Streamed text CSV response with attachment header.
 
     Raises:
-        AppException: If report is not in READY status or storage read fails.
+        ResourceNotFoundError: If report does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+        AppException: If report is not in READY status (ErrorCodes.REPORT_NOT_READY) or
+            storage read fails (ErrorCodes.STORAGE_ACCESS_FAILED).
     """
     csv_bytes, filename = await report_service.get_report_csv_bytes(report_id)
     return Response(
@@ -374,6 +411,11 @@ async def get_report_rows(
 
     Returns:
         List of evaluated row item DTOs.
+
+    Raises:
+        ResourceNotFoundError: If report does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+        AppException: If report is not in READY status (ErrorCodes.REPORT_NOT_READY) or
+            storage read fails (ErrorCodes.STORAGE_ACCESS_FAILED).
     """
     return await report_service.get_report_rows(report_id)
 
@@ -398,6 +440,10 @@ async def delete_report_artifact(
         report_id: The unique identifier of the report artifact.
         current_user: Authenticated user making the request.
         report_service: Injected report domain service.
+
+    Raises:
+        ResourceNotFoundError: If report does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+        AppException: If physical storage deletion fails (ErrorCodes.STORAGE_ACCESS_FAILED).
     """
     await report_service.delete_report_artifact(report_id)
 
@@ -429,6 +475,9 @@ async def regenerate_report_artifact(
 
     Returns:
         Updated report artifact summary in GENERATING status.
+
+    Raises:
+        ResourceNotFoundError: If report does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
     """
     report = await report_service.get_report(report_id)
     await report_service.regenerate_report_artifact(report_id, arq_pool)
@@ -468,18 +517,31 @@ async def get_public_external_report(
         Sanitized PublicReportDTO.
 
     Raises:
-        AppException: If authentication fails (401 Unauthorized).
+        AppException: If authentication fails (ErrorCodes.AUTHENTICATION_FAILED), report is not
+            in READY status (ErrorCodes.REPORT_NOT_READY), or storage read fails
+            (ErrorCodes.STORAGE_ACCESS_FAILED).
+        ResourceNotFoundError: If report or execution does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
     """
     if x_api_key is not None:
         if x_api_key == "invalid" or len(x_api_key) < 8:
-            logger.error("[ReportsRouter] Invalid API key provided for external report access: %s", x_api_key)
+            logger.error(
+                "[ReportsRouter] %s: Invalid API key provided for external report '%s'.",
+                ErrorCodes.AUTHENTICATION_FAILED.name,
+                report_id,
+                exc_info=True,
+            )
             raise AppException(
                 message="Invalid API Key provided.",
                 status_code=401,
                 details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
             )
     elif not auth_header:
-        logger.error("[ReportsRouter] Missing API key or bearer token for external report access.")
+        logger.error(
+            "[ReportsRouter] %s: Missing API key or bearer token for external report '%s'.",
+            ErrorCodes.AUTHENTICATION_FAILED.name,
+            report_id,
+            exc_info=True,
+        )
         raise AppException(
             message="Authentication credentials missing.",
             status_code=401,

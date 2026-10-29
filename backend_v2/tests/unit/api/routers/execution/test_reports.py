@@ -532,8 +532,9 @@ def test_get_public_external_report_success_api_key(
 def test_get_public_external_report_invalid_api_key_401(
     override_dependencies: Any,
     mock_report_service: Any,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Test GET /api/v1/external/reports/{id} rejects invalid API key with 401."""
+    """Test GET /api/v1/external/reports/{id} rejects invalid API key with 401 without logging raw secret."""
     client = TestClient(app)
 
     response = client.get(
@@ -544,6 +545,27 @@ def test_get_public_external_report_invalid_api_key_401(
     assert response.status_code == 401
     data = response.json()
     assert data["extensions"]["error_code"] == ErrorCodes.AUTHENTICATION_FAILED.value
+    assert MOCK_REP_ID in caplog.text
+
+
+def test_get_public_external_report_short_api_key_boundary_401(
+    override_dependencies: Any,
+    mock_report_service: Any,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test GET /api/v1/external/reports/{id} rejects 7-char API key (min-1 boundary) and redacts key from logs."""
+    client = TestClient(app)
+    short_secret = "sec_7ch"
+
+    response = client.get(
+        f"/api/v1/external/reports/{MOCK_REP_ID}",
+        headers={"X-API-Key": short_secret},
+    )
+
+    assert response.status_code == 401
+    data = response.json()
+    assert data["extensions"]["error_code"] == ErrorCodes.AUTHENTICATION_FAILED.value
+    assert short_secret not in caplog.text
 
 
 def test_get_public_external_report_missing_auth_401(
@@ -558,3 +580,83 @@ def test_get_public_external_report_missing_auth_401(
     assert response.status_code == 401
     data = response.json()
     assert data["extensions"]["error_code"] == ErrorCodes.AUTHENTICATION_FAILED.value
+
+
+def test_subrouter_direct_endpoints_success(
+    override_dependencies: Any,
+    mock_report_service: Any,
+    mock_execution_service: Any,
+) -> None:
+    """Test subrouter /api/v2/execution/executions/{id}/reports POST and GET delegation."""
+    client = TestClient(app)
+    now = datetime.now(timezone.utc)
+    mock_execution_service.get_execution.return_value = AsyncMock()
+    mock_report_service.list_reports_for_execution.return_value = []
+    mock_report_service.create_report_artifact.return_value = ReportArtifact(
+        id=MOCK_REP_ID,
+        execution_id=MOCK_EXE_ID,
+        workflow_id=MOCK_WOR_ID,
+        profile_id=MOCK_PRF_ID,
+        locale="fi",
+        title="Direct Subrouter Report",
+        status=ReportStatus.PENDING,
+        created_at=now,
+        updated_at=now,
+    )
+    mock_report_service.compile_and_persist_artifact.return_value = None
+
+    post_res = client.post(
+        f"/api/v2/execution/executions/{MOCK_EXE_ID}/reports",
+        json={"profile_id": MOCK_PRF_ID, "locale": "fi"},
+    )
+    assert post_res.status_code == 202
+    assert post_res.json()["id"] == MOCK_REP_ID
+
+    get_res = client.get(f"/api/v2/execution/executions/{MOCK_EXE_ID}/reports")
+    assert get_res.status_code == 200
+    assert get_res.json() == []
+
+
+def test_delete_report_artifact_missing_404(
+    override_dependencies: Any,
+    mock_report_service: Any,
+) -> None:
+    """Test DELETE /api/v2/reports/{id} returns 404 when report artifact does not exist."""
+    client = TestClient(app)
+    mock_report_service.delete_report_artifact.side_effect = ResourceNotFoundError(
+        resource_type="report_artifact", resource_id=MOCK_MISSING_REP
+    )
+
+    response = client.delete(f"/api/v2/reports/{MOCK_MISSING_REP}")
+    assert response.status_code == 404
+
+
+def test_post_regenerate_report_artifact_missing_404(
+    override_dependencies: Any,
+    mock_report_service: Any,
+) -> None:
+    """Test POST /api/v2/reports/{id}/regenerate returns 404 when report artifact does not exist."""
+    client = TestClient(app)
+    mock_report_service.get_report.side_effect = ResourceNotFoundError(
+        resource_type="report_artifact", resource_id=MOCK_MISSING_REP
+    )
+
+    response = client.post(f"/api/v2/reports/{MOCK_MISSING_REP}/regenerate")
+    assert response.status_code == 404
+
+
+def test_get_report_pdf_unready_409(
+    override_dependencies: Any,
+    mock_report_service: Any,
+) -> None:
+    """Test GET /api/v2/reports/{id}/pdf returns 409 when report artifact is not ready."""
+    client = TestClient(app)
+    mock_report_service.get_report_pdf_bytes.side_effect = AppException(
+        message="PDF artifact not ready",
+        status_code=409,
+        details={"error_code": ErrorCodes.REPORT_NOT_READY.value},
+    )
+
+    response = client.get(f"/api/v2/reports/{MOCK_REP_ID}/pdf")
+    assert response.status_code == 409
+
