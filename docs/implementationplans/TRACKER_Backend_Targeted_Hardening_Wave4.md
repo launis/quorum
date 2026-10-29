@@ -46,7 +46,7 @@
   - [x] @[backend_v2/models/prompt.py]
   - [x] @[backend_v2/models/dtos/system.py]
   - [x] @[backend_v2/models/dtos/inputs.py]
-  - [ ] @[backend_v2/models/dtos/prompt.py]
+  - [x] @[backend_v2/models/dtos/prompt.py]
   - [ ] @[backend_v2/models/dtos/prompt_context.py]
   - [ ] @[backend_v2/models/dtos/retrieval.py]
   - [ ] @[backend_v2/models/dtos/evaluation_steps.py]
