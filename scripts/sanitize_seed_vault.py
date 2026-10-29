@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, cast
@@ -35,9 +36,57 @@ if isinstance(sys.stderr, io.TextIOWrapper):
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
 
-from backend_v2.models.core_base import I18nText
-from backend_v2.models.enums import PromptBlockCategory
+from backend_v2.models.core_base import (
+    I18nText,
+    generate_uuid7_opaque_id,
+)
+from backend_v2.models.enums import (
+    EntityPrefix,
+    PromptBlockCategory,
+    StepType,
+    SystemConfigID,
+)
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
+
+_CAUSAL_COHESION_MATRIX_BLOCK_ID: str = "blk_0195f3a00000700c80a1e50000000001"
+_SYSTEM_ORG_UUID7_ID: str = "org_0195f3a0000070008000000000000000"
+
+
+def _upgrade_or_generate_opaque_id(raw_id: object, expected_prefix: EntityPrefix) -> str:
+    """Deterministically upgrade a 16-hex ID to 32-hex RFC 9562 UUIDv7 or generate a fresh UUIDv7 ID.
+
+    Args:
+        raw_id: Candidate raw identifier value from seed_data.json.
+        expected_prefix: Canonical EntityPrefix expected for the entity or foreign key.
+
+    Returns:
+        Canonical 32-hex '{expected_prefix.value}_{32_hex}' string matching OPAQUE_STRIPE_ID_REGEX.
+    """
+    if not isinstance(raw_id, str) or not raw_id.strip():
+        return generate_uuid7_opaque_id(expected_prefix)
+
+    cleaned = raw_id.strip()
+    if cleaned in ("sys_8172bda70c8641c5", SystemConfigID.MCP_GATEWAYS.value):
+        return SystemConfigID.MCP_GATEWAYS.value
+    if expected_prefix == EntityPrefix.ORGANIZATION and cleaned in (
+        "org_system000000",
+        "SYSTEM",
+        _SYSTEM_ORG_UUID7_ID,
+    ):
+        return _SYSTEM_ORG_UUID7_ID
+
+    if "_" in cleaned:
+        _, hex_part = cleaned.split("_", 1)
+        if re.fullmatch(r"[0-9a-fA-F]{32}", hex_part):
+            h32 = hex_part.lower()
+            if expected_prefix == EntityPrefix.TDA or uuid.UUID(hex=h32).version == 7:
+                return f"{expected_prefix.value}_{h32}"
+            return f"{expected_prefix.value}_0195f3a000007{h32[13:16]}8{h32[17:32]}"
+        if re.fullmatch(r"[0-9a-fA-F]{16}", hex_part):
+            h16 = hex_part.lower()
+            return f"{expected_prefix.value}_0195f3a00000700{h16[0]}8{h16[1:16]}"
+
+    return generate_uuid7_opaque_id(expected_prefix)
 
 
 class SanitizeResult(BaseModel):
@@ -182,7 +231,7 @@ class TrackAConfig(BaseModel):
 
 # Dual-Track Rubric Architecture: Track A Developmental Matrices configuration
 DUAL_TRACK_A_CONFIG: dict[str, TrackAConfig] = {
-    "blk_f921c7c0989b47e8": TrackAConfig(
+    "blk_0195f3a00000700f8921c7c0989b47e8": TrackAConfig(
         scale_name=I18nText(
             translations={"fi": "Muistaminen ja nimeäminen (Remembering)", "en": "Remembering and Naming (Novice)"}
         ),
@@ -200,7 +249,7 @@ DUAL_TRACK_A_CONFIG: dict[str, TrackAConfig] = {
             )
         },
     ),
-    "blk_7d8e9f0a1b2c3d4e": TrackAConfig(
+    "blk_0195f3a0000070078d8e9f0a1b2c3d4e": TrackAConfig(
         scale_name=I18nText(translations={"fi": "Alustava ohjaus (Noviisi)", "en": "Preliminary Guidance (Novice)"}),
         ai_label="NOVICE - BASELINE PROMPTING",
         claim_updates={
@@ -226,7 +275,7 @@ DUAL_TRACK_A_CONFIG: dict[str, TrackAConfig] = {
             ),
         },
     ),
-    "blk_53f32679aa514fcb": TrackAConfig(
+    "blk_0195f3a00000700583f32679aa514fcb": TrackAConfig(
         scale_name=I18nText(translations={"fi": "Perusvuorovaikutus (Noviisi)", "en": "Basic Interaction (Novice)"}),
         ai_label="NOVICE - BASIC INTERACTION",
         claim_updates={
@@ -252,7 +301,7 @@ DUAL_TRACK_A_CONFIG: dict[str, TrackAConfig] = {
             ),
         },
     ),
-    "blk_ff72c2d79edb4ebf": TrackAConfig(
+    "blk_0195f3a00000700f8f72c2d79edb4ebf": TrackAConfig(
         scale_name=I18nText(
             translations={"fi": "Pinnallinen arviointi (Noviisi)", "en": "Superficial Evaluation (Novice)"}
         ),
@@ -270,7 +319,7 @@ DUAL_TRACK_A_CONFIG: dict[str, TrackAConfig] = {
             )
         },
     ),
-    "blk_f6e286f050c94d60": TrackAConfig(
+    "blk_0195f3a00000700f86e286f050c94d60": TrackAConfig(
         scale_name=I18nText(
             translations={"fi": "Alustava jäsentely (Noviisi)", "en": "Preliminary Structuring (Novice)"}
         ),
@@ -288,7 +337,7 @@ DUAL_TRACK_A_CONFIG: dict[str, TrackAConfig] = {
             )
         },
     ),
-    "blk_6b8c766185294f7e": TrackAConfig(
+    "blk_0195f3a0000070068b8c766185294f7e": TrackAConfig(
         scale_name=I18nText(translations={"fi": "Peruskonsensus (Noviisi)", "en": "Basic Consensus (Novice)"}),
         ai_label="NOVICE - BASIC CONSENSUS",
         claim_updates={
@@ -316,15 +365,15 @@ DUAL_TRACK_A_CONFIG: dict[str, TrackAConfig] = {
     ),
 }
 
-# Dual-Track Rubric Architecture: Track B Diagnostic Error Radars (Toulmin is golden reference blk_440a5fef9331451b)
+# Dual-Track Rubric Architecture: Track B Diagnostic Error Radars (Toulmin is golden reference blk_0195f3a000007004840a5fef9331451b)
 DUAL_TRACK_B_BLOCK_IDS: set[str] = {
-    "blk_c5804a9143c34cb1",  # matrix_causal_analyst
-    "blk_109dab5b6b3f403a",  # matrix_kahneman
-    "blk_b476f89fb732448c",  # matrix_falsifier
-    "blk_80732a33fe1947ee",  # matrix_taskguard
-    "blk_fb15f8dcf23f4865",  # matrix_archivist
-    "blk_c3bc5f3eb8e74110",  # matrix_causal_abductive
-    "blk_22e3598e06414409",  # matrix_epistemic_humility
+    "blk_0195f3a00000700c85804a9143c34cb1",  # matrix_causal_analyst
+    "blk_0195f3a000007001809dab5b6b3f403a",  # matrix_kahneman
+    "blk_0195f3a00000700b8476f89fb732448c",  # matrix_falsifier
+    "blk_0195f3a00000700880732a33fe1947ee",  # matrix_taskguard
+    "blk_0195f3a00000700f8b15f8dcf23f4865",  # matrix_archivist
+    "blk_0195f3a00000700c83bc5f3eb8e74110",  # matrix_causal_abductive
+    "blk_0195f3a00000700282e3598e06414409",  # matrix_epistemic_humility
 }
 
 
@@ -434,9 +483,9 @@ def atomic_save_seed_data(data: Mapping[str, JsonValue], target_path: Path) -> N
     # Dry-run validation of temporary file syntax
     with open(temp_name, encoding="utf-8") as tf_read:
         verified_data = json.load(tf_read)
-        if not isinstance(verified_data, dict):
+        if "prompt_blocks" not in verified_data:
             os.remove(temp_name)
-            raise ValueError(f"Temporary file '{temp_name}' failed dictionary type validation.")
+            raise ValueError(f"Temporary file '{temp_name}' failed seed collection validation.")
 
     # Atomic move over target file
     os.replace(temp_name, target_path)
@@ -456,6 +505,10 @@ def sanitize_prompt_blocks(prompt_blocks: Sequence[Any]) -> tuple[list[JsonValue
 
     for block in prompt_blocks:
         b = dict(block)
+        # Phase 1 & 2, Step 1 & 2: Explicit key membership check and deterministic 32-hex UUIDv7 upgrade
+        raw_block_id = str(b["id"]) if "id" in b else ""
+        block_id = _upgrade_or_generate_opaque_id(raw_block_id, EntityPrefix.PROMPT_BLOCK)
+        b["id"] = block_id
         category_id = str(b["category_id"]) if "category_id" in b else ""
 
         # Strip XML from top-level prompt fields
@@ -464,13 +517,15 @@ def sanitize_prompt_blocks(prompt_blocks: Sequence[Any]) -> tuple[list[JsonValue
                 b[field] = strip_raw_xml(b[field])
 
         if category_id in (PromptBlockCategory.MATRIX, PromptBlockCategory.MATRIX.value):
-            block_id = str(b.get("id", ""))
             scales = b["scales"] if "scales" in b else []
             if isinstance(scales, list):
                 new_scales: list[JsonValue] = []
                 for scale in scales:
                     s = dict(scale)
-                    score_val = s.get("score")
+                    # Phase 1, Step 1: Explicit key membership check instead of .get()
+                    score_val = s["score"] if "score" in s else None
+                    if "id" in s:
+                        s["id"] = _upgrade_or_generate_opaque_id(s["id"], EntityPrefix.SCALE)
 
                     # Track A Level 1 Refactoring
                     cfg: TrackAConfig | None = None
@@ -489,7 +544,19 @@ def sanitize_prompt_blocks(prompt_blocks: Sequence[Any]) -> tuple[list[JsonValue
                                 new_assertions: list[JsonValue] = []
                                 for assertion in assertions:
                                     a = dict(assertion)
-                                    tda_id = str(a["tda_id"]) if "tda_id" in a else ""
+                                    raw_tda_id = str(a["tda_id"]) if "tda_id" in a else ""
+                                    tda_id = _upgrade_or_generate_opaque_id(raw_tda_id, EntityPrefix.TDA)
+                                    a["tda_id"] = tda_id
+                                    if "depends_on" in a and isinstance(a["depends_on"], list):
+                                        upgraded_edges: list[JsonValue] = []
+                                        for edge in a["depends_on"]:
+                                            e_dict = dict(edge)
+                                            if "tda_id" in e_dict:
+                                                e_dict["tda_id"] = _upgrade_or_generate_opaque_id(
+                                                    e_dict["tda_id"], EntityPrefix.TDA
+                                                )
+                                            upgraded_edges.append(e_dict)
+                                        a["depends_on"] = upgraded_edges
 
                                     # Dual-Track Invariants
                                     if block_id in DUAL_TRACK_A_CONFIG and score_val == 1:
@@ -561,8 +628,28 @@ def sanitize_steps(steps: Sequence[Any]) -> list[JsonValue]:
     adapter_steps = cast(TypeAdapter[BaseModel], STANDARD_REGISTRY["steps"]["model"])
 
     for step in steps:
-        s = dict(step)
-        s.pop("output_schema", None)
+        s = {k: v for k, v in step.items() if k != "output_schema"}
+        # Phase 2, Step 2: Upgrade step ID (normalizing sp_ -> stp_) and block foreign keys
+        raw_step_id = s["id"] if "id" in s else None
+        s["id"] = _upgrade_or_generate_opaque_id(raw_step_id, EntityPrefix.STEP)
+        for fk_field in ("role_block_id", "extraction_protocol_block_id", "execution_persona_block_id"):
+            if fk_field in s and s[fk_field] is not None:
+                s[fk_field] = _upgrade_or_generate_opaque_id(s[fk_field], EntityPrefix.PROMPT_BLOCK)
+
+        raw_criteria = s["criteria_block_ids"] if "criteria_block_ids" in s else []
+        if isinstance(raw_criteria, list):
+            s["criteria_block_ids"] = [
+                _upgrade_or_generate_opaque_id(cid, EntityPrefix.PROMPT_BLOCK) for cid in raw_criteria
+            ]
+        else:
+            s["criteria_block_ids"] = []
+
+        # Phase 2, Step 2: Bind causal cohesion BARS matrix block directly to CAUSAL_DISCOVERY steps
+        step_type = str(s["type"]) if "type" in s else ""
+        if step_type in (StepType.CAUSAL_DISCOVERY, StepType.CAUSAL_DISCOVERY.value):
+            if not s["criteria_block_ids"]:
+                s["criteria_block_ids"] = [_CAUSAL_COHESION_MATRIX_BLOCK_ID]
+
         for field in ["step_rules", "ai_description", "label"]:
             if field in s and isinstance(s[field], str):
                 s[field] = strip_raw_xml(s[field])
@@ -587,18 +674,83 @@ def sanitize_workflows(workflows: Sequence[Any]) -> list[JsonValue]:
     adapter_workflows = cast(TypeAdapter[BaseModel], STANDARD_REGISTRY["workflows"]["model"])
 
     for workflow in workflows:
-        w = dict(workflow)
-        w.pop("ui_schema", None)
-        w.pop("default_scoring_strategy", None)
-        w_id = w.get("id")
+        w = {k: v for k, v in workflow.items() if k not in ("ui_schema", "default_scoring_strategy")}
+        # Phase 1 & 2, Step 1 & 2: Explicit key membership check and 32-hex UUIDv7 upgrade
+        raw_w_id = w["id"] if "id" in w else None
+        w_id = _upgrade_or_generate_opaque_id(raw_w_id, EntityPrefix.WORKFLOW)
+        w["id"] = w_id
+
+        if "default_profile_id" in w and w["default_profile_id"] is not None:
+            w["default_profile_id"] = _upgrade_or_generate_opaque_id(
+                w["default_profile_id"], EntityPrefix.OUTPUT_PROFILE
+            )
+        if "mcp_gateway_id" in w and w["mcp_gateway_id"] is not None:
+            w["mcp_gateway_id"] = _upgrade_or_generate_opaque_id(w["mcp_gateway_id"], EntityPrefix.SYSTEM_CONFIG)
+        if "model_registry_id" in w and w["model_registry_id"] is not None:
+            w["model_registry_id"] = _upgrade_or_generate_opaque_id(w["model_registry_id"], EntityPrefix.SYSTEM_CONFIG)
+
+        if "steps" in w and isinstance(w["steps"], list):
+            sr_id_map: dict[str, str] = {}
+            for sr_item in w["steps"]:
+                sr_dict = dict(sr_item)
+                if "id" in sr_dict and sr_dict["id"] is not None:
+                    old_sr = str(sr_dict["id"])
+                    sr_id_map[old_sr] = _upgrade_or_generate_opaque_id(old_sr, EntityPrefix.STEP_REFERENCE)
+
+            new_step_rules: list[JsonValue] = []
+            for sr_item in w["steps"]:
+                sr = dict(sr_item)
+                old_sr_id = str(sr["id"]) if "id" in sr and sr["id"] is not None else ""
+                sr["id"] = (
+                    sr_id_map[old_sr_id]
+                    if old_sr_id in sr_id_map
+                    else _upgrade_or_generate_opaque_id(None, EntityPrefix.STEP_REFERENCE)
+                )
+                if "task_blueprint" in sr and sr["task_blueprint"] is not None:
+                    sr["task_blueprint"] = _upgrade_or_generate_opaque_id(sr["task_blueprint"], EntityPrefix.STEP)
+                if "depends_on" in sr and isinstance(sr["depends_on"], list):
+                    sr["depends_on"] = [
+                        sr_id_map[str(dep)]
+                        if str(dep) in sr_id_map
+                        else _upgrade_or_generate_opaque_id(dep, EntityPrefix.STEP_REFERENCE)
+                        for dep in sr["depends_on"]
+                    ]
+                if "causal_source_step_id" in sr and sr["causal_source_step_id"] is not None:
+                    cs_str = str(sr["causal_source_step_id"])
+                    sr["causal_source_step_id"] = (
+                        sr_id_map[cs_str]
+                        if cs_str in sr_id_map
+                        else _upgrade_or_generate_opaque_id(cs_str, EntityPrefix.STEP_REFERENCE)
+                    )
+                if "input_mappings" in sr and sr["input_mappings"]:
+                    new_mappings: dict[str, str] = {}
+                    for mk, mv in dict(sr["input_mappings"]).items():
+                        val_str = str(mv)
+                        parts = val_str.split(".", 2)
+                        if len(parts) >= 2 and parts[0] == "$steps":
+                            ref_sr = parts[1]
+                            upgraded_ref = (
+                                sr_id_map[ref_sr]
+                                if ref_sr in sr_id_map
+                                else _upgrade_or_generate_opaque_id(ref_sr, EntityPrefix.STEP_REFERENCE)
+                            )
+                            suffix = f".{parts[2]}" if len(parts) == 3 else ""
+                            val_str = f"$steps.{upgraded_ref}{suffix}"
+                        new_mappings[str(mk)] = val_str
+                    sr["input_mappings"] = new_mappings
+                new_step_rules.append(sr)
+            w["steps"] = new_step_rules
+
+        wf_03_id = "wf_0195f3a00000700083a1d71000000003"
+        wf_05_id = "wf_0195f3a00000700085a1d71000000005"
         if "default_strictness_level" not in w:
-            w["default_strictness_level"] = 70 if w_id == "wf_03a1d71000000003" else 50
+            w["default_strictness_level"] = 70 if w_id == wf_03_id else 50
         if "security_penalty" not in w:
-            w["security_penalty"] = 0.15 if w_id == "wf_05a1d71000000005" else 0.0
+            w["security_penalty"] = 0.15 if w_id == wf_05_id else 0.0
         if "post_hoc_penalty" not in w:
             w["post_hoc_penalty"] = 0.0
         if "passivity_penalty" not in w:
-            w["passivity_penalty"] = 0.05 if w_id == "wf_03a1d71000000003" else 0.0
+            w["passivity_penalty"] = 0.05 if w_id == wf_03_id else 0.0
         validated_model = adapter_workflows.validate_python(w)
         serialized_workflow = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_workflows.append(serialized_workflow)
@@ -619,17 +771,94 @@ def sanitize_output_profiles(output_profiles: Sequence[Any]) -> list[JsonValue]:
     adapter_profiles = cast(TypeAdapter[BaseModel], STANDARD_REGISTRY["output_profiles"]["model"])
 
     for profile in output_profiles:
-        p = dict(profile)
-        p.pop("scoring_strategy", None)
-        p.pop("strictness_level", None)
-        p.pop("security_penalty", None)
-        p.pop("post_hoc_penalty", None)
-        p.pop("passivity_penalty", None)
+        p = {
+            k: v
+            for k, v in profile.items()
+            if k
+            not in (
+                "scoring_strategy",
+                "strictness_level",
+                "security_penalty",
+                "post_hoc_penalty",
+                "passivity_penalty",
+            )
+        }
+        raw_p_id = p["id"] if "id" in p else None
+        p["id"] = _upgrade_or_generate_opaque_id(raw_p_id, EntityPrefix.OUTPUT_PROFILE)
+        if "workflow_id" in p and p["workflow_id"] is not None:
+            p["workflow_id"] = _upgrade_or_generate_opaque_id(p["workflow_id"], EntityPrefix.WORKFLOW)
+        if "target_block_order" in p and isinstance(p["target_block_order"], list):
+            new_tbo: list[JsonValue] = []
+            for tbo in p["target_block_order"]:
+                if isinstance(tbo, str) and "_" in tbo and tbo.split("_", 1)[0] == EntityPrefix.PROMPT_BLOCK.value:
+                    new_tbo.append(_upgrade_or_generate_opaque_id(tbo, EntityPrefix.PROMPT_BLOCK))
+                else:
+                    new_tbo.append(tbo)
+            p["target_block_order"] = new_tbo
+        if "matrix_synthesis_groups" in p and isinstance(p["matrix_synthesis_groups"], list):
+            new_groups: list[JsonValue] = []
+            for grp_item in p["matrix_synthesis_groups"]:
+                grp = dict(grp_item)
+                raw_grp_id = grp["id"] if "id" in grp else None
+                grp["id"] = _upgrade_or_generate_opaque_id(raw_grp_id, EntityPrefix.SYNTHESIS_GROUP)
+                if "target_blocks" in grp and isinstance(grp["target_blocks"], list):
+                    grp["target_blocks"] = [
+                        _upgrade_or_generate_opaque_id(tb, EntityPrefix.PROMPT_BLOCK) for tb in grp["target_blocks"]
+                    ]
+                new_groups.append(grp)
+            p["matrix_synthesis_groups"] = new_groups
+        if "variance_target_block" in p and p["variance_target_block"] is not None:
+            p["variance_target_block"] = _upgrade_or_generate_opaque_id(
+                p["variance_target_block"], EntityPrefix.PROMPT_BLOCK
+            )
+        if "user_role_target_block" in p and p["user_role_target_block"] is not None:
+            p["user_role_target_block"] = _upgrade_or_generate_opaque_id(
+                p["user_role_target_block"], EntityPrefix.PROMPT_BLOCK
+            )
         validated_model = adapter_profiles.validate_python(p)
         serialized_profile = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_profiles.append(serialized_profile)
 
     return sanitized_profiles
+
+
+def _sanitize_auxiliary_collections(data: dict[str, Any]) -> None:
+    """Upgrades IDs in system_config, organizations, and users collections in-place.
+
+    Args:
+        data: Root seed_data.json dictionary.
+    """
+    if "system_config" in data and isinstance(data["system_config"], list):
+        new_sys_cfgs: list[JsonValue] = []
+        for item in data["system_config"]:
+            cfg = dict(item)
+            raw_cfg_id = cfg["id"] if "id" in cfg else None
+            cfg["id"] = _upgrade_or_generate_opaque_id(raw_cfg_id, EntityPrefix.SYSTEM_CONFIG)
+            new_sys_cfgs.append(cfg)
+        data["system_config"] = new_sys_cfgs
+
+    if "organizations" in data and isinstance(data["organizations"], list):
+        new_orgs: list[JsonValue] = []
+        for item in data["organizations"]:
+            org = dict(item)
+            raw_org_id = org["id"] if "id" in org else None
+            if raw_org_id != "org_system000000":
+                org["id"] = _upgrade_or_generate_opaque_id(raw_org_id, EntityPrefix.ORGANIZATION)
+            new_orgs.append(org)
+        data["organizations"] = new_orgs
+
+    if "users" in data and isinstance(data["users"], list):
+        new_users: list[JsonValue] = []
+        for item in data["users"]:
+            usr = dict(item)
+            raw_usr_id = usr["id"] if "id" in usr else None
+            usr["id"] = _upgrade_or_generate_opaque_id(raw_usr_id, EntityPrefix.USER)
+            if "organization_id" in usr and usr["organization_id"] not in (None, "org_system000000", "SYSTEM"):
+                usr["organization_id"] = _upgrade_or_generate_opaque_id(
+                    usr["organization_id"], EntityPrefix.ORGANIZATION
+                )
+            new_users.append(usr)
+        data["users"] = new_users
 
 
 def run_seed_vault_sanitization(seed_path: Path, dry_run: bool = False) -> SanitizeResult:
@@ -646,15 +875,18 @@ def run_seed_vault_sanitization(seed_path: Path, dry_run: bool = False) -> Sanit
         raise FileNotFoundError(f"Seed data file not found at: {seed_path}")
 
     raw_content = seed_path.read_text(encoding="utf-8")
-    data = json.loads(raw_content)
+    raw_data = json.loads(raw_content)
 
     # Purge orphan root collections
-    data.pop("step_blueprints", None)
+    data = {k: v for k, v in raw_data.items() if k != "step_blueprints"}
 
     backup_path_str: str | None = None
     if not dry_run:
         backup_file = create_vault_backup(seed_path)
         backup_path_str = str(backup_file)
+
+    # 0. Upgrade auxiliary collections (system_config, organizations, users)
+    _sanitize_auxiliary_collections(data)
 
     # 1. Sanitize prompt_blocks
     prompt_blocks = data["prompt_blocks"] if "prompt_blocks" in data else []

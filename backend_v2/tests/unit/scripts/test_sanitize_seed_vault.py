@@ -2,25 +2,32 @@
 
 import ast
 import json
+import re
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.enums import PromptBlockCategory
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, parse_prefixed_uuid7
+from backend_v2.models.enums import EntityPrefix, PromptBlockCategory, SystemConfigID
 from scripts.sanitize_seed_vault import (
     SanitizeResult,
+    _sanitize_auxiliary_collections,
+    _upgrade_or_generate_opaque_id,
     atomic_save_seed_data,
     clean_mechanical_phrases,
     create_vault_backup,
     main,
     run_seed_vault_sanitization,
+    sanitize_output_profiles,
     sanitize_prompt_blocks,
+    sanitize_steps,
+    sanitize_workflows,
     strip_raw_xml,
 )
 
 
-def _create_raw_matrix_block():
+def _create_raw_matrix_block() -> dict[str, object]:
     """Helper to create a raw matrix block dictionary with mechanical phrases and raw XML."""
     return {
         "id": "blk_1234567890abcdef",
@@ -50,6 +57,13 @@ def _create_raw_matrix_block():
                                 "extraction_rule": "Extract IF AND ONLY IF count of markers is EXACTLY ZERO.",
                                 "inverse_evidence": False,
                                 "aggregation_mode": "EXISTS",
+                                "depends_on": [
+                                    {
+                                        "tda_id": "tda_453ddf8b14a442e988836098e3c7b55c",
+                                        "edge_reasoning": "Requires parent risk identification.",
+                                        "source_id": "chunk_0",
+                                    }
+                                ],
                             },
                         ],
                     }
@@ -57,6 +71,37 @@ def _create_raw_matrix_block():
             }
         ],
     }
+
+
+def test_upgrade_or_generate_opaque_id_variants() -> None:
+    """Verify deterministic 16-hex to 32-hex UUIDv7 upgrade and missing-ID generation."""
+    # 1. 16-hex upgrade
+    upgraded_wf = _upgrade_or_generate_opaque_id("wor_a8f1d71000000001", EntityPrefix.WORKFLOW)
+    assert upgraded_wf == "wf_0195f3a00000700a88f1d71000000001"
+    assert parse_prefixed_uuid7(upgraded_wf, EntityPrefix.WORKFLOW).version == 7
+
+    # 2. Missing / blank / non-string generates fresh 32-hex UUIDv7
+    generated_blk = _upgrade_or_generate_opaque_id(None, EntityPrefix.PROMPT_BLOCK)
+    assert re.match(OPAQUE_STRIPE_ID_REGEX, generated_blk)
+    assert parse_prefixed_uuid7(generated_blk, EntityPrefix.PROMPT_BLOCK).version == 7
+
+    generated_blank = _upgrade_or_generate_opaque_id("   ", EntityPrefix.STEP)
+    assert re.match(OPAQUE_STRIPE_ID_REGEX, generated_blank)
+    assert parse_prefixed_uuid7(generated_blank, EntityPrefix.STEP).version == 7
+
+    # 3. Existing 32-hex non-v7 entity ID is normalized to v7
+    non_v7_32 = _upgrade_or_generate_opaque_id("prf_453ddf8b14a442e988836098e3c7b55c", EntityPrefix.OUTPUT_PROFILE)
+    assert parse_prefixed_uuid7(non_v7_32, EntityPrefix.OUTPUT_PROFILE).version == 7
+
+    # 4. System config & organization constants
+    assert (
+        _upgrade_or_generate_opaque_id("sys_8172bda70c8641c5", EntityPrefix.SYSTEM_CONFIG)
+        == SystemConfigID.MCP_GATEWAYS.value
+    )
+    assert (
+        _upgrade_or_generate_opaque_id("org_system000000", EntityPrefix.ORGANIZATION)
+        == "org_0195f3a0000070008000000000000000"
+    )
 
 
 def test_sanitize_dto_structure() -> None:
@@ -78,6 +123,7 @@ def test_strip_raw_xml() -> None:
     assert strip_raw_xml("Plain text without tags") == "Plain text without tags"
     assert strip_raw_xml("<rule name='test'>Value</rule>") == "Value"
     assert strip_raw_xml("<>Loose brackets<>") == "Loose brackets"
+    assert strip_raw_xml("") == ""
 
 
 def test_clean_mechanical_phrases() -> None:
@@ -88,6 +134,7 @@ def test_clean_mechanical_phrases() -> None:
     assert "IF AND ONLY IF" not in cleaned
     assert "EXACTLY ZERO" not in cleaned
     assert "markers are absent" in cleaned
+    assert clean_mechanical_phrases("") == ""
 
 
 def test_create_vault_backup(tmp_path: Path) -> None:
@@ -121,20 +168,60 @@ def test_sanitize_prompt_blocks_pipeline() -> None:
     assert mutated_count == 2
 
     block = sanitized_blocks[0]
-    assert "<system_directive>" not in str(block["ai_description"])
+    assert block["id"] == "blk_0195f3a0000070018234567890abcdef"  # type: ignore[index]
+    assert "<system_directive>" not in str(block["ai_description"])  # type: ignore[index]
 
-    assertions = block["scales"][0]["claims"][0]["tda_assertions"]
-    # Check specific atom harmonization
+    assertions = block["scales"][0]["claims"][0]["tda_assertions"]  # type: ignore[index]
     a1 = assertions[0]
     assert a1["tda_id"] == "tda_453ddf8b14a442e988836098e3c7b55c"
     assert "ABSOLUTE MITIGATION ENFORCEMENT" not in a1["concept_description"]
     assert "Identified organizational or operational risks" in a1["concept_description"]
 
-    # Check generic atom sanitization
     a2 = assertions[1]
     assert "<directive>" not in a2["concept_description"]
     assert "EXACTLY ZERO" not in a2["concept_description"]
     assert "EXACTLY ZERO" not in a2["extraction_rule"]
+
+
+def test_sanitize_steps_workflows_profiles_and_auxiliary() -> None:
+    """Verify sanitize_steps, sanitize_workflows, sanitize_output_profiles, and _sanitize_auxiliary_collections."""
+    # 1. Steps (including CAUSAL_DISCOVERY auto-binding of causal cohesion matrix)
+    raw_steps = [
+        {
+            "id": "sp_75261e4b904a428c",
+            "slug": "step_causal_discovery",
+            "name": {"translations": {"en": "Causal Discovery", "fi": "Kausaalinen löytäminen"}},
+            "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
+            "type": "causal_discovery",
+            "engine_type": "causal_discovery",
+            "extraction_protocol_block_id": "blk_440a5fef9331451b",
+            "criteria_block_ids": [],
+            "cognitive_tier": "deep",
+        }
+    ]
+    sanitized_steps = sanitize_steps(raw_steps)
+    assert len(sanitized_steps) == 1
+    step0 = sanitized_steps[0]
+    assert step0["id"] == "stp_0195f3a00000700785261e4b904a428c"  # type: ignore[index]
+    assert step0["criteria_block_ids"] == ["blk_0195f3a00000700c80a1e50000000001"]  # type: ignore[index]
+
+    # 2. Auxiliary collections
+    aux_data: dict[str, object] = {
+        "system_config": [{"id": "sys_8172bda70c8641c5", "gateways": []}],
+        "organizations": [
+            {"id": "org_system000000", "name": "System"},
+            {"id": "org_e531d2ed8a6641f6", "name": "Default"},
+        ],
+        "users": [
+            {"id": "usr_7a9c1b2e4d5f6a8b", "organization_id": "org_e531d2ed8a6641f6"},
+        ],
+    }
+    _sanitize_auxiliary_collections(aux_data)
+    assert aux_data["system_config"][0]["id"] == SystemConfigID.MCP_GATEWAYS.value  # type: ignore[index]
+    assert aux_data["organizations"][0]["id"] == "org_system000000"  # type: ignore[index]
+    assert aux_data["organizations"][1]["id"] == "org_0195f3a00000700e8531d2ed8a6641f6"  # type: ignore[index]
+    assert aux_data["users"][0]["id"] == "usr_0195f3a0000070078a9c1b2e4d5f6a8b"  # type: ignore[index]
+    assert aux_data["users"][0]["organization_id"] == "org_0195f3a00000700e8531d2ed8a6641f6"  # type: ignore[index]
 
 
 def test_run_seed_vault_sanitization(tmp_path: Path) -> None:
@@ -165,6 +252,10 @@ def test_run_seed_vault_sanitization(tmp_path: Path) -> None:
     assert len(persisted["prompt_blocks"]) == 1
     assert "<system_directive>" not in persisted["prompt_blocks"][0]["ai_description"]
 
+    # 3. Negative path: missing seed file raises FileNotFoundError
+    with pytest.raises(FileNotFoundError):
+        run_seed_vault_sanitization(tmp_path / "nonexistent.json", dry_run=True)
+
 
 def test_sanitize_cli_exit_codes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test CLI main() behavior with --dry-run and file path arguments."""
@@ -184,7 +275,7 @@ def test_sanitize_cli_exit_codes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 
 
 def test_sanitize_cli_subprocesses(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test CLI main() with --test and --reseed flags using subprocess mocks."""
+    """Test CLI main() with --test and --reseed flags using scoped subprocess mocks."""
     seed_file = tmp_path / "seed_data.json"
     data = {
         "prompt_blocks": [_create_raw_matrix_block()],
@@ -197,7 +288,7 @@ def test_sanitize_cli_subprocesses(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     class MockProc:
         returncode = 0
 
-    monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: MockProc())
+    monkeypatch.setattr("scripts.sanitize_seed_vault.subprocess.run", lambda *args, **kwargs: MockProc())
     monkeypatch.setattr(
         "sys.argv",
         ["sanitize_seed_vault.py", "--seed-path", str(seed_file), "--test", "--reseed"],

@@ -129,25 +129,22 @@ def test_i18n_text_with_copy_suffix() -> None:
 
 
 def test_generate_opaque_id_success() -> None:
-    """Verifies generate_opaque_id produces valid Opaque Stripe IDs matching regex."""
+    """Verifies generate_opaque_id produces valid 32-hex RFC 9562 UUIDv7 Opaque Stripe IDs matching regex."""
     for prefix in EntityPrefix:
         generated = generate_opaque_id(prefix)
         assert generated.startswith(f"{prefix.value}_")
         assert re.match(OPAQUE_STRIPE_ID_REGEX, generated)
+        assert parse_prefixed_uuid7(generated, prefix).version == 7
 
-    # String prefix and custom length
-    custom_id = generate_opaque_id("prf", length=24)
+    # String prefix with canonical length=32
+    custom_id = generate_opaque_id("prf", length=32)
     assert custom_id.startswith("prf_")
-    assert len(custom_id) == 4 + 24
+    assert len(custom_id) == 4 + 32
     assert re.match(OPAQUE_STRIPE_ID_REGEX, custom_id)
-
-    # Bounded length (min 16, max 32)
-    min_bounded = generate_opaque_id("wf", length=5)
-    assert len(min_bounded) == 3 + 16
 
 
 def test_generate_opaque_id_negative_invalid_prefix() -> None:
-    """Verifies generate_opaque_id fails fast when prefix is invalid."""
+    """Verifies generate_opaque_id fails fast when prefix or length is invalid."""
     with pytest.raises(AppException) as exc_info:
         generate_opaque_id("toolongprefix")
     assert exc_info.value.status_code == 400
@@ -156,6 +153,15 @@ def test_generate_opaque_id_negative_invalid_prefix() -> None:
     with pytest.raises(AppException) as exc_info2:
         generate_opaque_id("x")
     assert exc_info2.value.status_code == 400
+
+    with pytest.raises(AppException) as exc_len:
+        generate_opaque_id(EntityPrefix.WORKFLOW, length=16)
+    assert exc_len.value.status_code == 400
+    assert exc_len.value.details["error_code"] == "VALIDATION_FAILED"
+
+    with pytest.raises(AppException) as exc_len_24:
+        generate_opaque_id("prf", length=24)
+    assert exc_len_24.value.status_code == 400
 
 
 def test_coerce_source_quotes_tuple_none_and_empty() -> None:

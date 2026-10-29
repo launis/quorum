@@ -232,6 +232,7 @@ class EntityPrefix(StrEnum):
     STEP = "stp"
     STEP_REFERENCE = "sr"
     OUTPUT_PROFILE = "prf"
+    SYNTHESIS_GROUP = "grp"
     PROMPT_BLOCK = "blk"
     SYSTEM_CONFIG = "sys"
     EXECUTION = "exe"
@@ -239,9 +240,10 @@ class EntityPrefix(StrEnum):
     ORGANIZATION = "org"
     TDA = "tda"
     REPORT = "rep"
-    # Proposition graph node and edge Opaque Stripe ID prefixes
+    # Proposition graph node, edge, and scale Opaque Stripe ID prefixes
     NODE = "nod"
     EDGE = "edg"
+    SCALE = "sc"
 
 
 class StorageBackend(StrEnum):
@@ -283,7 +285,8 @@ LaxDependencyRelationType = Annotated[DependencyRelationType, Field(strict=False
 class SystemConfigID(StrEnum):
     """Hardcoded Opaque Stripe IDs for global System Configurations."""
 
-    MCP_GATEWAYS = "sys_8172bda70c8641c5"
+    # Phase 1, Step 1: Canonical 32-hex RFC 9562 UUIDv7 for MCP Gateways
+    MCP_GATEWAYS = "sys_0195f3a00000700080008172bda70c86"
 
 
 class EvidenceType(StrEnum):

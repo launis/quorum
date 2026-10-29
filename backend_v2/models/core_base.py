@@ -35,7 +35,8 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-OPAQUE_STRIPE_ID_REGEX: str = r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+# Phase 1, Step 1: Lock universal 32-hex RFC 9562 UUIDv7 Opaque Stripe ID regex
+OPAQUE_STRIPE_ID_REGEX: str = r"^([a-z]{2,5})_[a-fA-F0-9]{32}$"
 
 
 @dataclass
@@ -186,47 +187,44 @@ class I18nText(V2CoreBase):
         return I18nText(translations=new_translations)
 
 
-_UUID7_DELEGATED_PREFIXES: frozenset[str] = frozenset(
-    {
-        EntityPrefix.EXECUTION.value,
-        EntityPrefix.REPORT.value,
-        EntityPrefix.NODE.value,
-        EntityPrefix.EDGE.value,
-    }
-)
-
-
-def generate_opaque_id(prefix: EntityPrefix | str, length: int = 16) -> str:
-    """Generates a randomized hex ID conforming to OPAQUE_STRIPE_ID_REGEX.
-
-    Delegates temporal-locality entity prefixes (exe, rep, nod, edg) directly
-    to RFC 9562 UUIDv7 generation (32-char lowercase hex).
+# Phase 1, Step 1: Universal 32-hex RFC 9562 UUIDv7 delegation across all EntityPrefix members
+def generate_opaque_id(prefix: EntityPrefix | str, length: int = 32) -> str:
+    """Generates a canonical 32-hex RFC 9562 UUIDv7 Opaque Stripe ID.
 
     Args:
-        prefix: Entity prefix (StrEnum member or string matching ^[a-z]{2,5}$).
-        length: Length of the randomized hex payload (default: 16, bounds: 16..32).
+        prefix: Entity prefix (EntityPrefix member or string matching a canonical EntityPrefix).
+        length: Required hex payload length (must be 32 under universal UUIDv7 cutover).
 
     Returns:
-        Canonical Opaque Stripe ID string formatted as '{prefix}_{hex}'.
+        Canonical Opaque Stripe ID string formatted as '{prefix}_{32_hex}'.
 
     Raises:
-        AppException: If prefix or generated ID fails validation against OPAQUE_STRIPE_ID_REGEX.
+        AppException: With ErrorCodes.VALIDATION_FAILED if prefix is not a valid EntityPrefix
+            or length is not 32.
     """
-    prefix_str = prefix.value if isinstance(prefix, EntityPrefix) else str(prefix).strip().lower()
-    if prefix_str in _UUID7_DELEGATED_PREFIXES:
-        return generate_uuid7_opaque_id(EntityPrefix(prefix_str))
-    bounded_len = max(16, min(length, 32))
-    hex_token = uuid.uuid4().hex[:bounded_len]
-    generated_id = f"{prefix_str}_{hex_token}"
-    if not re.match(OPAQUE_STRIPE_ID_REGEX, generated_id):
-        msg = f"Generated ID '{generated_id}' does not match OPAQUE_STRIPE_ID_REGEX."
+    if length != 32:
+        msg = f"Universal PrefixedUUID7 requires a 32-character hex payload, got length={length}."
         logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
-    return generated_id
+    if isinstance(prefix, EntityPrefix):
+        resolved_prefix = prefix
+    else:
+        prefix_str = str(prefix).strip().lower()
+        try:
+            resolved_prefix = EntityPrefix(prefix_str)
+        except ValueError as exc:
+            msg = f"Prefix '{prefix}' is not a registered EntityPrefix."
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from exc
+    return generate_uuid7_opaque_id(resolved_prefix)
 
 
 def parse_prefixed_uuid7(
@@ -245,7 +243,7 @@ def parse_prefixed_uuid7(
         Validated 16-byte uuid.UUID instance.
 
     Raises:
-        AppException: With ErrorCodes.VALIDATION_FAILED if prefix, regex, hex length, or version is invalid.
+        AppException: With ErrorCodes.VALIDATION_FAILED if prefix, regex, or version is invalid.
     """
     if isinstance(value, uuid.UUID):
         parsed = value
@@ -262,14 +260,6 @@ def parse_prefixed_uuid7(
         prefix_part, hex_part = cleaned.split("_", 1)
         if prefix_part != expected_prefix.value:
             msg = f"Identifier '{value}' has prefix '{prefix_part}', expected '{expected_prefix.value}'."
-            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise AppException(
-                message=msg,
-                status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-        if len(hex_part) != 32:
-            msg = f"UUIDv7 identifier '{value}' requires a 32-character hex payload, got {len(hex_part)}."
             logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
