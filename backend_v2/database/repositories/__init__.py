@@ -6,17 +6,19 @@ from .component import ComponentRepositoryImpl
 from .execution import ExecutionRepositoryImpl
 from .identity import IdentityRepositoryImpl
 from .knowledge import KnowledgeRepositoryImpl
+from .report_artifact import ReportArtifactRepositoryImpl
 from .system import SystemRepositoryImpl
 from .workflow import WorkflowRepositoryImpl
 
 __all__ = [
-    "BaseRepository",
     "AppendOnlyRepositoryBase",
     "AuditRepositoryImpl",
+    "BaseRepository",
     "ComponentRepositoryImpl",
     "ExecutionRepositoryImpl",
     "IdentityRepositoryImpl",
     "KnowledgeRepositoryImpl",
+    "ReportArtifactRepositoryImpl",
     "SystemRepositoryImpl",
     "WorkflowRepositoryImpl",
 ]

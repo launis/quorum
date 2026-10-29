@@ -25,6 +25,7 @@ from backend_v2.models.dtos.report_artifact import (
     ReportStoragePathsDTO,
 )
 from backend_v2.models.enums import CognitiveTier
+from backend_v2.tests.factories.model_factories import ReportArtifactFactory
 
 
 def _build_test_report_artifact(
@@ -36,8 +37,8 @@ def _build_test_report_artifact(
     title: str = "Test Forensic Report",
     status: ReportStatus = ReportStatus.PENDING,
 ) -> ReportArtifact:
-    """Helper to construct a valid ReportArtifact model."""
-    return ReportArtifact(
+    """Helper to construct a valid ReportArtifact model via Polyfactory."""
+    return ReportArtifactFactory.build(
         id=report_id,
         execution_id=execution_id,
         workflow_id=workflow_id,
@@ -264,6 +265,22 @@ async def test_update_report_artifact_not_found() -> None:
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+
+@pytest.mark.asyncio
+async def test_update_report_artifact_validation_failure() -> None:
+    """Negative: raises AppException(500) with VALIDATION_FAILED when existing record is corrupted."""
+    mock_driver = AsyncMock()
+    mock_driver.get.return_value = {"id": "rep_corrupted00000", "corrupted_field": True}
+
+    repo = ReportArtifactRepositoryImpl(driver=mock_driver)
+    update_dto = ReportArtifactUpdateDTO(status=ReportStatus.READY)
+
+    with pytest.raises(AppException) as exc_info:
+        await repo.update_report_artifact("rep_corrupted00000", update_dto)
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio

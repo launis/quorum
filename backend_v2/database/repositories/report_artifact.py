@@ -20,11 +20,13 @@ logger = logging.getLogger(__name__)
 
 _COLLECTION_NAME = "report_artifacts"
 
+__all__ = ["ReportArtifactRepositoryImpl"]
+
 
 class ReportArtifactRepositoryImpl(BaseRepository, IReportArtifactRepository):
     """Repository implementation for ReportArtifact domain entities."""
 
-    def __init__(self, driver: StorageDriver):
+    def __init__(self, driver: StorageDriver) -> None:
         """Initializes the repository with a storage driver.
 
         Args:
@@ -42,7 +44,7 @@ class ReportArtifactRepositoryImpl(BaseRepository, IReportArtifactRepository):
             The persisted ReportArtifact model.
 
         Raises:
-            AppException: If database persistence fails.
+            AppException: If database persistence fails (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         payload = report.model_dump(mode="json")
         await self.driver.upsert(_COLLECTION_NAME, payload, report.id)
@@ -58,7 +60,8 @@ class ReportArtifactRepositoryImpl(BaseRepository, IReportArtifactRepository):
             The validated ReportArtifact if found, otherwise None.
 
         Raises:
-            AppException: If document validation or retrieval fails.
+            AppException: If document validation or retrieval fails
+                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         doc = await self.driver.get(_COLLECTION_NAME, report_id)
         if doc is None:
@@ -66,7 +69,13 @@ class ReportArtifactRepositoryImpl(BaseRepository, IReportArtifactRepository):
         try:
             return ReportArtifact.model_validate(doc, strict=False)
         except Exception as e:
-            logger.error("Failed to parse ReportArtifact %s: %s", report_id, e, extra={"report_id": report_id})
+            logger.error(
+                "Failed to parse ReportArtifact %s: %s",
+                report_id,
+                e,
+                extra={"report_id": report_id, "error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Failed to parse report artifact {report_id}",
                 status_code=500,
@@ -83,7 +92,8 @@ class ReportArtifactRepositoryImpl(BaseRepository, IReportArtifactRepository):
             List of validated ReportArtifact instances.
 
         Raises:
-            AppException: If document validation or query fails.
+            AppException: If document validation or query fails
+                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         docs = await self.driver.query(_COLLECTION_NAME, [Filter("execution_id", "==", execution_id)])
         results: list[ReportArtifact] = []
@@ -95,7 +105,8 @@ class ReportArtifactRepositoryImpl(BaseRepository, IReportArtifactRepository):
                     "Failed to parse ReportArtifact for execution %s: %s",
                     execution_id,
                     e,
-                    extra={"execution_id": execution_id},
+                    extra={"execution_id": execution_id, "error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    exc_info=True,
                 )
                 raise AppException(
                     message=f"Failed to parse report artifact for execution {execution_id}",
@@ -115,18 +126,40 @@ class ReportArtifactRepositoryImpl(BaseRepository, IReportArtifactRepository):
             The updated ReportArtifact model.
 
         Raises:
-            AppException: If the record does not exist or persistence fails.
+            AppException: If the record does not exist (ErrorCodes.RESOURCE_NOT_FOUND),
+                fails validation (ErrorCodes.VALIDATION_FAILED), or persistence fails
+                (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         doc = await self.driver.get(_COLLECTION_NAME, report_id)
         if doc is None:
-            logger.error("Report artifact %s not found for update", report_id, extra={"report_id": report_id})
+            logger.error(
+                "Report artifact %s not found for update",
+                report_id,
+                extra={"report_id": report_id, "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Report artifact {report_id} not found",
                 status_code=404,
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
 
-        current = ReportArtifact.model_validate(doc, strict=False)
+        try:
+            current = ReportArtifact.model_validate(doc, strict=False)
+        except Exception as e:
+            logger.error(
+                "Failed to parse ReportArtifact %s during update: %s",
+                report_id,
+                e,
+                extra={"report_id": report_id, "error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"Failed to parse report artifact {report_id}",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
+
         updated = current.model_copy(
             update={
                 "status": update_dto.status if update_dto.status is not None else current.status,
@@ -154,6 +187,6 @@ class ReportArtifactRepositoryImpl(BaseRepository, IReportArtifactRepository):
             True if deletion succeeded, False otherwise.
 
         Raises:
-            AppException: If deletion operation fails.
+            AppException: If deletion operation fails (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         return await self.driver.delete(_COLLECTION_NAME, report_id)
