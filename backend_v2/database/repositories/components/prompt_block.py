@@ -11,15 +11,20 @@ from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapt
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["PromptBlockRepositoryImpl"]
+
 
 class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
     """Implementation of the IPromptBlockRepository.
 
     This repository is responsible for CRUD operations on prompt_blocks.
     It inherits from AppendOnlyRepositoryBase to support versioned documents.
+
+    Attributes:
+        driver: The underlying storage driver for database operations.
     """
 
-    def __init__(self, driver: StorageDriver):
+    def __init__(self, driver: StorageDriver) -> None:
         """Initializes the repository with a storage driver.
 
         Args:
@@ -37,7 +42,8 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
             The validated PromptBlock domain model if found, otherwise None.
 
         Raises:
-            AppException: If database query or validation fails.
+            AppException: If database query or validation fails
+                (ErrorCodes.VALIDATION_FAILED).
         """
         doc = await self.driver.get("prompt_blocks", block_id)
         if not doc:
@@ -60,6 +66,10 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             The validated PromptBlock domain model if found, otherwise None.
+
+        Raises:
+            AppException: If database query or validation fails
+                (ErrorCodes.VALIDATION_FAILED).
         """
         return await self.get_prompt_block_by_id(block_id)
 
@@ -70,7 +80,8 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
             A list of validated PromptBlock domain models.
 
         Raises:
-            AppException: If database query fails.
+            AppException: If database query or validation fails
+                (ErrorCodes.VALIDATION_FAILED).
         """
         data = await self.driver.query("prompt_blocks")
         models: list[PromptBlock] = []
@@ -104,7 +115,9 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
             List of validated PromptBlock domain models.
 
         Raises:
-            AppException: If strict=True and any requested block ID is missing.
+            AppException: If strict=True and any requested block ID is missing
+                (ErrorCodes.RESOURCE_NOT_FOUND), or if validation fails
+                (ErrorCodes.VALIDATION_FAILED).
         """
         if not block_ids:
             return []
@@ -121,6 +134,12 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
                 missing_ids.append(block_id)
 
         if strict and missing_ids:
+            logger.error(
+                "[PromptBlockRepository] %s: Missing required prompt blocks: %s",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                missing_ids,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Missing required prompt blocks: {', '.join(missing_ids)}",
                 details={
@@ -137,6 +156,10 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             A list of PromptBlock models.
+
+        Raises:
+            AppException: If database query or validation fails
+                (ErrorCodes.VALIDATION_FAILED).
         """
         return await self.get_all_prompt_blocks()
 
@@ -150,7 +173,8 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
             The ID of the created prompt block.
 
         Raises:
-            AppException: Propagated from driver if the upsert operation fails.
+            AppException: Propagated from driver if the upsert operation fails
+                (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         payload = block_data.model_dump(mode="json")
         doc_id = payload["id"]
@@ -167,7 +191,8 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
             True if the update was successful, False if the document was not found.
 
         Raises:
-            AppException: Propagated from driver if database operations fail.
+            AppException: Propagated from driver if database operations fail
+                (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         old_doc = await self.driver.get("prompt_blocks", block_id)
         if not old_doc:
@@ -215,6 +240,13 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
                     step_ref = "unknown"
                     if "id" in s:
                         step_ref = str(s["id"])
+                    logger.error(
+                        "[PromptBlockRepository] %s: PromptBlock %s delete blocked by step %s usage.",
+                        ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                        block_id,
+                        step_ref,
+                        exc_info=True,
+                    )
                     raise AppException(
                         message="PromptBlock delete blocked by step usage.",
                         details={
