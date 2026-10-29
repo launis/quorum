@@ -3,46 +3,68 @@
 Responsible for assigning secure, opaque TDA assertion identifiers during design-time compilation.
 """
 
+from __future__ import annotations
+
 import logging
-import secrets
-from typing import Any
+import re
 
 from fastapi import status
 
+from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, generate_opaque_id
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
+from backend_v2.models.enums import EntityPrefix
+
+__all__ = ["PromptAtomizer"]
 
 logger = logging.getLogger(__name__)
 
 
-class PromptAtomizer:
-    """Design-time Compiler logic to assign IDs to TDA assertions.
+def _is_valid_tda_opaque_id(candidate_id: str) -> bool:
+    """Validate whether a candidate TDA identifier conforms to canonical Opaque Stripe ID rules.
 
-    Ensures compliance with structural requirements before database persistence.
+    Args:
+        candidate_id: Candidate string identifier on a TDAAssertion.
+
+    Returns:
+        True if candidate_id matches OPAQUE_STRIPE_ID_REGEX with the 'tda' EntityPrefix and 32-hex payload.
+    """
+    if not candidate_id or not re.match(OPAQUE_STRIPE_ID_REGEX, candidate_id):
+        return False
+    prefix_part, hex_part = candidate_id.split("_", 1)
+    return prefix_part == EntityPrefix.TDA.value and len(hex_part) == 32
+
+
+class PromptAtomizer:
+    """Design-time compiler logic to assign canonical Opaque Stripe IDs to TDA assertions.
+
+    Ensures compliance with structural identifier invariants before database persistence.
     """
 
     @classmethod
     async def atomize_prompt_block(
         cls,
         block: PromptBlock,
-        repository: Any | None = None,
+        repository: ISystemRepository | None = None,
         is_test: bool = False,
     ) -> PromptBlock:
-        """Assigns Stripe Opaque IDs to TDA Assertions if they are missing.
+        """Assign canonical Opaque Stripe IDs to TDA assertions when missing or malformed.
 
-        Executed during Design-Time (save) before DB commit.
+        Executed during design-time persistence before database commit.
 
         Args:
             block: The PromptBlock instance to process.
-            repository: Optional repository context.
-            is_test: Optional test flag.
+            repository: Optional system repository context.
+            is_test: Optional test execution flag.
 
         Returns:
-            The processed PromptBlock instance with updated IDs.
+            The processed PromptBlock instance with canonical TDA assertion identifiers.
 
         Raises:
-            AppException: VALIDATION_FAILED if validation or re-instantiation of Pydantic models fails.
+            AppException: With ErrorCodes.VALIDATION_FAILED (422) if validation or model mutation fails.
         """
+        _ = (repository, is_test)
         try:
             if not isinstance(block, MatrixPromptBlock) or not block.scales:
                 return block
@@ -51,38 +73,30 @@ class PromptAtomizer:
             for scale in block.scales:
                 new_claims = []
                 for claim in scale.claims:
-                    # Expect claim to have 'tda_assertions' mapped in domain.matrix
                     if not claim.tda_assertions:
                         new_claims.append(claim)
                         continue
 
                     new_assertions = []
                     for assertion in claim.tda_assertions:
-                        # If ID is missing or not following Opaque Stripe ID pattern, assign one.
-                        if not assertion.tda_id or not str(assertion.tda_id).startswith("tda_"):
-                            # Opaque ID generation using safe secrets token to avoid standard entropy leaks
-                            secure_suffix = secrets.token_hex(4)
-                            new_id = f"tda_{secure_suffix}"
-
-                            # Optimize mutation to prevent full model_dump() cycle
+                        if not _is_valid_tda_opaque_id(assertion.tda_id):
+                            new_id = generate_opaque_id(EntityPrefix.TDA, length=32)
                             updated_assertion = assertion.model_copy(update={"tda_id": new_id})
                             new_assertions.append(updated_assertion)
                         else:
                             new_assertions.append(assertion)
 
-                    # Optimize mutation to prevent full model_dump() cycle
                     updated_claim = claim.model_copy(update={"tda_assertions": new_assertions})
                     new_claims.append(updated_claim)
 
-                # Optimize mutation to prevent full model_dump() cycle
                 updated_scale = scale.model_copy(update={"claims": new_claims})
                 new_scales.append(updated_scale)
 
-            # Optimize mutation to prevent full model_dump() cycle
             return block.model_copy(update={"scales": new_scales})
         except Exception as e:
             logger.error(
-                "Failed to atomize prompt block: %s",
+                "[PromptAtomizer] %s: Failed to atomize prompt block: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
                 str(e),
                 exc_info=True,
                 extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
