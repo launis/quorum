@@ -60,6 +60,7 @@ def test_llm_context_data_dto_subscript_and_membership() -> None:
     assert dto["inputs"] == {"resolved_a": "val_a"}
     assert dto["raw_inputs"] == {"raw_a": raw_val}
     assert dto["metadata"] == metadata
+    assert dto["execution_time"] == now
 
     with pytest.raises(KeyError):
         _ = dto["missing_key"]
@@ -88,3 +89,25 @@ def test_llm_context_data_dto_none_fields() -> None:
     assert "metadata" in empty_dto
     assert "execution_time" in empty_dto
     assert "unrelated_key" not in empty_dto
+
+
+def test_prompt_mapping_dto_rejects_extra_and_invalid_types() -> None:
+    """Negative test: PromptMappingDTO rejects extra fields and non-string mapping values."""
+    with pytest.raises(ValidationError):
+        PromptMappingDTO.model_validate({"mappings": {"k": "v"}, "unexpected_field": "banned"})
+
+    with pytest.raises(ValidationError):
+        PromptMappingDTO.model_validate({"mappings": {"k": 12345}})
+
+
+def test_llm_context_data_dto_rejects_extra_and_invalid_types() -> None:
+    """Negative test: LLMContextDataDTO rejects extra fields, invalid types, and mutation."""
+    with pytest.raises(ValidationError):
+        LLMContextDataDTO.model_validate({"unknown_key": "value"})
+
+    with pytest.raises(ValidationError):
+        LLMContextDataDTO.model_validate({"execution_time": "not-a-datetime-in-strict-mode"})
+
+    dto = LLMContextDataDTO()
+    with pytest.raises(ValidationError):
+        dto.inputs = {"k": "v"}

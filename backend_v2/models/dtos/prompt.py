@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import ItemsView, KeysView, Mapping, ValuesView
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import ConfigDict, Field, JsonValue
 
@@ -22,7 +22,11 @@ type ContextInputValue = IngressInputValue | DomainInputValue | Mapping[str, Dom
 
 
 class PromptMappingDTO(V2CoreBase):
-    """Encapsulates input mappings from logical names to state paths."""
+    """Encapsulates input mappings from logical names to state paths.
+
+    Attributes:
+        mappings: Map of logical input names to state paths.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -32,28 +36,64 @@ class PromptMappingDTO(V2CoreBase):
     ]
 
     def __getitem__(self, key: str) -> str:
-        """Allow subscript access to inner mappings."""
+        """Retrieve a mapped state path by logical input key.
+
+        Args:
+            key: Logical input name to look up.
+
+        Returns:
+            Mapped state path string.
+
+        Raises:
+            KeyError: If the logical input key does not exist in mappings.
+        """
         return self.mappings[key]
 
     def __contains__(self, key: object) -> bool:
-        """Allow membership check against inner mappings."""
+        """Check whether a logical input key exists in mappings.
+
+        Args:
+            key: Key object to test for membership.
+
+        Returns:
+            True if the key exists in inner mappings, False otherwise.
+        """
         return key in self.mappings
 
     def keys(self) -> KeysView[str]:
-        """Return view of mapping keys."""
+        """Return a view of logical input mapping keys.
+
+        Returns:
+            View of mapping keys.
+        """
         return self.mappings.keys()
 
     def values(self) -> ValuesView[str]:
-        """Return view of mapping values."""
+        """Return a view of mapped state path values.
+
+        Returns:
+            View of mapping values.
+        """
         return self.mappings.values()
 
     def items(self) -> ItemsView[str, str]:
-        """Return view of mapping key-value items."""
+        """Return a view of logical input key and state path pairs.
+
+        Returns:
+            View of mapping key-value items.
+        """
         return self.mappings.items()
 
 
 class LLMContextDataDTO(V2CoreBase):
-    """Strictly typed LLM execution context data container."""
+    """Strictly typed LLM execution context data container.
+
+    Attributes:
+        raw_inputs: Raw ingress input parameters.
+        metadata: Execution runtime metadata.
+        execution_time: Execution timestamp.
+        inputs: Resolved domain inputs.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -74,8 +114,20 @@ class LLMContextDataDTO(V2CoreBase):
         Field(default=None, description="Resolved domain inputs."),
     ] = None
 
-    def __getitem__(self, key: str) -> Any:
-        """Allow subscript access for seamless transition."""
+    def __getitem__(
+        self, key: str
+    ) -> ContextInputValue | dict[str, ContextInputValue] | ExecutionMetadata | datetime.datetime | None:
+        """Retrieve a resolved input, raw input, or context attribute by key.
+
+        Args:
+            key: Input key or context attribute name to look up.
+
+        Returns:
+            Resolved context value or top-level context attribute.
+
+        Raises:
+            KeyError: If the key is not present in inputs, raw_inputs, or attributes.
+        """
         if self.inputs is not None and key in self.inputs:
             return self.inputs[key]
         if self.raw_inputs is not None and key in self.raw_inputs:
@@ -86,10 +138,19 @@ class LLMContextDataDTO(V2CoreBase):
             return self.raw_inputs
         if key == "metadata":
             return self.metadata
+        if key == "execution_time":
+            return self.execution_time
         raise KeyError(key)
 
     def __contains__(self, key: object) -> bool:
-        """Allow membership check for seamless transition."""
+        """Check whether a key exists in context inputs or top-level attributes.
+
+        Args:
+            key: Key object to test for membership.
+
+        Returns:
+            True if the key resolves in inputs, raw_inputs, or top-level attributes.
+        """
         if not isinstance(key, str):
             return False
         if self.inputs is not None and key in self.inputs:
