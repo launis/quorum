@@ -7,7 +7,7 @@ including scorecards and dimension results.
 from __future__ import annotations
 
 import logging
-from typing import Annotated
+from typing import Annotated, Self
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
@@ -23,6 +23,15 @@ from backend_v2.models.domain.overseer import OverseerOutput
 from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.profiler import ProfilerOutput
 from backend_v2.models.domain.security import InputProcessingOutputDTO
+
+__all__ = [
+    "DimensionResultItem",
+    "JudgeDTO",
+    "JudgeInput",
+    "JudgeOutput",
+    "JudgeScoreCard",
+    "ScoringResult",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +56,7 @@ class JudgeInput(V2CoreBase):
         dynamic_inputs: Structured dictionary for dynamic inputs.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     # Context / inputs
     chat_log: Annotated[
@@ -92,7 +101,7 @@ class DimensionResultItem(V2CoreBase):
         reasoning: Justification for the score.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     dimension_id: Annotated[
         str,
@@ -129,11 +138,11 @@ class DimensionResultItem(V2CoreBase):
             The validated score.
 
         Raises:
-            AppException: If score is less than 0 (VALIDATION_FAILED).
+            AppException: If score is less than 0 (ErrorCodes.VALIDATION_FAILED).
         """
         if v < 0:
             msg = f"score must be >= 0, got {v}"
-            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -160,7 +169,7 @@ class JudgeScoreCard(V2CoreBase):
         scale_max: Maximum possible score.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     agent_name: Annotated[
         str,
@@ -216,23 +225,23 @@ class JudgeScoreCard(V2CoreBase):
     ]
 
     @model_validator(mode="after")
-    def validate_scores(self) -> JudgeScoreCard:
+    def validate_scores(self) -> Self:
         """Validate the score bounds.
 
         Returns:
             The validated scorecard instance.
 
         Raises:
-            AppException: If scale_min >= scale_max or total_score is out of bounds (VALIDATION_FAILED).
+            AppException: If scale_min >= scale_max or total_score is out of bounds (ErrorCodes.VALIDATION_FAILED).
         """
         if self.scale_min >= self.scale_max:
             msg = "scale_min must be less than scale_max."
-            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         if not (self.scale_min <= self.total_score <= self.scale_max):
             msg = f"total_score {self.total_score} is out of range [{self.scale_min}, {self.scale_max}]."
-            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[JudgeModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return self
 
@@ -248,7 +257,7 @@ class JudgeDTO(ReasoningTraceDTO):
         critical_findings: Critical issues identified.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     matrix_id: Annotated[
         str,
@@ -289,8 +298,17 @@ class JudgeDTO(ReasoningTraceDTO):
 
 
 class JudgeOutput(JudgeDTO, ReasoningTrace):
-    model_config = ConfigDict(strict=True, extra="forbid")
-    """Output schema for the Judge Agent."""
+    """Output schema for the Judge Agent.
+
+    Attributes:
+        matrix_id: ID of the evaluation matrix used.
+        score_card: Final scorecard.
+        scale_min: Minimum possible score.
+        scale_max: Maximum possible score.
+        critical_findings: Critical issues identified.
+    """
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
 
 class ScoringResult(V2CoreBase):
@@ -303,7 +321,7 @@ class ScoringResult(V2CoreBase):
         penalties_applied: List of penalties applied.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     total_score: Annotated[
         float, Field(description="Total aggregated score.", json_schema_extra={"x-ui-label": "Total Score"})
