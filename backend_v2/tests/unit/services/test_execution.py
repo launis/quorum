@@ -36,7 +36,7 @@ from backend_v2.models.dtos.trace import ExecutionCreateDTO
 from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
 from backend_v2.models.enums import CognitiveTier, ExecutionStatus, LLMProvider, VisualIntent
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.services.execution import ExecutionService, create_execution_record
+from backend_v2.services.execution import ExecutionResumptionService, ExecutionService, create_execution_record
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -1430,3 +1430,72 @@ async def test_stream_status_handles_app_exception_interrupted() -> None:
     assert len(events) == 1
     assert "event: error" in events[0]
     assert "SSE_STREAM_INTERRUPTED" in events[0]
+
+
+@pytest.mark.asyncio
+async def test_resumption_service_full_branches_and_rbac() -> None:
+    """Verify standalone ExecutionResumptionService default execution lookup, RBAC, quota, and resumability branches."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    usage_mock = AsyncMock()
+    usage_mock.check_quota.return_value = True
+    resumption = ExecutionResumptionService(exec_repo=repo, workflow_repo=repo, usage_service=usage_mock)
+
+    initiator_member = TokenData(
+        id="usr_0123456789abcdef", role=UserRole.MEMBER, organization_id="org_0123456789abcdef"
+    )
+    with pytest.raises(ResourceNotFoundError):
+        await resumption.resume_execution(initiator_member, "exe_0123456789abcdef", AsyncMock())
+
+    alien_rec = _make_test_record(
+        execution_id="exe_0123456789abcdef",
+        organization_id="org_fedcba9876543210",
+        created_by="usr_fedcba9876543210",
+        status=ExecutionStatus.FAILED,
+    )
+    repo.set_execution(alien_rec)
+    with pytest.raises(PermissionDeniedError):
+        await resumption.resume_execution(initiator_member, "exe_0123456789abcdef", AsyncMock())
+
+    # Workflow missing branch
+    assert await resumption.check_resumability(alien_rec) is False
+
+    wf = _make_test_workflow(workflow_id="wor_0123456789abcdef", version=2, default_profile_id=None)
+    repo.set_workflow(wf)
+
+    # metadata is None version fallback branch (drifted version 1 != 2)
+    rec_no_meta_drift = _make_test_record(
+        execution_id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        organization_id="org_0123456789abcdef",
+        created_by="usr_0123456789abcdef",
+        status=ExecutionStatus.FAILED,
+        metadata=None,
+        workflow_version=1,
+    )
+    assert await resumption.check_resumability(rec_no_meta_drift) is False
+
+    # Quota exceeded branch in check_resumability
+    rec_valid_version = _make_test_record(
+        execution_id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        organization_id="org_0123456789abcdef",
+        created_by="usr_0123456789abcdef",
+        status=ExecutionStatus.FAILED,
+        metadata=ExecutionMetadata(workflow_version=2),
+        workflow_version=2,
+    )
+    usage_mock.check_quota.return_value = False
+    assert await resumption.check_resumability(rec_valid_version) is False
+
+    # Valid resumability + successful resume_execution roundtrip
+    usage_mock.check_quota.return_value = True
+    assert await resumption.check_resumability(rec_valid_version) is True
+
+    repo.set_execution(rec_valid_version)
+    arq_pool = AsyncMock()
+    resumed = await resumption.resume_execution(initiator_member, "exe_0123456789abcdef", arq_pool)
+    assert resumed.status == ExecutionStatus.RUNNING
+    persisted = await repo.get_execution("exe_0123456789abcdef")
+    assert persisted is not None
+    assert persisted.status == ExecutionStatus.RUNNING
+    arq_pool.enqueue_job.assert_called_once()
