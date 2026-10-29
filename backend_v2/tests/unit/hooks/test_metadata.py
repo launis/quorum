@@ -75,3 +75,59 @@ def test_inject_step_metadata_missing_execution_id_raises(mock_deps: HookDepende
         inject_step_metadata(state, mock_deps)
 
     assert exc_info.value.error_code == "VALIDATION_FAILED"
+
+
+@pytest.mark.parametrize("invalid_step_id", [None, "", "   "])
+def test_inject_step_metadata_missing_or_blank_step_id_raises(
+    mock_deps: HookDependencies, invalid_step_id: str | None
+) -> None:
+    """Test that missing, empty, or whitespace step_id raises VALIDATION_FAILED."""
+    state = HookState(
+        execution_id="exec_1",
+        workflow_id="wf_1",
+        step_id=invalid_step_id,
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    with pytest.raises(AppException) as exc_info:
+        inject_step_metadata(state, mock_deps)
+
+    assert exc_info.value.error_code == "VALIDATION_FAILED"
+
+
+@pytest.mark.parametrize("invalid_workflow_id", ["", "   "])
+def test_inject_step_metadata_missing_or_blank_workflow_id_raises(
+    mock_deps: HookDependencies, invalid_workflow_id: str
+) -> None:
+    """Test that empty or whitespace workflow_id raises VALIDATION_FAILED."""
+    state = HookState(
+        execution_id="exec_1",
+        workflow_id=invalid_workflow_id,
+        step_id="step_1",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    with pytest.raises(AppException) as exc_info:
+        inject_step_metadata(state, mock_deps)
+
+    assert exc_info.value.error_code == "VALIDATION_FAILED"
+
+
+def test_inject_step_metadata_default_system_initiator(mock_deps: HookDependencies) -> None:
+    """Test that omitted initiator_id defaults to 'system'."""
+    state = HookState(
+        execution_id="exec_123",
+        workflow_id="wf_456",
+        step_id="step_789",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(),
+        global_context_vars=GlobalContextVarsDTO(initiator_id=None),
+    )
+    result = inject_step_metadata(state, mock_deps)
+    assert result.success is True
+    assert result.state_delta is not None
+    assert isinstance(result.state_delta.delta, MetadataHookResultDTO)
+    assert result.state_delta.delta.step_metadata.initiator_id == "system"
+

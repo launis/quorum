@@ -1,7 +1,9 @@
 """System Metadata Hook for V2 Execution Steps."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
+from fastapi import status
 
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
@@ -15,13 +17,15 @@ from backend_v2.models.domain.metadata import MetadataHookResultDTO, StepMetadat
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["inject_step_metadata"]
+
 
 @hook_registry.register(name="inject_step_metadata")
 def inject_step_metadata(state: HookState | None, deps: HookDependencies) -> HookResult:
-    """Computes execution metadata including timestamps and initiator information.
+    """Compute execution metadata including timestamps and initiator information.
 
-    This fulfills the V2 requirement for providing 'kello' (timestamp) and 'user'
-    information dynamically to the output dictionary without requiring LLM generation.
+    Provides dynamic timestamp and user initiator metadata to the execution state
+    delta without requiring LLM generation.
 
     Args:
         state: The current execution state of the hook.
@@ -31,36 +35,54 @@ def inject_step_metadata(state: HookState | None, deps: HookDependencies) -> Hoo
         A HookResult containing the computed step metadata in the state_delta.
 
     Raises:
-        AppException: If required state fields or global context variables are missing or invalid.
+        AppException: With ErrorCodes.VALIDATION_FAILED if required state fields or
+            global context variables are missing or invalid.
     """
     if not state:
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
     if not state.execution_id:
         msg = "state.execution_id is strictly required for metadata injection."
-        logger.error("[MetadataHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        logger.error("[MetadataHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     if not state.step_id:
         msg = "state.step_id is strictly required for metadata injection."
-        logger.error("[MetadataHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        logger.error("[MetadataHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     if not state.workflow_id:
         msg = "state.workflow_id is strictly required for metadata injection."
-        logger.error("[MetadataHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        logger.error("[MetadataHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     if state.global_context_vars is None:
         msg = "state.global_context_vars is strictly required but missing."
-        logger.error("[MetadataHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        logger.error("[MetadataHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     execution_id = state.execution_id
     step_id = state.step_id
     workflow_id = state.workflow_id
 
-    unix_time = int(datetime.now(timezone.utc).timestamp())
+    now_utc = datetime.now(UTC)
+    unix_time = int(now_utc.timestamp())
     initiator_id = "system"
     if state.global_context_vars.initiator_id:
         initiator_id = state.global_context_vars.initiator_id
@@ -70,7 +92,7 @@ def inject_step_metadata(state: HookState | None, deps: HookDependencies) -> Hoo
         workflow_id=workflow_id,
         step_id=step_id,
         initiator_id=initiator_id,
-        timestamp_isot=datetime.now(timezone.utc).isoformat(),
+        timestamp_isot=now_utc.isoformat(),
         unix_time=unix_time,
         v2_engine=True,
         task_blueprint=state.task_blueprint,
