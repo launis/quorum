@@ -27,7 +27,7 @@
   - [x] @[backend_v2/models/domain/retrieval.py]
   - [x] @[backend_v2/models/domain/hydration.py]
   - [x] @[backend_v2/models/domain/interaction.py]
-  - [ ] @[backend_v2/models/domain/integrity.py]
+  - [x] @[backend_v2/models/domain/integrity.py]
   - [ ] @[backend_v2/models/domain/archivist.py]
   - [ ] @[backend_v2/models/domain/causal.py]
   - [ ] @[backend_v2/models/domain/coach.py]
