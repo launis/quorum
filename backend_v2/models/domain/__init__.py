@@ -117,6 +117,7 @@ from backend_v2.models.domain.prompt_blocks import (
 )
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.retrieval import RetrievalDTO, RetrievalInput, RetrievalOutput, RetrievedFact
+from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 
 # 2. Agent Modules
 from backend_v2.models.domain.security import (
@@ -315,6 +316,8 @@ __all__ = [
     "ReportArtifact",
     "Role",
     "Step",
+    "StepFalsifierDTO",
+    "StepPanelDTO",
     "StepRule",
     "SynthesisMetadataDTO",
     "SynthesisStepDataDTO",
