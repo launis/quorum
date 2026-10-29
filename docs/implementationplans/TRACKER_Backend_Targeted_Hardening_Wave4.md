@@ -38,7 +38,7 @@
   - [x] @[backend_v2/models/domain/logician.py]
   - [x] @[backend_v2/models/domain/overseer.py]
   - [x] @[backend_v2/models/domain/performativity.py]
-  - [ ] @[backend_v2/models/domain/profiler.py]
+  - [x] @[backend_v2/models/domain/profiler.py]
   - [ ] @[backend_v2/models/domain/scoring.py]
   - [ ] @[backend_v2/models/domain/source_verification.py]
   - [ ] @[backend_v2/models/domain/synthesis.py]
