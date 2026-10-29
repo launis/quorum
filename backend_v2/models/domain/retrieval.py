@@ -12,6 +12,13 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 
+__all__ = [
+    "RetrievalDTO",
+    "RetrievalInput",
+    "RetrievalOutput",
+    "RetrievedFact",
+]
+
 logger = logging.getLogger(__name__)
 
 
@@ -85,11 +92,11 @@ class RetrievedFact(V2CoreBase):
             The validated score.
 
         Raises:
-            AppException: If score is not between 1 and 5.
+            AppException: If score is not between 1 and 5 (ErrorCodes.VALIDATION_FAILED).
         """
         if not (1 <= v <= 5):
             msg = "relevance_score must be between 1 and 5"
-            logger.error("[RetrievalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[RetrievalModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -123,5 +130,6 @@ class RetrievalDTO(ReasoningTraceDTO):
 
 
 class RetrievalOutput(RetrievalDTO, ReasoningTrace):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Output schema for the Retrieval Agent."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")

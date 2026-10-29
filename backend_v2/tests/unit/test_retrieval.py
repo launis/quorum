@@ -3,6 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.retrieval import RetrievalDTO, RetrievalInput, RetrievalOutput, RetrievedFact
 
 
@@ -30,6 +31,19 @@ def test_retrieved_fact_invalid_empty() -> None:
     """Test invalid retrieved fact."""
     with pytest.raises(ValidationError):
         RetrievedFact(id="", fact_statement="fact", source_quote="quote", relevance_score=5)
+
+
+@pytest.mark.parametrize("invalid_score", [0, 6, -1, 10])
+def test_retrieved_fact_invalid_relevance_score_bounds(invalid_score: int) -> None:
+    """Test RetrievedFact raises AppException when relevance_score is outside 1..5."""
+    with pytest.raises(AppException) as exc_info:
+        RetrievedFact(
+            id="f1",
+            fact_statement="fact",
+            source_quote="quote",
+            relevance_score=invalid_score,
+        )
+    assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED}
 
 
 def test_retrieval_dto_valid() -> None:
