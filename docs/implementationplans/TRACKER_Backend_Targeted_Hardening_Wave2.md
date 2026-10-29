@@ -53,7 +53,7 @@
   - [x] @[backend_v2/services/factories/output_profile_factory.py]
   - [x] @[backend_v2/services/studio/auth_validator.py]
   - [x] @[backend_v2/services/studio/prompt_block_service.py]
-  - [ ] @[backend_v2/services/studio/output_profile_service.py]
+  - [x] @[backend_v2/services/studio/output_profile_service.py]
   - [ ] @[backend_v2/services/execution/context_service.py]
   - [ ] @[backend_v2/services/execution/resumption_service.py]
   - [ ] @[backend_v2/services/execution/override_service.py]
