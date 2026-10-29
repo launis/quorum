@@ -11,6 +11,8 @@ from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBloc
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["ComponentRepositoryImpl"]
+
 
 class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
     """Repository implementation for generic Components."""
@@ -26,6 +28,10 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             List of PromptBlock domain models.
+
+        Raises:
+            AppException: If a component record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         filters = []
         if type:
@@ -44,7 +50,13 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
                 item_id = "unknown"
                 if "id" in item:
                     item_id = str(item["id"])
-                logger.error("Failed to parse Component %s: %s", item_id, e, exc_info=True)
+                logger.error(
+                    "[ComponentRepository] %s: Failed to parse Component %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Failed to parse Component {item_id} from database",
                     status_code=500,
@@ -60,6 +72,10 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             The PromptBlock model if found, otherwise None.
+
+        Raises:
+            AppException: If the component record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         doc = await self.driver.get("components", component_id)
         if not doc:
@@ -67,7 +83,13 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         try:
             return PromptBlockAdapter.validate_python(doc, strict=False)
         except Exception as e:
-            logger.error("Failed to parse Component %s: %s", component_id, e, exc_info=True)
+            logger.error(
+                "[ComponentRepository] %s: Failed to parse Component %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                component_id,
+                e,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Failed to parse Component {component_id} from database",
                 status_code=500,
@@ -82,6 +104,10 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             The PromptBlock model if found, otherwise None.
+
+        Raises:
+            AppException: If the component record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         res = await self.driver.query("components", [Filter("name", "==", name)], limit=1)
         if not res:
@@ -89,7 +115,13 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
         try:
             return PromptBlockAdapter.validate_python(res[0], strict=False)
         except Exception as e:
-            logger.error("Failed to parse Component with name %s: %s", name, e, exc_info=True)
+            logger.error(
+                "[ComponentRepository] %s: Failed to parse Component with name %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                name,
+                e,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Failed to parse Component {name} from database",
                 status_code=500,
@@ -106,6 +138,10 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             True if updated, False if component does not exist.
+
+        Raises:
+            AppException: If the existing component record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         comp = await self.get_component_by_id(component_id)
         if not comp:
@@ -147,11 +183,19 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
             The updated component ID.
 
         Raises:
-            ResourceNotFoundError: If the component does not exist.
+            ResourceNotFoundError: If the component does not exist
+                (ErrorCodes.RESOURCE_NOT_FOUND).
+            AppException: If the existing component record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         comp = await self.get_component_by_id(component_id)
         if not comp:
-            raise ResourceNotFoundError(resource_type="LegacyPromptBlock", resource_id=component_id)
+            logger.error(
+                "[ComponentRepository] %s: Component %s not found for update",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                component_id,
+            )
+            raise ResourceNotFoundError(resource_type="PromptBlock", resource_id=component_id)
         payload = updates.model_dump(mode="json", exclude_unset=True)
         await self.driver.update("components", component_id, payload)
         return component_id
@@ -164,6 +208,10 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             True if deleted, False if component does not exist.
+
+        Raises:
+            AppException: If the existing component record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         comp = await self.get_component_by_id(component_id)
         if not comp:
@@ -178,6 +226,10 @@ class ComponentRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             List of matching matrix IDs.
+
+        Raises:
+            AppException: If a component record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         components = await self.get_all_components(type="evaluation_matrix")
         matches: list[str] = []

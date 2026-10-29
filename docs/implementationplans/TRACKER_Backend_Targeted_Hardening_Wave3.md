@@ -21,7 +21,7 @@
 
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`
   - [x] @[backend_v2/database/repository.py]
-  - [ ] @[backend_v2/database/repositories/component.py]
+  - [x] @[backend_v2/database/repositories/component.py]
   - [ ] @[backend_v2/database/repositories/report_artifact.py]
   - [ ] @[backend_v2/database/repositories/components/agent.py]
   - [ ] @[backend_v2/database/repositories/components/execution_persona.py]
