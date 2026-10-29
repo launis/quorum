@@ -1,6 +1,6 @@
 # Arkkitehtuurin ja Tietomallien Parannuskohteet
 
-Tähän dokumenttiin on koottu järjestelmän koodikannassa, tietomalleissa ja laatuporteissa **avoinna ja toteuttamatta olevat** arkkitehtuuriset parannuskohteet, karkaisuaallot ja skeeman yhtenäistykset. Dokumentti noudattaa *The e.g. Ban* -sääntöä (`anti_ambiguity_mandate`), *No Hidden Scope* -periaatetta sekä Quorumin *Zero-Tolerance* -laatuvaatimusta ilman siirtymäajan purkkaratkaisuja.
+Tähän dokumenttiin on koottu järjestelmän koodikannassa, tietomalleissa ja laatuporteissa **avoinna ja toteuttamatta olevat** arkkitehtuuriset parannuskohteet ja skeeman yhtenäistykset. Dokumentti noudattaa `anti_ambiguity_mandate`-sääntöä, *No Hidden Scope* -periaatetta sekä Quorumin *Zero-Tolerance* -laatuvaatimusta ilman siirtymäajan purkkaratkaisuja.
 
 *(Huomautus: Aiemmin tässä dokumentissa olleet matriisiskaalauksen keskitys `computed_min`/`computed_max`, `theory_grounding` vs. `ai_description` -eriyttäminen, `I18nText.default_locale`-poisto, `MatrixClaim.ai_description` -> `TDAAssertion.concept_description` -keskitys, `OutputProfile.matrix_synthesis_groups` & L10n-siivous sekä Karkaisuaallot 1 [36/36], 2 [36/36], 3 [27/27] ja 4 [34/34] = 133/133 tiedostoa on toteutettu, auditoitu ja lukittu.)*
 
@@ -17,7 +17,7 @@ Koko `backend_v2/`-hakemiston (pl. `tests/`) 403 tuotantotiedoston tilannekuva:
 | Kategoria | Tiedostomäärä | Tila ja seurantadokumentti |
 | :--- | :--- | :--- |
 | **1. Valmiiksi karkaistut ja lukitut tuotantotiedostot** | `391` kpl | Sisältää `__init__.py`-fasaadit (`47` kpl), aiemmissa puruissa karkaistut moduulit (`162` kpl), entuudestaan 100 % puhtaat tiedostot (`49` kpl) sekä valmistuneet Karkaisuaallot 1 (`36/36`), 2 (`36/36`), 3 (`27/27`) ja 4 (`34/34`). |
-| **2. Tulevat arkkitehtuurivaiheet (IAM & Storage)** | `12` kpl | Eristetty vaiheisiin `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` (9 tiedostoa) ja `@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]` (3 tiedostoa). |
+| **2. Tulevat arkkitehtuurivaiheet (IAM & Storage)** | `12` kpl | Eristetty vaiheisiin `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` (9 tiedostoa) ja `[NEW]` `@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]` (3 tiedostoa). |
 | **YHTEENSÄ** | **403 kpl** | **391 / 403 valmiina (97,0 %), 12 kpl IAM/Storage-vaiheissa (Askeleet 4 & 5)** |
 
 ---
@@ -205,7 +205,7 @@ Varsinainen DAG-ajomoottori (`DAGExecutor`, `NodeExecutor`, `TDAEngine`, `Synthe
 * **Arkkitehtoninen ratkaisu (0 lisätokenia, $< 1\text{ ms}$ suoritusaika):**
   1. **DTO-sopimus ja Full-Duplex Pariteetti (`@[backend_v2/models/dtos/causal_discovery.py]` & `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`):**
      * Lisätään `AntiFluffAuditDTO`-luokkaan (ja vastaavaan Flutterin Freezed-malliin) kolme kenttää: `largest_component_ratio: float` ($r_{\text{LCC}} \in [0.0, 1.0]$), `branch_convergence_ratio: float` ($r_{\text{conv}} \in [0.0, 1.0]$) ja `steering_coupling_ratio: float` ($\kappa_{\text{steer}} \in [0.0, 1.0]$).
-     * Lisätään `CounterfactualSimulationResultDTO` (kentät nimenomaan ja tyhjentävästi: `retracted_root_id`, `collapsed_node_ids`, `surviving_node_ids`, `collapse_ratio`, `max_cascade_depth`) kontrafaktuaalisen stressitestin paluuarvoksi.
+     * Lisätään `[NEW]` `CounterfactualSimulationResultDTO` (kentät nimenomaan ja tyhjentävästi: `retracted_root_id`, `collapsed_node_ids`, `surviving_node_ids`, `collapse_ratio`, `max_cascade_depth`) kontrafaktuaalisen stressitestin paluuarvoksi.
   2. **Topologisten mittareiden laskenta (`@[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]:compute_causal_tda_fusion_result`):**
      * Lasketaan `deliverable_nodes`-joukolle samassa silmukassa suurimman yhtenäisen komponentin suhteellinen koko $r_{\text{LCC}} = |\mathcal{V}_{\text{LCC}}| / |\mathcal{V}_{\text{deliv}}|$ (Dyad Fragmentation Defense), monipremissisten synteesisolmujen osuus $r_{\text{conv}} = |\{v \in \mathcal{V}_{\text{deliv}} : \text{InDegree}(v) \ge 2\}| / |\mathcal{V}_{\text{deliv}}|$ sekä ihmisen keskusteluohjaukseen kytkeytyvien juurisolmujen osuus $\kappa_{\text{steer}}$.
   3. **Guttman-porttien ja kontrafaktuaalisen simulaation toteutus (`@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]` & `@[backend_v2/settings.py]`):**
