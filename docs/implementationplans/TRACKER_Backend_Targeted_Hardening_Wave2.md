@@ -55,7 +55,7 @@
   - [x] @[backend_v2/services/studio/prompt_block_service.py]
   - [x] @[backend_v2/services/studio/output_profile_service.py]
   - [x] @[backend_v2/services/execution/context_service.py]
-  - [ ] @[backend_v2/services/execution/resumption_service.py]
+  - [x] @[backend_v2/services/execution/resumption_service.py]
   - [ ] @[backend_v2/services/execution/override_service.py]
 
 - [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `uv run python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]" --gate frontend --model gemini-4-argon-medium` (Zero frontend targets in backend targeted hardening).
