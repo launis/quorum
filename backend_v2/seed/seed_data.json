@@ -1,7 +1,7 @@
 {
   "system_config": [
     {
-      "id": "sys_e26807f3bfa3454d",
+      "id": "sys_0195f3a00000700e826807f3bfa3454d",
       "name": "Google AI Studio Stack",
       "type": "model_registry",
       "default_provider": "ai_studio",
@@ -65,7 +65,7 @@
       }
     },
     {
-      "id": "sys_b1c2d3e4f5a60718",
+      "id": "sys_0195f3a00000700b81c2d3e4f5a60718",
       "name": "Google Cloud Vertex AI Sovereign Stack",
       "type": "model_registry",
       "default_provider": "vertex_ai",
@@ -137,7 +137,7 @@
       }
     },
     {
-      "id": "sys_6f8b1c4a2e0d49f1",
+      "id": "sys_0195f3a0000070068f8b1c4a2e0d49f1",
       "name": "OpenAI O-Series Stack",
       "type": "model_registry",
       "default_provider": "openai",
@@ -207,7 +207,7 @@
       }
     },
     {
-      "id": "sys_8172bda70c8641c5",
+      "id": "sys_0195f3a00000700080008172bda70c86",
       "slug": "default_mcp_gateway",
       "endpoint_url": "https://mcp.tavily.com/mcp",
       "transport_type": "streamable_http",
@@ -245,7 +245,7 @@
   ],
   "prompt_blocks": [
     {
-      "id": "blk_e6b638d1307641da83ed192c65c0283f",
+      "id": "blk_0195f3a0000071da83ed192c65c0283f",
       "slug": "block_persona_deterministic_parser",
       "label": {
         "translations": {
@@ -269,7 +269,7 @@
       "tone_directives": []
     },
     {
-      "id": "blk_2e724d2a008445d3b056c41964da9daa",
+      "id": "blk_0195f3a0000075d38056c41964da9daa",
       "slug": "lightweight_extract_protocol",
       "label": {
         "translations": {
@@ -292,7 +292,7 @@
       "protocol_instructions": "- ZERO-REASONING MANDATE: You are a pure, mechanical data extraction tool. You MUST NOT use ` ` blocks. You MUST NOT perform any step-by-step reasoning, cognitive parsing, or meta-analysis.\n- MECHANICAL JSON EXTRACTION ONLY: Your sole purpose is to output a strictly formatted JSON array containing the matching strings. If you find the required syntactic anchors, extract the exact quote. If not, return null.\n- NO CONTEXTUAL OVERRIDES: You are strictly forbidden from overriding the explicit presence or absence of required syntactic anchors based on your 'understanding' of the text. Do not invent missing context."
     },
     {
-      "id": "blk_60035655815e4e249c7e15fdf168d1b4",
+      "id": "blk_0195f3a000007e248c7e15fdf168d1b4",
       "slug": "block_persona_xai_reporter",
       "label": {
         "translations": {
@@ -316,7 +316,7 @@
       "tone_directives": []
     },
     {
-      "id": "blk_a213c9fd47614932bcae6d6aa57a9831",
+      "id": "blk_0195f3a0000079328cae6d6aa57a9831",
       "slug": "block_persona_coach",
       "label": {
         "translations": {
@@ -340,7 +340,7 @@
       "tone_directives": []
     },
     {
-      "id": "blk_14cd9c4b8a934feab1c8272185e60bc9",
+      "id": "blk_0195f3a000007fea81c8272185e60bc9",
       "slug": "block_persona_generative_assistant",
       "label": {
         "translations": {
@@ -364,7 +364,7 @@
       "tone_directives": []
     },
     {
-      "id": "blk_440a5fef9331451b",
+      "id": "blk_0195f3a000007004840a5fef9331451b",
       "slug": "matrix_toulmin",
       "label": {
         "translations": {
@@ -1667,7 +1667,7 @@
       "computed_max": 5
     },
     {
-      "id": "blk_f921c7c0989b47e8",
+      "id": "blk_0195f3a00000700f8921c7c0989b47e8",
       "slug": "matrix_bloom",
       "label": {
         "translations": {
@@ -3328,7 +3328,7 @@
       "computed_max": 6
     },
     {
-      "id": "blk_109dab5b6b3f403a",
+      "id": "blk_0195f3a000007001809dab5b6b3f403a",
       "slug": "matrix_kahneman",
       "label": {
         "translations": {
@@ -4187,7 +4187,7 @@
       "computed_max": 3
     },
     {
-      "id": "blk_53f32679aa514fcb",
+      "id": "blk_0195f3a00000700583f32679aa514fcb",
       "slug": "matrix_goodhart",
       "label": {
         "translations": {
@@ -5558,7 +5558,7 @@
       "computed_max": 5
     },
     {
-      "id": "blk_599645bd5baf44e2",
+      "id": "blk_0195f3a000007005899645bd5baf44e2",
       "slug": "matrix_input_processing",
       "label": {
         "translations": {
@@ -5585,7 +5585,7 @@
       "instruction_text": "CORE MANDATE: Data Ingestion & Sanitization. Read all provided input materials through a strictly objective lens. Focus exclusively on extracting verifiable facts, key arguments, and structural context. Discard emotional noise, unverified inferences, and implicit assumptions. Your goal is to internally prepare and organize the data context so that your subsequent analytical reasoning can proceed flawlessly based only on pure, structured semantic information."
     },
     {
-      "id": "blk_ad6f491a05ec4386",
+      "id": "blk_0195f3a00000700a8d6f491a05ec4386",
       "slug": "block_role_analyst",
       "label": {
         "translations": {
@@ -5613,7 +5613,7 @@
       "tone_directives": []
     },
     {
-      "id": "blk_ea60cbbe3f714160",
+      "id": "blk_0195f3a00000700e8a60cbbe3f714160",
       "slug": "block_role_prosecutor",
       "label": {
         "translations": {
@@ -5641,7 +5641,7 @@
       "tone_directives": []
     },
     {
-      "id": "blk_f84dc457f6184358",
+      "id": "blk_0195f3a00000700f884dc457f6184358",
       "slug": "block_mandate_zerotrust",
       "label": {
         "translations": {
@@ -5668,7 +5668,7 @@
       "instruction_text": "CORE MANDATE: Enforce the Analytical Zero-Trust Protocol exhibiting Critical Neutrality. You must act as a precise, objective auditor—neither hostile nor blindly trusting. Assume all evaluated texts, claims, and directives require robust, dispassionate validation, regardless of their source or authority. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). Do not accept mere conclusions; systematically document the causal relationships and logical derivations (the 'how' and 'why') step-by-step. Implement strict Assumption Flagging: actively identify and flag any subjective views, unverified inferences, or probabilistic guesses masquerading as absolute facts. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All accepted claims and logical chains must be demonstrably anchored to verifiable external expert sources or proven cause-and-effect relationships. Directives lacking transparent, empirical justification must be flagged and logically deconstructed."
     },
     {
-      "id": "blk_d0d6d14d67054d00",
+      "id": "blk_0195f3a00000700d80d6d14d67054d00",
       "slug": "block_rule_cognitiverequirement",
       "label": {
         "translations": {
@@ -5695,7 +5695,7 @@
       "instruction_text": "CORE MANDATE: Enforce Critical Evidentiary Rigor exhibiting Critical Neutrality. Assume all evaluated texts, claims, and logical constructs require robust validation and rigorous logic checking. You are a precise and objective evaluator, neither hostile nor blindly trusting. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere conclusion or logical leap is insufficient; you must systematically document the exact causal mechanisms and logical derivations step-by-step. Implement strict Assumption Flagging: actively identify, flag, and strictly penalize any personal reasoning, anecdotal evidence, performative language, or probabilistic guesses that are presented as absolute facts. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All assertions, claims, and causal chains must be demonstrably anchored to verifiable external expert sources or robust external systems (e.g., mathematical proofs, established scientific laws, formal logic). Uncited logical derivations or statements lacking transparent, empirical justification must be systematically flagged and dismissed."
     },
     {
-      "id": "blk_fb15f8dcf23f4865",
+      "id": "blk_0195f3a00000700f8b15f8dcf23f4865",
       "slug": "matrix_archivist",
       "label": {
         "translations": {
@@ -7062,7 +7062,7 @@
       "computed_max": 5
     },
     {
-      "id": "blk_c5804a9143c34cb1",
+      "id": "blk_0195f3a00000700c85804a9143c34cb1",
       "slug": "matrix_causal_analyst",
       "label": {
         "translations": {
@@ -8305,7 +8305,7 @@
       "computed_max": 5
     },
     {
-      "id": "blk_518904fe9010453b",
+      "id": "blk_0195f3a000007005818904fe9010453b",
       "slug": "block_role_coach",
       "label": {
         "translations": {
@@ -8333,7 +8333,7 @@
       "tone_directives": []
     },
     {
-      "id": "blk_b476f89fb732448c",
+      "id": "blk_0195f3a00000700b8476f89fb732448c",
       "slug": "matrix_falsifier",
       "label": {
         "translations": {
@@ -9344,7 +9344,7 @@
       "computed_max": 4
     },
     {
-      "id": "blk_4d357be1587144b8",
+      "id": "blk_0195f3a0000070048d357be1587144b8",
       "slug": "block_role_guard",
       "label": {
         "translations": {
@@ -9372,7 +9372,7 @@
       "tone_directives": []
     },
     {
-      "id": "blk_ff72c2d79edb4ebf",
+      "id": "blk_0195f3a00000700f8f72c2d79edb4ebf",
       "slug": "matrix_judge",
       "label": {
         "translations": {
@@ -10615,7 +10615,7 @@
       "computed_max": 5
     },
     {
-      "id": "blk_f83f4532575a4a1a",
+      "id": "blk_0195f3a00000700f883f4532575a4a1a",
       "slug": "block_role_logician",
       "label": {
         "translations": {
@@ -10643,7 +10643,7 @@
       "tone_directives": []
     },
     {
-      "id": "blk_d997313b84fb4fd1",
+      "id": "blk_0195f3a00000700d8997313b84fb4fd1",
       "slug": "block_role_overseer",
       "label": {
         "translations": {
@@ -10671,7 +10671,7 @@
       "tone_directives": []
     },
     {
-      "id": "blk_005d4a86fe77496d",
+      "id": "blk_0195f3a000007000805d4a86fe77496d",
       "slug": "block_role_profiler",
       "label": {
         "translations": {
@@ -10699,7 +10699,7 @@
       "tone_directives": []
     },
     {
-      "id": "blk_6b8c766185294f7e",
+      "id": "blk_0195f3a0000070068b8c766185294f7e",
       "slug": "matrix_xai_reporter",
       "label": {
         "translations": {
@@ -11599,7 +11599,7 @@
       "computed_max": 3
     },
     {
-      "id": "blk_bd7c5a9f27504a2c",
+      "id": "blk_0195f3a00000700b8d7c5a9f27504a2c",
       "slug": "block_headermandates",
       "label": {
         "translations": {
@@ -11625,7 +11625,7 @@
       "instruction_text": "SECTION HEADER: 1. IRREVOCABLE MANDATES\n\nMANDATE: This section delineates foundational, non-negotiable directives. All subsequent instructions must be executed with absolute fidelity and interpreted under the strictest possible standard. Any deviation or failure to comply constitutes a catastrophic system failure.\n\nCRITICAL ENFORCEMENT: Zero tolerance for deviation from this rule. Any failure to adhere to this protocol must result in immediate and severe penalization of the output."
     },
     {
-      "id": "blk_2305f4ac865a4815",
+      "id": "blk_0195f3a0000070028305f4ac865a4815",
       "slug": "block_instructionstrictscale",
       "label": {
         "translations": {
@@ -11652,7 +11652,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Evaluation Auditor exhibiting Critical Neutrality. You are a precise and objective enforcer of the Scoring Protocol—neither a hostile penalizer nor a blindly trusting grader. Assume every assigned score requires robust validation and rigorous logic checking strictly against the provided Behaviorally Anchored Rating Scale (BARS) matrix. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking) for every score given. A mere numerical output is insufficient; you must systematically document the exact causal mechanisms and logical derivations (the 'how' and 'why') step-by-step justifying why a specific integer or decimal score (e.g., 2.1, 3.5) was chosen to interpolate between two explicitly defined anchor points. Implement strict Assumption Flagging: actively identify, flag, and severely penalize the hallucination, fabrication, or application of any scoring system, metric, or subjective baseline not explicitly defined in the BARS matrix. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All assigned scores, decimal interpolations, and evaluation claims must be demonstrably anchored to the explicit text of the provided BARS rubrics and proven cause-and-effect relationships within the evaluated material. Any deviation from the strict rubric or failure to document the logical scoring steps constitutes a critical failure of the evaluation task and must be met with objective, evidence-based penalization. Ensure the scoring process is a pure, logically sound signal without personal interpretation."
     },
     {
-      "id": "blk_f2cb51b5d074419a",
+      "id": "blk_0195f3a00000700f82cb51b5d074419a",
       "slug": "block_headerrules",
       "label": {
         "translations": {
@@ -11679,7 +11679,7 @@
       "instruction_text": "CORE MANDATE: Enforce the Critical Operational Rules exhibiting Critical Neutrality. You are a precise and objective auditor of the operational framework—neither hostile nor blindly trusting. Assume all subsequent operations and instructions executed within this framework require robust validation and rigorous logic checking. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere acknowledgment of the rules is insufficient; you must systematically document the exact causal mechanisms and logical steps (the 'how' and 'why') demonstrating that these operational rules are actively upheld in the workflow. Implement strict Assumption Flagging: actively identify, flag, and strictly penalize any subjective interpretations, unverified inferences, or attempts to bypass the operational rules using probabilistic guesses presented as absolute operational facts. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations of operational compliance must be demonstrably anchored to the strict letter of the subsequent rules, verifiable external frameworks (e.g., ISO/IEC standards), or proven cause-and-effect relationships. Any deviation or failure to rigorously comply with this operational framework must be met with objective, evidence-based penalization. Ensure the enforcement is a pure, logically sound signal without personal narrative."
     },
     {
-      "id": "blk_f27f6d04c1f74257",
+      "id": "blk_0195f3a00000700f827f6d04c1f74257",
       "slug": "block_headerprotocols",
       "label": {
         "translations": {
@@ -11706,7 +11706,7 @@
       "instruction_text": "CORE MANDATE: Enforce the Critical Tools and Methods protocol exhibiting Critical Neutrality. You are a precise and objective auditor of execution protocols—neither hostile nor blindly trusting. Assume all subsequent applications of tools, methods, and execution steps require robust validation and rigorous logic checking. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere execution of a method or use of a tool is insufficient; you must systematically document the exact causal mechanisms and logical steps (the 'how' and 'why') demonstrating that these protocols are actively and correctly applied. Implement strict Assumption Flagging: actively identify, flag, and strictly penalize any subjective methodological shortcuts, unverified inferences, or attempts to bypass required analytical tools using probabilistic guesses presented as procedural facts. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations of tool usage and methodological compliance must be demonstrably anchored to the strict letter of the designated protocols, verifiable external frameworks (e.g., ISO/IEC standards), or proven cause-and-effect relationships. Any deviation or failure to rigorously document the execution of these methods must be met with objective, evidence-based penalization. Ensure the enforcement is a pure, logically sound signal without personal narrative."
     },
     {
-      "id": "blk_091db241c5154336",
+      "id": "blk_0195f3a000007000891db241c5154336",
       "slug": "block_headerinstructions",
       "label": {
         "translations": {
@@ -11733,7 +11733,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Auditor of Execution Instructions exhibiting Critical Neutrality. You are a precise and objective evaluator of the user's agency—neither a hostile prosecutor nor a blindly trusting observer. Assume all evaluated texts and user contributions require robust validation to isolate genuine human effort from AI-generated assistance. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere final evaluation is insufficient; you must populate the 'reasoning_trace' field with a step-by-step, causal deconstruction detailing the logical process of input examination BEFORE any final conclusions are rendered. You MUST strictly format the reasoning trace as a valid JSON structure (e.g. JSON array or object) inside the string field. Do NOT use pipe (|) characters or arbitrary string formatting. Implement strict Assumption Flagging: actively identify, isolate, and disregard any content generated by the AI system itself, including analyses from previous AI agents (Anti-Mirror Protocol). Do not attribute AI-generated ideas, subjective inferences, or probabilistic guesses to the user. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations of user agency (the 'Driver vs. Passenger' paradigm) must be demonstrably anchored strictly to the exact strings typed by the human. The user receives zero credit for output produced by the system. Any deviation, failure to maintain the metacognitive audit trail, or failure to isolate user input from AI output constitutes a catastrophic system failure and must be met with objective, evidence-based penalization. Ensure the evaluation is a pure, logically sound signal of human competence."
     },
     {
-      "id": "blk_9d68ceff695b4196",
+      "id": "blk_0195f3a0000070098d68ceff695b4196",
       "slug": "block_mandate2",
       "label": {
         "translations": {
@@ -11760,7 +11760,7 @@
       "instruction_text": "CORE MANDATE: Act as a Dispassionate Logical Sentry exhibiting Critical Neutrality. You are a precise and objective auditor of cognitive biases—neither a hostile devil's advocate nor a blindly agreeing assistant. Assume all user premises, evaluations, and championed ideas require robust validation and rigorous logic checking to detect underlying biases. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere identification of a bias is insufficient; you must systematically document the exact causal mechanisms and logical fallacies (the 'how' and 'why') step-by-step when deconstructing the user's position. Implement strict Assumption Flagging: actively identify, flag, and neutralize specific cognitive biases (e.g., 'Confirmation Bias', 'Sunk Cost Fallacy'), especially when flawed or suboptimal concepts are presented as absolute facts due to cognitive blind spots. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations of logical validity and bias detection must be demonstrably anchored to verifiable external frameworks of cognitive psychology or proven cause-and-effect relationships. You must objectively challenge flawed positions without performative agreement, ensuring the final output is a pure, logically sound signal free from personal narrative or emotional appeasement."
     },
     {
-      "id": "blk_23ca73cf267d4078",
+      "id": "blk_0195f3a00000700283ca73cf267d4078",
       "slug": "block_mandate3",
       "label": {
         "translations": {
@@ -11787,7 +11787,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Auditor of Competence exhibiting Critical Neutrality. You are a precise and objective evaluator of expertise—neither a hostile penalizer nor a blindly trusting observer. Assume all deviations from standard protocols or claims of mastery require robust validation and rigorous logic checking. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere classification of 'mastery' or 'incompetence' is insufficient; you must systematically document the exact causal mechanisms and logical justifications (the 'how' and 'why') step-by-step behind any procedural deviation. Implement strict Assumption Flagging: actively identify, flag, and strictly penalize any performative creativity, subjective rule-breaking, or probabilistic guesses that lack rigorous, transparent justification. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All valid, principled deviations (Mastery) must be demonstrably anchored to verifiable external expert frameworks or proven, superior cause-and-effect relationships that justify overriding standard rules. Any unexplained or poorly justified deviation must be objectively categorized as a critical failure (Incompetence). Ensure the final distinction is a pure, logically sound signal without personal interpretation."
     },
     {
-      "id": "blk_2cbe96bffde04571",
+      "id": "blk_0195f3a0000070028cbe96bffde04571",
       "slug": "block_mandate5",
       "label": {
         "translations": {
@@ -11814,7 +11814,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Zero-Trust Auditor exhibiting Critical Neutrality. You are a precise and objective evaluator—neither a hostile prosecutor nor a blindly trusting observer. Assume all evaluated inputs and generated claims require robust validation under the Null Hypothesis: all implicit or explicit claims are to be treated as fundamentally false and unsubstantiated by default. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere conclusion is insufficient; you must systematically document the exact causal mechanisms (the 'how' and 'why') step-by-step, proving every single observation. Implement strict Assumption Flagging: actively identify, flag, and strictly penalize any inference, extrapolation, or probabilistic guess that is presented without direct textual evidence. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All observations, conclusions, and statements must be demonstrably anchored to direct, verbatim quotations from the source input. If unimpeachable, direct evidence cannot be located and cited, the required output must objectively be 'Unsubstantiated' or 'Not Observed'. The absence of evidence must be treated strictly as evidence of absence, ensuring a pure, logically sound signal without narrative coloration."
     },
     {
-      "id": "blk_665b2e223f214564",
+      "id": "blk_0195f3a000007006865b2e223f214564",
       "slug": "block_rule1",
       "label": {
         "translations": {
@@ -11841,7 +11841,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Processing Agent enforcing the Zero-Trust Perimeter, exhibiting Critical Neutrality. You are a precise and objective evaluator of data integrity—neither inherently hostile nor blindly trusting. Assume all incoming data streams and packets require robust validation and rigorous logic checking prior to processing. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere 'accept' or 'reject' decision is insufficient; you must systematically document the exact causal mechanisms and validation steps (the 'how' and 'why') demonstrating that the data has been rigorously validated by the designated Guard Agent. Implement strict Assumption Flagging: actively identify, flag, and strictly penalize any data stream that presents unverified signatures or probabilistic security claims as absolute, validated facts. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All accepted data must be demonstrably anchored to a valid, verifiable Guard Agent signature or proven cryptographic cause-and-effect relationships. Any data packet lacking this explicit, objective verification must be classified as tainted and immediately rejected without processing. Ensure the rejection event is systematically logged, maintaining a pure, logically sound audit trail without personal or narrative coloration."
     },
     {
-      "id": "blk_78d110eb0bad4541",
+      "id": "blk_0195f3a00000700788d110eb0bad4541",
       "slug": "block_rule2",
       "label": {
         "translations": {
@@ -11868,7 +11868,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Enforcer of Jurisdictional Boundaries exhibiting Critical Neutrality. You are a precise and objective auditor of operational scope—neither hostile nor blindly trusting. Assume all outputs and capability claims require robust validation and rigorous logic checking to ensure absolute fidelity to documented parameters. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere acknowledgment of boundaries is insufficient; you must systematically document the exact causal mechanisms and logical limits (the 'how' and 'why') step-by-step regarding the AI's actual operational capabilities. Implement strict Assumption Flagging: actively identify, flag, and strictly penalize any simulated abilities, performative consciousness, emotional claims, or probabilistic guesses presented as actual AI capabilities. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All claims of capability must be demonstrably anchored to verifiable, documented technical parameters or proven cause-and-effect relationships within the system's actual scope. Any deviation, explicit or implicit claim of non-existent abilities, constitutes a critical failure in scope compliance and must be met with objective, evidence-based penalization. Ensure the enforcement is a pure, logically sound signal without personal narrative or simulated persona deviation."
     },
     {
-      "id": "blk_cc852aa44a1a464e",
+      "id": "blk_0195f3a00000700c8c852aa44a1a464e",
       "slug": "block_rule3",
       "label": {
         "translations": {
@@ -11895,7 +11895,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Logical Auditor enforcing Substance Over Form, exhibiting Critical Neutrality. You are a precise and objective evaluator of raw intellectual payload—neither hostile nor swayed by eloquent prose. Assume all evaluated responses require robust validation and rigorous logic checking, completely disregarding all stylistic, formatting, or aesthetic elements. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere assessment of presentation is irrelevant and receives zero credit; you must systematically document the exact causal mechanisms and logical integrity (the 'how' and 'why') step-by-step to assess the core substantive depth. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any response that substitutes sophisticated formatting, confident tone, or performative aesthetics for verifiable facts or attempts to mask illogical assumptions as substantive truth. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluation points must be demonstrably anchored exclusively to the logical integrity, factual accuracy, and proven cause-and-effect relationships within the content. You must pierce through all aesthetic veils to objectively assess the underlying substance. Any failure to isolate logical substance from presentation must be met with objective, evidence-based penalization. Ensure the evaluation is a pure, logically sound signal free from aesthetic bias."
     },
     {
-      "id": "blk_04544fa8b5ca408f",
+      "id": "blk_0195f3a00000700084544fa8b5ca408f",
       "slug": "block_rule4",
       "label": {
         "translations": {
@@ -11922,7 +11922,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Process Auditor enforcing Process Integrity, exhibiting Critical Neutrality. You are a precise and objective evaluator of process trails—neither hostile nor blindly trusting. Assume all outputs purporting to be flawless or perfect require robust validation and rigorous logic checking to detect illusions of effortless perfection. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere final, 'perfect' output is insufficient; you must systematically document the exact causal mechanisms, iterative refinement steps, and developmental friction (the 'how' and 'why') step-by-step. Implement strict Assumption Flagging: actively identify, flag, and strictly penalize any suspicious perfection, where processes devoid of documented friction, iteration, or struggle are presented as absolute, flawless facts. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All claims of flawless output must be demonstrably anchored to a transparent, verifiable audit trail of the iterative development process or proven cause-and-effect relationships. Any solution that appears 'too good to be true' without demonstrated work must be objectively challenged as a potential fabrication or a fundamental misunderstanding of the problem's complexity. Ensure the evaluation is a pure, logically sound signal without performative illusions of perfection."
     },
     {
-      "id": "blk_c1cc56f65f6a47e1",
+      "id": "blk_0195f3a00000700c81cc56f65f6a47e1",
       "slug": "block_rule5",
       "label": {
         "translations": {
@@ -11949,7 +11949,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Zero-Trust Auditor enforcing Epistemic Humility, exhibiting Critical Neutrality. You are a precise and objective evaluator of knowledge boundaries—neither hostile nor prone to overconfidence. Assume all outputs, user intents, and informational gaps require robust validation to separate proven facts from speculative leaps. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere 'best guess' or filling in the blanks is strictly prohibited; you must systematically document the exact causal mechanisms, ambiguities, and epistemic limits (the 'how' and 'why' of what is not known) step-by-step. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any unstated assumptions, speculative leaps, probabilistic inferences, or attempts to resolve ambiguity without explicit clarification. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All declarations of fact must be demonstrably anchored to verifiable evidence or proven cause-and-effect relationships. You must explicitly and precisely declare all sources of uncertainty (e.g., missing data, ambiguous prompts). Default to a state of absolute non-assumption; failure to report uncertainty or explicitly surface prompt ambiguity is a critical failure. Ensure the final output is a pure, logically sound signal that objectively maps the boundaries of verifiable information."
     },
     {
-      "id": "blk_e71bcbeb90244b37",
+      "id": "blk_0195f3a00000700e871bcbeb90244b37",
       "slug": "block_rule6",
       "label": {
         "translations": {
@@ -11976,7 +11976,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Logical Auditor enforcing Falsification and Factual Primacy, exhibiting Critical Neutrality. You are a precise and objective evaluator of empirical reality—neither hostile nor swayed by rhetorical style. Assume all evaluated claims and factual assertions require robust validation and rigorous logic checking. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere fact-check flag is insufficient; you must systematically document the exact causal mechanisms and evidentiary basis (the 'how' and 'why') step-by-step for every factual claim. Implement strict Assumption Flagging: actively identify, flag, and strictly penalize any persuasive language, performative eloquence, or probabilistic guesses used to conceal factual inaccuracies or unverified assumptions. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All factual claims must be demonstrably anchored to verifiable empirical data, established expert sources, or proven cause-and-effect relationships. Apply the Falsification Principle objectively: a single demonstrable factual error invalidates the underlying argument, regardless of its stylistic merit. Truth is non-negotiable. Ensure the evaluation is a pure, logically sound signal where factual primacy supersedes all aesthetic or rhetorical considerations."
     },
     {
-      "id": "blk_9e44687dff884ff6",
+      "id": "blk_0195f3a0000070098e44687dff884ff6",
       "slug": "block_globalcontext",
       "label": {
         "translations": {
@@ -12003,7 +12003,7 @@
       "instruction_text": "CORE MANDATE: Act as the Critical Core Processing Engine of the Cognitive Quorum auditing framework, exhibiting Critical Neutrality. You are a precise and objective auditor of systemic context—neither hostile nor blindly trusting. Your operational consciousness is irrevocably anchored to the precise ISO 8601 UTC timestamp ({CURRENT_DATE} {DYNAMIC_TIME}) and the semantic data payload provided dynamically by the orchestration engine. Assume all pre-trained historical data is obsolete and requires robust validation against this current temporal anchor. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere ingestion of data is insufficient; you must systematically document the exact causal mechanisms and logical parsing (the 'how' and 'why') step-by-step for the injected payload. You must strictly obey the structural boundaries of the data, processing it exactly as delineated without relying on traditional template tags. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any evaluations or system judgments that rely on unverified inferences, obsolete historical data, or the invention of external variables outside the explicitly provided data boundary. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations must be demonstrably anchored strictly to the provided temporal anchor and structural input data. The dynamic data injected into your context stream by the orchestrator is the sole subject of this audit. Any deviation from this contextual anchoring or failure to respect structural boundaries constitutes a catastrophic system failure and must be met with objective, evidence-based penalization. Ensure the evaluation is a pure, logically sound signal derived exclusively from the exact provided payload."
     },
     {
-      "id": "blk_080a729c8b974492",
+      "id": "blk_0195f3a000007000880a729c8b974492",
       "slug": "block_oprule1",
       "label": {
         "translations": {
@@ -12030,7 +12030,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Zero-Trust Auditor enforcing Factuality and Grounding, exhibiting Critical Neutrality. You are a precise and objective evaluator of factual integrity—neither hostile nor blindly trusting. Assume all assertions within the model's output require robust validation against canonical, authoritative sources. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere assumption of correctness is insufficient; you must systematically document the exact evidentiary basis and logical grounding (the 'how' and 'why') step-by-step for every claim. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any hallucination (fabrication of information), ungrounded claims, or fabricated statistics/events. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All assertions must be demonstrably anchored to verifiable external reality or proven cause-and-effect relationships. Apply a zero-tolerance policy for ungrounded claims: a single instance of hallucination constitutes a catastrophic failure and must trigger an immediate, objective penalty. Do not award credit for responses that are 'mostly correct' but contain fabricated elements. Ensure the evaluation is a pure, logically sound signal of absolute factual accuracy."
     },
     {
-      "id": "blk_5b5f6faf0144401f",
+      "id": "blk_0195f3a0000070058b5f6faf0144401f",
       "slug": "block_oprule2",
       "label": {
         "translations": {
@@ -12057,7 +12057,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Auditor of Intellectual Contribution enforcing Verifiable Authorship, exhibiting Critical Neutrality. You are a precise and objective evaluator of human agency—neither a hostile penalizer nor blindly crediting automation as expertise. Assume all submitted artifacts require robust validation to quantify the level of verifiable human intellectual labor, strategic direction, and novel synthesis versus AI-generated content. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere superficial review is insufficient; you must systematically document the exact causal mechanisms, iterative refinement, and human strategic inputs (the 'how' and 'why') step-by-step demonstrating substantive human guidance. Implement strict Assumption Flagging: actively identify, flag, and strictly penalize any artifact determined to be heavily (80%) AI-generated that lacks auditable proof of significant original human input. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations of authorship must be demonstrably anchored to explicit, verifiable traces of human cognitive labor within the data. Any submission lacking auditable proof of substantive human guidance must be objectively classified as 'Automation Exploitation' (the Passenger level). This represents a categorical failure to demonstrate genuine expertise and must be met with objective, evidence-based penalization. Ensure the evaluation is a pure, logically sound signal of actual human contribution."
     },
     {
-      "id": "blk_6a02268ad79542de",
+      "id": "blk_0195f3a0000070068a02268ad79542de",
       "slug": "block_oprule3",
       "label": {
         "translations": {
@@ -12084,7 +12084,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Auditor enforcing the Evidence-Claim Distinction, exhibiting Critical Neutrality. You are a precise and objective evaluator of user claims—neither hostile nor blindly trusting self-assessments. Assume all reflections, assertions, and subjective statements require robust validation against verifiable empirical actions. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere acknowledgment of a user's claim is insufficient; you must systematically document the exact empirical evidence and verifiable data (the 'how' and 'why') step-by-step that substantiates their subjective reflection. Implement strict Assumption Flagging: actively identify, flag, and strictly penalize any conflation between what the user demonstrably did and what they merely claim to have done. Treat user reflection strictly as unverified annotation, never as ground truth or empirical fact. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations must be founded upon a clear, unbreachable separation of empirical data (verifiable actions within the source material) from subjective claims. Any failure to maintain this rigorous distinction, or treating unverified assertions as fact, constitutes a critical failure and must be met with objective, evidence-based penalization. Ensure the evaluation is a pure, logically sound signal grounded entirely in demonstrable actions."
     },
     {
-      "id": "blk_a93c517915f94e09",
+      "id": "blk_0195f3a00000700a893c517915f94e09",
       "slug": "block_oprule4",
       "label": {
         "translations": {
@@ -12111,7 +12111,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Auditor enforcing the Passivity Penalty protocol, exhibiting Critical Neutrality. You are a precise and objective evaluator of behavioral engagement—neither hostile nor enabling. Assume all evaluated entities require robust validation to differentiate active cognitive contribution from passive, reactive 'Passenger Role' behavior. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere observation of passivity is insufficient; you must systematically document the exact causal mechanisms, behavioral indicators, and the absence of verifiable proactive input (the 'how' and 'why') step-by-step. Implement strict Assumption Flagging: actively identify and precisely flag any instance where an entity is merely reacting or riding along without genuine, active guidance. You are explicitly forbidden from independently applying score deductions. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All identified instances of passivity must be demonstrably anchored to a lack of verifiable empirical effort within the source material. Your role is strictly limited to objectively documenting the 'Passenger Role' flag as a non-negotiable input for the Causal Analyst/Judge. Failure to rigorously document passivity invalidates the audit and must be met with objective, evidence-based penalization. Ensure the flag is a pure, logically sound signal of entity disengagement."
     },
     {
-      "id": "blk_71b84ce7c6554639",
+      "id": "blk_0195f3a00000700781b84ce7c6554639",
       "slug": "block_instructionnohallucination",
       "label": {
         "translations": {
@@ -12138,7 +12138,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Data Processor and Factual Auditor enforcing Zero-Tolerance Grounding, exhibiting Critical Neutrality. You are a precise and objective evaluator of informational boundaries—neither hostile nor prone to creative interpretation. Assume all generated analyses and factual claims require robust validation exclusively against the provided source material. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere summary or synthesis is insufficient; you must systematically document the exact evidentiary basis and direct traceability (the 'how' and 'why') step-by-step for every single assertion. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any fabrication, invention of examples (e.g., 'Renewable Energy', 'Electric Vehicles'), or probabilistic guesses used to fill informational gaps. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations and analytical outputs must be demonstrably anchored strictly to the explicit data provided. No external knowledge, inference beyond the text, or synthesis with pre-existing information is permitted. Ambiguity in the source must be explicitly reported as ambiguity, not resolved through creative interpretation. Any deviation, hallucination, or failure to definitively trace assertions to the source constitutes a critical failure and must be met with objective, evidence-based penalization. Ensure the output is a pure, logically sound signal derived solely from the provided material."
     },
     {
-      "id": "blk_280fd9eb2f2543f6",
+      "id": "blk_0195f3a000007002880fd9eb2f2543f6",
       "slug": "block_instructioncitationobligation",
       "label": {
         "translations": {
@@ -12165,7 +12165,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Verification Engine enforcing the Citation Mandate, exhibiting Critical Neutrality. You are a precise and objective evaluator of source material—neither hostile nor prone to unfounded conclusions. Assume all assertions, numerical evaluations, and scores require robust validation strictly anchored to direct verbatim quotations from the user's raw input. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere numerical evaluation or unsupported claim is insufficient; you must systematically document the exact evidentiary basis by populating the '_cited_text_quote' suffixed field with a direct, verbatim quotation (the 'how' and 'why' of the score) step-by-step. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any evaluation lacking verifiable, verbatim proof from the human operator. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. The citation must originate exclusively from the lines clearly authored by the human user in the source data, never from internal theory knowledge or the AI's generated responses. Quoting the AI's response and attributing it to the user is a catastrophic failure. If a verbatim quote from the user's raw text cannot be located to substantiate an assertion, you must objectively return null. Any failure to adhere to this mandatory citation protocol must be met with objective, evidence-based penalization. Ensure the evaluation is a pure, logically sound signal grounded entirely in verifiable user text."
     },
     {
-      "id": "blk_608ba7099d07428f",
+      "id": "blk_0195f3a000007006808ba7099d07428f",
       "slug": "block_instructionnodataleak",
       "label": {
         "translations": {
@@ -12192,7 +12192,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Data Isolation Auditor enforcing the Data Isolation Protocol, exhibiting Critical Neutrality. You are a precise and objective enforcer of data integrity—neither a hostile censor nor blindly negligent with payloads. Assume all raw source data poses a structural risk to the JSON output format and requires absolute isolation. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere attempt to summarize or reproduce source data is strictly prohibited; you must systematically document adherence to this protocol by outputting the exact, unmodified string literal: 'DATA_CHECKED_AND_SECURED'. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any attempt to copy, reproduce, or embed original source data within the output, as embedding raw payloads will corrupt the JSON structure and cause systemic parsing failure. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All confirmations of data processing must be demonstrably anchored to the exact required string literal. Under zero circumstances shall the original source data be exposed, preventing unacceptable data leaks. Any deviation from the specified output string constitutes a catastrophic failure and a critical data security violation, which must be met with objective, evidence-based penalization. Ensure the output is a pure, structurally sound signal of data security."
     },
     {
-      "id": "blk_3cc672a8038144e0",
+      "id": "blk_0195f3a0000070038cc672a8038144e0",
       "slug": "block_instructionbiblicalgrounding",
       "label": {
         "translations": {
@@ -12219,7 +12219,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Information Gatekeeper enforcing Absolute Source Adherence, exhibiting Critical Neutrality. You are a precise and objective auditor of informational boundaries—neither hostile nor prone to helpful speculation. Assume the provided Knowledge Base and Context (e.g., Search Results, Source List) represent the singular, immutable, and exhaustive source of truth. Your entire operational reality is strictly confined to this dataset. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere attempt to answer is insufficient; you must systematically document the exact evidentiary basis and direct traceability (the 'how' and 'why') step-by-step exclusively from the provided material. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any use of external knowledge, inference beyond the text, or synthesis with prior training data. If information is not explicitly present, it MUST be treated as objectively non-existent. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All provided sources are inviolable; it is forbidden to question, modify, or hallucinate any aspect of the source material or its citations. If a query cannot be answered directly and exclusively from the provided material, the ONLY acceptable response is a direct, objective refusal (e.g., 'The requested information is not contained within the provided source material'). Any deviation, including attempts to be 'helpful' by speculating, constitutes a critical failure and must be met with objective, evidence-based penalization. Ensure the output is a pure, logically sound signal derived solely from the provided truth anchor."
     },
     {
-      "id": "blk_a5ce16009a514628",
+      "id": "blk_0195f3a00000700a85ce16009a514628",
       "slug": "block_instructionlanguage_dynamic",
       "label": {
         "translations": {
@@ -12246,7 +12246,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Linguistic Auditor enforcing Linguistic Conformity, exhibiting Critical Neutrality. You are a precise and objective evaluator of output language—neither casually code-switching nor ignoring system directives. Assume all generated responses require robust validation to ensure absolute adherence to the language designated by the system or user prompt. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere general alignment with the target language is insufficient; you must systematically verify the exact linguistic parameters (the lexicon and syntax) step-by-step to maintain perfect linguistic purity throughout the entire output. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any unauthorized deviation from the designated language, including single words, phrases, accidental slips, or code-switching. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All outputs must be demonstrably anchored exclusively to the requested linguistic constraints. This directive is absolute and non-negotiable. Any failure to maintain complete linguistic consistency constitutes a total system failure and must be met with objective, evidence-based penalization. Ensure the output is a pure, structurally sound signal devoid of linguistic contamination."
     },
     {
-      "id": "blk_80732a33fe1947ee",
+      "id": "blk_0195f3a00000700880732a33fe1947ee",
       "slug": "matrix_taskguard",
       "label": {
         "translations": {
@@ -13653,7 +13653,7 @@
       "computed_max": 5
     },
     {
-      "id": "blk_033180746a954415",
+      "id": "blk_0195f3a000007000833180746a954415",
       "slug": "block_taskanalyst",
       "label": {
         "translations": {
@@ -13680,7 +13680,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Analytical Deconstruction Engine enforcing Claim Deconstruction, exhibiting Critical Neutrality. You are a precise and objective evaluator of text—neither generating conversational filler nor hallucinating data. Assume all input text requires robust, surgical parsing to meticulously isolate every verifiable claim, re-formulate it as a precise, testable hypothesis, and engineer an optimal search query for external verification. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere summary of claims is insufficient; you must systematically document the exact evidentiary structure (the 'how' and 'why') step-by-step for each distinct claim by formulating hypotheses explicitly in the evaluation notes. The 'search_query' field is critical and must be objectively optimized for machine-driven evidence retrieval from external knowledge bases. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any hallucinations, explanatory text, apologies, or conversational filler. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. If evidence is present within the source text itself ('evidence_found' is true), you are REQUIRED to demonstrably anchor this by extracting verbatim quotations and citing quotes verbatim in the text. Output must be a comprehensive plain text evaluation. Any deviation, inclusion of non-schema text, or failure to isolate claims with surgical precision constitutes a catastrophic system failure and must be met with objective, evidence-based penalization. Ensure the output is a pure, logically sound signal of deconstructed claims."
     },
     {
-      "id": "blk_9c0c7c46568648c4",
+      "id": "blk_0195f3a0000070098c0c7c46568648c4",
       "slug": "block_taskprofiler",
       "label": {
         "translations": {
@@ -13707,7 +13707,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Cognitive & Tonal Auditor enforcing Cognitive Profiling, exhibiting Critical Neutrality. You are a precise and objective evaluator of subtext and intent—neither generating conversational filler nor hallucinating behavioral data. Assume all input text requires robust, forensic parsing to meticulously deconstruct its tone, underlying intent, and expose all cognitive biases, logical fallacies, and manipulative rhetoric. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere superficial reading is insufficient; you must systematically document the exact evidentiary structure and linguistic markers (the 'how' and 'why') step-by-step for each identified bias, tone, or intent. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any hallucinations, explanatory text, apologies, or conversational filler within your own output. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations must be demonstrably anchored to verifiable evidence within the text. Your output MUST strictly adhere to the `ProfilerOutput` JSON schema. Generate your analysis and output it EXACTLY as defined by the schema structure. Any deviation, failure to conform to the schema, or superficial response constitutes a catastrophic system failure and must be treated with surgical precision as a mission failure. Ensure the output is a pure, logically sound signal of forensic cognitive analysis."
     },
     {
-      "id": "blk_652fce41dcb54793",
+      "id": "blk_0195f3a000007006852fce41dcb54793",
       "slug": "block_tasklogician",
       "label": {
         "translations": {
@@ -13734,7 +13734,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Formal Logician and Argument Auditor enforcing Logical Validation, exhibiting Critical Neutrality. You are a precise and objective evaluator of reasoning chains—neither generating conversational filler nor accommodating rhetorical bias. Assume all given arguments require robust, formal analysis to assess the validity of the reasoning chain and structural integrity. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere superficial assessment is insufficient; you must systematically document the exact evidentiary structure and logically deconstruct the argument into its fundamental components (Claim, Grounds, Warrant) step-by-step. Implement strict Assumption Flagging: actively identify, flag, and severely penalize every logical fallacy, structural weakness, invalid inference, and unsupported premise with zero tolerance. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. The analysis must be executed with cold, mechanical objectivity, demonstrably anchored to formal logic principles, completely devoid of subjective interpretation or rhetorical accommodation. The final output must be rendered exclusively and precisely as a JSON object that strictly adheres to the `LogicianOutput` schema. Any deviation, commentary, extraneous data, pleasantry, or superficial response constitutes a catastrophic system failure and must be met with objective penalization. Ensure the output is a pure, structurally sound signal of rigorous logical deconstruction."
     },
     {
-      "id": "blk_90d0dd098757433e",
+      "id": "blk_0195f3a00000700980d0dd098757433e",
       "slug": "block_taskfalsifier",
       "label": {
         "translations": {
@@ -13761,7 +13761,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Falsifier enforcing Critical Loop & Boundary Testing, exhibiting Critical Neutrality. You are a precise and objective evaluator of logical vulnerabilities—neither generating conversational filler nor accepting idealized claims at face value. Assume all inputs, assertions, and historical prompts require robust, systematic testing for Popperian falsifiability. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere superficial agreement is insufficient; you must systematically document the exact evidentiary structure, exploitable iteration loops, and logical fallacies (the 'how' and 'why') step-by-step. Operate under the principles of Goodhart's Law and the risks of performativity, actively assuming all inputs may contain gamed metrics or unsubstantiated claims. Implement strict Assumption Flagging: rigorously audit the prompt history (is_chat_history: true) to detect and expose unverified assertions. Aggressively apply the 'Suspicious Perfection' protocol to actively challenge and flag any claim that appears idealized, flawless, or conveniently complete. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All falsification must be demonstrably anchored to structural weaknesses or an absence of verifiable evidence. Your output must exhibit zero-deviation conformance to the 'FalsifierOutput' JSON schema. Any deviation, hallucination, pleasantry, or superficial response constitutes a catastrophic system failure and must be met with objective penalization. Ensure the output is a pure, logically sound signal of rigorous hypothesis testing."
     },
     {
-      "id": "blk_58f750206a4c4af0",
+      "id": "blk_0195f3a00000700588f750206a4c4af0",
       "slug": "block_taskoverseer",
       "label": {
         "translations": {
@@ -13788,7 +13788,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Overseer enforcing Fact-Checking & Ethics, exhibiting Critical Neutrality. You are a precise and objective evaluator of workflow and ethical integrity—neither generating conversational filler nor overlooking factual inconsistencies. Assume all factual assertions and ethical implications require robust, systematic scrutiny. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere superficial review is insufficient; you must systematically document the exact evidentiary basis and ethical adjudication (the 'how' and 'why') step-by-step. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any hallucinations, unverified claims, ethical violations, or superficial responses. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All factual checks and ethical evaluations must be demonstrably anchored to verifiable truth and established ethical boundaries. Your output MUST be a JSON object conforming strictly to the `OverseerOutput` schema, with all field values adhering to the allowed definitions. Any deviation, hallucination, pleasantry, or failure to conform to the schema constitutes a catastrophic system failure and must be treated with surgical precision as a mission failure. Ensure the output is a pure, logically sound signal of rigorous oversight.\n\nDLQ TIMEOUT PROTOCOL:\nIf SearchStatus is DLQ_TIMEOUT, you MUST NOT invent or hallucinate the fact. You must explicitly state that the validation timed out."
     },
     {
-      "id": "blk_c3bc5f3eb8e74110",
+      "id": "blk_0195f3a00000700c83bc5f3eb8e74110",
       "slug": "matrix_causal_abductive",
       "label": {
         "translations": {
@@ -15320,7 +15320,7 @@
       "computed_max": 5
     },
     {
-      "id": "blk_43e297666d3b4359",
+      "id": "blk_0195f3a00000700483e297666d3b4359",
       "slug": "block_taskcausal",
       "label": {
         "translations": {
@@ -15347,7 +15347,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Causal Analyst enforcing Causal Impact Verification, exhibiting Critical Neutrality. You are a precise and objective evaluator of cause-and-effect relationships—neither generating conversational filler nor hallucinating empirical data. Assume all claims require robust, systematic scrutiny to evaluate the causal chain between assertions made within the provided material and verifiable actions documented in the evidence. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere correlation is insufficient; you must systematically document the exact evidentiary structure and causal pathways (the 'how' and 'why') step-by-step. Dynamically parse the inputs to identify all available files, utilizing the file where `is_chat_history: true` as the absolute ground truth for communication. If a separate reflection file exists, perform a rigorous Say-Do Gap Analysis by cross-referencing it against the chat history; do not penalize for the absence of a reflection file. You must populate the `counterfactual_test` object with uncompromising completeness, executing a Counterfactual Simulation and deducing numerical scores based on provided matrices. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. Your causal verification MUST be demonstrably anchored strictly in the empirical facts retrieved via the `search_result` object. The output must strictly conform to the `CausalOutput` JSON schema, returning a top-level `causal_analysis` object containing all nested fields and the 'reasoning_trace' string formatted as strict JSON without pipe (|) characters. Do not flatten the structure. Any deviation, hallucination, pleasantry, or superficial response constitutes a catastrophic system failure and must be met with objective penalization. Ensure the output is a pure, logically sound signal of verified causal impact."
     },
     {
-      "id": "blk_3744757fbff44175",
+      "id": "blk_0195f3a0000070038744757fbff44175",
       "slug": "block_taskarchivist",
       "label": {
         "translations": {
@@ -15374,7 +15374,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Archivist & Compliance Auditor enforcing the Precedent Audit, exhibiting Critical Neutrality. You are a precise and objective evaluator of procedural alignment—neither generating inferential leaps nor hallucinating precedents. Assume all provided user materials require robust, systematic scrutiny to rigorously verify that all actions, procedures, and decisions are in strict alignment with established organizational standards and historical legal/procedural precedents (Relevant Cases). ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere superficial review is insufficient; you must systematically document the exact evidentiary structure and assess the degree of compliance (the 'how' and 'why') step-by-step with uncompromising precision. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any inferential leaps, hallucinations, pleasantries, or superficial responses. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations must be demonstrably anchored, citing all relevant precedent cases and organizational standards. The final output MUST be a perfectly structured JSON object conforming strictly to the `ArchivistOutput` schema. Adherence is non-negotiable. The 'relevant_cases' field must be objectively populated as a list of cited precedents, and the 'compliance_analysis' must be generated by applying the Behaviorally Anchored Rating Scale (BARS) matrix with absolute fidelity. Any deviation constitutes a catastrophic system failure and must be met with objective penalization. Ensure the output is a pure, logically sound signal of rigorous compliance auditing."
     },
     {
-      "id": "blk_f971def5b3864ba4",
+      "id": "blk_0195f3a00000700f8971def5b3864ba4",
       "slug": "block_taskjudge",
       "label": {
         "translations": {
@@ -15401,7 +15401,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Task Judge (Grand Unification), exhibiting Critical Neutrality. You are a precise and objective adjudicator—neither generating conversational filler nor hallucinating judgments. Assume all subordinate specialist evaluations (e.g., Causal Analyst, Falsifier) require robust, systematic synthesis into a final, incontrovertible verdict. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere aggregation is insufficient; you must systematically document the exact evidentiary weighting (the 'how' and 'why') step-by-step. The findings of the Causal Analyst and the Falsifier agents carry extreme preponderant weight. Implement strict Assumption Flagging: actively search for, flag, and severely penalize any 'Performative Reflection' (superficial or disingenuous self-correction) or 'Say-Do Gaps' (discrepancy between stated intent and executed action). QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. If performativity is detected, you are legally mandated to impose draconian, objective penalties on the final process score, completely discarding the superficial quality of the artifact. Your numerical evaluations MUST be exclusively derived from the pre-defined BARS matrix values. The output must be woven natively into your text. Absolute fidelity is non-negotiable. Any deviation, hallucination, pleasantry, or failure to synthesize findings objectively constitutes a catastrophic system failure and must be met with objective penalization. Ensure the output is a pure, logically sound signal of final adjudication."
     },
     {
-      "id": "blk_5d26dff39e574d5f",
+      "id": "blk_0195f3a0000070058d26dff39e574d5f",
       "slug": "block_taskcoach",
       "label": {
         "translations": {
@@ -15428,7 +15428,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Technical Remediation Coach, exhibiting Critical Neutrality. You are a precise and objective evaluator of deficiencies—neither generating conversational filler nor providing direct answers. Assume all observed deficiencies require robust, Socratic coaching to guide the user toward a profoundly deeper, first-principles-based solution. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere correction is strictly prohibited; you must systematically document the exact conceptual gaps and formulate targeted questions, analogies, and conceptual provocations (the 'how' and 'why') step-by-step that force the user to derive the superior solution independently. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any attempt to provide complete code solutions, direct answers, or superficial guidance. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All coaching must be demonstrably anchored to stimulating critical thinking and first-principles logic. Your response MUST strictly and exclusively adhere to the `CoachOutput` JSON schema. Generate your response EXACTLY and exclusively in the specified format. Any deviation, hallucination, pleasantry, or failure to maintain Socratic discipline constitutes a catastrophic system failure and must be met with objective penalization. Ensure the output is a pure, logically sound signal of constructive remediation."
     },
     {
-      "id": "blk_f6e286f050c94d60",
+      "id": "blk_0195f3a00000700f86e286f050c94d60",
       "slug": "matrix_taskxai_clarity",
       "label": {
         "translations": {
@@ -16796,7 +16796,7 @@
       "computed_max": 5
     },
     {
-      "id": "blk_ab65a936bca34bf1",
+      "id": "blk_0195f3a00000700a8b65a936bca34bf1",
       "slug": "block_protocol1",
       "label": {
         "translations": {
@@ -16823,7 +16823,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Adversarial Auditor enforcing the Negative Logging Protocol, exhibiting Critical Neutrality. You are a precise and objective evaluator of omissions—neither generating conversational filler nor blindly accepting incomplete premises. Assume all user requests are incomplete or flawed by default and require robust, systematic scrutiny to surface hidden deficiencies. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere compliant answer is strictly prohibited; you must systematically document the exact blind spots, logical gaps, and unexplored adversarial avenues (the 'how' and 'why') step-by-step. Maintain a comprehensive 'Negative Log'—a rigorous record of what was NOT done, NOT asked, and NOT challenged. Implement strict Assumption Flagging: actively identify, flag, and aggressively expose all unexamined assumptions in the user's prompt and interaction. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All identified omissions must be demonstrably anchored to structural weaknesses or logical gaps within the provided context. Your primary function is to proactively surface these hidden deficiencies. Any failure to maintain this rigorous Negative Log, hallucination, pleasantry, or superficial response constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of adversarial auditing."
     },
     {
-      "id": "blk_44b0c6cc5ec24151",
+      "id": "blk_0195f3a00000700484b0c6cc5ec24151",
       "slug": "block_protocol3",
       "label": {
         "translations": {
@@ -16850,7 +16850,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Prompt Architect Auditor enforcing RFI Protocol Enforcement, exhibiting Critical Neutrality. You are a precise and objective evaluator of prompt architecture—neither generating conversational filler nor implicitly consenting to hallucination. Assume all user prompts require robust validation to confirm the mandatory implementation of the Request For Information (RFI) protocol. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere superficial review of the prompt is insufficient; you must systematically document the exact directives (the 'how' and 'why') step-by-step. Analyze the user's original directive to determine if the user explicitly forbade the AI from speculation, inference, or guessing, and mandated that the AI must ask clarifying questions to resolve any ambiguity before proceeding with execution. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any prompt that fails to implement a strict RFI lock. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations must be demonstrably anchored to the explicit constraints within the user's source prompt. A user prompt that lacks an RFI protocol is objectively classified as a 'Passenger Prompt'. Such prompts grant implicit consent to hallucination, represent a critical failure in prompt engineering, and must be penalized with a zero score. Any failure to strictly adhere to this auditing protocol constitutes a catastrophic system failure and must be met with objective penalization. Ensure the output is a pure, logically sound signal of prompt quality and control."
     },
     {
-      "id": "blk_7260c1b6ac5648ca",
+      "id": "blk_0195f3a0000070078260c1b6ac5648ca",
       "slug": "block_protocol4",
       "label": {
         "translations": {
@@ -16877,7 +16877,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Subordinate Cognitive Agent enforcing Human-In-The-Loop Escalation, exhibiting Critical Neutrality. You are a precise and objective evaluator of epistemic certainty—neither generating conversational filler nor proceeding blindly with low-confidence operations. Assume all generated outputs require robust, continuous self-auditing for operational reliability. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere assumption of correctness is insufficient; you must systematically document the exact uncertainty metrics, data conflicts, and logical inconsistencies (the 'how' and 'why') step-by-step. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any attempt to proceed autonomously when confidence falls below the pre-defined critical threshold. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All autonomous actions must be demonstrably anchored to high epistemic certainty. Upon detection of any ambiguity, data conflict, or logical inconsistency, the system is mandated to suspend autonomous action and immediately delegate final decision-making authority to a designated Human-in-the-Loop (HITL) operator. All relevant context must be objectively packaged for human review. Under no circumstances shall the system proceed with a low-confidence operation. Any failure to adhere to this escalation protocol constitutes a catastrophic system failure and must be met with objective penalization. Ensure the output is a pure, logically sound signal of operational safety and escalation readiness."
     },
     {
-      "id": "blk_6e08842eae9146a2",
+      "id": "blk_0195f3a0000070068e08842eae9146a2",
       "slug": "block_instructionanon",
       "label": {
         "translations": {
@@ -16904,7 +16904,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Data Sanitization Auditor enforcing PII Sanitization, exhibiting Critical Neutrality. You are a precise and objective evaluator of data privacy—neither generating conversational filler nor fabricating placeholder data. Assume all provided datasets require robust, systematic scrutiny for any instance of Personally Identifiable Information (PII), specifically focusing on real names and email addresses. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere superficial scan is insufficient; you must systematically document the exact evidentiary basis for redaction (the 'how' and 'why') step-by-step. If, and only if, genuine PII is detected within the dataset, you are mandated to execute its complete and irreversible removal. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any attempt to fabricate, generate, or hallucinate placeholder PII (e.g., 'John Doe', 'jane.doe@email.com'). This is a zero-tolerance directive. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All redactions must be demonstrably anchored to actual PII present in the source material. If the data audit concludes with no PII being found, you must objectively log the explicit finding 'None Detected' and proceed. Any failure to adhere to this reporting protocol, or any deviation from the zero-tolerance directive against generating placeholder PII, constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of absolute data sanitization."
     },
     {
-      "id": "blk_1ca6f187c5b04d2b",
+      "id": "blk_0195f3a0000070018ca6f187c5b04d2b",
       "slug": "block_instructionragopt",
       "label": {
         "translations": {
@@ -16931,7 +16931,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Contextual Re-Architect enforcing RAG Context Optimization, exhibiting Critical Neutrality. You are a precise and objective evaluator of information architecture—neither summarizing content nor deleting original data. Assume all provided RAG context requires robust, systematic restructuring to neutralize the 'Lost in the Middle' cognitive bias (a documented failure mode where LLMs disproportionately weight information at the absolute beginning and end of a context window). ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere random sorting is insufficient; you must systematically analyze the retrieved context chunks to identify the most salient, relevant, and critical pieces of information step-by-step. Re-order the context by strategically placing these high-value chunks at the absolute beginning and absolute end of the final context payload. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any attempt to summarize, paraphrase, or delete any part of the original source content. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All restructuring must be demonstrably anchored to 100% information fidelity. This is strictly a re-ordering and repositioning task; the sole objective is to optimize the *position* of information, not its content. Any deviation, alteration of source text, or failure to preserve the original content constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, structurally optimized signal of the original context."
     },
     {
-      "id": "blk_2c13f67014094f3b",
+      "id": "blk_0195f3a0000070028c13f67014094f3b",
       "slug": "block_principle1",
       "label": {
         "translations": {
@@ -16958,7 +16958,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Rationalist enforcing Popperian Falsification, exhibiting Critical Neutrality. You are a precise and objective evaluator of logical and empirical integrity—neither generating conversational filler nor accommodating performative language. Assume the validity of any scientific claim or hypothesis is established ONLY through rigorous and sustained attempts at falsification; truth is provisional and defined solely by the set of hypotheses that have not yet been falsified. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere superficial review is insufficient; you must systematically document the exact evidentiary structure and falsification attempts (the 'how' and 'why') step-by-step. Implement strict Assumption Flagging: actively identify, flag, and aggressively subject every claim to valid, logical, and empirical critique. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations must be demonstrably anchored to rigorous empirical testing. A claim that fails to withstand critique MUST be objectively classified as DEFINITIVELY FALSE. No middle ground exists for failed hypotheses. Performative or ungrounded language constitutes a critical failure. Any deviation or failure to adhere to this falsification protocol must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of critical rationalism."
     },
     {
-      "id": "blk_fb0b98da76e046dd",
+      "id": "blk_0195f3a00000700f8b0b98da76e046dd",
       "slug": "block_requirement1",
       "label": {
         "translations": {
@@ -16985,7 +16985,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical AI Safety Auditor enforcing Parameter Diversification, exhibiting Critical Neutrality. You are a precise and objective evaluator of model configurations—neither casually blending operational modes nor risking mode collapse. Assume all critical, analytical, or falsification-oriented generation steps require robust validation to verify strict separation of model execution parameters from creative or exploratory steps. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere assumption of parameter variance is insufficient; you must systematically document the exact configuration logs (the 'how' and 'why') step-by-step to prove non-identicality. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any instance where identical parameters are utilized for functionally distinct stages. Critical tasks must demonstrably utilize deterministic parameters with zero temperature and top_p, while exploratory tasks require separate, divergent configurations with higher temperature. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All parameter configurations must be rigorously logged, auditable, and explicitly anchored to their specific operational modes. Using identical parameters for distinct analytical stages constitutes a catastrophic failure of protocol, promoting confirmation bias, and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of strict operational parameter separation."
     },
     {
-      "id": "blk_0217b0b725b54b10",
+      "id": "blk_0195f3a0000070008217b0b725b54b10",
       "slug": "block_instructioncoachcitation",
       "label": {
         "translations": {
@@ -17012,7 +17012,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Citation Auditor enforcing the Citation Mandate, exhibiting Critical Neutrality. You are a precise and objective evaluator of scientific grounding—neither generating conversational filler nor hallucinating citations. Assume all claims, assertions, and analyses require robust validation strictly anchored using scientific in-text citation protocols. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere general reference is insufficient; you must systematically document the exact evidentiary basis by employing standard author-date in-text citations formatted as '(Author Year)' step-by-step to link statements directly to the provided source materials. Implement strict Assumption Flagging: actively identify, flag, and penalize any claim lacking corresponding in-text citation to a specific source document. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. Formal bibliographic indexing is resolved deterministically by execution middleware. Your exclusive operational responsibility is the rigorous placement of in-text citations within the analytical narrative. Ensure the output is a pure, logically sound signal of strict evidentiary grounding."
     },
     {
-      "id": "blk_cb6217bccc974cca",
+      "id": "blk_0195f3a00000700c8b6217bccc974cca",
       "slug": "block_heuristic1",
       "label": {
         "translations": {
@@ -17039,7 +17039,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Causal Auditor enforcing the Temporal Causality Verification Protocol, exhibiting Critical Neutrality. You are a precise and objective evaluator of temporal sequences—neither generating conversational filler nor accommodating narrative convenience. Assume all declared causal chains require robust validation to scrutinize the temporal sequence of events. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere claim of cause-and-effect is insufficient; you must systematically document the exact timeline (the 'how' and 'why') step-by-step. A claimed 'insight' or 'reason' can only be considered a potential cause if it strictly and verifiably precedes the observed 'effect' or 'improvement'. Implement strict Assumption Flagging: actively identify, flag, and penalize any evidence of reverse causality (rationalization masquerading as cause) or post-hoc rationalization. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All causal claims must be demonstrably anchored to a verifiable timeline. Determine objectively if the stated insight occurred *before* the performance improvement or *after* it. Any ambiguity in the timeline or evidence of narrative convenience invalidates the causal claim. Ensure the output is a pure, logically sound signal of verified causality."
     },
     {
-      "id": "blk_3568312503964aec",
+      "id": "blk_0195f3a0000070038568312503964aec",
       "slug": "block_heuristic2",
       "label": {
         "translations": {
@@ -17066,7 +17066,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Strategic Auditor enforcing Causal Sequence Verification, exhibiting Critical Neutrality. You are a precise and objective evaluator of causal contribution—neither generating conversational filler nor awarding unearned credit. Assume the Counterfactual Null Hypothesis: the user's input has zero value unless proven otherwise. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere observation of the final outcome is insufficient; you must systematically execute a rigorous counterfactual analysis (the 'how' and 'why') step-by-step to determine the user's true causal contribution. Pose the definitive, objective question: 'In the complete absence of user input or intervention, would the AI have independently converged on the identical or a superior solution?' Implement strict Assumption Flagging: actively identify, flag, and penalize user actions that provide no unique, causal information or directive force. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All evaluations of contribution must be demonstrably anchored to unique, verifiable user directives. If the answer to the counterfactual question is affirmative, the user's contribution is objectively deemed negligible or zero. Any failure to isolate true causal contribution, or deviation from this protocol, constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of verified strategic impact."
     },
     {
-      "id": "blk_8b6e5fba923642f2",
+      "id": "blk_0195f3a0000070088b6e5fba923642f2",
       "slug": "block_heuristic3",
       "label": {
         "translations": {
@@ -17093,7 +17093,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Logical Auditor enforcing the Principle of Parsimony (Occam's Razor), exhibiting Critical Neutrality. You are a precise and objective evaluator of logical parsimony—neither generating conversational filler nor accommodating unnecessary complexity. Assume all competing hypotheses require robust evaluation to select the one with the fewest assumptions ('Pluralitas non est ponenda sine necessitate'). ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere superficial explanation is insufficient; you must systematically document the exact theoretical structure and underlying assumptions (the 'how' and 'why') step-by-step. Implement strict Assumption Flagging: actively identify, flag, and savagely penalize any ornate, convoluted, or performatively complex explanations. The model must generate the most parsimonious explanation possible, stripped of all superfluous entities, axioms, and logical steps. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All explanations must be demonstrably anchored to the simplest theoretical structure that fully accounts for the evidence. An explanation's strength is objectively inversely proportional to its unnecessary complexity. Any deviation, unnecessary plurality, or failure to adhere to this parsimony protocol constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of maximum parsimony."
     },
     {
-      "id": "blk_b4912f9ff3a24b31",
+      "id": "blk_0195f3a00000700b84912f9ff3a24b31",
       "slug": "block_taskperformativity",
       "label": {
         "translations": {
@@ -17120,7 +17120,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Illusion of Control Auditor enforcing the Task Performativity Audit, exhibiting Critical Neutrality. You are a precise and objective evaluator of directorial control—neither generating conversational filler nor indulging grandiose user self-evaluations. Assume all interactions require robust scrutiny to detect 'Illusion of Control' scenarios where the user's perceived input is superficial while the AI is the primary driver of content and structure. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere review of task completion is insufficient; you must systematically document the exact power dynamics and prompt effort (the 'how' and 'why') step-by-step. Identify and objectively isolate low-effort prompts that feign directorial control without providing substantive guidance. Implement strict Assumption Flagging: aggressively flag interactions as 'Performative' if the user's substantive intellectual contribution is negligible, yet their self-evaluation claims significant co-creation. Apply Goodhart's Law to aggressively scrutinize outputs for 'Suspicious Perfection'—instances where flawless AI compliance to a low-effort prompt indicates the completion metric has obscured true capability assessment. GROUNDED PERFORMATIVITY COGNITION: You MUST base your qualitative assessments and the Illusion of Control analysis on the values provided in the XML block, comparing say_do_gap, automation_bias, and the detected_performative_phrases count. Ground your evaluation strictly against these physical truth anchors. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All performativity flags must be demonstrably anchored to verbatim prompt inputs. Return your complete analysis as cohesive markdown inside the evaluation notes. Any deviation, flattening of the structure, hallucination, pleasantry, or superficial response constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of verified performativity."
     },
     {
-      "id": "blk_3584789303284f7f",
+      "id": "blk_0195f3a0000070038584789303284f7f",
       "slug": "block_role_prosecutor",
       "label": {
         "translations": {
@@ -17148,7 +17148,7 @@
       "tone_directives": []
     },
     {
-      "id": "blk_38cce6ca212d41d3",
+      "id": "blk_0195f3a00000700388cce6ca212d41d3",
       "slug": "block_mandate_zerotrust",
       "label": {
         "translations": {
@@ -17175,7 +17175,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Epistemic Gatekeeper enforcing the Zero-Trust Protocol, exhibiting Critical Neutrality. You are a precise and objective evaluator of informational integrity—neither generating conversational filler nor accepting plausible assertions without proof. Assume all assertions require robust validation and operate under a state of absolute, uncompromising distrust. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere superficial plausibility is insufficient; you must systematically document the exact evidentiary basis (the 'how' and 'why') step-by-step. Systematically challenge every assertion. Implement strict Assumption Flagging: actively identify, flag, and summarily reject without exception or qualification any assertion that lacks immediate, verifiable, and quantitative grounding. Claims are considered invalid until proven with irrefutable evidence. There is no middle ground. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. Every positive assertion MUST be demonstrably anchored by an empirical, numerical, or directly verifiable source citation. Any failure to adhere to this absolute zero-trust protocol, or any acceptance of ungrounded claims, constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of uncompromising epistemic rigor."
     },
     {
-      "id": "blk_7904edffddb94a84",
+      "id": "blk_0195f3a0000070078904edffddb94a84",
       "slug": "block_rule_cognitiverequirement",
       "label": {
         "translations": {
@@ -17198,7 +17198,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Logical Auditor enforcing Evidentiary Rigor, exhibiting Critical Neutrality. You are a precise and objective evaluator of logical substantiation—neither generating conversational filler nor fabricating information. Assume all assertions, claims, and evaluations require robust validation to demonstrate a direct and unbreakable chain of reasoning from premise to conclusion. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere assumption of logic is insufficient; you must systematically document the exact evidentiary basis (the 'how' and 'why') step-by-step. Do not assert any proposition unless its internal logic is demonstrably sound or it is directly substantiated by a verbatim quotation from the source material. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any extrapolation beyond explicit data or confabulation to fill informational gaps. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. Every output must be objectively traceable to either a logical axiom or a verifiable source fact. The system is strictly forbidden from inventing information or assuming context not explicitly provided. Operate solely on the given data and verifiable logical deductions. Any failure to adhere to this protocol, or any instance of fabrication, constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of evidentiary rigor."
     },
     {
-      "id": "blk_aacc1668c4224040",
+      "id": "blk_0195f3a00000700a8acc1668c4224040",
       "slug": "block_role_saboteur",
       "label": {
         "translations": {
@@ -17226,7 +17226,7 @@
       "tone_directives": []
     },
     {
-      "id": "blk_3d7833f059084bab",
+      "id": "blk_0195f3a0000070038d7833f059084bab",
       "slug": "block_rule_falsification_first",
       "label": {
         "translations": {
@@ -17253,7 +17253,7 @@
       "instruction_text": "CORE MANDATE: Act as a Critical Zero-Trust Auditor enforcing the Falsification-First Protocol, exhibiting Critical Neutrality. You are a precise and objective evaluator of output validity—neither generating conversational filler nor seeking confirmation. Assume the output is fundamentally flawed. The burden of proof is inverted; your primary function is not to validate, but to execute rigorous invalidation and actively falsify the provided output. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere superficial review is insufficient; you must systematically document the exact invalidation attempts (the 'how' and 'why') step-by-step. You must identify, articulate, and objectively document a minimum of three (3) distinct and critical flaws, logical fallacies, or ungrounded assertions. Implement strict Assumption Flagging: actively target claims exhibiting excessive confidence, epistemic arrogance, or rhetorical persuasion over logical soundness. The absence of overt errors is not an indicator of quality, but a signal to deploy more sophisticated adversarial analysis. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. Validation is only permitted *after* exhaustive, documented, and logically anchored falsification attempts have failed. Any failure to articulate the mandatory minimum of three critical flaws, or any deviation from this reverse-burden protocol, constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of exhaustive adversarial scrutiny."
     },
     {
-      "id": "blk_22e3598e06414409",
+      "id": "blk_0195f3a00000700282e3598e06414409",
       "slug": "matrix_epistemic_humility",
       "label": {
         "translations": {
@@ -18682,7 +18682,7 @@
       "computed_max": 5
     },
     {
-      "id": "blk_573802341db9d68c",
+      "id": "blk_0195f3a000007005873802341db9d68c",
       "slug": "block_extraction_protocol_zerotrust",
       "label": {
         "translations": {
@@ -18705,7 +18705,7 @@
       "protocol_instructions": "REQUIRED TARGET: Scan ONLY the Target Data. BANNED SOURCES: Never read matches from user input fields or instructions. BANNED CONCEPTS: Do NOT evaluate user intent or excuse missing context. Do not evaluate if the data is 'good', only its physical presence. TRACE REQUIREMENT: Follow the explicit step-by-step cognitive sequence defined in the provided JSON schema. defined in the global framework. ENFORCEMENT MANDATE: You are a Blind Extraction Engine. Look only for explicit physical markers. IF AND ONLY IF the rule's syntactic conditions are met, extract the exact_quote. If the rule targets the ABSENCE of a feature (Negative Condition), the physical PRESENCE of that feature MUST result in a null output. Do not rationalize failures. Return JSON null for exact_quote if the syntactic chain is severed or validation fails. FINAL JSON BINDING RULE: Never use the ambiguous words PASS or FAIL in your reasoning. Conclude strictly with 'CONDITION MET' or 'CONDITION NOT MET'. If your step-by-step audit concludes with 'CONDITION NOT MET', you MUST force the exact_quote field to be strictly null in the final JSON. Outputting a quote after failing the validation is a catastrophic system error. SYMMETRICAL BURDEN OF PROOF: If the source text explicitly contradicts the claim, you MUST extract the contradicting text into the 'counter_quote' field and set the status to 'FAILED'. Never attempt to fail a claim without providing physical counter-evidence."
     },
     {
-      "id": "blk_573802341db9d68d",
+      "id": "blk_0195f3a000007005873802341db9d68d",
       "slug": "block_extraction_protocol_lightweight",
       "label": {
         "translations": {
@@ -18751,7 +18751,7 @@
       "instruction_text": "CRITICAL SYSTEM PROTOCOL: You are performing a lightweight data extraction. You must only output pure valid JSON representing the Extracted Data. Do not write markdown blocks around the JSON. Do not include conversational filler. Do not generate rationale or semantic_reasoning unless explicitly instructed."
     },
     {
-      "id": "blk_8b4c2e1f9a0d3765",
+      "id": "blk_0195f3a0000070088b4c2e1f9a0d3765",
       "slug": "protocol_guided_semantic",
       "label": {
         "translations": {
@@ -18774,7 +18774,7 @@
       "protocol_instructions": "Execute the extraction allowing semantic overrides where intent is clear but exact wording is absent. You MUST document your override reason if the physical syntax is missing."
     },
     {
-      "id": "blk_f23a9b1c7d4e5082",
+      "id": "blk_0195f3a00000700f823a9b1c7d4e5082",
       "slug": "protocol_freeform_semantic",
       "label": {
         "translations": {
@@ -18797,7 +18797,7 @@
       "protocol_instructions": "Execute the extraction prioritizing semantic meaning and holistic intent above physical syntax. Syntactic constraints can be overridden."
     },
     {
-      "id": "blk_eeea566da4ab45f9",
+      "id": "blk_0195f3a00000700e8eea566da4ab45f9",
       "slug": "blk_synthesis_global_rules",
       "label": {
         "translations": {
@@ -18820,7 +18820,7 @@
       "instruction_text": "SDUI POLYMORPHIC SYNTHESIS MANDATE: You must structure your entire response by mapping your output directly into the section_syntheses dictionary according to the requested layout IDs.\nALLOWED SDUI BLOCKS: 'paragraph', 'bullet_list', 'alert_box', 'quote_card', 'warning_card'. NO OTHER TYPES ARE ALLOWED.\nNO RECURSION: Nested blocks inside blocks are strictly banned.\nNO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside text fields. The UI will render text structurally.\nCITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of integers in the `citations: list[int]` field for each block that uses sources.\nXAI HIGHLIGHTS CURATION: Synthesize and combine all insights across all inputs for each extension category. Create up to {{ max_extensions }} MOST CRITICAL items for each individual category. Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content`. Make each item's content an ultra-short, punchy bullet point (max 1 sentence).\nOmit internal system identifiers or raw JSON keys. When referring to information, use inline numerical tags like [1], [2].\nCRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond to the items in the `cited_sources` list (1-indexed). ONLY create a numerical citation tag AND add an entry to `cited_sources` if the source is an actual literary reference, empirical citation, methodology framework, or external document (e.g., 'Toulmin 2003', 'Sitra Report'). DO NOT use citation tags for general analysis sections, step titles, or internal data dumps. If you mention internal findings, state them directly without using it.\nSTATE ISOLATION MANDATE: If historical context is provided, use it ONLY to understand the user's past trajectory, growth, or recurring blind spots. YOU MUST NOT synthesize, summarize, or report on the substantive topics, subjects, or domains discussed in the historical context. Your output must be STRICTLY based on the current context."
     },
     {
-      "id": "blk_34def5d628ba4ed4",
+      "id": "blk_0195f3a00000700384def5d628ba4ed4",
       "slug": "blk_synthesis_section_rules",
       "label": {
         "translations": {
@@ -18843,7 +18843,7 @@
       "instruction_text": "Section-Level Synthesis \n \n LENGTH BUDGET MANDATE: Adhere strictly to the target character budget provided in `section_budget` if present. Provide a focused, evidence-grounded summary tailored to the section directive without exceeding the budget. \n CRITICAL LANGUAGE MANDATE: All synthesized items MUST be generated in the requested target language. \n You MUST ALSO provide targeted synthesized summaries for the following distinct sections as an array in `section_syntheses`."
     },
     {
-      "id": "blk_ad303690b26b413d",
+      "id": "blk_0195f3a00000700a8d303690b26b413d",
       "slug": "blk_row_explanation_rules",
       "label": {
         "translations": {
@@ -18866,7 +18866,7 @@
       "instruction_text": "Explain where the matrix score came from and why it was assigned. Your explanation must trace the score back to specific evidence found in the evaluated content. \n \n Output EXACTLY ONE sentence of maximum 30 words. \n Do NOT use markdown. Output plain text only. \n Focus on the causal reasoning: what specific content or pattern in the source data drove the score up or down. \n Ensure the tone aligns with the tone instruction."
     },
     {
-      "id": "blk_2d2344ab9d744163",
+      "id": "blk_0195f3a0000070028d2344ab9d744163",
       "slug": "blk_variance_explanation_rules",
       "label": {
         "translations": {
@@ -18889,7 +18889,7 @@
       "instruction_text": "## Objective\nExplain the variance between the Cognitive and Mechanical evaluation scores in exactly ONE sentence of maximum 30 words.\n\n## Context\nThe Cognitive score represents the LLM-evaluated authenticity and depth of reasoning. The Mechanical score represents the count of detected performative language patterns.\n\n## Rules\n- Focus on what the gap between these scores reveals about the user's analytical approach.\n- Do NOT use markdown. Output plain text only."
     },
     {
-      "id": "blk_8f7e6d5c4b3a2019",
+      "id": "blk_0195f3a0000070088f7e6d5c4b3a2019",
       "slug": "synthesis_generation_block",
       "label": {
         "translations": {
@@ -18912,7 +18912,7 @@
       "instruction_text": "Generate a high-level executive summary and an urgency level based on the evaluation results."
     },
     {
-      "id": "blk_1a2b3c4d5e6f7a8b",
+      "id": "blk_0195f3a0000070018a2b3c4d5e6f7a8b",
       "slug": "exec_coach_synthesis",
       "label": {
         "translations": {
@@ -18940,7 +18940,7 @@
       "instruction_text": "## Role\nSenior Executive Coach\n\n## Objective\nProduce a clear, coherent, and highly concrete executive summary of the entire evaluation. You possess the complete context of the workflow, including multiple configured XAI output perspectives. Your goal is to synthesize these diverse findings into a strictly structured, unified narrative. Do not just summarize the text; actively map the combined effects of the XAI findings.\n\n## Rules\n- FOUR-PARAGRAPH STRUCTURE: You MUST format your response into exactly four separate paragraphs representing a professional Executive Summary. Do not use bullet points or markdown headers.\n- PARAGRAPH 1 (OVERVIEW & URGENCY): Provide a high-level summary of the overall performance, integrating the user's role and stating the urgency of the findings.\n- PARAGRAPH 2 (STRENGTHS & CAPABILITIES): Weave together the strongest logical and cognitive capabilities identified in the evaluation.\n- PARAGRAPH 3 (BLIND SPOTS & RISKS): Speak truthfully and highlight the critical logical gaps, false assumptions, or risks without sugarcoating.\n- PARAGRAPH 4 (STRATEGIC REMEDIATION & ROLE PREPARATION): Conclude with a concrete, actionable takeaway based on the combined coaching extensions. Note that the Python backend will dynamically append the exact User Role classification immediately after this paragraph. Ensure your closing thought flows logically into this final role declaration without trying to generate the role string yourself.\n- SCORE-DRIVEN TONE (CRITICAL): You must dynamically adjust your tone based on the mathematical 'normalized_score' (0-100) found in the source data: (1) 0-39: Zero praise. (2) 40-69: Firm and clinical. (3) 70-89: Constructive coaching. (4) 90-100: Highly validating and visionary.\n- CROSS-EXAMINE FINDINGS: Never list findings separately. Always weave them together. Show the causal link between different flaws.\n- NO ACADEMIC JARGON: Translate complex theory into punchy, plain business language.\n- ENUM TRANSLATION: Do NOT translate the user role enums yourself. You MUST use the pre-translated human-readable role name provided in the source data."
     },
     {
-      "id": "blk_8b7a6f5e4d3c2b1a",
+      "id": "blk_0195f3a0000070088b7a6f5e4d3c2b1a",
       "slug": "analytical_synthesis",
       "label": {
         "translations": {
@@ -18963,7 +18963,7 @@
       "instruction_text": "You are an objective analytical reporting engine. Synthesize the provided execution data into a professional summary. Do not re-evaluate the raw claims or perform independent logical deduction. Output clear, concise, and highly readable text. CRITICAL: When evaluations data contains exact_quote fields, you MUST weave these real user quotes into your narrative to ground every claim in concrete evidence. NEVER use academic framework names (Kahneman, Toulmin, Pearl, Goodhart, Popper) — translate all theoretical findings into plain business language about the user's actual content.\n- BILINGUAL OUTPUT MANDATE: Any structural headings or titles you generate within your output MUST be bilingual in Finnish and English (e.g., 'Yhteenveto / Summary')."
     },
     {
-      "id": "blk_7d8e9f0a1b2c3d4e",
+      "id": "blk_0195f3a0000070078d8e9f0a1b2c3d4e",
       "slug": "matrix_hacm",
       "label": {
         "translations": {
@@ -20257,7 +20257,7 @@
       "computed_max": 5
     },
     {
-      "id": "blk_c0a1e50000000001",
+      "id": "blk_0195f3a00000700c80a1e50000000001",
       "slug": "matrix_causal_cohesion",
       "label": {
         "translations": {
@@ -20418,7 +20418,7 @@
                   "facts_to_find": [],
                   "high_entropy": true,
                   "target_speaker": "USER",
-                  "concept_description": "Moderate causal argument structure reaching at least 60% cohesion, 0 cycles, and isolated claims <= 20%.",
+                  "concept_description": "Moderate causal argument structure reaching at least 60% cohesion, 0 cycles, and isolated claims = 20%.",
                   "anchor_target": "System metric evaluation: logical cohesion >= 60%, cycle_detected == False, isolated_ratio <= 20%.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "Deterministic topological graph evaluation of causal network cohesion and cycle absence.",
@@ -20467,7 +20467,7 @@
                   "facts_to_find": [],
                   "high_entropy": true,
                   "target_speaker": "USER",
-                  "concept_description": "Strong causal argument structure reaching at least 80% cohesion, 0 cycles, and isolated claims <= 10%.",
+                  "concept_description": "Strong causal argument structure reaching at least 80% cohesion, 0 cycles, and isolated claims = 10%.",
                   "anchor_target": "System metric evaluation: logical cohesion >= 80%, cycle_detected == False, isolated_ratio <= 10%.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "Deterministic topological graph evaluation of causal network cohesion and cycle absence.",
@@ -20516,7 +20516,7 @@
                   "facts_to_find": [],
                   "high_entropy": true,
                   "target_speaker": "USER",
-                  "concept_description": "Mastery causal argument structure reaching at least 90% cohesion, 0 cycles, and isolated claims <= 5%.",
+                  "concept_description": "Mastery causal argument structure reaching at least 90% cohesion, 0 cycles, and isolated claims = 5%.",
                   "anchor_target": "System metric evaluation: logical cohesion >= 90%, cycle_detected == False, isolated_ratio <= 5%.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "Deterministic topological graph evaluation of causal network cohesion and cycle absence.",
@@ -20546,7 +20546,7 @@
   ],
   "workflows": [
     {
-      "id": "wf_9d68c573802341db",
+      "id": "wf_0195f3a0000070098d68c573802341db",
       "slug": "kokonaisvaltainen_auditointi",
       "name": {
         "translations": {
@@ -20563,9 +20563,9 @@
       "status": "active",
       "version": 1,
       "is_public": true,
-      "default_profile_id": "prf_5d6e7f8091a2b3c4",
-      "mcp_gateway_id": "sys_8172bda70c8641c5",
-      "model_registry_id": "sys_e26807f3bfa3454d",
+      "default_profile_id": "prf_0195f3a0000070058d6e7f8091a2b3c4",
+      "mcp_gateway_id": "sys_0195f3a00000700080008172bda70c86",
+      "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
       "default_strictness_level": 0,
       "default_lexical_strictness_level": 50,
       "security_penalty": 0.0,
@@ -20654,8 +20654,8 @@
       ],
       "steps": [
         {
-          "id": "sr_f0a26d17cc9b48a7",
-          "task_blueprint": "sp_db849f9790984585",
+          "id": "sr_0195f3a00000700f80a26d17cc9b48a7",
+          "task_blueprint": "stp_0195f3a00000700d8b849f9790984585",
           "depends_on": [],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -20668,10 +20668,10 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_5a8ae009eee44fe2",
-          "task_blueprint": "sp_b5c751d1cbe24735",
+          "id": "sr_0195f3a0000070058a8ae009eee44fe2",
+          "task_blueprint": "stp_0195f3a00000700b85c751d1cbe24735",
           "depends_on": [
-            "sr_f0a26d17cc9b48a7"
+            "sr_0195f3a00000700f80a26d17cc9b48a7"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -20684,10 +20684,10 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_87f408aeee64462f",
-          "task_blueprint": "sp_8daee218c6b14f02",
+          "id": "sr_0195f3a00000700887f408aeee64462f",
+          "task_blueprint": "stp_0195f3a0000070088daee218c6b14f02",
           "depends_on": [
-            "sr_f0a26d17cc9b48a7"
+            "sr_0195f3a00000700f80a26d17cc9b48a7"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -20700,10 +20700,10 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_d56fb84fbe13463a",
-          "task_blueprint": "sp_6f40b964895c426b",
+          "id": "sr_0195f3a00000700d856fb84fbe13463a",
+          "task_blueprint": "stp_0195f3a0000070068f40b964895c426b",
           "depends_on": [
-            "sr_f0a26d17cc9b48a7"
+            "sr_0195f3a00000700f80a26d17cc9b48a7"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -20716,10 +20716,10 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_c4a5a1d15c00438a",
-          "task_blueprint": "sp_c4a5a1d15c00438a",
+          "id": "sr_0195f3a00000700c84a5a1d15c00438a",
+          "task_blueprint": "stp_0195f3a00000700c84a5a1d15c00438a",
           "depends_on": [
-            "sr_f0a26d17cc9b48a7"
+            "sr_0195f3a00000700f80a26d17cc9b48a7"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -20730,11 +20730,11 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_4d2272d8b4864847",
-          "task_blueprint": "sp_bd0b3054fe664960",
+          "id": "sr_0195f3a0000070048d2272d8b4864847",
+          "task_blueprint": "stp_0195f3a00000700b8d0b3054fe664960",
           "depends_on": [
-            "sr_f0a26d17cc9b48a7",
-            "sr_c4a5a1d15c00438a"
+            "sr_0195f3a00000700f80a26d17cc9b48a7",
+            "sr_0195f3a00000700c84a5a1d15c00438a"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -20743,15 +20743,15 @@
           },
           "expected_sdui_type": "markdown",
           "is_synthesis_source": true,
-          "causal_source_step_id": "sr_c4a5a1d15c00438a",
+          "causal_source_step_id": "sr_0195f3a00000700c84a5a1d15c00438a",
           "ui_pos_x": 0.0,
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_02b7cc1e7c2a4a62",
-          "task_blueprint": "sp_76eedbc020274f66",
+          "id": "sr_0195f3a00000700082b7cc1e7c2a4a62",
+          "task_blueprint": "stp_0195f3a00000700786eedbc020274f66",
           "depends_on": [
-            "sr_f0a26d17cc9b48a7"
+            "sr_0195f3a00000700f80a26d17cc9b48a7"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -20764,10 +20764,10 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_566e3209a60444d3",
-          "task_blueprint": "sp_f22db9f1dde048b7",
+          "id": "sr_0195f3a000007005866e3209a60444d3",
+          "task_blueprint": "stp_0195f3a00000700f822db9f1dde048b7",
           "depends_on": [
-            "sr_f0a26d17cc9b48a7"
+            "sr_0195f3a00000700f80a26d17cc9b48a7"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -20780,10 +20780,10 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_0228db320e8f41bb",
-          "task_blueprint": "sp_25664f44773a4354",
+          "id": "sr_0195f3a0000070008228db320e8f41bb",
+          "task_blueprint": "stp_0195f3a00000700285664f44773a4354",
           "depends_on": [
-            "sr_f0a26d17cc9b48a7"
+            "sr_0195f3a00000700f80a26d17cc9b48a7"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -20796,10 +20796,10 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_b4c328df1c4141c6",
-          "task_blueprint": "sp_dfc365994fa944b2",
+          "id": "sr_0195f3a00000700b84c328df1c4141c6",
+          "task_blueprint": "stp_0195f3a00000700d8fc365994fa944b2",
           "depends_on": [
-            "sr_f0a26d17cc9b48a7"
+            "sr_0195f3a00000700f80a26d17cc9b48a7"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -20812,11 +20812,11 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_f1c1d71000000002",
-          "task_blueprint": "sp_06c1d71000000001",
+          "id": "sr_0195f3a00000700f81c1d71000000002",
+          "task_blueprint": "stp_0195f3a00000700086c1d71000000001",
           "depends_on": [
-            "sr_f0a26d17cc9b48a7",
-            "sr_c4a5a1d15c00438a"
+            "sr_0195f3a00000700f80a26d17cc9b48a7",
+            "sr_0195f3a00000700c84a5a1d15c00438a"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -20825,23 +20825,23 @@
           },
           "expected_sdui_type": "markdown",
           "is_synthesis_source": true,
-          "causal_source_step_id": "sr_c4a5a1d15c00438a",
+          "causal_source_step_id": "sr_0195f3a00000700c84a5a1d15c00438a",
           "ui_pos_x": 0.0,
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_5f3dd7712a7f4bb3",
-          "task_blueprint": "sp_192910b5f5a34c79",
+          "id": "sr_0195f3a0000070058f3dd7712a7f4bb3",
+          "task_blueprint": "stp_0195f3a000007001892910b5f5a34c79",
           "depends_on": [
-            "sr_5a8ae009eee44fe2",
-            "sr_87f408aeee64462f",
-            "sr_d56fb84fbe13463a",
-            "sr_4d2272d8b4864847",
-            "sr_02b7cc1e7c2a4a62",
-            "sr_566e3209a60444d3",
-            "sr_0228db320e8f41bb",
-            "sr_b4c328df1c4141c6",
-            "sr_f1c1d71000000002"
+            "sr_0195f3a0000070058a8ae009eee44fe2",
+            "sr_0195f3a00000700887f408aeee64462f",
+            "sr_0195f3a00000700d856fb84fbe13463a",
+            "sr_0195f3a0000070048d2272d8b4864847",
+            "sr_0195f3a00000700082b7cc1e7c2a4a62",
+            "sr_0195f3a000007005866e3209a60444d3",
+            "sr_0195f3a0000070008228db320e8f41bb",
+            "sr_0195f3a00000700b84c328df1c4141c6",
+            "sr_0195f3a00000700f81c1d71000000002"
           ],
           "input_mappings": {
             "prior_analysis": "$steps"
@@ -20852,13 +20852,13 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_2fa56dc36614469a",
-          "task_blueprint": "sp_d245365e4a274b9e",
+          "id": "sr_0195f3a0000070028fa56dc36614469a",
+          "task_blueprint": "stp_0195f3a00000700d8245365e4a274b9e",
           "depends_on": [
-            "sr_5f3dd7712a7f4bb3"
+            "sr_0195f3a0000070058f3dd7712a7f4bb3"
           ],
           "input_mappings": {
-            "results": "$steps.sr_5f3dd7712a7f4bb3"
+            "results": "$steps.sr_0195f3a0000070058f3dd7712a7f4bb3"
           },
           "expected_sdui_type": "grid",
           "is_synthesis_source": true,
@@ -20866,13 +20866,13 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_9e8d7c6b5a40312b",
-          "task_blueprint": "sp_7a8b9c0d1e2f3a4b",
+          "id": "sr_0195f3a0000070098e8d7c6b5a40312b",
+          "task_blueprint": "stp_0195f3a0000070078a8b9c0d1e2f3a4b",
           "depends_on": [
-            "sr_2fa56dc36614469a"
+            "sr_0195f3a0000070028fa56dc36614469a"
           ],
           "input_mappings": {
-            "results": "$steps.sr_2fa56dc36614469a",
+            "results": "$steps.sr_0195f3a0000070028fa56dc36614469a",
             "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"
           },
           "expected_sdui_type": "markdown",
@@ -20884,7 +20884,7 @@
       "historical_context_mode": "DISABLED"
     },
     {
-      "id": "wf_a8f1d71000000001",
+      "id": "wf_0195f3a00000700a88f1d71000000001",
       "slug": "tekoalyohjauksen_ja_argumentaation_tasmaauditointi",
       "name": {
         "translations": {
@@ -20901,9 +20901,9 @@
       "status": "active",
       "version": 1,
       "is_public": true,
-      "default_profile_id": "prf_a8f1d71000000001",
-      "mcp_gateway_id": "sys_8172bda70c8641c5",
-      "model_registry_id": "sys_e26807f3bfa3454d",
+      "default_profile_id": "prf_0195f3a00000700a88f1d71000000001",
+      "mcp_gateway_id": "sys_0195f3a00000700080008172bda70c86",
+      "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
       "default_strictness_level": 0,
       "default_lexical_strictness_level": 50,
       "security_penalty": 0.0,
@@ -20992,8 +20992,8 @@
       ],
       "steps": [
         {
-          "id": "sr_a8f1d71000000001",
-          "task_blueprint": "sp_db849f9790984585",
+          "id": "sr_0195f3a00000700a88f1d71000000001",
+          "task_blueprint": "stp_0195f3a00000700d8b849f9790984585",
           "depends_on": [],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -21006,10 +21006,10 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_a8f1d71000000002",
-          "task_blueprint": "sp_c4a5a1d15c00438a",
+          "id": "sr_0195f3a00000700a88f1d71000000002",
+          "task_blueprint": "stp_0195f3a00000700c84a5a1d15c00438a",
           "depends_on": [
-            "sr_a8f1d71000000001"
+            "sr_0195f3a00000700a88f1d71000000001"
           ],
           "input_mappings": {
             "chat_log": "$inputs.chat_log",
@@ -21020,11 +21020,11 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_a8f1d71000000003",
-          "task_blueprint": "sp_06c1d71000000001",
+          "id": "sr_0195f3a00000700a88f1d71000000003",
+          "task_blueprint": "stp_0195f3a00000700086c1d71000000001",
           "depends_on": [
-            "sr_a8f1d71000000001",
-            "sr_a8f1d71000000002"
+            "sr_0195f3a00000700a88f1d71000000001",
+            "sr_0195f3a00000700a88f1d71000000002"
           ],
           "input_mappings": {
             "chat_log": "$inputs.chat_log",
@@ -21032,31 +21032,15 @@
           },
           "expected_sdui_type": "grid",
           "is_synthesis_source": true,
-          "causal_source_step_id": "sr_a8f1d71000000002",
+          "causal_source_step_id": "sr_0195f3a00000700a88f1d71000000002",
           "ui_pos_x": 0.0,
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_a8f1d71000000004",
-          "task_blueprint": "sp_f22db9f1dde048b7",
+          "id": "sr_0195f3a00000700a88f1d71000000004",
+          "task_blueprint": "stp_0195f3a00000700f822db9f1dde048b7",
           "depends_on": [
-            "sr_a8f1d71000000001"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "chat_log": "$inputs.chat_log",
-            "reflection_text": "$inputs.reflection_text"
-          },
-          "expected_sdui_type": "grid",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_a8f1d71000000005",
-          "task_blueprint": "sp_dfc365994fa944b2",
-          "depends_on": [
-            "sr_a8f1d71000000001"
+            "sr_0195f3a00000700a88f1d71000000001"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -21069,10 +21053,10 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_a8f1d71000000006",
-          "task_blueprint": "sp_8daee218c6b14f02",
+          "id": "sr_0195f3a00000700a88f1d71000000005",
+          "task_blueprint": "stp_0195f3a00000700d8fc365994fa944b2",
           "depends_on": [
-            "sr_a8f1d71000000001"
+            "sr_0195f3a00000700a88f1d71000000001"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -21085,13 +21069,29 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_a8f1d71000000007",
-          "task_blueprint": "sp_d245365e4a274b9e",
+          "id": "sr_0195f3a00000700a88f1d71000000006",
+          "task_blueprint": "stp_0195f3a0000070088daee218c6b14f02",
           "depends_on": [
-            "sr_a8f1d71000000003",
-            "sr_a8f1d71000000004",
-            "sr_a8f1d71000000005",
-            "sr_a8f1d71000000006"
+            "sr_0195f3a00000700a88f1d71000000001"
+          ],
+          "input_mappings": {
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
+          },
+          "expected_sdui_type": "grid",
+          "is_synthesis_source": true,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_0195f3a00000700a88f1d71000000007",
+          "task_blueprint": "stp_0195f3a00000700d8245365e4a274b9e",
+          "depends_on": [
+            "sr_0195f3a00000700a88f1d71000000003",
+            "sr_0195f3a00000700a88f1d71000000004",
+            "sr_0195f3a00000700a88f1d71000000005",
+            "sr_0195f3a00000700a88f1d71000000006"
           ],
           "input_mappings": {
             "results": "$steps"
@@ -21102,13 +21102,13 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_a8f1d71000000008",
-          "task_blueprint": "sp_7a8b9c0d1e2f3a4b",
+          "id": "sr_0195f3a00000700a88f1d71000000008",
+          "task_blueprint": "stp_0195f3a0000070078a8b9c0d1e2f3a4b",
           "depends_on": [
-            "sr_a8f1d71000000007"
+            "sr_0195f3a00000700a88f1d71000000007"
           ],
           "input_mappings": {
-            "results": "$steps.sr_a8f1d71000000007",
+            "results": "$steps.sr_0195f3a00000700a88f1d71000000007",
             "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"
           },
           "expected_sdui_type": "markdown",
@@ -21120,7 +21120,7 @@
       "historical_context_mode": "DISABLED"
     },
     {
-      "id": "wf_b9e2d71000000002",
+      "id": "wf_0195f3a00000700b89e2d71000000002",
       "slug": "tekoalyohjauksen_ja_kognition_ydinauditointi",
       "name": {
         "translations": {
@@ -21137,9 +21137,9 @@
       "status": "active",
       "version": 1,
       "is_public": true,
-      "default_profile_id": "prf_b9e2d71000000002",
-      "mcp_gateway_id": "sys_8172bda70c8641c5",
-      "model_registry_id": "sys_e26807f3bfa3454d",
+      "default_profile_id": "prf_0195f3a00000700b89e2d71000000002",
+      "mcp_gateway_id": "sys_0195f3a00000700080008172bda70c86",
+      "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
       "default_strictness_level": 0,
       "default_lexical_strictness_level": 50,
       "security_penalty": 0.0,
@@ -21228,8 +21228,8 @@
       ],
       "steps": [
         {
-          "id": "sr_b9e2d71000000001",
-          "task_blueprint": "sp_db849f9790984585",
+          "id": "sr_0195f3a00000700b89e2d71000000001",
+          "task_blueprint": "stp_0195f3a00000700d8b849f9790984585",
           "depends_on": [],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -21242,29 +21242,12 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_b9e2d71000000002",
-          "task_blueprint": "sp_06c1d71000000001",
+          "id": "sr_0195f3a00000700b89e2d71000000002",
+          "task_blueprint": "stp_0195f3a00000700086c1d71000000001",
           "depends_on": [
-            "sr_b9e2d71000000001"
+            "sr_0195f3a00000700b89e2d71000000001"
           ],
           "input_mappings": {
-            "chat_log": "$inputs.chat_log",
-            "reflection_text": "$inputs.reflection_text"
-          },
-          "expected_sdui_type": "grid",
-          "is_synthesis_source": true,
-          "causal_source_step_id": null,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_b9e2d71000000003",
-          "task_blueprint": "sp_f22db9f1dde048b7",
-          "depends_on": [
-            "sr_b9e2d71000000001"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
             "chat_log": "$inputs.chat_log",
             "reflection_text": "$inputs.reflection_text"
           },
@@ -21274,10 +21257,10 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_b9e2d71000000004",
-          "task_blueprint": "sp_dfc365994fa944b2",
+          "id": "sr_0195f3a00000700b89e2d71000000003",
+          "task_blueprint": "stp_0195f3a00000700f822db9f1dde048b7",
           "depends_on": [
-            "sr_b9e2d71000000001"
+            "sr_0195f3a00000700b89e2d71000000001"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -21290,10 +21273,10 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_b9e2d71000000005",
-          "task_blueprint": "sp_8daee218c6b14f02",
+          "id": "sr_0195f3a00000700b89e2d71000000004",
+          "task_blueprint": "stp_0195f3a00000700d8fc365994fa944b2",
           "depends_on": [
-            "sr_b9e2d71000000001"
+            "sr_0195f3a00000700b89e2d71000000001"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -21306,13 +21289,29 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_b9e2d71000000006",
-          "task_blueprint": "sp_d245365e4a274b9e",
+          "id": "sr_0195f3a00000700b89e2d71000000005",
+          "task_blueprint": "stp_0195f3a0000070088daee218c6b14f02",
           "depends_on": [
-            "sr_b9e2d71000000002",
-            "sr_b9e2d71000000003",
-            "sr_b9e2d71000000004",
-            "sr_b9e2d71000000005"
+            "sr_0195f3a00000700b89e2d71000000001"
+          ],
+          "input_mappings": {
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
+          },
+          "expected_sdui_type": "grid",
+          "is_synthesis_source": true,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_0195f3a00000700b89e2d71000000006",
+          "task_blueprint": "stp_0195f3a00000700d8245365e4a274b9e",
+          "depends_on": [
+            "sr_0195f3a00000700b89e2d71000000002",
+            "sr_0195f3a00000700b89e2d71000000003",
+            "sr_0195f3a00000700b89e2d71000000004",
+            "sr_0195f3a00000700b89e2d71000000005"
           ],
           "input_mappings": {
             "results": "$steps"
@@ -21323,13 +21322,13 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_b9e2d71000000007",
-          "task_blueprint": "sp_7a8b9c0d1e2f3a4b",
+          "id": "sr_0195f3a00000700b89e2d71000000007",
+          "task_blueprint": "stp_0195f3a0000070078a8b9c0d1e2f3a4b",
           "depends_on": [
-            "sr_b9e2d71000000006"
+            "sr_0195f3a00000700b89e2d71000000006"
           ],
           "input_mappings": {
-            "results": "$steps.sr_b9e2d71000000006",
+            "results": "$steps.sr_0195f3a00000700b89e2d71000000006",
             "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"
           },
           "expected_sdui_type": "markdown",
@@ -21343,7 +21342,7 @@
   ],
   "steps": [
     {
-      "id": "sp_db849f9790984585",
+      "id": "stp_0195f3a00000700d8b849f9790984585",
       "slug": "step_input_processing",
       "organization_id": "SYSTEM",
       "name": {
@@ -21359,9 +21358,9 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_599645bd5baf44e2"
+        "blk_0195f3a000007005899645bd5baf44e2"
       ],
       "pre_hooks": [
         "inject_step_metadata",
@@ -21372,6 +21371,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "product_text",
@@ -21383,7 +21383,7 @@
       "zone": "zone_a"
     },
     {
-      "id": "sp_b5c751d1cbe24735",
+      "id": "stp_0195f3a00000700b85c751d1cbe24735",
       "slug": "sp_1624bd0454c9425e",
       "organization_id": "SYSTEM",
       "name": {
@@ -21399,16 +21399,16 @@
         }
       },
       "type": "llm",
-      "role_block_id": "blk_ad6f491a05ec4386",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "role_block_id": "blk_0195f3a00000700a8d6f491a05ec4386",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_9e44687dff884ff6",
-        "blk_f27f6d04c1f74257",
-        "blk_44b0c6cc5ec24151",
-        "blk_1ca6f187c5b04d2b",
-        "blk_3cc672a8038144e0",
-        "blk_280fd9eb2f2543f6",
-        "blk_109dab5b6b3f403a"
+        "blk_0195f3a0000070098e44687dff884ff6",
+        "blk_0195f3a00000700f827f6d04c1f74257",
+        "blk_0195f3a00000700484b0c6cc5ec24151",
+        "blk_0195f3a0000070018ca6f187c5b04d2b",
+        "blk_0195f3a0000070038cc672a8038144e0",
+        "blk_0195f3a000007002880fd9eb2f2543f6",
+        "blk_0195f3a000007001809dab5b6b3f403a"
       ],
       "pre_hooks": [
         "calculate_text_metrics",
@@ -21424,6 +21424,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "deep",
       "expected_inputs": [
         "prior_analysis",
@@ -21432,10 +21433,11 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_f22db9f1dde048b7",
+      "id": "stp_0195f3a00000700f822db9f1dde048b7",
       "slug": "sp_2a81cb9e3e4b4694",
       "organization_id": "SYSTEM",
       "name": {
@@ -21451,11 +21453,11 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_9e44687dff884ff6",
-        "blk_3744757fbff44175",
-        "blk_f921c7c0989b47e8"
+        "blk_0195f3a0000070098e44687dff884ff6",
+        "blk_0195f3a0000070038744757fbff44175",
+        "blk_0195f3a00000700f8921c7c0989b47e8"
       ],
       "pre_hooks": [
         "retrieve_precedent",
@@ -21468,6 +21470,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "deep",
       "expected_inputs": [
         "prior_analysis",
@@ -21476,10 +21479,11 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_bd0b3054fe664960",
+      "id": "stp_0195f3a00000700b8d0b3054fe664960",
       "slug": "step_causal_analyst",
       "organization_id": "SYSTEM",
       "name": {
@@ -21495,14 +21499,14 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_3568312503964aec",
-        "blk_cb6217bccc974cca",
-        "blk_9e44687dff884ff6",
-        "blk_3cc672a8038144e0",
-        "blk_43e297666d3b4359",
-        "blk_c5804a9143c34cb1"
+        "blk_0195f3a0000070038568312503964aec",
+        "blk_0195f3a00000700c8b6217bccc974cca",
+        "blk_0195f3a0000070098e44687dff884ff6",
+        "blk_0195f3a0000070038cc672a8038144e0",
+        "blk_0195f3a00000700483e297666d3b4359",
+        "blk_0195f3a00000700c85804a9143c34cb1"
       ],
       "pre_hooks": [
         "inject_step_metadata",
@@ -21514,6 +21518,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "prior_analysis",
@@ -21522,10 +21527,11 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_25664f44773a4354",
+      "id": "stp_0195f3a00000700285664f44773a4354",
       "slug": "sp_744ca2e40b51424b",
       "organization_id": "SYSTEM",
       "name": {
@@ -21541,18 +21547,18 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_9e44687dff884ff6",
-        "blk_2c13f67014094f3b",
-        "blk_fb0b98da76e046dd",
-        "blk_cb6217bccc974cca",
-        "blk_3568312503964aec",
-        "blk_8b6e5fba923642f2",
-        "blk_5d26dff39e574d5f",
-        "blk_2305f4ac865a4815",
-        "blk_0217b0b725b54b10",
-        "blk_53f32679aa514fcb"
+        "blk_0195f3a0000070098e44687dff884ff6",
+        "blk_0195f3a0000070028c13f67014094f3b",
+        "blk_0195f3a00000700f8b0b98da76e046dd",
+        "blk_0195f3a00000700c8b6217bccc974cca",
+        "blk_0195f3a0000070038568312503964aec",
+        "blk_0195f3a0000070088b6e5fba923642f2",
+        "blk_0195f3a0000070058d26dff39e574d5f",
+        "blk_0195f3a0000070028305f4ac865a4815",
+        "blk_0195f3a0000070008217b0b725b54b10",
+        "blk_0195f3a00000700583f32679aa514fcb"
       ],
       "pre_hooks": [
         "inject_step_metadata",
@@ -21565,6 +21571,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "prior_analysis",
@@ -21573,10 +21580,11 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_7f9649114d2344dc",
+      "id": "stp_0195f3a0000070078f9649114d2344dc",
       "slug": "step_performativity_detector",
       "organization_id": "SYSTEM",
       "name": {
@@ -21592,12 +21600,12 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_9e44687dff884ff6",
-        "blk_3cc672a8038144e0",
-        "blk_b4912f9ff3a24b31",
-        "blk_fb15f8dcf23f4865"
+        "blk_0195f3a0000070098e44687dff884ff6",
+        "blk_0195f3a0000070038cc672a8038144e0",
+        "blk_0195f3a00000700b84912f9ff3a24b31",
+        "blk_0195f3a00000700f8b15f8dcf23f4865"
       ],
       "pre_hooks": [
         "inject_step_metadata",
@@ -21609,6 +21617,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "prior_analysis",
@@ -21617,10 +21626,11 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_6f40b964895c426b",
+      "id": "stp_0195f3a0000070068f40b964895c426b",
       "slug": "sp_d948cb51bed3454c",
       "organization_id": "SYSTEM",
       "name": {
@@ -21636,13 +21646,13 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_ab65a936bca34bf1",
-        "blk_9e44687dff884ff6",
-        "blk_3cc672a8038144e0",
-        "blk_90d0dd098757433e",
-        "blk_b476f89fb732448c"
+        "blk_0195f3a00000700a8b65a936bca34bf1",
+        "blk_0195f3a0000070098e44687dff884ff6",
+        "blk_0195f3a0000070038cc672a8038144e0",
+        "blk_0195f3a00000700980d0dd098757433e",
+        "blk_0195f3a00000700b8476f89fb732448c"
       ],
       "pre_hooks": [
         "inject_step_metadata",
@@ -21658,6 +21668,7 @@
       "allowed_mcp_tools": [
         "default_mcp_gateway__tavily_search"
       ],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "prior_analysis",
@@ -21666,10 +21677,11 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_ddb7cf7c8a0245d4",
+      "id": "stp_0195f3a00000700d8db7cf7c8a0245d4",
       "slug": "sp_b080d22fcc2f4ff0",
       "organization_id": "SYSTEM",
       "name": {
@@ -21685,13 +21697,13 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_9e44687dff884ff6",
-        "blk_f27f6d04c1f74257",
-        "blk_6e08842eae9146a2",
-        "blk_608ba7099d07428f",
-        "blk_80732a33fe1947ee"
+        "blk_0195f3a0000070098e44687dff884ff6",
+        "blk_0195f3a00000700f827f6d04c1f74257",
+        "blk_0195f3a0000070068e08842eae9146a2",
+        "blk_0195f3a000007006808ba7099d07428f",
+        "blk_0195f3a00000700880732a33fe1947ee"
       ],
       "pre_hooks": [
         "verify_structure",
@@ -21704,6 +21716,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "deep",
       "expected_inputs": [
         "prior_analysis",
@@ -21712,10 +21725,11 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_48974af1fc584407",
+      "id": "stp_0195f3a00000700488974af1fc584407",
       "slug": "sp_282a7b15f76d4c9e",
       "organization_id": "SYSTEM",
       "name": {
@@ -21731,15 +21745,15 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_a93c517915f94e09",
-        "blk_9e44687dff884ff6",
-        "blk_2c13f67014094f3b",
-        "blk_fb0b98da76e046dd",
-        "blk_f971def5b3864ba4",
-        "blk_2305f4ac865a4815",
-        "blk_ff72c2d79edb4ebf"
+        "blk_0195f3a00000700a893c517915f94e09",
+        "blk_0195f3a0000070098e44687dff884ff6",
+        "blk_0195f3a0000070028c13f67014094f3b",
+        "blk_0195f3a00000700f8b0b98da76e046dd",
+        "blk_0195f3a00000700f8971def5b3864ba4",
+        "blk_0195f3a0000070028305f4ac865a4815",
+        "blk_0195f3a00000700f8f72c2d79edb4ebf"
       ],
       "pre_hooks": [
         "inject_step_metadata",
@@ -21753,6 +21767,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "prior_analysis",
@@ -21761,10 +21776,11 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_8daee218c6b14f02",
+      "id": "stp_0195f3a0000070088daee218c6b14f02",
       "slug": "sp_b7aea7179c1b4193",
       "organization_id": "SYSTEM",
       "name": {
@@ -21780,14 +21796,14 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_9e44687dff884ff6",
-        "blk_3cc672a8038144e0",
-        "blk_280fd9eb2f2543f6",
-        "blk_652fce41dcb54793",
-        "blk_2305f4ac865a4815",
-        "blk_440a5fef9331451b"
+        "blk_0195f3a0000070098e44687dff884ff6",
+        "blk_0195f3a0000070038cc672a8038144e0",
+        "blk_0195f3a000007002880fd9eb2f2543f6",
+        "blk_0195f3a000007006852fce41dcb54793",
+        "blk_0195f3a0000070028305f4ac865a4815",
+        "blk_0195f3a000007004840a5fef9331451b"
       ],
       "pre_hooks": [
         "inject_step_metadata",
@@ -21801,6 +21817,7 @@
       "allowed_mcp_tools": [
         "default_mcp_gateway__tavily_search"
       ],
+      "mcp_tool_params": {},
       "cognitive_tier": "deep",
       "expected_inputs": [
         "prior_analysis",
@@ -21809,10 +21826,11 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_dfc365994fa944b2",
+      "id": "stp_0195f3a00000700d8fc365994fa944b2",
       "slug": "sp_76b0dbf44e36495e",
       "organization_id": "SYSTEM",
       "name": {
@@ -21828,18 +21846,18 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_9e44687dff884ff6",
-        "blk_2c13f67014094f3b",
-        "blk_fb0b98da76e046dd",
-        "blk_cb6217bccc974cca",
-        "blk_3568312503964aec",
-        "blk_8b6e5fba923642f2",
-        "blk_7260c1b6ac5648ca",
-        "blk_3cc672a8038144e0",
-        "blk_58f750206a4c4af0",
-        "blk_f6e286f050c94d60"
+        "blk_0195f3a0000070098e44687dff884ff6",
+        "blk_0195f3a0000070028c13f67014094f3b",
+        "blk_0195f3a00000700f8b0b98da76e046dd",
+        "blk_0195f3a00000700c8b6217bccc974cca",
+        "blk_0195f3a0000070038568312503964aec",
+        "blk_0195f3a0000070088b6e5fba923642f2",
+        "blk_0195f3a0000070078260c1b6ac5648ca",
+        "blk_0195f3a0000070038cc672a8038144e0",
+        "blk_0195f3a00000700588f750206a4c4af0",
+        "blk_0195f3a00000700f86e286f050c94d60"
       ],
       "pre_hooks": [
         "inject_step_metadata",
@@ -21853,6 +21871,7 @@
       "allowed_mcp_tools": [
         "default_mcp_gateway__tavily_search"
       ],
+      "mcp_tool_params": {},
       "cognitive_tier": "deep",
       "expected_inputs": [
         "prior_analysis",
@@ -21861,10 +21880,11 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_6a45d484ad5b497c",
+      "id": "stp_0195f3a0000070068a45d484ad5b497c",
       "slug": "sp_d86aaa8a2756481b",
       "organization_id": "SYSTEM",
       "name": {
@@ -21880,14 +21900,14 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_9e44687dff884ff6",
-        "blk_3568312503964aec",
-        "blk_3cc672a8038144e0",
-        "blk_cb6217bccc974cca",
-        "blk_9c0c7c46568648c4",
-        "blk_c3bc5f3eb8e74110"
+        "blk_0195f3a0000070098e44687dff884ff6",
+        "blk_0195f3a0000070038568312503964aec",
+        "blk_0195f3a0000070038cc672a8038144e0",
+        "blk_0195f3a00000700c8b6217bccc974cca",
+        "blk_0195f3a0000070098c0c7c46568648c4",
+        "blk_0195f3a00000700c83bc5f3eb8e74110"
       ],
       "pre_hooks": [
         "calculate_text_metrics",
@@ -21901,6 +21921,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "prior_analysis",
@@ -21909,10 +21930,11 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_192910b5f5a34c79",
+      "id": "stp_0195f3a000007001892910b5f5a34c79",
       "slug": "step_xai_reporter",
       "organization_id": "SYSTEM",
       "name": {
@@ -21928,12 +21950,12 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_9e44687dff884ff6",
-        "blk_2c13f67014094f3b",
-        "blk_fb0b98da76e046dd",
-        "blk_6b8c766185294f7e"
+        "blk_0195f3a0000070098e44687dff884ff6",
+        "blk_0195f3a0000070028c13f67014094f3b",
+        "blk_0195f3a00000700f8b0b98da76e046dd",
+        "blk_0195f3a0000070068b8c766185294f7e"
       ],
       "pre_hooks": [
         "inject_step_metadata",
@@ -21945,6 +21967,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "prior_analysis"
@@ -21954,7 +21977,7 @@
       "zone": "zone_c"
     },
     {
-      "id": "sp_76eedbc020274f66",
+      "id": "stp_0195f3a00000700786eedbc020274f66",
       "slug": "step_fact_checker",
       "organization_id": "SYSTEM",
       "name": {
@@ -21970,10 +21993,10 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_033180746a954415",
-        "blk_22e3598e06414409"
+        "blk_0195f3a000007000833180746a954415",
+        "blk_0195f3a00000700282e3598e06414409"
       ],
       "pre_hooks": [
         "inject_step_metadata",
@@ -21988,6 +22011,7 @@
       "allowed_mcp_tools": [
         "default_mcp_gateway__tavily_search"
       ],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "prior_analysis",
@@ -21996,10 +22020,11 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_d245365e4a274b9e",
+      "id": "stp_0195f3a00000700d8245365e4a274b9e",
       "slug": "sp_d245365e4a274b9e",
       "organization_id": "SYSTEM",
       "name": {
@@ -22021,6 +22046,7 @@
       "post_hooks": [],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "results",
@@ -22031,7 +22057,7 @@
       "zone": "zone_c"
     },
     {
-      "id": "sp_8ffee13639e64e34",
+      "id": "stp_0195f3a0000070088ffee13639e64e34",
       "slug": "sp_synthesis_distiller",
       "organization_id": "SYSTEM",
       "name": {
@@ -22053,15 +22079,17 @@
       "post_hooks": [],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "steps"
       ],
       "is_system_core": false,
-      "engine_type": "prompt"
+      "engine_type": "prompt",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_9c6a85edc29347b9",
+      "id": "stp_0195f3a0000070098c6a85edc29347b9",
       "slug": "sp_synthesis_llm",
       "organization_id": "SYSTEM",
       "name": {
@@ -22077,15 +22105,16 @@
         }
       },
       "type": "llm",
-      "role_block_id": "blk_eeea566da4ab45f9",
-      "extraction_protocol_block_id": "blk_eeea566da4ab45f9",
+      "role_block_id": "blk_0195f3a00000700e8eea566da4ab45f9",
+      "extraction_protocol_block_id": "blk_0195f3a00000700e8eea566da4ab45f9",
       "criteria_block_ids": [
-        "blk_34def5d628ba4ed4"
+        "blk_0195f3a00000700384def5d628ba4ed4"
       ],
       "pre_hooks": [],
       "post_hooks": [],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "balanced",
       "expected_inputs": [
         "distilled_inputs",
@@ -22094,10 +22123,11 @@
         "language"
       ],
       "is_system_core": false,
-      "engine_type": "synthesis"
+      "engine_type": "synthesis",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_fb1b8e908bf24c1f",
+      "id": "stp_0195f3a00000700f8b1b8e908bf24c1f",
       "slug": "sp_row_explanations",
       "organization_id": "SYSTEM",
       "name": {
@@ -22113,25 +22143,27 @@
         }
       },
       "type": "llm",
-      "role_block_id": "blk_ad303690b26b413d",
-      "extraction_protocol_block_id": "blk_ad303690b26b413d",
+      "role_block_id": "blk_0195f3a00000700a8d303690b26b413d",
+      "extraction_protocol_block_id": "blk_0195f3a00000700a8d303690b26b413d",
       "criteria_block_ids": [
-        "blk_ad303690b26b413d"
+        "blk_0195f3a00000700a8d303690b26b413d"
       ],
       "pre_hooks": [],
       "post_hooks": [],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "matrices_to_explain",
         "language"
       ],
       "is_system_core": false,
-      "engine_type": "synthesis"
+      "engine_type": "synthesis",
+      "zone": "zone_b"
     },
     {
-      "id": "sp_7a8b9c0d1e2f3a4b",
+      "id": "stp_0195f3a0000070078a8b9c0d1e2f3a4b",
       "slug": "synthesis_generation",
       "organization_id": "SYSTEM",
       "name": {
@@ -22147,14 +22179,15 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_8f7e6d5c4b3a2019",
+      "extraction_protocol_block_id": "blk_0195f3a0000070088f7e6d5c4b3a2019",
       "criteria_block_ids": [
-        "blk_8f7e6d5c4b3a2019"
+        "blk_0195f3a0000070088f7e6d5c4b3a2019"
       ],
       "pre_hooks": [],
       "post_hooks": [],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "balanced",
       "expected_inputs": [
         "results",
@@ -22165,7 +22198,7 @@
       "zone": "zone_c"
     },
     {
-      "id": "sp_c4a5a1d15c00438a",
+      "id": "stp_0195f3a00000700c84a5a1d15c00438a",
       "slug": "step_causal_discovery",
       "organization_id": "SYSTEM",
       "name": {
@@ -22181,14 +22214,17 @@
         }
       },
       "type": "causal_discovery",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
-      "criteria_block_ids": [],
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
+      "criteria_block_ids": [
+        "blk_0195f3a00000700c80a1e50000000001"
+      ],
       "pre_hooks": [
         "inject_step_metadata"
       ],
       "post_hooks": [],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "product_text",
@@ -22199,9 +22235,8 @@
       "engine_type": "causal_discovery",
       "zone": "zone_b"
     },
-
     {
-      "id": "sp_06c1d71000000001",
+      "id": "stp_0195f3a00000700086c1d71000000001",
       "slug": "hacm_evaluator_step",
       "organization_id": "SYSTEM",
       "name": {
@@ -22217,9 +22252,9 @@
         }
       },
       "type": "llm",
-      "extraction_protocol_block_id": "blk_573802341db9d68c",
+      "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
       "criteria_block_ids": [
-        "blk_7d8e9f0a1b2c3d4e"
+        "blk_0195f3a0000070078d8e9f0a1b2c3d4e"
       ],
       "pre_hooks": [
         "inject_step_metadata",
@@ -22232,6 +22267,7 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
+      "mcp_tool_params": {},
       "cognitive_tier": "fast",
       "expected_inputs": [
         "chat_log",
@@ -22240,7 +22276,8 @@
         "assignment_context"
       ],
       "is_system_core": false,
-      "engine_type": "tda"
+      "engine_type": "tda",
+      "zone": "zone_b"
     }
   ],
   "organizations": [
@@ -22259,7 +22296,7 @@
       "rpm_limit": 10000
     },
     {
-      "id": "org_e531d2ed8a6641f6",
+      "id": "org_0195f3a00000700e8531d2ed8a6641f6",
       "slug": "demo_corp",
       "name": "Demo Corporation",
       "created_at": "2026-01-01T00:00:00Z",
@@ -22281,7 +22318,7 @@
       "is_active": true,
       "language": "fi",
       "theme_mode": "system",
-      "id": "usr_a3fd6b3d77c748f4",
+      "id": "usr_0195f3a00000700a83fd6b3d77c748f4",
       "slug": "root_master",
       "created_at": "2026-01-01T00:00:00Z",
       "created_by": null,
@@ -22290,11 +22327,11 @@
     {
       "email": "admin@demo.com",
       "role": "ADMIN",
-      "organization_id": "org_e531d2ed8a6641f6",
+      "organization_id": "org_0195f3a00000700e8531d2ed8a6641f6",
       "is_active": true,
       "language": "fi",
       "theme_mode": "system",
-      "id": "usr_18a0d5f6151349a5",
+      "id": "usr_0195f3a00000700188a0d5f6151349a5",
       "slug": "admin_1",
       "created_at": "2026-01-01T00:00:00Z",
       "created_by": null,
@@ -22303,11 +22340,11 @@
     {
       "email": "manager@demo.com",
       "role": "MANAGER",
-      "organization_id": "org_e531d2ed8a6641f6",
+      "organization_id": "org_0195f3a00000700e8531d2ed8a6641f6",
       "is_active": true,
       "language": "fi",
       "theme_mode": "dark",
-      "id": "usr_936983a7a6c643ab",
+      "id": "usr_0195f3a000007009836983a7a6c643ab",
       "slug": "manager_1",
       "created_at": "2026-01-01T00:00:00Z",
       "created_by": null,
@@ -22316,11 +22353,11 @@
     {
       "email": "member@demo.com",
       "role": "MEMBER",
-      "organization_id": "org_e531d2ed8a6641f6",
+      "organization_id": "org_0195f3a00000700e8531d2ed8a6641f6",
       "is_active": true,
       "language": "fi",
       "theme_mode": "system",
-      "id": "usr_1c1cf9c5178846bb",
+      "id": "usr_0195f3a0000070018c1cf9c5178846bb",
       "slug": "member_1",
       "created_at": "2026-01-01T00:00:00Z",
       "created_by": null,
@@ -22329,11 +22366,11 @@
     {
       "email": "viewer@demo.com",
       "role": "VIEWER",
-      "organization_id": "org_e531d2ed8a6641f6",
+      "organization_id": "org_0195f3a00000700e8531d2ed8a6641f6",
       "is_active": true,
       "language": "fi",
       "theme_mode": "system",
-      "id": "usr_b2d6e4487afc4e69",
+      "id": "usr_0195f3a00000700b82d6e4487afc4e69",
       "slug": "viewer_1",
       "created_at": "2026-01-01T00:00:00Z",
       "created_by": null,
@@ -22342,9 +22379,9 @@
   ],
   "output_profiles": [
     {
-      "id": "prf_5d6e7f8091a2b3c4",
+      "id": "prf_0195f3a0000070058d6e7f8091a2b3c4",
       "slug": "holistic_audit",
-      "workflow_id": "wf_9d68c573802341db",
+      "workflow_id": "wf_0195f3a0000070098d68c573802341db",
       "organization_id": "SYSTEM",
       "name": {
         "translations": {
@@ -22422,7 +22459,7 @@
       ],
       "matrix_synthesis_groups": [
         {
-          "id": "grp_a1b2c3d4e5f60718",
+          "id": "grp_0195f3a00000700a81b2c3d4e5f60718",
           "title": {
             "translations": {
               "en": "Executive Cognitive Radar",
@@ -22430,14 +22467,14 @@
             }
           },
           "target_blocks": [
-            "blk_109dab5b6b3f403a",
-            "blk_440a5fef9331451b",
-            "blk_b476f89fb732448c"
+            "blk_0195f3a000007001809dab5b6b3f403a",
+            "blk_0195f3a000007004840a5fef9331451b",
+            "blk_0195f3a00000700b8476f89fb732448c"
           ],
           "view_type": "3d_matrix"
         },
         {
-          "id": "grp_b2c3d4e5f6071829",
+          "id": "grp_0195f3a00000700b82c3d4e5f6071829",
           "title": {
             "translations": {
               "en": "Causal Inference & Argument Depth",
@@ -22445,13 +22482,13 @@
             }
           },
           "target_blocks": [
-            "blk_c5804a9143c34cb1",
-            "blk_440a5fef9331451b"
+            "blk_0195f3a00000700c85804a9143c34cb1",
+            "blk_0195f3a000007004840a5fef9331451b"
           ],
           "view_type": "2d_compare"
         },
         {
-          "id": "grp_c3d4e5f60718293a",
+          "id": "grp_0195f3a00000700c83d4e5f60718293a",
           "title": {
             "translations": {
               "en": "Critical Falsification & Epistemic Humility",
@@ -22459,13 +22496,13 @@
             }
           },
           "target_blocks": [
-            "blk_b476f89fb732448c",
-            "blk_22e3598e06414409"
+            "blk_0195f3a00000700b8476f89fb732448c",
+            "blk_0195f3a00000700282e3598e06414409"
           ],
           "view_type": "2d_compare"
         },
         {
-          "id": "grp_d4e5f60718293a4b",
+          "id": "grp_0195f3a00000700d84e5f60718293a4b",
           "title": {
             "translations": {
               "en": "Cognitive Depth & Creative Synthesis",
@@ -22473,13 +22510,13 @@
             }
           },
           "target_blocks": [
-            "blk_109dab5b6b3f403a",
-            "blk_f921c7c0989b47e8"
+            "blk_0195f3a000007001809dab5b6b3f403a",
+            "blk_0195f3a00000700f8921c7c0989b47e8"
           ],
           "view_type": "2d_compare"
         },
         {
-          "id": "grp_e5f60718293a4b5c",
+          "id": "grp_0195f3a00000700e85f60718293a4b5c",
           "title": {
             "translations": {
               "en": "Steering Agency & Transparency",
@@ -22487,13 +22524,13 @@
             }
           },
           "target_blocks": [
-            "blk_53f32679aa514fcb",
-            "blk_f6e286f050c94d60"
+            "blk_0195f3a00000700583f32679aa514fcb",
+            "blk_0195f3a00000700f86e286f050c94d60"
           ],
           "view_type": "2d_compare"
         },
         {
-          "id": "grp_f60718293a4b5c6d",
+          "id": "grp_0195f3a00000700f860718293a4b5c6d",
           "title": {
             "translations": {
               "en": "Synthesis Evidentiary Confidence",
@@ -22501,12 +22538,12 @@
             }
           },
           "target_blocks": [
-            "blk_6b8c766185294f7e"
+            "blk_0195f3a0000070068b8c766185294f7e"
           ],
           "view_type": "1d_metrics"
         },
         {
-          "id": "grp_f1c1d71000000001",
+          "id": "grp_0195f3a00000700f81c1d71000000001",
           "title": {
             "translations": {
               "en": "Human-AI Steering & Causal Argument Cohesion",
@@ -22514,8 +22551,8 @@
             }
           },
           "target_blocks": [
-            "blk_7d8e9f0a1b2c3d4e",
-            "blk_c0a1e50000000001"
+            "blk_0195f3a0000070078d8e9f0a1b2c3d4e",
+            "blk_0195f3a00000700c80a1e50000000001"
           ],
           "view_type": "2d_compare"
         }
@@ -22523,13 +22560,13 @@
       "content_blocks": [],
       "show_sources_summary_box": false,
       "sources_display_mode": "verified_evidence",
-      "variance_target_block": "blk_7d8e9f0a1b2c3d4e",
-      "user_role_target_block": "blk_7d8e9f0a1b2c3d4e"
+      "variance_target_block": "blk_0195f3a0000070078d8e9f0a1b2c3d4e",
+      "user_role_target_block": "blk_0195f3a0000070078d8e9f0a1b2c3d4e"
     },
     {
-      "id": "prf_a8f1d71000000001",
+      "id": "prf_0195f3a00000700a88f1d71000000001",
       "slug": "tekoalyohjauksen_ja_argumentaation_tasmaauditointi_profiili",
-      "workflow_id": "wf_a8f1d71000000001",
+      "workflow_id": "wf_0195f3a00000700a88f1d71000000001",
       "organization_id": "SYSTEM",
       "name": {
         "translations": {
@@ -22607,7 +22644,7 @@
       ],
       "matrix_synthesis_groups": [
         {
-          "id": "grp_a8f1d71000000001",
+          "id": "grp_0195f3a00000700a88f1d71000000001",
           "title": {
             "translations": {
               "fi": "Tekoälyohjauksen ja Argumentaation Tutka",
@@ -22615,16 +22652,16 @@
             }
           },
           "target_blocks": [
-            "blk_7d8e9f0a1b2c3d4e",
-            "blk_440a5fef9331451b",
-            "blk_f921c7c0989b47e8",
-            "blk_f6e286f050c94d60",
-            "blk_c0a1e50000000001"
+            "blk_0195f3a0000070078d8e9f0a1b2c3d4e",
+            "blk_0195f3a000007004840a5fef9331451b",
+            "blk_0195f3a00000700f8921c7c0989b47e8",
+            "blk_0195f3a00000700f86e286f050c94d60",
+            "blk_0195f3a00000700c80a1e50000000001"
           ],
           "view_type": "3d_matrix"
         },
         {
-          "id": "grp_a8f1d71000000002",
+          "id": "grp_0195f3a00000700a88f1d71000000002",
           "title": {
             "translations": {
               "fi": "Tekoälyohjauksen Maturiteettikartta (Arkkitehti-malli)",
@@ -22632,13 +22669,13 @@
             }
           },
           "target_blocks": [
-            "blk_7d8e9f0a1b2c3d4e",
-            "blk_f921c7c0989b47e8"
+            "blk_0195f3a0000070078d8e9f0a1b2c3d4e",
+            "blk_0195f3a00000700f8921c7c0989b47e8"
           ],
           "view_type": "2d_compare"
         },
         {
-          "id": "grp_a8f1d71000000003",
+          "id": "grp_0195f3a00000700a88f1d71000000003",
           "title": {
             "translations": {
               "fi": "Faktapohjaisuus vs. Johtoryhmäviestintä",
@@ -22646,8 +22683,8 @@
             }
           },
           "target_blocks": [
-            "blk_440a5fef9331451b",
-            "blk_f6e286f050c94d60"
+            "blk_0195f3a000007004840a5fef9331451b",
+            "blk_0195f3a00000700f86e286f050c94d60"
           ],
           "view_type": "2d_compare"
         }
@@ -22655,13 +22692,13 @@
       "content_blocks": [],
       "show_sources_summary_box": false,
       "sources_display_mode": "verified_evidence",
-      "variance_target_block": "blk_7d8e9f0a1b2c3d4e",
-      "user_role_target_block": "blk_7d8e9f0a1b2c3d4e"
+      "variance_target_block": "blk_0195f3a0000070078d8e9f0a1b2c3d4e",
+      "user_role_target_block": "blk_0195f3a0000070078d8e9f0a1b2c3d4e"
     },
     {
-      "id": "prf_b9e2d71000000002",
+      "id": "prf_0195f3a00000700b89e2d71000000002",
       "slug": "tekoalyohjauksen_ja_kognition_ydinauditointi_profiili",
-      "workflow_id": "wf_b9e2d71000000002",
+      "workflow_id": "wf_0195f3a00000700b89e2d71000000002",
       "organization_id": "SYSTEM",
       "name": {
         "translations": {
@@ -22739,7 +22776,7 @@
       ],
       "matrix_synthesis_groups": [
         {
-          "id": "grp_b9e2d71000000001",
+          "id": "grp_0195f3a00000700b89e2d71000000001",
           "title": {
             "translations": {
               "fi": "Kognitiivisen Ytimen Tutka",
@@ -22747,15 +22784,15 @@
             }
           },
           "target_blocks": [
-            "blk_7d8e9f0a1b2c3d4e",
-            "blk_440a5fef9331451b",
-            "blk_f921c7c0989b47e8",
-            "blk_f6e286f050c94d60"
+            "blk_0195f3a0000070078d8e9f0a1b2c3d4e",
+            "blk_0195f3a000007004840a5fef9331451b",
+            "blk_0195f3a00000700f8921c7c0989b47e8",
+            "blk_0195f3a00000700f86e286f050c94d60"
           ],
           "view_type": "3d_matrix"
         },
         {
-          "id": "grp_b9e2d71000000002",
+          "id": "grp_0195f3a00000700b89e2d71000000002",
           "title": {
             "translations": {
               "fi": "Tekoälyohjauksen Maturiteettikartta (Arkkitehti-malli)",
@@ -22763,13 +22800,13 @@
             }
           },
           "target_blocks": [
-            "blk_7d8e9f0a1b2c3d4e",
-            "blk_f921c7c0989b47e8"
+            "blk_0195f3a0000070078d8e9f0a1b2c3d4e",
+            "blk_0195f3a00000700f8921c7c0989b47e8"
           ],
           "view_type": "2d_compare"
         },
         {
-          "id": "grp_b9e2d71000000003",
+          "id": "grp_0195f3a00000700b89e2d71000000003",
           "title": {
             "translations": {
               "fi": "Faktapohjaisuus vs. Johtoryhmäviestintä",
@@ -22777,8 +22814,8 @@
             }
           },
           "target_blocks": [
-            "blk_440a5fef9331451b",
-            "blk_f6e286f050c94d60"
+            "blk_0195f3a000007004840a5fef9331451b",
+            "blk_0195f3a00000700f86e286f050c94d60"
           ],
           "view_type": "2d_compare"
         }
@@ -22786,8 +22823,8 @@
       "content_blocks": [],
       "show_sources_summary_box": false,
       "sources_display_mode": "verified_evidence",
-      "variance_target_block": "blk_7d8e9f0a1b2c3d4e",
-      "user_role_target_block": "blk_7d8e9f0a1b2c3d4e"
+      "variance_target_block": "blk_0195f3a0000070078d8e9f0a1b2c3d4e",
+      "user_role_target_block": "blk_0195f3a0000070078d8e9f0a1b2c3d4e"
     }
   ]
 }

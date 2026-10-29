@@ -21,7 +21,7 @@
 
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md] @[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]`
   - [x] Step 1: Phase 1: Pre-Implementation Technical Debt Cleanups & Core PrefixedUUID7 SSOT Lock
-  - [ ] Step 2: Phase 2: Deterministic seed_data.json 32-Hex UUIDv7 Cutover & sanitize_seed_vault.py Auto-ID Generator
+  - [x] Step 2: Phase 2: Deterministic seed_data.json 32-Hex UUIDv7 Cutover & sanitize_seed_vault.py Auto-ID Generator
   - [ ] Step 3: Phase 3: PostgreSQL 19 12-Table Native UUIDv7 DDL & Symmetric Adapter Bridge
   - [ ] Step 4: Phase 4: Studio Draft Anchor Eradication & Direct Causal Cohesion Matrix Binding
   - [ ] Step 5: Phase 5: Topological Graph Mathematics Synchronization, Counterfactual Simulation & Full-Duplex Parity
@@ -86,8 +86,8 @@
 | REQ-001 | Eliminate `TD_DICT_GET` permissive `.get()` calls on lines 467, 473, and 593 of `@[scripts/sanitize_seed_vault.py#L445-L548]` and `@[scripts/sanitize_seed_vault.py#L577-L606]`. | Step 1 | [x] Completed |
 | REQ-002 | Add `SCALE = "sc"` to `EntityPrefix` in `@[backend_v2/models/enums.py#L228-L244]` and update `SystemConfigID.MCP_GATEWAYS` to a 32-hex RFC 9562 `UUIDv7` in `@[backend_v2/models/enums.py#L283-L286]`. | Step 1 | [x] Completed |
 | REQ-003 | Lock `OPAQUE_STRIPE_ID_REGEX = r"^([a-z]{2,5})_[a-fA-F0-9]{32}$"` and route `generate_opaque_id(prefix)` unconditionally to `generate_uuid7_opaque_id(prefix)` in `@[backend_v2/models/core_base.py#L199-L229]`. | Step 1 | [x] Completed |
-| REQ-004 | Deterministically migrate all entity IDs and relational foreign keys in `@[backend_v2/seed/seed_data.json#L1-L22793]` to 32-hex RFC 9562 `UUIDv7` (`{prefix}_{32_hex}`) and normalize `wor_` workflow prefixes to `wf_`. | Step 2 | [ ] Pending |
-| REQ-005 | Extend `@[scripts/sanitize_seed_vault.py#L445-L548]` and `@[scripts/sanitize_seed_vault.py#L635-L692]` to auto-generate canonical 32-hex `UUIDv7` IDs via `generate_uuid7_opaque_id()` for any new row, scale, or `TDAAssertion` missing a valid ID and persist it atomically to `@[backend_v2/seed/seed_data.json#L1-L22793]`. | Step 2 | [ ] Pending |
+| REQ-004 | Deterministically migrate all entity IDs and relational foreign keys in `@[backend_v2/seed/seed_data.json#L1-L22793]` to 32-hex RFC 9562 `UUIDv7` (`{prefix}_{32_hex}`) and normalize `wor_` workflow prefixes to `wf_`. | Step 2 | [x] Completed |
+| REQ-005 | Extend `@[scripts/sanitize_seed_vault.py#L445-L548]` and `@[scripts/sanitize_seed_vault.py#L635-L692]` to auto-generate canonical 32-hex `UUIDv7` IDs via `generate_uuid7_opaque_id()` for any new row, scale, or `TDAAssertion` missing a valid ID and persist it atomically to `@[backend_v2/seed/seed_data.json#L1-L22793]`. | Step 2 | [x] Completed |
 | REQ-006 | Upgrade tables 1–7 (`organizations`, `users`, `system_configs`, `prompt_blocks`, `steps`, `workflows`, `output_profiles`) and all cross-table foreign keys in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql#L1-L308]` to native PostgreSQL 19 `UUID` columns with `DEFAULT uuidv7()`, `VIRTUAL` timestamp extraction, and `CHECK (uuid_extract_version(...) = 7)`. | Step 3 | [ ] Pending |
 | REQ-007 | Standardize `@[backend_v2/database/postgres/entity_adapter.py#L828-L2366]` to apply symmetric `parse_prefixed_uuid7()` and `format_prefixed_uuid7()` conversion across all 12 tables and enforce via `@[scripts/audit_zero_orm_strictness.py#L550-L579]`. | Step 3 | [ ] Pending |
 | REQ-008 | Replace hardcoded `"blk_440a5fef9331451b"` and `"prf_0000000000000000"` in `@[backend_v2/services/studio/workflow_service.py#L348-L390]` and `@[backend_v2/services/studio/workflow_service.py#L677-L729]` and `"sys_8172bda70c8641c5"` in `@[backend_v2/models/domain/workflow.py#L25-L217]` with dynamic repository lookups and `None` defaults. | Step 4 | [ ] Pending |

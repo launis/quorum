@@ -729,13 +729,14 @@ def sanitize_workflows(workflows: Sequence[Any]) -> list[JsonValue]:
                         parts = val_str.split(".", 2)
                         if len(parts) >= 2 and parts[0] == "$steps":
                             ref_sr = parts[1]
-                            upgraded_ref = (
-                                sr_id_map[ref_sr]
-                                if ref_sr in sr_id_map
-                                else _upgrade_or_generate_opaque_id(ref_sr, EntityPrefix.STEP_REFERENCE)
-                            )
-                            suffix = f".{parts[2]}" if len(parts) == 3 else ""
-                            val_str = f"$steps.{upgraded_ref}{suffix}"
+                            if ref_sr != "matrix_reducer":
+                                upgraded_ref = (
+                                    sr_id_map[ref_sr]
+                                    if ref_sr in sr_id_map
+                                    else _upgrade_or_generate_opaque_id(ref_sr, EntityPrefix.STEP_REFERENCE)
+                                )
+                                suffix = f".{parts[2]}" if len(parts) == 3 else ""
+                                val_str = f"$steps.{upgraded_ref}{suffix}"
                         new_mappings[str(mk)] = val_str
                     sr["input_mappings"] = new_mappings
                 new_step_rules.append(sr)
