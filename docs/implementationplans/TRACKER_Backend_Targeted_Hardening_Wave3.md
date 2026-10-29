@@ -25,7 +25,7 @@
   - [x] @[backend_v2/database/repositories/report_artifact.py]
   - [x] @[backend_v2/database/repositories/components/agent.py]
   - [x] @[backend_v2/database/repositories/components/execution_persona.py]
-  - [ ] @[backend_v2/database/repositories/components/extraction_protocol.py]
+  - [x] @[backend_v2/database/repositories/components/extraction_protocol.py]
   - [ ] @[backend_v2/database/repositories/components/matrix.py]
   - [ ] @[backend_v2/database/repositories/components/output_profile.py]
   - [ ] @[backend_v2/database/repositories/components/prompt_block.py]
