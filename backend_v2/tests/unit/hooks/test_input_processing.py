@@ -825,3 +825,106 @@ def test_process_questionnaire_localized_and_fallback_label() -> None:
         target_locale="fi",
     )
     assert '<questionnaire title="fallback_key">' in res_key
+
+
+@pytest.mark.asyncio
+async def test_process_inputs_workflow_not_found_logs_rfc7807_error(caplog: pytest.LogCaptureFixture) -> None:
+    state = HookState(
+        execution_id="test_exec",
+        workflow_id="not_found",
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
+        metadata=ExecutionMetadata(),
+    )
+    repo = InMemoryUnifiedWorkflowRepository()
+    deps = HookDependencies(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
+    )
+    with caplog.at_level("ERROR"), pytest.raises(AppException) as exc:
+        await process_inputs(state, deps)
+    assert exc.value.status_code == 404
+    assert any("Workflow not found" in record.message for record in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_resolve_input_and_extract_raw_value_edge_cases(monkeypatch: pytest.MonkeyPatch) -> None:
+    from backend_v2.hooks.input_processing import _extract_raw_value, resolve_input
+
+    assert await resolve_input(None) == ""
+    assert await resolve_input(42) == "42"
+
+    state = HookState(
+        execution_id="test_exec",
+        workflow_id="wor_1234567890abcdef12",
+        inputs=ExecutionInputsDTO(raw_inputs={}, target_locale="sv"),
+        global_context_vars=GlobalContextVarsDTO(language="fi", target_locale="sv"),
+        metadata=ExecutionMetadata(),
+    )
+    assert _extract_raw_value("language", state) == "fi"
+    assert _extract_raw_value("target_locale", state) == "sv"
+    assert _extract_raw_value("missing_key", state) is None
+
+    wf_id = "wor_1234567890abcdef12"
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.save_workflow(
+        Workflow.model_validate(
+            {
+                "id": wf_id,
+                "model_registry_id": "cfg_model_registry_01",
+                "historical_context_mode": "DISABLED",
+                "slug": "test-wf",
+                "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
+                "description": {"translations": {"en": "Desc", "fi": "Desc"}},
+                "status": "draft",
+                "version": 1,
+                "default_profile_id": "prof_123",
+                "expected_inputs": [
+                    {
+                        "input_key": "OPTIONAL_DOC",
+                        "label": {"translations": {"en": "Optional Doc", "fi": "Valinnainen"}},
+                        "description": {"translations": {"en": "Optional", "fi": "Valinnainen"}},
+                        "input_modes": ["text"],
+                        "required": False,
+                        "is_chat_history": False,
+                        "ai_description": "Analyze optional text.",
+                    }
+                ],
+            }
+        )
+    )
+    fallback_state = HookState(
+        execution_id="test_exec",
+        workflow_id=wf_id,
+        inputs=ExecutionInputsDTO(raw_inputs={}, target_locale="fi"),
+        global_context_vars=GlobalContextVarsDTO(language=""),
+        metadata=ExecutionMetadata(),
+    )
+    deps = HookDependencies(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
+    )
+
+    class MockStorage:
+        async def save(self, path: str, content: str) -> None:
+            pass
+
+    monkeypatch.setattr("backend_v2.hooks.input_processing.get_storage_driver", lambda: MockStorage())
+
+    result = await process_inputs(fallback_state, deps)
+    assert result.success is True
+    assert result.state_delta is not None
+    assert isinstance(result.state_delta.delta, ExecutionInputsDTO)
+    assert result.state_delta.delta.raw_inputs["OPTIONAL_DOC"] == ""

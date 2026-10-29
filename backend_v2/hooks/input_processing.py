@@ -1,7 +1,6 @@
 """Deterministic Input Processing Hook for V2 Architecture.
 
-This hook replaces the legacy V1 `InputProcessorAgent` LLM overhead.
-It safely merges and transforms structured `guided_reflection` questionnaires
+Safely merges and transforms structured `guided_reflection` questionnaires
 and unstructured `reflection_text` strings into a unified text format for downstream AI nodes.
 """
 
@@ -35,27 +34,30 @@ from backend_v2.services.pii_analyzer import get_pii_service
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.utils.paths import get_forensic_input_path
 
+__all__ = [
+    "process_inputs",
+    "resolve_input",
+]
+
 logger = logging.getLogger(__name__)
 
 
-# Phase 1, Step 1.1: Fix QGR016 resolve_input fallback
 async def resolve_input(val: object | None) -> str:
-    """Helper to detect string outputs from API layer Extractor or resolve natively.
+    """Convert a raw input value from state into its string representation.
 
     Args:
         val: The raw value extracted from the state.
 
     Returns:
-        The stringified version of the value or an empty string.
+        The stringified version of the value or an empty string when None.
     """
     if val is None:
         return ""
     return str(val)
 
 
-# Phase 1, Step 1.2: Strict typing of _extract_raw_value without Any or dict duck typing
 def _extract_raw_value(key_lower: str, state: HookState) -> object | None:
-    """Extracts the raw value for a given key from the state inputs and global context.
+    """Extract the raw value for a given key from state inputs and global context.
 
     Args:
         key_lower: The expected input key in lower case.
@@ -92,7 +94,7 @@ def _process_questionnaire(
     expected_input: ExpectedInput,
     target_locale: str = SystemLocale.EN.value,
 ) -> str:
-    """Validates and processes a questionnaire dictionary into Markdown text.
+    """Validate and transform a questionnaire payload into Markdown text.
 
     Args:
         raw_val: The raw dictionary value representing the questionnaire.
@@ -104,7 +106,7 @@ def _process_questionnaire(
         The resolved Markdown text for the questionnaire.
 
     Raises:
-        AppException: If the dictionary is invalid.
+        AppException: With ErrorCodes.VALIDATION_FAILED if the questionnaire payload is invalid.
     """
     logger.info(
         "Found questionnaire dict. Validating against GuidedReflectionInputDTO...",
@@ -121,7 +123,8 @@ def _process_questionnaire(
     except ValidationError as e:
         logger.error(
             "Invalid questionnaire dict format.",
-            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key, "detail": str(e)},
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
+            exc_info=True,
         )
         raise AppException(
             message=f"Workflow Input Validation Error: Invalid questionnaire format for '{key}'.",
@@ -141,7 +144,6 @@ def _process_questionnaire(
         ) from e
 
 
-# Phase 3, Step 3.1: Refactor _process_chat_history to delegate to ChatNormalizerService
 async def _process_chat_history(
     resolved_text: str,
     key: str,
@@ -152,7 +154,7 @@ async def _process_chat_history(
     registry_id: str | None = None,
     provider: LLMProvider | None = None,
 ) -> ProcessedChatDTO:
-    """Parses raw unstructured chat logs into ProcessedChatDTO via ChatNormalizerService.
+    """Parse raw unstructured chat logs into ProcessedChatDTO via ChatNormalizerService.
 
     Args:
         resolved_text: The raw, unstructured chat text.
@@ -165,7 +167,10 @@ async def _process_chat_history(
         provider: Optional explicit provider override.
 
     Returns:
-        ProcessedChatDTO: An immutable DTO containing 'combined', 'user_only', and 'ai_only'.
+        An immutable DTO containing 'combined', 'user_only', and 'ai_only'.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if chat history parsing fails.
     """
     ingress_service = MultiChannelIngressService()
     chat_dto = await ingress_service.process_chat(
@@ -216,7 +221,7 @@ async def _process_chat_history(
 
 
 async def _save_forensic_input(execution_id: str, key: str, resolved_text: str) -> None:
-    """Saves the processed input to the forensic storage directory.
+    """Save the processed input text to the forensic storage directory.
 
     Args:
         execution_id: The unique execution ID.
@@ -224,7 +229,7 @@ async def _save_forensic_input(execution_id: str, key: str, resolved_text: str) 
         resolved_text: The text to save.
 
     Raises:
-        AppException: If the storage operation fails.
+        AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if the storage operation fails.
     """
     try:
         storage = get_storage_driver()
@@ -245,14 +250,146 @@ async def _save_forensic_input(execution_id: str, key: str, resolved_text: str) 
         ) from e
 
 
+async def _apply_text_nlp(
+    resolved_text: str,
+    key: str,
+    workflow: Workflow,
+    language: str,
+) -> str:
+    """Apply optional SpaCy semantic smoothing and Presidio PII masking to plain text inputs.
+
+    Args:
+        resolved_text: The resolved input text.
+        key: The input key being processed.
+        workflow: The active workflow configuration.
+        language: The target language code for NLP models.
+
+    Returns:
+        The NLP-processed text string.
+    """
+    if workflow.enable_semantic_smoothing and resolved_text:
+        pii_service = get_pii_service()
+        logger.info("[InputProcessingHook] Running Semantic Smoothing for %s", key)
+        start_time = time.perf_counter()
+        resolved_text = await asyncio.to_thread(pii_service.smooth_text, resolved_text, language)
+        duration = time.perf_counter() - start_time
+        logger.info("[InputProcessingHook] Semantic Smoothing for %s completed in %.2fs", key, duration)
+
+    if workflow.enable_eager_anonymization and resolved_text:
+        pii_service = get_pii_service()
+        logger.info("[InputProcessingHook] Running Eager Anonymization for %s", key)
+        start_time = time.perf_counter()
+        resolved_text = await asyncio.to_thread(pii_service.mask_pii, resolved_text, language)
+        duration = time.perf_counter() - start_time
+        logger.info("[InputProcessingHook] Eager Anonymization for %s completed in %.2fs", key, duration)
+
+    return resolved_text
+
+
+async def _process_single_expected_input(
+    expected_input: ExpectedInput,
+    state: HookState,
+    workflow: Workflow,
+    system_repo: ISystemRepository,
+    execution_id: str,
+    language: str,
+    output_dict: dict[str, str],
+) -> None:
+    """Resolve, validate, normalize, and persist a single workflow expected input.
+
+    Args:
+        expected_input: The expected input definition from the workflow.
+        state: Current hook execution state.
+        workflow: The validated workflow domain model.
+        system_repo: The system configuration repository.
+        execution_id: The active execution identifier.
+        language: The resolved language code.
+        output_dict: Target dictionary collecting normalized input strings by key.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.STORAGE_ACCESS_FAILED
+            if validation or forensic persistence fails.
+    """
+    key = expected_input.input_key
+    raw_val = _extract_raw_value(key.lower(), state)
+
+    if raw_val is not None and not isinstance(raw_val, (str, int, float, list, bool, bytes)):
+        resolved_text = _process_questionnaire(raw_val, key, expected_input, target_locale=language)
+    else:
+        resolved_text = await resolve_input(raw_val)
+
+    if expected_input.required and not resolved_text.strip():
+        logger.error(
+            "Missing required input.",
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
+        )
+        raise AppException(
+            message=(
+                f"Workflow Input Validation Error: The block '{key}' is required "
+                "but no content was provided or file extraction yielded empty text."
+            ),
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "input_key": key},
+        )
+
+    is_chat = expected_input.is_chat_history
+    if is_chat and resolved_text:
+        registry_id = (
+            state.metadata.model_registry_id
+            if state.metadata and state.metadata.model_registry_id
+            else workflow.model_registry_id
+        )
+        chat_result = await _process_chat_history(
+            resolved_text=resolved_text,
+            key=key,
+            system_repo=system_repo,
+            enable_semantic_smoothing=workflow.enable_semantic_smoothing,
+            enable_eager_anonymization=workflow.enable_eager_anonymization,
+            language=language,
+            registry_id=registry_id,
+            provider=state.metadata.provider_override,
+        )
+        resolved_text = chat_result.combined
+        output_dict[f"{key}_user_only"] = chat_result.user_only
+        output_dict[f"{key}_ai_only"] = chat_result.ai_only
+    elif not is_chat and resolved_text:
+        resolved_text = await _apply_text_nlp(resolved_text, key, workflow, language)
+
+    if expected_input.ai_description is not None:
+        if not expected_input.ai_description.strip():
+            logger.error(
+                "Missing English translation for ai_description.",
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
+            )
+            raise AppException(
+                message=(
+                    f"System Configuration Error: Missing mandatory "
+                    f"English instruction for '{key}' cognitive prompt block."
+                ),
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "input_key": key},
+            )
+        if resolved_text.strip():
+            logger.info("[InputProcessingHook] Validating ai_description for %s (English-Only Mandate).", key)
+
+    output_dict[key] = resolved_text.strip()
+
+    await _save_forensic_input(execution_id, key, output_dict[key])
+    user_only_key = f"{key}_user_only"
+    if user_only_key in output_dict:
+        await _save_forensic_input(execution_id, user_only_key, output_dict[user_only_key])
+    ai_only_key = f"{key}_ai_only"
+    if ai_only_key in output_dict:
+        await _save_forensic_input(execution_id, ai_only_key, output_dict[ai_only_key])
+
+
 @hook_registry.register(name="input_processing")
 async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult:
-    """HOOK: input_processing.
+    """Read, validate, and normalize raw workflow input modalities into structured text.
 
-    Reads raw input modalities passed from the client, normalizes them,
-    extracts PDF text if base64 encoded, and handles transformations like expanding
-    `questionnaire` inputs into Markdown documents. Uses is_chat_history flag to
-    dynamically route unstructured text to ChatParserService.
+    Expands structured `questionnaire` inputs into Markdown documents, routes
+    chat history inputs through `ChatNormalizerService`, applies optional NLP
+    smoothing/anonymization, and persists forensic input snapshots.
 
     Args:
         state: Current hook execution state.
@@ -262,12 +399,12 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         Result containing the updated state delta with processed inputs and metadata.
 
     Raises:
-        AppException: If execution context is missing, workflow is not found,
-            required inputs are missing, or system configuration is invalid.
+        AppException: With ErrorCodes.VALIDATION_FAILED, ErrorCodes.WORKFLOW_NOT_FOUND,
+            ErrorCodes.CONFIGURATION_ERROR, or ErrorCodes.STORAGE_ACCESS_FAILED when
+            execution context, workflow lookup, input validation, or forensic storage fails.
     """
     logger.info("[InputProcessingHook] Running deterministic input normalizer...")
 
-    # Fetch workflow to know about expected_inputs
     workflow_repo = deps.workflow_repo
     system_repo = deps.system_repo
     workflow_id = state.workflow_id
@@ -284,136 +421,47 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
 
-    workflow_dict = await workflow_repo.get_workflow_by_id(workflow_id)
-    if not workflow_dict:
+    workflow_record = await workflow_repo.get_workflow_by_id(workflow_id)
+    if not workflow_record:
+        logger.error(
+            "Workflow not found for input processing.",
+            extra={"error_code": ErrorCodes.WORKFLOW_NOT_FOUND.name, "workflow_id": workflow_id},
+        )
         raise AppException(
             message=f"Workflow {workflow_id} not found.",
             status_code=status.HTTP_404_NOT_FOUND,
             details={"error_code": ErrorCodes.WORKFLOW_NOT_FOUND.value},
         )
 
-    workflow = TypeAdapter(Workflow).validate_python(workflow_dict)
-
-    expected_inputs = workflow.expected_inputs
-    output_dict: dict[str, str] = {}
+    workflow = TypeAdapter(Workflow).validate_python(workflow_record)
 
     language = state.global_context_vars.language
     if not language and state.inputs and state.inputs.target_locale:
         language = state.inputs.target_locale
 
     if not language:
-        logger.error("Missing language in global context.")
+        logger.error(
+            "Missing language in global context.",
+            extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+        )
         raise AppException(
             message="System Configuration Error: Missing mandatory 'language' in global_context_vars.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
-    for expected_input in expected_inputs:
-        key = expected_input.input_key
-        key_lower = key.lower()
+    output_dict: dict[str, str] = {}
+    for expected_input in workflow.expected_inputs:
+        await _process_single_expected_input(
+            expected_input=expected_input,
+            state=state,
+            workflow=workflow,
+            system_repo=system_repo,
+            execution_id=execution_id,
+            language=language,
+            output_dict=output_dict,
+        )
 
-        raw_val = _extract_raw_value(key_lower, state)
-
-        # 1. Handle Questionnaire mode specifically if it exists
-        resolved_text: str = ""
-        if raw_val is not None and not isinstance(raw_val, (str, int, float, list, bool, bytes)):
-            resolved_text = _process_questionnaire(raw_val, key, expected_input, target_locale=language)
-        else:
-            # 2. Standard resolution (File, Paste)
-            resolved_text = await resolve_input(raw_val)
-
-        # V2 STRICT FAIL-FAST: Validate required inputs immediately
-        if expected_input.required and not resolved_text.strip():
-            logger.error(
-                "Missing required input.",
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
-            )
-            raise AppException(
-                message=(
-                    f"Workflow Input Validation Error: The block '{key}' is required "
-                    "but no content was provided or file extraction yielded empty text."
-                ),
-                status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "input_key": key},
-            )
-
-        # 3. V2 ChatParser LLM Hook (if designated as chat history)
-        is_chat = expected_input.is_chat_history
-        if is_chat and resolved_text:
-            registry_id = (
-                state.metadata.model_registry_id
-                if state.metadata and state.metadata.model_registry_id
-                else workflow.model_registry_id
-            )
-            chat_result = await _process_chat_history(
-                resolved_text=resolved_text,
-                key=key,
-                system_repo=system_repo,
-                enable_semantic_smoothing=workflow.enable_semantic_smoothing,
-                enable_eager_anonymization=workflow.enable_eager_anonymization,
-                language=language,
-                registry_id=registry_id,
-                provider=state.metadata.provider_override,
-            )
-            # Phase 3, Step 3.1: Consume ProcessedChatDTO via static dot notation
-            resolved_text = chat_result.combined
-            output_dict[f"{key}_user_only"] = chat_result.user_only
-            output_dict[f"{key}_ai_only"] = chat_result.ai_only
-
-        # --- 1. SEMANTIC SMOOTHING (SpaCy - IN BACKGROUND THREAD) ---
-        if not is_chat and workflow.enable_semantic_smoothing and resolved_text:
-            pii_service = get_pii_service()
-            logger.info("[InputProcessingHook] Running Semantic Smoothing for %s", key)
-            start_time = time.perf_counter()
-            resolved_text = await asyncio.to_thread(pii_service.smooth_text, resolved_text, language)
-            duration = time.perf_counter() - start_time
-            logger.info("[InputProcessingHook] Semantic Smoothing for %s completed in %.2fs", key, duration)
-
-        # --- 2. EAGER ANONYMIZATION (Presidio - IN BACKGROUND THREAD) ---
-        if not is_chat and workflow.enable_eager_anonymization and resolved_text:
-            pii_service = get_pii_service()
-            logger.info("[InputProcessingHook] Running Eager Anonymization for %s", key)
-            start_time = time.perf_counter()
-            resolved_text = await asyncio.to_thread(pii_service.mask_pii, resolved_text, language)
-            duration = time.perf_counter() - start_time
-            logger.info("[InputProcessingHook] Eager Anonymization for %s completed in %.2fs", key, duration)
-
-        # 4. Inject `ai_description` (The English-Only Mandate)
-        if expected_input.ai_description is not None:
-            desc_text = expected_input.ai_description.strip()
-
-            if not desc_text:
-                logger.error(
-                    "Missing English translation for ai_description.",
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
-                )
-                raise AppException(
-                    message=(
-                        f"System Configuration Error: Missing mandatory "
-                        f"English instruction for '{key}' cognitive prompt block."
-                    ),
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "input_key": key},
-                )
-
-            if resolved_text.strip():
-                logger.info("[InputProcessingHook] Validating ai_description for %s (English-Only Mandate).", key)
-                # DO NOT mutate resolved_text. PromptCompiler handles structural injection via <ai_context_mandate>.
-
-        output_dict[key] = resolved_text.strip()
-
-        # --- FORENSIC OBSERVABILITY INJECTION ---
-        # Phase 3, Step 3.2: Extend forensic storage for all primary and segregated streams
-        await _save_forensic_input(execution_id, key, output_dict[key])
-        user_only_key = f"{key}_user_only"
-        if user_only_key in output_dict:
-            await _save_forensic_input(execution_id, user_only_key, output_dict[user_only_key])
-        ai_only_key = f"{key}_ai_only"
-        if ai_only_key in output_dict:
-            await _save_forensic_input(execution_id, ai_only_key, output_dict[ai_only_key])
-
-    # Phase 7: Token Proxy Score calculation
     total_chars = sum(len(text) for text in output_dict.values())
     estimated_token_count = total_chars // 4
 
