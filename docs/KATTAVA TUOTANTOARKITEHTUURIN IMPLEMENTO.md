@@ -695,7 +695,9 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
 
 ---
 
-### Askel 3.3: Yhtenäinen `PrefixedUUID7`-arkkitehtuuri, Natiivi PostgreSQL 19 `UUIDv7` Kaikissa 12 Taulussa & `seed_data.json` Cutover (Vaihe 2e — `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 2) — [SEURAAVANA JONOSSA]
+### Askel 3.3: Yhtenäinen `PrefixedUUID7`-arkkitehtuuri, Natiivi PostgreSQL 19 `UUIDv7` Kaikissa 12 Taulussa & `seed_data.json` Cutover (Vaihe 2e — `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 2 & Luku 2.5) — [SUUNNITELMA & TRACKER VALMIINA — SEURAAVANA JONOSSA]
+* **Toteutussuunnitelma (Implementation Plan):** `@[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]`
+* **Seurantadokumentti (SSOT Tracker):** `@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]`
 * **Miksi sijoitettu tähän kohtaan (heti Karkaisuaaltojen 2–4 jälkeen ja ENNEN Askelta 4 `EPIC 160` IAM):**
   `EPIC 160` (B2B SaaS IAM) perustuu siihen, että `organizations`- ja `users`-taulujen pääavaimet ovat natiiveja 16-tavuisia PostgreSQL 19 `UUIDv7`-arvoja (`usr_<hex32>` ja `org_<hex32>`). Toteuttamalla `@[docs/arkkitehtuurin_parannuskohteet.md]` Luvun 2 (**Malli A**) juuri ennen IAM-vaihetta poistetaan vanha kahtiajako (7 `TEXT`-taulua 16-heksalla vs. 5 `UUID`-taulua 32-heksalla) kerralla kaikista 12 taulusta.
 * **Toteutettavat arkkitehtuurimuutokset (Malli A):**
@@ -710,14 +712,24 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
      * **Kausaalisen koheesion matriisi (`@[backend_v2/models/domain/step.py]`, `@[backend_v2/models/domain/workflow.py]`, `@[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]`, `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]` & `@[backend_v2/settings.py]`):** Kytketään BARS-koheesiomatriisi suoraan `StepType.CAUSAL_DISCOVERY`-stepin `criteria_block_ids`-kenttään, poistetaan `causal_cohesion_block_id`-sivukanavaparametri `Workflow.get_allowed_layout_targets`-metodista, luetaan matriisi-ID ja sen 5 BARS-atomia (`TDAAssertion`) suoraan stepin matriisista ajon aikana, ja poistetaan `causal_cohesion_matrix_block_id` tiedostosta `@[backend_v2/settings.py]` sekä kovakoodatut `CAUSAL_COHESION_TDA_IDS`- ja `CAUSAL_COHESION_CLAIMS`-tuplet tiedostosta `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]`.
      * **`@[docs/tiede.md]`-graafimatematiikan 100 % Synkronointi (`r_LCC`, `r_conv`, $\kappa_{\text{steer}}$ ja `simulate_counterfactual_retraction`):** Lisätään 0 LLM-tokenin topologiset graafimetriikat (`largest_component_ratio`, `branch_convergence_ratio`, `steering_coupling_ratio`) ja `[NEW]` `CounterfactualSimulationResultDTO` tiedostoihin `@[backend_v2/models/dtos/causal_discovery.py]` ja `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`, lasketaan ne funktiossa `@[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]:compute_causal_tda_fusion_result`, kytketään `@[docs/tiede.md]`-dokumentin Kaavan (13) Guttman-kynnykset (`total_nodes` $1, 2, 5, 10, 15$, $r_{\text{LCC}}$ ja $r_{\text{conv}}$) sekä Algoritmin 1 kontrafaktuaalinen haavoittuvuussimulaatio (`simulate_counterfactual_retraction`) tiedostoihin `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]` ja `@[backend_v2/settings.py]`.
   6. **Flutter- ja Testipariteetti:** Päivitetään `@[scripts/audit_zero_orm_strictness.py]`, `@[scripts/_ast_guardrails.py]` (`QGR030`) ja `@[client_app_v2/]`-testifikstuurit vaatimaan 32-merkkistä `{prefix}_{32_hex}`-muotoa.
+* **Suorituskomento:**
+  ```powershell
+  /tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md] @[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]
+  ```
 
 ---
 
-### Askel 3.4: AST- ja Laatuporttilaajennukset `QGR031`, `scripts/*.py` Dynaaminen Skannaus & `QGR032` Polyfactory-invarianttivartija (Vaihe 2f — `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 3)
+### Askel 3.4: AST- ja Laatuporttilaajennukset `QGR031`, `scripts/*.py` Dynaaminen Skannaus & `QGR032` Polyfactory-invarianttivartija (Vaihe 2f — `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 3) — [SUUNNITELMA & TRACKER VALMIINA]
+* **Toteutussuunnitelma (Implementation Plan):** `@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]`
+* **Seurantadokumentti (SSOT Tracker):** `@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`
 * **Tavoite:** Lukitaan Askeleen 3.2b–3.2d ja Askeleen 3.3 saavuttama arkkitehtuurinen puhtaus kolmella pysyvällä laatuporttilaajennuksella (`@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 3):
-  1. **AST-sääntö `QGR031` (`FilterOperator` & `QueryCondition` -kurinalaisuus):** Lisätään `@[scripts/_ast_guardrails.py]`-tiedostoon sääntö, joka valvoo kaikkia `QueryCondition(...)`-kutsuja ja vaatii eksplisiittisen `FilterOperator`-enumin käytön.
-  2. **Dynaaminen `scripts/*.py` -skannaus laatuportissa:** Päivitetään `@[scripts/backend_audit_loop.py]` skannaamaan dynaamisesti kaikki `scripts/*.py`-tiedostot (`Path("scripts").glob("*.py")`) kovakoodatun kolmen skriptin listan sijaan.
+  1. **AST-sääntö `QGR031` (`FilterOperator` & `QueryCondition` -kurinalaisuus):** Lisätään `@[scripts/_ast_guardrails.py]`-tiedostoon sääntö, joka valvoo kaikkia `Filter(...)`- ja `QueryCondition(...)`-kutsuja ja estää virheelliset operaattorit (`"="`, `"eq"`, `"LIKE"`), tyhjät kenttänimet sekä `"in"`-operaattorin merkkijonoliteraalit.
+  2. **Dynaaminen `scripts/*.py` -skannaus laatuportissa:** Päivitetään `@[scripts/backend_audit_loop.py]` skannaamaan dynaamisesti kaikki `scripts/*.py`-tiedostot (`Path("scripts").glob("*.py")`) kovakoodatun skriptilistan sijaan.
   3. **AST-sääntö `QGR032` (Polyfactory 32-hex `UUIDv7` Invariant Guard):** Lisätään `@[scripts/_ast_guardrails.py]`-tiedostoon sääntö, joka varmistaa, että jokainen `@[backend_v2/tests/factories/model_factories.py]`-luokka reitittää ID-kenttänsä `Use(generate_opaque_id, ...)`-kutsun kautta ja tuottaa 100 % `OPAQUE_STRIPE_ID_REGEX`-yhteensopivia 32-heksaisia `UUIDv7`-arvoja.
+* **Suorituskomento:**
+  ```powershell
+  /tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md] @[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]
+  ```
 
 ---
 
