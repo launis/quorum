@@ -13,6 +13,7 @@ __all__ = [
     "prompt_context",
     "quote_evidence",
     "render",
+    "schema_manifest",
     "sdui_rules",
     "source_extraction_schema",
     "state",

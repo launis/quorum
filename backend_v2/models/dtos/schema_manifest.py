@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import ItemsView, KeysView, ValuesView
+from typing import Annotated
 
 from pydantic import ConfigDict, Field, JsonValue
 
@@ -20,7 +21,10 @@ class GeneratedSchemaManifestDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    schemas: dict[str, JsonValue] = Field(default_factory=dict, description="Mapping of step IDs to schema definitions")
+    schemas: Annotated[
+        dict[str, JsonValue],
+        Field(default_factory=dict, description="Mapping of step IDs to schema definitions"),
+    ]
 
     def __contains__(self, key: str) -> bool:
         """Check if a step or schema ID exists in the manifest.
@@ -41,6 +45,9 @@ class GeneratedSchemaManifestDTO(V2CoreBase):
 
         Returns:
             Schema definition object or dictionary.
+
+        Raises:
+            KeyError: If the requested step or schema identifier is not present in the manifest.
         """
         return self.schemas[key]
 
