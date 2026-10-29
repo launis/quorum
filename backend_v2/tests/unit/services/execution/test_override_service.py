@@ -479,3 +479,61 @@ async def test_clear_profile_synthesis_profile_not_in_syntheses() -> None:
         profile_id="prf_non_existent",
     )
     assert exec_repo.get_call_count("update_execution") > 0
+
+
+@pytest.mark.asyncio
+async def test_override_atom_permission_denied_with_custom_getter() -> None:
+    """Verify override_atom enforces modification permission check even when custom get_execution_fn returns record."""
+    record = _create_mock_record(org_id="org_other", user_id="usr_other")
+    exec_repo = InMemoryExecutionRepository()
+    workflow_repo = InMemoryUnifiedWorkflowRepository()
+
+    async def _custom_get_execution(initiator: TokenData, execution_id: str) -> ExecutionRecord:
+        return record
+
+    service = ExecutionOverrideService(
+        exec_repo=exec_repo,
+        workflow_repo=workflow_repo,
+        get_execution_fn=_custom_get_execution,
+    )
+    initiator = TokenData(id="usr_intruder", role=UserRole.MEMBER, organization_id="org_mine")
+    payload = HumanOverrideRequest(
+        new_status=ExecutionStatus.PASSED,
+        reason="Unauthorized override",
+        evidence_quotes=[],
+    )
+
+    with pytest.raises(PermissionDeniedError):
+        await service.override_atom(
+            initiator=initiator,
+            execution_id=record.id,
+            atom_id="tda_1",
+            payload=payload,
+        )
+
+
+@pytest.mark.asyncio
+async def test_reject_evidence_quote_permission_denied_with_custom_getter() -> None:
+    """Verify reject_evidence_quote enforces modification permission check when custom get_execution_fn returns record."""
+    record = _create_mock_record(org_id="org_other", user_id="usr_other")
+    exec_repo = InMemoryExecutionRepository()
+    workflow_repo = InMemoryUnifiedWorkflowRepository()
+
+    async def _custom_get_execution(initiator: TokenData, execution_id: str) -> ExecutionRecord:
+        return record
+
+    service = ExecutionOverrideService(
+        exec_repo=exec_repo,
+        workflow_repo=workflow_repo,
+        get_execution_fn=_custom_get_execution,
+    )
+    initiator = TokenData(id="usr_intruder", role=UserRole.MEMBER, organization_id="org_mine")
+
+    with pytest.raises(PermissionDeniedError):
+        await service.reject_evidence_quote(
+            initiator=initiator,
+            execution_id=record.id,
+            evq_id="evq_test123",
+            reason="Unauthorized rejection",
+        )
+
