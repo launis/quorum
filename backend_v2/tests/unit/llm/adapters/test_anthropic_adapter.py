@@ -1,16 +1,18 @@
-import pytest
-from pydantic import BaseModel, Field, JsonValue
+"""Unit, FinOps ROI precision, and ISTQB negative boundary tests for AnthropicCacheAdapter."""
 
+from __future__ import annotations
+
+from typing import Any
+
+import pytest
+from pydantic import BaseModel, Field, JsonValue, ValidationError
+
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.anthropic_adapter import AnthropicCacheAdapter
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
-
-
-def test_lazy_import_proof() -> None:
-    """Pytest sys.modules check is unreliable."""
-    pass
 
 
 @pytest.mark.asyncio
@@ -318,3 +320,63 @@ async def test_anthropic_adapter_consecutive_messages_and_kwargs_branches() -> N
     call_kwargs = {"thinking": {"type": "enabled"}}
     res_kwargs = adapter.prepare_kwargs(call_kwargs, config=config, settings=dev_settings)
     assert "thinking" not in res_kwargs
+
+
+@pytest.mark.asyncio
+async def test_anthropic_adapter_prepare_caching_payload_empty_model_raises_app_exception() -> None:
+    """Negative test: Verify prepare_caching_payload raises AppException on empty or whitespace model_name."""
+    adapter = AnthropicCacheAdapter()
+    prompt = CompiledPrompt(
+        static_messages=[LLMMessageDTO(role="system", content="System instruction.")],
+        dynamic_messages=[LLMMessageDTO(role="user", content="Dynamic user query.")],
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await adapter.prepare_caching_payload(prompt, "   ")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_anthropic_adapter_teardown_cache_empty_run_id_raises_app_exception() -> None:
+    """Negative test: Verify teardown_cache raises AppException when workflow_run_id is empty or whitespace."""
+    adapter = AnthropicCacheAdapter()
+
+    with pytest.raises(AppException) as exc_info:
+        await adapter.teardown_cache("   ")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_anthropic_adapter_prepare_provider_kwargs_empty_model_raises_app_exception() -> None:
+    """Negative test: Verify prepare_provider_kwargs raises AppException on empty or whitespace model_name."""
+    adapter = AnthropicCacheAdapter()
+
+    with pytest.raises(AppException) as exc_info:
+        adapter.prepare_provider_kwargs("")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_anthropic_adapter_prepare_structured_output_invalid_type_raises_app_exception() -> None:
+    """Negative test: Verify prepare_structured_output raises AppException when given a non-BaseModel type."""
+    adapter = AnthropicCacheAdapter()
+    invalid_model: Any = dict
+
+    with pytest.raises(AppException) as exc_info:
+        adapter.prepare_structured_output(invalid_model)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_anthropic_adapter_negative_boundary_schema_validation() -> None:
+    """Negative boundary test: Verify negative token counts or negative prices fail fast at DTO boundary."""
+    with pytest.raises(ValidationError):
+        PricingConfig(input_token_price=-0.0001, output_token_price=0.000015)
+
+    with pytest.raises(ValidationError):
+        TokenUsage(prompt_tokens=-1, completion_tokens=10, total_tokens=9)

@@ -1,22 +1,57 @@
 """Anthropic Claude cache adapter with structural block mapping and FinOps ROI calculation."""
 
+from __future__ import annotations
+
 import logging
-from typing import Any
+from typing import Any, Final, override
 
 from pydantic import BaseModel
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
-from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO
+from backend_v2.models.llm import CachingPayloadResultDTO, LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
+from backend_v2.settings import Settings
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["AnthropicCacheAdapter"]
+
+_MIN_CACHE_TOKENS: Final[int] = 1000
+_DEFAULT_CACHE_READ_DISCOUNT: Final[float] = 0.10
+_DEFAULT_CACHE_WRITE_SURCHARGE: Final[float] = 1.25
 
 
 class AnthropicCacheAdapter(BaseLLMAdapter):
     """Caching and pricing adapter for Anthropic Claude models."""
 
+    @staticmethod
+    def _merge_consecutive_messages(messages: list[LLMMessageDTO]) -> list[LLMMessageDTO]:
+        """Merge consecutive same-role messages into consolidated text messages.
+
+        Args:
+            messages: Ordered list of LLMMessageDTO turns to consolidate.
+
+        Returns:
+            Consolidated list of LLMMessageDTO instances with alternating roles.
+        """
+        merged: list[LLMMessageDTO] = []
+        for msg in messages:
+            role = msg.role
+            content_str = str(msg.content)
+
+            if merged and merged[-1].role == role:
+                prev = merged[-1]
+                prev_text = str(prev.content)
+                merged_text = (prev_text + "\n\n" + content_str).strip()
+                merged[-1] = LLMMessageDTO(role=role, content=merged_text)
+            else:
+                merged.append(LLMMessageDTO(role=role, content=content_str.strip()))
+        return merged
+
+    @override
     async def prepare_caching_payload(
         self, compiled_prompt: CompiledPrompt, model_name: str
     ) -> CachingPayloadResultDTO:
@@ -28,11 +63,27 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
         Returns:
             A CachingPayloadResultDTO containing formatted messages and empty kwargs.
+
+        Raises:
+            AppException: VALIDATION_FAILED if model_name is empty or whitespace.
         """
+        if not model_name or not model_name.strip():
+            logger.error(
+                "[AnthropicCacheAdapter] %s: Target model_name cannot be empty.",
+                ErrorCodes.VALIDATION_FAILED.name,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message="Target model_name cannot be empty for Anthropic cache payload preparation.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
         estimated_tokens, _ = self.estimate_static_tokens(compiled_prompt, exclude_system=False)
 
         # Minimum threshold for Anthropic cache block creation (approx 1000 tokens / 4000 chars)
-        if estimated_tokens < 1000:
+        if estimated_tokens < _MIN_CACHE_TOKENS:
             return CachingPayloadResultDTO(messages=compiled_prompt.to_flat_messages(), kwargs={})
 
         system_msgs = [m for m in compiled_prompt.static_messages if m.role == "system"]
@@ -53,18 +104,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
                 )
             )
 
-        flat_static: list[LLMMessageDTO] = []
-        for msg in other_static_msgs:
-            role = msg.role
-            content_str = str(msg.content)
-
-            if flat_static and flat_static[-1].role == role:
-                prev = flat_static[-1]
-                prev_text = str(prev.content)
-                merged_text = (prev_text + "\n\n" + content_str).strip()
-                flat_static[-1] = LLMMessageDTO(role=role, content=merged_text)
-            else:
-                flat_static.append(LLMMessageDTO(role=role, content=content_str.strip()))
+        flat_static = self._merge_consecutive_messages(other_static_msgs)
 
         if flat_static:
             last_static_msg = flat_static[-1]
@@ -74,26 +114,13 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
                 content=[{"type": "text", "text": last_text, "cache_control": {"type": "ephemeral"}}],
             )
 
-        flat_dynamic: list[LLMMessageDTO] = []
-        for msg in other_dynamic_msgs:
-            role = msg.role
-            content_str = str(msg.content)
-
-            if flat_dynamic and flat_dynamic[-1].role == role:
-                prev = flat_dynamic[-1]
-                prev_text = str(prev.content)
-                merged_text = (prev_text + "\n\n" + content_str).strip()
-                flat_dynamic[-1] = LLMMessageDTO(role=role, content=merged_text)
-            else:
-                flat_dynamic.append(LLMMessageDTO(role=role, content=content_str.strip()))
+        flat_dynamic = self._merge_consecutive_messages(other_dynamic_msgs)
 
         if flat_static and flat_dynamic and flat_static[-1].role == flat_dynamic[0].role:
             static_content = flat_static[-1].content
             static_blocks = []
             if isinstance(static_content, list):
                 static_blocks.extend(static_content)
-            else:
-                static_blocks.append({"type": "text", "text": str(static_content)})
             dynamic_text = str(flat_dynamic[0].content)
 
             merged_blocks = list(static_blocks) + [{"type": "text", "text": dynamic_text}]
@@ -106,14 +133,30 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
         return CachingPayloadResultDTO(messages=final_messages, kwargs={})
 
+    @override
     async def teardown_cache(self, workflow_run_id: str) -> None:
-        """No-Op teardown for Anthropic Claude.
+        """Validate workflow_run_id and execute passive TTL teardown for Anthropic Claude.
 
         Args:
             workflow_run_id: Identifier of the workflow pipeline execution.
-        """
-        pass
 
+        Raises:
+            AppException: VALIDATION_FAILED if workflow_run_id is empty or whitespace.
+        """
+        if not workflow_run_id or not workflow_run_id.strip():
+            logger.error(
+                "[AnthropicCacheAdapter] %s: workflow_run_id cannot be empty during cache teardown.",
+                ErrorCodes.VALIDATION_FAILED.name,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message="workflow_run_id cannot be empty for Anthropic cache teardown.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
+    @override
     def calculate_cost(self, usage: TokenUsage, pricing_config: PricingConfig) -> TokenUsage:
         """Calculate the precise Anthropic cost and savings.
 
@@ -137,12 +180,12 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         p_cached = (
             pricing_config.cached_input_token_price
             if pricing_config.cached_input_token_price is not None
-            else p_in * 0.10
+            else p_in * _DEFAULT_CACHE_READ_DISCOUNT
         )
         p_creation = (
             pricing_config.cache_creation_input_token_price
             if pricing_config.cache_creation_input_token_price is not None
-            else p_in * 1.25
+            else p_in * _DEFAULT_CACHE_WRITE_SURCHARGE
         )
 
         prompt_tokens = usage.prompt_tokens
@@ -174,6 +217,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
             estimated_savings_usd=estimated_savings_usd,
         )
 
+    @override
     def prepare_provider_kwargs(self, model_name: str) -> dict[str, Any]:
         """Prepare provider specific arguments for LiteLLM.
 
@@ -182,11 +226,30 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
         Returns:
             An empty dictionary as no special static arguments are needed.
+
+        Raises:
+            AppException: VALIDATION_FAILED if model_name is empty or whitespace.
         """
+        if not model_name or not model_name.strip():
+            logger.error(
+                "[AnthropicCacheAdapter] %s: Target model_name cannot be empty.",
+                ErrorCodes.VALIDATION_FAILED.name,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message="Target model_name cannot be empty for Anthropic provider kwargs.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
         return {}
 
+    @override
     def prepare_kwargs(
-        self, call_kwargs: dict[str, Any], config: Any | None = None, settings: Any | None = None
+        self,
+        call_kwargs: dict[str, Any],
+        config: LLMProviderConfig | ModelProfile | None = None,
+        settings: Settings | None = None,
     ) -> dict[str, Any]:
         """Prepare Anthropic specific kwargs, handling thinking budgets and parameter constraints.
 
@@ -201,7 +264,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         resolved_model = ""
         if "model" in call_kwargs and call_kwargs["model"]:
             resolved_model = str(call_kwargs["model"])
-        elif isinstance(config, ModelProfile):
+        elif isinstance(config, LLMProviderConfig | ModelProfile):
             resolved_model = config.model_name
         model_name = resolved_model.lower()
         is_claude_37 = "claude-3-7" in model_name or "claude-3.7" in model_name
@@ -221,6 +284,7 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
         return call_kwargs
 
+    @override
     def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, Any] | type[BaseModel]:
         """Convert a Pydantic model into Anthropic specific strict structured output format.
 
@@ -232,7 +296,23 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
 
         Returns:
             A dictionary matching LiteLLM's structured output format.
+
+        Raises:
+            AppException: VALIDATION_FAILED if response_model is not a Pydantic BaseModel subclass.
         """
+        if not isinstance(response_model, type) or not issubclass(response_model, BaseModel):
+            logger.error(
+                "[AnthropicCacheAdapter] %s: response_model must be a Pydantic BaseModel subclass.",
+                ErrorCodes.VALIDATION_FAILED.name,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                exc_info=True,
+            )
+            raise AppException(
+                message="response_model must be a Pydantic BaseModel subclass for Anthropic structured output.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
         json_schema = response_model.model_json_schema()
         self._strip_unsupported_constraints(json_schema)
 
