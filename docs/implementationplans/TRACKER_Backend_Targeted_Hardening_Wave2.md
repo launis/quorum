@@ -45,7 +45,7 @@
   - [x] @[backend_v2/llm/adapters/mock_adapter.py]
   - [x] @[backend_v2/llm/adapters/adapter_factory.py]
   - [x] @[backend_v2/llm/adapters/anthropic_adapter.py]
-  - [ ] @[backend_v2/llm/adapters/openai_adapter.py]
+  - [x] @[backend_v2/llm/adapters/openai_adapter.py]
   - [ ] @[backend_v2/llm/adapters/ai_studio_adapter.py]
   - [ ] @[backend_v2/services/web_fetcher.py]
   - [ ] @[backend_v2/services/ingress/multi_channel_ingress_service.py]
