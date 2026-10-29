@@ -3,6 +3,8 @@
 Defines schemas for batch execution and retrieval orchestration.
 """
 
+from __future__ import annotations
+
 from typing import Annotated
 
 from pydantic import ConfigDict, Field
@@ -10,11 +12,19 @@ from pydantic import ConfigDict, Field
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import LaxSearchStatus
 
+__all__ = [
+    "BatchSearchQueryDTO",
+    "TavilySearchResultDTO",
+]
+
 
 class BatchSearchQueryDTO(V2CoreBase):
     """DTO for receiving a batch of search queries from LLM structured extraction.
 
     Ensures strict validation when extracting queries for concurrent execution.
+
+    Attributes:
+        queries: List of exact search queries to execute in parallel.
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
@@ -27,6 +37,14 @@ class TavilySearchResultDTO(V2CoreBase):
 
     Used to return resilient results back to the Fact Checker, even if
     transient errors cause individual searches to fail.
+
+    Attributes:
+        query: The original search query.
+        answer: The summarized answer from Tavily.
+        source_urls: List of source URLs.
+        raw_content: Concatenated raw snippet content.
+        duration_ms: Duration of the search in milliseconds.
+        status: DLQ tracking status.
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
