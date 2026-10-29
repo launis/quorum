@@ -22,6 +22,8 @@ from backend_v2.models.dtos.studio import (
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["router"]
+
 router = APIRouter(prefix="/prompt-blocks", tags=["Admin Studio V2 - Prompt Blocks"])
 
 
@@ -42,7 +44,8 @@ async def simulate_prompt_block(
         The results of the simulation.
 
     Raises:
-        AppException: If the simulation fails.
+        AppException: With ErrorCodes.RESOURCE_NOT_FOUND if the target scale score is not found,
+            or ErrorCodes.VALIDATION_FAILED if scales contain zero claims or assertions to simulate.
     """
     return await studio_simulation_service.simulate_prompt_block(current_user, data)
 
@@ -61,7 +64,7 @@ async def get_prompt_blocks(
         A list of all prompt blocks.
 
     Raises:
-        AppException: If fetching prompt blocks fails.
+        AppException: With ErrorCodes.STATE_INTEGRITY_ERROR if fetching prompt blocks fails.
     """
     return await prompt_block_service.list_prompt_blocks(current_user)
 
@@ -80,7 +83,9 @@ async def create_prompt_block(
         The newly created prompt block draft.
 
     Raises:
-        AppException: If creating the draft fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the created draft cannot be reloaded.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant modification rights are violated.
+        AppException: With ErrorCodes.AGENT_EXECUTION_CRITICAL if prompt block atomization fails prior to save.
     """
     return await prompt_block_service.create_prompt_block_draft(current_user)
 
@@ -100,8 +105,8 @@ async def get_prompt_block(
         The requested prompt block.
 
     Raises:
-        ResourceNotFoundError: If the prompt block is not found.
-        AppException: If fetching the prompt block fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the prompt block is not found.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant access isolation is violated.
     """
     return await prompt_block_service.get_prompt_block(current_user, id)
 
@@ -123,8 +128,9 @@ async def clone_prompt_block(
         The newly cloned prompt block.
 
     Raises:
-        ResourceNotFoundError: If the source prompt block is not found.
-        AppException: If cloning the prompt block fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the source prompt block is not found.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant access or modification rights are violated.
+        AppException: With ErrorCodes.AGENT_EXECUTION_CRITICAL if atomization of the cloned block fails.
     """
     return await prompt_block_service.clone_prompt_block(current_user, id)
 
@@ -148,8 +154,9 @@ async def save_prompt_block(
         The updated prompt block.
 
     Raises:
-        ResourceNotFoundError: If the prompt block is not found.
-        AppException: If updating the prompt block fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the prompt block is not found after save.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant modification rights are violated.
+        AppException: With ErrorCodes.AGENT_EXECUTION_CRITICAL if prompt block atomization fails prior to save.
     """
     return await prompt_block_service.save_prompt_block(current_user, id, data)
 
@@ -173,8 +180,9 @@ async def delete_prompt_block(
         A PromptBlockDeleteResponse confirming the deletion.
 
     Raises:
-        ResourceNotFoundError: If the prompt block is not found.
-        AppException: If deleting the prompt block fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the prompt block is not found.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant modification rights are violated.
+        AppException: With ErrorCodes.SYSTEM_PROTECTED_RESOURCE if deleting a protected prompt block fails.
     """
     await prompt_block_service.delete_prompt_block(current_user, id, force_delete=force_delete)
     return PromptBlockDeleteResponse(status="success", deleted_id=id)
