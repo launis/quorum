@@ -15,6 +15,8 @@ from backend_v2.models.enums import LLMPlatformType
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["router"]
+
 router = APIRouter(prefix="/model-registry", tags=["Admin Studio V2 - Model Registry"])
 
 
@@ -33,13 +35,14 @@ def get_available_models(
         llm_handler: The LLM handler dependency.
         studio_service: The studio service dependency.
         platform: Target platform filter (vertex_ai, ai_studio, openai, anthropic, all).
-        location: Target GCP region location (e.g. europe-north1).
+        location: Target GCP region location identifier for Vertex AI.
 
     Returns:
-        A list of available model names.
+        A sorted list of available model identifiers.
 
     Raises:
-        AppException: If fetching available models fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks ROOT or ADMIN role.
+        AppException: With ErrorCodes.CONFIGURATION_ERROR or ErrorCodes.SERVICE_DEPENDENCY_MISSING if provider discovery fails.
     """
     return studio_service.get_available_models(current_user, llm_handler, platform=platform, location=location)
 
@@ -61,7 +64,8 @@ def get_supported_locations(
         A list of supported GCP locations.
 
     Raises:
-        AppException: If user is unauthorized or listing fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks ROOT or ADMIN role.
+        AppException: With ErrorCodes.CONFIGURATION_ERROR if dynamic region discovery fails.
     """
     return studio_service.get_supported_locations(current_user, llm_handler)
 
@@ -81,7 +85,7 @@ def get_supported_platforms(
         A list of supported LLM platforms.
 
     Raises:
-        AppException: If user is unauthorized or listing fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks ROOT or ADMIN role.
     """
     return studio_service.get_supported_platforms(current_user)
 
@@ -100,7 +104,7 @@ async def get_all_model_registries(
         A list of model registry configurations.
 
     Raises:
-        AppException: If fetching model registries fails.
+        AppException: With ErrorCodes.DATABASE_ERROR if fetching model registries fails.
     """
     return await studio_service.get_all_system_configs(current_user)
 
@@ -119,7 +123,8 @@ async def create_model_registry(
         The newly created model registry draft configuration.
 
     Raises:
-        AppException: If creating the draft fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks ROOT modification rights.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the persisted draft cannot be reloaded.
     """
     return await studio_service.create_system_config_draft(current_user)
 
@@ -133,7 +138,7 @@ async def get_model_registry(
     """Retrieve a single model registry configuration securely via SSOT Service Layer.
 
     Args:
-        registry_id: The unique identifier of the model registry.
+        registry_id: The unique Opaque Stripe ID of the model registry.
         current_user: The authenticated user making the request.
         studio_service: The studio service dependency.
 
@@ -141,8 +146,8 @@ async def get_model_registry(
         The requested model registry configuration.
 
     Raises:
-        ResourceNotFoundError: If the model registry is not found.
-        AppException: If fetching the model registry fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks ROOT role.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the model registry is not found.
     """
     return await studio_service.get_system_config(current_user, registry_id)
 
@@ -157,7 +162,7 @@ async def save_model_registry(
     """Update a model registry configuration securely via SSOT Service Layer.
 
     Args:
-        registry_id: The unique identifier of the model registry.
+        registry_id: The unique Opaque Stripe ID of the model registry.
         data: The new configuration data.
         current_user: The authenticated user making the request.
         studio_service: The studio service dependency.
@@ -166,8 +171,8 @@ async def save_model_registry(
         The updated model registry configuration.
 
     Raises:
-        ResourceNotFoundError: If the model registry is not found.
-        AppException: If updating the model registry fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks ROOT role.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the model registry is not found after save.
     """
     return await studio_service.save_system_config(current_user, registry_id, data)
 
@@ -179,7 +184,7 @@ async def delete_model_registry(
     """Delete a model registry configuration securely via SSOT Service Layer.
 
     Args:
-        registry_id: The unique identifier of the model registry to delete.
+        registry_id: The unique Opaque Stripe ID of the model registry to delete.
         current_user: The authenticated user making the request.
         studio_service: The studio service dependency.
 
@@ -187,8 +192,8 @@ async def delete_model_registry(
         A ModelRegistryDeleteResponse confirming the deletion.
 
     Raises:
-        ResourceNotFoundError: If the model registry is not found.
-        AppException: If deleting the model registry fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks ROOT role.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the model registry is not found.
     """
     await studio_service.delete_system_config(current_user, registry_id)
     return ModelRegistryDeleteResponse(status="success", deleted_id=registry_id)
@@ -203,7 +208,7 @@ async def clone_model_registry(
     """Deep clone a model registry configuration securely via SSOT Service Layer.
 
     Args:
-        registry_id: The unique identifier of the model registry to clone.
+        registry_id: The unique Opaque Stripe ID of the model registry to clone.
         current_user: The authenticated user making the request.
         studio_service: The studio service dependency.
 
@@ -211,7 +216,7 @@ async def clone_model_registry(
         The newly cloned model registry configuration.
 
     Raises:
-        ResourceNotFoundError: If the source model registry is not found.
-        AppException: If cloning the model registry fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks ROOT role.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the source model registry is not found.
     """
     return await studio_service.clone_system_config(current_user, registry_id)
