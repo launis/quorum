@@ -11,6 +11,8 @@ from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapt
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["AgentRepositoryImpl"]
+
 
 class AgentRepositoryImpl(AppendOnlyRepositoryBase):
     """Implementation of the Agent Repository.
@@ -19,7 +21,7 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
     It inherits from AppendOnlyRepositoryBase to support versioned documents.
     """
 
-    def __init__(self, driver: StorageDriver):
+    def __init__(self, driver: StorageDriver) -> None:
         """Initializes the repository with a storage driver.
 
         Args:
@@ -37,7 +39,8 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
             The validated PromptBlock domain model if found, otherwise None.
 
         Raises:
-            AppException: Propagated from driver if the database query fails.
+            AppException: If the database query or model validation fails
+                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         doc = await self.driver.get("agents", agent_id)
         if not doc:
@@ -45,7 +48,13 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
         try:
             return PromptBlockAdapter.validate_python(doc, strict=False)
         except Exception as e:
-            logger.error("Failed to parse Agent %s: %s", agent_id, e, exc_info=True)
+            logger.error(
+                "[AgentRepository] %s: Failed to parse Agent %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                agent_id,
+                e,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Failed to parse Agent {agent_id} from database",
                 status_code=500,
@@ -59,7 +68,8 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
             A list of validated PromptBlock domain models.
 
         Raises:
-            AppException: Propagated from driver if the database query fails.
+            AppException: If the database query or model validation fails
+                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         raw_items = await self.driver.query("agents")
         agents: list[PromptBlock] = []
@@ -70,7 +80,13 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
                 item_id = "unknown"
                 if "id" in item:
                     item_id = str(item["id"])
-                logger.error("Failed to parse Agent %s: %s", item_id, e, exc_info=True)
+                logger.error(
+                    "[AgentRepository] %s: Failed to parse Agent %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Failed to parse Agent {item_id} from database",
                     status_code=500,
@@ -88,11 +104,11 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
             The ID of the created agent.
 
         Raises:
-            AppException: Propagated from driver if the upsert operation fails.
+            AppException: Propagated from driver if the upsert operation fails
+                (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         payload = agent_data.model_dump(mode="json")
-        doc_id = payload["id"]
-        return await self.driver.upsert("agents", payload, doc_id)
+        return await self.driver.upsert("agents", payload, agent_data.id)
 
     async def update_agent(self, agent_id: str, updates: PromptBlock) -> bool:
         """Updates an existing agent using versioned append-only logic.
@@ -105,7 +121,8 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
             True if the update was successful, False if the document was not found.
 
         Raises:
-            AppException: Propagated from driver if database operations fail.
+            AppException: Propagated from driver if database operations fail
+                (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         old_doc = await self.driver.get("agents", agent_id)
         if not old_doc:
@@ -135,7 +152,8 @@ class AgentRepositoryImpl(AppendOnlyRepositoryBase):
             True if successfully deleted, False if the document did not exist.
 
         Raises:
-            AppException: Propagated from driver if database operations fail.
+            AppException: Propagated from driver if database operations fail
+                (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         agent = await self.driver.get("agents", agent_id)
         if not agent:

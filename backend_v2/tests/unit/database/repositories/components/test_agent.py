@@ -7,6 +7,7 @@ import pytest
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.database.repositories.components.agent import AgentRepositoryImpl
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
@@ -74,3 +75,76 @@ async def test_update_agent(repo: AgentRepositoryImpl, driver: StorageDriver, sa
     assert persisted_raw["id"] == new_version_id
     assert persisted_raw["version"] == 2
     assert persisted_raw["is_latest"] is True
+
+
+@pytest.mark.asyncio
+async def test_get_agent_by_id_malformed_raises_app_exception(repo: AgentRepositoryImpl, driver: StorageDriver) -> None:
+    """Test get_agent_by_id raises AppException(500) when stored document fails validation."""
+    await driver.upsert(
+        "agents",
+        {"id": "blk_1111111111111111", "category_id": "invalid_category"},
+        "blk_1111111111111111",
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_agent_by_id("blk_1111111111111111")
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "blk_1111111111111111" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_get_all_agents_malformed_with_id_raises_app_exception(
+    repo: AgentRepositoryImpl, driver: StorageDriver
+) -> None:
+    """Test get_all_agents raises AppException(500) when a document with ID fails validation."""
+    await driver.upsert(
+        "agents",
+        {"id": "blk_2222222222222222", "category_id": "invalid_category"},
+        "blk_2222222222222222",
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_all_agents()
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "blk_2222222222222222" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_get_all_agents_malformed_without_id_raises_app_exception(
+    repo: AgentRepositoryImpl,
+    driver: StorageDriver,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test get_all_agents raises AppException(500) with 'unknown' when malformed doc lacks id."""
+
+    async def _query_corrupted(collection: str, *args: object, **kwargs: object) -> list[dict[str, str]]:
+        return [{"category_id": "invalid_category"}]
+
+    monkeypatch.setattr(driver, "query", _query_corrupted)
+
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_all_agents()
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "unknown" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_update_agent_not_found_returns_false(
+    repo: AgentRepositoryImpl, sample_agent: PersonaPromptBlock
+) -> None:
+    """Test update_agent returns False when target agent ID does not exist."""
+    res = await repo.update_agent("blk_0000000000000000", sample_agent)
+    assert res is False
+
+
+@pytest.mark.asyncio
+async def test_delete_agent_not_found_returns_false(repo: AgentRepositoryImpl) -> None:
+    """Test delete_agent returns False when target agent ID does not exist."""
+    res = await repo.delete_agent("blk_0000000000000000")
+    assert res is False
