@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import logging
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.chunking import Chunk, ChunkingRequest
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["ChunkingService"]
 
 
 class ChunkingService:
@@ -26,11 +29,38 @@ class ChunkingService:
 
         Returns:
             List of chunk envelopes with generic item payloads.
+
+        Raises:
+            AppException: If items list is empty or max_chunk_size is not positive
+                (ErrorCodes.VALIDATION_FAILED).
         """
         chunks: list[Chunk[T]] = []
         items = request.items
         n = request.max_chunk_size
         parent_id = request.parent_id
+
+        if not items or n <= 0:
+            msg = (
+                f"Invalid chunking parameters: items count={len(items)}, "
+                f"max_chunk_size={n}. Both must be strictly positive."
+            )
+            logger.error(
+                "[ChunkingService] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={
+                    "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                    "parent_id": parent_id,
+                    "items_count": len(items),
+                    "max_chunk_size": n,
+                },
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=422,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
 
         for index, i in enumerate(range(0, len(items), n)):
             chunk_items = items[i : i + n]
