@@ -14,10 +14,10 @@ from backend_v2.core.hook_registry import (
     HookResult,
     HookState,
 )
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.hooks.interaction_hook import _SYSTEM_INSTRUCTION, analyze_interaction_role
-from backend_v2.models.domain.interaction import InteractionAnalysisDTO
-from backend_v2.models.enums import InteractionStrategy, RoleClassification
+from backend_v2.models.domain.interaction import InteractionAnalysisDTO, InteractionInput
+from backend_v2.models.enums import InteractionStrategy, LLMProvider, RoleClassification
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
@@ -344,3 +344,146 @@ async def test_analyze_interaction_role_llm_failure(
 
     assert exc.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert "LLM structured execution failed" in exc.value.message
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.hooks.interaction_hook.calculate_behavioral_metrics")
+@patch("backend_v2.hooks.interaction_hook.calculate_control_ratio")
+@patch("backend_v2.hooks.interaction_hook.LLMClient.from_strategy", new_callable=AsyncMock)
+async def test_analyze_interaction_role_configuration_error(
+    mock_from_strategy: AsyncMock,
+    mock_control_ratio: AsyncMock,
+    mock_behavioral_metrics: AsyncMock,
+    mock_repository: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Test fail-fast when LLMClient.from_strategy raises ConfigurationError."""
+    state = HookState(
+        execution_id="sub-123",
+        workflow_id="wf-123",
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"chat_log": "User: test"}),
+    )
+    deps = HookDependencies(
+        exec_repo=mock_repository,
+        workflow_repo=mock_repository,
+        comp_repo=mock_repository,
+        prompt_block_repo=mock_repository,
+        output_profile_repo=mock_repository,
+        identity_repo=mock_repository,
+        audit_repo=mock_repository,
+        system_repo=mock_repository,
+    )
+
+    mock_control_ratio.return_value = 0.5
+    from backend_v2.models.domain.metrics import BehavioralMetricsDTO
+
+    mock_behavioral_metrics.return_value = BehavioralMetricsDTO(
+        say_do_gap=0.0, automation_bias=0.0, illusion_of_competence=0.0, imperative_command_count=0
+    )
+    mock_from_strategy.side_effect = ConfigurationError("Missing fast tier in registry")
+
+    with pytest.raises(AppException) as exc:
+        await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
+
+    assert exc.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert exc.value.error_code == ErrorCodes.CONFIGURATION_ERROR.value
+    assert "Failed to init LLM." in exc.value.message
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.hooks.interaction_hook.calculate_behavioral_metrics")
+@patch("backend_v2.hooks.interaction_hook.calculate_control_ratio")
+@patch("backend_v2.hooks.interaction_hook.LLMTaskExecutor.execute_structured_task", new_callable=AsyncMock)
+@patch("backend_v2.hooks.interaction_hook.LLMClient.from_strategy", new_callable=AsyncMock)
+async def test_analyze_interaction_role_registry_and_provider_override(
+    mock_from_strategy: AsyncMock,
+    mock_execute_structured_task: AsyncMock,
+    mock_control_ratio: AsyncMock,
+    mock_behavioral_metrics: AsyncMock,
+    mock_repository: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Test that model_registry_id and provider_override are forwarded to LLMClient.from_strategy."""
+    state = HookState(
+        execution_id="sub-123",
+        workflow_id="wf-123",
+        metadata=ExecutionMetadata(
+            model_registry_id="sys_1234567890abcdef",
+            provider_override=LLMProvider.VERTEX_AI,
+        ),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"chat_log": "User: design the architecture."}),
+    )
+    deps = HookDependencies(
+        exec_repo=mock_repository,
+        workflow_repo=mock_repository,
+        comp_repo=mock_repository,
+        prompt_block_repo=mock_repository,
+        output_profile_repo=mock_repository,
+        identity_repo=mock_repository,
+        audit_repo=mock_repository,
+        system_repo=mock_repository,
+    )
+
+    mock_control_ratio.return_value = 0.8
+    from backend_v2.models.domain.metrics import BehavioralMetricsDTO
+
+    mock_behavioral_metrics.return_value = BehavioralMetricsDTO(
+        say_do_gap=0.0, automation_bias=0.0, illusion_of_competence=0.0, imperative_command_count=2
+    )
+    mock_llm_response = InteractionAnalysisDTO(
+        role_classification=RoleClassification.ARCHITECT,
+        high_dependency=False,
+        imperative_command_count=2,
+        strategy=InteractionStrategy.ZERO_SHOT,
+        thought_process="Active direction.",
+        conclusion="Architect role assigned.",
+        confidence_score=0.95,
+    )
+    mock_execute_structured_task.return_value = (mock_llm_response, {})
+
+    res = await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
+
+    assert res.success is True
+    mock_from_strategy.assert_awaited_once_with(
+        "fast",
+        repository=mock_repository,
+        pipeline_name="interaction_hook",
+        registry_id="sys_1234567890abcdef",
+        provider=LLMProvider.VERTEX_AI,
+    )
+
+
+@pytest.mark.asyncio
+async def test_analyze_interaction_role_post_validation_empty_chat_log_short_circuits(
+    mock_repository: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Test defensive short-circuit when validated InteractionInput contains empty/whitespace chat_log."""
+    state = HookState(
+        execution_id="sub-123",
+        workflow_id="wf-123",
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={"chat_log": "placeholder"}),
+    )
+    deps = HookDependencies(
+        exec_repo=mock_repository,
+        workflow_repo=mock_repository,
+        comp_repo=mock_repository,
+        prompt_block_repo=mock_repository,
+        output_profile_repo=mock_repository,
+        identity_repo=mock_repository,
+        audit_repo=mock_repository,
+        system_repo=mock_repository,
+    )
+
+    with patch.object(
+        InteractionInput,
+        "model_validate",
+        return_value=InteractionInput.model_construct(chat_log="   "),
+    ):
+        res = await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
+
+    assert res.success is True
+    assert res.state_delta is not None
+    assert res.state_delta.delta is None

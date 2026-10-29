@@ -30,6 +30,8 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["analyze_interaction_role"]
+
 _SYSTEM_INSTRUCTION: str = build_system_directive(
     objective=INTERACTION_OBJECTIVE,
     role="Interaction Analyst",
@@ -62,7 +64,12 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
         input_data = InteractionInput.model_validate(inputs_source)
     except ValidationError as e:
         msg = f"Invalid inputs schema: {e}"
-        logger.error("[InteractionRoleHook] %s: %s", ErrorCodes.INVALID_JSON_PAYLOAD.name, msg)
+        logger.error(
+            "[InteractionRoleHook] %s: %s",
+            ErrorCodes.INVALID_JSON_PAYLOAD.name,
+            msg,
+            exc_info=True,
+        )
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -82,7 +89,12 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
     system_repo = deps.system_repo
     if not system_repo:
         msg = "Strict Fail-Fast Enforced: Missing repository context in InteractionRoleHook."
-        logger.error("[InteractionRoleHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        logger.error(
+            "[InteractionRoleHook] %s: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            msg,
+            exc_info=True,
+        )
         raise AppException(
             message=msg,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -109,7 +121,12 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
             )
         executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
     except ConfigurationError as e:
-        logger.error("[InteractionRoleHook] %s: Failed to init LLM: %s", ErrorCodes.CONFIGURATION_ERROR.name, e)
+        logger.error(
+            "[InteractionRoleHook] %s: Failed to init LLM: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            e,
+            exc_info=True,
+        )
         raise AppException(
             message="Failed to init LLM.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
