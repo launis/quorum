@@ -32,7 +32,7 @@
   - [x] @[backend_v2/database/repositories/components/role.py]
   - [x] @[backend_v2/database/repositories/components/task_blueprint.py]
   - [x] @[backend_v2/services/orchestrator/schema_factory.py]
-  - [ ] @[backend_v2/services/orchestrator/chunking_service.py]
+  - [x] @[backend_v2/services/orchestrator/chunking_service.py]
   - [ ] @[backend_v2/services/orchestrator/atomizer.py]
   - [ ] @[backend_v2/services/orchestrator/dag_compiler.py]
   - [ ] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]
