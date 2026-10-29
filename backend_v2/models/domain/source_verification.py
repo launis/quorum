@@ -12,9 +12,22 @@ from pydantic import BeforeValidator, ConfigDict, Field
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.system_config import MCPAuditTrace
 
+__all__ = [
+    "SourceClaimDTO",
+    "SourceVerificationResultDTO",
+    "SourceVerificationStatus",
+    "VerifiedSourceDTO",
+]
+
 
 class SourceVerificationStatus(StrEnum):
-    """Enumeration of possible verification statuses for a source claim."""
+    """Enumeration of possible verification statuses for a source claim.
+
+    Attributes:
+        VERIFIED: Claim is corroborated by external search evidence.
+        HALLUCINATION: Claim is contradicted or fabricated relative to search evidence.
+        INCONCLUSIVE: Search evidence is insufficient to confirm or refute the claim.
+    """
 
     VERIFIED = "VERIFIED"
     HALLUCINATION = "HALLUCINATION"
@@ -30,7 +43,7 @@ class SourceClaimDTO(V2CoreBase):
         publication_year: The year of publication, if mentioned.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     claim_text: Annotated[str, Field(description="The explicitly claimed source text in the document.")]
     institution_name: Annotated[str | None, Field(description="The name of the institution, if mentioned.")] = None
@@ -47,7 +60,7 @@ class VerifiedSourceDTO(V2CoreBase):
         tavily_answer: The textual answer/summary returned by the search API.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     claim_text: Annotated[str, Field(description="The original claim text.")]
     status: Annotated[
@@ -71,7 +84,7 @@ class SourceVerificationResultDTO(V2CoreBase):
         audit_traces: Audit traces of external searches executed.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     claims: Annotated[list[VerifiedSourceDTO], Field(default_factory=list, description="Verified claims.")]
     verification_timestamp: Annotated[str, Field(description="Timestamp when verification ran.")]
