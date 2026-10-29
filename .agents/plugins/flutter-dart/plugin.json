@@ -1,0 +1,5 @@
+{
+  "name": "quorum-flutter-dart",
+  "displayName": "Quorum Flutter & Dart MCP",
+  "description": "Local Dart 3.11+ and Flutter MCP server integration providing live analyzer diagnostics, symbol resolution, and widget tree inspection."
+}

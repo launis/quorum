@@ -1,0 +1,5 @@
+{
+  "name": "quorum-postgres",
+  "displayName": "Quorum PostgreSQL 19 Read-Only Inspector",
+  "description": "Read-only PostgreSQL 19 MCP server integration for inspecting table schemas, indexes, JSONB documents, and EXPLAIN query plans."
+}

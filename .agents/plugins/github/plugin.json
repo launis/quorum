@@ -1,0 +1,5 @@
+{
+  "name": "quorum-github",
+  "displayName": "Quorum GitHub & CI Integration",
+  "description": "GitHub MCP server integration for inspecting pull requests, issues, branches, and GitHub Actions quality gate runs."
+}

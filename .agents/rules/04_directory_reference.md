@@ -167,7 +167,7 @@
 
     <module path=".agents/plugins/">
         <responsibility>WORKSPACE PLUGINS & MCP SERVER BUNDLES</responsibility>
-        <key_domains>logfire/ (plugin.json, mcp_config.json - Pydantic Logfire MCP integration)</key_domains>
+        <key_domains>logfire/ (Pydantic Logfire MCP integration), flutter-dart/ (Native Dart 3.11+ & Flutter MCP server), postgres/ (PostgreSQL 19 Read-Only schema & query plan inspector), github/ (GitHub PR, issue & CI workflow MCP integration)</key_domains>
     </module>
 
     <module path="<appDataDir>\knowledge\">

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "quorum-postgres-mcp": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "${POSTGRES_MCP_URL}"],
+      "env": {
+        "DB_READONLY": "true"
+      }
+    }
+  }
+}
