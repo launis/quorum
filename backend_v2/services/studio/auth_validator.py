@@ -3,12 +3,28 @@
 Provides pure functions to enforce tenant isolation and modification rights.
 """
 
+from __future__ import annotations
+
 import logging
 
 from backend_v2.exceptions import ErrorCodes, PermissionDeniedError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 
+__all__ = [
+    "enforce_modification_rights",
+    "enforce_tenant_isolation",
+    "is_resource_accessible",
+]
+
 logger = logging.getLogger(__name__)
+
+_MODIFICATION_ALLOWED_ROLES: frozenset[UserRole] = frozenset(
+    {
+        UserRole.ROOT,
+        UserRole.ADMIN,
+        UserRole.MANAGER,
+    }
+)
 
 
 def is_resource_accessible(
@@ -87,7 +103,7 @@ def enforce_modification_rights(
     Raises:
         PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If the user does not have permission.
     """
-    if initiator.role not in [UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER]:
+    if initiator.role not in _MODIFICATION_ALLOWED_ROLES:
         logger.error(
             "[StudioService] %s: User %s (Role: %s) denied. Only ADMIN or MANAGER can modify resources.",
             ErrorCodes.PERMISSION_DENIED.name,
