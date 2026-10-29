@@ -7,9 +7,24 @@ from pydantic import ConfigDict, Field
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.base import BaseDTO
 
+__all__ = [
+    "BannedPhrase",
+    "Claim",
+    "ClaimCreateDTO",
+    "Concept",
+    "ConceptCreateDTO",
+    "PromptTemplateDTO",
+    "Reference",
+    "ReferenceCreateDTO",
+]
+
 
 class ConceptCreateDTO(BaseDTO):
-    """DTO for adding a concept to the knowledge base."""
+    """DTO for adding a concept to the knowledge base.
+
+    Attributes:
+        name: Concept name.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -17,7 +32,11 @@ class ConceptCreateDTO(BaseDTO):
 
 
 class ReferenceCreateDTO(BaseDTO):
-    """DTO for adding a reference to the knowledge base."""
+    """DTO for adding a reference to the knowledge base.
+
+    Attributes:
+        name: Reference name.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -25,7 +44,11 @@ class ReferenceCreateDTO(BaseDTO):
 
 
 class ClaimCreateDTO(BaseDTO):
-    """DTO for adding a claim to the knowledge base."""
+    """DTO for adding a claim to the knowledge base.
+
+    Attributes:
+        name: Claim name.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -33,7 +56,13 @@ class ClaimCreateDTO(BaseDTO):
 
 
 class BannedPhrase(V2CoreBase):
-    """Model for a single banned phrase."""
+    """Model for a single banned phrase.
+
+    Attributes:
+        id: Unique ID for the banned phrase.
+        phrase: The banned phrase string.
+        language: Language code.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -43,7 +72,12 @@ class BannedPhrase(V2CoreBase):
 
 
 class PromptTemplateDTO(V2CoreBase):
-    """Model for compiled system and user prompt template."""
+    """Model for compiled system and user prompt template.
+
+    Attributes:
+        system: System prompt instruction string.
+        user: User prompt instruction string.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -52,7 +86,12 @@ class PromptTemplateDTO(V2CoreBase):
 
 
 class Concept(V2CoreBase):
-    """Model for a knowledge base concept."""
+    """Model for a knowledge base concept.
+
+    Attributes:
+        id: Unique concept ID.
+        name: Optional concept name.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -61,7 +100,12 @@ class Concept(V2CoreBase):
 
 
 class Reference(V2CoreBase):
-    """Model for a knowledge base reference."""
+    """Model for a knowledge base reference.
+
+    Attributes:
+        id: Unique reference ID.
+        name: Optional reference name.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -70,7 +114,12 @@ class Reference(V2CoreBase):
 
 
 class Claim(V2CoreBase):
-    """Model for a knowledge base claim."""
+    """Model for a knowledge base claim.
+
+    Attributes:
+        id: Unique claim ID.
+        name: Optional claim name.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
