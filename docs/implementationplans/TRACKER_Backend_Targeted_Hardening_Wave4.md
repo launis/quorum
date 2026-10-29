@@ -51,7 +51,7 @@
   - [x] @[backend_v2/models/dtos/retrieval.py]
   - [x] @[backend_v2/models/dtos/evaluation_steps.py]
   - [x] @[backend_v2/models/dtos/schema_manifest.py]
-  - [ ] @[backend_v2/models/dtos/state.py]
+  - [x] @[backend_v2/models/dtos/state.py]
   - [ ] @[backend_v2/models/dtos/variance.py]
   - [ ] @[backend_v2/models/dtos/workflow_schema.py]
 
