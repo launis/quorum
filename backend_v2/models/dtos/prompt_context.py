@@ -7,9 +7,17 @@ from pydantic import ConfigDict, Field, JsonValue
 from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.llm import LLMMessageDTO
 
+__all__ = ["PromptContextDTO"]
+
 
 class PromptContextDTO(BaseDTO):
-    """Execution prompt context containing exact compilation boundaries."""
+    """Execution prompt context containing exact compilation boundaries.
+
+    Attributes:
+        static_messages: Globally identical content across all chunks (base system prompt + source document).
+        dynamic_messages: Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors).
+        metadata: Arbitrary execution metadata (e.g., token proxy scores).
+    """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
