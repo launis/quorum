@@ -1,7 +1,44 @@
+"""Unit tests for domain usage models (PricingConfig, TokenUsage, UsageAggregate, UsageReport)."""
+
+from __future__ import annotations
+
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.domain.usage import TokenUsage, UsageAggregate, UsageReport
+from backend_v2.models.domain.usage import PricingConfig, TokenUsage, UsageAggregate, UsageReport
+
+
+def test_pricing_config_valid() -> None:
+    """Test valid PricingConfig creation with optional caching rates."""
+    config = PricingConfig(
+        input_token_price=0.001,
+        output_token_price=0.002,
+        cached_input_token_price=0.00025,
+        cache_creation_input_token_price=0.00125,
+    )
+    assert config.input_token_price == 0.001
+    assert config.output_token_price == 0.002
+    assert config.cached_input_token_price == 0.00025
+    assert config.cache_creation_input_token_price == 0.00125
+
+
+def test_pricing_config_invalid_negative() -> None:
+    """Test PricingConfig validation for negative boundary values."""
+    with pytest.raises(ValidationError) as exc:
+        PricingConfig(input_token_price=-0.001, output_token_price=0.002)
+    assert "greater_than_equal" in str(exc.value)
+
+    with pytest.raises(ValidationError) as exc:
+        PricingConfig(input_token_price=0.0, output_token_price=-0.001)
+    assert "greater_than_equal" in str(exc.value)
+
+    with pytest.raises(ValidationError) as exc:
+        PricingConfig(input_token_price=0.0, output_token_price=0.0, cached_input_token_price=-0.0001)
+    assert "greater_than_equal" in str(exc.value)
+
+    with pytest.raises(ValidationError) as exc:
+        PricingConfig(input_token_price=0.0, output_token_price=0.0, cache_creation_input_token_price=-0.0001)
+    assert "greater_than_equal" in str(exc.value)
 
 
 def test_token_usage_valid() -> None:
@@ -80,19 +117,21 @@ def test_usage_aggregate_valid() -> None:
 
 def test_usage_aggregate_invalid_empty_string() -> None:
     """Test UsageAggregate validation for empty strings."""
+    zero_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
     with pytest.raises(ValidationError) as exc:
-        UsageAggregate(scope="", period="2026-05")
+        UsageAggregate(scope="", period="2026-05", usage=zero_usage)
     assert "string_too_short" in str(exc.value)
 
     with pytest.raises(ValidationError) as exc:
-        UsageAggregate(scope="system", period="")
+        UsageAggregate(scope="system", period="", usage=zero_usage)
     assert "string_too_short" in str(exc.value)
 
 
 def test_usage_aggregate_invalid_negative() -> None:
     """Test UsageAggregate validation for negative executions."""
+    zero_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
     with pytest.raises(ValidationError) as exc:
-        UsageAggregate(scope="system", period="2026-05", total_executions=-1)
+        UsageAggregate(scope="system", period="2026-05", usage=zero_usage, total_executions=-1)
     assert "ge" in str(exc.value)
 
 
@@ -116,17 +155,25 @@ def test_usage_report_valid() -> None:
 
 def test_usage_report_invalid_negative() -> None:
     """Test UsageReport validation for negative metrics."""
+    zero_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
     with pytest.raises(ValidationError) as exc:
-        UsageReport(scope="organization", period="all-time", quota_limit_usd=-1.0)
+        UsageReport(scope="organization", period="all-time", usage=zero_usage, quota_limit_usd=-1.0)
     assert "ge" in str(exc.value)
 
     with pytest.raises(ValidationError) as exc:
-        UsageReport(scope="organization", period="all-time", percentage_used=-5.0)
+        UsageReport(scope="organization", period="all-time", usage=zero_usage, percentage_used=-5.0)
     assert "ge" in str(exc.value)
 
 
 def test_models_frozen_and_extra_forbid() -> None:
     """Test that all models are frozen and forbid extra fields."""
+    pricing = PricingConfig(input_token_price=0.01, output_token_price=0.02)
+    with pytest.raises(ValidationError):
+        pricing.input_token_price = 0.05
+
+    with pytest.raises(ValidationError):
+        PricingConfig.model_validate({"input_token_price": 0.01, "output_token_price": 0.02, "extra": 1.0})
+
     usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
     with pytest.raises(ValidationError):
         usage.prompt_tokens = 10
@@ -136,14 +183,16 @@ def test_models_frozen_and_extra_forbid() -> None:
             {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "extra_field": "invalid"}
         )
 
-    agg = UsageAggregate(scope="sys", period="all")
+    agg = UsageAggregate.model_validate({"scope": "sys", "period": "all"})
+    assert agg.usage.total_tokens == 0
     with pytest.raises(ValidationError):
         agg.scope = "new"
 
     with pytest.raises(ValidationError):
         UsageAggregate.model_validate({"scope": "sys", "period": "all", "unknown": "field"})
 
-    report = UsageReport(scope="sys", period="all")
+    report = UsageReport.model_validate({"scope": "sys", "period": "all"})
+    assert report.usage.total_tokens == 0
     with pytest.raises(ValidationError):
         report.scope = "new"
 
