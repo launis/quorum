@@ -17,6 +17,13 @@ from backend_v2.models.domain.base import ReasoningTrace
 from backend_v2.models.domain.integrity import CitationAudit
 from backend_v2.models.domain.judge import DimensionResultItem, JudgeScoreCard
 
+__all__ = [
+    "EvaluationCriterion",
+    "EvaluationMatrixConfig",
+    "EvaluationResult",
+    "ValidationResult",
+]
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,12 +41,12 @@ class EvaluationCriterion(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    id: Annotated[str, Field(min_length=1)]
-    label: Annotated[str, Field(min_length=1)]
-    description: str | None = None
-    instruction: str | None = None
-    anchors: dict[str, str] | None = None
-    weight: float = 1.0
+    id: Annotated[str, Field(min_length=1, description="Unique identifier.")]
+    label: Annotated[str, Field(min_length=1, description="Human-readable label.")]
+    description: Annotated[str | None, Field(description="Description of the criterion.")] = None
+    instruction: Annotated[str | None, Field(description="Specific instructions for evaluation.")] = None
+    anchors: Annotated[dict[str, str] | None, Field(description="Scoring anchors mapping.")] = None
+    weight: Annotated[float, Field(description="Importance weight.")] = 1.0
 
     @field_validator("weight")
     @classmethod
@@ -53,11 +60,11 @@ class EvaluationCriterion(V2CoreBase):
             Validated weight.
 
         Raises:
-            AppException: If weight is < 0.0.
+            AppException: If weight is < 0.0 (ErrorCodes.VALIDATION_FAILED).
         """
         if v < 0.0:
             msg = "weight must be >= 0.0"
-            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -74,12 +81,16 @@ class EvaluationMatrixConfig(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    id: Annotated[str, Field(min_length=1)]
-    name: Annotated[str, Field(min_length=1)]
-    description: str | None = None
+    id: Annotated[str, Field(min_length=1, description="Unique identifier for the matrix.")]
+    name: Annotated[str, Field(min_length=1, description="Human-readable name.")]
+    description: Annotated[str | None, Field(description="Optional description.")] = None
     criteria: Annotated[
         list[EvaluationCriterion],
-        Field(min_length=1, json_schema_extra={"x-ui-group": "Evaluation Criteria"}),
+        Field(
+            min_length=1,
+            description="List of evaluation criteria.",
+            json_schema_extra={"x-ui-group": "Evaluation Criteria"},
+        ),
     ]
 
 
@@ -100,8 +111,10 @@ class EvaluationResult(ReasoningTrace):
         integrity_audit: Integrity audit results for citations.
     """
 
-    matrix_id: Annotated[str, Field(min_length=1)]
-    timestamp: datetime
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    matrix_id: Annotated[str, Field(min_length=1, description="ID of the evaluated matrix.")]
+    timestamp: Annotated[datetime, Field(description="Evaluation timestamp.")]
     total_score: Annotated[float, Field(description="Total score.")]
     final_verdict: Annotated[str, Field(min_length=1, description="Final verdict.")]
     dimensions: Annotated[list[DimensionResultItem], Field(min_length=1, description="Evaluation dimensions.")]
@@ -154,6 +167,9 @@ class EvaluationResult(ReasoningTrace):
 
         Returns:
             Parsed datetime or original value.
+
+        Raises:
+            ValueError: If the string is not a valid ISO 8601 datetime.
         """
         if isinstance(v, str):
             # Parse explicit ISO strings in strict mode
@@ -168,11 +184,11 @@ class EvaluationResult(ReasoningTrace):
             The validated instance.
 
         Raises:
-            AppException: If scale_min is greater than or equal to scale_max.
+            AppException: If scale_min is greater than or equal to scale_max (ErrorCodes.VALIDATION_FAILED).
         """
         if self.scale_min >= self.scale_max:
             msg = "scale_min must be strictly less than scale_max."
-            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return self
 
@@ -203,10 +219,10 @@ class ValidationResult(V2CoreBase):
             The validated instance.
 
         Raises:
-            AppException: If is_valid is False but no errors are provided.
+            AppException: If is_valid is False but no errors are provided (ErrorCodes.VALIDATION_FAILED).
         """
         if not self.is_valid and not self.errors:
             msg = "Invalid result must have errors."
-            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[EvaluationModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return self
