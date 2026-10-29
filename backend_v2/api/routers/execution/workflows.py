@@ -4,12 +4,16 @@ Provides endpoints for retrieving workflow schema expectations required for
 dynamic frontend rendering.
 """
 
+from __future__ import annotations
+
 import logging
 
 from fastapi import APIRouter
 
 from backend_v2.api.dependencies import CurrentUserDep, ExecutionServiceDep
 from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
+
+__all__ = ["get_workflow_ui_schema", "router"]
 
 logger = logging.getLogger(__name__)
 
@@ -25,14 +29,16 @@ async def get_workflow_ui_schema(
     """Retrieve the expected inputs schema for frontend dynamic rendering.
 
     Args:
-        workflow_id: The unique identifier of the workflow blueprint.
-        current_user: The authenticated user making the request.
-        execution_service: The execution domain service.
+        workflow_id: Canonical Opaque Stripe ID of the workflow blueprint.
+        current_user: Authenticated user token claims making the request.
+        execution_service: Execution domain service dependency.
 
     Returns:
-        A WorkflowSchemaResponseDTO containing the UI structure.
+        Workflow schema response containing the expected input definitions.
 
     Raises:
-        AppException: If the workflow is not found or user lacks permission.
+        ResourceNotFoundError: If the target workflow does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+        PermissionDeniedError: If the authenticated user lacks permission to access the workflow
+            (ErrorCodes.PERMISSION_DENIED).
     """
     return await execution_service.get_workflow_ui_schema(workflow_id)
