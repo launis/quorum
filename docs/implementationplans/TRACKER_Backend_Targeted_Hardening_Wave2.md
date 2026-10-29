@@ -33,7 +33,7 @@
   - [x] @[backend_v2/hooks/hydration.py]
   - [x] @[backend_v2/hooks/metadata.py]
   - [x] @[backend_v2/hooks/dlq_guard.py]
-  - [ ] @[backend_v2/hooks/context_mapper.py]
+  - [x] @[backend_v2/hooks/context_mapper.py]
   - [ ] @[backend_v2/hooks/references.py]
   - [ ] @[backend_v2/hooks/interaction_hook.py]
   - [ ] @[backend_v2/hooks/archival.py]
