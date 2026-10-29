@@ -4,6 +4,8 @@ This module contains the schemas for the Archivist Agent,
 including precedent analysis and compliance checks.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Annotated, Literal, Self
 
@@ -12,6 +14,13 @@ from pydantic import ConfigDict, Field, model_validator
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.dtos.inputs import IngressInputValue
+
+__all__ = [
+    "ArchiveCase",
+    "ArchivistInput",
+    "ArchivistOutput",
+    "ArchivistOutputDTO",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -137,8 +146,18 @@ class ArchivistOutputDTO(ReasoningTraceDTO):
 
 
 class ArchivistOutput(ArchivistOutputDTO, ReasoningTrace):
-    """Domain model for Archivist Agent (Content + Metadata)."""
+    """Domain model for Archivist Agent (Content + Metadata).
+
+    Attributes:
+        relevant_cases: Relevant past cases.
+        consistency_analysis: Analysis of consistency with precedents.
+        stare_decisis_adherence: Whether the decision follows precedent.
+        compliance_analysis: Analysis of consistency with goals (Compliance).
+        compliance_score: Numeric Compliance score (1-5).
+        description_key: Localization key.
+        description: Localized description.
+        metadata: System metadata injected by backend.
+        semanttinen_tarkistussumma: Semantic checksum calculated by backend.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
-
-    pass
