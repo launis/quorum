@@ -6,6 +6,13 @@ from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 
+__all__ = [
+    "BibliographyResultDTO",
+    "ReferenceDTO",
+    "ReferencesContextDTO",
+    "ReferencesInputsDTO",
+]
+
 
 class ReferencesInputsDTO(V2CoreBase):
     """Strict schema for inputs destined for reference generation.
