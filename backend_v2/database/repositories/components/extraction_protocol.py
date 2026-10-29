@@ -8,8 +8,11 @@ from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
+from backend_v2.models.enums import PromptBlockCategory
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["ExtractionProtocolRepositoryImpl"]
 
 
 class ExtractionProtocolRepositoryImpl(AppendOnlyRepositoryBase):
@@ -20,8 +23,12 @@ class ExtractionProtocolRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             List of extraction protocol PromptBlock models.
+
+        Raises:
+            AppException: If an extraction protocol record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
-        filters = [Filter("type", "==", "extraction_protocol")]
+        filters = [Filter("category_id", "==", PromptBlockCategory.PROTOCOL.value)]
         raw_items = await self.driver.query("components", filters)
         protocols: list[PromptBlock] = []
         for item in raw_items:
@@ -31,7 +38,13 @@ class ExtractionProtocolRepositoryImpl(AppendOnlyRepositoryBase):
                 item_id = "unknown"
                 if "id" in item:
                     item_id = str(item["id"])
-                logger.error("Failed to parse ExtractionProtocol %s: %s", item_id, e, exc_info=True)
+                logger.error(
+                    "[ExtractionProtocolRepository] %s: Failed to parse ExtractionProtocol %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Failed to parse ExtractionProtocol {item_id} from database",
                     status_code=500,
@@ -47,6 +60,10 @@ class ExtractionProtocolRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             The extraction protocol PromptBlock if found, otherwise None.
+
+        Raises:
+            AppException: If the extraction protocol record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         doc = await self.driver.get("components", protocol_id)
         if not doc:
@@ -54,7 +71,13 @@ class ExtractionProtocolRepositoryImpl(AppendOnlyRepositoryBase):
         try:
             return PromptBlockAdapter.validate_python(doc, strict=False)
         except Exception as e:
-            logger.error("Failed to parse ExtractionProtocol %s: %s", protocol_id, e, exc_info=True)
+            logger.error(
+                "[ExtractionProtocolRepository] %s: Failed to parse ExtractionProtocol %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                protocol_id,
+                e,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Failed to parse ExtractionProtocol {protocol_id} from database",
                 status_code=500,
@@ -72,7 +95,7 @@ class ExtractionProtocolRepositoryImpl(AppendOnlyRepositoryBase):
         """
         payload = protocol_data.model_dump(mode="json")
         doc_id = payload["id"]
-        payload["type"] = "extraction_protocol"
+        payload["category_id"] = PromptBlockCategory.PROTOCOL.value
         return await self.driver.upsert("components", payload, doc_id)
 
     async def update_extraction_protocol(self, protocol_id: str, updates: PromptBlock) -> str:
@@ -86,10 +109,18 @@ class ExtractionProtocolRepositoryImpl(AppendOnlyRepositoryBase):
             The updated protocol ID.
 
         Raises:
-            ResourceNotFoundError: If the protocol does not exist.
+            ResourceNotFoundError: If the extraction protocol does not exist
+                (ErrorCodes.RESOURCE_NOT_FOUND).
+            AppException: If the existing extraction protocol record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         comp = await self.get_extraction_protocol_by_id(protocol_id)
         if not comp:
+            logger.error(
+                "[ExtractionProtocolRepository] %s: ExtractionProtocol %s not found for update",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                protocol_id,
+            )
             raise ResourceNotFoundError(resource_type="ExtractionProtocol", resource_id=protocol_id)
         payload = updates.model_dump(mode="json", exclude_unset=True)
         await self.driver.update("components", protocol_id, payload)
@@ -103,6 +134,10 @@ class ExtractionProtocolRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             True if deleted, False if protocol does not exist.
+
+        Raises:
+            AppException: If the existing extraction protocol record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         comp = await self.get_extraction_protocol_by_id(protocol_id)
         if not comp:
