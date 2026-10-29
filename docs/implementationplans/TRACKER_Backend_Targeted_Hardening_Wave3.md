@@ -45,7 +45,7 @@
   - [x] @[backend_v2/api/routers/studio/prompt_blocks.py]
   - [x] @[backend_v2/api/routers/studio/system_configs.py]
   - [x] @[backend_v2/api/routers/studio/workflows.py]
-  - [ ] @[backend_v2/api/routers/execution/workflows.py]
+  - [x] @[backend_v2/api/routers/execution/workflows.py]
   - [ ] @[backend_v2/api/routers/execution/reports.py]
 
 - [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]" --gate frontend --model gemini-4-argon-medium` (Zero frontend targets in backend targeted hardening).
