@@ -29,7 +29,7 @@
   - [x] @[backend_v2/models/domain/interaction.py]
   - [x] @[backend_v2/models/domain/integrity.py]
   - [x] @[backend_v2/models/domain/archivist.py]
-  - [ ] @[backend_v2/models/domain/causal.py]
+  - [x] @[backend_v2/models/domain/causal.py]
   - [ ] @[backend_v2/models/domain/coach.py]
   - [ ] @[backend_v2/models/domain/evaluation.py]
   - [ ] @[backend_v2/models/domain/falsifier.py]
