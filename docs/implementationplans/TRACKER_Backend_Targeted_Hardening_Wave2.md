@@ -36,7 +36,7 @@
   - [x] @[backend_v2/hooks/context_mapper.py]
   - [x] @[backend_v2/hooks/references.py]
   - [x] @[backend_v2/hooks/interaction_hook.py]
-  - [ ] @[backend_v2/hooks/archival.py]
+  - [x] @[backend_v2/hooks/archival.py]
   - [ ] @[backend_v2/hooks/metrics.py]
   - [ ] @[backend_v2/hooks/input_processing.py]
   - [ ] @[backend_v2/llm/directives.py]
