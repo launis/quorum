@@ -1,6 +1,11 @@
+"""Unit tests for Performativity domain models."""
+
+from __future__ import annotations
+
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.performativity import (
     PerformativityAnalysis,
     PerformativityInput,
@@ -137,3 +142,27 @@ def test_performativity_output_authenticity_score_property() -> None:
     }
     output = PerformativityOutput.model_validate(data)
     assert output.authenticity_score == 2.5
+    assert PerformativityOutput.model_config.get("frozen") is True
+
+
+@pytest.mark.parametrize("invalid_score", [0.9, 3.1, -1.0, 5.0])
+def test_performativity_analysis_authenticity_score_out_of_bounds(invalid_score: float) -> None:
+    """Test that PerformativityAnalysis raises AppException when authenticity_score is outside [1.0, 3.0]."""
+    data = {
+        "performativity_heuristics": [
+            {
+                "heuristic_name": "Jargon",
+                "flag_raised": False,
+                "description": "Clear.",
+            }
+        ],
+        "pre_mortem_analysis": {
+            "performed": True,
+            "weak_signals": ["Signal 1"],
+        },
+        "authenticity_assessment": AuthenticityLevel.ORGANIC,
+        "authenticity_score": invalid_score,
+    }
+    with pytest.raises(AppException) as exc_info:
+        PerformativityAnalysis.model_validate(data)
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

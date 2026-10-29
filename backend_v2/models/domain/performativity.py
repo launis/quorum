@@ -21,6 +21,17 @@ from backend_v2.models.enums import LaxAuthenticityLevel
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "LinguisticsResult",
+    "PerformativePattern",
+    "PerformativityAnalysis",
+    "PerformativityDTO",
+    "PerformativityHeuristic",
+    "PerformativityInput",
+    "PerformativityOutput",
+    "PreMortemAnalysis",
+]
+
 
 class PerformativityInput(V2CoreBase):
     """Strict input schema for PerformativityDetectorAgent.
@@ -33,7 +44,7 @@ class PerformativityInput(V2CoreBase):
         last_reasoning_trace: Previous reasoning trace.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     chat_log: Annotated[
         str,
@@ -58,7 +69,7 @@ class PerformativityHeuristic(V2CoreBase):
         description: Description.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     heuristic_name: Annotated[
         str,
@@ -93,7 +104,7 @@ class PreMortemAnalysis(V2CoreBase):
         weak_signals: Detected weak signals.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     performed: Annotated[
         bool,
@@ -126,7 +137,7 @@ class PerformativityAnalysis(V2CoreBase):
         description: Localized description.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     performativity_heuristics: Annotated[
         list[PerformativityHeuristic],
@@ -175,11 +186,11 @@ class PerformativityAnalysis(V2CoreBase):
             The validated authenticity score.
 
         Raises:
-            AppException: If the score is outside the range [1.0, 3.0].
+            AppException: If the score is outside the range [1.0, 3.0] (ErrorCodes.VALIDATION_FAILED).
         """
         if not (1.0 <= v <= 3.0):
             msg = "authenticity_score must be between 1.0 and 3.0 inclusive"
-            logger.error("[PerformativityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[PerformativityModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -210,7 +221,7 @@ class PerformativityDTO(ReasoningTraceDTO):
         performativity_analysis: Performativity audit result.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     performativity_analysis: Annotated[
         PerformativityAnalysis,
@@ -225,14 +236,18 @@ class PerformativityOutput(PerformativityDTO, ReasoningTrace):
     """Output schema for the Performativity/Detector Agent.
 
     Attributes:
-        No additional attributes.
+        performativity_analysis: Performativity audit result inherited from PerformativityDTO.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @property
     def authenticity_score(self) -> float:
-        """Convenience property for extracting authenticity score from performativity analysis."""
+        """Convenience property for extracting authenticity score from performativity analysis.
+
+        Returns:
+            The numeric authenticity score from the nested performativity analysis.
+        """
         return self.performativity_analysis.authenticity_score
 
 
@@ -245,7 +260,7 @@ class PerformativePattern(V2CoreBase):
         category: Category of the pattern.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     pattern_id: Annotated[
         str, Field(min_length=1, description="ID of the pattern.", json_schema_extra={"x-ui-label": "Pattern ID"})
@@ -268,7 +283,7 @@ class LinguisticsResult(V2CoreBase):
         performative_patterns: Detected patterns.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     performative_patterns: Annotated[
         list[PerformativePattern],
