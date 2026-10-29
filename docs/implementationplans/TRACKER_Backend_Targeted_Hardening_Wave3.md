@@ -37,7 +37,7 @@
   - [x] @[backend_v2/services/orchestrator/dag_compiler.py]
   - [x] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]
   - [x] @[backend_v2/services/orchestrator/enriched_dag_executor.py]
-  - [ ] @[backend_v2/api/routers/system/health.py]
+  - [x] @[backend_v2/api/routers/system/health.py]
   - [ ] @[backend_v2/api/routers/system/telemetry.py]
   - [ ] @[backend_v2/api/routers/system/configs.py]
   - [ ] @[backend_v2/api/routers/output_profiles.py]
