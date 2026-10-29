@@ -16,6 +16,12 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
 from backend_v2.models.enums import LaxInteractionStrategy, LaxRoleClassification
 
+__all__ = [
+    "InteractionAnalysis",
+    "InteractionAnalysisDTO",
+    "InteractionInput",
+]
+
 logger = logging.getLogger(__name__)
 
 
@@ -92,7 +98,7 @@ class InteractionAnalysisDTO(ReasoningTraceDTO):
     @field_validator("imperative_command_count")
     @classmethod
     def validate_command_count(cls, v: int) -> int:
-        """Enforces that imperative command count is non-negative.
+        """Enforce that imperative command count is non-negative.
 
         Args:
             v: The command count to validate.
@@ -101,11 +107,11 @@ class InteractionAnalysisDTO(ReasoningTraceDTO):
             The validated non-negative integer.
 
         Raises:
-            AppException: If count is negative (VALIDATION_FAILED).
+            AppException: If count is negative (ErrorCodes.VALIDATION_FAILED).
         """
         if v < 0:
             msg = "imperative_command_count must be greater than or equal to 0"
-            logger.error("[InteractionModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[InteractionModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -119,7 +125,15 @@ class InteractionAnalysisDTO(ReasoningTraceDTO):
 
 
 class InteractionAnalysis(InteractionAnalysisDTO, ReasoningTrace):
-    model_config = ConfigDict(strict=True, extra="forbid")
-    """Output schema for the Interaction Agent (Domain Model with Metadata)."""
+    """Output schema for the Interaction Agent (Domain Model with Metadata).
 
-    pass
+    Attributes:
+        role_classification: User role classification.
+        high_dependency: Flag indicating high dependency on AI.
+        imperative_command_count: Number of direct commands given by user.
+        strategy: Identified prompting strategy.
+        metadata: System metadata injected by backend.
+        semanttinen_tarkistussumma: Semantic checksum calculated by backend.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
