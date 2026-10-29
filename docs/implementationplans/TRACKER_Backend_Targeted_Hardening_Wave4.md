@@ -20,7 +20,7 @@
 ### Post-Implementation Gates
 
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`
-  - [ ] @[backend_v2/models/domain/base.py]
+  - [x] @[backend_v2/models/domain/base.py]
   - [ ] @[backend_v2/models/domain/metadata.py]
   - [ ] @[backend_v2/models/domain/usage.py]
   - [ ] @[backend_v2/models/domain/references.py]
