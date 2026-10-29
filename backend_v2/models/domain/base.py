@@ -17,6 +17,18 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.llm import ProviderMetadataDTO
 
+__all__ = [
+    "AuditLogCreateDTO",
+    "AuditLogEntry",
+    "DetailedUsageDTO",
+    "Metadata",
+    "ReasoningTrace",
+    "ReasoningTraceDTO",
+    "UsageAggregateDTO",
+    "UsageAggregateUpdateDTO",
+    "UsageRecord",
+]
+
 logger = logging.getLogger(__name__)
 
 
@@ -123,6 +135,9 @@ class Metadata(V2CoreBase):
 
         Returns:
             Parsed datetime object or original value.
+
+        Raises:
+            ValueError: If the string is not a valid ISO 8601 datetime.
         """
         if isinstance(v, str):
             return datetime.fromisoformat(v.replace("Z", "+00:00"))
@@ -185,16 +200,16 @@ class ReasoningTraceDTO(V2CoreBase):
             Cleaned and validated text string.
 
         Raises:
-            AppException: If text is empty or contains hallucination markers (VALIDATION_FAILED).
+            AppException: If text is empty or contains hallucination markers (ErrorCodes.VALIDATION_FAILED).
         """
         if not v or not str(v).strip():
             msg = "Field cannot be empty."
-            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         clean_v = str(v).strip().lower()
         if clean_v in {"null", "none", "n/a", "ei saatavilla"}:
             msg = f"LLM returned an invalid empty-equivalent string: '{v}'"
-            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return str(v).strip()
 
@@ -210,11 +225,11 @@ class ReasoningTraceDTO(V2CoreBase):
             Validated confidence score.
 
         Raises:
-            AppException: If score is out of bounds (0.0 - 1.0) (VALIDATION_FAILED).
+            AppException: If score is out of bounds (0.0 - 1.0) (ErrorCodes.VALIDATION_FAILED).
         """
         if not (0.0 <= v <= 1.0):
             msg = f"Confidence score must be between 0.0 and 1.0, got {v}"
-            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -324,6 +339,9 @@ class UsageRecord(V2CoreBase):
 
         Returns:
             Parsed datetime object or original value.
+
+        Raises:
+            ValueError: If the string is not a valid ISO 8601 datetime.
         """
         if isinstance(v, str):
             # Parse explicit ISO strings in strict mode
@@ -346,13 +364,21 @@ class UsageRecord(V2CoreBase):
         """
         if v < 0.0:
             msg = f"USD amount cannot be negative, got {v}"
-            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[BaseDomainModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 
 class AuditLogCreateDTO(BaseDTO):
-    """DTO for creating a new audit log entry."""
+    """DTO for creating a new audit log entry.
+
+    Attributes:
+        action: Audit action identifier.
+        actor_id: Actor user or system ID.
+        organization_id: Associated organization ID.
+        details: Typed scalar details dictionary.
+        timestamp: Creation timestamp.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -367,7 +393,15 @@ class AuditLogCreateDTO(BaseDTO):
 
 
 class UsageAggregateUpdateDTO(BaseDTO):
-    """DTO for incrementing usage aggregates."""
+    """DTO for incrementing usage aggregates.
+
+    Attributes:
+        input_tokens: Input tokens consumed.
+        output_tokens: Output tokens consumed.
+        cached_tokens: Cached tokens read.
+        cost_usd: Total cost incurred in USD.
+        execution_count: Number of executions.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -379,7 +413,17 @@ class UsageAggregateUpdateDTO(BaseDTO):
 
 
 class UsageAggregateDTO(BaseDTO):
-    """DTO for representing an aggregated usage summary."""
+    """DTO for representing an aggregated usage summary.
+
+    Attributes:
+        organization_id: Organization ID.
+        period: Usage period (e.g. YYYY-MM).
+        total_input_tokens: Total input tokens.
+        total_output_tokens: Total output tokens.
+        total_cached_tokens: Total cached tokens.
+        total_cost_usd: Total cost in USD.
+        execution_count: Total execution count.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -393,7 +437,15 @@ class UsageAggregateDTO(BaseDTO):
 
 
 class DetailedUsageDTO(BaseDTO):
-    """DTO representing detailed usage analysis across models and workflows."""
+    """DTO representing detailed usage analysis across models and workflows.
+
+    Attributes:
+        organization_id: Organization ID.
+        total_cost_usd: Total cost across all models.
+        total_tokens: Total tokens across all models.
+        by_model: Tokens by model name.
+        by_workflow: Executions by workflow ID.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
