@@ -1,4 +1,4 @@
-"""Unit tests for GoogleAIStudioCacheAdapter."""
+"""Unit, FinOps ROI precision, and ISTQB negative boundary tests for GoogleAIStudioCacheAdapter."""
 
 from __future__ import annotations
 
@@ -7,15 +7,17 @@ import hashlib
 import json
 import sys
 import types
-from typing import Any
+from typing import Any, NoReturn
 from unittest.mock import MagicMock
 
 import pytest
-from pydantic import JsonValue
+from pydantic import BaseModel, Field, JsonValue, ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.ai_studio_adapter import (
     GoogleAIStudioCacheAdapter,
     get_redis_client,
+    is_gemini_v3_or_higher,
 )
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
@@ -92,7 +94,7 @@ def cleanup_genai_mock() -> Any:
         google.genai = importlib.import_module("google.genai")
         importlib.import_module("google.genai.types")
         importlib.import_module("google.genai.errors")
-    except ImportError, AttributeError, KeyError:
+    except (ImportError, AttributeError, KeyError):
         pass
 
 
@@ -472,8 +474,8 @@ async def test_ai_studio_adapter_static_chars_with_content_blocks() -> None:
 
     prompt = CompiledPrompt(
         static_messages=[
-            LLMMessageDTO(role="system", content="System instructions here."),
-            LLMMessageDTO(role="assistant", content=large_block),
+            LLMMessageDTO(role="system", content=[{"type": "text", "text": "System instructions here."}]),
+            LLMMessageDTO(role="assistant", content=[{"type": "text", "text": large_block}]),
         ],
         dynamic_messages=[],
     )
@@ -485,7 +487,6 @@ async def test_ai_studio_adapter_static_chars_with_content_blocks() -> None:
 
 def test_ai_studio_adapter_prepare_structured_output() -> None:
     """Verify prepare_structured_output formats JSON schema and strips unsupported constraints."""
-    from pydantic import BaseModel, Field
 
     class SampleSchema(BaseModel):
         name: str = Field(min_length=2)
@@ -536,3 +537,96 @@ def test_ai_studio_adapter_prepare_kwargs_no_duplicate_oneof_cached_content() ->
         "Google API 400 Bad Request: proto3 oneof _cached_content cannot have both "
         "cachedContent and cached_content set in request payload."
     )
+
+
+def test_is_gemini_v3_or_higher_boundaries() -> None:
+    """Verify is_gemini_v3_or_higher handles Gemini 3+, Gemini 2, and non-Gemini model names."""
+    assert is_gemini_v3_or_higher("gemini-3.7-flash") is True
+    assert is_gemini_v3_or_higher("gemini-3-pro") is True
+    assert is_gemini_v3_or_higher("gemini-2.5-pro") is False
+    assert is_gemini_v3_or_higher("gpt-4o-mini") is False
+
+
+@pytest.mark.asyncio
+async def test_ai_studio_adapter_prepare_caching_payload_empty_model_raises_app_exception() -> None:
+    """Negative test: Verify prepare_caching_payload raises AppException on empty or whitespace model_name."""
+    adapter = GoogleAIStudioCacheAdapter()
+    prompt = CompiledPrompt(
+        static_messages=[LLMMessageDTO(role="system", content="System instruction.")],
+        dynamic_messages=[LLMMessageDTO(role="user", content="Dynamic user query.")],
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await adapter.prepare_caching_payload(prompt, "   ")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_ai_studio_adapter_teardown_cache_empty_run_id_raises_app_exception() -> None:
+    """Negative test: Verify teardown_cache raises AppException when workflow_run_id is empty or whitespace."""
+    adapter = GoogleAIStudioCacheAdapter()
+
+    with pytest.raises(AppException) as exc_info:
+        await adapter.teardown_cache("   ")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_ai_studio_adapter_prepare_provider_kwargs_empty_model_raises_app_exception() -> None:
+    """Negative test: Verify prepare_provider_kwargs raises AppException on empty or whitespace model_name."""
+    adapter = GoogleAIStudioCacheAdapter()
+
+    with pytest.raises(AppException) as exc_info:
+        adapter.prepare_provider_kwargs("")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_ai_studio_adapter_prepare_structured_output_invalid_type_raises_app_exception() -> None:
+    """Negative test: Verify prepare_structured_output raises AppException when given a non-BaseModel type."""
+    adapter = GoogleAIStudioCacheAdapter()
+    invalid_model: Any = dict
+
+    with pytest.raises(AppException) as exc_info:
+        adapter.prepare_structured_output(invalid_model)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_ai_studio_get_redis_client_connection_failure_raises_app_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Negative test: Verify get_redis_client raises AppException when Redis pool creation fails."""
+    import backend_v2.llm.adapters.ai_studio_adapter as ai_module
+
+    monkeypatch.undo()
+    monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
+    monkeypatch.delenv("USE_FAKEREDIS", raising=False)
+    monkeypatch.setattr(ai_module, "_redis_pool", None)
+    monkeypatch.setattr(ai_module, "_redis_loop", None)
+
+    async def _fail_create_pool(*_args: Any, **_kwargs: Any) -> NoReturn:
+        raise ConnectionError("Redis connection refused")
+
+    monkeypatch.setattr(ai_module, "create_pool", _fail_create_pool)
+
+    with pytest.raises(AppException) as exc_info:
+        await ai_module.get_redis_client()
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.STORAGE_ACCESS_FAILED.value
+
+
+def test_ai_studio_adapter_negative_boundary_schema_validation() -> None:
+    """Negative boundary test: Verify negative token counts or negative prices fail fast at DTO boundary."""
+    with pytest.raises(ValidationError):
+        PricingConfig(input_token_price=-0.0001, output_token_price=0.000015)
+
+    with pytest.raises(ValidationError):
+        TokenUsage(prompt_tokens=-1, completion_tokens=10, total_tokens=9)
