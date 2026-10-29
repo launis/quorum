@@ -12,6 +12,8 @@ from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 
+__all__ = ["HydrationInputSourceDTO"]
+
 
 class HydrationInputSourceDTO(V2CoreBase):
     """Strict schema for parsing InputProcessorAgent outputs.
@@ -22,7 +24,7 @@ class HydrationInputSourceDTO(V2CoreBase):
         inputs: Nested structured inputs mapped by key.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     inputs: Annotated[dict[str, str], Field(description="Nested structured inputs.")]
 
