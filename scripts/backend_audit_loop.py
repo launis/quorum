@@ -162,8 +162,8 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
                         cov_target = f"scripts.{clean_name}"
                         cov_filter_name = f"{clean_name}.py"
                     else:
-                        cov_target = f"scripts.{clean_name}"
-                        cov_filter_name = f"{clean_name}.py"
+                        cov_target = target_clean.removesuffix(".py").replace("/", ".")
+                        cov_filter_name = filename
                 elif filename.startswith("test_") and sibling_src.exists():
                     cov_target = str(sibling_src).removesuffix(".py").replace("\\", ".").replace("/", ".")
                     cov_filter_name = f"{clean_name}.py"
