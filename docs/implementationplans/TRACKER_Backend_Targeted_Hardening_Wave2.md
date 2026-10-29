@@ -30,7 +30,7 @@
   - [x] @[backend_v2/services/usage_service.py]
   - [x] @[backend_v2/services/progress.py]
   - [x] @[backend_v2/utils/scoring/base_engine.py]
-  - [ ] @[backend_v2/hooks/hydration.py]
+  - [x] @[backend_v2/hooks/hydration.py]
   - [ ] @[backend_v2/hooks/metadata.py]
   - [ ] @[backend_v2/hooks/dlq_guard.py]
   - [ ] @[backend_v2/hooks/context_mapper.py]
