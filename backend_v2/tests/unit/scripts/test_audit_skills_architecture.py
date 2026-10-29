@@ -128,12 +128,14 @@ def test_scenario_4_negative_rule_budget_boundary_violation_skl004(
     rules_dir = tmp_path / ".agents" / "rules"
 
     # Boundary value: MAX_SINGLE_RULE_FILE_BYTES + 1 (24,001 bytes)
-    oversized_single = "a" * (MAX_SINGLE_RULE_FILE_BYTES + 1)
-    (rules_dir / "00-antigravity-core.md").write_text(oversized_single, encoding="utf-8")
+    fm_header = "---\ntrigger: always_on\n---\n"
+    oversized_single = fm_header + ("a" * (MAX_SINGLE_RULE_FILE_BYTES + 1 - len(fm_header)))
+    (rules_dir / "00-antigravity-core.md").write_text(oversized_single, encoding="utf-8", newline="\n")
 
     # Add two more always_on files so aggregate exceeds MAX_ALWAYS_ON_BYTES (72,000 bytes)
-    (rules_dir / "extra_always_on_1.md").write_text("b" * 24_000, encoding="utf-8")
-    (rules_dir / "extra_always_on_2.md").write_text("c" * 24_000, encoding="utf-8")
+    exact_cap_body = fm_header + ("b" * (MAX_SINGLE_RULE_FILE_BYTES - len(fm_header)))
+    (rules_dir / "extra_always_on_1.md").write_text(exact_cap_body, encoding="utf-8", newline="\n")
+    (rules_dir / "extra_always_on_2.md").write_text(exact_cap_body, encoding="utf-8", newline="\n")
 
     auditor = SkillsArchitectureAuditor(repo_root=tmp_path)
     summary = auditor.run_audit()

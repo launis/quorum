@@ -1,5 +1,6 @@
 ---
-trigger: always_on
+trigger: model_decision
+description: Apply when working inside backend_v2/llm/, prompts, or services involving AI execution, prompt compilation, or structured LLM outputs.
 ---
 
 # ANTIGRAVITY LLM & OUTPUT ARCHITECTURE CONSTRAINTS

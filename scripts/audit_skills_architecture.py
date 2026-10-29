@@ -398,23 +398,23 @@ class SkillsArchitectureAuditor:
 
     @staticmethod
     def _is_always_on_rule(rule_path: Path) -> bool:
-        """Determine whether a rule Markdown file is loaded as always_on.
+        """Determine whether a rule Markdown file in .agents/rules/ is loaded as always_on.
 
         Args:
             rule_path: Path to a `.agents/rules/*.md` file.
 
         Returns:
-            True if the rule does not declare `trigger: model_decision` or `trigger: manual`.
+            True if the rule declares `trigger: always_on` in YAML frontmatter.
         """
         content = rule_path.read_text(encoding="utf-8")
         fm_match = _FRONTMATTER_BLOCK_RE.match(content)
         if fm_match is None:
-            return True
+            return False
         trigger_match = _FRONTMATTER_TRIGGER_RE.search(fm_match.group(1))
         if trigger_match is None:
-            return True
+            return False
         trigger_val = trigger_match.group(1).strip("\"'").lower()
-        return trigger_val not in {"model_decision", "manual", "glob"}
+        return trigger_val == "always_on"
 
 
 def build_arg_parser() -> argparse.ArgumentParser:

@@ -139,31 +139,5 @@
 </universal_quality_gates>
 
 <workflow_routing>
-    <instruction>You MUST follow strict operation tiers relying on natively supported workflows in `.agents/workflows/`. When a user inputs a slash command (e.g. `/tier0-create-plan`), this triggers a HARD CONTEXT RESET. Your absolute first tool calls MUST use `view_file` to physically load `.agents/rules/00-antigravity-core.md`, the requested `.agents/workflows/` file, AND any relevant domain-specific rule files (e.g., `.agents/rules/01-python-backend.md`). You are STRICTLY FORBIDDEN from calling any destructive tools (e.g., `replace_file_content`, `run_command`) in the same turn before these files are physically read and evaluated. Do not guess the workflow logic.</instruction>
-    <execution_tiers>
-        <tier id="0_create_epic" path="/tier0-create-epic">Generates a standardized multi-phase Epic document (docs/epic/EPIC_XXX.md).</tier>
-        <tier id="0_plan" path="/tier0-create-plan">Generates architectural implementation plan.</tier>
-        <tier id="0_epic" path="/tier0-research-epic">Deep System 2 analysis of Epic documents.</tier>
-        <tier id="0_research" path="/tier0-research-plan">System 2 analysis of implementation plans.</tier>
-        <tier id="1" path="/tier1-planner">Epic Planner for generating `implementation_plan.md`.</tier>
-        <tier id="1_tracker" path="/tier1-tracker-generator">Generates or synchronizes a standardized multi-phase Epic tracker.</tier>
-        <tier id="1_plan_tracker" path="/tier1-plan-tracker-generator">Generates or synchronizes a standardized tracker for a single implementation plan.</tier>
-        <tier id="2" path="/tier2-execute">Systematic step-by-step implementation of an approved plan.</tier>
-        <tier id="2_backend" path="/tier2-hardening-backend">Step-by-step auditing loop for Python architecture.</tier>
-        <tier id="2_frontend" path="/tier2-hardening-frontend">Step-by-step auditing loop for Flutter architecture.</tier>
-        <tier id="3_db" path="/tier3-database-reset">Database wipes and re-seeding tweaks.</tier>
-        <tier id="3_refactor" path="/tier3-feature-refactor">Single feature implementation or existing file cleanup.</tier>
-        <tier id="3_god" path="/tier3-god-code-decomposition">System 2 Decomposition Planner for Legacy Refactoring.</tier>
-        <tier id="3_minify" path="/tier3-minify-customization">Aggressively compress rule or workflow files while preserving XML hierarchy and exact technical anchors.</tier>
-        <tier id="4" path="/tier4-bug-hunting">Deep root cause analysis and bug resolution.</tier>
-        <tier id="5_handover" path="/tier5-session-handover">Session Handover Export for context transition.</tier>
-        <tier id="5_resume" path="/tier5-resume">Resume & Zero-Shortcut Audit for new sessions.</tier>
-        <tier id="6" path="/tier6-execution-monitor">Execution Monitor for real-time background log auditing and Auto-RCA triage.</tier>
-        <tier id="7" path="/tier7-describe-architecture">As-Built architectural documentation from current codebase.</tier>
-        <tier id="8_audit" path="/tier8-red-teaming-audit">System 2 deep-dive evaluation and red-teaming of rules and workflows.</tier>
-        <tier id="8_audit_feature" path="/tier8-audit-feature">System 2 First Principles analysis, Panel of Experts audit, and red-teaming of proposed features.</tier>
-        <tier id="8_audit_plan" path="/tier8-audit-plan">System 2 deep-dive evaluation and audit of a completed implementation plan.</tier>
-        <tier id="8_audit_epic" path="/tier8-audit-epic">System 2 reverse verification of an Epic against the physical codebase.</tier>
-        <tier id="8_test_expansion" path="/tier8-test-coverage-expansion">ISTQB-based iterative test coverage expansion for negative and edge-case tests.</tier>
-    </execution_tiers>
+    <instruction>You MUST follow strict operation tiers relying on natively discovered skills in `.agents/skills/<name>/SKILL.md`. When a user inputs a slash command (e.g. `/tier0-create-plan`), this triggers a HARD CONTEXT RESET. Your absolute first tool calls MUST use `view_file` to physically load `.agents/rules/00-antigravity-core.md`, the requested `.agents/skills/<name>/SKILL.md` file, AND any relevant domain-specific rule files (e.g., `.agents/rules/01-python-backend.md`). You are STRICTLY FORBIDDEN from calling any destructive tools (e.g., `replace_file_content`, `run_command`) in the same turn before these files are physically read and evaluated. Do not guess the skill execution protocol; rely on native `<skills>` discovery and `.agents/skills/<name>/SKILL.md` as the Single Source of Truth.</instruction>
 </workflow_routing>
