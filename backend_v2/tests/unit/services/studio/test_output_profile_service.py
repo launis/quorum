@@ -283,3 +283,57 @@ async def test_create_output_profile_draft_workflow_with_no_prompt_blocks_assign
 
     draft = await service.create_output_profile_draft(initiator)
     assert draft.variance_target_block is None
+
+
+@pytest.mark.asyncio
+async def test_save_output_profile_normalizes_mismatched_id_in_place(
+    service: StudioOutputProfileService, mock_workflow_service: AsyncMock
+) -> None:
+    """ISTQB Boundary: Payload with mismatched ID is normalized in-place to the authoritative route ID."""
+    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
+
+    workflow = AsyncMock()
+    workflow.id = "wf_1234567890abcdef"
+    workflow.steps = []
+    workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
+    mock_workflow_service.get_workflow.return_value = workflow
+    mock_workflow_service.list_steps.return_value = []
+
+    payload = _make_valid_profile("prf_aaaaaaaaaaaaaaaa", "opt_1", "wf_1234567890abcdef", "org_1", "Mismatched")
+    target_id = "prf_bbbbbbbbbbbbbbbb"
+
+    saved = await service.save_output_profile(initiator, target_id, payload)
+    assert saved.id == target_id
+    fetched = await service.output_profile_repo.get_output_profile_by_id(target_id)
+    assert fetched is not None
+    assert fetched.id == target_id
+
+
+@pytest.mark.asyncio
+async def test_save_output_profile_raises_when_missing_after_save(
+    service: StudioOutputProfileService,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
+    mock_workflow_service: AsyncMock,
+) -> None:
+    """ISTQB Negative: Missing resource on post-save re-fetch raises ResourceNotFoundError."""
+    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
+
+    workflow = AsyncMock()
+    workflow.id = "wf_1234567890abcdef"
+    workflow.steps = []
+    workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
+    mock_workflow_service.get_workflow.return_value = workflow
+    mock_workflow_service.list_steps.return_value = []
+
+    payload = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1234567890abcdef", "org_1", "Test")
+    mock_output_profile_repo.inject_fault(
+        "get_output_profile_by_id",
+        ResourceNotFoundError(resource_type="output_profile", resource_id=payload.id),
+    )
+    try:
+        with pytest.raises(ResourceNotFoundError) as exc_info:
+            await service.save_output_profile(initiator, payload.id, payload)
+        assert exc_info.value.status_code == 404
+        assert exc_info.value.error_code == ErrorCodes.RESOURCE_NOT_FOUND.value
+    finally:
+        mock_output_profile_repo.clear_faults()

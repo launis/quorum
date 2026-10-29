@@ -21,9 +21,16 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["StudioOutputProfileService"]
+
 
 class StudioOutputProfileService:
-    """Domain Service for managing Output Profiles."""
+    """Domain Service for managing Output Profiles.
+
+    Attributes:
+        output_profile_repo: Repository interface for output profile persistence.
+        workflow_service: Domain service for workflow and step resolution.
+    """
 
     def __init__(
         self,
@@ -79,6 +86,8 @@ class StudioOutputProfileService:
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
                 id,
                 initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "profile_id": id},
             )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
 
@@ -124,6 +133,8 @@ class StudioOutputProfileService:
                         msg,
                         initiator.id,
                         profile.id,
+                        exc_info=True,
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "profile_id": profile.id},
                     )
                     raise AppException(
                         message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED}
@@ -141,6 +152,8 @@ class StudioOutputProfileService:
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
                 id,
                 initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "profile_id": id},
             )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
         return saved
@@ -163,6 +176,8 @@ class StudioOutputProfileService:
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
                 id,
                 initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "profile_id": id},
             )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
 
@@ -179,7 +194,9 @@ class StudioOutputProfileService:
             The drafted OutputProfile.
 
         Raises:
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If no workflow exists or profile is missing after save.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            AppException (ErrorCodes.VALIDATION_FAILED): If draft layout target validation fails.
         """
         workflows = await self.workflow_service.list_workflows(initiator)
         if not workflows:
@@ -187,7 +204,13 @@ class StudioOutputProfileService:
                 f"No workflows available to associate with new OutputProfile for organization "
                 f"'{initiator.organization_id}'."
             )
-            logger.error("[StudioOutputProfileService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+            logger.error(
+                "[StudioOutputProfileService] %s: %s",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            )
             raise ResourceNotFoundError(resource_type="workflow", resource_id="primary_default")
         target_wf = workflows[0]
         target_wf_id = target_wf.id
@@ -218,6 +241,7 @@ class StudioOutputProfileService:
         Raises:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            AppException (ErrorCodes.VALIDATION_FAILED): If cloned layout target validation fails.
         """
         profile = await self.output_profile_repo.get_output_profile_by_id(id)
         if not profile:
@@ -226,6 +250,8 @@ class StudioOutputProfileService:
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
                 id,
                 initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "profile_id": id},
             )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
 
