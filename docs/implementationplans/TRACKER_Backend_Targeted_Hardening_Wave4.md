@@ -34,7 +34,7 @@
   - [x] @[backend_v2/models/domain/evaluation.py]
   - [x] @[backend_v2/models/domain/falsifier.py]
   - [x] @[backend_v2/models/domain/judge.py]
-  - [ ] @[backend_v2/models/domain/knowledge.py]
+  - [x] @[backend_v2/models/domain/knowledge.py]
   - [ ] @[backend_v2/models/domain/logician.py]
   - [ ] @[backend_v2/models/domain/overseer.py]
   - [ ] @[backend_v2/models/domain/performativity.py]
