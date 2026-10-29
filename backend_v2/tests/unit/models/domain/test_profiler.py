@@ -1,8 +1,9 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.profiler import (
+    BehavioralMetrics,
     ProfilerInput,
     ProfilerMetrics,
     ProfilerOutput,
@@ -33,8 +34,22 @@ def test_text_metrics_validates_constraints() -> None:
         "lexical_diversity": 0.0,
         "capitalization_ratio": 0.0,
     }
-    with pytest.raises(AppException):
+    with pytest.raises(AppException) as exc_info:
         TextMetrics.model_validate(data)
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
+
+
+def test_behavioral_metrics_validates_negative_boundary() -> None:
+    """Test BehavioralMetrics rejects negative values with AppException."""
+    data = {
+        "say_do_gap": -0.1,
+        "automation_bias": 0.0,
+        "illusion_of_competence": 0.0,
+        "imperative_command_count": 0,
+    }
+    with pytest.raises(AppException) as exc_info:
+        BehavioralMetrics.model_validate(data)
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
 
 
 def test_profiler_metrics_combines_and_forbids_extra() -> None:

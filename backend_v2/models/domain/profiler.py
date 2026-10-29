@@ -73,11 +73,11 @@ class TextMetrics(V2CoreBase):
             The validated value.
 
         Raises:
-            AppException: If the validation check fails on negative numbers.
+            AppException: ErrorCodes.VALIDATION_FAILED if the value is less than 0.
         """
         if v < 0:
             msg = "Value must be greater than or equal to 0"
-            logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -133,17 +133,30 @@ class BehavioralMetrics(V2CoreBase):
             The validated value.
 
         Raises:
-            AppException: If the validation check fails on negative numbers.
+            AppException: ErrorCodes.VALIDATION_FAILED if the value is less than 0.
         """
         if v < 0:
             msg = "Value must be greater than or equal to 0"
-            logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[ProfilerModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
 
 class ProfilerMetrics(TextMetrics, BehavioralMetrics):
-    """Combined quantitative and behavioral metrics for the Profiler."""
+    """Combined quantitative and behavioral metrics for the Profiler.
+
+    Attributes:
+        word_count: Total word count.
+        sentence_count: Total sentence count.
+        avg_sentence_length: Average words per sentence.
+        lexical_diversity: Unique words / total words.
+        capitalization_ratio: Uppercase characters / total characters.
+        control_ratio: User/AI token ratio.
+        say_do_gap: Discrepancy between intent and action.
+        automation_bias: Over-reliance on AI.
+        illusion_of_competence: False sense of mastery.
+        imperative_command_count: Number of imperative commands.
+    """
 
 
 class ProfilerInput(V2CoreBase):
@@ -220,7 +233,22 @@ class ProfilerOutput(ProfilerDTO, ReasoningTrace):
     """Output schema for the Profiler Agent.
 
     Attributes:
-        No additional attributes.
+        author_intent: Assessed intent of the author.
+        cognitive_biases: Detected cognitive biases.
+        emotional_tone: Emotional tone analysis.
+        metrics: Quantitative and behavioral text metrics.
+        reasoning_trace: Step-by-step reasoning logic.
+        calculation_log: Quantitative calculation log entries.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
+
+
+__all__ = [
+    "BehavioralMetrics",
+    "ProfilerDTO",
+    "ProfilerInput",
+    "ProfilerMetrics",
+    "ProfilerOutput",
+    "TextMetrics",
+]
