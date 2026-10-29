@@ -1,10 +1,11 @@
 """Router for Output Profiles (V2 BFF Architecture).
 
-This router exposes CRUD operations for Output Profiles.
-It strictly translates API dicts into OutputProfile models prior to service/repo engagement.
+This router exposes CRUD and clone operations for Output Profiles,
+enforcing strict Pydantic V2 domain and DTO validation at the HTTP boundary.
 """
 
 import logging
+from typing import Annotated
 
 from fastapi import APIRouter, Path, status
 
@@ -18,6 +19,8 @@ from backend_v2.models.dtos.output_profile import (
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["router"]
+
 router = APIRouter(prefix="/output-profiles", tags=["Output Profiles"])
 
 
@@ -26,16 +29,17 @@ async def list_output_profiles(
     initiator: CurrentUserDep,
     service: StudioOutputProfileServiceDep,
 ) -> list[OutputProfile]:
-    """List all available Output Profiles.
-
-    Tenant isolation handled safely by StudioService.
+    """List all available Output Profiles accessible to the authenticated tenant.
 
     Args:
         initiator: The current verified user executing the request.
-        service: Injected StudioService for domain operations.
+        service: Injected StudioOutputProfileService for domain operations.
 
     Returns:
         A list of OutputProfile domain models.
+
+    Raises:
+        AppException: With ErrorCodes.STATE_INTEGRITY_ERROR if persisted profile data fails validation.
     """
     profiles = await service.list_output_profiles(initiator=initiator)
     return list(profiles)
@@ -46,14 +50,19 @@ async def create_output_profile(
     initiator: CurrentUserDep,
     service: StudioOutputProfileServiceDep,
 ) -> OutputProfile:
-    """Create a new Output Profile draft securely via SSOT Service Layer.
+    """Create a new Output Profile draft securely via the SSOT Service Layer.
 
     Args:
         initiator: The current verified user executing the request.
-        service: Injected StudioService for domain operations.
+        service: Injected StudioOutputProfileService for domain operations.
 
     Returns:
         The newly created OutputProfile domain model.
+
+    Raises:
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if no workflow exists to bind the draft.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant modification rights are violated.
+        AppException: With ErrorCodes.VALIDATION_FAILED if draft layout target validation fails.
     """
     return await service.create_output_profile_draft(initiator=initiator)
 
@@ -62,20 +71,21 @@ async def create_output_profile(
 async def get_output_profile(
     initiator: CurrentUserDep,
     service: StudioOutputProfileServiceDep,
-    profile_id: str = Path(..., pattern=OPAQUE_STRIPE_ID_REGEX),
+    profile_id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
 ) -> OutputProfile:
-    """Get a specific Output Profile by its unique identifier.
+    """Get a specific Output Profile by its unique Opaque Stripe ID.
 
     Args:
         initiator: The current verified user executing the request.
-        service: Injected StudioService for domain operations.
+        service: Injected StudioOutputProfileService for domain operations.
         profile_id: Unique Opaque Stripe ID of the profile.
 
     Returns:
         The requested OutputProfile domain model.
 
     Raises:
-        AppException: If the profile is not found or tenant unauthorized.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the profile does not exist.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant isolation is violated.
     """
     profile = await service.get_output_profile(initiator=initiator, id=profile_id)
     return profile
@@ -86,24 +96,27 @@ async def upsert_output_profile(
     data: OutputProfile,
     initiator: CurrentUserDep,
     service: StudioOutputProfileServiceDep,
-    profile_id: str = Path(..., pattern=OPAQUE_STRIPE_ID_REGEX),
+    profile_id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
 ) -> OutputProfile:
-    """Create or Update an Output Profile.
+    """Create or update an Output Profile in-place under its authoritative ID.
 
-    Validation automatically enforced by Pydantic. Validates that the path ID
-    matches the payload ID before executing the save operation.
+    Validates that the URL path ID matches the payload ID before delegating to
+    the service layer.
 
     Args:
-        data: The output profile domain model containing the full profile data.
+        data: The OutputProfile domain model containing the full profile payload.
         initiator: The current verified user executing the request.
-        service: Injected StudioService for domain operations.
+        service: Injected StudioOutputProfileService for domain operations.
         profile_id: Unique Opaque Stripe ID of the profile from the URL path.
 
     Returns:
         The saved OutputProfile domain model.
 
     Raises:
-        AppException: With error code ID_MISMATCH if the URL path ID does not match the payload ID.
+        AppException: With ErrorCodes.ID_MISMATCH if the URL path ID does not match the payload ID,
+            or ErrorCodes.VALIDATION_FAILED if layout target validation fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the associated workflow or saved profile is missing.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant modification rights are violated.
     """
     if data.id != profile_id:
         logger.error(
@@ -112,6 +125,8 @@ async def upsert_output_profile(
             profile_id,
             data.id,
             initiator.id,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.ID_MISMATCH.value, "profile_id": profile_id},
         )
         raise AppException(
             message=f"Path profile_id '{profile_id}' does not match payload id '{data.id}'",
@@ -127,14 +142,21 @@ async def upsert_output_profile(
 async def delete_output_profile(
     initiator: CurrentUserDep,
     service: StudioOutputProfileServiceDep,
-    profile_id: str = Path(..., pattern=OPAQUE_STRIPE_ID_REGEX),
+    profile_id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
 ) -> None:
-    """Delete an Output Profile.
+    """Delete an Output Profile by its unique Opaque Stripe ID.
 
     Args:
         initiator: The current verified user executing the request.
-        service: Injected StudioService for domain operations.
+        service: Injected StudioOutputProfileService for domain operations.
         profile_id: Unique Opaque Stripe ID of the profile to delete.
+
+    Returns:
+        None.
+
+    Raises:
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the profile does not exist.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant modification rights are violated.
     """
     await service.delete_output_profile(initiator=initiator, id=profile_id)
 
@@ -147,16 +169,21 @@ async def delete_output_profile(
 async def clone_output_profile(
     initiator: CurrentUserDep,
     service: StudioOutputProfileServiceDep,
-    profile_id: str = Path(..., pattern=OPAQUE_STRIPE_ID_REGEX),
+    profile_id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
 ) -> OutputProfile:
-    """Deep clone an Output Profile.
+    """Deep clone an existing Output Profile under a newly generated Opaque Stripe ID.
 
     Args:
         initiator: The current verified user executing the request.
-        service: Injected StudioService for domain operations.
-        profile_id: Unique Opaque Stripe ID of the profile to clone.
+        service: Injected StudioOutputProfileService for domain operations.
+        profile_id: Unique Opaque Stripe ID of the source profile to clone.
 
     Returns:
         The newly cloned OutputProfile domain model.
+
+    Raises:
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the source profile does not exist.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant isolation is violated.
+        AppException: With ErrorCodes.VALIDATION_FAILED if cloned layout target validation fails.
     """
     return await service.clone_output_profile(initiator=initiator, id=profile_id)
