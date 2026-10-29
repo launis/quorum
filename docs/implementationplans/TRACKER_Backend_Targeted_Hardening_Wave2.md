@@ -39,7 +39,7 @@
   - [x] @[backend_v2/hooks/archival.py]
   - [x] @[backend_v2/hooks/metrics.py]
   - [x] @[backend_v2/hooks/input_processing.py]
-  - [ ] @[backend_v2/llm/directives.py]
+  - [x] @[backend_v2/llm/directives.py]
   - [ ] @[backend_v2/llm/prompt_builder.py]
   - [ ] @[backend_v2/llm/adapters/deepseek_adapter.py]
   - [ ] @[backend_v2/llm/adapters/mock_adapter.py]
