@@ -1,3 +1,5 @@
+"""Unit tests for DAGCompilerService pre-flight workflow validation and topological sorting."""
+
 import pytest
 from pydantic import ValidationError
 
@@ -9,29 +11,51 @@ from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
 
 def test_extract_root_namespace() -> None:
-    """Test parsing of variable root namespaces."""
+    """Test parsing of variable root namespaces across positive and boundary inputs."""
     assert DAGCompilerService._extract_root_namespace("$inputs.user_id") == "$inputs.user_id"
     assert DAGCompilerService._extract_root_namespace("$steps.my_step.output.result") == "$steps.my_step"
     assert DAGCompilerService._extract_root_namespace("$inputs") == "$inputs"
     assert DAGCompilerService._extract_root_namespace("$steps") == "$steps"
+    assert DAGCompilerService._extract_root_namespace("$global.config") == "$global"
+    assert DAGCompilerService._extract_root_namespace("") == ""
 
 
 def test_ensure_acyclic() -> None:
-    """Test cycle detection in DAGs."""
-    # Valid linear dependency
+    """Test cycle detection in DAGs for valid linear chains."""
     steps = [
         StepRule(id="st_0000000000000001", depends_on=[], task_blueprint="bp", input_mappings={}),
         StepRule(id="st_0000000000000002", depends_on=["st_0000000000000001"], task_blueprint="bp", input_mappings={}),
     ]
     DAGCompilerService._ensure_acyclic(steps)
 
-    # Invalid cyclic dependency
+
+def test_ensure_acyclic_two_node_cycle_raises() -> None:
+    """Negative test: _ensure_acyclic raises WorkflowCompilationError on a 2-node mutual cycle."""
     steps_cycle = [
         StepRule(id="st_0000000000000001", depends_on=["st_0000000000000002"], task_blueprint="bp", input_mappings={}),
         StepRule(id="st_0000000000000002", depends_on=["st_0000000000000001"], task_blueprint="bp", input_mappings={}),
     ]
-    with pytest.raises(WorkflowCompilationError):
+    with pytest.raises(WorkflowCompilationError) as exc_info:
         DAGCompilerService._ensure_acyclic(steps_cycle)
+    assert "Cyclic dependency (Infinite Loop) detected" in str(exc_info.value)
+
+
+def test_ensure_acyclic_self_loop_and_three_node_cycle_raises() -> None:
+    """Negative test: _ensure_acyclic raises WorkflowCompilationError on self-loop and 3-node cycles."""
+    self_loop = [
+        StepRule(id="st_0000000000000001", depends_on=["st_0000000000000001"], task_blueprint="bp", input_mappings={}),
+    ]
+    with pytest.raises(WorkflowCompilationError) as exc_info:
+        DAGCompilerService._ensure_acyclic(self_loop)
+    assert exc_info.value.step_id == "st_0000000000000001"
+
+    three_node_cycle = [
+        StepRule(id="st_0000000000000001", depends_on=["st_0000000000000003"], task_blueprint="bp", input_mappings={}),
+        StepRule(id="st_0000000000000002", depends_on=["st_0000000000000001"], task_blueprint="bp", input_mappings={}),
+        StepRule(id="st_0000000000000003", depends_on=["st_0000000000000002"], task_blueprint="bp", input_mappings={}),
+    ]
+    with pytest.raises(WorkflowCompilationError):
+        DAGCompilerService._ensure_acyclic(three_node_cycle)
 
 
 def test_get_topological_order() -> None:
@@ -45,8 +69,19 @@ def test_get_topological_order() -> None:
     assert [s.id for s in ordered] == ["st_0000000000000001", "st_0000000000000002", "st_0000000000000003"]
 
 
+def test_get_topological_order_missing_dep_raises() -> None:
+    """Negative test: _get_topological_order raises WorkflowCompilationError on missing dependency."""
+    steps = [
+        StepRule(id="st_0000000000000001", depends_on=["st_missing00000001"], task_blueprint="bp", input_mappings={})
+    ]
+    with pytest.raises(WorkflowCompilationError):
+        DAGCompilerService._get_topological_order(steps)
+
+
 def test_compute_topological_waves() -> None:
-    """Test computing concurrent topological waves for steps."""
+    """Test computing concurrent topological waves for steps and empty boundary."""
+    assert DAGCompilerService.compute_topological_waves([]) == []
+
     steps = [
         StepRule(id="st_0000000000000001", depends_on=[], task_blueprint="bp", input_mappings={}),
         StepRule(id="st_0000000000000002", depends_on=[], task_blueprint="bp", input_mappings={}),
