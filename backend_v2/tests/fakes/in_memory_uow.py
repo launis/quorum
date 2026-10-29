@@ -1009,13 +1009,41 @@ class InMemoryAsyncPgConnection:
         if "INSERT INTO EXECUTIONS" in normalized:
             exec_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
             exec_id = format_prefixed_uuid7(exec_uuid, EntityPrefix.EXECUTION)
+            wf_uuid = args[1] if isinstance(args[1], (uuid.UUID, str)) else str(args[1])
+            wf_id = format_prefixed_uuid7(wf_uuid, EntityPrefix.WORKFLOW)
+            active_prof_id = (
+                format_prefixed_uuid7(
+                    args[3] if isinstance(args[3], (uuid.UUID, str)) else str(args[3]),
+                    EntityPrefix.OUTPUT_PROFILE,
+                )
+                if args[3] is not None
+                else None
+            )
+            output_prof_id = (
+                format_prefixed_uuid7(
+                    args[4] if isinstance(args[4], (uuid.UUID, str)) else str(args[4]),
+                    EntityPrefix.OUTPUT_PROFILE,
+                )
+                if args[4] is not None
+                else None
+            )
+            org_raw = args[39]
+            if org_raw is None:
+                org_id_val: str | None = None
+            elif str(org_raw) in {"SYSTEM", "0195f3a0-0000-7000-8000-000000000000"}:
+                org_id_val = "SYSTEM"
+            else:
+                org_id_val = format_prefixed_uuid7(
+                    org_raw if isinstance(org_raw, (uuid.UUID, str)) else str(org_raw),
+                    EntityPrefix.ORGANIZATION,
+                )
             record = ExecutionRecord.model_validate(
                 {
                     "id": exec_id,
-                    "workflow_id": args[1],
+                    "workflow_id": wf_id,
                     "workflow_version": args[2],
-                    "active_profile_id": args[3],
-                    "output_profile_id": args[4],
+                    "active_profile_id": active_prof_id,
+                    "output_profile_id": output_prof_id,
                     "status": args[5],
                     "target_locale": args[6],
                     "progress": args[7],
@@ -1050,7 +1078,7 @@ class InMemoryAsyncPgConnection:
                     "updated_at": args[36],
                     "completed_at": args[37],
                     "created_by": args[38],
-                    "organization_id": args[39],
+                    "organization_id": org_id_val,
                 },
                 strict=False,
             )

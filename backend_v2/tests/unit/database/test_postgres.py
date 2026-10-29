@@ -488,12 +488,12 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
         progress=100,
         status_message="Completed",
         frozen_context=FrozenContext(
-            compiled_prompts={"stp_a1b2c3d4e5f60718": "<system_directive>Verify</system_directive>"},
+            compiled_prompts={"stp_0195f3a0000070008000a1b2c3d4e5f6": "<system_directive>Verify</system_directive>"},
             mcp_tool_audit=[mcp_trace],
         ),
         steps=[
             ExecutionStep(
-                id="stp_a1b2c3d4e5f60718",
+                id="stp_0195f3a0000070008000a1b2c3d4e5f6",
                 label="Fact Verification",
                 status=ExecutionStatus.PASSED,
                 prompt_tokens=1200,
@@ -607,29 +607,29 @@ def test_schema_dto_naming_parity() -> None:
     # 5. report_artifacts <-> ReportArtifact + has_pdf sidecar flag
     assert parsed_tables["report_artifacts"] == set(ReportArtifact.model_fields.keys()) | {"has_pdf"}
 
-    # 6. workflows <-> Workflow
-    assert parsed_tables["workflows"] == set(Workflow.model_fields.keys())
+    # 6. workflows <-> Workflow + VIRTUAL created_at
+    assert parsed_tables["workflows"] == set(Workflow.model_fields.keys()) | {"created_at"}
 
-    # 7. steps <-> Step
-    assert parsed_tables["steps"] == set(Step.model_fields.keys())
+    # 7. steps <-> Step + VIRTUAL created_at
+    assert parsed_tables["steps"] == set(Step.model_fields.keys()) | {"created_at"}
 
-    # 8. prompt_blocks <-> Polymorphic union of all concrete PromptBlock models
+    # 8. prompt_blocks <-> Polymorphic union of all concrete PromptBlock models + VIRTUAL created_at
     prompt_block_union_fields = (
         set(MatrixPromptBlock.model_fields.keys())
         | set(SystemRulePromptBlock.model_fields.keys())
         | set(PersonaPromptBlock.model_fields.keys())
         | set(ProtocolPromptBlock.model_fields.keys())
     )
-    assert parsed_tables["prompt_blocks"] == prompt_block_union_fields
+    assert parsed_tables["prompt_blocks"] == prompt_block_union_fields | {"created_at"}
 
-    # 9. output_profiles <-> OutputProfile
-    assert parsed_tables["output_profiles"] == set(OutputProfile.model_fields.keys())
+    # 9. output_profiles <-> OutputProfile + VIRTUAL created_at
+    assert parsed_tables["output_profiles"] == set(OutputProfile.model_fields.keys()) | {"created_at"}
 
-    # 10. system_configs <-> Union of SystemConfigModelRegistry and SystemConfigMCPGateways
+    # 10. system_configs <-> Union of SystemConfigModelRegistry and SystemConfigMCPGateways + VIRTUAL created_at
     system_config_union_fields = set(SystemConfigModelRegistry.model_fields.keys()) | set(
         SystemConfigMCPGateways.model_fields.keys()
     )
-    assert parsed_tables["system_configs"] == system_config_union_fields
+    assert parsed_tables["system_configs"] == system_config_union_fields | {"created_at"}
 
     # 11. users <-> User
     assert parsed_tables["users"] == set(User.model_fields.keys())
@@ -1406,7 +1406,7 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
             assert exc_save_exec.value.error_code == ErrorCodes.STORAGE_ACCESS_FAILED.value
 
             org_model = Organization(
-                id="org_1111111111111111",
+                id="org_0195f3a0000070008000111111111111",
                 slug="fault-org",
                 name="Fault Org",
                 is_active=True,
@@ -1480,15 +1480,18 @@ def test_zero_orm_ast_guardrail_verification(tmp_path: Path) -> None:
     assert ZeroOrmRuleCode.ZORM005 in rule_codes
     assert ZeroOrmRuleCode.ZORM006 in rule_codes
 
-    # Synthetic negative verification for ZORM004 (rogue SQL table outside the closed 12-table topology)
+    # Synthetic negative verification for ZORM004 (rogue SQL table and banned TEXT PRIMARY KEY)
     bad_sql_file = tmp_path / "rogue_schema.sql"
     bad_sql_file.write_text(
-        "CREATE TABLE IF NOT EXISTS rogue_shadow_table (id UUID PRIMARY KEY);\n",
+        "CREATE TABLE IF NOT EXISTS rogue_shadow_table (id UUID PRIMARY KEY);\n"
+        "CREATE TABLE IF NOT EXISTS workflows (\n"
+        "    id TEXT PRIMARY KEY\n"
+        ");\n",
         encoding="utf-8",
     )
     sql_findings = audit_sql_migration_file(bad_sql_file)
-    assert len(sql_findings) == 1
-    assert sql_findings[0].rule_code == ZeroOrmRuleCode.ZORM004
+    assert len(sql_findings) == 2
+    assert all(f.rule_code == ZeroOrmRuleCode.ZORM004 for f in sql_findings)
 
 
 @pytest.mark.asyncio
@@ -1519,8 +1522,9 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
     driver = PostgresStorageDriver(pool_manager=pool_manager, settings=settings, auto_initialize_pool=False)
 
     # 1. Upsert and Get roundtrip against custom collection + canonical collection
+    org_id_val = "org_0195f3a0000070008000111111111111"
     org_payload = {
-        "id": "org_1111111111111111",
+        "id": org_id_val,
         "slug": "alpha-org",
         "name": "Alpha Org",
         "is_active": True,
@@ -1530,8 +1534,8 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
         "tpm_limit": 100000,
         "rpm_limit": 1000,
     }
-    doc_id = await driver.upsert("organizations", org_payload, "org_1111111111111111")
-    assert doc_id == "org_1111111111111111"
+    doc_id = await driver.upsert("organizations", org_payload, org_id_val)
+    assert doc_id == org_id_val
     fetched = await driver.get("organizations", doc_id)
     assert fetched is not None
     assert fetched["id"] == doc_id
@@ -1539,7 +1543,7 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
 
     # Update existing and missing
     assert await driver.update("organizations", doc_id, {"name": "Alpha Updated"}) is True
-    assert await driver.update("organizations", "org_missing000000000", {"name": "Nope"}) is False
+    assert await driver.update("organizations", "org_0195f3a0000070008000000000000000", {"name": "Nope"}) is False
     updated_org = await driver.get("organizations", doc_id)
     assert updated_org is not None
     assert updated_org["name"] == "Alpha Updated"
@@ -1548,7 +1552,7 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
     await driver.insert(
         "custom_items",
         {
-            "id": "itm_1111111111111111",
+            "id": "itm_0195f3a0000070008000111111111111",
             "name": "Item A",
             "score": 90,
             "tags": ["core", "pg19"],
@@ -1558,7 +1562,7 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
     await driver.insert(
         "custom_items",
         {
-            "id": "itm_2222222222222222",
+            "id": "itm_0195f3a0000070008000222222222222",
             "name": "Item B",
             "score": 40,
             "tags": ["aux"],
@@ -1612,8 +1616,8 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
         settings=settings,
         auto_initialize_pool=False,
     )
-    await uninit_driver.upsert("organizations", org_payload, "org_1111111111111111")
-    assert await uninit_driver.get("organizations", "org_1111111111111111") is not None
+    await uninit_driver.upsert("organizations", org_payload, org_id_val)
+    assert await uninit_driver.get("organizations", org_id_val) is not None
 
     auto_pool_manager = PostgresPoolManager(settings=settings, pool=uninit_pool)
     auto_driver = PostgresStorageDriver(
@@ -1621,15 +1625,15 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
         settings=settings,
         auto_initialize_pool=True,
     )
-    auto_driver._collections["organizations"] = {"org_1111111111111111": dict(org_payload)}
-    await auto_driver.upsert("organizations", org_payload, "org_1111111111111111")
+    auto_driver._collections["organizations"] = {org_id_val: dict(org_payload)}
+    await auto_driver.upsert("organizations", org_payload, org_id_val)
     queried_orgs = await auto_driver.query("organizations")
     assert len(queried_orgs) == 1
-    assert queried_orgs[0]["id"] == "org_1111111111111111"
+    assert queried_orgs[0]["id"] == org_id_val
     await auto_driver.close()
 
     # 4. Delete and Clear
-    assert await driver.delete("custom_items", "itm_2222222222222222") is True
+    assert await driver.delete("custom_items", "itm_0195f3a0000070008000222222222222") is True
     assert await driver.delete("custom_items", "itm_missing") is False
     assert await driver.delete("organizations", doc_id) is True
     await driver.clear("custom_items")
@@ -1639,7 +1643,7 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
 
     # 5. Negative boundaries: empty collection name or empty doc_id raises AppException(VALIDATION_FAILED)
     with pytest.raises(AppException) as exc_empty_col:
-        await driver.get("   ", "org_1111111111111111")
+        await driver.get("   ", org_id_val)
     assert exc_empty_col.value.error_code == ErrorCodes.VALIDATION_FAILED.value
 
     with pytest.raises(AppException) as exc_empty_id:
@@ -1664,7 +1668,7 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
         id=generate_uuid7_opaque_id(EntityPrefix.EXECUTION),
         workflow_id=generate_uuid7_opaque_id(EntityPrefix.WORKFLOW),
         workflow_version=2,
-        output_profile_id="prf_1111111111111111",
+        output_profile_id="prf_0195f3a0000070008000111111111111",
         status=ExecutionStatus.PASSED,
         target_locale="fi",
         progress=100,
@@ -1677,7 +1681,7 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
         id=generate_uuid7_opaque_id(EntityPrefix.REPORT),
         execution_id=sample_exec.id,
         workflow_id=sample_exec.workflow_id,
-        profile_id="prf_1111111111111111",
+        profile_id="prf_0195f3a0000070008000111111111111",
         locale="fi",
         title="Sample Report",
         status=ReportStatus.READY,

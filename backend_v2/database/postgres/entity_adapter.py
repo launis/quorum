@@ -94,6 +94,23 @@ _COLLECTION_TO_TABLE_MAP: dict[str, str] = {
     "report_binaries": "report_binaries",
 }
 
+# Phase 3, Step 3: Canonical table-to-EntityPrefix map and deterministic SYSTEM organization UUIDv7 bridge
+_TABLE_TO_ENTITY_PREFIX: dict[str, EntityPrefix] = {
+    "organizations": EntityPrefix.ORGANIZATION,
+    "users": EntityPrefix.USER,
+    "system_configs": EntityPrefix.SYSTEM_CONFIG,
+    "prompt_blocks": EntityPrefix.PROMPT_BLOCK,
+    "steps": EntityPrefix.STEP,
+    "workflows": EntityPrefix.WORKFLOW,
+    "output_profiles": EntityPrefix.OUTPUT_PROFILE,
+    "executions": EntityPrefix.EXECUTION,
+    "report_artifacts": EntityPrefix.REPORT,
+    "report_binaries": EntityPrefix.REPORT,
+}
+
+_SYSTEM_ORG_UUID7: uuid.UUID = uuid.UUID("0195f3a0-0000-7000-8000-000000000000")
+_ROOT_SYSTEM_ORG_UUID7: uuid.UUID = uuid.UUID("0195f3a0-0000-7000-8000-000000000001")
+
 _SAVE_REPORT_BINARY_SQL: str = """
 INSERT INTO report_binaries (report_id, mime_type, pdf_bytes, size_bytes, created_at)
 VALUES ($1::uuid, $2, $3::bytea, $4::bigint, $5::timestamptz)
@@ -160,10 +177,10 @@ INSERT INTO executions (
     organization_id
 ) VALUES (
     $1::uuid,
-    $2,
+    $2::uuid,
     $3,
-    $4,
-    $5,
+    $4::uuid,
+    $5::uuid,
     $6,
     $7,
     $8,
@@ -198,7 +215,7 @@ INSERT INTO executions (
     $37::timestamptz,
     $38::timestamptz,
     $39,
-    $40
+    $40::uuid
 )
 ON CONFLICT (id) DO UPDATE SET
     workflow_id = EXCLUDED.workflow_id,
@@ -336,7 +353,7 @@ _UPSERT_ORGANIZATION_SQL: str = """
 INSERT INTO organizations (
     id, slug, name, created_at, is_active, tier, contact_email, billing_id,
     subscription_status, quota_limit, tpm_limit, rpm_limit
-) VALUES ($1, $2, $3, $4::timestamptz, $5, $6, $7, $8, $9, $10::numeric, $11::bigint, $12)
+) VALUES ($1::uuid, $2, $3, $4::timestamptz, $5, $6, $7, $8, $9, $10::numeric, $11::bigint, $12)
 ON CONFLICT (id) DO UPDATE SET
     slug = EXCLUDED.slug,
     name = EXCLUDED.name,
@@ -355,7 +372,7 @@ _GET_ORGANIZATION_SQL: str = """
 SELECT id, slug, name, created_at, is_active, tier, contact_email, billing_id,
        subscription_status, quota_limit, tpm_limit, rpm_limit
 FROM organizations
-WHERE id = $1
+WHERE id = $1::uuid
 """
 
 _LIST_ORGANIZATIONS_SQL: str = """
@@ -367,7 +384,7 @@ FROM organizations
 _UPSERT_USER_SQL: str = """
 INSERT INTO users (
     id, slug, email, name, role, organization_id, is_active, language, theme_mode, created_at, created_by
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::timestamptz, $11)
+) VALUES ($1::uuid, $2, $3, $4, $5, $6::uuid, $7, $8, $9, $10::timestamptz, $11)
 ON CONFLICT (id) DO UPDATE SET
     slug = EXCLUDED.slug,
     email = EXCLUDED.email,
@@ -384,7 +401,7 @@ ON CONFLICT (id) DO UPDATE SET
 _GET_USER_SQL: str = """
 SELECT id, slug, email, name, role, organization_id, is_active, language, theme_mode, created_at, created_by
 FROM users
-WHERE id = $1
+WHERE id = $1::uuid
 """
 
 _LIST_USERS_SQL: str = """
@@ -396,7 +413,7 @@ _UPSERT_SYSTEM_CONFIG_SQL: str = """
 INSERT INTO system_configs (
     id, name, type, slug, default_provider, tier_definitions, endpoint_url,
     transport_type, auth_type, auth_header_name, auth_env_var, timeout_seconds, tools
-) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12, $13::jsonb)
+) VALUES ($1::uuid, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12, $13::jsonb)
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     type = EXCLUDED.type,
@@ -416,7 +433,7 @@ _GET_SYSTEM_CONFIG_SQL: str = """
 SELECT id, name, type, slug, default_provider, tier_definitions, endpoint_url,
        transport_type, auth_type, auth_header_name, auth_env_var, timeout_seconds, tools
 FROM system_configs
-WHERE id = $1
+WHERE id = $1::uuid
 """
 
 _LIST_SYSTEM_CONFIGS_SQL: str = """
@@ -433,7 +450,7 @@ INSERT INTO prompt_blocks (
     computed_min, computed_max, instruction_text, role_enforcement, tone_directives,
     protocol_instructions
 ) VALUES (
-    $1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb,
+    $1::uuid, $2, $3::uuid, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb,
     $8, $9, $10, $11, $12,
     $13, $14, $15, $16::jsonb, $17::jsonb, $18::jsonb,
     $19, $20, $21, $22, $23::jsonb,
@@ -472,7 +489,7 @@ SELECT id, slug, organization_id, label, description, output_extensions, theory_
        computed_min, computed_max, instruction_text, role_enforcement, tone_directives,
        protocol_instructions
 FROM prompt_blocks
-WHERE id = $1
+WHERE id = $1::uuid
 """
 
 _LIST_PROMPT_BLOCKS_SQL: str = """
@@ -491,8 +508,8 @@ INSERT INTO steps (
     pre_hooks, post_hooks, safety, allowed_mcp_tools, mcp_tool_params,
     cognitive_tier, expected_inputs, is_system_core, engine_type, zone
 ) VALUES (
-    $1, $2, $3, $4::jsonb, $5::jsonb, $6, $7, $8,
-    $9, $10, $11::jsonb,
+    $1::uuid, $2, $3::uuid, $4::jsonb, $5::jsonb, $6, $7, $8::uuid,
+    $9::uuid, $10::uuid, $11::jsonb,
     $12::jsonb, $13::jsonb, $14, $15::jsonb, $16::jsonb,
     $17, $18::jsonb, $19, $20, $21
 )
@@ -525,7 +542,7 @@ SELECT id, slug, organization_id, name, description, type, hook, role_block_id,
        pre_hooks, post_hooks, safety, allowed_mcp_tools, mcp_tool_params,
        cognitive_tier, expected_inputs, is_system_core, engine_type, zone
 FROM steps
-WHERE id = $1
+WHERE id = $1::uuid
 """
 
 _LIST_STEPS_SQL: str = """
@@ -545,8 +562,8 @@ INSERT INTO workflows (
     enable_eager_anonymization, system_audit_trail, expected_inputs, steps,
     historical_context_mode
 ) VALUES (
-    $1, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8,
-    $9, $10, $11, $12,
+    $1::uuid, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8::uuid,
+    $9::uuid, $10::uuid, $11::uuid, $12,
     $13, $14, $15,
     $16, $17, $18,
     $19, $20, $21::jsonb, $22::jsonb,
@@ -585,7 +602,7 @@ SELECT id, slug, name, description, status, version, is_public, organization_id,
        enable_eager_anonymization, system_audit_trail, expected_inputs, steps,
        historical_context_mode
 FROM workflows
-WHERE id = $1
+WHERE id = $1::uuid
 """
 
 _LIST_WORKFLOWS_SQL: str = """
@@ -614,7 +631,7 @@ INSERT INTO output_profiles (
     matrix_synthesis_groups, content_blocks, show_sources_summary_box,
     sources_display_mode, variance_target_block, user_role_target_block
 ) VALUES (
-    $1, $2, $3, $4, $5::jsonb, $6::jsonb, $7::jsonb,
+    $1::uuid, $2, $3::uuid, $4::uuid, $5::jsonb, $6::jsonb, $7::jsonb,
     $8::jsonb, $9, $10, $11,
     $12, $13,
     $14, $15,
@@ -685,7 +702,7 @@ SELECT id, slug, workflow_id, organization_id, name, description, user_role_labe
        matrix_synthesis_groups, content_blocks, show_sources_summary_box,
        sources_display_mode, variance_target_block, user_role_target_block
 FROM output_profiles
-WHERE id = $1
+WHERE id = $1::uuid
 """
 
 _LIST_OUTPUT_PROFILES_SQL: str = """
@@ -711,7 +728,7 @@ INSERT INTO report_artifacts (
     storage_paths, metadata, custom_preface_md, error_message, has_pdf,
     created_at, updated_at
 ) VALUES (
-    $1::uuid, $2, $3, $4, $5, $6, $7,
+    $1::uuid, $2::uuid, $3::uuid, $4::uuid, $5, $6, $7,
     $8::jsonb, $9::jsonb, $10, $11, $12,
     $13::timestamptz, $14::timestamptz
 )
@@ -777,6 +794,85 @@ def _coerce_uuid_or_str(raw: object) -> uuid.UUID | str:
     if isinstance(raw, (uuid.UUID, str)):
         return raw
     return str(raw)
+
+
+def _parse_optional_uuid7(raw: str | None, prefix: EntityPrefix) -> uuid.UUID | None:
+    """Parse an optional Opaque Stripe ID into a 16-byte UUIDv7 or None.
+
+    Args:
+        raw: Optional canonical {prefix}_{32_hex} string or None.
+        prefix: Expected EntityPrefix for the foreign key column.
+
+    Returns:
+        Validated uuid.UUID or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if raw is non-None and invalid.
+    """
+    if raw is None:
+        return None
+    return parse_prefixed_uuid7(raw, prefix)
+
+
+def _format_optional_uuid7(raw: object, prefix: EntityPrefix) -> str | None:
+    """Format an optional database UUID column value into a {prefix}_{32_hex} string or None.
+
+    Args:
+        raw: Database column value (uuid.UUID, str, or None).
+        prefix: Target EntityPrefix for formatting.
+
+    Returns:
+        Canonical {prefix}_{32_hex} string or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if raw is non-None and not a valid UUIDv7.
+    """
+    if raw is None:
+        return None
+    return format_prefixed_uuid7(_coerce_uuid_or_str(raw), prefix)
+
+
+def _parse_org_uuid7(raw: str | None) -> uuid.UUID | None:
+    """Parse an optional organization_id into a 16-byte UUIDv7, bridging 'SYSTEM' deterministically.
+
+    Args:
+        raw: Organization identifier ('org_<32_hex>', 'org_system000000', 'SYSTEM', or None).
+
+    Returns:
+        16-byte version-7 uuid.UUID or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if raw is an invalid organization ID.
+    """
+    if raw is None:
+        return None
+    if raw == "SYSTEM":
+        return _SYSTEM_ORG_UUID7
+    if raw == "org_system000000":
+        return _ROOT_SYSTEM_ORG_UUID7
+    return parse_prefixed_uuid7(raw, EntityPrefix.ORGANIZATION)
+
+
+def _format_org_uuid7(raw: object) -> str | None:
+    """Format a database organization_id UUID column into 'org_<32_hex>', 'org_system000000', 'SYSTEM', or None.
+
+    Args:
+        raw: Database organization_id value (uuid.UUID, str, or None).
+
+    Returns:
+        Canonical 'org_<32_hex>', 'org_system000000', 'SYSTEM', or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if raw is non-None and invalid.
+    """
+    if raw is None:
+        return None
+    coerced = _coerce_uuid_or_str(raw)
+    if coerced == _SYSTEM_ORG_UUID7 or str(coerced) in {str(_SYSTEM_ORG_UUID7), "SYSTEM"}:
+        return "SYSTEM"
+    if coerced == _ROOT_SYSTEM_ORG_UUID7 or str(coerced) in {str(_ROOT_SYSTEM_ORG_UUID7), "org_system000000"}:
+        return "org_system000000"
+    return format_prefixed_uuid7(coerced, EntityPrefix.ORGANIZATION)
 
 
 def _decode_jsonb_column(raw: object) -> object:
@@ -984,10 +1080,10 @@ class PostgresEntityAdapter:
         return ExecutionRecord.model_validate(
             {
                 "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.EXECUTION),
-                "workflow_id": row["workflow_id"],
+                "workflow_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["workflow_id"]), EntityPrefix.WORKFLOW),
                 "workflow_version": row["workflow_version"],
-                "active_profile_id": row["active_profile_id"],
-                "output_profile_id": row["output_profile_id"],
+                "active_profile_id": _format_optional_uuid7(row["active_profile_id"], EntityPrefix.OUTPUT_PROFILE),
+                "output_profile_id": _format_optional_uuid7(row["output_profile_id"], EntityPrefix.OUTPUT_PROFILE),
                 "status": row["status"],
                 "target_locale": row["target_locale"],
                 "progress": row["progress"],
@@ -1022,7 +1118,7 @@ class PostgresEntityAdapter:
                 "updated_at": row["updated_at"],
                 "completed_at": row["completed_at"],
                 "created_by": row["created_by"],
-                "organization_id": row["organization_id"],
+                "organization_id": _format_org_uuid7(row["organization_id"]),
             },
             strict=False,
         )
@@ -1041,6 +1137,10 @@ class PostgresEntityAdapter:
                 STORAGE_ACCESS_FAILED if persistence fails.
         """
         exec_uuid = parse_prefixed_uuid7(record.id, EntityPrefix.EXECUTION)
+        wf_uuid = parse_prefixed_uuid7(record.workflow_id, EntityPrefix.WORKFLOW)
+        active_prf_uuid = _parse_optional_uuid7(record.active_profile_id, EntityPrefix.OUTPUT_PROFILE)
+        output_prf_uuid = _parse_optional_uuid7(record.output_profile_id, EntityPrefix.OUTPUT_PROFILE)
+        org_uuid = _parse_org_uuid7(record.organization_id)
         dumped = record.model_dump(mode="json", exclude_none=True)
 
         frozen_ctx_json: str | None = None
@@ -1059,10 +1159,10 @@ class PostgresEntityAdapter:
             await self._conn.execute(
                 _SAVE_EXECUTION_SQL,
                 exec_uuid,
-                record.workflow_id,
+                wf_uuid,
                 record.workflow_version,
-                record.active_profile_id,
-                record.output_profile_id,
+                active_prf_uuid,
+                output_prf_uuid,
                 record.status.value,
                 record.target_locale,
                 record.progress,
@@ -1097,7 +1197,7 @@ class PostgresEntityAdapter:
                 record.updated_at,
                 record.completed_at,
                 record.created_by,
-                record.organization_id,
+                org_uuid,
                 timeout=self.command_timeout_seconds,
             )
         except Exception as exc:
@@ -1213,7 +1313,7 @@ class PostgresEntityAdapter:
         """
         return Organization.model_validate(
             {
-                "id": row["id"],
+                "id": str(_format_org_uuid7(row["id"])),
                 "slug": row["slug"],
                 "name": row["name"],
                 "created_at": row["created_at"],
@@ -1239,11 +1339,16 @@ class PostgresEntityAdapter:
             Canonical org_<hex> organization identifier.
 
         Raises:
-            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+            AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
+        org_uuid = (
+            _ROOT_SYSTEM_ORG_UUID7
+            if org.id == "org_system000000"
+            else parse_prefixed_uuid7(org.id, EntityPrefix.ORGANIZATION)
+        )
         return await self._execute_upsert(
             _UPSERT_ORGANIZATION_SQL,
-            org.id,
+            org_uuid,
             org.slug,
             org.name,
             org.created_at,
@@ -1267,8 +1372,16 @@ class PostgresEntityAdapter:
 
         Returns:
             Hydrated Organization instance if found, or None.
+
+        Raises:
+            AppException: With VALIDATION_FAILED on invalid org_id.
         """
-        row = await self._conn.fetchrow(_GET_ORGANIZATION_SQL, org_id, timeout=self.command_timeout_seconds)
+        org_uuid = (
+            _ROOT_SYSTEM_ORG_UUID7
+            if org_id == "org_system000000"
+            else parse_prefixed_uuid7(org_id, EntityPrefix.ORGANIZATION)
+        )
+        row = await self._conn.fetchrow(_GET_ORGANIZATION_SQL, org_uuid, timeout=self.command_timeout_seconds)
         if row is None:
             return None
         return self._hydrate_organization_row(row)
@@ -1284,12 +1397,12 @@ class PostgresEntityAdapter:
         """
         return User.model_validate(
             {
-                "id": row["id"],
+                "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.USER),
                 "slug": row["slug"],
                 "email": row["email"],
                 "name": row["name"],
                 "role": row["role"],
-                "organization_id": row["organization_id"],
+                "organization_id": _format_org_uuid7(row["organization_id"]),
                 "is_active": row["is_active"],
                 "language": row["language"],
                 "theme_mode": row["theme_mode"],
@@ -1309,16 +1422,18 @@ class PostgresEntityAdapter:
             Canonical usr_<hex> user identifier.
 
         Raises:
-            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+            AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
+        user_uuid = parse_prefixed_uuid7(user.id, EntityPrefix.USER)
+        org_uuid = _parse_org_uuid7(user.organization_id)
         return await self._execute_upsert(
             _UPSERT_USER_SQL,
-            user.id,
+            user_uuid,
             user.slug,
             str(user.email),
             user.name,
             user.role.value,
-            user.organization_id,
+            org_uuid,
             user.is_active,
             str(user.language),
             user.theme_mode,
@@ -1336,8 +1451,12 @@ class PostgresEntityAdapter:
 
         Returns:
             Hydrated User instance if found, or None.
+
+        Raises:
+            AppException: With VALIDATION_FAILED on invalid user_id.
         """
-        row = await self._conn.fetchrow(_GET_USER_SQL, user_id, timeout=self.command_timeout_seconds)
+        user_uuid = parse_prefixed_uuid7(user_id, EntityPrefix.USER)
+        row = await self._conn.fetchrow(_GET_USER_SQL, user_uuid, timeout=self.command_timeout_seconds)
         if row is None:
             return None
         return self._hydrate_user_row(row)
@@ -1353,11 +1472,12 @@ class PostgresEntityAdapter:
         Returns:
             Validated SystemConfigModelRegistry or SystemConfigMCPGateways instance.
         """
+        cfg_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.SYSTEM_CONFIG)
         cfg_type = row["type"]
         if cfg_type == "mcp_gateways":
             return SystemConfigMCPGateways.model_validate(
                 {
-                    "id": row["id"],
+                    "id": cfg_id,
                     "type": "mcp_gateways",
                     "slug": row["slug"],
                     "endpoint_url": row["endpoint_url"],
@@ -1372,7 +1492,7 @@ class PostgresEntityAdapter:
             )
         return SystemConfigModelRegistry.model_validate(
             {
-                "id": row["id"],
+                "id": cfg_id,
                 "name": row["name"],
                 "type": "model_registry",
                 "default_provider": row["default_provider"],
@@ -1391,13 +1511,14 @@ class PostgresEntityAdapter:
             Canonical sys_<hex> system configuration identifier.
 
         Raises:
-            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+            AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
+        cfg_uuid = parse_prefixed_uuid7(cfg.id, EntityPrefix.SYSTEM_CONFIG)
         dumped = cfg.model_dump(mode="json")
         if isinstance(cfg, SystemConfigMCPGateways):
             return await self._execute_upsert(
                 _UPSERT_SYSTEM_CONFIG_SQL,
-                cfg.id,
+                cfg_uuid,
                 None,
                 cfg.type,
                 cfg.slug,
@@ -1415,7 +1536,7 @@ class PostgresEntityAdapter:
             )
         return await self._execute_upsert(
             _UPSERT_SYSTEM_CONFIG_SQL,
-            cfg.id,
+            cfg_uuid,
             cfg.name,
             cfg.type,
             None,
@@ -1440,8 +1561,12 @@ class PostgresEntityAdapter:
 
         Returns:
             Hydrated SystemConfigModelRegistry or SystemConfigMCPGateways if found, or None.
+
+        Raises:
+            AppException: With VALIDATION_FAILED on invalid config_id.
         """
-        row = await self._conn.fetchrow(_GET_SYSTEM_CONFIG_SQL, config_id, timeout=self.command_timeout_seconds)
+        cfg_uuid = parse_prefixed_uuid7(config_id, EntityPrefix.SYSTEM_CONFIG)
+        row = await self._conn.fetchrow(_GET_SYSTEM_CONFIG_SQL, cfg_uuid, timeout=self.command_timeout_seconds)
         if row is None:
             return None
         return self._hydrate_system_config_row(row)
@@ -1455,13 +1580,15 @@ class PostgresEntityAdapter:
         Returns:
             Validated MatrixPromptBlock, PersonaPromptBlock, ProtocolPromptBlock, or SystemRulePromptBlock.
         """
+        blk_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.PROMPT_BLOCK)
+        org_id = _format_org_uuid7(row["organization_id"])
         cat = str(row["category_id"])
         if cat == PromptBlockCategory.MATRIX.value:
             return MatrixPromptBlock.model_validate(
                 {
-                    "id": row["id"],
+                    "id": blk_id,
                     "slug": row["slug"],
-                    "organization_id": row["organization_id"],
+                    "organization_id": org_id,
                     "label": _decode_jsonb_column(row["label"]),
                     "description": _decode_jsonb_column(row["description"]),
                     "output_extensions": _decode_jsonb_column(row["output_extensions"]),
@@ -1488,9 +1615,9 @@ class PostgresEntityAdapter:
         ):
             return PersonaPromptBlock.model_validate(
                 {
-                    "id": row["id"],
+                    "id": blk_id,
                     "slug": row["slug"],
-                    "organization_id": row["organization_id"],
+                    "organization_id": org_id,
                     "label": _decode_jsonb_column(row["label"]),
                     "description": _decode_jsonb_column(row["description"]),
                     "output_extensions": _decode_jsonb_column(row["output_extensions"]),
@@ -1508,9 +1635,9 @@ class PostgresEntityAdapter:
         if cat == PromptBlockCategory.PROTOCOL.value:
             return ProtocolPromptBlock.model_validate(
                 {
-                    "id": row["id"],
+                    "id": blk_id,
                     "slug": row["slug"],
-                    "organization_id": row["organization_id"],
+                    "organization_id": org_id,
                     "label": _decode_jsonb_column(row["label"]),
                     "description": _decode_jsonb_column(row["description"]),
                     "output_extensions": _decode_jsonb_column(row["output_extensions"]),
@@ -1526,9 +1653,9 @@ class PostgresEntityAdapter:
             )
         return SystemRulePromptBlock.model_validate(
             {
-                "id": row["id"],
+                "id": blk_id,
                 "slug": row["slug"],
-                "organization_id": row["organization_id"],
+                "organization_id": org_id,
                 "label": _decode_jsonb_column(row["label"]),
                 "description": _decode_jsonb_column(row["description"]),
                 "output_extensions": _decode_jsonb_column(row["output_extensions"]),
@@ -1553,8 +1680,10 @@ class PostgresEntityAdapter:
             Canonical blk_<hex> prompt block identifier.
 
         Raises:
-            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+            AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
+        block_uuid = parse_prefixed_uuid7(block.id, EntityPrefix.PROMPT_BLOCK)
+        org_uuid = _parse_org_uuid7(block.organization_id)
         dumped = block.model_dump(mode="json")
         allow_ctx_override = False
         target_input_key: str | None = None
@@ -1588,9 +1717,9 @@ class PostgresEntityAdapter:
 
         return await self._execute_upsert(
             _UPSERT_PROMPT_BLOCK_SQL,
-            block.id,
+            block_uuid,
             block.slug,
-            block.organization_id,
+            org_uuid,
             to_json(dumped["label"]).decode("utf-8"),
             to_json(dumped["description"]).decode("utf-8"),
             to_json(dumped["output_extensions"]).decode("utf-8"),
@@ -1624,8 +1753,12 @@ class PostgresEntityAdapter:
 
         Returns:
             Hydrated AnyPromptBlock instance if found, or None.
+
+        Raises:
+            AppException: With VALIDATION_FAILED on invalid block_id.
         """
-        row = await self._conn.fetchrow(_GET_PROMPT_BLOCK_SQL, block_id, timeout=self.command_timeout_seconds)
+        block_uuid = parse_prefixed_uuid7(block_id, EntityPrefix.PROMPT_BLOCK)
+        row = await self._conn.fetchrow(_GET_PROMPT_BLOCK_SQL, block_uuid, timeout=self.command_timeout_seconds)
         if row is None:
             return None
         return self._hydrate_prompt_block_row(row)
@@ -1641,16 +1774,20 @@ class PostgresEntityAdapter:
         """
         return Step.model_validate(
             {
-                "id": row["id"],
+                "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.STEP),
                 "slug": row["slug"],
-                "organization_id": row["organization_id"],
+                "organization_id": _format_org_uuid7(row["organization_id"]),
                 "name": _decode_jsonb_column(row["name"]),
                 "description": _decode_jsonb_column(row["description"]),
                 "type": row["type"],
                 "hook": row["hook"],
-                "role_block_id": row["role_block_id"],
-                "extraction_protocol_block_id": row["extraction_protocol_block_id"],
-                "execution_persona_block_id": row["execution_persona_block_id"],
+                "role_block_id": _format_optional_uuid7(row["role_block_id"], EntityPrefix.PROMPT_BLOCK),
+                "extraction_protocol_block_id": _format_optional_uuid7(
+                    row["extraction_protocol_block_id"], EntityPrefix.PROMPT_BLOCK
+                ),
+                "execution_persona_block_id": _format_optional_uuid7(
+                    row["execution_persona_block_id"], EntityPrefix.PROMPT_BLOCK
+                ),
                 "criteria_block_ids": _decode_jsonb_column(row["criteria_block_ids"]),
                 "pre_hooks": _decode_jsonb_column(row["pre_hooks"]),
                 "post_hooks": _decode_jsonb_column(row["post_hooks"]),
@@ -1676,24 +1813,29 @@ class PostgresEntityAdapter:
             Canonical stp_<hex> step identifier.
 
         Raises:
-            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+            AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
+        step_uuid = parse_prefixed_uuid7(step.id, EntityPrefix.STEP)
+        org_uuid = _parse_org_uuid7(step.organization_id)
+        role_uuid = _parse_optional_uuid7(step.role_block_id, EntityPrefix.PROMPT_BLOCK)
+        proto_uuid = _parse_optional_uuid7(step.extraction_protocol_block_id, EntityPrefix.PROMPT_BLOCK)
+        persona_uuid = _parse_optional_uuid7(step.execution_persona_block_id, EntityPrefix.PROMPT_BLOCK)
         dumped = step.model_dump(mode="json")
         cognitive_tier_str: str | None = None
         if step.cognitive_tier is not None:
             cognitive_tier_str = str(step.cognitive_tier)
         return await self._execute_upsert(
             _UPSERT_STEP_SQL,
-            step.id,
+            step_uuid,
             step.slug,
-            step.organization_id,
+            org_uuid,
             to_json(dumped["name"]).decode("utf-8"),
             _encode_optional_jsonb(dumped["description"]),
             str(step.type),
             step.hook,
-            step.role_block_id,
-            step.extraction_protocol_block_id,
-            step.execution_persona_block_id,
+            role_uuid,
+            proto_uuid,
+            persona_uuid,
             to_json(dumped["criteria_block_ids"]).decode("utf-8"),
             to_json(dumped["pre_hooks"]).decode("utf-8"),
             to_json(dumped["post_hooks"]).decode("utf-8"),
@@ -1717,8 +1859,12 @@ class PostgresEntityAdapter:
 
         Returns:
             Hydrated Step instance if found, or None.
+
+        Raises:
+            AppException: With VALIDATION_FAILED on invalid step_id.
         """
-        row = await self._conn.fetchrow(_GET_STEP_SQL, step_id, timeout=self.command_timeout_seconds)
+        step_uuid = parse_prefixed_uuid7(step_id, EntityPrefix.STEP)
+        row = await self._conn.fetchrow(_GET_STEP_SQL, step_uuid, timeout=self.command_timeout_seconds)
         if row is None:
             return None
         return self._hydrate_step_row(row)
@@ -1734,17 +1880,19 @@ class PostgresEntityAdapter:
         """
         return Workflow.model_validate(
             {
-                "id": row["id"],
+                "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.WORKFLOW),
                 "slug": row["slug"],
                 "name": _decode_jsonb_column(row["name"]),
                 "description": _decode_jsonb_column(row["description"]),
                 "status": row["status"],
                 "version": row["version"],
                 "is_public": row["is_public"],
-                "organization_id": row["organization_id"],
-                "default_profile_id": row["default_profile_id"],
-                "mcp_gateway_id": row["mcp_gateway_id"],
-                "model_registry_id": row["model_registry_id"],
+                "organization_id": _format_org_uuid7(row["organization_id"]),
+                "default_profile_id": _format_optional_uuid7(row["default_profile_id"], EntityPrefix.OUTPUT_PROFILE),
+                "mcp_gateway_id": _format_optional_uuid7(row["mcp_gateway_id"], EntityPrefix.SYSTEM_CONFIG),
+                "model_registry_id": format_prefixed_uuid7(
+                    _coerce_uuid_or_str(row["model_registry_id"]), EntityPrefix.SYSTEM_CONFIG
+                ),
                 "default_strictness_level": row["default_strictness_level"],
                 "default_lexical_strictness_level": row["default_lexical_strictness_level"],
                 "security_penalty": _coerce_float(row["security_penalty"]),
@@ -1768,25 +1916,30 @@ class PostgresEntityAdapter:
             wf: Validated Workflow domain model.
 
         Returns:
-            Canonical wor_<hex> workflow identifier.
+            Canonical wf_<hex> workflow identifier.
 
         Raises:
-            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+            AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
+        wf_uuid = parse_prefixed_uuid7(wf.id, EntityPrefix.WORKFLOW)
+        org_uuid = _parse_org_uuid7(wf.organization_id)
+        default_prf_uuid = _parse_optional_uuid7(wf.default_profile_id, EntityPrefix.OUTPUT_PROFILE)
+        mcp_gw_uuid = _parse_optional_uuid7(wf.mcp_gateway_id, EntityPrefix.SYSTEM_CONFIG)
+        model_reg_uuid = parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.SYSTEM_CONFIG)
         dumped = wf.model_dump(mode="json")
         return await self._execute_upsert(
             _UPSERT_WORKFLOW_SQL,
-            wf.id,
+            wf_uuid,
             wf.slug,
             to_json(dumped["name"]).decode("utf-8"),
             to_json(dumped["description"]).decode("utf-8"),
             wf.status,
             wf.version,
             wf.is_public,
-            wf.organization_id,
-            wf.default_profile_id,
-            wf.mcp_gateway_id,
-            wf.model_registry_id,
+            org_uuid,
+            default_prf_uuid,
+            mcp_gw_uuid,
+            model_reg_uuid,
             wf.default_strictness_level,
             wf.default_lexical_strictness_level,
             wf.security_penalty,
@@ -1807,12 +1960,16 @@ class PostgresEntityAdapter:
         """Fetch a Workflow by ID.
 
         Args:
-            workflow_id: Canonical wor_<hex> workflow identifier.
+            workflow_id: Canonical wf_<hex> workflow identifier.
 
         Returns:
             Hydrated Workflow instance if found, or None.
+
+        Raises:
+            AppException: With VALIDATION_FAILED on invalid workflow_id.
         """
-        row = await self._conn.fetchrow(_GET_WORKFLOW_SQL, workflow_id, timeout=self.command_timeout_seconds)
+        wf_uuid = parse_prefixed_uuid7(workflow_id, EntityPrefix.WORKFLOW)
+        row = await self._conn.fetchrow(_GET_WORKFLOW_SQL, wf_uuid, timeout=self.command_timeout_seconds)
         if row is None:
             return None
         return self._hydrate_workflow_row(row)
@@ -1828,10 +1985,10 @@ class PostgresEntityAdapter:
         """
         return OutputProfile.model_validate(
             {
-                "id": row["id"],
+                "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.OUTPUT_PROFILE),
                 "slug": row["slug"],
-                "workflow_id": row["workflow_id"],
-                "organization_id": row["organization_id"],
+                "workflow_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["workflow_id"]), EntityPrefix.WORKFLOW),
+                "organization_id": _format_org_uuid7(row["organization_id"]),
                 "name": _decode_jsonb_column(row["name"]),
                 "description": _decode_jsonb_column(row["description"]),
                 "user_role_label": _decode_jsonb_column(row["user_role_label"]),
@@ -1882,18 +2039,21 @@ class PostgresEntityAdapter:
             Canonical prf_<hex> output profile identifier.
 
         Raises:
-            AppException: With STORAGE_ACCESS_FAILED if persistence fails.
+            AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
+        prf_uuid = parse_prefixed_uuid7(profile.id, EntityPrefix.OUTPUT_PROFILE)
+        wf_uuid = parse_prefixed_uuid7(profile.workflow_id, EntityPrefix.WORKFLOW)
+        org_uuid = _parse_org_uuid7(profile.organization_id)
         dumped = profile.model_dump(mode="json")
         language_str: str | None = None
         if profile.language is not None:
             language_str = str(profile.language)
         return await self._execute_upsert(
             _UPSERT_OUTPUT_PROFILE_SQL,
-            profile.id,
+            prf_uuid,
             profile.slug,
-            profile.workflow_id,
-            profile.organization_id,
+            wf_uuid,
+            org_uuid,
             to_json(dumped["name"]).decode("utf-8"),
             _encode_optional_jsonb(dumped["description"]),
             _encode_optional_jsonb(dumped["user_role_label"]),
@@ -1942,8 +2102,12 @@ class PostgresEntityAdapter:
 
         Returns:
             Hydrated OutputProfile instance if found, or None.
+
+        Raises:
+            AppException: With VALIDATION_FAILED on invalid profile_id.
         """
-        row = await self._conn.fetchrow(_GET_OUTPUT_PROFILE_SQL, profile_id, timeout=self.command_timeout_seconds)
+        prf_uuid = parse_prefixed_uuid7(profile_id, EntityPrefix.OUTPUT_PROFILE)
+        row = await self._conn.fetchrow(_GET_OUTPUT_PROFILE_SQL, prf_uuid, timeout=self.command_timeout_seconds)
         if row is None:
             return None
         return self._hydrate_output_profile_row(row)
@@ -1960,9 +2124,11 @@ class PostgresEntityAdapter:
         return ReportArtifact.model_validate(
             {
                 "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.REPORT),
-                "execution_id": row["execution_id"],
-                "workflow_id": row["workflow_id"],
-                "profile_id": row["profile_id"],
+                "execution_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["execution_id"]), EntityPrefix.EXECUTION),
+                "workflow_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["workflow_id"]), EntityPrefix.WORKFLOW),
+                "profile_id": format_prefixed_uuid7(
+                    _coerce_uuid_or_str(row["profile_id"]), EntityPrefix.OUTPUT_PROFILE
+                ),
                 "locale": row["locale"],
                 "title": row["title"],
                 "status": row["status"],
@@ -1990,13 +2156,16 @@ class PostgresEntityAdapter:
                 STORAGE_ACCESS_FAILED if persistence fails.
         """
         report_uuid = parse_prefixed_uuid7(artifact.id, EntityPrefix.REPORT)
+        exec_uuid = parse_prefixed_uuid7(artifact.execution_id, EntityPrefix.EXECUTION)
+        wf_uuid = parse_prefixed_uuid7(artifact.workflow_id, EntityPrefix.WORKFLOW)
+        prf_uuid = parse_prefixed_uuid7(artifact.profile_id, EntityPrefix.OUTPUT_PROFILE)
         dumped = artifact.model_dump(mode="json")
         return await self._execute_upsert(
             _UPSERT_REPORT_ARTIFACT_SQL,
             report_uuid,
-            artifact.execution_id,
-            artifact.workflow_id,
-            artifact.profile_id,
+            exec_uuid,
+            wf_uuid,
+            prf_uuid,
             artifact.locale,
             artifact.title,
             str(artifact.status),
@@ -2230,30 +2399,27 @@ class PostgresEntityAdapter:
             return None
         table_name = _COLLECTION_TO_TABLE_MAP[collection_name]
         entity: BaseModel | None = None
-        if table_name == "organizations":
-            entity = await self.get_organization(doc_id)
-        elif table_name == "users":
-            entity = await self.get_user(doc_id)
-        elif table_name == "system_configs":
-            entity = await self.get_system_config(doc_id)
-        elif table_name == "prompt_blocks":
-            entity = await self.get_prompt_block(doc_id)
-        elif table_name == "steps":
-            entity = await self.get_step(doc_id)
-        elif table_name == "workflows":
-            entity = await self.get_workflow(doc_id)
-        elif table_name == "output_profiles":
-            entity = await self.get_output_profile(doc_id)
-        elif table_name == "executions":
-            try:
+        try:
+            if table_name == "organizations":
+                entity = await self.get_organization(doc_id)
+            elif table_name == "users":
+                entity = await self.get_user(doc_id)
+            elif table_name == "system_configs":
+                entity = await self.get_system_config(doc_id)
+            elif table_name == "prompt_blocks":
+                entity = await self.get_prompt_block(doc_id)
+            elif table_name == "steps":
+                entity = await self.get_step(doc_id)
+            elif table_name == "workflows":
+                entity = await self.get_workflow(doc_id)
+            elif table_name == "output_profiles":
+                entity = await self.get_output_profile(doc_id)
+            elif table_name == "executions":
                 entity = await self.get_execution(doc_id)
-            except AppException:
-                return None
-        elif table_name == "report_artifacts":
-            try:
+            elif table_name == "report_artifacts":
                 entity = await self.get_report_artifact(doc_id)
-            except AppException:
-                return None
+        except AppException:
+            return None
         if entity is None:
             return None
         return entity.model_dump(mode="json")
@@ -2325,31 +2491,19 @@ class PostgresEntityAdapter:
         if collection_name not in _COLLECTION_TO_TABLE_MAP:
             return False
         table_name = _COLLECTION_TO_TABLE_MAP[collection_name]
-        if table_name == "executions":
-            try:
-                exec_uuid = parse_prefixed_uuid7(doc_id, EntityPrefix.EXECUTION)
-            except AppException:
-                return False
-            status_str = await self._conn.execute(
-                "DELETE FROM executions WHERE id = $1::uuid",
-                exec_uuid,
-                timeout=self.command_timeout_seconds,
+        if table_name not in _TABLE_TO_ENTITY_PREFIX:
+            return False
+        try:
+            doc_uuid = (
+                _ROOT_SYSTEM_ORG_UUID7
+                if table_name == "organizations" and doc_id == "org_system000000"
+                else parse_prefixed_uuid7(doc_id, _TABLE_TO_ENTITY_PREFIX[table_name])
             )
-            return status_str.endswith(" 1")
-        if table_name == "report_artifacts":
-            try:
-                rep_uuid = parse_prefixed_uuid7(doc_id, EntityPrefix.REPORT)
-            except AppException:
-                return False
-            status_str = await self._conn.execute(
-                "DELETE FROM report_artifacts WHERE id = $1::uuid",
-                rep_uuid,
-                timeout=self.command_timeout_seconds,
-            )
-            return status_str.endswith(" 1")
+        except AppException:
+            return False
         status_str = await self._conn.execute(
-            f"DELETE FROM {table_name} WHERE id = $1",
-            doc_id,
+            f"DELETE FROM {table_name} WHERE id = $1::uuid",
+            doc_uuid,
             timeout=self.command_timeout_seconds,
         )
         return status_str.endswith(" 1")

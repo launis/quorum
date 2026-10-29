@@ -6,10 +6,10 @@ SET default_toast_compression = 'lz4';
 
 -- 1. Organizations (Tenant & Billing Root)
 CREATE TABLE IF NOT EXISTS organizations (
-    id TEXT PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     slug TEXT,
     name TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     tier TEXT NOT NULL,
     contact_email TEXT,
@@ -17,27 +17,30 @@ CREATE TABLE IF NOT EXISTS organizations (
     subscription_status TEXT NOT NULL,
     quota_limit NUMERIC(18, 4) NOT NULL DEFAULT 0.0,
     tpm_limit BIGINT NOT NULL CHECK (tpm_limit >= 1000),
-    rpm_limit INTEGER NOT NULL CHECK (rpm_limit >= 1)
+    rpm_limit INTEGER NOT NULL CHECK (rpm_limit >= 1),
+    CONSTRAINT enforce_organization_uuidv7 CHECK (uuid_extract_version(id) = 7)
 );
 
 -- 2. Users (Identity & RBAC)
 CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     slug TEXT,
     email TEXT NOT NULL UNIQUE,
     name TEXT,
     role TEXT NOT NULL,
-    organization_id TEXT REFERENCES organizations(id) ON DELETE SET NULL,
+    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     language TEXT NOT NULL,
     theme_mode TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by TEXT
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
+    created_by TEXT,
+    CONSTRAINT enforce_user_uuidv7 CHECK (uuid_extract_version(id) = 7),
+    CONSTRAINT enforce_user_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7)
 );
 
 -- 3. System Configs (Model Registry & Dynamic MCP Gateways with AllowedMCPTool / MCPServerInfoDTO / MCPToolExecutionDTO)
 CREATE TABLE IF NOT EXISTS system_configs (
-    id TEXT PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     name TEXT DEFAULT 'Default Model Registry',
     type TEXT NOT NULL,
     slug TEXT,
@@ -49,14 +52,16 @@ CREATE TABLE IF NOT EXISTS system_configs (
     auth_header_name TEXT,
     auth_env_var TEXT,
     timeout_seconds INTEGER CHECK (timeout_seconds >= 1 AND timeout_seconds <= 300),
-    tools JSONB DEFAULT '[]'::jsonb
+    tools JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
+    CONSTRAINT enforce_system_config_uuidv7 CHECK (uuid_extract_version(id) = 7)
 );
 
 -- 4. Prompt Blocks (Polymorphic Matrix, SystemRule, Persona & Protocol Blocks)
 CREATE TABLE IF NOT EXISTS prompt_blocks (
-    id TEXT PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     slug TEXT NOT NULL,
-    organization_id TEXT,
+    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
     label JSONB NOT NULL,
     description JSONB NOT NULL,
     output_extensions JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -77,21 +82,24 @@ CREATE TABLE IF NOT EXISTS prompt_blocks (
     instruction_text TEXT,
     role_enforcement TEXT,
     tone_directives JSONB DEFAULT '[]'::jsonb,
-    protocol_instructions TEXT
+    protocol_instructions TEXT,
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
+    CONSTRAINT enforce_prompt_block_uuidv7 CHECK (uuid_extract_version(id) = 7),
+    CONSTRAINT enforce_prompt_block_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7)
 );
 
 -- 5. Steps (Cognitive Modules & Step-Level MCP Tool Parameter Overrides)
 CREATE TABLE IF NOT EXISTS steps (
-    id TEXT PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     slug TEXT NOT NULL,
-    organization_id TEXT,
+    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
     name JSONB NOT NULL,
     description JSONB,
     type TEXT NOT NULL DEFAULT 'llm',
     hook TEXT,
-    role_block_id TEXT,
-    extraction_protocol_block_id TEXT,
-    execution_persona_block_id TEXT,
+    role_block_id UUID REFERENCES prompt_blocks(id) ON DELETE SET NULL,
+    extraction_protocol_block_id UUID REFERENCES prompt_blocks(id) ON DELETE SET NULL,
+    execution_persona_block_id UUID REFERENCES prompt_blocks(id) ON DELETE SET NULL,
     criteria_block_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
     pre_hooks JSONB NOT NULL DEFAULT '[]'::jsonb,
     post_hooks JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -102,22 +110,28 @@ CREATE TABLE IF NOT EXISTS steps (
     expected_inputs JSONB NOT NULL DEFAULT '[]'::jsonb,
     is_system_core BOOLEAN NOT NULL DEFAULT FALSE,
     engine_type TEXT NOT NULL DEFAULT 'prompt',
-    zone TEXT NOT NULL DEFAULT 'zone_b'
+    zone TEXT NOT NULL DEFAULT 'zone_b',
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
+    CONSTRAINT enforce_step_uuidv7 CHECK (uuid_extract_version(id) = 7),
+    CONSTRAINT enforce_step_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7),
+    CONSTRAINT enforce_step_role_block_uuidv7 CHECK (uuid_extract_version(role_block_id) = 7),
+    CONSTRAINT enforce_step_protocol_block_uuidv7 CHECK (uuid_extract_version(extraction_protocol_block_id) = 7),
+    CONSTRAINT enforce_step_persona_block_uuidv7 CHECK (uuid_extract_version(execution_persona_block_id) = 7)
 );
 
 -- 6. Workflows (DAG Orchestrator Definitions)
 CREATE TABLE IF NOT EXISTS workflows (
-    id TEXT PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     slug TEXT NOT NULL,
     name JSONB NOT NULL,
     description JSONB NOT NULL,
     status TEXT NOT NULL,
     version INTEGER NOT NULL DEFAULT 1,
     is_public BOOLEAN NOT NULL DEFAULT FALSE,
-    organization_id TEXT,
-    default_profile_id TEXT,
-    mcp_gateway_id TEXT,
-    model_registry_id TEXT NOT NULL,
+    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+    default_profile_id UUID,
+    mcp_gateway_id UUID REFERENCES system_configs(id) ON DELETE SET NULL,
+    model_registry_id UUID NOT NULL REFERENCES system_configs(id) ON DELETE RESTRICT,
     default_strictness_level INTEGER NOT NULL DEFAULT 50 CHECK (default_strictness_level >= 0 AND default_strictness_level <= 100),
     default_lexical_strictness_level INTEGER NOT NULL DEFAULT 50 CHECK (default_lexical_strictness_level >= 0 AND default_lexical_strictness_level <= 100),
     security_penalty DOUBLE PRECISION NOT NULL DEFAULT 0.0,
@@ -129,15 +143,21 @@ CREATE TABLE IF NOT EXISTS workflows (
     system_audit_trail BOOLEAN NOT NULL DEFAULT FALSE,
     expected_inputs JSONB NOT NULL DEFAULT '[]'::jsonb,
     steps JSONB NOT NULL DEFAULT '[]'::jsonb,
-    historical_context_mode TEXT NOT NULL
+    historical_context_mode TEXT NOT NULL,
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
+    CONSTRAINT enforce_workflow_uuidv7 CHECK (uuid_extract_version(id) = 7),
+    CONSTRAINT enforce_workflow_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7),
+    CONSTRAINT enforce_workflow_default_profile_uuidv7 CHECK (uuid_extract_version(default_profile_id) = 7),
+    CONSTRAINT enforce_workflow_mcp_gateway_uuidv7 CHECK (uuid_extract_version(mcp_gateway_id) = 7),
+    CONSTRAINT enforce_workflow_model_registry_uuidv7 CHECK (uuid_extract_version(model_registry_id) = 7)
 );
 
 -- 7. Output Profiles (SDUI Presentation & Synthesis Recipes)
 CREATE TABLE IF NOT EXISTS output_profiles (
-    id TEXT PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
     slug TEXT NOT NULL,
-    workflow_id TEXT NOT NULL,
-    organization_id TEXT,
+    workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
+    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
     name JSONB NOT NULL,
     description JSONB,
     user_role_label JSONB,
@@ -173,16 +193,20 @@ CREATE TABLE IF NOT EXISTS output_profiles (
     show_sources_summary_box BOOLEAN NOT NULL DEFAULT TRUE,
     sources_display_mode TEXT NOT NULL DEFAULT 'verified_evidence',
     variance_target_block TEXT,
-    user_role_target_block TEXT
+    user_role_target_block TEXT,
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
+    CONSTRAINT enforce_output_profile_uuidv7 CHECK (uuid_extract_version(id) = 7),
+    CONSTRAINT enforce_output_profile_workflow_uuidv7 CHECK (uuid_extract_version(workflow_id) = 7),
+    CONSTRAINT enforce_output_profile_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7)
 );
 
 -- 8. Executions (Analytical Runs, Flat FinOps Columns & lz4-Compressed Trace Events)
 CREATE TABLE IF NOT EXISTS executions (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
-    workflow_id TEXT NOT NULL,
+    workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE RESTRICT,
     workflow_version INTEGER NOT NULL DEFAULT 1,
-    active_profile_id TEXT,
-    output_profile_id TEXT,
+    active_profile_id UUID REFERENCES output_profiles(id) ON DELETE SET NULL,
+    output_profile_id UUID REFERENCES output_profiles(id) ON DELETE SET NULL,
     status TEXT NOT NULL DEFAULT 'PENDING',
     target_locale TEXT NOT NULL,
     progress INTEGER CHECK (progress >= 0 AND progress <= 100),
@@ -217,16 +241,20 @@ CREATE TABLE IF NOT EXISTS executions (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMPTZ,
     created_by TEXT,
-    organization_id TEXT,
-    CONSTRAINT enforce_execution_uuidv7 CHECK (uuid_extract_version(id) = 7)
+    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+    CONSTRAINT enforce_execution_uuidv7 CHECK (uuid_extract_version(id) = 7),
+    CONSTRAINT enforce_execution_workflow_uuidv7 CHECK (uuid_extract_version(workflow_id) = 7),
+    CONSTRAINT enforce_execution_active_profile_uuidv7 CHECK (uuid_extract_version(active_profile_id) = 7),
+    CONSTRAINT enforce_execution_output_profile_uuidv7 CHECK (uuid_extract_version(output_profile_id) = 7),
+    CONSTRAINT enforce_execution_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7)
 );
 
 -- 9. Report Artifacts (Materialized Report Metadata)
 CREATE TABLE IF NOT EXISTS report_artifacts (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
-    execution_id TEXT NOT NULL,
-    workflow_id TEXT NOT NULL,
-    profile_id TEXT NOT NULL,
+    execution_id UUID NOT NULL REFERENCES executions(id) ON DELETE CASCADE,
+    workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE RESTRICT,
+    profile_id UUID NOT NULL REFERENCES output_profiles(id) ON DELETE RESTRICT,
     locale TEXT NOT NULL,
     title TEXT NOT NULL,
     status TEXT NOT NULL,
@@ -237,7 +265,10 @@ CREATE TABLE IF NOT EXISTS report_artifacts (
     has_pdf BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT enforce_report_uuidv7 CHECK (uuid_extract_version(id) = 7)
+    CONSTRAINT enforce_report_uuidv7 CHECK (uuid_extract_version(id) = 7),
+    CONSTRAINT enforce_report_execution_uuidv7 CHECK (uuid_extract_version(execution_id) = 7),
+    CONSTRAINT enforce_report_workflow_uuidv7 CHECK (uuid_extract_version(workflow_id) = 7),
+    CONSTRAINT enforce_report_profile_uuidv7 CHECK (uuid_extract_version(profile_id) = 7)
 );
 
 -- 10. Report Binaries (Sidecar BYTEA TOAST Table with lz4 Compression)
@@ -286,6 +317,20 @@ BEGIN
         -- Native VIRTUAL generated columns active on PostgreSQL 18+ and 19
         NULL;
     ELSE
+        ALTER TABLE organizations DROP COLUMN IF EXISTS created_at;
+        ALTER TABLE organizations ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
+        ALTER TABLE users DROP COLUMN IF EXISTS created_at;
+        ALTER TABLE users ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
+        ALTER TABLE system_configs DROP COLUMN IF EXISTS created_at;
+        ALTER TABLE system_configs ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
+        ALTER TABLE prompt_blocks DROP COLUMN IF EXISTS created_at;
+        ALTER TABLE prompt_blocks ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
+        ALTER TABLE steps DROP COLUMN IF EXISTS created_at;
+        ALTER TABLE steps ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
+        ALTER TABLE workflows DROP COLUMN IF EXISTS created_at;
+        ALTER TABLE workflows ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
+        ALTER TABLE output_profiles DROP COLUMN IF EXISTS created_at;
+        ALTER TABLE output_profiles ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) STORED;
         ALTER TABLE quorum_nodes DROP COLUMN IF EXISTS created_at;
         ALTER TABLE quorum_nodes ADD COLUMN created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(node_id)) STORED;
         ALTER TABLE quorum_edges DROP COLUMN IF EXISTS created_at;

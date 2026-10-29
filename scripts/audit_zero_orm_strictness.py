@@ -278,6 +278,12 @@ _CREATE_TABLE_REGEX = re.compile(
     re.IGNORECASE,
 )
 
+# Phase 3, Step 3: Ban TEXT primary keys across the 12-table PostgreSQL 19 topology
+_BANNED_TEXT_PK_REGEX = re.compile(
+    r"\bid\s+TEXT\s+PRIMARY\s+KEY\b",
+    re.IGNORECASE,
+)
+
 
 class ZeroOrmRuleCode(StrEnum):
     """Rule codes for Zero-ORM architectural strictness checks.
@@ -576,6 +582,18 @@ def audit_sql_migration_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
                         ),
                     )
                 )
+        if _BANNED_TEXT_PK_REGEX.search(line):
+            findings.append(
+                ZeroOrmFindingDTO(
+                    filepath=str(filepath),
+                    lineno=idx,
+                    rule_code=ZeroOrmRuleCode.ZORM004,
+                    message=(
+                        "SQL table declares 'id TEXT PRIMARY KEY'; all 12 PostgreSQL 19 tables "
+                        "must use 'id UUID PRIMARY KEY DEFAULT uuidv7()'."
+                    ),
+                )
+            )
     return findings
 
 
