@@ -10,18 +10,20 @@ import logging
 import os
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import opentelemetry.context as otel_context
 import opentelemetry.trace as trace
+from fastapi import status
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, SimpleSpanProcessor, SpanExporter, SpanExportResult
 from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.telemetry import (
     SpanSnapshotDTO,
     TraceContextCarrierDTO,
@@ -59,8 +61,24 @@ class LocalTraceSnapshotExporter(SpanExporter):
 
         Args:
             trace_dir: Optional custom directory path for saving trace snapshots.
+
+        Raises:
+            AppException: Triggered with VALIDATION_FAILED if trace_dir is an empty or whitespace string.
         """
         if trace_dir is not None:
+            if isinstance(trace_dir, str) and not trace_dir.strip():
+                msg = "Trace directory path cannot be empty or whitespace."
+                logger.error(
+                    "Invalid trace_dir configuration: %s",
+                    msg,
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
             self._trace_dir = Path(trace_dir)
         else:
             self._trace_dir = Path("data/files/traces")
@@ -230,7 +248,7 @@ class LocalTraceSnapshotExporter(SpanExporter):
                 root_span=root_span_name,
                 status=overall_status,
                 duration_ms=round(total_duration_ms, 2),
-                timestamp=datetime.now(timezone.utc).isoformat(),
+                timestamp=datetime.now(UTC).isoformat(),
                 failing_step_id=failing_step_id,
                 error_summary=error_summary,
                 error_fingerprint=error_fingerprint,
@@ -259,7 +277,23 @@ class LocalTraceSnapshotExporter(SpanExporter):
 
         Returns:
             Boolean indicating successful flush.
+
+        Raises:
+            AppException: Triggered with VALIDATION_FAILED if timeout_millis is non-positive.
         """
+        if timeout_millis <= 0:
+            msg = f"Flush timeout_millis must be strictly positive (got {timeout_millis})."
+            logger.error(
+                "Invalid flush timeout in LocalTraceSnapshotExporter: %s",
+                msg,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
         return True
 
 
@@ -279,7 +313,25 @@ def configure_telemetry(
         settings: Application Settings containing OpenTelemetry configuration.
         service_name_override: Optional logical service name override.
         app: Optional FastAPI application instance for framework instrumentation.
+
+    Raises:
+        AppException: Triggered with CONFIGURATION_ERROR if service_name_override is empty/whitespace
+            or if FastAPI Logfire instrumentation fails.
     """
+    if service_name_override is not None and not service_name_override.strip():
+        msg = "Telemetry service_name_override cannot be empty or whitespace."
+        logger.error(
+            "Telemetry configuration failed: %s",
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
+
     global _TELEMETRY_CONFIGURED
     if _TELEMETRY_CONFIGURED:
         if app is not None and id(app) not in _INSTRUMENTED_APPS and settings.logfire_token:
@@ -292,8 +344,18 @@ def configure_telemetry(
                 if "already been instrumented" in str(e):
                     _INSTRUMENTED_APPS.add(id(app))
                 else:
-                    logger.error("Failed to instrument FastAPI with Logfire: %s", e)
-                    raise
+                    msg = f"Failed to instrument FastAPI with Logfire: {e}"
+                    logger.error(
+                        "Failed to instrument FastAPI with Logfire: %s",
+                        e,
+                        exc_info=True,
+                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                    )
+                    raise AppException(
+                        message=msg,
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                    ) from e
         return
     _TELEMETRY_CONFIGURED = True
 
@@ -302,7 +364,9 @@ def configure_telemetry(
         logger.info("OpenTelemetry distributed tracing is disabled; using NoOpTracerProvider.")
         return
 
-    service_name = service_name_override or settings.otel_service_name
+    service_name = settings.otel_service_name
+    if service_name_override is not None:
+        service_name = service_name_override
 
     if settings.logfire_token:
         try:
@@ -358,7 +422,23 @@ def get_tracer(name: str) -> trace.Tracer:
 
     Returns:
         Configured OpenTelemetry Tracer instance.
+
+    Raises:
+        AppException: Triggered with VALIDATION_FAILED if name is empty or whitespace.
     """
+    if not name.strip():
+        msg = "Tracer name cannot be empty or whitespace."
+        logger.error(
+            "Invalid tracer name requested: %s",
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
     return trace.get_tracer(name)
 
 

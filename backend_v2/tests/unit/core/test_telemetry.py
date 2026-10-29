@@ -28,6 +28,7 @@ from backend_v2.core.telemetry import (
     inject_trace_context,
     use_trace_context,
 )
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.telemetry import TraceContextCarrierDTO, TraceSnapshotDTO
 from backend_v2.settings import Settings
 
@@ -365,3 +366,60 @@ def test_extract_trace_context_exception_fallback(monkeypatch: pytest.MonkeyPatc
     )
     ctx = extract_trace_context(carrier)
     assert ctx is not None
+
+
+def test_local_trace_snapshot_exporter_invalid_trace_dir_raises() -> None:
+    """Verifies LocalTraceSnapshotExporter raises AppException on empty or whitespace trace_dir."""
+    with pytest.raises(AppException) as exc_info:
+        LocalTraceSnapshotExporter(trace_dir="   ")
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.parametrize("invalid_timeout", [0, -1, -500])
+def test_local_trace_snapshot_exporter_force_flush_invalid_timeout_raises(
+    tmp_path: Path, invalid_timeout: int
+) -> None:
+    """Verifies force_flush raises AppException on non-positive timeout_millis boundary values."""
+    exporter = LocalTraceSnapshotExporter(trace_dir=tmp_path)
+    with pytest.raises(AppException) as exc_info:
+        exporter.force_flush(timeout_millis=invalid_timeout)
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_configure_telemetry_empty_service_name_override_raises() -> None:
+    """Verifies configure_telemetry raises AppException when service_name_override is whitespace."""
+    settings = Settings(otel_enabled=True, logfire_token=None)
+    with pytest.raises(AppException) as exc_info:
+        configure_telemetry(settings, service_name_override="   ")
+    assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+def test_configure_telemetry_fastapi_instrumentation_failure_raises(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verifies configure_telemetry raises AppException when FastAPI instrumentation fails."""
+    import sys
+
+    mock_logfire = MagicMock()
+    monkeypatch.setitem(sys.modules, "logfire", mock_logfire)
+
+    settings = Settings(
+        otel_enabled=True,
+        logfire_token="token_xyz",
+        otel_service_name="api-service",
+    )
+    configure_telemetry(settings)
+
+    mock_logfire.instrument_fastapi.side_effect = RuntimeError("Unexpected instrumentation crash")
+    failing_app = MagicMock()
+    with pytest.raises(AppException) as exc_info:
+        configure_telemetry(settings, app=failing_app)
+    assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+def test_get_tracer_empty_name_raises() -> None:
+    """Verifies get_tracer raises AppException when tracer name is empty or whitespace."""
+    with pytest.raises(AppException) as exc_info:
+        get_tracer("   ")
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
