@@ -28,6 +28,8 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["EnrichedDagExecutor"]
+
 
 class EnrichedDagExecutor:
     """Orchestrates the execution of a Directed Acyclic Graph of atoms.
@@ -37,7 +39,7 @@ class EnrichedDagExecutor:
     """
 
     def __init__(self, llm_executor: LLMTaskExecutor, llm_client: LLMClient) -> None:
-        """Initializes the executor with the required LLM task executor.
+        """Initializes the executor with the required LLM task executor and bound client.
 
         Args:
             llm_executor: The executor for running LLM structured tasks.
@@ -74,17 +76,32 @@ class EnrichedDagExecutor:
             - Aggregated TokenUsage across all evaluated chunks.
 
         Raises:
-            AppException: If locale is missing, empty, or whitespace.
+            AppException: If locale is missing, empty, or whitespace (ErrorCodes.VALIDATION_FAILED),
+                or if the bound LLMClient lacks provider configuration (ErrorCodes.CONFIGURATION_ERROR).
         """
         if not locale or not locale.strip():
             logger.error(
                 "EnrichedDagExecutor.execute_graph rejected empty or whitespace locale",
+                exc_info=True,
                 extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
             raise AppException(
                 message="Target locale is required for DAG execution.",
                 status_code=400,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
+        client_config = self._llm_client.config
+        if client_config is None:
+            logger.error(
+                "EnrichedDagExecutor.execute_graph rejected unconfigured LLMClient missing provider config",
+                exc_info=True,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+            raise AppException(
+                message="Bound LLMClient configuration is required for DAG execution.",
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
         total_atoms = len(nodes)
@@ -96,6 +113,15 @@ class EnrichedDagExecutor:
             chunk: list[LinkedAtomGraph],
             current_states: dict[str, AtomExecutionState],
         ) -> dict[str, AtomEvaluationResultDTO]:
+            """Evaluates a single batch chunk of topological wave nodes.
+
+            Args:
+                chunk: Slice of nodes within the active topological wave.
+                current_states: Mapping of tda_id to its current AtomExecutionState.
+
+            Returns:
+                A dictionary mapping each chunk node's tda_id to its AtomEvaluationResultDTO.
+            """
             nonlocal completed_atoms, accumulated_usage
             try:
                 allow_override = matrix_context.allow_contextual_override if matrix_context else False
@@ -139,7 +165,12 @@ class EnrichedDagExecutor:
 
                 # Persistent schema extraction failure (ValidationError, etc.)
                 # Mark all requested atoms in the batch as SYSTEM_ERROR.
-                logger.error("Persistent error in chunk evaluation: %s", str(e))
+                logger.error(
+                    "Persistent error in chunk evaluation: %s",
+                    str(e),
+                    exc_info=True,
+                    extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
+                )
                 res = {
                     node.atom.tda_id: AtomEvaluationResultDTO(
                         status=ExecutionStatus.SYSTEM_ERROR,
@@ -179,11 +210,8 @@ class EnrichedDagExecutor:
 
             compiled_prompt = MatrixSensorPromptBuilder.build_caching_prefix(source_text, matrix_context)
 
-            provider_name = "vertex_ai"
-            model_name = "gemini-1.5-pro"
-            if self._llm_client._config is not None:
-                provider_name = self._llm_client._config.provider
-                model_name = str(self._llm_client._config.model_name)
+            provider_name = str(client_config.provider)
+            model_name = str(client_config.model_name)
 
             await LLMCachingService.pre_cache_document(
                 provider_name=provider_name,
@@ -203,7 +231,12 @@ class EnrichedDagExecutor:
                         provider_name=provider_name, workflow_run_id=execution_id
                     )
                 except (OSError, AppException, ValueError) as teardown_err:
-                    logger.error("Error during orchestrator cache teardown: %s", teardown_err)
+                    logger.error(
+                        "Error during orchestrator cache teardown: %s",
+                        teardown_err,
+                        exc_info=True,
+                        extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                    )
 
             return merged_results
 

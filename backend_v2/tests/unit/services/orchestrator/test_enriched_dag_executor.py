@@ -7,7 +7,12 @@ import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.dag_models import AtomEvaluationResultDTO, AtomExecutionState, LinkedAtomGraph
+from backend_v2.models.dtos.dag_models import (
+    AtomEvaluationResultDTO,
+    AtomExecutionState,
+    ExtractedAtom,
+    LinkedAtomGraph,
+)
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.enriched_dag_executor import EnrichedDagExecutor
 from backend_v2.services.orchestrator.topological_evaluator import TopologicalEvaluator
@@ -32,6 +37,10 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
 
     dummy_result: dict[str, AtomExecutionState] = {}
     captured_callback = None
+    progress_calls: list[tuple[int, int]] = []
+
+    async def mock_progress(completed: int, total: int) -> None:
+        progress_calls.append((completed, total))
 
     async def fake_evaluate_graph(
         self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
@@ -39,15 +48,6 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
         nonlocal captured_callback
         captured_callback = batch_evaluation_callback
         return dummy_result
-
-    with patch.object(TopologicalEvaluator, "evaluate_graph", new=fake_evaluate_graph):
-        result, usage = await executor.execute_graph(nodes=[], source_text="test text", locale="fi")
-        assert result == dummy_result
-        assert usage.total_tokens == 0
-
-    assert captured_callback is not None
-
-    from backend_v2.models.dtos.dag_models import ExtractedAtom
 
     mock_node = LinkedAtomGraph(
         atom=ExtractedAtom(
@@ -60,6 +60,15 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
         ),
         depends_on=[],
     )
+
+    with patch.object(TopologicalEvaluator, "evaluate_graph", new=fake_evaluate_graph):
+        result, usage = await executor.execute_graph(
+            nodes=[mock_node], source_text="test text", locale="fi", progress_callback=mock_progress
+        )
+        assert result == dummy_result
+        assert usage.total_tokens == 0
+
+    assert captured_callback is not None
 
     with (
         patch(
@@ -89,6 +98,7 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
         status_dict = await captured_callback([mock_node], {})
 
         assert status_dict["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
+        assert progress_calls == [(1, 1)]
         mock_sensor.assert_called_once_with(
             nodes=[mock_node],
             executor=mock_llm_executor,
@@ -117,8 +127,6 @@ async def test_execute_graph_callback_all_pre_flight_and_progress(
         nonlocal captured_callback
         captured_callback = batch_evaluation_callback
         return {}
-
-    from backend_v2.models.dtos.dag_models import ExtractedAtom
 
     mock_node = LinkedAtomGraph(
         atom=ExtractedAtom(
@@ -194,8 +202,6 @@ async def test_execute_graph_callback_persistent_error(
     ) -> dict[str, AtomExecutionState]:
         return await batch_evaluation_callback(nodes, {})
 
-    from backend_v2.models.dtos.dag_models import ExtractedAtom
-
     mock_node = LinkedAtomGraph(
         atom=ExtractedAtom(
             tda_id="tda_11111111111111111111111111111111",
@@ -249,8 +255,6 @@ async def test_execute_graph_callback_transient_error(mock_llm_executor: AsyncMo
         self_obj: Any, nodes: list[LinkedAtomGraph], batch_evaluation_callback: Any
     ) -> dict[str, AtomExecutionState]:
         return await batch_evaluation_callback(nodes, {})
-
-    from backend_v2.models.dtos.dag_models import ExtractedAtom
 
     mock_node = LinkedAtomGraph(
         atom=ExtractedAtom(
@@ -339,3 +343,19 @@ async def test_enriched_dag_executor_execute_graph_rejects_unexpected_semaphore_
             locale="en",
             **unexpected_kwargs,
         )
+
+
+@pytest.mark.asyncio
+async def test_execute_graph_unconfigured_client_fails_fast(
+    mock_llm_executor: AsyncMock, mock_llm_client: AsyncMock
+) -> None:
+    """Verifies that execute_graph raises AppException with CONFIGURATION_ERROR when LLMClient.config is None."""
+    mock_llm_client.config = None
+    executor = EnrichedDagExecutor(llm_executor=mock_llm_executor, llm_client=mock_llm_client)
+
+    with pytest.raises(AppException) as exc_info:
+        await executor.execute_graph(nodes=[], source_text="test text", locale="fi")
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details == {"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+    assert "Bound LLMClient configuration is required" in exc_info.value.message
