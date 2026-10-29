@@ -35,7 +35,13 @@ logger = logging.getLogger(__name__)
 
 
 class SourceVerificationService:
-    """Service handling the extraction and verification of source claims."""
+    """Service handling the extraction and verification of source claims.
+
+    Attributes:
+        task_executor: Centralized executor for structured and chat LLM tasks.
+        llm_client: Configured LLM client instance for model inference.
+        dispatcher: Optional MCP tool dispatcher for dynamic search tool routing.
+    """
 
     def __init__(
         self,
@@ -87,15 +93,133 @@ class SourceVerificationService:
             return result.claims
         except Exception as e:
             msg = "Failed to extract source claims."
-            logger.error("%s: %s", ErrorCodes.FETCH_FAILED.name, msg, exc_info=True)
+            logger.error(
+                "%s: %s",
+                ErrorCodes.FETCH_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.FETCH_FAILED.name},
+                exc_info=True,
+            )
             raise AppException(
                 message=msg,
                 status_code=502,
                 details={"error_code": ErrorCodes.FETCH_FAILED.value},
             ) from e
 
+    async def _execute_mcp_search(self, claim: SourceClaimDTO) -> MCPAuditTrace:
+        """Executes the primary MCP search tool for a single source claim.
+
+        Args:
+            claim: The source claim to query against the MCP search gateway.
+
+        Returns:
+            MCPAuditTrace containing search results and source URLs.
+
+        Raises:
+            AppException: If the tool dispatcher or search tool is unconfigured (ErrorCodes.CONFIGURATION_ERROR).
+        """
+        if self.dispatcher is None:
+            msg = "ToolDispatcher is not configured for source verification."
+            logger.error(
+                "%s: %s",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                msg,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+
+        enabled_search_aliases = self.dispatcher.get_all_enabled_tool_aliases(capability=ToolCapability.SEARCH)
+        primary_tool = self.dispatcher.resolve_primary_search_tool(enabled_search_aliases)
+        if primary_tool is None:
+            msg = "No enabled search tool available in ToolDispatcher."
+            logger.error(
+                "%s: %s",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                msg,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+
+        query_parts = [f"Verify this claim: {claim.claim_text}"]
+        if claim.institution_name:
+            query_parts.append(f"by {claim.institution_name}")
+        if claim.publication_year:
+            query_parts.append(f"({claim.publication_year})")
+        query = " ".join(query_parts)
+
+        search_args = self.dispatcher.build_search_arguments(
+            primary_tool,
+            query,
+            claim_text=claim.claim_text,
+        )
+        return await self.dispatcher.execute_tool(
+            tool_id=primary_tool.namespaced_alias,
+            raw_arguments=search_args,
+            allowed_step_tools=set(enabled_search_aliases),
+            step_name="source_verification",
+            claim_text=claim.claim_text,
+        )
+
+    async def _evaluate_claim_status(
+        self,
+        claim_text: str,
+        response_summary: str,
+    ) -> SourceVerificationStatus:
+        """Evaluates claim verification status from MCP search summary via LLM.
+
+        Args:
+            claim_text: Original extracted claim text.
+            response_summary: Summary returned by the MCP search tool.
+
+        Returns:
+            Resolved SourceVerificationStatus enum value.
+
+        Raises:
+            AppException: If the underlying LLM task execution fails (ErrorCodes.AGENT_EXECUTION_CRITICAL).
+        """
+        user_msg = TemplateProcessor.render_prompt(
+            t"<source_data>\n"
+            t"  <claim>{claim_text}</claim>\n"
+            t"  <search_results>\n"
+            t"    <answer>{response_summary}</answer>\n"
+            t"  </search_results>\n"
+            t"</source_data>"
+        )
+        messages = [
+            LLMMessageDTO(role="system", content=SOURCE_VERIFICATION_SYSTEM_INSTRUCTION),
+            LLMMessageDTO(role="user", content=user_msg),
+        ]
+        eval_res = await self.task_executor.execute_chat_task(
+            client=self.llm_client,
+            messages=messages,
+        )
+        match eval_res:
+            case (str() as raw_status, _):
+                status_str = raw_status.strip().upper()
+            case str() as raw_status:
+                status_str = raw_status.strip().upper()
+            case _:
+                status_str = str(eval_res).strip().upper()
+
+        if status_str not in {"VERIFIED", "HALLUCINATION", "INCONCLUSIVE"}:
+            return SourceVerificationStatus.INCONCLUSIVE
+        return SourceVerificationStatus(status_str)
+
     async def _verify_single_claim(self, claim: SourceClaimDTO) -> tuple[VerifiedSourceDTO, MCPAuditTrace | None]:
         """Verifies a single claim against the primary MCP search tool.
+
+        Degrades gracefully to SourceVerificationStatus.INCONCLUSIVE when search
+        gateway execution or LLM evaluation encounters recoverable runtime errors.
 
         Args:
             claim: The claim to verify.
@@ -103,82 +227,12 @@ class SourceVerificationService:
         Returns:
             Tuple containing VerifiedSourceDTO and optional MCPAuditTrace.
         """
-        query_parts = [f"Verify this claim: {claim.claim_text}"]
-        if claim.institution_name:
-            query_parts.append(f"by {claim.institution_name}")
-        if claim.publication_year:
-            query_parts.append(f"({claim.publication_year})")
-
-        query = " ".join(query_parts)
-
         try:
-            if self.dispatcher is None:
-                msg = "ToolDispatcher is not configured for source verification."
-                logger.error("%s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-
-            enabled_search_aliases = self.dispatcher.get_all_enabled_tool_aliases(capability=ToolCapability.SEARCH)
-            primary_tool = self.dispatcher.resolve_primary_search_tool(enabled_search_aliases)
-            if primary_tool is None:
-                msg = "No enabled search tool available in ToolDispatcher."
-                logger.error("%s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                )
-
-            search_args = self.dispatcher.build_search_arguments(
-                primary_tool,
-                query,
+            audit_trace = await self._execute_mcp_search(claim)
+            status = await self._evaluate_claim_status(
                 claim_text=claim.claim_text,
+                response_summary=audit_trace.response_summary,
             )
-            audit_trace: MCPAuditTrace = await self.dispatcher.execute_tool(
-                tool_id=primary_tool.namespaced_alias,
-                raw_arguments=search_args,
-                allowed_step_tools=set(enabled_search_aliases),
-                step_name="source_verification",
-                claim_text=claim.claim_text,
-            )
-
-            claim_text = claim.claim_text
-            response_summary = audit_trace.response_summary
-
-            user_msg = TemplateProcessor.render_prompt(
-                t"<source_data>\n"
-                t"  <claim>{claim_text}</claim>\n"
-                t"  <search_results>\n"
-                t"    <answer>{response_summary}</answer>\n"
-                t"  </search_results>\n"
-                t"</source_data>"
-            )
-
-            messages = [
-                LLMMessageDTO(role="system", content=SOURCE_VERIFICATION_SYSTEM_INSTRUCTION),
-                LLMMessageDTO(role="user", content=user_msg),
-            ]
-
-            eval_res = await self.task_executor.execute_chat_task(
-                client=self.llm_client,
-                messages=messages,
-            )
-            match eval_res:
-                case (str() as raw_status, _):
-                    status_str = raw_status.strip().upper()
-                case str() as raw_status:
-                    status_str = raw_status.strip().upper()
-                case _:
-                    status_str = str(eval_res).strip().upper()
-
-            if status_str not in ["VERIFIED", "HALLUCINATION", "INCONCLUSIVE"]:
-                status = SourceVerificationStatus.INCONCLUSIVE
-            else:
-                status = SourceVerificationStatus(status_str)
-
             return (
                 VerifiedSourceDTO(
                     claim_text=claim.claim_text,
@@ -188,13 +242,11 @@ class SourceVerificationService:
                 ),
                 audit_trace,
             )
-
-        except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
-            # Circuit Breaker degradation for per-claim search tool failures
+        except AppException, OSError, ValueError, KeyError, RuntimeError, TypeError:
+            # Degrade per-claim tool failures to INCONCLUSIVE so single search errors do not abort the batch
             logger.error(
-                "Failed to verify claim '%s': %s",
-                claim.claim_text,
-                e,
+                "%s: Failed to verify source claim via MCP search tool.",
+                ErrorCodes.FETCH_FAILED.name,
                 extra={"error_code": ErrorCodes.FETCH_FAILED.name},
                 exc_info=True,
             )
@@ -237,7 +289,13 @@ class SourceVerificationService:
                     audit_traces.append(trace)
         except* Exception as e:
             msg = "Parallel source verification failed fatally."
-            logger.error("%s: %s", ErrorCodes.FETCH_FAILED.name, msg, exc_info=True)
+            logger.error(
+                "%s: %s",
+                ErrorCodes.FETCH_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.FETCH_FAILED.name},
+                exc_info=True,
+            )
             raise AppException(
                 message=msg,
                 status_code=502,
@@ -254,6 +312,9 @@ class SourceVerificationService:
 
         Returns:
             The structured verification result containing verified claims and audit traces.
+
+        Raises:
+            AppException: If claim extraction or parallel verification fails (ErrorCodes.FETCH_FAILED).
         """
         settings = get_settings()
         has_search_tool = False

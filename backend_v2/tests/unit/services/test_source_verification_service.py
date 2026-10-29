@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.source_verification import (
     SourceClaimDTO,
@@ -16,6 +16,7 @@ from backend_v2.models.domain.system_config import (
     MCPAuditTrace,
     SystemConfigMCPGateways,
 )
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.mcp import MCPToolInputSchemaDTO, MCPToolSchemaPropertyDTO
 from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResponseSchema
 from backend_v2.models.enums import (
@@ -338,11 +339,32 @@ async def test_verify_single_claim_unknown_status_fallback(
     assert trace is mock_audit_trace
 
 
-def test_source_verification_service_exports() -> None:
-    """Verifies that __all__ correctly exports SourceVerificationService."""
-    from backend_v2.services.source_verification_service import __all__ as exported_symbols
+@pytest.mark.asyncio
+async def test_execute_mcp_search_raises_configuration_error_when_unconfigured(
+    mock_task_executor: AsyncMock,
+    mock_llm_client: AsyncMock,
+) -> None:
+    """Tests that _execute_mcp_search raises AppException(CONFIGURATION_ERROR) when dispatcher or search tool is missing."""
+    claim = SourceClaimDTO(claim_text="Unverifiable claim")
+    svc_no_dispatcher = SourceVerificationService(
+        llm_task_executor=mock_task_executor,
+        llm_client=mock_llm_client,
+        dispatcher=None,
+    )
+    with pytest.raises(AppException) as exc_no_disp:
+        await svc_no_dispatcher._execute_mcp_search(claim)
+    assert exc_no_disp.value.status_code == 500
+    assert exc_no_disp.value.details == {"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
 
-    assert "SourceVerificationService" in exported_symbols
+    svc_empty_dispatcher = SourceVerificationService(
+        llm_task_executor=mock_task_executor,
+        llm_client=mock_llm_client,
+        dispatcher=ToolDispatcher(gateways=[]),
+    )
+    with pytest.raises(AppException) as exc_no_tool:
+        await svc_empty_dispatcher._execute_mcp_search(claim)
+    assert exc_no_tool.value.status_code == 500
+    assert exc_no_tool.value.details == {"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
 
 
 @pytest.mark.asyncio
@@ -401,7 +423,7 @@ async def test_source_verification_service_with_real_executor_and_cdata(
     )
     mock_llm_client.run_structured_task.return_value = (
         mock_response,
-        {"total_tokens": 100, "prompt_tokens": 60, "completion_tokens": 40},
+        TokenUsage(total_tokens=100, prompt_tokens=60, completion_tokens=40),
     )
 
     document_text = (
