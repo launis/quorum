@@ -405,7 +405,7 @@ def test_subprocess_audit_database_atoms_failure(mock_exit: MagicMock, mock_scan
     mock_exit.side_effect = SystemExit(1)
 
     def sub_side_effect(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
-        if any("audit_database_atoms.py" in str(c) for c in cmd):
+        if "python" in cmd and any("audit_database_atoms.py" in str(c) for c in cmd):
             return _mock_completed_process(1)
         return _mock_completed_process(0)
 
@@ -563,7 +563,7 @@ def test_subprocess_clean_imports_failure(mock_exit: MagicMock, mock_scan: Magic
     mock_exit.side_effect = SystemExit(1)
 
     def sub_side_effect(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
-        if any("audit_clean_imports.py" in str(c) for c in cmd):
+        if "python" in cmd and any("audit_clean_imports.py" in str(c) for c in cmd):
             return _mock_completed_process(1)
         return _mock_completed_process(0)
 
@@ -581,7 +581,7 @@ def test_subprocess_dto_parity_failure(mock_exit: MagicMock, mock_scan: MagicMoc
     mock_exit.side_effect = SystemExit(1)
 
     def sub_side_effect(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
-        if any("audit_dto_parity.py" in str(c) for c in cmd):
+        if "python" in cmd and any("audit_dto_parity.py" in str(c) for c in cmd):
             return _mock_completed_process(1)
         return _mock_completed_process(0)
 
@@ -599,7 +599,7 @@ def test_subprocess_warning_baseline_failure(mock_exit: MagicMock, mock_scan: Ma
     mock_exit.side_effect = SystemExit(1)
 
     def sub_side_effect(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
-        if any("audit_warning_baseline.py" in str(c) for c in cmd):
+        if "python" in cmd and any("audit_warning_baseline.py" in str(c) for c in cmd):
             return _mock_completed_process(1)
         return _mock_completed_process(0)
 
@@ -617,7 +617,7 @@ def test_subprocess_dict_eradication_failure(mock_exit: MagicMock, mock_scan: Ma
     mock_exit.side_effect = SystemExit(1)
 
     def sub_side_effect(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
-        if any("audit_dict_eradication.py" in str(c) for c in cmd):
+        if "python" in cmd and any("audit_dict_eradication.py" in str(c) for c in cmd):
             return _mock_completed_process(1)
         return _mock_completed_process(0)
 
@@ -728,7 +728,7 @@ def test_subprocess_zero_orm_strictness_failure(mock_exit: MagicMock, mock_scan:
     mock_exit.side_effect = SystemExit(1)
 
     def sub_side_effect(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
-        if any("audit_zero_orm_strictness.py" in str(c) for c in cmd):
+        if "python" in cmd and any("audit_zero_orm_strictness.py" in str(c) for c in cmd):
             return _mock_completed_process(1)
         return _mock_completed_process(0)
 
@@ -793,7 +793,7 @@ def test_subprocess_skills_architecture_failure(mock_exit: MagicMock, mock_scan:
     mock_exit.side_effect = SystemExit(1)
 
     def sub_side_effect(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
-        if any("audit_skills_architecture.py" in str(c) for c in cmd):
+        if "python" in cmd and any("audit_skills_architecture.py" in str(c) for c in cmd):
             return _mock_completed_process(1)
         return _mock_completed_process(0)
 

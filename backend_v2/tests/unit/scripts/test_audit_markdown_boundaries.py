@@ -255,14 +255,18 @@ def test_markdown_auditor_ast_read_error_resilience(tmp_path: Path) -> None:
 
 
 def test_markdown_auditor_class_hallucinations(tmp_path: Path) -> None:
-    """Test detection of class hallucinations when DTO/Service is not in backend_v2."""
+    """Test detection of class hallucinations when DTO/Service is not in backend_v2 or scripts."""
     backend_dir = tmp_path / "backend_v2" / "models"
     backend_dir.mkdir(parents=True)
     (backend_dir / "user.py").write_text("class UserDTO:\n    pass\n", encoding="utf-8")
 
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir(parents=True)
+    (scripts_dir / "audit_skills.py").write_text("class SkillAuditViolationDTO:\n    pass\n", encoding="utf-8")
+
     md_file = tmp_path / "plan.md"
     md_file.write_text(
-        "Uses `UserDTO` and hallucinated `NonExistentService` and `FakeResponse`.\n",
+        "Uses `UserDTO`, `SkillAuditViolationDTO`, and hallucinated `NonExistentService` and `FakeResponse`.\n",
         encoding="utf-8",
     )
 
@@ -275,6 +279,7 @@ def test_markdown_auditor_class_hallucinations(tmp_path: Path) -> None:
     assert any("FakeResponse" in m for m in messages)
     assert any("NonExistentService" in m for m in messages)
     assert not any("UserDTO" in m for m in messages)
+    assert not any("SkillAuditViolationDTO" in m for m in messages)
 
 
 def test_markdown_auditor_class_hallucinations_no_mentioned_or_missing_backend(tmp_path: Path) -> None:
@@ -370,10 +375,14 @@ def test_markdown_auditor_settings_validation_syntax_error(tmp_path: Path) -> No
 
 
 def test_markdown_auditor_enum_validation(tmp_path: Path) -> None:
-    """Test validation of Enum references against backend enums and Flutter enums."""
+    """Test validation of Enum references against backend enums, scripts enums, and Flutter enums."""
     backend_models = tmp_path / "backend_v2" / "models"
     backend_models.mkdir(parents=True)
     (backend_models / "enums.py").write_text("class ExecutionStatus:\n    PASSED = 'PASSED'\n", encoding="utf-8")
+
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir(parents=True)
+    (scripts_dir / "_script_base.py").write_text("class GuardrailSeverity:\n    FATAL = 'FATAL'\n", encoding="utf-8")
 
     flutter_models = tmp_path / "client_app_v2" / "lib" / "core" / "models"
     flutter_models.mkdir(parents=True)
@@ -381,7 +390,7 @@ def test_markdown_auditor_enum_validation(tmp_path: Path) -> None:
 
     md_file = tmp_path / "plan.md"
     md_file.write_text(
-        "Referencing `ExecutionStatus.PASSED`, `FlutterRole.admin`, and `FakeEnum.INVALID`.\n",
+        "Referencing `ExecutionStatus.PASSED`, `GuardrailSeverity.FATAL`, `FlutterRole.admin`, and `FakeEnum.INVALID`.\n",
         encoding="utf-8",
     )
 
@@ -391,6 +400,7 @@ def test_markdown_auditor_enum_validation(tmp_path: Path) -> None:
     enum_findings = [f for f in auditor.findings if f.rule_code == "MBD007"]
     assert len(enum_findings) == 1
     assert "FakeEnum" in enum_findings[0].message
+    assert not any("GuardrailSeverity" in f.message for f in enum_findings)
 
 
 def test_markdown_auditor_enum_validation_error_handling(tmp_path: Path) -> None:

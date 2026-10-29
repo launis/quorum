@@ -64,15 +64,29 @@ __all__ = [
 
 # Authoritative operational and guardrail scripts audited in macro completion gate
 _MACRO_AUTHORITATIVE_SCRIPTS: tuple[str, ...] = (
-    "scripts/reconcile_storage.py",
+    "scripts/_script_base.py",
+    "scripts/_ast_boundary_utils.py",
     "scripts/_ast_guardrails.py",
+    "scripts/_dart_guardrails.py",
+    "scripts/reconcile_storage.py",
     "scripts/audit_zero_orm_strictness.py",
     "scripts/backend_audit_loop.py",
     "scripts/audit_markdown_boundaries.py",
     "scripts/audit_dict_eradication.py",
     "scripts/audit_technical_debt.py",
-    "scripts/_ast_boundary_utils.py",
     "scripts/audit_skills_architecture.py",
+    "scripts/audit_clean_imports.py",
+    "scripts/audit_database_atoms.py",
+    "scripts/audit_dto_parity.py",
+    "scripts/audit_epic_coverage.py",
+    "scripts/audit_flutter_theme_sovereignty.py",
+    "scripts/audit_manifest_generator.py",
+    "scripts/audit_mutation_coverage.py",
+    "scripts/audit_planner_output.py",
+    "scripts/audit_plan_tracker_parity.py",
+    "scripts/audit_rules_staleness.py",
+    "scripts/audit_tracker_output.py",
+    "scripts/audit_warning_baseline.py",
 )
 
 # Force pure Python Protobuf implementation to prevent duplicate descriptor pool crashes in Python 3.14+

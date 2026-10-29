@@ -341,3 +341,49 @@ def test_invalid_extension_and_test_file_in_hardening_checklist(tmp_path: Path) 
     assert "Non-Python file `backend_v2/seed/seed_data.json`" in messages
     assert "Test file `backend_v2/tests/test_code.py`" in messages
     assert "Non-Dart file `client_app_v2/lib/l10n/app_en.arb`" in messages
+
+
+def test_backend_only_hardening_checklist_without_frontend_gate(tmp_path: Path) -> None:
+    """Verify Tier 2 Hardening (Backend) parses solely backend sub-items when Frontend gate is omitted."""
+    tracker_text = """<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+</required_context_rules>
+# Tracker: Backend Only
+**Plan:** @[plan.md]
+## Step Execution Status
+- [ ] **[NOK] Execution:** `/tier2-execute @[plan.md] @[task.md]`
+  - [ ] Step 1: STEP ONE
+
+### Post-Implementation Gates
+- [ ] **[NOK] Golden Master & Test Restoration Audit**
+- [ ] **[NOK] Tier 2 Hardening (Backend):**
+  - [ ] @[scripts/audit_skills_architecture.py]
+- [ ] **[NOK] Pre-Delete Audit**: Verify `@[scripts/old_tool.py]` is unused.
+- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**
+
+### Documentation & Knowledge Item Update
+- [ ] **[NOK]** As-Built Architectural Sync: Run:
+
+### Final Plan Audit
+- [ ] **[NOK]** System 2 Red-Team Audit: Run:
+
+## Requirements Traceability Matrix
+| Req | Desc | Plan Step | Status |
+|---|---|---|---|
+| R1 | Desc | Step 1 | [ ] Pending |
+
+# Session Handover Context
+## Achieved
+- Done
+## Learned
+- Notes
+## Remaining
+- Rest
+## Resume Command
+`/tier2-execute`
+"""
+    t_file = tmp_path / "tracker_backend_only.md"
+    t_file.write_text(tracker_text, encoding="utf-8")
+    tracker_ast = parse_tracker_document(tracker_text, t_file)
+    assert tracker_ast.hardening_checklist.backend_files == ["scripts/audit_skills_architecture.py"]
+    assert tracker_ast.hardening_checklist.frontend_files == []

@@ -22,23 +22,23 @@ if _workspace_root not in sys.path:
 
 try:
     from _ast_boundary_utils import extract_target_files
+    from _script_base import ANSIColors, setup_script_environment
     from _script_base import GuardrailSeverity as GuardrailSeverity
-    from _script_base import setup_script_environment
 except ImportError:
     from scripts._ast_boundary_utils import extract_target_files
+    from scripts._script_base import ANSIColors, setup_script_environment
     from scripts._script_base import GuardrailSeverity as GuardrailSeverity
-    from scripts._script_base import setup_script_environment
 
 # Force UTF-8 encoding for stdout on Windows without reflection
 setup_script_environment()
 
 # ANSI colors for console output
-RED = "\033[91m"
-GREEN = "\033[92m"
-YELLOW = "\033[93m"
-CYAN = "\033[96m"
-BOLD = "\033[1m"
-RESET = "\033[0m"
+RED = ANSIColors.RED
+GREEN = ANSIColors.GREEN
+YELLOW = ANSIColors.YELLOW
+CYAN = ANSIColors.CYAN
+BOLD = ANSIColors.BOLD
+RESET = ANSIColors.RESET
 
 
 class ParityRuleCode(StrEnum):
@@ -377,18 +377,18 @@ def parse_tracker_document(content: str, tracker_path: Path) -> TrackerDocumentA
 
     b_pattern = (
         r"Tier 2 Hardening \(Backend\)[^\n]*\n([\s\S]*?)"
-        r"(?=(?:-\s+\[[ x]\]\s+\*\*\[(?:OK|NOK|SKIPPED)\]\s+Tier 2 Hardening \(Frontend\)|\Z))"
+        r"(?=(?:^-\s+\[[ x]\]\s+|^###\s+|\Z))"
     )
-    b_match = re.search(b_pattern, content, re.IGNORECASE)
+    b_match = re.search(b_pattern, content, re.IGNORECASE | re.MULTILINE)
     if b_match:
         for f in re.findall(r"@\[([^\]]+)\]", b_match.group(1)):
             backend_hardening_files.append(_normalize_posix(f))
 
     f_pattern = (
         r"Tier 2 Hardening \(Frontend\)[^\n]*\n([\s\S]*?)"
-        r"(?=(?:-\s+\[[ x]\]\s+\*\*\[(?:OK|NOK|SKIPPED)\]\s+Pre-Delete|\Z))"
+        r"(?=(?:^-\s+\[[ x]\]\s+|^###\s+|\Z))"
     )
-    f_match = re.search(f_pattern, content, re.IGNORECASE)
+    f_match = re.search(f_pattern, content, re.IGNORECASE | re.MULTILINE)
     if f_match:
         for f in re.findall(r"@\[([^\]]+)\]", f_match.group(1)):
             frontend_hardening_files.append(_normalize_posix(f))

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import ast
-import io
 import re
 import sys
 from pathlib import Path
@@ -26,19 +25,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from scripts._ast_boundary_utils import get_ast_definition_bounds
 from scripts._ast_guardrails import scan_source_code_for_guardrails
 
-# Force UTF-8 encoding for stdout on Windows without reflection
-if isinstance(sys.stdout, io.TextIOWrapper):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-    except AttributeError, io.UnsupportedOperation:
-        pass
-
 try:
-    from _script_base import ANSIColors
+    from _script_base import ANSIColors, setup_script_environment
     from _script_base import GuardrailSeverity as GuardrailSeverity
 except ImportError:
-    from scripts._script_base import ANSIColors
+    from scripts._script_base import ANSIColors, setup_script_environment
     from scripts._script_base import GuardrailSeverity as GuardrailSeverity
+
+# Force UTF-8 encoding for stdout on Windows without reflection
+setup_script_environment()
 
 # ANSI colors for output
 RED = ANSIColors.RED
@@ -284,34 +279,34 @@ class MarkdownAuditor:
             )
 
     def check_class_hallucinations(self) -> None:
-        """Scan mentioned DTOs/Classes and ensure they exist in backend_v2."""
+        """Scan mentioned DTOs/Classes and ensure they exist in backend_v2 or scripts."""
         pattern = re.compile(r"`([A-Za-z0-9_]+(?:DTO|Cache|Response|Service))`")
         mentioned = set(pattern.findall(self.content))
         if not mentioned:
             return
 
         valid_classes: set[str] = set()
-        backend_dir = self.repo_root / "backend_v2"
-        if backend_dir.exists():
-            for py_file in backend_dir.rglob("*.py"):
-                try:
-                    source = py_file.read_text(encoding="utf-8")
-                    tree = ast.parse(source, filename=py_file.as_posix())
-                    for node in ast.walk(tree):
-                        match node:
-                            case ast.ClassDef(name=class_name):
-                                valid_classes.add(class_name)
-                            case _:
-                                pass
-                except (OSError, UnicodeDecodeError, SyntaxError) as e:
-                    self._add_finding(
-                        line_number=0,
-                        rule_code="MBD005",
-                        category="Class Hallucination",
-                        message=f"Failed to parse {py_file.as_posix()} for valid classes: {e}",
-                        severity=GuardrailSeverity.WARNING,
-                        remediation="Ensure all Python files in backend_v2 are syntactically valid.",
-                    )
+        for search_dir in (self.repo_root / "backend_v2", self.repo_root / "scripts"):
+            if search_dir.exists():
+                for py_file in search_dir.rglob("*.py"):
+                    try:
+                        source = py_file.read_text(encoding="utf-8")
+                        tree = ast.parse(source, filename=py_file.as_posix())
+                        for node in ast.walk(tree):
+                            match node:
+                                case ast.ClassDef(name=class_name):
+                                    valid_classes.add(class_name)
+                                case _:
+                                    pass
+                    except (OSError, UnicodeDecodeError, SyntaxError) as e:
+                        self._add_finding(
+                            line_number=0,
+                            rule_code="MBD005",
+                            category="Class Hallucination",
+                            message=f"Failed to parse {py_file.as_posix()} for valid classes: {e}",
+                            severity=GuardrailSeverity.WARNING,
+                            remediation="Ensure all Python files in backend_v2 and scripts are syntactically valid.",
+                        )
 
         planned_classes: set[str] = set()
         for line in self.lines:
@@ -328,9 +323,9 @@ class MarkdownAuditor:
                     line_number=0,
                     rule_code="MBD005",
                     category="Class Hallucination",
-                    message=f"Class Hallucination: '{cls}' mentioned but not found in backend_v2.",
+                    message=f"Class Hallucination: '{cls}' mentioned but not found in backend_v2 or scripts.",
                     severity=GuardrailSeverity.WARNING,
-                    remediation=f"Ensure '{cls}' exists in backend_v2/models/ or backend_v2/services/ or is defined in the plan.",
+                    remediation=f"Ensure '{cls}' exists in backend_v2/models/, backend_v2/services/, or scripts/, or is defined in the plan.",
                 )
 
     def check_settings_validation(self) -> None:
@@ -385,16 +380,19 @@ class MarkdownAuditor:
                 )
 
     def check_enum_validation(self) -> None:
-        """Validate references to Enums in backend and flutter models."""
+        """Validate references to Enums in backend, scripts, and flutter models."""
         valid_enums: set[str] = set()
 
-        # Python Enums
-        for py_enum_file in ["enums.py", "exceptions.py"]:
-            py_enums = (
-                self.repo_root / "backend_v2" / "models" / py_enum_file
-                if py_enum_file == "enums.py"
-                else self.repo_root / "backend_v2" / py_enum_file
-            )
+        # Python Enums across backend_v2 and scripts/
+        py_enum_sources: list[Path] = [
+            self.repo_root / "backend_v2" / "models" / "enums.py",
+            self.repo_root / "backend_v2" / "exceptions.py",
+        ]
+        scripts_dir = self.repo_root / "scripts"
+        if scripts_dir.exists():
+            py_enum_sources.extend(sorted(scripts_dir.rglob("*.py")))
+
+        for py_enums in py_enum_sources:
             if py_enums.exists():
                 try:
                     tree = ast.parse(py_enums.read_text(encoding="utf-8"), filename=py_enums.as_posix())
@@ -411,7 +409,7 @@ class MarkdownAuditor:
                         category="Enum Hallucination",
                         message=f"Failed to parse {py_enums.as_posix()} for valid enums: {e}",
                         severity=GuardrailSeverity.WARNING,
-                        remediation="Ensure enum files in backend_v2 are syntactically valid.",
+                        remediation="Ensure enum files in backend_v2 and scripts are syntactically valid.",
                     )
 
         # Flutter Enums (Regex based parsing)

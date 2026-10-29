@@ -28,6 +28,7 @@ def test_extract_code_symbols_from_rules(tmp_path: Path) -> None:
         "# Rule Test\n"
         "<banned_pattern>Using `LegacyGodService` or `legacy_func`.</banned_pattern>\n"
         "<mandatory_pattern>Must use `ModernService` and `ConfigDict`.</mandatory_pattern>\n"
+        "<mandate>Always enforce `Mandate EnforcedDTO` and `strict_validator`.</mandate>\n"
         "Outside block: `IgnoredOutsideSymbol`\n",
         encoding="utf-8",
     )
@@ -38,6 +39,7 @@ def test_extract_code_symbols_from_rules(tmp_path: Path) -> None:
     assert "LegacyGodService" in symbols
     assert "legacy_func" in symbols
     assert "ModernService" in symbols
+    assert "strict_validator" in symbols
     assert "ConfigDict" not in symbols  # Excluded keyword
     assert "IgnoredOutsideSymbol" not in symbols  # Outside XML tags
 

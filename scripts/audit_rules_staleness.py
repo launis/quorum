@@ -1,30 +1,29 @@
 """Rule Staleness Auditor Script.
 
-Scans all `.agents/rules/*.md` files for code symbols referenced in `<banned_pattern>`
-and `<mandatory_pattern>` XML blocks, and verifies whether each symbol still exists
-in the active codebase (`backend_v2/` and `scripts/`).
+Scans all `.agents/rules/*.md` files for code symbols referenced in `<mandate>`,
+`<banned_pattern>`, and `<mandatory_pattern>` XML blocks, and verifies whether each
+symbol still exists in the active codebase (`backend_v2/`, `scripts/`, and `client_app_v2/`).
 """
 
 from __future__ import annotations
 
 import argparse
-import io
 import re
 import sys
 from pathlib import Path
 
-# Force UTF-8 encoding for stdout/stderr to support emojis on Windows
-if isinstance(sys.stdout, io.TextIOWrapper):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-    except AttributeError, ValueError, io.UnsupportedOperation:
-        pass
+# Ensure workspace root is in sys.path for direct script execution
+_workspace_root = str(Path(__file__).resolve().parent.parent)
+if _workspace_root not in sys.path:
+    sys.path.insert(0, _workspace_root)
 
-if isinstance(sys.stderr, io.TextIOWrapper):
-    try:
-        sys.stderr.reconfigure(encoding="utf-8")
-    except AttributeError, ValueError, io.UnsupportedOperation:
-        pass
+try:
+    from _script_base import setup_script_environment
+except ImportError:
+    from scripts._script_base import setup_script_environment
+
+# Force UTF-8 encoding for stdout/stderr to support emojis on Windows
+setup_script_environment()
 
 __all__ = [
     "COMMON_RESERVED_SYMBOLS",
@@ -99,7 +98,7 @@ def extract_code_symbols_from_rules(rules_dir: Path) -> dict[str, set[str]]:
 
     rule_symbols: dict[str, set[str]] = {}
     pattern_block_regex = re.compile(
-        r"<(?:banned_pattern|mandatory_pattern)>([\s\S]*?)</(?:banned_pattern|mandatory_pattern)>",
+        r"<(?:banned_pattern|mandatory_pattern|mandate)>([\s\S]*?)</(?:banned_pattern|mandatory_pattern|mandate)>",
         re.IGNORECASE,
     )
     symbol_regex = re.compile(r"[`']([a-zA-Z_][a-zA-Z0-9_]*)[`']")
