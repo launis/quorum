@@ -23,7 +23,7 @@
   - [x] @[backend_v2/database/repository.py]
   - [x] @[backend_v2/database/repositories/component.py]
   - [x] @[backend_v2/database/repositories/report_artifact.py]
-  - [ ] @[backend_v2/database/repositories/components/agent.py]
+  - [x] @[backend_v2/database/repositories/components/agent.py]
   - [ ] @[backend_v2/database/repositories/components/execution_persona.py]
   - [ ] @[backend_v2/database/repositories/components/extraction_protocol.py]
   - [ ] @[backend_v2/database/repositories/components/matrix.py]
