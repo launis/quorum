@@ -1,8 +1,12 @@
 """Base scoring engine protocol definitions."""
 
+from __future__ import annotations
+
 from typing import Protocol, runtime_checkable
 
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, ScoringResultDTO
+
+__all__ = ["ScoringEngineProtocol"]
 
 
 @runtime_checkable
@@ -32,5 +36,8 @@ class ScoringEngineProtocol(Protocol):
 
         Returns:
             Strictly typed, immutable ScoringResultDTO containing score, XAI log, and breakdown.
+
+        Raises:
+            AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
         """
         ...
