@@ -23,8 +23,8 @@ class GeneratedSchemaManifestDTO(V2CoreBase):
 
     schemas: Annotated[
         dict[str, JsonValue],
-        Field(default_factory=dict, description="Mapping of step IDs to schema definitions"),
-    ]
+        "Mapping of step IDs to schema definitions",
+    ] = Field(default_factory=dict, description="Mapping of step IDs to schema definitions")
 
     def __contains__(self, key: str) -> bool:
         """Check if a step or schema ID exists in the manifest.

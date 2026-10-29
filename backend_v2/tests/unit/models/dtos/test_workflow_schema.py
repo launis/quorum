@@ -41,6 +41,19 @@ def test_workflow_schema_response_dto_strict_type_enforcement() -> None:
         WorkflowSchemaResponseDTO.model_validate({"expected_inputs": "not_a_list"})
 
 
+def test_workflow_schema_response_dto_invalid_element_rejected() -> None:
+    """Verify invalid inner element types inside expected_inputs raise ValidationError."""
+    with pytest.raises(ValidationError):
+        WorkflowSchemaResponseDTO.model_validate({"expected_inputs": ["invalid_item"]})
+
+
+def test_workflow_schema_response_dto_frozen_immutability() -> None:
+    """Verify frozen=True prevents post-instantiation attribute mutation."""
+    dto = WorkflowSchemaResponseDTO()
+    with pytest.raises(ValidationError):
+        dto.expected_inputs = []
+
+
 def test_workflow_schema_response_dto_serialization_roundtrip() -> None:
     """Verify model_dump and model_validate roundtrip preservation."""
     input_item = ExpectedInput(

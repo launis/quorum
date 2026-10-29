@@ -22,4 +22,5 @@ __all__ = [
     "system",
     "trace",
     "variance",
+    "workflow_schema",
 ]
