@@ -11,6 +11,8 @@ from backend_v2.models.domain.step import Role
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["RoleRepositoryImpl"]
+
 
 class RoleRepositoryImpl(AppendOnlyRepositoryBase):
     """Repository implementation for Roles."""
@@ -20,6 +22,10 @@ class RoleRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             List of validated Role domain models.
+
+        Raises:
+            AppException: If a role record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         filters = [Filter("type", "==", "role")]
         raw = await self.driver.query("components", filters)
@@ -31,7 +37,13 @@ class RoleRepositoryImpl(AppendOnlyRepositoryBase):
                 item_id = "unknown"
                 if "id" in r:
                     item_id = str(r["id"])
-                logger.error("Failed to parse Role %s: %s", item_id, e, exc_info=True)
+                logger.error(
+                    "[RoleRepository] %s: Failed to parse Role %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Failed to parse role {item_id} from database",
                     status_code=500,
@@ -47,6 +59,10 @@ class RoleRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             The validated Role domain model if found, otherwise None.
+
+        Raises:
+            AppException: If the role record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         doc = await self.driver.get("components", role_id)
         if not doc:
@@ -54,7 +70,13 @@ class RoleRepositoryImpl(AppendOnlyRepositoryBase):
         try:
             return Role.model_validate(doc, strict=False)
         except Exception as e:
-            logger.error("Failed to parse Role %s: %s", role_id, e, exc_info=True)
+            logger.error(
+                "[RoleRepository] %s: Failed to parse Role %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                role_id,
+                e,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Failed to parse role {role_id} from database",
                 status_code=500,
@@ -86,10 +108,19 @@ class RoleRepositoryImpl(AppendOnlyRepositoryBase):
             The updated role ID.
 
         Raises:
-            ResourceNotFoundError: If the role does not exist.
+            ResourceNotFoundError: If the role does not exist
+                (ErrorCodes.RESOURCE_NOT_FOUND).
+            AppException: If the existing role record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         doc = await self.get_role_by_id(role_id)
         if not doc:
+            logger.error(
+                "[RoleRepository] %s: Role %s not found for update",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                role_id,
+                exc_info=True,
+            )
             raise ResourceNotFoundError(resource_type="Role", resource_id=role_id)
         payload = updates.model_dump(mode="json", exclude_unset=True)
         await self.driver.update("components", role_id, payload)
@@ -103,6 +134,10 @@ class RoleRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             True if deleted, False if role does not exist.
+
+        Raises:
+            AppException: If the existing role record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         doc = await self.get_role_by_id(role_id)
         if not doc:
