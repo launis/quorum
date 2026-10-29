@@ -40,7 +40,7 @@
   - [x] @[backend_v2/models/domain/performativity.py]
   - [x] @[backend_v2/models/domain/profiler.py]
   - [x] @[backend_v2/models/domain/scoring.py]
-  - [ ] @[backend_v2/models/domain/source_verification.py]
+  - [x] @[backend_v2/models/domain/source_verification.py]
   - [ ] @[backend_v2/models/domain/synthesis.py]
   - [ ] @[backend_v2/models/domain/workflow.py]
   - [ ] @[backend_v2/models/prompt.py]
