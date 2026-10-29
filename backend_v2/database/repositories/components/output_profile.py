@@ -11,6 +11,8 @@ from backend_v2.models.domain.output_profile import OutputProfile
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["OutputProfileRepositoryImpl"]
+
 
 class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
     """Implementation of the Output Profile Repository.
@@ -18,7 +20,7 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
     This repository is responsible for CRUD operations on output profiles.
     """
 
-    def __init__(self, driver: StorageDriver):
+    def __init__(self, driver: StorageDriver) -> None:
         """Initializes the repository with a storage driver.
 
         Args:
@@ -33,7 +35,8 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
             A list of validated OutputProfile domain models.
 
         Raises:
-            AppException: If database query or model validation fails.
+            AppException: If the database query or model validation fails
+                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         data = await self.driver.query("output_profiles")
         models: list[OutputProfile] = []
@@ -44,7 +47,13 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
                 item_id = "unknown"
                 if "id" in pd:
                     item_id = str(pd["id"])
-                logger.error("Failed to parse OutputProfile %s: %s", item_id, e, exc_info=True)
+                logger.error(
+                    "[OutputProfileRepository] %s: Failed to parse OutputProfile %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Failed to parse profile {item_id} from database",
                     status_code=500,
@@ -57,6 +66,10 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             A list of OutputProfile models.
+
+        Raises:
+            AppException: If the database query or model validation fails
+                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         return await self.get_all_output_profiles()
 
@@ -70,7 +83,8 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
             The validated OutputProfile domain model if found, otherwise None.
 
         Raises:
-            AppException: If database query or parsing fails.
+            AppException: If the database query or model validation fails
+                (ErrorCodes.VALIDATION_FAILED, ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         doc = await self.driver.get("output_profiles", profile_id)
         if not doc:
@@ -78,7 +92,13 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
         try:
             return OutputProfile.model_validate(doc, strict=False)
         except Exception as e:
-            logger.error("Failed to parse OutputProfile %s: %s", profile_id, e, exc_info=True)
+            logger.error(
+                "[OutputProfileRepository] %s: Failed to parse OutputProfile %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                profile_id,
+                e,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Failed to parse profile {profile_id} from database",
                 status_code=500,
@@ -95,11 +115,11 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
             The ID of the created output profile.
 
         Raises:
-            AppException: Propagated from driver if the upsert operation fails.
+            AppException: Propagated from driver if the upsert operation fails
+                (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         payload = profile_data.model_dump(mode="json")
-        doc_id = payload["id"]
-        return await self.driver.upsert("output_profiles", payload, doc_id)
+        return await self.driver.upsert("output_profiles", payload, profile_data.id)
 
     async def update_output_profile(self, profile_id: str, updates: OutputProfile) -> bool:
         """Updates an existing output profile.
@@ -112,7 +132,8 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
             True if the update was successful, False if the document was not found.
 
         Raises:
-            AppException: Propagated from driver if database operations fail.
+            AppException: Propagated from driver if database operations fail
+                (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         old_doc = await self.driver.get("output_profiles", profile_id)
         if not old_doc:
@@ -132,7 +153,8 @@ class OutputProfileRepositoryImpl(AppendOnlyRepositoryBase):
             True if successfully deleted, False if the document did not exist.
 
         Raises:
-            AppException: Propagated from driver if database operations fail.
+            AppException: Propagated from driver if database operations fail
+                (ErrorCodes.STORAGE_ACCESS_FAILED).
         """
         profile = await self.driver.get("output_profiles", profile_id)
         if not profile:
