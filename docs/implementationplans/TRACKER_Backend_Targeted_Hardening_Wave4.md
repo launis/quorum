@@ -41,7 +41,7 @@
   - [x] @[backend_v2/models/domain/profiler.py]
   - [x] @[backend_v2/models/domain/scoring.py]
   - [x] @[backend_v2/models/domain/source_verification.py]
-  - [ ] @[backend_v2/models/domain/synthesis.py]
+  - [x] @[backend_v2/models/domain/synthesis.py]
   - [ ] @[backend_v2/models/domain/workflow.py]
   - [ ] @[backend_v2/models/prompt.py]
   - [ ] @[backend_v2/models/dtos/system.py]
