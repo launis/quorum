@@ -7,8 +7,8 @@
 > 1. **PostgreSQL 19 Zero-ORM Perusta & Cutover — [SUORITETTU & LUKITTU]** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_PostgreSQL_Final_Cutover.md]`)
 > 1b. **Järjestelmällinen Ennaltaehkäisy, AST-vartija QGR030 & Testitehtaat — [SUORITETTU & AUDITOITU]** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Systemic_Prevention_and_AST_Guardrails.md]`, `@[docs/implementationplans/TRACKER_Systemic_Prevention_and_AST_Guardrails.md]`)
 > 2. **`dag_executor.py` God Code -purku modulaariseksi SRP-paketiksi — [SUORITETTU & KOVENNETTU]** (1 803 LOC -> 6 erillistä SRP-moduulia & ohut fasaadi, QGR017-lukittu) (`@[docs/epic/dag_executor_decomposition_tracker.md]`)
-> 3. **Backend-koodikannan Karkaisuaallot 1–4 (403 `.py`-tiedoston kokonaiskarkaisu; Aallot 1–4: 36 + 36 + 27 + 34 = 133 tiedostoa) — [KÄYNNISSÄ: Aallot 1–3 (36/36, 36/36 & 27/27 = 99/133) VALMIIT, AALTO 4 (34 TIEDOSTOA) JÄLJELLÄ]** (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`, `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 1)
-> 3b. **Arkkitehtuurin Parannuskohteiden Toteutus & `entity_adapter.py`-purku (Askeleet 3.3–3.5) — [SEURAAVANA BACKEND-KARKAISUAALTOJEN 2–4 JÄLKEEN]**:
+> 3. **Backend-koodikannan Karkaisuaallot 1–4 (403 `.py`-tiedoston kokonaiskarkaisu; Aallot 1–4: 36 + 36 + 27 + 34 = 133/133 tiedostoa; 391/403 valmiina, 12 IAM/Storage-tiedostoa Askeleissa 4 & 5) — [SUORITETTU & LUKITTU 133/133]** (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]`, `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`, `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 1)
+> 3b. **Arkkitehtuurin Parannuskohteiden Toteutus & `entity_adapter.py`-purku (Askeleet 3.3–3.5) — [SEURAAVANA JONOSSA]**:
 >    * **Askel 3.3 (Malli A):** Yhtenäinen `PrefixedUUID7`-arkkitehtuuri, Natiivi PostgreSQL 19 `UUIDv7` kaikissa 12 taulussa, `@[backend_v2/seed/seed_data.json]` 32-hex Cutover & `@[scripts/sanitize_seed_vault.py]`-automaatio (`@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 2).
 >    * **Askel 3.4:** AST- ja Laatuporttilaajennukset `QGR031` (`FilterOperator`-kurinalaisuus), dynaaminen `scripts/*.py`-skannaus & `QGR032` (Polyfactory 32-hex `UUIDv7` -invarianttivartija) (`@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 3).
 >    * **Askel 3.5:** `PostgresEntityAdapter` (`@[backend_v2/database/postgres/entity_adapter.py]`, 1 975 LOC) God Code -purku 4 SRP-moduuliin (`iam_adapter.py`, `studio_adapter.py`, `execution_adapter.py`, `seeding_adapter.py` + `<150 LOC` `__init__.py` fasaadi).
@@ -339,8 +339,8 @@ Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytke
 │    2C-1. Karkaisuaalto 1 (36 tiedostoa) [SUORITETTU & LUKITTU 36/36]   │
 │    2C-2. Karkaisuaalto 2 (36 tiedostoa) [SUORITETTU & LUKITTU 36/36]   │
 │    2C-3. Karkaisuaalto 3 (27 tiedostoa) [SUORITETTU & LUKITTU 27/27]   │
-│    2C-4. Karkaisuaalto 4 (34 tiedostoa) [SEURAAVANA: Domain & DTOs]    │
-│    2E. Malli A: Yhtenäinen PrefixedUUID7 & 12 taulun UUIDv7 (Askel 3.3)│
+│    2C-4. Karkaisuaalto 4 (34 tiedostoa) [SUORITETTU & LUKITTU 34/34]   │
+│    2E. Malli A: Yhtenäinen PrefixedUUID7 & 12 taulun UUIDv7 [SEURAAVA] │
 │        (arkkitehtuurin_parannuskohteet.md Luku 2 + sanitize_seed_vault)│
 │    2F. AST & Laatuportit QGR031, scripts/*.py & QGR032 (Askel 3.4)     │
 │        (arkkitehtuurin_parannuskohteet.md Luku 3)                      │
@@ -416,8 +416,8 @@ Alla oleva taulukko näyttää yhdellä silmäyksellä, mitkä toteutussuunnitel
 | **Askel 1 – 3.2** | `llm_strategy/`, `llm/provider/`, E2E `exe_2af2f7665e7c477b`, PostgreSQL 19 Perusta & Cutover, `QGR030`, `dag_executor.py`-purku & **Karkaisuaalto 1 (36/36)** | 🟢 **100 % SUORITETTU & LUKITTU** | Valmis — ei toimenpiteitä. |
 | **Askel 3.2b** | **Backend Karkaisuaalto 2** (`36/36` valmis: Core, Hooks, LLM Adapters & Services) | 🟢 **100 % SUORITETTU & LUKITTU:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]` | Valmis — ei toimenpiteitä. |
 | **Askel 3.2c** | **Backend Karkaisuaalto 3** (`27/27` valmis: Repositories, Orchestrator & Routers) | 🟢 **100 % SUORITETTU & LUKITTU:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]` | Valmis — ei toimenpiteitä. |
-| **Askel 3.2d** | **Backend Karkaisuaalto 4** (`34` tiedostoa: Domain Models & DTO Schemas) | 🟢 **Tracker valmiina levyllä:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` | Ei esitoimenpidettä — aja suoraan `auto_hardening_runner.py`-komennolla (seuraava jonossa). |
-| **Askel 3.3 & 3.4** | **Malli A (`PrefixedUUID7` 12 taulussa + `seed_data.json` + `sanitize_seed_vault.py`) & AST (`QGR031`/`QGR032`)** | 🟡 Määritelty tiedostossa `@[docs/arkkitehtuurin_parannuskohteet.md]` (Luvut 2 & 3). | Generoi suunnitelma ja tracker (`/tier0-create-plan` + `/tier1-plan-tracker-generator`) ennen ajoa. |
+| **Askel 3.2d** | **Backend Karkaisuaalto 4** (`34/34` valmis: Domain Models & DTO Schemas) | 🟢 **100 % SUORITETTU & LUKITTU:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` | Valmis — ei toimenpiteitä. |
+| **Askel 3.3 & 3.4** | **Malli A (`PrefixedUUID7` 12 taulussa + `seed_data.json` + `sanitize_seed_vault.py`) & AST (`QGR031`/`QGR032`)** | 🟡 Määritelty tiedostossa `@[docs/arkkitehtuurin_parannuskohteet.md]` (Luvut 2 & 3). | Seuraava jonossa — generoi suunnitelma ja tracker (`/tier0-create-plan` + `/tier1-plan-tracker-generator`) ennen ajoa. |
 | **Askel 3.5** | **`PostgresEntityAdapter` (`entity_adapter.py`, 1 975 LOC) God Code -purku** (4 SRP-adapteriin) | 🟡 Määritelty Luvussa 2.4 ja Luvussa 7 (Kohta 13). | Generoi purkusuunnitelma ja tracker komennolla `/tier3-god-code-decomposition @[backend_v2/database/postgres/entity_adapter.py]`. |
 | **Askel 4** | **B2B SaaS IAM, 2FA, Token Exchange, Redis Kill-Switch & BYOK (`EPIC 160`)** (`9` backend + `9` frontend tiedostoa) | 🟢 Eepos `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` on valmiina ja synkronoituna 32-hex `UUIDv7`:ään. | Generoi vaihesuunnitelmat ja `EPIC_160_tracker.md` komennolla `/tier1-planner @[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`. |
 | **Askel 5** | **Firebase Storage Direct-to-Cloud Signed URLs** (`3` tiedostopalvelutiedostoa) | 🟡 Arkkitehtuuri määritelty Luvussa 4. | Luo `IMPLEMENTATION_PLAN_Storage_Signed_URLs.md` ja `TRACKER_Storage_Signed_URLs.md` (`/tier0-create-plan` + `/tier1-plan-tracker-generator`). |
@@ -552,14 +552,13 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
 4. **`36` tiedostoa — Aalto 1 (Askel 3.2 / Vaihe 2c-1) — [SUORITETTU 36/36]:** Workers (6), SDUI-adapterit (15) ja Utilities (15) (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]`).
 5. **`36` tiedostoa — Aalto 2 (Askel 3.2b / Vaihe 2c-2) — [SUORITETTU 36/36]:** Core, Observability, Deterministic Hooks, LLM Provider Adapters & Studio/Execution Services (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]`).
 6. **`27` tiedostoa — Aalto 3 (Askel 3.2c / Vaihe 2c-3) — [SUORITETTU 27/27]:** Repositories (11), Orchestrator Services (6) ja non-IAM FastAPI Routers (10) (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]`).
-7. **`34` tiedostoa — Aalto 4 (Askel 3.2d / Vaihe 2c-4) — [SEURAAVANA JONOSSA, 0/34]:** Domain Models (23) ja DTO Schemas (11) sekä `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`-poikkeuslistan tyhjennys (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`).
+7. **`34` tiedostoa — Aalto 4 (Askel 3.2d / Vaihe 2c-4) — [SUORITETTU 34/34]:** Domain Models (23) ja DTO Schemas (11) (`@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`).
 8. **`12` tiedostoa — Eristetyt tulevat arkkitehtuurivaiheet (Askeleet 4 & 5):** B2B SaaS IAM (`backend_v2/api/routers/iam/*`, `backend_v2/services/auth/*`, `backend_v2/models/auth.py` — 9 tiedostoa) ja Firebase Storage Signed URLs (`file_driver.py`, `local_file_driver.py`, `storage.py` — 3 tiedostoa), jotka kirjoitetaan uusiksi ja karkaistaan omissa toteutustrackereissaan.
 
 > [!IMPORTANT]
-> **Miksi Karkaisuaalto 4 (jäljellä olevat 34 tiedostoa) kannattaa ajaa valmiiksi JUURI NYT ennen Askelia 3.3–3.5 ja Askelta 4 (`EPIC 160`)?**
-> 1. **357 / 403 backend-tiedostoa (88,6 %) on jo valmiina ja lukittuna:** Aallot 1 (36/36), 2 (36/36) ja 3 (27/27) on läpäisty 100 % puhtaasti. Jäljellä on enää Aallon 4 34 tiedostoa (23 domain-mallia ja 11 DTO-skeemaa).
-> 2. **Kutsuketjujen ja poikkeuslistojen nollaus ennen suuria skeema- ja IAM-muutoksia:** Kun Aalto 4 ajetaan nyt loppuun, `RESIDUAL_FUTURE_PHASE_QGR028_FILES`, `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES` ja `FROZEN_APPROVED_PER_FILE_IGNORE_PATHS` tyhjenevät kokonaan (`frozenset()`), ja jokaisella mallilla ja moduulilla on omat eristetyt yksikkötestinsä.
-> 3. **Turvaverkko Askeleelle 3.3 (Malli A: `PrefixedUUID7` 12 taulussa):** Kun kaikilla repositorioilla (Aalto 3, valmis) ja domain-malleilla (Aalto 4) on 100 % kattavat yksikkötestit ja tiukat tyyppisopimukset valmiina, Askeleen 3.3 `PrefixedUUID7`-yhtenäistys ja Askeleen 3.5 `entity_adapter.py`-purku voidaan ajaa läpi täydellisellä matemaattisella regressiosuojalla ennen kuin Askel 4 (`EPIC 160` IAM) alkaa.
+> **Karkaisuaaltojen 1–4 valmiustila (133/133 tiedostoa karkaistu; 391 / 403 backend-tiedostoa = 97,0 % lukittu):**
+> 1. **Kaikki 4 kohdennettua backend-karkaisuaaltoa on suoritettu 100 % puhtaasti:** Aallot 1 (`36/36`), 2 (`36/36`), 3 (`27/27`) ja 4 (`34/34`) sekä jokaisen aallon *Final Macro-Audit Completion Gate* on läpäisty. Jäljellä olevat 12 tiedostoa kuuluvat eristettyihin tuleviin arkkitehtuurivaiheisiin: Askel 4 (`EPIC 160` IAM, 9 tiedostoa) ja Askel 5 (Firebase Storage Signed URLs, 3 tiedostoa).
+> 2. **Täydellinen regressio- ja tyyppiturvaverkko Askeleille 3.3–3.5:** Koska kaikilla taustatyöntekijöillä, SDUI-adaptereilla, palvelukerroksilla, repositorioilla, reitittimillä, domain-malleilla ja DTO-skeemoilla on nyt eksplisiittiset `__all__`-määrittelyt, PEP 257 -dokumentaatio, `ConfigDict(extra="forbid", strict=True)` -sopimukset ja kattavat yksikkötestit, Askeleen 3.3 `PrefixedUUID7`-yhtenäistys (Malli A), Askeleen 3.4 AST-laajennukset (`QGR031`/`QGR032`) ja Askeleen 3.5 `entity_adapter.py`-purku voidaan ajaa läpi täydellisellä matemaattisella regressiosuojalla ennen Askeleen 4 (`EPIC 160` IAM) aloittamista.
 
 ---
 
@@ -652,56 +651,51 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
 
 ---
 
-### Askel 3.2d: Karkaisuaalto 4 — Domain Models & DTO Schemas (Vaihe 2c-4) — [SEURAAVANA JONOSSA: 0/34]
+### Askel 3.2d: Karkaisuaalto 4 — Domain Models & DTO Schemas (Vaihe 2c-4) — [SUORITETTU & LUKITTU 34/34]
 * **Seurantadokumentti (SSOT Tracker):** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`
-* **Laajuus & Kesto:** 34 tiedostoa (2 pakettia), kestoarvio **~2,5 – 3 h**.
-* **Tavoite:** Eksplisiittiset `__all__`-määrittelyt, PEP 257 Google-tyyliset docstringit, `ConfigDict(extra="forbid", strict=True)` -varmennus sekä `RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES`-poikkeuslistan sulkeminen.
-* **Suorituskomento:**
-  ```powershell
-  $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md --gate backend --model gemini-4-argon-medium --continue-on-failure
-  ```
+* **Tila & Git Commit:** 🟢 **100 % SUORITETTU, 34/34 TIEDOSTOA KARKAISTU, MACRO-AUDIT COMPLETION GATE LÄPÄISTY JA LUKITTU** — Commit `1af36b166` (*refactor(hardening): tighten workflow_schema.py*).
 
-#### Paketti 1: Domain Models (`backend_v2/models/domain/`) (23 tiedostoa)
-1. `[ ]` `@[backend_v2/models/domain/base.py]`
-2. `[ ]` `@[backend_v2/models/domain/metadata.py]`
-3. `[ ]` `@[backend_v2/models/domain/usage.py]`
-4. `[ ]` `@[backend_v2/models/domain/references.py]`
-5. `[ ]` `@[backend_v2/models/domain/retrieval.py]`
-6. `[ ]` `@[backend_v2/models/domain/hydration.py]`
-7. `[ ]` `@[backend_v2/models/domain/interaction.py]`
-8. `[ ]` `@[backend_v2/models/domain/integrity.py]`
-9. `[ ]` `@[backend_v2/models/domain/archivist.py]`
-10. `[ ]` `@[backend_v2/models/domain/causal.py]`
-11. `[ ]` `@[backend_v2/models/domain/coach.py]`
-12. `[ ]` `@[backend_v2/models/domain/evaluation.py]`
-13. `[ ]` `@[backend_v2/models/domain/falsifier.py]`
-14. `[ ]` `@[backend_v2/models/domain/judge.py]`
-15. `[ ]` `@[backend_v2/models/domain/knowledge.py]`
-16. `[ ]` `@[backend_v2/models/domain/logician.py]`
-17. `[ ]` `@[backend_v2/models/domain/overseer.py]`
-18. `[ ]` `@[backend_v2/models/domain/performativity.py]`
-19. `[ ]` `@[backend_v2/models/domain/profiler.py]`
-20. `[ ]` `@[backend_v2/models/domain/scoring.py]`
-21. `[ ]` `@[backend_v2/models/domain/source_verification.py]`
-22. `[ ]` `@[backend_v2/models/domain/synthesis.py]`
-23. `[ ]` `@[backend_v2/models/domain/workflow.py]`
+#### Paketti 1: Domain Models (`backend_v2/models/domain/`) (23/23 SUORITETTU)
+1. `[x]` `@[backend_v2/models/domain/base.py]`
+2. `[x]` `@[backend_v2/models/domain/metadata.py]`
+3. `[x]` `@[backend_v2/models/domain/usage.py]`
+4. `[x]` `@[backend_v2/models/domain/references.py]`
+5. `[x]` `@[backend_v2/models/domain/retrieval.py]`
+6. `[x]` `@[backend_v2/models/domain/hydration.py]`
+7. `[x]` `@[backend_v2/models/domain/interaction.py]`
+8. `[x]` `@[backend_v2/models/domain/integrity.py]`
+9. `[x]` `@[backend_v2/models/domain/archivist.py]`
+10. `[x]` `@[backend_v2/models/domain/causal.py]`
+11. `[x]` `@[backend_v2/models/domain/coach.py]`
+12. `[x]` `@[backend_v2/models/domain/evaluation.py]`
+13. `[x]` `@[backend_v2/models/domain/falsifier.py]`
+14. `[x]` `@[backend_v2/models/domain/judge.py]`
+15. `[x]` `@[backend_v2/models/domain/knowledge.py]`
+16. `[x]` `@[backend_v2/models/domain/logician.py]`
+17. `[x]` `@[backend_v2/models/domain/overseer.py]`
+18. `[x]` `@[backend_v2/models/domain/performativity.py]`
+19. `[x]` `@[backend_v2/models/domain/profiler.py]`
+20. `[x]` `@[backend_v2/models/domain/scoring.py]`
+21. `[x]` `@[backend_v2/models/domain/source_verification.py]`
+22. `[x]` `@[backend_v2/models/domain/synthesis.py]`
+23. `[x]` `@[backend_v2/models/domain/workflow.py]`
 
-#### Paketti 2: DTO Schemas & Prompt Models (`backend_v2/models/dtos/` + `models/prompt.py`) (11 tiedostoa)
-1. `[ ]` `@[backend_v2/models/prompt.py]`
-2. `[ ]` `@[backend_v2/models/dtos/system.py]`
-3. `[ ]` `@[backend_v2/models/dtos/inputs.py]`
-4. `[ ]` `@[backend_v2/models/dtos/prompt.py]`
-5. `[ ]` `@[backend_v2/models/dtos/prompt_context.py]`
-6. `[ ]` `@[backend_v2/models/dtos/retrieval.py]`
-7. `[ ]` `@[backend_v2/models/dtos/evaluation_steps.py]`
-8. `[ ]` `@[backend_v2/models/dtos/schema_manifest.py]`
-9. `[ ]` `@[backend_v2/models/dtos/state.py]`
-10. `[ ]` `@[backend_v2/models/dtos/variance.py]`
-11. `[ ]` `@[backend_v2/models/dtos/workflow_schema.py]`
+#### Paketti 2: DTO Schemas & Prompt Models (`backend_v2/models/dtos/` + `models/prompt.py`) (11/11 SUORITETTU)
+1. `[x]` `@[backend_v2/models/prompt.py]`
+2. `[x]` `@[backend_v2/models/dtos/system.py]`
+3. `[x]` `@[backend_v2/models/dtos/inputs.py]`
+4. `[x]` `@[backend_v2/models/dtos/prompt.py]`
+5. `[x]` `@[backend_v2/models/dtos/prompt_context.py]`
+6. `[x]` `@[backend_v2/models/dtos/retrieval.py]`
+7. `[x]` `@[backend_v2/models/dtos/evaluation_steps.py]`
+8. `[x]` `@[backend_v2/models/dtos/schema_manifest.py]`
+9. `[x]` `@[backend_v2/models/dtos/state.py]`
+10. `[x]` `@[backend_v2/models/dtos/variance.py]`
+11. `[x]` `@[backend_v2/models/dtos/workflow_schema.py]`
 
 ---
 
-### Askel 3.3: Yhtenäinen `PrefixedUUID7`-arkkitehtuuri, Natiivi PostgreSQL 19 `UUIDv7` Kaikissa 12 Taulussa & `seed_data.json` Cutover (Vaihe 2e — `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 2)
+### Askel 3.3: Yhtenäinen `PrefixedUUID7`-arkkitehtuuri, Natiivi PostgreSQL 19 `UUIDv7` Kaikissa 12 Taulussa & `seed_data.json` Cutover (Vaihe 2e — `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 2) — [SEURAAVANA JONOSSA]
 * **Miksi sijoitettu tähän kohtaan (heti Karkaisuaaltojen 2–4 jälkeen ja ENNEN Askelta 4 `EPIC 160` IAM):**
   `EPIC 160` (B2B SaaS IAM) perustuu siihen, että `organizations`- ja `users`-taulujen pääavaimet ovat natiiveja 16-tavuisia PostgreSQL 19 `UUIDv7`-arvoja (`usr_<hex32>` ja `org_<hex32>`). Toteuttamalla `@[docs/arkkitehtuurin_parannuskohteet.md]` Luvun 2 (**Malli A**) juuri ennen IAM-vaihetta poistetaan vanha kahtiajako (7 `TEXT`-taulua 16-heksalla vs. 5 `UUID`-taulua 32-heksalla) kerralla kaikista 12 taulusta.
 * **Toteutettavat arkkitehtuurimuutokset (Malli A):**

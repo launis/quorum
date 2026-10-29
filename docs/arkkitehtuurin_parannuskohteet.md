@@ -2,13 +2,13 @@
 
 Tähän dokumenttiin on koottu järjestelmän koodikannassa, tietomalleissa ja laatuporteissa **avoinna ja toteuttamatta olevat** arkkitehtuuriset parannuskohteet, karkaisuaallot ja skeeman yhtenäistykset. Dokumentti noudattaa *The e.g. Ban* -sääntöä (`anti_ambiguity_mandate`), *No Hidden Scope* -periaatetta sekä Quorumin *Zero-Tolerance* -laatuvaatimusta ilman siirtymäajan purkkaratkaisuja.
 
-*(Huomautus: Aiemmin tässä dokumentissa olleet matriisiskaalauksen keskitys `computed_min`/`computed_max`, `theory_grounding` vs. `ai_description` -eriyttäminen, `I18nText.default_locale`-poisto, `MatrixClaim.ai_description` -> `TDAAssertion.concept_description` -keskitys, `OutputProfile.matrix_synthesis_groups` & L10n-siivous sekä Karkaisuaallot 1 [36/36], 2 [36/36] ja 3 [27/27] on toteutettu ja poistettu tästä työlistasta.)*
+*(Huomautus: Aiemmin tässä dokumentissa olleet matriisiskaalauksen keskitys `computed_min`/`computed_max`, `theory_grounding` vs. `ai_description` -eriyttäminen, `I18nText.default_locale`-poisto, `MatrixClaim.ai_description` -> `TDAAssertion.concept_description` -keskitys, `OutputProfile.matrix_synthesis_groups` & L10n-siivous sekä Karkaisuaallot 1 [36/36], 2 [36/36], 3 [27/27] ja 4 [34/34] = 133/133 tiedostoa on toteutettu, auditoitu ja lukittu.)*
 
 ---
 
-## Luku 1: Backend-koodikannan Jäljellä Oleva Karkaisujärjestys (Aalto 4: 34 Tiedostoa)
-> **STATUS: KÄYNNISSÄ (Aallot 1 [36/36], 2 [36/36] ja 3 [27/27] valmiit; 34 karkaistavaa tiedostoa jäljellä Aallossa 4)**
-> *Selite: Synkronoitu päätoteutussuunnitelman `@[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md]` (Askeleet 3.2b – 3.2d) kanssa.*
+## Luku 1: Backend-koodikannan Karkaisuaallot 1–4 (133/133 Tiedostoa Suoritettu)
+> **STATUS: SUORITETTU & LUKITTU (Aallot 1 [36/36], 2 [36/36], 3 [27/27] ja 4 [34/34] = 133/133 valmiit; 391/403 backend-tiedostoa = 97,0 % lukittu)**
+> *Selite: Synkronoitu päätoteutussuunnitelman `@[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md]` (Askeleet 3.2 – 3.2d) kanssa.*
 
 ### 1.1 Koko `backend_v2/`-Tuotantokoodikannan Tilannekuva (403 `.py`-tiedostoa)
 
@@ -16,18 +16,17 @@ Koko `backend_v2/`-hakemiston (pl. `tests/`) 403 tuotantotiedoston tilannekuva:
 
 | Kategoria | Tiedostomäärä | Tila ja seurantadokumentti |
 | :--- | :--- | :--- |
-| **1. Valmiiksi karkaistut ja lukitut tuotantotiedostot** | `357` kpl | Sisältää `__init__.py`-fasaadit (`47` kpl), aiemmissa puruissa karkaistut moduulit (`162` kpl), entuudestaan 100 % puhtaat tiedostot (`49` kpl) sekä valmistuneet Karkaisuaallot 1 (`36` kpl), 2 (`36` kpl) ja 3 (`27` kpl). |
-| **2. Karkaisuaalto 4 — Domain Models & DTO Schemas** | `34` kpl | `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` |
-| **3. Tulevat arkkitehtuurivaiheet (IAM & Storage)** | `12` kpl | Eristetty vaiheisiin `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` (9 tiedostoa) ja `@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]` (3 tiedostoa). |
-| **YHTEENSÄ** | **403 kpl** | **357 / 403 valmiina (88,6 %), 34 kpl karkaisuaallossa 4, 12 kpl IAM/Storage-vaiheissa** |
+| **1. Valmiiksi karkaistut ja lukitut tuotantotiedostot** | `391` kpl | Sisältää `__init__.py`-fasaadit (`47` kpl), aiemmissa puruissa karkaistut moduulit (`162` kpl), entuudestaan 100 % puhtaat tiedostot (`49` kpl) sekä valmistuneet Karkaisuaallot 1 (`36/36`), 2 (`36/36`), 3 (`27/27`) ja 4 (`34/34`). |
+| **2. Tulevat arkkitehtuurivaiheet (IAM & Storage)** | `12` kpl | Eristetty vaiheisiin `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` (9 tiedostoa) ja `@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]` (3 tiedostoa). |
+| **YHTEENSÄ** | **403 kpl** | **391 / 403 valmiina (97,0 %), 12 kpl IAM/Storage-vaiheissa (Askeleet 4 & 5)** |
 
 ---
 
-### 1.2 Jäljellä Olevan Karkaisuaallon 4 Etenemisjärjestys (Bottom-Up Dependency Order)
+### 1.2 Karkaisuaallon 4 Valmistuneet Kohteet (`34/34` SUORITETTU — Commit `1af36b166`)
 
-*(Karkaisuaallot 1 [36/36], 2 [36/36] ja 3 [27/27] on suoritettu, auditoitu ja commitoitu.)*
+*(Karkaisuaallot 1 [36/36], 2 [36/36], 3 [27/27] ja 4 [34/34] sekä jokaisen aallon Final Macro-Audit Completion Gate on suoritettu, auditoitu ja commitoitu.)*
 
-#### Aalto 4 (34 tiedostoa) — `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`
+#### Aalto 4 (34/34 valmis) — `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`
 * **Paketti 1 — Domain Models (`backend_v2/models/domain/`) (23 tiedostoa):**
   1. `@[backend_v2/models/domain/base.py]`
   2. `@[backend_v2/models/domain/metadata.py]`
