@@ -52,7 +52,7 @@
   - [x] @[backend_v2/models/dtos/evaluation_steps.py]
   - [x] @[backend_v2/models/dtos/schema_manifest.py]
   - [x] @[backend_v2/models/dtos/state.py]
-  - [ ] @[backend_v2/models/dtos/variance.py]
+  - [x] @[backend_v2/models/dtos/variance.py]
   - [ ] @[backend_v2/models/dtos/workflow_schema.py]
 
 - [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]" --gate frontend --model gemini-4-argon-medium` (Zero frontend targets in backend targeted hardening).
