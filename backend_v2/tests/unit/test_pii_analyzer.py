@@ -1,16 +1,23 @@
+"""Unit tests for PIIAnalyzerService."""
+
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from backend_v2.exceptions import AppException
-from backend_v2.services.pii_analyzer import PIIAnalyzerService
+from backend_v2.services.pii_analyzer import PIIAnalyzerService, get_pii_service
 
 
 @pytest.fixture
 def pii_service() -> PIIAnalyzerService:
-    """Returns a fresh instance of PIIAnalyzerService for each test."""
-    from backend_v2.services.pii_analyzer import get_pii_service
+    """Return a fresh instance of PIIAnalyzerService for each test.
 
+    Returns:
+        Fresh singleton instance of PIIAnalyzerService.
+    """
     get_pii_service.cache_clear()
     return get_pii_service()
 
@@ -69,8 +76,6 @@ def test_mask_pii_spacy_model_missing(mock_analyzer_class: MagicMock, pii_servic
 
 def test_mask_pii_succeeds_on_supported_language_fi(pii_service: PIIAnalyzerService) -> None:
     """Verify that mask_pii successfully initializes and parses Finnish without throwing ValueError."""
-    # This should return a string (either masked or untouched depending on Presidio models),
-    # but the key is that it NO LONGER raises a ValueError for missing language registry.
     result = pii_service.mask_pii("Matti Meikäläinen", language="fi")
     assert isinstance(result, str)
 
@@ -82,6 +87,15 @@ def test_chunk_text_splits_on_newline(pii_service: PIIAnalyzerService) -> None:
     chunks = pii_service._chunk_text(text, 100)
     assert len(chunks) == 2
     assert chunks[0] == "A" * 50 + "\n"
+    assert chunks[1] == "B" * 60
+
+
+def test_chunk_text_splits_on_space_when_no_newline(pii_service: PIIAnalyzerService) -> None:
+    """Test chunking splits on the last space within the margin when no newline exists."""
+    text = "A" * 60 + " " + "B" * 60
+    chunks = pii_service._chunk_text(text, 100)
+    assert len(chunks) == 2
+    assert chunks[0] == "A" * 60 + " "
     assert chunks[1] == "B" * 60
 
 
@@ -115,9 +129,9 @@ def test_mask_pii_exceeds_spacy_limit(
     mock_anonymizer = MagicMock()
     mock_anonymizer_class.return_value = mock_anonymizer
 
-    def side_effect_anonymize(*args, **kwargs):
+    def side_effect_anonymize(*args: Any, **kwargs: Any) -> MagicMock:
         res = MagicMock()
-        res.text = kwargs["text"] + "_X"
+        res.text = str(kwargs["text"]) + "_X"
         return res
 
     mock_anonymizer.anonymize.side_effect = side_effect_anonymize
@@ -143,7 +157,7 @@ def test_smooth_text_exceeds_spacy_limit(
 
     mock_nlp = MagicMock()
 
-    def nlp_side_effect(chunk):
+    def nlp_side_effect(chunk: str) -> MagicMock:
         doc = MagicMock()
         sent = MagicMock()
         sent.text = chunk
@@ -193,3 +207,37 @@ def test_get_spacy_model_os_error(pii_service: PIIAnalyzerService) -> None:
         with pytest.raises(AppException) as exc_info:
             pii_service._get_spacy_model("en")
         assert "not found. Please install it." in str(exc_info.value)
+
+
+@pytest.mark.parametrize("invalid_language", ["", "de", "sv", "   "])
+def test_unsupported_language_raises_app_exception(
+    pii_service: PIIAnalyzerService,
+    invalid_language: str,
+) -> None:
+    """Test Fail-Fast AppException when an unsupported language code is provided."""
+    with pytest.raises(AppException) as exc_info:
+        pii_service._get_spacy_model(invalid_language)
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+
+    with pytest.raises(AppException) as exc_smooth:
+        pii_service.smooth_text("Valid text content", language=invalid_language)
+    assert exc_smooth.value.status_code == 400
+    assert exc_smooth.value.details["error_code"] == "VALIDATION_FAILED"
+
+    with pytest.raises(AppException) as exc_mask:
+        pii_service.mask_pii("Valid text content", language=invalid_language)
+    assert exc_mask.value.status_code == 400
+    assert exc_mask.value.details["error_code"] == "VALIDATION_FAILED"
+
+
+@pytest.mark.parametrize("invalid_max_chars", [0, -1, -100])
+def test_chunk_text_invalid_max_chars_raises_app_exception(
+    pii_service: PIIAnalyzerService,
+    invalid_max_chars: int,
+) -> None:
+    """Test ISTQB boundary value analysis for max_chars <= 0 raising AppException."""
+    with pytest.raises(AppException) as exc_info:
+        pii_service._chunk_text("Sample text to chunk", invalid_max_chars)
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"

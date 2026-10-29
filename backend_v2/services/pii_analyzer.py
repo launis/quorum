@@ -1,6 +1,9 @@
+"""Lazy-loading Microsoft Presidio and SpaCy NLP service for PII anonymization and text smoothing."""
+
 from __future__ import annotations
 
 import logging
+import re
 import threading
 from functools import lru_cache
 from typing import TYPE_CHECKING, Any
@@ -13,27 +16,67 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+_MAX_CHUNK_SEARCH_MARGIN_CHARS = 10000
+
+__all__ = [
+    "PIIAnalyzerService",
+    "get_pii_service",
+]
+
 
 class PIIAnalyzerService:
-    """Lazy-loading service for Microsoft Presidio.
-    This ensures that the heavy ~500MB en_core_web_lg SpaCy model is only loaded into RAM
-    when actually requested during an evaluation path, avoiding boot-time overhead.
+    """Lazy-loading service for Microsoft Presidio and SpaCy NLP processing.
+
+    Ensures that the heavy ~500MB en_core_web_lg and fi_core_news_lg SpaCy models
+    are only loaded into RAM when requested during an evaluation path, avoiding
+    boot-time memory and latency overhead.
     """
 
     def __init__(self) -> None:
+        """Initialize the lazy-loaded PII analyzer service state and synchronization lock."""
         self._analyzer: Any | None = None
         self._anonymizer: Any | None = None
         self._nlp_models: dict[str, spacy.language.Language] = {}
         self._lock = threading.Lock()
 
-    def _ensure_initialized(self) -> None:
-        """Initializes Presidio NLP and Anonymizer engines if not already loaded.
+    def _resolve_spacy_model_name(self, language: str) -> str:
+        """Resolve the canonical SpaCy model package name for a supported target language.
+
+        Args:
+            language: The target language code ('en' or 'fi').
 
         Returns:
-            None
+            The canonical SpaCy model package identifier.
 
         Raises:
-            AppException: If the required SpaCy models cannot be found or loaded.
+            AppException: With ErrorCodes.VALIDATION_FAILED (400) if the language is unsupported.
+        """
+        match language:
+            case "en":
+                return "en_core_web_lg"
+            case "fi":
+                return "fi_core_news_lg"
+            case _:
+                msg = f"Unsupported language '{language}' for PII analysis. Supported languages: 'en', 'fi'."
+                logger.error(
+                    "[PIIAnalyzerService] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                    exc_info=True,
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
+    def _ensure_initialized(self) -> None:
+        """Initialize Presidio NLP and Anonymizer engines if not already loaded.
+
+        Raises:
+            AppException: With ErrorCodes.CONFIGURATION_ERROR (500) if the required SpaCy models
+                cannot be found or loaded.
         """
         if self._analyzer is not None and self._anonymizer is not None:
             return
@@ -84,24 +127,36 @@ class PIIAnalyzerService:
                     self._anonymizer = AnonymizerClass()
                     logger.info("Presidio initialized successfully.")
                 except OSError as e:
-                    msg = "Presidio model 'en_core_web_lg' or 'fi_core_news_lg' not found. Please install the model via spacy download."
-                    logger.error("[PIIAnalyzerService] %s: %s - Error: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, e)
+                    msg = (
+                        "Presidio model 'en_core_web_lg' or 'fi_core_news_lg' not found. "
+                        "Please install the model via spacy download."
+                    )
+                    logger.error(
+                        "[PIIAnalyzerService] %s: %s - Error: %s",
+                        ErrorCodes.CONFIGURATION_ERROR.name,
+                        msg,
+                        e,
+                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+                        exc_info=True,
+                    )
                     raise AppException(
                         message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                     ) from e
 
-    def _get_spacy_model(self, language: str) -> Any:
-        """Retrieves and lazily loads the SpaCy model for the specified language.
+    def _get_spacy_model(self, language: str) -> spacy.language.Language:
+        """Retrieve and lazily load the SpaCy model for the specified language.
 
         Args:
             language: The target language code ('en' or 'fi').
 
         Returns:
-            Any: The loaded SpaCy model instance.
+            The loaded SpaCy language model instance.
 
         Raises:
-            AppException: If the requested SpaCy model cannot be found.
+            AppException: With ErrorCodes.VALIDATION_FAILED (400) if language is unsupported,
+                or ErrorCodes.CONFIGURATION_ERROR (500) if the requested SpaCy model is not installed.
         """
+        model_name = self._resolve_spacy_model_name(language)
         if language in self._nlp_models:
             return self._nlp_models[language]
 
@@ -110,34 +165,58 @@ class PIIAnalyzerService:
                 import spacy
 
                 logger.info("Loading SpaCy model for language '%s'...", language)
-                model_name = "fi_core_news_lg" if language == "fi" else "en_core_web_lg"
                 try:
                     self._nlp_models[language] = spacy.load(model_name)
                 except OSError as e:
                     msg = f"SpaCy model '{model_name}' not found. Please install it."
-                    logger.error("[PIIAnalyzerService] %s: %s - Error: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, e)
+                    logger.error(
+                        "[PIIAnalyzerService] %s: %s - Error: %s",
+                        ErrorCodes.CONFIGURATION_ERROR.name,
+                        msg,
+                        e,
+                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name},
+                        exc_info=True,
+                    )
                     raise AppException(
                         message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                     ) from e
             return self._nlp_models[language]
 
     def _chunk_text(self, text: str, max_chars: int) -> list[str]:
-        """Splits a large string into smaller chunks safely to prevent NLP out-of-memory errors.
+        """Split a large string into smaller chunks safely to prevent NLP out-of-memory errors.
 
         Args:
             text: The raw text string to split.
-            max_chars: The maximum length of each chunk.
+            max_chars: The maximum character length of each chunk (must be > 0).
 
         Returns:
-            list[str]: The text divided into manageable chunks.
+            The text divided into manageable chunks.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED (400) if max_chars is less than or equal to 0.
         """
+        if max_chars <= 0:
+            msg = f"Invalid max_chars={max_chars} for text chunking; must be a positive integer."
+            logger.error(
+                "[PIIAnalyzerService] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
         if len(text) <= max_chars:
             return [text]
 
-        chunks = []
+        chunks: list[str] = []
         start = 0
         text_len = len(text)
-        margin = min(10000, max_chars // 2)
+        margin = min(_MAX_CHUNK_SEARCH_MARGIN_CHARS, max_chars // 2)
 
         while start < text_len:
             if text_len - start <= max_chars:
@@ -166,22 +245,22 @@ class PIIAnalyzerService:
         return chunks
 
     def smooth_text(self, text: str, language: str) -> str:
-        """Runs raw text through SpaCy to merge hyphenations and broken PDF lines.
+        """Run raw text through SpaCy to merge hyphenations and broken PDF lines.
 
         Args:
             text: The raw text string to process.
             language: The target language code ('en' or 'fi').
 
         Returns:
-            str: The smoothed, concatenated text string.
+            The smoothed, concatenated text string.
 
         Raises:
-            AppException: If the underlying SpaCy model cannot be found or loaded.
+            AppException: With ErrorCodes.VALIDATION_FAILED (400) if language is unsupported,
+                or ErrorCodes.CONFIGURATION_ERROR (500) if the underlying SpaCy model cannot be loaded.
         """
+        self._resolve_spacy_model_name(language)
         if not text or not text.strip():
             return text
-
-        import re
 
         nlp = self._get_spacy_model(language)
         settings = get_settings()
@@ -189,7 +268,7 @@ class PIIAnalyzerService:
         text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
 
         chunks = self._chunk_text(text, settings.pii_spacy_max_chunk_chars)
-        smoothed_sentences = []
+        smoothed_sentences: list[str] = []
 
         for chunk in chunks:
             doc = nlp(chunk)
@@ -203,18 +282,20 @@ class PIIAnalyzerService:
         return " ".join(smoothed_sentences)
 
     def mask_pii(self, text: str, language: str) -> str:
-        """Analyzes and anonymizes PII in the given text (enforces explicit target language).
+        """Analyze and anonymize PII in the given text for an explicit target language.
 
         Args:
             text: The raw text string containing potential PII.
             language: The target language code ('en' or 'fi').
 
         Returns:
-            str: The anonymized text string with PII replaced by placeholders.
+            The anonymized text string with PII replaced by placeholders.
 
         Raises:
-            AppException: If Presidio or the necessary SpaCy models cannot be initialized.
+            AppException: With ErrorCodes.VALIDATION_FAILED (400) if language is unsupported,
+                or ErrorCodes.CONFIGURATION_ERROR (500) if Presidio or SpaCy models fail to initialize.
         """
+        self._resolve_spacy_model_name(language)
         if not text or not text.strip():
             return text
 
@@ -226,7 +307,7 @@ class PIIAnalyzerService:
         settings = get_settings()
         chunks = self._chunk_text(text, settings.pii_spacy_max_chunk_chars)
 
-        anonymized_chunks = []
+        anonymized_chunks: list[str] = []
         for chunk in chunks:
             # 1. Analyze
             results = self._analyzer.analyze(text=chunk, entities=[], language=language)
@@ -243,6 +324,6 @@ def get_pii_service() -> PIIAnalyzerService:
     """FastAPI Dependency Provider for lazy-loaded PIIAnalyzerService.
 
     Returns:
-        PIIAnalyzerService: A singleton instance of the service.
+        Singleton instance of PIIAnalyzerService.
     """
     return PIIAnalyzerService()
