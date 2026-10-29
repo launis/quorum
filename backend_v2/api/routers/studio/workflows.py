@@ -18,6 +18,8 @@ from backend_v2.models.dtos.studio import (
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["router"]
+
 router = APIRouter(prefix="/workflows", tags=["Admin Studio V2 - Workflows"])
 
 
@@ -35,7 +37,7 @@ async def get_workflows(
         A list of all workflow definitions.
 
     Raises:
-        AppException: If fetching workflows fails.
+        AppException: With ErrorCodes.STATE_INTEGRITY_ERROR if fetching or validating workflows fails.
     """
     return await studio_workflow_service.list_workflows(current_user)
 
@@ -54,7 +56,9 @@ async def create_workflow(
         The newly created workflow draft.
 
     Raises:
-        AppException: If creating the draft fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if no active model registries exist.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if modification rights are denied.
+        AppException: With ErrorCodes.WORKFLOW_COMPILATION_ERROR or ErrorCodes.STATE_INTEGRITY_ERROR if creating the draft fails.
     """
     return await studio_workflow_service.create_workflow_draft(current_user)
 
@@ -74,8 +78,9 @@ async def get_workflow(
         The requested workflow definition.
 
     Raises:
-        ResourceNotFoundError: If the workflow is not found.
-        AppException: If fetching the workflow fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the workflow is not found.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant isolation is violated.
+        AppException: With ErrorCodes.STATE_INTEGRITY_ERROR if fetching the workflow fails.
     """
     return await studio_workflow_service.get_workflow(current_user, id)
 
@@ -95,7 +100,7 @@ async def simulate_workflow(
         The results of the simulation.
 
     Raises:
-        AppException: If the simulation fails.
+        AppException: With ErrorCodes.WORKFLOW_COMPILATION_ERROR if the simulation fails.
     """
     return await studio_simulation_service.simulate_workflow(current_user, data)
 
@@ -115,8 +120,9 @@ async def get_workflow_available_extensions(
         A WorkflowAvailableExtensionsResponse with a list of available extensions.
 
     Raises:
-        ResourceNotFoundError: If the workflow is not found.
-        AppException: If fetching the extensions fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the workflow is not found.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant isolation is violated.
+        AppException: With ErrorCodes.RESOURCE_NOT_FOUND if resolving prompt block extensions fails.
     """
     extensions = await studio_workflow_service.get_workflow_available_extensions(current_user, id)
     return WorkflowAvailableExtensionsResponse(available_extensions=extensions)
@@ -137,8 +143,9 @@ async def clone_workflow(
         The newly cloned workflow definition.
 
     Raises:
-        ResourceNotFoundError: If the source workflow is not found.
-        AppException: If cloning the workflow fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the source workflow is not found.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant isolation or modification rights are violated.
+        AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.WORKFLOW_COMPILATION_ERROR if cloning the workflow fails.
     """
     return await studio_workflow_service.clone_workflow(current_user, id)
 
@@ -159,8 +166,9 @@ async def save_workflow(
         The updated workflow definition.
 
     Raises:
-        ResourceNotFoundError: If the workflow is not found.
-        AppException: If updating the workflow fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the workflow is not found after save.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if modification rights are denied.
+        AppException: With ErrorCodes.WORKFLOW_COMPILATION_ERROR or ErrorCodes.STATE_INTEGRITY_ERROR if updating the workflow fails.
     """
     return await studio_workflow_service.save_workflow(current_user, id, data)
 
@@ -180,8 +188,9 @@ async def delete_workflow(
         A WorkflowDeleteResponse confirming the deletion.
 
     Raises:
-        ResourceNotFoundError: If the workflow is not found.
-        AppException: If deleting the workflow fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the workflow is not found.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if modification rights are denied.
+        AppException: With ErrorCodes.SYSTEM_PROTECTED_RESOURCE if deleting the workflow fails.
     """
     await studio_workflow_service.delete_workflow(current_user, id)
     return WorkflowDeleteResponse(status="success", deleted_id=id)
