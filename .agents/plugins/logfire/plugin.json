@@ -1,0 +1,5 @@
+{
+  "name": "quorum-logfire",
+  "displayName": "Quorum Logfire Telemetry",
+  "description": "Pydantic Logfire MCP server integration for OpenTelemetry span querying and distributed trace forensics."
+}

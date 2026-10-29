@@ -165,6 +165,11 @@
         <key_domains>Tier 0 (Planning) to Tier 8 (Auditing) SKILL.md playbooks, progressive disclosure resources/ and references/ templates, and auto-triggered domain skills (sdui-parity-sync, trace-forensics, seed-vault-ops)</key_domains>
     </module>
 
+    <module path=".agents/plugins/">
+        <responsibility>WORKSPACE PLUGINS & MCP SERVER BUNDLES</responsibility>
+        <key_domains>logfire/ (plugin.json, mcp_config.json - Pydantic Logfire MCP integration)</key_domains>
+    </module>
+
     <module path="<appDataDir>\knowledge\">
         <responsibility>AI AGENT KNOWLEDGE BASE & LONG-TERM MEMORY</responsibility>
         <key_domains>Knowledge Items (KIs), architectural snapshots, and patterns</key_domains>
