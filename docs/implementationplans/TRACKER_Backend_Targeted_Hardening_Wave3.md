@@ -33,7 +33,7 @@
   - [x] @[backend_v2/database/repositories/components/task_blueprint.py]
   - [x] @[backend_v2/services/orchestrator/schema_factory.py]
   - [x] @[backend_v2/services/orchestrator/chunking_service.py]
-  - [ ] @[backend_v2/services/orchestrator/atomizer.py]
+  - [x] @[backend_v2/services/orchestrator/atomizer.py]
   - [ ] @[backend_v2/services/orchestrator/dag_compiler.py]
   - [ ] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]
   - [ ] @[backend_v2/services/orchestrator/enriched_dag_executor.py]
