@@ -1,4 +1,4 @@
-"""Unified Repository Facade for backward compatibility."""
+"""Unified Repository Facade aggregating domain repository implementations."""
 
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.audit import AuditRepositoryImpl
@@ -17,6 +17,8 @@ from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
 from backend_v2.database.repositories.report_artifact import ReportArtifactRepositoryImpl
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
+
+__all__ = ["UnifiedWorkflowRepository"]
 
 
 class UnifiedWorkflowRepository(
@@ -39,7 +41,7 @@ class UnifiedWorkflowRepository(
 ):
     """Facade combining all granular repository implementations."""
 
-    def __init__(self, driver: StorageDriver):
+    def __init__(self, driver: StorageDriver) -> None:
         """Initialize the unified repository facade.
 
         Args:
