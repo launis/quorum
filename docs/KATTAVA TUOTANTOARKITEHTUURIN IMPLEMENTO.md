@@ -340,6 +340,9 @@ Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytke
 │    2C-2. Karkaisuaalto 2 (36 tiedostoa) [SUORITETTU & LUKITTU 36/36]   │
 │    2C-3. Karkaisuaalto 3 (27 tiedostoa) [SUORITETTU & LUKITTU 27/27]   │
 │    2C-4. Karkaisuaalto 4 (34 tiedostoa) [SUORITETTU & LUKITTU 34/34]   │
+│    [VARMISTETTU] E2E-ajo Karkaisuaaltojen 1-4 jälkeen & ennen 2E:tä:   │
+│        exe_01a188e876717069b74a7b3716a02489 (rep_01a188ec1f0a7037...)  │
+│        DAG + Synteesi + 8s PDF + Flutter SDUI 100 % PASSED (d12ada5d1) │
 │    2E. Malli A: Yhtenäinen PrefixedUUID7 & 12 taulun UUIDv7 [SEURAAVA] │
 │        (arkkitehtuurin_parannuskohteet.md Luku 2 + sanitize_seed_vault)│
 │    2F. AST & Laatuportit QGR031, scripts/*.py & QGR032 (Askel 3.4)     │
@@ -416,8 +419,8 @@ Alla oleva taulukko näyttää yhdellä silmäyksellä, mitkä toteutussuunnitel
 | **Askel 1 – 3.2** | `llm_strategy/`, `llm/provider/`, E2E `exe_2af2f7665e7c477b`, PostgreSQL 19 Perusta & Cutover, `QGR030`, `dag_executor.py`-purku & **Karkaisuaalto 1 (36/36)** | 🟢 **100 % SUORITETTU & LUKITTU** | Valmis — ei toimenpiteitä. |
 | **Askel 3.2b** | **Backend Karkaisuaalto 2** (`36/36` valmis: Core, Hooks, LLM Adapters & Services) | 🟢 **100 % SUORITETTU & LUKITTU:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]` | Valmis — ei toimenpiteitä. |
 | **Askel 3.2c** | **Backend Karkaisuaalto 3** (`27/27` valmis: Repositories, Orchestrator & Routers) | 🟢 **100 % SUORITETTU & LUKITTU:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]` | Valmis — ei toimenpiteitä. |
-| **Askel 3.2d** | **Backend Karkaisuaalto 4** (`34/34` valmis: Domain Models & DTO Schemas) | 🟢 **100 % SUORITETTU & LUKITTU:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` | Valmis — ei toimenpiteitä. |
-| **Askel 3.3 & 3.4** | **Malli A (`PrefixedUUID7` 12 taulussa + `seed_data.json` + `sanitize_seed_vault.py`) & AST (`QGR031`/`QGR032`)** | 🟡 Määritelty tiedostossa `@[docs/arkkitehtuurin_parannuskohteet.md]` (Luvut 2 & 3). | Seuraava jonossa — generoi suunnitelma ja tracker (`/tier0-create-plan` + `/tier1-plan-tracker-generator`) ennen ajoa. |
+| **Askel 3.2d** | **Backend Karkaisuaalto 4** (`34/34` valmis: Domain Models & DTO Schemas) | 🟢 **100 % SUORITETTU & LUKITTU:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` | Valmis — E2E-varmennusajo `exe_01a188e876717069b74a7b3716a02489` läpäisty (`d12ada5d1`). |
+| **Askel 3.3 & 3.4** | **Malli A (`PrefixedUUID7` 12 taulussa + `seed_data.json` + `sanitize_seed_vault.py`) & AST (`QGR031`/`QGR032`)** | 🟢 **SUUNNITELMAT & TRACKERIT VALMIINA LEVYLLÄ (`d12ada5d1`):** `@[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]`, `@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]` & `@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]` | Seuraava jonossa — valmis suoraan `/tier2-execute --full-auto` -suoritukseen (E2E-lähtötaso `exe_01a188e876717069b74a7b3716a02489` todennettu). |
 | **Askel 3.5** | **`PostgresEntityAdapter` (`entity_adapter.py`, 1 975 LOC) God Code -purku** (4 SRP-adapteriin) | 🟡 Määritelty Luvussa 2.4 ja Luvussa 7 (Kohta 13). | Generoi purkusuunnitelma ja tracker komennolla `/tier3-god-code-decomposition @[backend_v2/database/postgres/entity_adapter.py]`. |
 | **Askel 4** | **B2B SaaS IAM, 2FA, Token Exchange, Redis Kill-Switch & BYOK (`EPIC 160`)** (`9` backend + `9` frontend tiedostoa) | 🟢 Eepos `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` on valmiina ja synkronoituna 32-hex `UUIDv7`:ään. | Generoi vaihesuunnitelmat ja `EPIC_160_tracker.md` komennolla `/tier1-planner @[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`. |
 | **Askel 5** | **Firebase Storage Direct-to-Cloud Signed URLs** (`3` tiedostopalvelutiedostoa) | 🟡 Arkkitehtuuri määritelty Luvussa 4. | Luo `IMPLEMENTATION_PLAN_Storage_Signed_URLs.md` ja `TRACKER_Storage_Signed_URLs.md` (`/tier0-create-plan` + `/tier1-plan-tracker-generator`). |
@@ -695,7 +698,25 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
 
 ---
 
+### Välivaiheen Todentaminen 2: Päästä päähän (E2E) -suoritusajon Varmennus Karkaisuaaltojen 1–4 Jälkeen ja Ennen Askeleen 3.3 `PrefixedUUID7`-cutoveria — [SUORITETTU & VERIFIOITU]
+> [!IMPORTANT]
+> **Toimintakunnon peruskivi Karkaisuaaltojen 1–4 (133/133 tiedostoa) jälkeen ja ennen `@[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]` -toteutusta**
+> Ennen Askeleen 3.3 (Malli A: yhtenäinen 32-hex `PrefixedUUID7` kaikissa 12 PostgreSQL 19 -taulussa ja `@[backend_v2/seed/seed_data.json]` cutover) käynnistämistä varmistettiin ja auditoitiin koko karkaistun järjestelmän virheetön toimintakunto ajamalla täydellinen monivaiheinen tuotantoajo paikallisessa PostgreSQL 19 -ajoympäristössä (`/tier6-execution-monitor`).
+>
+> * **Suoritus-ID:** `exe_01a188e876717069b74a7b3716a02489` (Työnkulku: `wf_a8f1d71000000001`, Organisaatio: `org_system000000`, Käyttäjä: `usr_a3fd6b3d77c748f4`)
+> * **Raportti-ID & Tulosprofiili:** `rep_01a188ec1f0a7037b9a6713071b72386` (Profiili: `prf_a8f1d71000000001`)
+> * **Ajankohta & Kesto:** 29.10.2026 klo 20:25:05 – 20:30:22 UTC+02:00 (5 min 17 s)
+> * **Tila & Git Commit:** 🟢 **PASSED & FINALIZED (100 % E2E Pariteetti, 0 virhettä, `healing_cost_events: 0`)** — Lähtötason commit `d12ada5d1` (*docs: add comprehensive production architecture implementation plan and implementation plans for AST guardrails and prefixed UUIDv7 cutover*)
+> * **Forensiikkaraportti:** `data/files/executions/exe_01a188e876717069b74a7b3716a02489/forensic_summary.md`
+> * **Todennettu ketju askel askeleelta:**
+>   1. **Vaihe 1 (DAG Heavy LLM Execution — `PASSED` klo 20:28:54):** Kaikki DAG-askeleet (`sr_a8f1d71000000001` `MarkdownBlock`, `sr_a8f1d71000000002` Two-Pass Atomizer & Causal Discovery `LinkerResponseDTO`, 4 matriisiarviointiaskelta `sr_a8f1d71000000003`–`sr_a8f1d71000000006` sekä `sr_a8f1d71000000008` `SynthesisEngine`) suoritettiin 100 % puhtaasti (`Commensurate Base Average: 6.4, Final: 6.4, Penalties: 0`).
+>   2. **Vaihe 2 (Asynkroninen tekstisynteesi & WeasyPrint PDF — `COMPLETED` klo 20:30:22):** `ExecutiveSummarySectionResult`, `XaiHighlightsResult`, `MatrixExplanationsResult`, `VarianceExplanationResult` (`variance=3.6675`, `verdict=MISALIGNED`) ja `MatrixSectionSynthesesResult` generoitiin ja 8-sivuinen PDF-raportti (`rep_01a188ec1f0a7037b9a6713071b72386`) koottiin virheettömästi.
+>   3. **Vaihe 3 (Flutter Desktop SDUI & Rows -pariteetti):** Flutter-asiakasohjelma nouti ja renderöi raportin taulukkorivit (`GET /api/v2/reports/rep_01a188ec1f0a7037b9a6713071b72386/rows` `200 OK`) ja SDUI-näkymäpuun (`GET /api/v2/reports/rep_01a188ec1f0a7037b9a6713071b72386/sdui` `200 OK`) ilman yhtäkään deserialisointi- tai skeemavirhettä.
+
+---
+
 ### Askel 3.3: Yhtenäinen `PrefixedUUID7`-arkkitehtuuri, Natiivi PostgreSQL 19 `UUIDv7` Kaikissa 12 Taulussa & `seed_data.json` Cutover (Vaihe 2e — `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 2 & Luku 2.5) — [SUUNNITELMA & TRACKER VALMIINA — SEURAAVANA JONOSSA]
+* **Lähtötilanteen varmennus:** Ennen tämän askeleen aloitusta koko karkaistun järjestelmän (Karkaisuaallot 1–4, 133/133 tiedostoa) päästä päähän -toimivuus on todennettu onnistuneella tuotantoajolla `exe_01a188e876717069b74a7b3716a02489` / `rep_01a188ec1f0a7037b9a6713071b72386` (commit `d12ada5d1`, ks. yllä oleva *Välivaiheen Todentaminen 2*).
 * **Toteutussuunnitelma (Implementation Plan):** `@[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]`
 * **Seurantadokumentti (SSOT Tracker):** `@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]`
 * **Miksi sijoitettu tähän kohtaan (heti Karkaisuaaltojen 2–4 jälkeen ja ENNEN Askelta 4 `EPIC 160` IAM):**
@@ -1115,7 +1136,8 @@ Vastaavasti kuin backendissä (`backend_v2/` 403 tiedostoa), myös koko Flutter 
 
 ## Achieved
 * Completed **Targeted Backend Hardening Wave 4 (`34/34` targets, Askel 3.2d)** across 23 Domain Models and 11 DTO/Prompt Schemas (commit `1af36b166`), bringing total backend hardening to `133/133` wave targets (`391/403` = `97.0%` of all `backend_v2/` production `.py` files locked).
-* Synchronized `@[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md#L546-L723]`, `@[docs/arkkitehtuurin_parannuskohteet.md#L9-L224]`, and `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` (`53ec8063b`) with 0 markdown boundary violations.
+* Created and verified the implementation plans and standalone trackers for **Askel 3.3** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]` and `@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]`) and **Askel 3.4** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]` and `@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`) (commit `d12ada5d1`).
+* Executed and verified a full E2E baseline run (`exe_01a188e876717069b74a7b3716a02489`, report `rep_01a188ec1f0a7037b9a6713071b72386`) via `/tier6-execution-monitor` prior to starting **Askel 3.3** (`PASSED`, 8-page WeasyPrint PDF + Flutter Desktop `/rows` and `/sdui` `200 OK`, `healing_cost_events: 0`).
 
 ## Learned
 * `@[scripts/audit_markdown_boundaries.py]` enforces `[NEW]` tags on uncreated future implementation plans, trackers, and DTO classes (`MBD003`, `MBD005`) and exact AST line spans (`MBD004`, verified on `@[backend_v2/settings.py#L47-L1087]:Settings`).
@@ -1123,10 +1145,10 @@ Vastaavasti kuin backendissä (`backend_v2/` 403 tiedostoa), myös koko Flutter 
 
 ## Resume Command
 ```text
-/tier5-resume --target="@[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md#L698-L723]" --workflow="/tier0-create-plan" --rules="00-antigravity-core.md,01-python-backend.md,02_flutter_desktop.md,03_seed_vault.md,04_directory_reference.md"
+/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md] @[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]
 ```
 
 ## Remaining
 ### Hardening State Snapshot
 * **Backend Hardening Waves 1–4:** `TARGETS = 133`, `DONE = 133`, `REMAINING = 0` (`391/403` = `97.0%` of `backend_v2/` hardened; `12` files remaining in Askel 4 IAM [`9` files] and Askel 5 Storage [`3` files]).
-* **Immediate Next Task:** Generate the implementation plans and trackers for **Askel 3.3** (`[NEW]` `@[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]` and `[NEW]` `@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]`, covering `@[docs/arkkitehtuurin_parannuskohteet.md#L51-L193]` Luku 2 & Luku 2.5) and **Askel 3.4** (`[NEW]` `@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]` and `[NEW]` `@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`, covering `@[docs/arkkitehtuurin_parannuskohteet.md#L196-L202]` Luku 3), and wire their execution commands directly into `@[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md#L698-L723]`.
+* **Immediate Next Task:** Execute **Askel 3.3** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]` and `@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]`), followed by **Askel 3.4** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]` and `@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`).
