@@ -27,7 +27,7 @@
   - [x] @[backend_v2/database/repositories/components/execution_persona.py]
   - [x] @[backend_v2/database/repositories/components/extraction_protocol.py]
   - [x] @[backend_v2/database/repositories/components/matrix.py]
-  - [ ] @[backend_v2/database/repositories/components/output_profile.py]
+  - [x] @[backend_v2/database/repositories/components/output_profile.py]
   - [ ] @[backend_v2/database/repositories/components/prompt_block.py]
   - [ ] @[backend_v2/database/repositories/components/role.py]
   - [ ] @[backend_v2/database/repositories/components/task_blueprint.py]
