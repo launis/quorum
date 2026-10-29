@@ -6,18 +6,18 @@ SSOT for Step, StepRule, Role, QuestionnaireItem, ExpectedInput, and ALLOWED_INP
 from __future__ import annotations
 
 import logging
-import uuid
 from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field, model_validator
 from starlette import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase, generate_opaque_id
 from backend_v2.models.dtos.mcp import MCPToolParamOverrides
 from backend_v2.models.enums import (
     CognitiveTier,
     EngineType,
+    EntityPrefix,
     LaxCognitiveTier,
     LaxStepType,
     LaxStepZone,
@@ -166,6 +166,15 @@ class Step(V2CoreBase):
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED},
                 )
+            # Phase 4, Step 4: Require BARS causal cohesion matrix on CAUSAL_DISCOVERY steps
+            if not self.criteria_block_ids:
+                msg = f"Causal Discovery Step '{self.id}' must define at least one criteria_block_id."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                )
             if not self.extraction_protocol_block_id:
                 msg = f"Causal Discovery Step '{self.id}' must define a valid extraction_protocol_block_id."
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
@@ -191,7 +200,7 @@ class StepRule(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     id: str = Field(
-        default_factory=lambda: f"sr_{uuid.uuid4().hex[:16]}",
+        default_factory=lambda: generate_opaque_id(EntityPrefix.STEP_REFERENCE),
         pattern=OPAQUE_STRIPE_ID_REGEX,
         description="Unique node ID in the workflow (e.g. blk_node_1).",
     )

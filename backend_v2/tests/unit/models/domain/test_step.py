@@ -25,16 +25,16 @@ from backend_v2.models.enums import CognitiveTier, StepType, StepZone
 def test_step_valid_llm() -> None:
     """Test valid instantiation of an LLM Step."""
     step = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a00000700080000123456789ab",
         slug="step_analyst",
         name=I18nText(translations={"en": "Analyst Step"}),
         type=StepType.LLM,
-        role_block_id="blk_0123456789abcdef",
-        extraction_protocol_block_id="blk_abcdef0123456789",
-        criteria_block_ids=["blk_1111222233334444"],
+        role_block_id="blk_0195f3a00000700080000123456789ab",
+        extraction_protocol_block_id="blk_0195f3a0000070008000abcdef012345",
+        criteria_block_ids=["blk_0195f3a0000070008000111122223333"],
         cognitive_tier=CognitiveTier.FAST,
     )
-    assert step.id == "stp_0123456789abcdef"
+    assert step.id == "stp_0195f3a00000700080000123456789ab"
     assert step.type == StepType.LLM
     assert step.cognitive_tier == CognitiveTier.FAST
     assert step.is_system_core is False
@@ -44,13 +44,13 @@ def test_step_valid_llm() -> None:
 def test_step_valid_logic() -> None:
     """Test valid instantiation of a logic hook Step."""
     step = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a00000700080000123456789ab",
         slug="step_transform",
         name=I18nText(translations={"en": "Transform Step"}),
         type=StepType.LOGIC,
         hook="backend_v2.hooks.transform_hook",
     )
-    assert step.id == "stp_0123456789abcdef"
+    assert step.id == "stp_0195f3a00000700080000123456789ab"
     assert step.type == StepType.LOGIC
     assert step.hook == "backend_v2.hooks.transform_hook"
 
@@ -59,12 +59,12 @@ def test_step_llm_missing_criteria_block_ids_fails() -> None:
     """Test that LLM step without criteria_block_ids fails validation."""
     with pytest.raises(AppException) as exc_info:
         Step(
-            id="stp_0123456789abcdef",
+            id="stp_0195f3a00000700080000123456789ab",
             slug="step_broken",
             name=I18nText(translations={"en": "Broken Step"}),
             type=StepType.LLM,
-            role_block_id="blk_0123456789abcdef",
-            extraction_protocol_block_id="blk_abcdef0123456789",
+            role_block_id="blk_0195f3a00000700080000123456789ab",
+            extraction_protocol_block_id="blk_0195f3a0000070008000abcdef012345",
             criteria_block_ids=[],
             cognitive_tier=CognitiveTier.FAST,
         )
@@ -76,13 +76,13 @@ def test_step_llm_missing_extraction_protocol_fails() -> None:
     """Test that LLM step without extraction_protocol_block_id fails validation."""
     with pytest.raises(AppException) as exc_info:
         Step(
-            id="stp_0123456789abcdef",
+            id="stp_0195f3a00000700080000123456789ab",
             slug="step_broken",
             name=I18nText(translations={"en": "Broken Step"}),
             type=StepType.LLM,
-            role_block_id="blk_0123456789abcdef",
+            role_block_id="blk_0195f3a00000700080000123456789ab",
             extraction_protocol_block_id=None,
-            criteria_block_ids=["blk_1111222233334444"],
+            criteria_block_ids=["blk_0195f3a0000070008000111122223333"],
             cognitive_tier=CognitiveTier.FAST,
         )
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
@@ -93,13 +93,13 @@ def test_step_consistency_missing_cognitive_tier_raises_app_exception() -> None:
     """Test that LLM step without cognitive_tier fails validation."""
     with pytest.raises(AppException) as exc_info:
         Step(
-            id="stp_0123456789abcdef",
+            id="stp_0195f3a00000700080000123456789ab",
             slug="step_broken",
             name=I18nText(translations={"en": "Broken Step"}),
             type=StepType.LLM,
-            role_block_id="blk_0123456789abcdef",
-            extraction_protocol_block_id="blk_abcdef0123456789",
-            criteria_block_ids=["blk_1111222233334444"],
+            role_block_id="blk_0195f3a00000700080000123456789ab",
+            extraction_protocol_block_id="blk_0195f3a0000070008000abcdef012345",
+            criteria_block_ids=["blk_0195f3a0000070008000111122223333"],
             cognitive_tier=None,
         )
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
@@ -110,7 +110,7 @@ def test_step_logic_missing_hook_fails() -> None:
     """Test that Logic step without hook target fails validation."""
     with pytest.raises(AppException) as exc_info:
         Step(
-            id="stp_0123456789abcdef",
+            id="stp_0195f3a00000700080000123456789ab",
             slug="step_logic_broken",
             name=I18nText(translations={"en": "Logic Broken"}),
             type=StepType.LOGIC,
@@ -125,7 +125,7 @@ def test_step_extra_fields_forbidden() -> None:
     with pytest.raises(ValidationError):
         Step.model_validate(
             {
-                "id": "stp_0123456789abcdef",
+                "id": "stp_0195f3a00000700080000123456789ab",
                 "slug": "step_extra",
                 "name": {"translations": {"en": "Extra Step"}},
                 "type": "logic",
@@ -138,19 +138,19 @@ def test_step_extra_fields_forbidden() -> None:
 def test_step_rule_valid_and_variable_extraction() -> None:
     """Test StepRule instantiation and dynamic variable reference extraction."""
     rule = StepRule(
-        id="sr_0123456789abcdef",
-        task_blueprint="stp_0123456789abcdef",
-        depends_on=["sr_upstream01234567"],
+        id="sr_0195f3a00000700080000123456789ab",
+        task_blueprint="stp_0195f3a00000700080000123456789ab",
+        depends_on=["sr_0195f3a0000070008000abcdef123456"],
         input_mappings={
             "doc": "$inputs.document",
-            "context": "$steps.sr_upstream01234567.output",
+            "context": "$steps.sr_0195f3a0000070008000abcdef123456.output",
             "static_val": "plain_string",
         },
     )
-    assert rule.id == "sr_0123456789abcdef"
-    assert rule.task_blueprint == "stp_0123456789abcdef"
+    assert rule.id == "sr_0195f3a00000700080000123456789ab"
+    assert rule.task_blueprint == "stp_0195f3a00000700080000123456789ab"
     refs = rule.extract_variable_references()
-    assert set(refs) == {"$inputs.document", "$steps.sr_upstream01234567.output"}
+    assert set(refs) == {"$inputs.document", "$steps.sr_0195f3a0000070008000abcdef123456.output"}
 
 
 def test_step_rule_extra_fields_forbidden() -> None:
@@ -158,8 +158,8 @@ def test_step_rule_extra_fields_forbidden() -> None:
     with pytest.raises(ValidationError):
         StepRule.model_validate(
             {
-                "id": "sr_0123456789abcdef",
-                "task_blueprint": "stp_0123456789abcdef",
+                "id": "sr_0195f3a00000700080000123456789ab",
+                "task_blueprint": "stp_0195f3a00000700080000123456789ab",
                 "extra_key": "forbidden",
             }
         )
@@ -168,19 +168,19 @@ def test_step_rule_extra_fields_forbidden() -> None:
 def test_role_valid_and_extra_fields_forbidden() -> None:
     """Test Role model instantiation and rejection of extra fields."""
     role = Role(
-        id="rol_0123456789abcdef",
+        id="rol_0195f3a00000700080000123456789ab",
         name=I18nText(translations={"en": "Lead Auditor"}),
         model_role="analyst_model",
         pre_hooks=["hook_a"],
         post_hooks=["hook_b"],
     )
-    assert role.id == "rol_0123456789abcdef"
+    assert role.id == "rol_0195f3a00000700080000123456789ab"
     assert role.model_role == "analyst_model"
 
     with pytest.raises(ValidationError):
         Role.model_validate(
             {
-                "id": "rol_0123456789abcdef",
+                "id": "rol_0195f3a00000700080000123456789ab",
                 "name": {"translations": {"en": "Lead Auditor"}},
                 "model_role": "analyst_model",
                 "invalid_field": True,
@@ -396,35 +396,52 @@ def test_allowed_input_modes_ssot() -> None:
     assert ALLOWED_INPUT_MODES == expected
 
 
-def test_step_causal_discovery_valid_without_criteria() -> None:
-    """Test valid instantiation of a CAUSAL_DISCOVERY Step with empty criteria."""
+def test_step_causal_discovery_valid_with_criteria() -> None:
+    """Test valid instantiation of a CAUSAL_DISCOVERY Step with bound criteria_block_ids."""
     step = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a00000700080000123456789ab",
         slug="step_causal",
         name=I18nText(translations={"en": "Causal Discovery Step"}),
         type=StepType.CAUSAL_DISCOVERY,
-        role_block_id="blk_0123456789abcdef",
-        extraction_protocol_block_id="blk_abcdef0123456789",
-        criteria_block_ids=[],
+        role_block_id="blk_0195f3a00000700080000123456789ab",
+        extraction_protocol_block_id="blk_0195f3a0000070008000abcdef012345",
+        criteria_block_ids=["blk_0195f3a0000070008000111122223333"],
         cognitive_tier=CognitiveTier.FAST,
     )
-    assert step.id == "stp_0123456789abcdef"
+    assert step.id == "stp_0195f3a00000700080000123456789ab"
     assert step.type == StepType.CAUSAL_DISCOVERY
-    assert step.criteria_block_ids == []
+    assert step.criteria_block_ids == ["blk_0195f3a0000070008000111122223333"]
     assert step.cognitive_tier == CognitiveTier.FAST
+
+
+def test_step_causal_discovery_missing_criteria_raises_app_exception() -> None:
+    """Test that CAUSAL_DISCOVERY step without criteria_block_ids fails validation."""
+    with pytest.raises(AppException) as exc_info:
+        Step(
+            id="stp_0195f3a00000700080000123456789ab",
+            slug="step_causal_broken",
+            name=I18nText(translations={"en": "Broken Step"}),
+            type=StepType.CAUSAL_DISCOVERY,
+            role_block_id="blk_0195f3a00000700080000123456789ab",
+            extraction_protocol_block_id="blk_0195f3a0000070008000abcdef012345",
+            criteria_block_ids=[],
+            cognitive_tier=CognitiveTier.FAST,
+        )
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+    assert "must define at least one criteria_block_id" in exc_info.value.message
 
 
 def test_step_causal_discovery_missing_extraction_protocol_raises_app_exception() -> None:
     """Test that CAUSAL_DISCOVERY step without extraction_protocol_block_id fails validation."""
     with pytest.raises(AppException) as exc_info:
         Step(
-            id="stp_0123456789abcdef",
+            id="stp_0195f3a00000700080000123456789ab",
             slug="step_causal_broken",
             name=I18nText(translations={"en": "Broken Step"}),
             type=StepType.CAUSAL_DISCOVERY,
-            role_block_id="blk_0123456789abcdef",
+            role_block_id="blk_0195f3a00000700080000123456789ab",
             extraction_protocol_block_id=None,
-            criteria_block_ids=[],
+            criteria_block_ids=["blk_0195f3a0000070008000111122223333"],
             cognitive_tier=CognitiveTier.FAST,
         )
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
@@ -435,13 +452,13 @@ def test_step_causal_discovery_missing_cognitive_tier_raises_app_exception() -> 
     """Test that CAUSAL_DISCOVERY step without cognitive_tier fails validation."""
     with pytest.raises(AppException) as exc_info:
         Step(
-            id="stp_0123456789abcdef",
+            id="stp_0195f3a00000700080000123456789ab",
             slug="step_causal_broken",
             name=I18nText(translations={"en": "Broken Step"}),
             type=StepType.CAUSAL_DISCOVERY,
-            role_block_id="blk_0123456789abcdef",
-            extraction_protocol_block_id="blk_abcdef0123456789",
-            criteria_block_ids=[],
+            role_block_id="blk_0195f3a00000700080000123456789ab",
+            extraction_protocol_block_id="blk_0195f3a0000070008000abcdef012345",
+            criteria_block_ids=["blk_0195f3a0000070008000111122223333"],
             cognitive_tier=None,
         )
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
@@ -451,23 +468,23 @@ def test_step_causal_discovery_missing_cognitive_tier_raises_app_exception() -> 
 def test_step_rule_causal_source_step_id_in_depends_on_valid() -> None:
     """Test StepRule with causal_source_step_id present in depends_on validates successfully."""
     step_rule = StepRule(
-        id="sr_0123456789abcdef",
-        task_blueprint="stp_0123456789abcdef",
-        depends_on=["sr_1111111111111111", "sr_2222222222222222"],
-        causal_source_step_id="sr_1111111111111111",
+        id="sr_0195f3a00000700080000123456789ab",
+        task_blueprint="stp_0195f3a00000700080000123456789ab",
+        depends_on=["sr_0195f3a0000070008000111111111111", "sr_0195f3a0000070008000222222222222"],
+        causal_source_step_id="sr_0195f3a0000070008000111111111111",
     )
-    assert step_rule.causal_source_step_id == "sr_1111111111111111"
-    assert "sr_1111111111111111" in step_rule.depends_on
+    assert step_rule.causal_source_step_id == "sr_0195f3a0000070008000111111111111"
+    assert "sr_0195f3a0000070008000111111111111" in step_rule.depends_on
 
 
 def test_step_rule_causal_source_step_id_not_in_depends_on_raises_app_exception() -> None:
     """Test StepRule with causal_source_step_id not in depends_on raises AppException."""
     with pytest.raises(AppException) as exc_info:
         StepRule(
-            id="sr_0123456789abcdef",
-            task_blueprint="stp_0123456789abcdef",
-            depends_on=["sr_2222222222222222"],
-            causal_source_step_id="sr_1111111111111111",
+            id="sr_0195f3a00000700080000123456789ab",
+            task_blueprint="stp_0195f3a00000700080000123456789ab",
+            depends_on=["sr_0195f3a0000070008000222222222222"],
+            causal_source_step_id="sr_0195f3a0000070008000111111111111",
         )
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
     assert "references causal_source_step_id" in exc_info.value.message
@@ -477,8 +494,8 @@ def test_step_rule_invalid_opaque_id_raises_validation_error() -> None:
     """Boundary test: StepRule with causal_source_step_id violating OPAQUE_STRIPE_ID_REGEX raises ValidationError."""
     with pytest.raises(ValidationError):
         StepRule(
-            id="sr_0123456789abcdef",
-            task_blueprint="stp_0123456789abcdef",
+            id="sr_0195f3a00000700080000123456789ab",
+            task_blueprint="stp_0195f3a00000700080000123456789ab",
             depends_on=["invalid_id!"],
             causal_source_step_id="invalid_id!",
         )
@@ -488,7 +505,7 @@ def test_step_zone_assignment_and_default() -> None:
     """Test Step zone default value, explicit assignment, and validation."""
     # 1. Default zone should be ZONE_B
     step_default = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a00000700080000123456789ab",
         slug="step_default_zone",
         name=I18nText(translations={"en": "Default Zone"}),
         type=StepType.LOGIC,
@@ -498,7 +515,7 @@ def test_step_zone_assignment_and_default() -> None:
 
     # 2. Explicit ZONE_A
     step_zone_a = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a00000700080000123456789ab",
         slug="step_zone_a",
         name=I18nText(translations={"en": "Zone A Step"}),
         type=StepType.LOGIC,
@@ -509,7 +526,7 @@ def test_step_zone_assignment_and_default() -> None:
 
     # 3. Explicit ZONE_C via string
     step_zone_c = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a00000700080000123456789ab",
         slug="step_zone_c",
         name=I18nText(translations={"en": "Zone C Step"}),
         type=StepType.LOGIC,
@@ -522,7 +539,7 @@ def test_step_zone_assignment_and_default() -> None:
     with pytest.raises(ValidationError):
         Step.model_validate(
             {
-                "id": "stp_0123456789abcdef",
+                "id": "stp_0195f3a00000700080000123456789ab",
                 "slug": "step_invalid_zone",
                 "name": {"translations": {"en": "Invalid Zone"}},
                 "type": "logic",

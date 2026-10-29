@@ -26,11 +26,12 @@ from backend_v2.models.auth import User
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
 from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.node_execution import StepOutputContentDTO
 from backend_v2.models.dtos.trace import ProgressTracePayloadDTO
-from backend_v2.models.enums import ExecutionStatus, StrictnessAnchor
+from backend_v2.models.enums import ExecutionStatus, StepType, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.services.localization import set_language
@@ -63,6 +64,7 @@ class WorkflowExecutionState:
     projector: StateProjector
     step_definitions: dict[str, Step]
     steps_by_id: dict[str, StepRule] = dataclasses.field(default_factory=dict)
+    blocks_by_id: dict[str, AnyPromptBlock] = dataclasses.field(default_factory=dict)
     strictness_level: int = StrictnessAnchor.STANDARD.value
     lexical_strictness_level: int = StrictnessAnchor.STANDARD.value
     step_exceptions: tuple[type[BaseException], ...] = ()
@@ -149,15 +151,20 @@ async def bootstrap_workflow_execution_state(
             tasks = [tg.create_task(_fetch_and_validate(b_id)) for b_id in blueprint_ids]
         step_definitions = dict([t.result() for t in tasks])
 
-    if not any(bool(s_def.criteria_block_ids) for s_def in step_definitions.values() if s_def):
+    if not any(s.criteria_block_ids for s in step_definitions.values() if s and s.type != StepType.CAUSAL_DISCOVERY):
         for bp_id, s_def in step_definitions.items():
             if "apply_scoring_logic_hook" in s_def.post_hooks or "apply_scoring_logic" in s_def.post_hooks:
                 posts = [h for h in s_def.post_hooks if h not in ("apply_scoring_logic_hook", "apply_scoring_logic")]
                 step_definitions[bp_id] = s_def.model_copy(update={"post_hooks": posts})
+    blocks_by_id: dict[str, AnyPromptBlock] = {}
+    for s_def in step_definitions.values():
+        for cb_id in s_def.criteria_block_ids if s_def.type == StepType.CAUSAL_DISCOVERY else ():
+            if (blk := await deps.prompt_block_repo.get_prompt_block_by_id(cb_id)) is not None:
+                blocks_by_id[cb_id] = blk
 
     s_lvl = workflow.default_strictness_level if strictness_level is None else strictness_level
-    lex_default = workflow.default_lexical_strictness_level
-    lex_lvl = lex_default if lexical_strictness_level is None else lexical_strictness_level
+    lex_def = workflow.default_lexical_strictness_level
+    lex_lvl = lex_def if lexical_strictness_level is None else lexical_strictness_level
     raw_rec = await deps.exec_repo.get_execution(execution_id)
     existing_record = None if not isinstance(raw_rec, ExecutionRecord) else raw_rec
     if existing_record is None and raw_rec is not None:
@@ -168,8 +175,7 @@ async def bootstrap_workflow_execution_state(
 
     steps: list[ExecutionStep] = []
     for step in workflow.steps:
-        bp_id = step.task_blueprint
-        bp_def = None if bp_id not in step_definitions else step_definitions[bp_id]
+        bp_def = None if step.task_blueprint not in step_definitions else step_definitions[step.task_blueprint]
         s_name = None if bp_def is None else bp_def.name
         raw_lbl = s_name if isinstance(s_name, str) and s_name.strip() else step.id
         step_label = s_name.resolve(target_loc) if isinstance(s_name, I18nText) else raw_lbl
@@ -247,8 +253,9 @@ async def bootstrap_workflow_execution_state(
             reg: Any = dm[_DAG_EXECUTOR_MODULE].hook_registry if _DAG_EXECUTOR_MODULE in dm else hook_registry
             processed_result = await reg.execute("input_processing", h_state, HookDependencies(*r1, *r2))
             if processed_result.success and processed_result.state_delta is not None:
-                delta_dict = _extract_input_delta_dict(processed_result.state_delta)
-                delta_content = StepOutputContentDTO.model_validate({"data": delta_dict})
+                delta_content = StepOutputContentDTO.model_validate(
+                    {"data": _extract_input_delta_dict(processed_result.state_delta)}
+                )
                 proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content)
                 exec_record.execution_trace.append(proc_event)
                 projector.apply_delta(proc_event)
@@ -263,16 +270,20 @@ async def bootstrap_workflow_execution_state(
 
         t1 = (_le.APIConnectionError, _le.APIError, _le.RateLimitError, _le.Timeout, _le.ServiceUnavailableError)
         t2 = (_le.InternalServerError, _le.BadGatewayError, _le.AuthenticationError, _le.PermissionDeniedError)
-        t3 = (_le.NotFoundError, _le.UnprocessableEntityError, _le.ContextWindowExceededError)
-        t4 = (*t1, *t2, *t3, _le.ContentPolicyViolationError)
-        step_exceptions: tuple[type[BaseException], ...] = (*dlq_fallback_fn(), *t4)
+        t3 = (
+            _le.NotFoundError,
+            _le.UnprocessableEntityError,
+            _le.ContextWindowExceededError,
+            _le.ContentPolicyViolationError,
+        )
+        step_exceptions: tuple[type[BaseException], ...] = (*dlq_fallback_fn(), *t1, *t2, *t3)
     except ImportError:  # pragma: no cover
         step_exceptions = dlq_fallback_fn()
     for step_id, s_state in list(exec_record.step_states.items()):
         if s_state.status == ExecutionStatus.FAILED:
             exec_record = exec_record.transition_step(step_id=step_id, status=ExecutionStatus.PENDING)
     state = WorkflowExecutionState(execution_id, workflow, exec_record, gvars, projector, step_definitions)
-    state.steps_by_id = {step.id: step for step in workflow.steps}
+    state.steps_by_id, state.blocks_by_id = {step.id: step for step in workflow.steps}, blocks_by_id
     state.strictness_level, state.lexical_strictness_level, state.step_exceptions = s_lvl, lex_lvl, step_exceptions
     return state
 
@@ -302,13 +313,7 @@ async def safe_commit_execution_state(
         st = status_override if status_override is not None else cur.status
         err = error_override if error_override is not None else cur.error
         await committer.commit_trace(
-            trace=cur.execution_trace,
-            status=st,
-            step_states=cur.step_states,
-            error=err,
-            frozen_context=cur.frozen_context,
-            context_variables=cur.context_variables,
-            steps=cur.steps,
+            cur.execution_trace, st, cur.step_states, err, cur.frozen_context, cur.context_variables, cur.steps
         )
         return cur
 
@@ -332,11 +337,10 @@ async def execute_rag_preflight_stage(
     """
     target_step: StepRule | None = None
     for s in state.workflow.steps:
-        if s.task_blueprint in state.step_definitions:
-            pre = state.step_definitions[s.task_blueprint].pre_hooks
-            if "atom_flattening_hook" in pre or "synthesis_distiller_hook" in pre:
-                target_step = s
-                break
+        bp_def = None if s.task_blueprint not in state.step_definitions else state.step_definitions[s.task_blueprint]
+        if bp_def and ("atom_flattening_hook" in bp_def.pre_hooks or "synthesis_distiller_hook" in bp_def.pre_hooks):
+            target_step = s
+            break
     if target_step is None or target_step.task_blueprint is None:
         return
     vid, _update_lock, run_st = f"sys_rag_{uuid.uuid4().hex[:16]}", state.update_lock, ExecutionStatus.RUNNING

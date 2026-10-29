@@ -20,6 +20,7 @@ from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.studio import WorkflowResponseDTO
 from backend_v2.models.enums import (
+    BlockDataType,
     CognitiveTier,
     EntityPrefix,
     HistoricalContextMode,
@@ -369,7 +370,12 @@ class StudioWorkflowService:
             )
             raise ResourceNotFoundError(resource_type="system_config", resource_id="model_registry")
         chosen_registry_id = active_registries[0].id
+        active_gateways = await self.system_repo.get_all_mcp_gateways()
+        chosen_gateway_id: str | None = None
+        if active_gateways:
+            chosen_gateway_id = active_gateways[0].id
 
+        # Phase 4, Step 4: Dynamic repository lookup and None default for draft profile
         draft = Workflow(
             id=new_id,
             slug=new_id,
@@ -383,7 +389,8 @@ class StudioWorkflowService:
             expected_inputs=[],
             steps=[],
             historical_context_mode=HistoricalContextMode.DISABLED,
-            default_profile_id="prf_0000000000000000",
+            default_profile_id=None,
+            mcp_gateway_id=chosen_gateway_id,
             model_registry_id=chosen_registry_id,
             default_lexical_strictness_level=50,
         )
@@ -687,12 +694,17 @@ class StudioWorkflowService:
             AppException (ErrorCodes.STATE_INTEGRITY_ERROR): If no protocol block is found.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are denied.
         """
+        # Phase 4, Step 4: Resolve protocol and default criteria block dynamically from repository
         all_blocks = await self.prompt_block_repo.get_all_prompt_blocks()
         protocol_block_id: str | None = None
+        default_criteria_id: str | None = None
         for b in all_blocks:
-            if b.category_id == PromptBlockCategory.PROTOCOL:
+            if protocol_block_id is None and b.category_id == PromptBlockCategory.PROTOCOL:
                 protocol_block_id = b.id
-                break
+            if default_criteria_id is None and (
+                b.category_id == PromptBlockCategory.MATRIX or b.type == BlockDataType.CRITERIA
+            ):
+                default_criteria_id = b.id
 
         if not protocol_block_id:
             logger.error(
@@ -707,6 +719,19 @@ class StudioWorkflowService:
                 details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
             )
 
+        if not default_criteria_id:
+            logger.error(
+                "[StudioService] %s: No matrix or criteria block found in database to create step draft.",
+                ErrorCodes.STATE_INTEGRITY_ERROR.name,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
+            )
+            raise AppException(
+                message="No matrix or criteria block found to create step draft.",
+                status_code=500,
+                details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.value},
+            )
+
         new_id = generate_opaque_id(EntityPrefix.STEP)
         target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
         draft = Step(
@@ -717,7 +742,7 @@ class StudioWorkflowService:
             type=StepType.LLM,
             role_block_id=None,
             extraction_protocol_block_id=protocol_block_id,
-            criteria_block_ids=["blk_440a5fef9331451b"],
+            criteria_block_ids=[default_criteria_id],
             pre_hooks=[],
             post_hooks=[],
             safety="safe",

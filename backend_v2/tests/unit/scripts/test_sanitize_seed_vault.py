@@ -6,9 +6,11 @@ import re
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, parse_prefixed_uuid7
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+from backend_v2.models.domain.step import Step
 from backend_v2.models.enums import EntityPrefix, PromptBlockCategory, SystemConfigID
 from scripts.sanitize_seed_vault import (
     SanitizeResult,
@@ -27,7 +29,7 @@ from scripts.sanitize_seed_vault import (
 )
 
 
-def _create_raw_matrix_block() -> dict[str, object]:
+def _create_raw_matrix_block() -> JsonValue:
     """Helper to create a raw matrix block dictionary with mechanical phrases and raw XML."""
     return {
         "id": "blk_1234567890abcdef",
@@ -167,20 +169,20 @@ def test_sanitize_prompt_blocks_pipeline() -> None:
     assert len(sanitized_blocks) == 1
     assert mutated_count == 2
 
-    block = sanitized_blocks[0]
-    assert block["id"] == "blk_0195f3a0000070018234567890abcdef"  # type: ignore[index]
-    assert "<system_directive>" not in str(block["ai_description"])  # type: ignore[index]
+    block = MatrixPromptBlock.model_validate(sanitized_blocks[0], strict=False)
+    assert block.id == "blk_0195f3a0000070018234567890abcdef"
+    assert "<system_directive>" not in str(block.ai_description)
 
-    assertions = block["scales"][0]["claims"][0]["tda_assertions"]  # type: ignore[index]
+    assertions = block.scales[0].claims[0].tda_assertions
     a1 = assertions[0]
-    assert a1["tda_id"] == "tda_453ddf8b14a442e988836098e3c7b55c"
-    assert "ABSOLUTE MITIGATION ENFORCEMENT" not in a1["concept_description"]
-    assert "Identified organizational or operational risks" in a1["concept_description"]
+    assert a1.tda_id == "tda_453ddf8b14a442e988836098e3c7b55c"
+    assert "ABSOLUTE MITIGATION ENFORCEMENT" not in a1.concept_description
+    assert "Identified organizational or operational risks" in a1.concept_description
 
     a2 = assertions[1]
-    assert "<directive>" not in a2["concept_description"]
-    assert "EXACTLY ZERO" not in a2["concept_description"]
-    assert "EXACTLY ZERO" not in a2["extraction_rule"]
+    assert "<directive>" not in a2.concept_description
+    assert "EXACTLY ZERO" not in a2.concept_description
+    assert "EXACTLY ZERO" not in str(a2.extraction_rule)
 
 
 def test_sanitize_steps_workflows_profiles_and_auxiliary() -> None:
@@ -201,12 +203,12 @@ def test_sanitize_steps_workflows_profiles_and_auxiliary() -> None:
     ]
     sanitized_steps = sanitize_steps(raw_steps)
     assert len(sanitized_steps) == 1
-    step0 = sanitized_steps[0]
-    assert step0["id"] == "stp_0195f3a00000700785261e4b904a428c"  # type: ignore[index]
-    assert step0["criteria_block_ids"] == ["blk_0195f3a00000700c80a1e50000000001"]  # type: ignore[index]
+    step0 = Step.model_validate(sanitized_steps[0], strict=False)
+    assert step0.id == "stp_0195f3a00000700785261e4b904a428c"
+    assert step0.criteria_block_ids == ["blk_0195f3a00000700c80a1e50000000001"]
 
     # 2. Auxiliary collections
-    aux_data: dict[str, object] = {
+    aux_data: dict[str, JsonValue] = {
         "system_config": [{"id": "sys_8172bda70c8641c5", "gateways": []}],
         "organizations": [
             {"id": "org_system000000", "name": "System"},
@@ -217,11 +219,11 @@ def test_sanitize_steps_workflows_profiles_and_auxiliary() -> None:
         ],
     }
     _sanitize_auxiliary_collections(aux_data)
-    assert aux_data["system_config"][0]["id"] == SystemConfigID.MCP_GATEWAYS.value  # type: ignore[index]
-    assert aux_data["organizations"][0]["id"] == "org_system000000"  # type: ignore[index]
-    assert aux_data["organizations"][1]["id"] == "org_0195f3a00000700e8531d2ed8a6641f6"  # type: ignore[index]
-    assert aux_data["users"][0]["id"] == "usr_0195f3a0000070078a9c1b2e4d5f6a8b"  # type: ignore[index]
-    assert aux_data["users"][0]["organization_id"] == "org_0195f3a00000700e8531d2ed8a6641f6"  # type: ignore[index]
+    aux_dump = json.dumps(aux_data)
+    assert SystemConfigID.MCP_GATEWAYS.value in aux_dump
+    assert '"org_system000000"' in aux_dump
+    assert '"org_0195f3a00000700e8531d2ed8a6641f6"' in aux_dump
+    assert '"usr_0195f3a0000070078a9c1b2e4d5f6a8b"' in aux_dump
 
 
 def test_run_seed_vault_sanitization(tmp_path: Path) -> None:

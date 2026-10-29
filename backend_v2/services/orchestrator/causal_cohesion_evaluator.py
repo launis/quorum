@@ -12,6 +12,7 @@ from typing import Annotated
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.causal_discovery import (
     AntiFluffAuditDTO,
@@ -166,6 +167,8 @@ class CausalCohesionEvaluator:
         total_nodes: int,
         strictness_level: int,
         matrix_block_id: str,
+        bars_claims: dict[str, str] | None = None,
+        matrix_block: AnyPromptBlock | None = None,
     ) -> CausalCohesionEvaluationDTO:
         """Evaluate topological causal graph metrics into BARS 1-5 scale levels and unified score.
 
@@ -177,11 +180,23 @@ class CausalCohesionEvaluator:
             total_nodes: Total count of nodes in the upstream causal graph.
             strictness_level: Continuous 0-100 workflow strictness level.
             matrix_block_id: Mandatory non-nullable Opaque Stripe ID of the matrix block.
+            bars_claims: Optional insertion-ordered mapping of tda_id to claim text for BARS Levels 1-5.
+            matrix_block: Optional hydrated MatrixPromptBlock providing BARS TDAAssertion rows.
 
         Returns:
             CausalCohesionEvaluationDTO containing atom results, level stats, and score result.
         """
         settings = get_settings()
+        resolved_claims = bars_claims
+        if resolved_claims is None and isinstance(matrix_block, MatrixPromptBlock):
+            resolved_claims = {
+                a.tda_id: c.label.resolve("en")
+                for sc in matrix_block.scales
+                for c in sc.claims
+                for a in c.tda_assertions
+            }
+        tda_ids = tuple(resolved_claims.keys()) if resolved_claims else CAUSAL_COHESION_TDA_IDS
+        claims = tuple(resolved_claims.values()) if resolved_claims else CAUSAL_COHESION_CLAIMS
 
         if total_nodes > 0:
             isolated_ratio = audit.isolated_concept_count / total_nodes
@@ -216,7 +231,7 @@ class CausalCohesionEvaluator:
 
         atom_results: list[AtomResultDTO] = []
         for level, passed in enumerate(passed_flags, 1):
-            tda_id = CAUSAL_COHESION_TDA_IDS[level - 1]
+            tda_id = tda_ids[level - 1]
             if passed:
                 atom = AtomResultDTO(
                     tda_id=tda_id,
@@ -277,7 +292,7 @@ class CausalCohesionEvaluator:
                 resolved_claim=claim,
                 source_quotes=None,
             )
-            for tda_id, claim in zip(CAUSAL_COHESION_TDA_IDS, CAUSAL_COHESION_CLAIMS, strict=True)
+            for tda_id, claim in zip(tda_ids, claims, strict=True)
         }
 
         matrix_output = TraceMatrixPayloadDTO(

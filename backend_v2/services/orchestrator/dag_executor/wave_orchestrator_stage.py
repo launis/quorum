@@ -67,12 +67,7 @@ def _extract_evaluated_atoms(events: list[TraceEvent]) -> list[AtomResultDTO]:
 async def _commit_record_snapshot(committer: ExecutionCommitter, rec: ExecutionRecord, err: str | None = None) -> None:
     """Persist ExecutionRecord trace, status, step_states, and context_variables via ExecutionCommitter."""
     await committer.commit_trace(
-        trace=rec.execution_trace,
-        status=rec.status,
-        step_states=rec.step_states,
-        error=err,
-        context_variables=rec.context_variables,
-        steps=rec.steps,
+        rec.execution_trace, rec.status, rec.step_states, err, context_variables=rec.context_variables, steps=rec.steps
     )
 
 
@@ -89,9 +84,7 @@ def _append_causal_fusion_and_cohesion_events(
         return
     getter = sys.modules[_DAG_EXECUTOR_MODULE].get_settings if _DAG_EXECUTOR_MODULE in sys.modules else get_settings
     settings, evaluated_atoms = getter(), _extract_evaluated_atoms(events)
-    atoms_arg: list[AtomResultDTO] | None = None
-    if evaluated_atoms:
-        atoms_arg = evaluated_atoms
+    atoms_arg = None if not evaluated_atoms else evaluated_atoms
     eval_m, damp = state.global_context_vars.evaluative_matrices, settings.causal_secondary_fault_dampening
     fusion_res = compute_causal_tda_fusion_result(
         upstream_graph, eval_m, atoms_arg, damp, state.workflow.expected_inputs
@@ -99,26 +92,24 @@ def _append_causal_fusion_and_cohesion_events(
     events.append(TraceEvent(step_name=step_id, event_type="output", content={"fusion": fusion_res}))
     if src_step_id not in state.evaluated_causal_sources:
         state.evaluated_causal_sources.add(src_step_id)
+        # Phase 4, Step 4: Resolve cohesion_matrix_id and BARS TDAAssertion rows from step blueprint
+        src_bp = state.steps_by_id[src_step_id].task_blueprint
+        cohesion_matrix_id = state.step_definitions[src_bp].criteria_block_ids[0]
+        mat_blk = None if cohesion_matrix_id not in state.blocks_by_id else state.blocks_by_id[cohesion_matrix_id]
         evaluator = causal_cohesion_evaluator if causal_cohesion_evaluator is not None else CausalCohesionEvaluator()
-        eval_dto = evaluator.evaluate_causal_cohesion(
-            audit=fusion_res.anti_fluff_audit,
-            total_nodes=fusion_res.total_deliverable_nodes,
-            strictness_level=state.workflow.default_strictness_level,
-            matrix_block_id=settings.causal_cohesion_matrix_block_id,
-        )
+        aud, tot = fusion_res.anti_fluff_audit, fusion_res.total_deliverable_nodes
+        s_lvl = state.workflow.default_strictness_level
+        eval_dto = evaluator.evaluate_causal_cohesion(aud, tot, s_lvl, cohesion_matrix_id, matrix_block=mat_blk)
         m_dump = eval_dto.matrix_output.model_dump(mode="json", exclude_none=True)
+        a_res, h_refs, m_id = eval_dto.atom_results, eval_dto.hydrated_references, eval_dto.matrix_block_id
         events.append(
             TraceEvent(
                 step_name=src_step_id,
                 event_type="output",
-                content={
-                    "results": eval_dto.atom_results,
-                    "hydrated_references": eval_dto.hydrated_references,
-                    eval_dto.matrix_block_id: m_dump,
-                },
+                content={"results": a_res, "hydrated_references": h_refs, m_id: m_dump},
             )
         )
-        gvar_evt = GlobalContextVarsDTO(evaluative_matrices={eval_dto.matrix_block_id: eval_dto.score_result.score})
+        gvar_evt = GlobalContextVarsDTO(evaluative_matrices={m_id: eval_dto.score_result.score})
         meta_upd = TraceEventMetadataDTO(is_context_update=True)
         events.append(TraceEvent(step_name=src_step_id, event_type="decision", metadata=meta_upd, content=gvar_evt))
 

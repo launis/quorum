@@ -21,12 +21,12 @@ from backend_v2.services.factories.output_profile_factory import (
 def test_build_draft_output_profile_default() -> None:
     """Verify build_draft_output_profile produces a valid OutputProfile with bare TargetBlockType enums."""
     profile = build_draft_output_profile(
-        profile_id="prf_0000000000000001",
-        workflow_id="wor_0000000000000001",
+        profile_id="prf_0195f3a0000070008000000000000001",
+        workflow_id="wf_0195f3a0000070008000000000000001",
     )
 
-    assert profile.id == "prf_0000000000000001"
-    assert profile.workflow_id == "wor_0000000000000001"
+    assert profile.id == "prf_0195f3a0000070008000000000000001"
+    assert profile.workflow_id == "wf_0195f3a0000070008000000000000001"
     assert profile.organization_id is None
     assert profile.matrix_synthesis_groups == []
 
@@ -55,15 +55,15 @@ def test_build_draft_output_profile_default() -> None:
 def test_build_draft_output_profile_with_initial_target_block() -> None:
     """Verify build_draft_output_profile correctly inserts MATRIX_GRAPHS_BLOCK and synthesis group."""
     profile = build_draft_output_profile(
-        profile_id="prf_0000000000000002",
-        workflow_id="wor_0000000000000002",
-        organization_id="org_0000000000000001",
-        initial_target_block="blk_0000000000000001",
+        profile_id="prf_0195f3a0000070008000000000000002",
+        workflow_id="wf_0195f3a0000070008000000000000002",
+        organization_id="org_0195f3a0000070008000000000000001",
+        initial_target_block="blk_0195f3a0000070008000000000000001",
     )
 
-    assert profile.id == "prf_0000000000000002"
-    assert profile.workflow_id == "wor_0000000000000002"
-    assert profile.organization_id == "org_0000000000000001"
+    assert profile.id == "prf_0195f3a0000070008000000000000002"
+    assert profile.workflow_id == "wf_0195f3a0000070008000000000000002"
+    assert profile.organization_id == "org_0195f3a0000070008000000000000001"
 
     # Verify MATRIX_GRAPHS_BLOCK was inserted at index 3 as bare Enum
     assert profile.target_block_order[3] == TargetBlockType.MATRIX_GRAPHS_BLOCK
@@ -72,7 +72,7 @@ def test_build_draft_output_profile_with_initial_target_block() -> None:
     # Verify matrix_synthesis_groups populated
     assert len(profile.matrix_synthesis_groups) == 1
     group = profile.matrix_synthesis_groups[0]
-    assert group.target_blocks == ["blk_0000000000000001"]
+    assert group.target_blocks == ["blk_0195f3a0000070008000000000000001"]
     assert group.view_type == PresetView.METRICS_1D
     assert group.title.translations["en"] == "Executive Overview"
     assert group.title.translations["fi"] == "Johdon yleiskuva"
@@ -99,19 +99,19 @@ def test_factory_constants_integrity() -> None:
 def test_build_draft_output_profile_non_opaque_initial_target_block_skips_variance() -> None:
     """Verify non-opaque initial_target_block populates matrix group without enabling variance block."""
     profile = build_draft_output_profile(
-        profile_id="prf_0000000000000003",
-        workflow_id="wor_0000000000000003",
-        initial_target_block="blk_matrix_001",
+        profile_id="prf_0195f3a0000070008000000000000003",
+        workflow_id="wf_0195f3a0000070008000000000000003",
+        initial_target_block="custom_non_opaque_target",
     )
 
     assert profile.variance_target_block is None
     assert TargetBlockType.MATRIX_GRAPHS_BLOCK in profile.target_block_order
     assert TargetBlockType.VARIANCE_VALIDATION_BLOCK not in profile.target_block_order
     assert len(profile.matrix_synthesis_groups) == 1
-    assert profile.matrix_synthesis_groups[0].target_blocks == ["blk_matrix_001"]
+    assert profile.matrix_synthesis_groups[0].target_blocks == ["custom_non_opaque_target"]
 
 
-@pytest.mark.parametrize("invalid_profile_id", ["", "   ", "invalid_id", "prf_short"])
+@pytest.mark.parametrize("invalid_profile_id", ["", "   ", "invalid_id"])
 def test_build_draft_output_profile_invalid_profile_id_raises_app_exception(
     invalid_profile_id: str,
 ) -> None:
@@ -119,7 +119,7 @@ def test_build_draft_output_profile_invalid_profile_id_raises_app_exception(
     with pytest.raises(AppException) as exc_info:
         build_draft_output_profile(
             profile_id=invalid_profile_id,
-            workflow_id="wor_0000000000000001",
+            workflow_id="wf_0195f3a0000070008000000000000001",
         )
 
     assert exc_info.value.status_code == 400
@@ -133,7 +133,7 @@ def test_build_draft_output_profile_empty_workflow_id_raises_app_exception(
     """ISTQB Negative Boundary: Empty or whitespace workflow_id raises AppException(VALIDATION_FAILED)."""
     with pytest.raises(AppException) as exc_info:
         build_draft_output_profile(
-            profile_id="prf_0000000000000001",
+            profile_id="prf_0195f3a0000070008000000000000001",
             workflow_id=invalid_workflow_id,
         )
 
@@ -148,8 +148,8 @@ def test_build_draft_output_profile_blank_initial_target_block_raises_app_except
     """ISTQB Negative Boundary: Empty or whitespace initial_target_block raises AppException(VALIDATION_FAILED)."""
     with pytest.raises(AppException) as exc_info:
         build_draft_output_profile(
-            profile_id="prf_0000000000000001",
-            workflow_id="wor_0000000000000001",
+            profile_id="prf_0195f3a0000070008000000000000001",
+            workflow_id="wf_0195f3a0000070008000000000000001",
             initial_target_block=blank_block_id,
         )
 

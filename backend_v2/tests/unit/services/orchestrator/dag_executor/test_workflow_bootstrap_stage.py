@@ -29,9 +29,19 @@ from backend_v2.models.domain.execution import (
     FrozenContext,
 )
 from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.matrix import MatrixScale
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.enums import EngineType, ExecutionStatus, HistoricalContextMode, StepType
+from backend_v2.models.enums import (
+    BlockDataType,
+    CognitiveTier,
+    EngineType,
+    ExecutionStatus,
+    HistoricalContextMode,
+    PromptBlockCategory,
+    StepType,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.dag_executor.execution_committer import ExecutionCommitter
 from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
@@ -61,20 +71,20 @@ def _build_deps(repo: InMemoryUnifiedWorkflowRepository) -> StrategyDependencies
     )
 
 
-def _build_workflow(blueprint_id: str = "stp_1111222233334444") -> Workflow:
+def _build_workflow(blueprint_id: str = "stp_0195f3a0000070008000111122223333") -> Workflow:
     return Workflow(
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070008000111122223333",
         slug="workflow_test",
         name=I18nText(translations={"en": "Test Workflow", "fi": "Testityonkulku"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
         status="active",
         version=1,
         historical_context_mode=HistoricalContextMode.DISABLED,
-        default_profile_id="prf_1111222233334444",
-        model_registry_id="sys_1111222233334444",
+        default_profile_id="prf_0195f3a0000070008000111122223333",
+        model_registry_id="sys_0195f3a0000070008000111122223333",
         steps=[
             StepRule(
-                id="stp_aaaa1111bbbb2222",
+                id="stp_0195f3a0000070008000aaaa1111bbbb",
                 task_blueprint=blueprint_id,
                 depends_on=[],
                 input_mappings={},
@@ -88,7 +98,7 @@ async def test_bootstrap_workflow_execution_state_prefetches_blueprints_via_task
     """Verify bootstrap_workflow_execution_state pre-fetches blueprints via TaskGroup and initializes state."""
     repo = InMemoryUnifiedWorkflowRepository()
     step_bp = Step(
-        id="stp_1111222233334444",
+        id="stp_0195f3a0000070008000111122223333",
         slug="step_en",
         name=I18nText(translations={"en": "Step EN", "fi": "Vaihe FI"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -99,13 +109,34 @@ async def test_bootstrap_workflow_execution_state_prefetches_blueprints_via_task
         post_hooks=["apply_scoring_logic_hook", "keep_hook"],
     )
     repo.set_step(step_bp)
+    causal_mat = MatrixPromptBlock(
+        id="blk_0195f3a0000070008000440a5fef9331",
+        slug="mat_causal",
+        label=I18nText(translations={"en": "Causal", "fi": "Kausaalinen"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        scales=[MatrixScale(score=1, ai_label="L1", claims=[])],
+    )
+    await repo.create_prompt_block(causal_mat)
+    causal_bp = Step(
+        id="stp_0195f3a0000070008000222233334444",
+        slug="step_causal",
+        name=I18nText(translations={"en": "Causal", "fi": "Kausaalinen"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
+        type=StepType.CAUSAL_DISCOVERY,
+        extraction_protocol_block_id="blk_0195f3a0000070008000abcdef012345",
+        criteria_block_ids=[causal_mat.id],
+        cognitive_tier=CognitiveTier.FAST,
+    )
+    repo.seed_raw_step(causal_bp.id, causal_bp)
 
     user = User(
-        id="usr_1111222233334444",
+        id="usr_0195f3a0000070008000111122223333",
         email="coach@example.com",
         name="Coach",
         role=UserRole.ADMIN,
-        organization_id="org_1111222233334444",
+        organization_id="org_0195f3a0000070008000111122223333",
         is_active=True,
         language="fi",
         theme_mode="system",
@@ -113,9 +144,21 @@ async def test_bootstrap_workflow_execution_state_prefetches_blueprints_via_task
     )
     await repo.create_user(user)
 
-    wf = _build_workflow()
+    wf = _build_workflow().model_copy(
+        update={
+            "steps": [
+                *_build_workflow().steps,
+                StepRule(
+                    id="stp_0195f3a0000070008000bbbb2222cccc",
+                    task_blueprint=causal_bp.id,
+                    depends_on=[],
+                    input_mappings={},
+                ),
+            ]
+        }
+    )
     inputs = WorkflowInputs(
-        user_id="usr_1111222233334444",
+        user_id="usr_0195f3a0000070008000111122223333",
         language="fi",
         dynamic_inputs={"doc": "raw text"},
     )
@@ -131,15 +174,17 @@ async def test_bootstrap_workflow_execution_state_prefetches_blueprints_via_task
         return_value=hook_res,
     ):
         state = await bootstrap_workflow_execution_state(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070008000111122223333",
             workflow=wf,
             raw_inputs=inputs,
             deps=_build_deps(repo),
         )
 
-    assert state.exec_id == "exe_1111222233334444"
-    assert "stp_1111222233334444" in state.step_definitions
-    assert state.step_definitions["stp_1111222233334444"].post_hooks == ["keep_hook"]
+    assert state.exec_id == "exe_0195f3a0000070008000111122223333"
+    assert "stp_0195f3a0000070008000111122223333" in state.step_definitions
+    assert causal_bp.id in state.step_definitions
+    assert causal_mat.id in state.blocks_by_id
+    assert state.step_definitions["stp_0195f3a0000070008000111122223333"].post_hooks == ["keep_hook"]
     assert state.exec_record.status == ExecutionStatus.RUNNING
     assert state.global_context_vars.language == "fi"
     assert len(state.exec_record.execution_trace) == 2
@@ -155,12 +200,12 @@ async def test_bootstrap_workflow_execution_state_prefetches_blueprints_via_task
 async def test_bootstrap_workflow_execution_state_missing_blueprint_raises_not_found() -> None:
     """Verify bootstrap_workflow_execution_state raises CONFIGURATION_ERROR on missing blueprint."""
     repo = InMemoryUnifiedWorkflowRepository()
-    wf = _build_workflow(blueprint_id="stp_9999888877776666")
+    wf = _build_workflow(blueprint_id="stp_0195f3a0000070008000999988887777")
     inputs = WorkflowInputs(dynamic_inputs={"doc": "text"})
 
     with pytest.raises(ExceptionGroup) as exc_info:
         await bootstrap_workflow_execution_state(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070008000111122223333",
             workflow=wf,
             raw_inputs=inputs,
             deps=_build_deps(repo),
@@ -173,7 +218,7 @@ async def test_bootstrap_workflow_execution_state_missing_blueprint_raises_not_f
     # Verify pre-hydration hook exception translates to VALIDATION_FAILED
     repo.set_step(
         Step(
-            id="stp_9999888877776666",
+            id="stp_0195f3a0000070008000999988887777",
             slug="step_missing_hook",
             name=I18nText(translations={"en": "Step", "fi": "Vaihe"}),
             description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -190,7 +235,7 @@ async def test_bootstrap_workflow_execution_state_missing_blueprint_raises_not_f
         pytest.raises(AppException) as val_exc,
     ):
         await bootstrap_workflow_execution_state(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070008000111122223333",
             workflow=wf,
             raw_inputs=inputs,
             deps=_build_deps(repo),
@@ -204,7 +249,7 @@ async def test_bootstrap_workflow_execution_state_resumes_existing_record_and_re
     """Verify bootstrap_workflow_execution_state resumes existing ExecutionRecord and resets FAILED steps."""
     repo = InMemoryUnifiedWorkflowRepository()
     step_bp = Step(
-        id="stp_1111222233334444",
+        id="stp_0195f3a0000070008000111122223333",
         slug="step_resolved",
         name=I18nText(translations={"en": "Resolved Label", "fi": "Valmis Otsikko"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -215,20 +260,20 @@ async def test_bootstrap_workflow_execution_state_resumes_existing_record_and_re
     repo.set_step(step_bp)
 
     failed_step = ExecutionStep(
-        id="stp_aaaa1111bbbb2222",
-        label="stp_aaaa1111bbbb2222",
+        id="stp_0195f3a0000070008000aaaa1111bbbb",
+        label="stp_0195f3a0000070008000aaaa1111bbbb",
         status=ExecutionStatus.FAILED,
     )
     existing_rec = ExecutionRecord(
-        id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        id="exe_0195f3a0000070008000111122223333",
+        workflow_id="wf_0195f3a0000070008000111122223333",
         target_locale="en",
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
         status=ExecutionStatus.FAILED,
         steps=[failed_step],
-        step_states={"stp_aaaa1111bbbb2222": failed_step},
+        step_states={"stp_0195f3a0000070008000aaaa1111bbbb": failed_step},
         metadata=ExecutionMetadata(
             workflow_version=1,
             model_registry_id=None,
@@ -242,7 +287,7 @@ async def test_bootstrap_workflow_execution_state_resumes_existing_record_and_re
         return_value=HookResult(success=True, state_delta=None),
     ):
         state = await bootstrap_workflow_execution_state(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070008000111122223333",
             workflow=_build_workflow(),
             raw_inputs=existing_rec.raw_inputs,
             deps=_build_deps(repo),
@@ -252,10 +297,10 @@ async def test_bootstrap_workflow_execution_state_resumes_existing_record_and_re
 
     assert state.strictness_level == 75
     assert state.lexical_strictness_level == 80
-    assert state.exec_record.step_states["stp_aaaa1111bbbb2222"].status == ExecutionStatus.PENDING
+    assert state.exec_record.step_states["stp_0195f3a0000070008000aaaa1111bbbb"].status == ExecutionStatus.PENDING
     assert state.exec_record.steps[0].label == "Resolved Label"
     assert state.exec_record.metadata is not None
-    assert state.exec_record.metadata.model_registry_id == "sys_1111222233334444"
+    assert state.exec_record.metadata.model_registry_id == "sys_0195f3a0000070008000111122223333"
 
 
 @pytest.mark.asyncio
@@ -263,7 +308,7 @@ async def test_safe_commit_execution_state_and_execute_rag_preflight_stage() -> 
     """Verify safe_commit_execution_state and execute_rag_preflight_stage persist progress and blackboard."""
     repo = InMemoryUnifiedWorkflowRepository()
     step_bp = Step(
-        id="stp_1111222233334444",
+        id="stp_0195f3a0000070008000111122223333",
         slug="step_preflight",
         name=I18nText(translations={"en": "Preflight Target", "fi": "Esivaihe"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -282,7 +327,7 @@ async def test_safe_commit_execution_state_and_execute_rag_preflight_stage() -> 
         return_value=HookResult(success=True, state_delta=None),
     ):
         state = await bootstrap_workflow_execution_state(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070008000111122223333",
             workflow=wf,
             raw_inputs=inputs,
             deps=_build_deps(repo),
@@ -346,6 +391,6 @@ async def test_safe_commit_execution_state_and_execute_rag_preflight_stage() -> 
             committer=committer,
         )
 
-    dlq_record_step_failure("stp_aaaa1111bbbb2222", "TEST_ERR", RuntimeError("err"))
-    dlq_handle_progress_commit_error("stp_aaaa1111bbbb2222", OSError("io"))
+    dlq_record_step_failure("stp_0195f3a0000070008000aaaa1111bbbb", "TEST_ERR", RuntimeError("err"))
+    dlq_handle_progress_commit_error("stp_0195f3a0000070008000aaaa1111bbbb", OSError("io"))
     assert AppException in dlq_fallback_step_exceptions()

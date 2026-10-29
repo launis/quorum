@@ -13,7 +13,6 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.enums import TargetBlockType
 from backend_v2.services.studio.output_profile_service import StudioOutputProfileService
-from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryOutputProfileRepository
 
 
@@ -52,29 +51,35 @@ def _make_valid_profile(profile_id: str, slug: str, workflow_id: str, org_id: st
 async def test_save_output_profile_allows_target_block_types(
     service: StudioOutputProfileService, mock_workflow_service: AsyncMock
 ) -> None:
-    """Test that virtual blocks from TargetBlockType and system matrix block are allowed."""
+    """Test that virtual blocks from TargetBlockType and step criteria matrix block are allowed."""
     initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="root")
 
-    settings = get_settings()
+    cohesion_block_id = "blk_0195f3a00000700080009f6d2c1b0a5e"
     workflow = AsyncMock()
-    workflow.id = "wf_123"
+    workflow.id = "wf_0195f3a0000070008000000000000123"
     workflow.slug = "test_wf"
     workflow.steps = []
     workflow.get_allowed_layout_targets = Mock(
-        return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value, settings.causal_cohesion_matrix_block_id}
+        return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value, cohesion_block_id}
     )
 
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
 
-    profile = _make_valid_profile("prf_1234567890abcdef", "opt_123", "wf_123", "root", "Test")
-    # Include causal cohesion system matrix block in matrix_synthesis_groups
+    profile = _make_valid_profile(
+        "prf_0195f3a00000700080001234567890ab",
+        "opt_123",
+        "wf_0195f3a0000070008000000000000123",
+        "root",
+        "Test",
+    )
     profile = profile.model_copy(
         update={
             "matrix_synthesis_groups": [
                 MatrixSynthesisGroup(
+                    id="grp_0195f3a0000070008000000000000001",
                     title=I18nText(translations={"en": "Causal Group"}),
-                    target_blocks=[settings.causal_cohesion_matrix_block_id],
+                    target_blocks=[cohesion_block_id],
                 )
             ]
         }
@@ -95,7 +100,7 @@ async def test_save_output_profile_unmapped_block_fails(
     initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="root")
 
     workflow = AsyncMock()
-    workflow.id = "wf_123"
+    workflow.id = "wf_0195f3a0000070008000000000000123"
     workflow.slug = "test_wf"
     workflow.steps = []
     workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
@@ -103,13 +108,20 @@ async def test_save_output_profile_unmapped_block_fails(
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
 
-    profile = _make_valid_profile("prf_1234567890abcdef", "opt_123", "wf_123", "root", "Test")
+    profile = _make_valid_profile(
+        "prf_0195f3a00000700080001234567890ab",
+        "opt_123",
+        "wf_0195f3a0000070008000000000000123",
+        "root",
+        "Test",
+    )
     profile = profile.model_copy(
         update={
             "matrix_synthesis_groups": [
                 MatrixSynthesisGroup(
+                    id="grp_0195f3a0000070008000000000000001",
                     title=I18nText(translations={"en": "Invalid Group"}),
-                    target_blocks=["blk_unmapped_component_001"],
+                    target_blocks=["blk_0195f3a0000070008000000000000999"],
                 )
             ]
         }
@@ -125,8 +137,20 @@ async def test_save_output_profile_unmapped_block_fails(
 @pytest.mark.asyncio
 async def test_list_output_profiles_root_and_tenant(service: StudioOutputProfileService) -> None:
     """Test list_output_profiles filters correctly by role/tenant."""
-    p1 = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1", "org_1", "P1")
-    p2 = _make_valid_profile("prf_2222222222222222", "opt_2", "wf_1", "org_2", "P2")
+    p1 = _make_valid_profile(
+        "prf_0195f3a0000070008000111111111111",
+        "opt_1",
+        "wf_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000001",
+        "P1",
+    )
+    p2 = _make_valid_profile(
+        "prf_0195f3a0000070008000222222222222",
+        "opt_2",
+        "wf_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000002",
+        "P2",
+    )
     await service.output_profile_repo.create_output_profile(p1)
     await service.output_profile_repo.create_output_profile(p2)
 
@@ -134,34 +158,58 @@ async def test_list_output_profiles_root_and_tenant(service: StudioOutputProfile
     res_root = await service.list_output_profiles(root_user)
     assert len(res_root) == 2
 
-    tenant_user = TokenData(id="tenant_user", role=UserRole.ADMIN, organization_id="org_1")
+    tenant_user = TokenData(
+        id="tenant_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
     res_tenant = await service.list_output_profiles(tenant_user)
     assert len(res_tenant) == 1
-    assert res_tenant[0].id == "prf_1111111111111111"
+    assert res_tenant[0].id == "prf_0195f3a0000070008000111111111111"
 
 
 @pytest.mark.asyncio
 async def test_get_output_profile_success_and_not_found(service: StudioOutputProfileService) -> None:
     """Test get_output_profile returns model or raises ResourceNotFoundError."""
-    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
-    p1 = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1", "org_1", "P1")
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
+    p1 = _make_valid_profile(
+        "prf_0195f3a0000070008000111111111111",
+        "opt_1",
+        "wf_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000001",
+        "P1",
+    )
     await service.output_profile_repo.create_output_profile(p1)
-    res = await service.get_output_profile(initiator, "prf_1111111111111111")
-    assert res.id == "prf_1111111111111111"
+    res = await service.get_output_profile(initiator, "prf_0195f3a0000070008000111111111111")
+    assert res.id == "prf_0195f3a0000070008000111111111111"
 
     with pytest.raises(AppException) as exc_info:
-        await service.get_output_profile(initiator, "prf_missing111111")
+        await service.get_output_profile(initiator, "prf_0195f3a0000070008000999999999999")
     assert exc_info.value.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_delete_output_profile(service: StudioOutputProfileService) -> None:
     """Test delete_output_profile deletes existing resource."""
-    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
-    p1 = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1", "org_1", "P1")
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
+    p1 = _make_valid_profile(
+        "prf_0195f3a0000070008000111111111111",
+        "opt_1",
+        "wf_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000001",
+        "P1",
+    )
     await service.output_profile_repo.create_output_profile(p1)
-    await service.delete_output_profile(initiator, "prf_1111111111111111")
-    assert await service.output_profile_repo.get_output_profile_by_id("prf_1111111111111111") is None
+    await service.delete_output_profile(initiator, "prf_0195f3a0000070008000111111111111")
+    assert await service.output_profile_repo.get_output_profile_by_id("prf_0195f3a0000070008000111111111111") is None
 
 
 @pytest.mark.asyncio
@@ -169,25 +217,40 @@ async def test_create_and_clone_output_profile(
     service: StudioOutputProfileService, mock_workflow_service: AsyncMock
 ) -> None:
     """Test draft creation and cloning of an output profile."""
-    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
 
     workflow = AsyncMock()
-    workflow.id = "wf_1234567890abcdef"
+    workflow.id = "wf_0195f3a00000700080001234567890ab"
     workflow.steps = []
     workflow.get_allowed_layout_targets = Mock(
-        return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value, "blk_matrix_001"}
+        return_value={
+            TargetBlockType.GLOBAL_SCORE_BLOCK.value,
+            "blk_0195f3a0000070008000000000000001",
+        }
     )
-    workflow.get_allowed_prompt_block_targets = Mock(return_value={"blk_matrix_001"})
+    workflow.get_allowed_prompt_block_targets = Mock(
+        return_value={"blk_0195f3a0000070008000000000000001"}
+    )
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
     mock_workflow_service.list_workflows.return_value = [workflow]
 
-    p1 = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1234567890abcdef", "org_1", "Original")
+    p1 = _make_valid_profile(
+        "prf_0195f3a0000070008000111111111111",
+        "opt_1",
+        "wf_0195f3a00000700080001234567890ab",
+        "org_0195f3a0000070008000000000000001",
+        "Original",
+    )
     await service.output_profile_repo.create_output_profile(p1)
 
     draft = await service.create_output_profile_draft(initiator)
     assert draft.id.startswith("prf_")
-    assert draft.workflow_id == "wf_1234567890abcdef"
+    assert draft.workflow_id == "wf_0195f3a00000700080001234567890ab"
     assert draft.tone_instruction is not None and isinstance(draft.tone_instruction, str)
     assert draft.executive_summary_directive is not None
     assert draft.matrix_1d_synthesis_directive is not None
@@ -203,7 +266,7 @@ async def test_create_and_clone_output_profile(
     assert draft.variance_length_constraint is not None
     assert len(draft.matrix_synthesis_groups) >= 1
 
-    cloned = await service.clone_output_profile(initiator, "prf_1111111111111111")
+    cloned = await service.clone_output_profile(initiator, "prf_0195f3a0000070008000111111111111")
     assert cloned.id.startswith("prf_")
     saved_cloned = await service.output_profile_repo.get_output_profile_by_id(cloned.id)
     assert saved_cloned is not None
@@ -212,14 +275,18 @@ async def test_create_and_clone_output_profile(
 @pytest.mark.asyncio
 async def test_output_profile_service_not_found_branches(service: StudioOutputProfileService) -> None:
     """Test ResourceNotFoundError triggers for missing resources on delete and clone."""
-    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
 
     with pytest.raises(AppException) as exc_info:
-        await service.delete_output_profile(initiator, "prf_missing111111")
+        await service.delete_output_profile(initiator, "prf_0195f3a0000070008000999999999999")
     assert exc_info.value.status_code == 404
 
     with pytest.raises(AppException) as exc_info:
-        await service.clone_output_profile(initiator, "prf_missing111111")
+        await service.clone_output_profile(initiator, "prf_0195f3a0000070008000999999999999")
     assert exc_info.value.status_code == 404
 
 
@@ -228,21 +295,33 @@ async def test_save_output_profile_invalid_target_component_raises_app_exception
     service: StudioOutputProfileService, mock_workflow_service: AsyncMock
 ) -> None:
     """Test that target block not in allowed_blocks raises 400 VALIDATION_FAILED."""
-    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
 
     workflow = AsyncMock()
-    workflow.id = "wf_1234567890abcdef"
+    workflow.id = "wf_0195f3a00000700080001234567890ab"
     workflow.steps = []
-    workflow.get_allowed_layout_targets = Mock(return_value={"blk_allowed_001"})
+    workflow.get_allowed_layout_targets = Mock(
+        return_value={"blk_0195f3a0000070008000000000000001"}
+    )
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
 
     group = MatrixSynthesisGroup(
-        id="grp_1111111111111111",
+        id="grp_0195f3a0000070008000111111111111",
         title=I18nText(translations={"en": "Invalid Group"}),
-        target_blocks=["blk_not_allowed_999"],
+        target_blocks=["blk_0195f3a0000070008000000000000999"],
     )
-    profile = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1234567890abcdef", "org_1", "Test")
+    profile = _make_valid_profile(
+        "prf_0195f3a0000070008000111111111111",
+        "opt_1",
+        "wf_0195f3a00000700080001234567890ab",
+        "org_0195f3a0000070008000000000000001",
+        "Test",
+    )
     profile = profile.model_copy(update={"matrix_synthesis_groups": [group]})
 
     with pytest.raises(AppException) as exc_info:
@@ -257,7 +336,11 @@ async def test_create_output_profile_draft_raises_when_no_workflows(
     service: StudioOutputProfileService, mock_workflow_service: AsyncMock
 ) -> None:
     """Test that when list_workflows returns empty, draft raises ResourceNotFoundError."""
-    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
     mock_workflow_service.list_workflows.return_value = []
 
     with pytest.raises(ResourceNotFoundError) as exc_info:
@@ -270,10 +353,14 @@ async def test_create_output_profile_draft_workflow_with_no_prompt_blocks_assign
     service: StudioOutputProfileService, mock_workflow_service: AsyncMock
 ) -> None:
     """ISTQB Negative Boundary: Workflow with only global layout targets sets initial_target_block=None."""
-    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
 
     workflow = AsyncMock()
-    workflow.id = "wf_1234567890abcdef"
+    workflow.id = "wf_0195f3a00000700080001234567890ab"
     workflow.steps = []
     workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
     workflow.get_allowed_prompt_block_targets = Mock(return_value=set())
@@ -290,17 +377,27 @@ async def test_save_output_profile_normalizes_mismatched_id_in_place(
     service: StudioOutputProfileService, mock_workflow_service: AsyncMock
 ) -> None:
     """ISTQB Boundary: Payload with mismatched ID is normalized in-place to the authoritative route ID."""
-    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
 
     workflow = AsyncMock()
-    workflow.id = "wf_1234567890abcdef"
+    workflow.id = "wf_0195f3a00000700080001234567890ab"
     workflow.steps = []
     workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
 
-    payload = _make_valid_profile("prf_aaaaaaaaaaaaaaaa", "opt_1", "wf_1234567890abcdef", "org_1", "Mismatched")
-    target_id = "prf_bbbbbbbbbbbbbbbb"
+    payload = _make_valid_profile(
+        "prf_0195f3a0000070008000aaaaaaaaaaaa",
+        "opt_1",
+        "wf_0195f3a00000700080001234567890ab",
+        "org_0195f3a0000070008000000000000001",
+        "Mismatched",
+    )
+    target_id = "prf_0195f3a0000070008000bbbbbbbbbbbb"
 
     saved = await service.save_output_profile(initiator, target_id, payload)
     assert saved.id == target_id
@@ -316,16 +413,26 @@ async def test_save_output_profile_raises_when_missing_after_save(
     mock_workflow_service: AsyncMock,
 ) -> None:
     """ISTQB Negative: Missing resource on post-save re-fetch raises ResourceNotFoundError."""
-    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
 
     workflow = AsyncMock()
-    workflow.id = "wf_1234567890abcdef"
+    workflow.id = "wf_0195f3a00000700080001234567890ab"
     workflow.steps = []
     workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
 
-    payload = _make_valid_profile("prf_1111111111111111", "opt_1", "wf_1234567890abcdef", "org_1", "Test")
+    payload = _make_valid_profile(
+        "prf_0195f3a0000070008000111111111111",
+        "opt_1",
+        "wf_0195f3a00000700080001234567890ab",
+        "org_0195f3a0000070008000000000000001",
+        "Test",
+    )
     mock_output_profile_repo.inject_fault(
         "get_output_profile_by_id",
         ResourceNotFoundError(resource_type="output_profile", resource_id=payload.id),

@@ -80,7 +80,8 @@ from backend_v2.models.dtos.system import (
     SystemSettingsDTO,
 )
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
-from backend_v2.models.enums import CognitiveTier, LLMProvider
+from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.enums import CognitiveTier, EntityPrefix, LLMProvider
 from backend_v2.models.state import TraceEvent
 
 
@@ -192,7 +193,7 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
 
     async def create_execution(self, execution_data: ExecutionCreateDTO) -> str:
         self._check_fault("create_execution")
-        exec_id = f"exe_{uuid.uuid4().hex[:16]}"
+        exec_id = generate_opaque_id(EntityPrefix.EXECUTION)
         data_dict = execution_data.model_dump(mode="python")
         data_dict["id"] = exec_id
         if "raw_inputs" not in data_dict or data_dict["raw_inputs"] is None:
@@ -335,11 +336,11 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
 
     async def create_workflow(self, workflow_data: WorkflowCreateDTO) -> str:
         self._check_fault("create_workflow")
-        wf_id = f"wf_{uuid.uuid4().hex[:16]}"
+        wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
         data_dict = workflow_data.model_dump(mode="python")
         data_dict["id"] = wf_id
         if "default_profile_id" not in data_dict or data_dict["default_profile_id"] is None:
-            data_dict["default_profile_id"] = "prof_default"
+            data_dict["default_profile_id"] = None
         if "status" not in data_dict or data_dict["status"] is None:
             data_dict["status"] = "ACTIVE"
         if "version" not in data_dict or data_dict["version"] is None:
@@ -347,7 +348,7 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
         if "description" not in data_dict or data_dict["description"] is None:
             data_dict["description"] = "Default description"
         if not ("model_registry_id" in data_dict and data_dict["model_registry_id"]):
-            data_dict["model_registry_id"] = "cfg_model_registry_01"
+            data_dict["model_registry_id"] = "sys_1234567890abcdef1234567890abcdef"
         model = Workflow.model_validate(data_dict)
         self._save_isolated(wf_id, model)
         return wf_id
@@ -412,7 +413,7 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
 
     async def create_step(self, step_data: StepCreateDTO) -> str:
         self._check_fault("create_step")
-        s_id = f"stp_{uuid.uuid4().hex[:16]}"
+        s_id = generate_opaque_id(EntityPrefix.STEP)
         data_dict = step_data.model_dump(mode="python")
         data_dict["id"] = s_id
         model = Step.model_validate(data_dict)
@@ -483,7 +484,7 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
             org = org_data
             org_id = org.id
         else:
-            org_id = f"org_{uuid.uuid4().hex[:16]}"
+            org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
             org = Organization(
                 id=org_id,
                 name=org_data.name,
@@ -543,7 +544,7 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
             u_id = user_data.id
             self._users[u_id] = self._clone(user_data)
             return u_id
-        u_id = f"usr_{uuid.uuid4().hex[:16]}"
+        u_id = generate_opaque_id(EntityPrefix.USER)
         data_dict = user_data.model_dump(mode="python")
         data_dict["id"] = u_id
         if "password" in data_dict:
@@ -964,7 +965,7 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         )
         self._model_registries: dict[str, SystemConfigModelRegistry] = {
             default_reg.id: default_reg,
-            "sys_e26807f3bfa3454d": default_reg,
+            "sys_0195f3a0000070008000e26807f3bfa3": default_reg,
         }
         self._mcp_gateways = SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[])
         self._mcp_gateways_map: dict[str, SystemConfigMCPGateways] = {
@@ -1892,7 +1893,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
                 try:
                     b_id = b["id"]
                 except KeyError, TypeError:
-                    b_id = f"blk_{uuid.uuid4().hex[:16]}"
+                    b_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
             self._prompt_blocks.seed_raw_prompt_block(b_id, b)
 
     def seed_raw_workflow(self, workflow_id: str, raw_workflow: Any) -> None:
@@ -1910,7 +1911,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         try:
             self._workflows._storage[workflow.id] = workflow
         except AttributeError:
-            wf_id = workflow["id"] if "id" in workflow else "wor_0123456789abcdef"
+            wf_id = workflow["id"] if "id" in workflow else "wf_0123456789abcdef0123456789abcdef"
             self._workflows.seed_raw_workflow(wf_id, workflow)
 
     def set_execution(self, record: ExecutionRecord | Any | None) -> None:
@@ -1942,7 +1943,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         try:
             self._identities._users[user.id] = self._identities._clone(user)
         except AttributeError:
-            u_id = user["id"] if "id" in user else "usr_0123456789abcdef"
+            u_id = user["id"] if "id" in user else "usr_0123456789abcdef0123456789abcdef"
             self._identities._users[u_id] = copy.deepcopy(user)
 
     def set_organization(self, org: Organization | None) -> None:

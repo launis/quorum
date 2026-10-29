@@ -187,6 +187,24 @@ class WorkflowFactory(ModelFactory[Workflow]):
         """
         return generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
 
+    @classmethod
+    def model_registry_id(cls) -> str:
+        """Generate a valid model registry Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'sys_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+
+    @classmethod
+    def mcp_gateway_id(cls) -> str:
+        """Generate a valid MCP gateway Opaque Stripe ID.
+
+        Returns:
+            Canonical Opaque Stripe ID with 'sys_' prefix.
+        """
+        return generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+
 
 class SystemRulePromptBlockFactory(ModelFactory[SystemRulePromptBlock]):
     """Polyfactory model factory for SystemRulePromptBlock domain models."""
@@ -826,16 +844,16 @@ class CausalGraphPayloadDTOFactory(ModelFactory[CausalGraphPayloadDTO]):
         """
         return [
             CausalNodeDTO(
-                node_id="tda_0000000000000001",
+                node_id="tda_0195f3a0000070008000000000000001",
                 claim="Premise claim statement.",
                 source_quotes=("Verbatim quote 1.",),
                 paragraph_ref="B0",
                 status=ExecutionStatus.PASSED,
                 blame_parent_ids=[],
-                dependent_child_ids=["tda_0000000000000002"],
+                dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
             ),
             CausalNodeDTO(
-                node_id="tda_0000000000000002",
+                node_id="tda_0195f3a0000070008000000000000002",
                 claim="Conclusion claim statement.",
                 source_quotes=("Verbatim quote 2.",),
                 paragraph_ref="B1",
@@ -854,8 +872,8 @@ class CausalGraphPayloadDTOFactory(ModelFactory[CausalGraphPayloadDTO]):
         """
         return [
             CausalEdgeDTO(
-                source_id="tda_0000000000000001",
-                target_id="tda_0000000000000002",
+                source_id="tda_0195f3a0000070008000000000000001",
+                target_id="tda_0195f3a0000070008000000000000002",
                 reasoning="Logical premise to conclusion dependency.",
             )
         ]

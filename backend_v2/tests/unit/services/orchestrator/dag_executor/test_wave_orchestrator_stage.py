@@ -23,6 +23,8 @@ from backend_v2.models.domain.execution import (
     FrozenContext,
 )
 from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
+from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.workflow import Workflow
@@ -33,7 +35,14 @@ from backend_v2.models.dtos.causal_discovery import (
 )
 from backend_v2.models.dtos.node_execution import StepOutputContentDTO
 from backend_v2.models.dtos.trace import TraceEventMetadataDTO
-from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
+from backend_v2.models.enums import (
+    BlockDataType,
+    CognitiveTier,
+    ExecutionStatus,
+    HistoricalContextMode,
+    PromptBlockCategory,
+    StepType,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.services.orchestrator.dag_executor.execution_committer import ExecutionCommitter
@@ -69,17 +78,18 @@ def _build_state(
     steps: list[StepRule],
     step_definitions: dict[str, Step] | None = None,
     step_statuses: dict[str, ExecutionStatus] | None = None,
+    blocks_by_id: dict[str, AnyPromptBlock] | None = None,
 ) -> WorkflowExecutionState:
     wf = Workflow(
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070008000111122223333",
         slug="wf_wave_orch",
         name=I18nText(translations={"en": "Wave WF", "fi": "Aalto WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
         status="active",
         version=1,
         historical_context_mode=HistoricalContextMode.DISABLED,
-        default_profile_id="prf_1111222233334444",
-        model_registry_id="sys_1111222233334444",
+        default_profile_id="prf_0195f3a0000070008000111122223333",
+        model_registry_id="sys_0195f3a0000070008000111122223333",
         steps=steps,
     )
     statuses = step_statuses or {}
@@ -92,7 +102,7 @@ def _build_state(
         for s in steps
     ]
     rec = ExecutionRecord(
-        id="exe_1111222233334444",
+        id="exe_0195f3a0000070008000111122223333",
         workflow_id=wf.id,
         target_locale="en",
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "input"}),
@@ -104,7 +114,7 @@ def _build_state(
         execution_trace=[],
         metadata=ExecutionMetadata(
             workflow_version=1,
-            model_registry_id="sys_1111222233334444",
+            model_registry_id="sys_0195f3a0000070008000111122223333",
             global_context_vars=GlobalContextVarsDTO(language="en", target_locale="en"),
         ),
     )
@@ -115,6 +125,7 @@ def _build_state(
         global_context_vars=GlobalContextVarsDTO(language="en", target_locale="en"),
         projector=StateProjector(),
         step_definitions=step_definitions or {},
+        blocks_by_id=blocks_by_id or {},
         steps_by_id={s.id: s for s in steps},
         step_exceptions=dlq_fallback_step_exceptions(),
     )
@@ -124,11 +135,11 @@ def _build_state(
 async def test_execute_topological_waves_stage_runs_parallel_wave_steps() -> None:
     """Contract: execute_topological_waves_stage dispatches independent wave steps concurrently inside TaskGroup."""
     repo = InMemoryUnifiedWorkflowRepository()
-    step_a = StepRule(id="stp_1111111111111111", task_blueprint="stp_1111111111111111", depends_on=[])
-    step_b = StepRule(id="stp_2222222222222222", task_blueprint="stp_1111111111111111", depends_on=[])
+    step_a = StepRule(id="stp_0195f3a0000070008000111111111111", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[])
+    step_b = StepRule(id="stp_0195f3a0000070008000222222222222", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[])
     step_c = StepRule(
-        id="stp_3333333333333333",
-        task_blueprint="stp_1111111111111111",
+        id="stp_0195f3a0000070008000333333333333",
+        task_blueprint="stp_0195f3a0000070008000111111111111",
         depends_on=[step_a.id, step_b.id],
     )
     state = _build_state(steps=[step_a, step_b, step_c])
@@ -161,11 +172,11 @@ async def test_execute_topological_waves_stage_runs_parallel_wave_steps() -> Non
 async def test_execute_topological_waves_stage_marks_downstream_steps_blocked_on_failure() -> None:
     """Contract: execute_topological_waves_stage traps step exceptions, marks downstream steps BLOCKED, and re-raises."""
     repo = InMemoryUnifiedWorkflowRepository()
-    step_fail = StepRule(id="stp_1111111111111111", task_blueprint="stp_1111111111111111", depends_on=[])
-    step_sibling = StepRule(id="stp_2222222222222222", task_blueprint="stp_1111111111111111", depends_on=[])
+    step_fail = StepRule(id="stp_0195f3a0000070008000111111111111", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[])
+    step_sibling = StepRule(id="stp_0195f3a0000070008000222222222222", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[])
     step_downstream = StepRule(
-        id="stp_3333333333333333",
-        task_blueprint="stp_1111111111111111",
+        id="stp_0195f3a0000070008000333333333333",
+        task_blueprint="stp_0195f3a0000070008000111111111111",
         depends_on=[step_fail.id],
     )
     state = _build_state(steps=[step_fail, step_sibling, step_downstream])
@@ -202,16 +213,60 @@ async def test_execute_topological_waves_stage_marks_downstream_steps_blocked_on
 async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_context_updates() -> None:
     """Verify finalize_step_output_and_commit evaluates causal TDA fusion, updates context vars, and deduplicates MCP."""
     repo = InMemoryUnifiedWorkflowRepository()
-    causal_step = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444")
+    causal_step = StepRule(
+        id="stp_0195f3a0000070008000111122223333",
+        task_blueprint="stp_0195f3a0000070008000111122223333",
+    )
     tda_step = StepRule(
-        id="stp_5555666677778888",
-        task_blueprint="stp_5555666677778888",
+        id="stp_0195f3a0000070008000555566667777",
+        task_blueprint="stp_0195f3a0000070008000555566667777",
         depends_on=[causal_step.id],
         causal_source_step_id=causal_step.id,
     )
+    cohesion_mat_id = "blk_0195f3a0000070008000440a5fef9331"
+    cohesion_mat = MatrixPromptBlock(
+        id=cohesion_mat_id,
+        slug="mat_causal_cohesion",
+        label=I18nText(translations={"en": "Causal Cohesion", "fi": "Kausaalinen koheesio"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        scales=[
+            MatrixScale(
+                score=lvl,
+                ai_label=f"L{lvl}",
+                claims=[
+                    MatrixClaim(
+                        label=I18nText(translations={"en": f"Claim L{lvl}"}),
+                        tda_assertions=[
+                            TDAAssertion(
+                                tda_id=f"tda_0195f3a000007000800000000000000{lvl}",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                                concept_description=f"Causal cohesion assertion for level {lvl}",
+                                extraction_rule=f"Rule L{lvl}",
+                            )
+                        ],
+                    )
+                ],
+            )
+            for lvl in range(1, 6)
+        ],
+    )
+    causal_bp = Step(
+        id=causal_step.task_blueprint,
+        slug="step_causal",
+        name=I18nText(translations={"en": "Causal Step", "fi": "Kausaaliaskel"}),
+        type=StepType.CAUSAL_DISCOVERY,
+        extraction_protocol_block_id="blk_0195f3a0000070008000abcdef012345",
+        criteria_block_ids=[cohesion_mat_id],
+        cognitive_tier=CognitiveTier.FAST,
+    )
     state = _build_state(
         steps=[causal_step, tda_step],
+        step_definitions={causal_bp.id: causal_bp},
         step_statuses={causal_step.id: ExecutionStatus.PASSED, tda_step.id: ExecutionStatus.RUNNING},
+        blocks_by_id={cohesion_mat_id: cohesion_mat},
     )
     repo.set_execution(state.exec_record)
     committer = ExecutionCommitter(exec_repo=repo, execution_id=state.execution_id)
@@ -219,7 +274,7 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
     graph = CausalGraphPayloadDTO(
         nodes=[
             CausalNodeDTO(
-                node_id="tda_1111222233334444",
+                node_id="tda_0195f3a0000070008000111122223333",
                 claim="Claim 1",
                 source_quotes=("Quote 1",),
                 paragraph_ref="P1",
@@ -236,7 +291,7 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
         edge_root_causes=[],
     )
     atom_dto = AtomResultDTO(
-        tda_id="tda_1111222233334444",
+        tda_id="tda_0195f3a0000070008000111122223333",
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Valid evidence",
         source_quotes=("Quote 1",),
@@ -270,7 +325,7 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
             event_type="decision",
             metadata=TraceEventMetadataDTO(is_context_update=True, generated_schema={"type": "object"}),
             content=GlobalContextVarsDTO(
-                evaluative_matrices={"blk_1111222233334444": 80.0},
+                evaluative_matrices={"blk_0195f3a0000070008000111122223333": 80.0},
                 passivity_detected=True,
             ),
         ),
@@ -287,7 +342,7 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
     assert state.exec_record.step_states[tda_step.id].status == ExecutionStatus.PASSED
     assert state.global_context_vars.passivity_detected is True
     assert state.global_context_vars.evaluative_matrices is not None
-    assert "blk_1111222233334444" in state.global_context_vars.evaluative_matrices
+    assert "blk_0195f3a0000070008000111122223333" in state.global_context_vars.evaluative_matrices
     assert state.exec_record.frozen_context is not None
     assert len(state.exec_record.frozen_context.mcp_tool_audit) == 1
 
@@ -360,7 +415,7 @@ async def test_execute_topological_waves_stage_traps_direct_runtime_error_and_ap
     from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
     repo = InMemoryUnifiedWorkflowRepository()
-    step_a = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
+    step_a = StepRule(id="stp_0195f3a0000070008000111122223333", task_blueprint="stp_0195f3a0000070008000111122223333", depends_on=[])
     state_app_exc = _build_state(steps=[step_a])
     repo.set_execution(state_app_exc.exec_record)
     committer = ExecutionCommitter(exec_repo=repo, execution_id=state_app_exc.execution_id)

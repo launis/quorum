@@ -10,7 +10,6 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import LaxHistoricalContextMode, StepType, TargetBlockType
-from backend_v2.settings import get_settings
 
 
 def _build_test_step(
@@ -51,7 +50,7 @@ def test_workflow_get_allowed_prompt_block_targets_positive() -> None:
         description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
         status="active",
         version=1,
-        model_registry_id="sys_e26807f3bfa3454d",
+        model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
         historical_context_mode=LaxHistoricalContextMode.DISABLED,
         steps=[step_rule_1, step_rule_2],
     )
@@ -99,7 +98,7 @@ def test_workflow_get_allowed_layout_targets_composes_blocks_and_system_types() 
         description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
         status="active",
         version=1,
-        model_registry_id="sys_e26807f3bfa3454d",
+        model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
         historical_context_mode=LaxHistoricalContextMode.DISABLED,
         steps=[step_rule],
     )
@@ -111,11 +110,7 @@ def test_workflow_get_allowed_layout_targets_composes_blocks_and_system_types() 
         )
     ]
 
-    settings = get_settings()
-    layout_targets = workflow.get_allowed_layout_targets(
-        hydrated_steps,
-        causal_cohesion_block_id=settings.causal_cohesion_matrix_block_id,
-    )
+    layout_targets = workflow.get_allowed_layout_targets(hydrated_steps)
 
     # Contains concrete block
     assert "blk_11111111111111111111111111111111" in layout_targets
@@ -123,15 +118,6 @@ def test_workflow_get_allowed_layout_targets_composes_blocks_and_system_types() 
     # Contains all TargetBlockType values
     for e in TargetBlockType:
         assert e.value in layout_targets
-
-    # Contains causal cohesion matrix block ID from settings SSOT
-    assert settings.causal_cohesion_matrix_block_id in layout_targets
-
-    # Test explicit override parameter
-    custom_targets = workflow.get_allowed_layout_targets(
-        hydrated_steps, causal_cohesion_block_id="blk_custom_cohesion_override"
-    )
-    assert "blk_custom_cohesion_override" in custom_targets
 
 
 def test_workflow_get_allowed_prompt_block_targets_empty_steps() -> None:
@@ -143,7 +129,7 @@ def test_workflow_get_allowed_prompt_block_targets_empty_steps() -> None:
         description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
         status="active",
         version=1,
-        model_registry_id="sys_e26807f3bfa3454d",
+        model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
         historical_context_mode=LaxHistoricalContextMode.DISABLED,
         steps=[],
     )
@@ -151,13 +137,9 @@ def test_workflow_get_allowed_prompt_block_targets_empty_steps() -> None:
     prompt_targets = workflow.get_allowed_prompt_block_targets([])
     assert prompt_targets == set()
 
-    # Layout targets still include system blocks and causal cohesion matrix block if passed
-    settings = get_settings()
-    layout_targets = workflow.get_allowed_layout_targets(
-        [],
-        causal_cohesion_block_id=settings.causal_cohesion_matrix_block_id,
-    )
-    expected_blocks = {e.value for e in TargetBlockType} | {settings.causal_cohesion_matrix_block_id}
+    # Layout targets still include system blocks
+    layout_targets = workflow.get_allowed_layout_targets([])
+    expected_blocks = {e.value for e in TargetBlockType}
     assert layout_targets == expected_blocks
 
 
@@ -171,7 +153,7 @@ def test_workflow_validation_dag_orphan_reference_fails() -> None:
             description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
             status="active",
             version=1,
-            model_registry_id="sys_e26807f3bfa3454d",
+            model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
             historical_context_mode=LaxHistoricalContextMode.DISABLED,
             steps=[
                 StepRule(
@@ -194,7 +176,7 @@ def test_workflow_validation_dag_circular_dependency_fails() -> None:
             description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
             status="active",
             version=1,
-            model_registry_id="sys_e26807f3bfa3454d",
+            model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
             historical_context_mode=LaxHistoricalContextMode.DISABLED,
             steps=[
                 StepRule(

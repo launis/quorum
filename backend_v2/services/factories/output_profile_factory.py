@@ -8,10 +8,10 @@ import logging
 import re
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, generate_opaque_id
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
-from backend_v2.models.enums import PresetView, TargetBlockType
+from backend_v2.models.enums import EntityPrefix, PresetView, TargetBlockType
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -137,6 +137,7 @@ def build_draft_output_profile(
         target_block_order.insert(3, TargetBlockType.MATRIX_GRAPHS_BLOCK)
         matrix_synthesis_groups.append(
             MatrixSynthesisGroup(
+                id=generate_opaque_id(EntityPrefix.SYNTHESIS_GROUP),
                 title=I18nText(translations={"en": "Executive Overview", "fi": "Johdon yleiskuva"}),
                 target_blocks=[initial_target_block],
                 view_type=PresetView.METRICS_1D,

@@ -39,13 +39,14 @@ class Workflow(V2CoreBase):
         str | None,
         Field(default=None, description="The ID of the default output profile to use."),
     ] = None
+    # Phase 4, Step 4: Enforce 32-hex sys_ pattern and remove hardcoded default gateway ID
     mcp_gateway_id: str | None = Field(
-        default="sys_8172bda70c8641c5",
-        pattern=r"^sys_[a-fA-F0-9]{16,32}$",
+        default=None,
+        pattern=r"^sys_[a-fA-F0-9]{32}$",
         description="The system_config ID of the MCP gateways configuration attached to this workflow.",
     )
     model_registry_id: str = Field(
-        pattern=r"^(sys_[a-fA-F0-9]{16,32}|cfg_model_registry_\d{2})$",
+        pattern=r"^sys_[a-fA-F0-9]{32}$",
         description="System config ID of the attached model registry",
     )
     default_strictness_level: Annotated[
@@ -194,24 +195,19 @@ class Workflow(V2CoreBase):
     def get_allowed_layout_targets(
         self,
         hydrated_steps: list[Step],
-        causal_cohesion_block_id: str | None = None,
     ) -> set[str]:
         """Calculates all allowed layout targets including system blocks.
 
         Args:
             hydrated_steps: List of full Step objects from the database.
-            causal_cohesion_block_id: Optional explicit block ID override for testing.
 
         Returns:
             A set of allowed block IDs and system TargetBlockTypes.
         """
+        # Phase 4, Step 4: Causal cohesion matrix is resolved directly from step.criteria_block_ids
         allowed_blocks = self.get_allowed_prompt_block_targets(hydrated_steps)
 
         # Add system blocks natively supported by the architecture
         allowed_blocks.update([e.value for e in TargetBlockType])
-
-        # Add causal cohesion matrix block ID if provided by the service layer
-        if causal_cohesion_block_id:
-            allowed_blocks.add(causal_cohesion_block_id)
 
         return allowed_blocks

@@ -95,7 +95,7 @@ def member_token() -> TokenData:
 
 
 def _valid_step(
-    step_id: str = "sp_0123456789abcdef",
+    step_id: str = "stp_0195f3a00000700080000123456789ab",
     slug: str = "step_slug",
     is_system_core: bool = False,
     org_id: str = "org_123",
@@ -108,18 +108,18 @@ def _valid_step(
         organization_id=org_id,
         safety="safe",
         cognitive_tier=CognitiveTier.FAST,
-        criteria_block_ids=["blk_0123456789abcdef"],
-        extraction_protocol_block_id="blk_0123456789abcdef",
+        criteria_block_ids=["blk_0195f3a00000700080000123456789ab"],
+        extraction_protocol_block_id="blk_0195f3a00000700080000123456789ab",
         is_system_core=is_system_core,
     )
 
 
 def _valid_workflow(
-    wf_id: str = "wor_0123456789abcdef",
+    wf_id: str = "wf_0195f3a00000700080000123456789ab",
     slug: str = "wf_slug",
     org_id: str | None = "org_123",
     status: str = "active",
-    model_registry_id: str = "sys_e26807f3bfa3454d",
+    model_registry_id: str = "sys_0195f3a0000070008000e26807f3bfa3",
 ) -> Workflow:
     return Workflow(
         id=wf_id,
@@ -131,13 +131,13 @@ def _valid_workflow(
         organization_id=org_id,
         expected_inputs=[],
         steps=[],
-        default_profile_id="prf_0123456789abcdef",
+        default_profile_id="prf_0195f3a00000700080000123456789ab",
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id=model_registry_id,
     )
 
 
-def _valid_matrix_block(block_id: str = "blk_0123456789abcdef") -> MatrixPromptBlock:
+def _valid_matrix_block(block_id: str = "blk_0195f3a00000700080000123456789ab") -> MatrixPromptBlock:
     return MatrixPromptBlock(
         id=block_id,
         slug=f"slug_{block_id}",
@@ -168,13 +168,13 @@ async def test_list_workflows_tenant_filtering(
     mock_workflow_repo: InMemoryWorkflowRepository,
     mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
-    wf1 = _valid_workflow("wor_0123456789abcdef", org_id="org_123")
-    wf2 = _valid_workflow("wor_0123456789fedcba", org_id="org_999")
+    wf1 = _valid_workflow("wf_0195f3a00000700080000123456789ab", org_id="org_123")
+    wf2 = _valid_workflow("wf_0195f3a00000700080000123456789fe", org_id="org_999")
     await mock_workflow_repo.save_workflow(wf1)
     await mock_workflow_repo.save_workflow(wf2)
     res = await workflow_service.list_workflows(admin_token)
     assert len(res) == 1
-    assert res[0].id == "wor_0123456789abcdef"
+    assert res[0].id == "wf_0195f3a00000700080000123456789ab"
 
 
 async def test_list_workflows_public_and_system_allowed(
@@ -183,10 +183,10 @@ async def test_list_workflows_public_and_system_allowed(
     mock_workflow_repo: InMemoryWorkflowRepository,
     mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
-    wf_public = _valid_workflow("wor_0000000000000001", org_id="org_999")
+    wf_public = _valid_workflow("wf_0195f3a0000070008000000000000001", org_id="org_999")
     wf_public = wf_public.model_copy(update={"is_public": True})
-    wf_system = _valid_workflow("wor_0000000000000002", org_id="SYSTEM")
-    wf_none = _valid_workflow("wor_0000000000000003", org_id=None)
+    wf_system = _valid_workflow("wf_0195f3a0000070008000000000000002", org_id="SYSTEM")
+    wf_none = _valid_workflow("wf_0195f3a0000070008000000000000003", org_id=None)
     await mock_workflow_repo.save_workflow(wf_public)
     await mock_workflow_repo.save_workflow(wf_system)
     await mock_workflow_repo.save_workflow(wf_none)
@@ -232,20 +232,20 @@ async def test_get_workflow_available_extensions(
     mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
     wf = _valid_workflow(org_id="org_123")
-    step = _valid_step("sp_0123456789abcdef", org_id="org_123")
+    step = _valid_step("stp_0195f3a00000700080000123456789ab", org_id="org_123")
     wf_with_steps = wf.model_copy(
         update={
             "steps": [
                 StepRule(
-                    id="sr_0123456789abcdef",
-                    task_blueprint="sp_0123456789abcdef",
+                    id="sr_0195f3a00000700080000123456789ab",
+                    task_blueprint="stp_0195f3a00000700080000123456789ab",
                 )
             ]
         }
     )
     await mock_workflow_repo.save_workflow(wf_with_steps)
     await mock_workflow_repo.save_step(step)
-    await mock_prompt_block_repo.create_prompt_block(_valid_matrix_block("blk_0123456789abcdef"))
+    await mock_prompt_block_repo.create_prompt_block(_valid_matrix_block("blk_0195f3a00000700080000123456789ab"))
 
     exts = await workflow_service.get_workflow_available_extensions(admin_token, wf.id)
     assert exts == ["detailed_gap_analysis", "executive_summary"]
@@ -310,6 +310,9 @@ async def test_create_workflow_draft_root(root_token: TokenData) -> None:
     assert res.status == "draft"
     first_reg = (await sys_repo.get_all_model_registries())[0]
     assert res.model_registry_id == first_reg.id
+    first_gw = (await sys_repo.get_all_mcp_gateways())[0]
+    assert res.mcp_gateway_id == first_gw.id
+    assert res.default_profile_id is None
     assert res.organization_id == SystemOrganizations.ROOT_SYSTEM
     assert bool(re.match(OPAQUE_STRIPE_ID_REGEX, res.id))
     assert res.id.startswith(f"{EntityPrefix.WORKFLOW}_")
@@ -339,6 +342,9 @@ async def test_create_workflow_draft_admin(admin_token: TokenData) -> None:
     assert res.status == "draft"
     first_reg = (await sys_repo.get_all_model_registries())[0]
     assert res.model_registry_id == first_reg.id
+    first_gw = (await sys_repo.get_all_mcp_gateways())[0]
+    assert res.mcp_gateway_id == first_gw.id
+    assert res.default_profile_id is None
     assert res.organization_id == "org_123"
     assert bool(re.match(OPAQUE_STRIPE_ID_REGEX, res.id))
     assert res.id.startswith(f"{EntityPrefix.WORKFLOW}_")
@@ -424,34 +430,34 @@ async def test_list_steps_empty(
 async def test_list_steps_tenant_filtering(
     workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    s1 = _valid_step("sp_0123456789abcdef", org_id="org_123")
-    s2 = _valid_step("sp_0123456789fedcba", org_id="org_999")
+    s1 = _valid_step("stp_0195f3a00000700080000123456789ab", org_id="org_123")
+    s2 = _valid_step("stp_0195f3a00000700080000123456789fe", org_id="org_999")
     await mock_workflow_repo.save_step(s1)
     await mock_workflow_repo.save_step(s2)
     res = await workflow_service.list_steps(admin_token)
     assert len(res) == 1
-    assert res[0].id == "sp_0123456789abcdef"
+    assert res[0].id == "stp_0195f3a00000700080000123456789ab"
 
 
 async def test_list_steps_scope_filtering(
     workflow_service: StudioWorkflowService, root_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    s_spec = _valid_step("sp_0123456789abcdef", is_system_core=False)
-    s_core = _valid_step("sp_c4a5a1d15c00438a", is_system_core=True)
+    s_spec = _valid_step("stp_0195f3a00000700080000123456789ab", is_system_core=False)
+    s_core = _valid_step("stp_0195f3a0000070008000c4a5a1d15c00", is_system_core=True)
     await mock_workflow_repo.save_step(s_spec)
     await mock_workflow_repo.save_step(s_core)
 
     res_default = await workflow_service.list_steps(root_token)
     assert len(res_default) == 1
-    assert res_default[0].id == "sp_0123456789abcdef"
+    assert res_default[0].id == "stp_0195f3a00000700080000123456789ab"
 
     res_specialists = await workflow_service.list_steps(root_token, scope=StepFilterScope.SPECIALISTS)
     assert len(res_specialists) == 1
-    assert res_specialists[0].id == "sp_0123456789abcdef"
+    assert res_specialists[0].id == "stp_0195f3a00000700080000123456789ab"
 
     res_core = await workflow_service.list_steps(root_token, scope=StepFilterScope.SYSTEM_CORE)
     assert len(res_core) == 1
-    assert res_core[0].id == "sp_c4a5a1d15c00438a"
+    assert res_core[0].id == "stp_0195f3a0000070008000c4a5a1d15c00"
 
     res_all = await workflow_service.list_steps(root_token, scope=StepFilterScope.ALL)
     assert len(res_all) == 2
@@ -510,7 +516,7 @@ async def test_save_step_success(
 async def test_save_step_protected_system_core_slug_mutation_fails_fast(
     workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    existing = _valid_step("sp_0123456789abcdef", slug="orig_slug", is_system_core=True, org_id="org_123")
+    existing = _valid_step("stp_0195f3a00000700080000123456789ab", slug="orig_slug", is_system_core=True, org_id="org_123")
     await mock_workflow_repo.save_step(existing)
 
     modified = existing.model_copy(update={"slug": "mutated_slug"})
@@ -531,7 +537,7 @@ async def test_delete_step_not_found(
 async def test_delete_step_protected_system_core_fails_fast(
     workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    step_data = _valid_step("sp_0123456789abcdef", is_system_core=True, org_id="org_123")
+    step_data = _valid_step("stp_0195f3a00000700080000123456789ab", is_system_core=True, org_id="org_123")
     await mock_workflow_repo.save_step(step_data)
     with pytest.raises(AppException) as exc_info:
         await workflow_service.delete_step(admin_token, step_data.id)
@@ -545,7 +551,7 @@ async def test_delete_step_protected_system_core_fails_fast(
 async def test_delete_step_success(
     workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    step_data = _valid_step("sp_0123456789abcdef", is_system_core=False, org_id="org_123")
+    step_data = _valid_step("stp_0195f3a00000700080000123456789ab", is_system_core=False, org_id="org_123")
     await mock_workflow_repo.save_step(step_data)
     await workflow_service.delete_step(admin_token, step_data.id)
     persisted = await mock_workflow_repo.get_step_by_id(step_data.id)
@@ -578,7 +584,7 @@ async def test_create_step_draft_success(admin_token: TokenData) -> None:
         system_repo=sys_repo,
     )
     proto_block = ProtocolPromptBlock(
-        id="blk_0123456789abcdef",
+        id="blk_0195f3a00000700080000123456789ab",
         slug="extraction_protocol_default",
         category_id=PromptBlockCategory.PROTOCOL,
         type=BlockDataType.INSTRUCTION,
@@ -588,6 +594,11 @@ async def test_create_step_draft_success(admin_token: TokenData) -> None:
         protocol_instructions="Default protocol instruction",
     )
     await pb_repo.create_prompt_block(proto_block)
+    with pytest.raises(AppException) as missing_crit_exc:
+        await service.create_step_draft(admin_token)
+    assert missing_crit_exc.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR
+    matrix_block = _valid_matrix_block("blk_0195f3a0000070008000440a5fef9331")
+    await pb_repo.create_prompt_block(matrix_block)
 
     res = await service.create_step_draft(admin_token)
     assert res is not None
@@ -595,6 +606,7 @@ async def test_create_step_draft_success(admin_token: TokenData) -> None:
     assert res.id.startswith(f"{EntityPrefix.STEP}_")
     assert res.organization_id == "org_123"
     assert res.extraction_protocol_block_id == proto_block.id
+    assert res.criteria_block_ids == [matrix_block.id]
 
     persisted = await wf_repo.get_step_by_id(res.id)
     assert persisted is not None
@@ -643,8 +655,8 @@ async def test_save_workflow_aligns_mismatched_id(
     mock_workflow_repo: InMemoryWorkflowRepository,
     mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
-    target_id = "wor_0123456789abcdef"
-    wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123")
+    target_id = "wf_0195f3a00000700080000123456789ab"
+    wf = _valid_workflow(wf_id="wf_0195f3a0000070008000aabbccddeeff", org_id="org_123")
 
     res = await workflow_service.save_workflow(admin_token, target_id, wf)
     assert res.id == target_id
@@ -656,8 +668,8 @@ async def test_save_workflow_aligns_mismatched_id(
 async def test_save_step_aligns_mismatched_id(
     workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    target_id = "sp_0123456789abcdef"
-    step = _valid_step(step_id="sp_aabbccddeeff0011", org_id="org_123")
+    target_id = "stp_0195f3a00000700080000123456789ab"
+    step = _valid_step(step_id="stp_0195f3a0000070008000aabbccddeeff", org_id="org_123")
 
     res = await workflow_service.save_step(admin_token, target_id, step)
     assert res.id == target_id
@@ -672,10 +684,10 @@ async def test_stitch_profiles_attaches_matching_workflow_profiles(
     mock_workflow_repo: InMemoryWorkflowRepository,
     mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
-    wf = _valid_workflow(wf_id="wor_0123456789abcdef", org_id="org_123")
+    wf = _valid_workflow(wf_id="wf_0195f3a00000700080000123456789ab", org_id="org_123")
     await mock_workflow_repo.save_workflow(wf)
     matching_profile = OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a00000700080000123456789ab",
         workflow_id=wf.id,
         slug="default_profile",
         name=I18nText(translations={"en": "Default"}),
@@ -707,13 +719,13 @@ async def test_clone_workflow_with_steps_and_profiles(admin_token: TokenData) ->
     )
     step_rule_1 = StepRule(
         id=generate_opaque_id(EntityPrefix.STEP_REFERENCE),
-        task_blueprint="sp_0123456789abcdef",
+        task_blueprint="stp_0195f3a00000700080000123456789ab",
         depends_on=[],
         input_mappings={"static_key": "raw_val"},
     )
     step_rule_2 = StepRule(
         id=generate_opaque_id(EntityPrefix.STEP_REFERENCE),
-        task_blueprint="sp_0123456789abcdef",
+        task_blueprint="stp_0195f3a00000700080000123456789ab",
         depends_on=[step_rule_1.id],
         input_mappings={"input_a": f"$steps.{step_rule_1.id}.output"},
     )
@@ -783,9 +795,9 @@ async def test_get_workflow_available_extensions_handles_exception(
     mock_prompt_block_repo: InMemoryPromptBlockRepository,
     mock_output_profile_repo: InMemoryOutputProfileRepository,
 ) -> None:
-    step = _valid_step(step_id="sp_0123456789abcdef", org_id="org_123")
+    step = _valid_step(step_id="stp_0195f3a00000700080000123456789ab", org_id="org_123")
     step_rule = StepRule(
-        id="sr_1111111111111111",
+        id="sr_0195f3a0000070008000111111111111",
         task_blueprint=step.id,
         depends_on=[],
         input_mappings={},
@@ -860,7 +872,7 @@ async def test_in_memory_save_workflow_roundtrip(admin_token: TokenData) -> None
         system_repo=sys_repo,
     )
 
-    initial_wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123")
+    initial_wf = _valid_workflow(wf_id="wf_0195f3a0000070008000aabbccddeeff", org_id="org_123")
     await wf_repo.save_workflow(initial_wf)
 
     updated_wf = initial_wf.model_copy(
@@ -895,7 +907,7 @@ async def test_in_memory_save_step_roundtrip(admin_token: TokenData) -> None:
         system_repo=sys_repo,
     )
 
-    initial_step = _valid_step("sp_aabbccddeeff0011", org_id="org_123")
+    initial_step = _valid_step("stp_0195f3a0000070008000aabbccddeeff", org_id="org_123")
     await wf_repo.save_step(initial_step)
 
     updated_step = initial_step.model_copy(
@@ -925,7 +937,7 @@ async def test_save_workflow_unauthorized_token_raises_permission_denied(
         email="other@example.com",
         role=UserRole.MEMBER,
     )
-    wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123")
+    wf = _valid_workflow(wf_id="wf_0195f3a0000070008000aabbccddeeff", org_id="org_123")
     with pytest.raises(PermissionDeniedError):
         await workflow_service.save_workflow(unauthorized_token, wf.id, wf)
 
@@ -940,7 +952,7 @@ async def test_save_step_unauthorized_token_raises_permission_denied(
         email="other@example.com",
         role=UserRole.MEMBER,
     )
-    step = _valid_step("sp_aabbccddeeff0011", org_id="org_123")
+    step = _valid_step("stp_0195f3a0000070008000aabbccddeeff", org_id="org_123")
     with pytest.raises(PermissionDeniedError):
         await workflow_service.save_step(unauthorized_token, step.id, step)
 
@@ -950,18 +962,18 @@ async def test_save_workflow_malformed_dag_raises_validation_failed(
 ) -> None:
     """Tests that saving a workflow with a cyclic DAG dependency raises 422 AppException."""
     step1 = StepRule(
-        id="rul_1111222233334444",
-        task_blueprint="sp_0123456789abcdef",
-        depends_on=["rul_5555666677778888"],
+        id="sr_0195f3a0000070008000111122223333",
+        task_blueprint="stp_0195f3a00000700080000123456789ab",
+        depends_on=["sr_0195f3a0000070008000555566667777"],
         input_mappings={},
     )
     step2 = StepRule(
-        id="rul_5555666677778888",
-        task_blueprint="sp_0123456789abcdef",
-        depends_on=["rul_1111222233334444"],
+        id="sr_0195f3a0000070008000555566667777",
+        task_blueprint="stp_0195f3a00000700080000123456789ab",
+        depends_on=["sr_0195f3a0000070008000111122223333"],
         input_mappings={},
     )
-    cyclic_wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123").model_copy(
+    cyclic_wf = _valid_workflow(wf_id="wf_0195f3a0000070008000aabbccddeeff", org_id="org_123").model_copy(
         update={"steps": [step1, step2]}
     )
     with pytest.raises(AppException) as exc_info:
@@ -992,7 +1004,7 @@ async def test_clone_workflow_corrupted_profile_raises_validation_failed(
     admin_token: TokenData,
 ) -> None:
     """Tests that cloning a workflow with a corrupted output profile raises 500 AppException with VALIDATION_FAILED."""
-    wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123")
+    wf = _valid_workflow(wf_id="wf_0195f3a0000070008000aabbccddeeff", org_id="org_123")
     await mock_workflow_repo.save_workflow(wf)
 
     mock_output_profile_repo.inject_fault(
@@ -1019,19 +1031,19 @@ async def test_clone_workflow_remaps_causal_source_step_id(
 ) -> None:
     """Tests that cloning a workflow remaps causal_source_step_id and preserves relational consistency."""
     causal_step = StepRule(
-        id="rul_1111222233334444",
-        task_blueprint="sp_0123456789abcdef",
+        id="sr_0195f3a0000070008000111122223333",
+        task_blueprint="stp_0195f3a00000700080000123456789ab",
         depends_on=[],
         input_mappings={},
     )
     specialist_step = StepRule(
-        id="rul_5555666677778888",
-        task_blueprint="sp_0123456789abcdef",
-        depends_on=["rul_1111222233334444"],
-        causal_source_step_id="rul_1111222233334444",
+        id="sr_0195f3a0000070008000555566667777",
+        task_blueprint="stp_0195f3a00000700080000123456789ab",
+        depends_on=["sr_0195f3a0000070008000111122223333"],
+        causal_source_step_id="sr_0195f3a0000070008000111122223333",
         input_mappings={},
     )
-    wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123").model_copy(
+    wf = _valid_workflow(wf_id="wf_0195f3a0000070008000aabbccddeeff", org_id="org_123").model_copy(
         update={"steps": [causal_step, specialist_step]}
     )
     await mock_workflow_repo.save_workflow(wf)

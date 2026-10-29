@@ -17,7 +17,6 @@ from backend_v2.services.studio.auth_validator import (
     is_resource_accessible,
 )
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
-from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -117,11 +116,7 @@ class StudioOutputProfileService:
         all_steps = await self.workflow_service.list_steps(initiator)
 
         # Delegate permission calculation to the Domain Model
-        settings = get_settings()
-        allowed_blocks = workflow.get_allowed_layout_targets(
-            all_steps,
-            causal_cohesion_block_id=settings.causal_cohesion_matrix_block_id,
-        )
+        allowed_blocks = workflow.get_allowed_layout_targets(all_steps)
 
         for group in profile.matrix_synthesis_groups:
             for comp in group.target_blocks:
