@@ -1,25 +1,41 @@
-"""Unit tests for CompiledPrompt models to verify Pydantic V2 validations and role merging."""
+"""Unit tests for CompiledPrompt and PromptMetadataDTO models to verify Pydantic V2 invariants."""
 
 import pytest
+from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
 
 
+class PromptMetadataDTOFactory(ModelFactory[PromptMetadataDTO]):
+    """Polyfactory for generating strongly typed PromptMetadataDTO instances."""
+
+    __model__ = PromptMetadataDTO
+
+
 def test_compiled_prompt_pydantic_strictness() -> None:
-    """Verifies that CompiledPrompt enforces strict type constraints and extra='forbid'."""
-    # Valid instantiations
+    """Verifies that CompiledPrompt enforces strict type constraints, Polyfactory metadata, and extra='forbid'."""
+    meta = PromptMetadataDTOFactory.build(
+        token_proxy_score=42.5,
+        cache_key="cache_abc123",
+        routing_tags=["tier1", "fast"],
+    )
     prompt = CompiledPrompt(
         static_messages=[LLMMessageDTO(role="system", content="Static prompt")],
         dynamic_messages=[LLMMessageDTO(role="user", content="Dynamic instruction")],
+        metadata=meta,
     )
     assert len(prompt.static_messages) == 1
     assert len(prompt.dynamic_messages) == 1
-    assert isinstance(prompt.metadata, PromptMetadataDTO)
+    assert prompt.metadata == meta
+    assert CompiledPrompt.model_config.get("frozen") is True
+    assert PromptMetadataDTO.model_config.get("frozen") is True
 
-    # Extra fields must raise ValidationError
+
+def test_compiled_prompt_rejects_extra_fields_and_invalid_types() -> None:
+    """Verifies that CompiledPrompt and PromptMetadataDTO reject extra fields and wrong types."""
     with pytest.raises(ValidationError):
         CompiledPrompt.model_validate(
             {
@@ -28,6 +44,12 @@ def test_compiled_prompt_pydantic_strictness() -> None:
                 "invalid_extra_field": "error",
             }
         )
+
+    with pytest.raises(ValidationError):
+        PromptMetadataDTO.model_validate({"token_proxy_score": "not-a-float"})
+
+    with pytest.raises(ValidationError):
+        PromptMetadataDTO.model_validate({"unknown_key": "forbidden"})
 
 
 def test_compiled_prompt_to_flat_messages_role_merging() -> None:
@@ -45,12 +67,10 @@ def test_compiled_prompt_to_flat_messages_role_merging() -> None:
 
     flat = prompt.to_flat_messages()
 
-    # The system message is untouched
     assert len(flat) == 2
     assert flat[0].role == "system"
     assert flat[0].content == "System mandate"
 
-    # Consecutive user messages are merged into a single user message
     assert flat[1].role == "user"
     expected_content = (
         "<source_data>Verbatim content</source_data>\n\n"
@@ -59,7 +79,6 @@ def test_compiled_prompt_to_flat_messages_role_merging() -> None:
     )
     assert flat[1].content == expected_content
 
-    # Verify to_static_flat and to_dynamic_flat
     static_flat = prompt.to_static_flat()
     assert len(static_flat) == 2
     assert static_flat[0].role == "system"
@@ -71,13 +90,17 @@ def test_compiled_prompt_to_flat_messages_role_merging() -> None:
 
 
 def test_compiled_prompt_forbids_system_in_dynamic() -> None:
-    """Verifies that system role is strictly prohibited in dynamic_messages."""
+    """Verifies that system role at any position in dynamic_messages raises AppException (400)."""
     with pytest.raises(AppException) as exc_info:
         CompiledPrompt(
             static_messages=[LLMMessageDTO(role="system", content="Valid system prompt")],
-            dynamic_messages=[LLMMessageDTO(role="system", content="Illegal system prompt")],
+            dynamic_messages=[
+                LLMMessageDTO(role="user", content="Valid user message"),
+                LLMMessageDTO(role="system", content="Illegal trailing system prompt"),
+            ],
         )
     assert exc_info.value.status_code == 400
+    assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
     assert "ARCHITECTURE VIOLATION" in exc_info.value.message
 
 
@@ -94,9 +117,12 @@ def test_llm_message_dto_extra_field_forbidden() -> None:
 
 
 def test_llm_message_dto_strict_types() -> None:
-    """Verifies that non-string role types trigger ValidationError in strict mode."""
+    """Verifies that non-string role types and empty role strings trigger ValidationError in strict mode."""
     with pytest.raises(ValidationError):
         LLMMessageDTO.model_validate({"role": 123, "content": "text"})
+
+    with pytest.raises(ValidationError):
+        LLMMessageDTO(role="", content="text")
 
 
 def test_llm_message_dto_serialization_null_omission() -> None:
@@ -122,7 +148,7 @@ def test_compiled_prompt_merge_flat_roles() -> None:
 
 
 def test_compiled_prompt_merge_flat_multimodal_content() -> None:
-    """Verifies that CompiledPrompt._merge_flat handles multimodal list content merging."""
+    """Verifies that CompiledPrompt._merge_flat handles all 4 multimodal content merging combinations."""
     messages = [
         LLMMessageDTO(role="user", content=[{"type": "text", "text": "Part 1"}]),
         LLMMessageDTO(role="user", content=[{"type": "text", "text": "Part 2"}]),

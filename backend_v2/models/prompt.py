@@ -1,3 +1,9 @@
+"""Compiled LLM prompt schemas and role-boundary message flattening utilities.
+
+This module defines the immutable data transfer objects used by the prompt compilation
+pipeline to segregate static cacheable prefixes from dynamic per-chunk execution payloads.
+"""
+
 import logging
 from typing import Annotated, Self, cast
 
@@ -9,6 +15,11 @@ from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.llm import LLMMessageContent, LLMMessageDTO
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "CompiledPrompt",
+    "PromptMetadataDTO",
+]
 
 
 class PromptMetadataDTO(BaseDTO):
@@ -49,9 +60,10 @@ class CompiledPrompt(BaseDTO):
         list[LLMMessageDTO],
         Field(description="Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors)."),
     ]
-    metadata: PromptMetadataDTO = Field(
-        default_factory=PromptMetadataDTO, description="Arbitrary execution metadata (e.g., token proxy scores)."
-    )
+    metadata: Annotated[
+        PromptMetadataDTO,
+        Field(description="Arbitrary execution metadata (e.g., token proxy scores)."),
+    ] = PromptMetadataDTO()
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
@@ -63,8 +75,12 @@ class CompiledPrompt(BaseDTO):
         System instructions belong exclusively in static_messages for caching integrity.
         Violating this would silently contaminate the cache with per-chunk system content.
 
+        Returns:
+            Validated CompiledPrompt instance.
+
         Raises:
-            AppException: If 'system' role is found in dynamic_messages.
+            AppException: Triggered with ErrorCodes.VALIDATION_FAILED (HTTP 400) if 'system'
+                role is found in dynamic_messages.
         """
         for msg in self.dynamic_messages:
             if msg.role == "system":
@@ -100,18 +116,18 @@ class CompiledPrompt(BaseDTO):
             if flat and flat[-1].role == role:
                 existing_val = flat[-1].content
                 merged_content: LLMMessageContent
-                if isinstance(existing_val, str) and isinstance(content_val, str):
-                    merged_content = (existing_val + "\n\n" + content_val).strip()
-                elif isinstance(existing_val, list) and isinstance(content_val, list):
-                    merged_content = existing_val + content_val
-                elif isinstance(existing_val, list) and isinstance(content_val, str):
-                    suffix = cast(dict[str, JsonValue], {"type": "text", "text": content_val})
-                    merged_content = existing_val + [suffix]
-                elif isinstance(existing_val, str) and isinstance(content_val, list):
-                    prefix = cast(dict[str, JsonValue], {"type": "text", "text": existing_val})
-                    merged_content = [prefix] + content_val
+                if isinstance(existing_val, str):
+                    if isinstance(content_val, str):
+                        merged_content = (existing_val + "\n\n" + content_val).strip()
+                    else:
+                        prefix = cast(dict[str, JsonValue], {"type": "text", "text": existing_val})
+                        merged_content = [prefix] + content_val
                 else:
-                    merged_content = content_val
+                    if isinstance(content_val, str):
+                        suffix = cast(dict[str, JsonValue], {"type": "text", "text": content_val})
+                        merged_content = existing_val + [suffix]
+                    else:
+                        merged_content = existing_val + content_val
                 flat[-1] = flat[-1].model_copy(update={"content": merged_content})
             else:
                 if isinstance(content_val, str):
@@ -137,7 +153,7 @@ class CompiledPrompt(BaseDTO):
         return self._merge_flat(list(self.dynamic_messages))
 
     def to_flat_messages(self) -> list[LLMMessageDTO]:
-        """Flatten both tiers into a single list for backward-compatibility (no cache path).
+        """Flatten both static and dynamic tiers into a single message sequence.
 
         Seamlessly merges consecutive messages of the same role by joining content
         with a double newline to maintain pure alternating structure.
