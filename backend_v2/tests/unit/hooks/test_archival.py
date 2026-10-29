@@ -3,13 +3,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
+import backend_v2.hooks.archival
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
     HookDependencies,
     HookState,
 )
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.archival import retrieve_precedent_hook
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.dtos.hook_delta import ArchivistPrecedentsResultDTO
@@ -42,6 +43,7 @@ async def test_retrieve_precedent_hook_missing_repo_raises() -> None:
     with pytest.raises(AppException) as exc:
         await retrieve_precedent_hook(state, deps)
     assert exc.value.status_code == 500
+    assert exc.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
 
 @pytest.mark.asyncio
@@ -76,6 +78,7 @@ async def test_retrieve_precedent_hook_missing_updated_at_integrity_error() -> N
     with pytest.raises(AppException) as exc:
         await retrieve_precedent_hook(state, deps)
     assert exc.value.status_code == 500
+    assert exc.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR.value
 
 
 @pytest.mark.asyncio
@@ -187,9 +190,7 @@ async def test_retrieve_precedent_hook_disk_fallback(monkeypatch: pytest.MonkeyP
                 '{"dimension_id": "d1", "score": 4.0, "reasoning": "R"}]}}}]'
             )
 
-    import backend_v2.services.storage
-
-    monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockDiskStorage())
+    monkeypatch.setattr(backend_v2.hooks.archival, "get_storage_driver", lambda: MockDiskStorage())
 
     exec_repo = InMemoryUnifiedWorkflowRepository()
     await exec_repo.save_execution(mock_record)
@@ -244,6 +245,7 @@ async def test_retrieve_precedent_hook_invalid_judge_output_raises() -> None:
     with pytest.raises(AppException) as exc:
         await retrieve_precedent_hook(state, deps)
     assert exc.value.status_code == 400
+    assert exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
@@ -275,9 +277,7 @@ async def test_retrieve_precedent_hook_disk_file_not_found(monkeypatch: pytest.M
         async def exists(self, path: str) -> bool:
             return False
 
-    import backend_v2.services.storage
-
-    monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockDiskStorageMissing())
+    monkeypatch.setattr(backend_v2.hooks.archival, "get_storage_driver", lambda: MockDiskStorageMissing())
 
     exec_repo = InMemoryUnifiedWorkflowRepository()
     await exec_repo.save_execution(mock_record)
@@ -323,9 +323,7 @@ async def test_retrieve_precedent_hook_disk_read_error(monkeypatch: pytest.Monke
         async def read(self, path: str) -> str:
             raise OSError("Disk read error")
 
-    import backend_v2.services.storage
-
-    monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockDiskStorageError())
+    monkeypatch.setattr(backend_v2.hooks.archival, "get_storage_driver", lambda: MockDiskStorageError())
 
     exec_repo = InMemoryUnifiedWorkflowRepository()
     await exec_repo.save_execution(mock_record)
@@ -336,3 +334,27 @@ async def test_retrieve_precedent_hook_disk_read_error(monkeypatch: pytest.Monke
     with pytest.raises(AppException) as exc:
         await retrieve_precedent_hook(state, deps)
     assert exc.value.status_code == 500
+    assert exc.value.details["error_code"] == ErrorCodes.STATE_INTEGRITY_ERROR.value
+
+
+@pytest.mark.asyncio
+async def test_retrieve_precedent_hook_repository_failure_raises() -> None:
+    state = HookState(
+        workflow_id="wf_1",
+        execution_id="exec_1",
+        inputs=ExecutionInputsDTO(),
+        global_context_vars=GlobalContextVarsDTO(),
+        metadata=ExecutionMetadata(),
+    )
+    exec_repo = InMemoryUnifiedWorkflowRepository()
+    deps = MagicMock(spec=HookDependencies)
+    deps.exec_repo = exec_repo
+
+    exec_repo.inject_fault("get_recent_completed_executions", RuntimeError("Database connection error"))
+    try:
+        with pytest.raises(AppException) as exc:
+            await retrieve_precedent_hook(state, deps)
+        assert exc.value.status_code == 500
+        assert exc.value.details["error_code"] == ErrorCodes.KNOWLEDGE_RETRIEVAL_FAILED.value
+    finally:
+        exec_repo.clear_faults()
