@@ -228,3 +228,43 @@ def test_main_fails_on_missing_demolish(tmp_path: Path, monkeypatch: pytest.Monk
     with pytest.raises(SystemExit) as excinfo:
         main()
     assert excinfo.value.code == 1
+
+
+def test_main_fails_on_invalid_ast_bounds_missing_core_rule_and_partial_demolish(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Test invalid AST line bounds, missing core rule, and partial demolish symbol mismatch."""
+    py_file = tmp_path / "sample.py"
+    py_file.write_text("def fn() -> None:\n    pass\n", encoding="utf-8")
+    rel_py_path = py_file.as_posix()
+
+    epic_file = tmp_path / "epic.md"
+    epic_file.write_text(
+        f"# Epic\n#{rel_py_path}#L1-L99\n<demolish>\n  `sym_kept`\n  `sym_dropped`\n</demolish>\n",
+        encoding="utf-8",
+    )
+
+    plan_dir = tmp_path / "plans"
+    plan_dir.mkdir()
+    plan_file = plan_dir / "01_plan.md"
+    plan_file.write_text(
+        "# Plan\n"
+        "<required_context_rules>\n"
+        "  <rule>@[.agents/rules/01-python-backend.md]</rule>\n"
+        "</required_context_rules>\n"
+        "<demolish>\n  `sym_kept`\n</demolish>\n"
+        "<anti_targets></anti_targets>\n"
+        "<dod_checklist></dod_checklist>\n"
+        "<validation_gate></validation_gate>\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        "sys.argv",
+        ["audit_planner_output.py", "--epic", str(epic_file), "--plan-dir", str(plan_dir)],
+    )
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+    assert excinfo.value.code == 1
+    captured = capsys.readouterr()
+    assert ".agents/skills/tier1-planner/SKILL.md" in captured.out

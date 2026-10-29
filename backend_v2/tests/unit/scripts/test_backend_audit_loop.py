@@ -772,3 +772,33 @@ def test_find_transitional_strangler_proxy_files_empty_when_no_coexisting(tmp_pa
 
     discovered = find_transitional_strangler_proxy_files([str(pkg)])
     assert discovered == []
+
+
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_macro_gate_expands_skills_architecture_and_runs_audit(mock_sub: MagicMock, mock_scan: MagicMock) -> None:
+    """Verify macro gate on backend_v2/ includes audit_skills_architecture.py in AST scan and Stage 10."""
+    main(["backend_v2/", "scripts/reconcile_storage.py"])
+    assert mock_scan.called
+    scanned_targets = mock_scan.call_args[0][0]
+    assert "scripts/audit_skills_architecture.py" in scanned_targets
+    invoked_cmds = [" ".join(str(c) for c in call[0][0]) for call in mock_sub.call_args_list]
+    assert any("audit_skills_architecture.py" in cmd for cmd in invoked_cmds)
+
+
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("sys.exit")
+def test_subprocess_skills_architecture_failure(mock_exit: MagicMock, mock_scan: MagicMock) -> None:
+    """Verify failure in audit_skills_architecture.py triggers Fail-Fast exit(1)."""
+    mock_exit.side_effect = SystemExit(1)
+
+    def sub_side_effect(cmd: list[str], *args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        if any("audit_skills_architecture.py" in str(c) for c in cmd):
+            return _mock_completed_process(1)
+        return _mock_completed_process(0)
+
+    with patch("subprocess.run", side_effect=sub_side_effect):
+        with patch.object(sys, "argv", ["backend_audit_loop.py", "backend_v2/"]):
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 1

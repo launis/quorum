@@ -72,6 +72,7 @@ _MACRO_AUTHORITATIVE_SCRIPTS: tuple[str, ...] = (
     "scripts/audit_dict_eradication.py",
     "scripts/audit_technical_debt.py",
     "scripts/_ast_boundary_utils.py",
+    "scripts/audit_skills_architecture.py",
 )
 
 # Force pure Python Protobuf implementation to prevent duplicate descriptor pool crashes in Python 3.14+
@@ -649,7 +650,11 @@ Optional steps:
         if res_zorm.returncode != 0:
             print("\n❌ Zero-ORM strictness audit failed! Resolve ZORM001-ZORM006 violations.\n")
             sys.exit(res_zorm.returncode)
-        print("✅ Dict eradication and typed domain transit verified.")
+        res_skills = subprocess.run(["uv", "run", "python", "scripts/audit_skills_architecture.py"])
+        if res_skills.returncode != 0:
+            print("\n❌ Skills architecture & rule budget audit failed! Resolve SKL001-SKL004 violations.\n")
+            sys.exit(res_skills.returncode)
+        print("✅ Dict eradication, Zero-ORM, and Skills architecture verified.")
     else:
         print("\n⚡ Micro-audit mode active (--micro): Skipping whole-repository Stages 5-10.")
 

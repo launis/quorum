@@ -47,6 +47,8 @@ REQUIRED_QUORUM_SKILLS: Final[tuple[str, ...]] = (
     "tier2-execute",
     "tier2-hardening-backend",
     "tier2-hardening-frontend",
+    "tier2-hardening-knowledge",
+    "tier2-hardening-matrix",
     "tier3-database-reset",
     "tier3-feature-refactor",
     "tier3-god-code-decomposition",
@@ -428,7 +430,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 Verifies workspace compliance across four architectural gates:
   - SKL001: Zero deprecated .md or .bak files inside .agents/workflows/.
-  - SKL002: All 27 required Quorum skills exist in .agents/skills/<name>/SKILL.md with valid YAML frontmatter.
+  - SKL002: All 29 required Quorum skills exist in .agents/skills/<name>/SKILL.md with valid YAML frontmatter.
   - SKL003: All relative ./resources/... and ./references/... links inside SKILL.md resolve on disk.
   - SKL004: Individual always_on rules stay <= 24,000 bytes and aggregate always_on rules stay <= 72,000 bytes.
 """,

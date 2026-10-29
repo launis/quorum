@@ -233,7 +233,9 @@ Audits generated implementation plans against parent Epic specifications to prev
 
     print("-" * 50)
     if failed:
-        print("AUDIT FAILED: The Planner dropped critical details. Tune tier1-planner.md rules further.")
+        print(
+            "AUDIT FAILED: The Planner dropped critical details. Tune .agents/skills/tier1-planner/SKILL.md rules further."
+        )
         sys.exit(1)
     else:
         print("AUDIT PASSED: The Planner obeyed the strict boundary and layout rules perfectly!")
