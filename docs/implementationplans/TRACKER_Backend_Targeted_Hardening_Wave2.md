@@ -24,7 +24,7 @@
   - [x] @[backend_v2/context.py]
   - [x] @[backend_v2/core/rate_limit.py]
   - [x] @[backend_v2/core/template_processor.py]
-  - [ ] @[backend_v2/core/telemetry.py]
+  - [x] @[backend_v2/core/telemetry.py]
   - [ ] @[backend_v2/utils/linguistics/stemmer.py]
   - [ ] @[backend_v2/services/pii_analyzer.py]
   - [ ] @[backend_v2/services/usage_service.py]
