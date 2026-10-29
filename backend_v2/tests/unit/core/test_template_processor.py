@@ -196,3 +196,27 @@ class TestTemplateProcessor:
 
         assert exc_info_dict.value.status_code == 400
         assert exc_info_dict.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    def test_safe_interpolate_missing_key_raises_app_exception(self) -> None:
+        """Verify Fail-Fast AppException when a template placeholder key is missing in safe_interpolate."""
+        import pytest
+
+        from backend_v2.exceptions import AppException, ErrorCodes
+
+        with pytest.raises(AppException) as exc_info:
+            TemplateProcessor.safe_interpolate("<user>{missing_var}</user>", other_var="val")
+
+        assert exc_info.value.status_code == 400
+        assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    def test_safe_interpolate_malformed_format_raises_app_exception(self) -> None:
+        """Verify Fail-Fast AppException when template_str has malformed braces in safe_interpolate."""
+        import pytest
+
+        from backend_v2.exceptions import AppException, ErrorCodes
+
+        with pytest.raises(AppException) as exc_info:
+            TemplateProcessor.safe_interpolate("<user>{unclosed_brace</user>", user="val")
+
+        assert exc_info.value.status_code == 400
+        assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

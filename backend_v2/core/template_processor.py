@@ -6,7 +6,6 @@ using CDATA encapsulation, Breakout Shielding, and PEP 750 Template strings.
 
 import logging
 from string.templatelib import Template, convert
-from typing import Any
 from xml.sax import saxutils
 
 from fastapi import status
@@ -14,6 +13,8 @@ from fastapi import status
 from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["TemplateProcessor"]
 
 
 class TemplateProcessor:
@@ -29,6 +30,12 @@ class TemplateProcessor:
 
         Replaces ']]>' with a safe equivalent that maintains the literal
         representation without closing the XML CDATA block.
+
+        Args:
+            text: Raw input string to sanitize against CDATA breakout sequences.
+
+        Returns:
+            The sanitized string with ']]>' breakout sequences neutralized.
         """
         return str(text).replace("]]>", "]]]]><![CDATA[>")
 
@@ -63,7 +70,12 @@ class TemplateProcessor:
                 f"TemplateProcessor.render_prompt requires a string.templatelib.Template instance, "
                 f"got '{type(template).__name__}'."
             )
-            logger.error("[TemplateProcessor] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error(
+                "[TemplateProcessor] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+            )
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -92,7 +104,7 @@ class TemplateProcessor:
         return "".join(chunks)
 
     @classmethod
-    def safe_interpolate(cls, template_str: str, **kwargs: Any) -> str:
+    def safe_interpolate(cls, template_str: str, **kwargs: object) -> str:
         """Interpolate variables into the template string with CDATA wrapping.
 
         Args:
@@ -101,20 +113,29 @@ class TemplateProcessor:
 
         Returns:
             The fully interpolated and secured string.
-        """
-        safe_kwargs: dict[str, str] = {}
-        for key, value in kwargs.items():
-            if value is None:
-                safe_kwargs[key] = ""
-            elif isinstance(value, str):
-                safe_kwargs[key] = cls._encapsulate_cdata(value)
-            else:
-                safe_kwargs[key] = cls._encapsulate_cdata(str(value))
 
-        return template_str.format(**safe_kwargs)
+        Raises:
+            AppException: VALIDATION_FAILED if template_str formatting fails due to missing keys or malformed syntax.
+        """
+        safe_kwargs = {key: cls.encapsulate_payload(value) for key, value in kwargs.items()}
+        try:
+            return template_str.format(**safe_kwargs)
+        except (KeyError, ValueError, IndexError) as exc:
+            msg = "TemplateProcessor.safe_interpolate failed to format template string due to invalid or missing placeholder."
+            logger.error(
+                "[TemplateProcessor] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from exc
 
     @classmethod
-    def encapsulate_payload(cls, payload: Any) -> str:
+    def encapsulate_payload(cls, payload: object) -> str:
         """Directly encapsulate a single payload string without interpolation.
 
         Args:
