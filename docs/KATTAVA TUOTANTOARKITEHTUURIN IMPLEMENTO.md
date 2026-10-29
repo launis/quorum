@@ -1096,3 +1096,25 @@ Vastaavasti kuin backendissä (`backend_v2/` 403 tiedostoa), myös koko Flutter 
   $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py backend_v2/ --test --ast-strict
   $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/ --build
   ```
+
+---
+
+# Session Handover Context
+
+## Achieved
+* Completed **Targeted Backend Hardening Wave 4 (`34/34` targets, Askel 3.2d)** across 23 Domain Models and 11 DTO/Prompt Schemas (commit `1af36b166`), bringing total backend hardening to `133/133` wave targets (`391/403` = `97.0%` of all `backend_v2/` production `.py` files locked).
+* Synchronized `@[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md#L546-L723]`, `@[docs/arkkitehtuurin_parannuskohteet.md#L9-L224]`, and `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` (`53ec8063b`) with 0 markdown boundary violations.
+
+## Learned
+* `@[scripts/audit_markdown_boundaries.py]` enforces `[NEW]` tags on uncreated future implementation plans, trackers, and DTO classes (`MBD003`, `MBD005`) and exact AST line spans (`MBD004`, verified on `@[backend_v2/settings.py#L47-L1087]:Settings`).
+* In `@[backend_v2/models/domain/workflow.py#L25-L217]:Workflow`, both `mcp_gateway_id` (lines 42–46) and `model_registry_id` (lines 47–50) contain legacy 16–32 hex regex patterns that must be tightened to `r"^sys_[a-fA-F0-9]{32}$"` in Askel 3.3.
+
+## Resume Command
+```text
+/tier5-resume --target="@[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md#L698-L723]" --workflow="/tier0-create-plan" --rules="00-antigravity-core.md,01-python-backend.md,02_flutter_desktop.md,03_seed_vault.md,04_directory_reference.md"
+```
+
+## Remaining
+### Hardening State Snapshot
+* **Backend Hardening Waves 1–4:** `TARGETS = 133`, `DONE = 133`, `REMAINING = 0` (`391/403` = `97.0%` of `backend_v2/` hardened; `12` files remaining in Askel 4 IAM [`9` files] and Askel 5 Storage [`3` files]).
+* **Immediate Next Task:** Generate the implementation plans and trackers for **Askel 3.3** (`[NEW]` `@[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]` and `[NEW]` `@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]`, covering `@[docs/arkkitehtuurin_parannuskohteet.md#L51-L193]` Luku 2 & Luku 2.5) and **Askel 3.4** (`[NEW]` `@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]` and `[NEW]` `@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`, covering `@[docs/arkkitehtuurin_parannuskohteet.md#L196-L202]` Luku 3), and wire their execution commands directly into `@[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md#L698-L723]`.
