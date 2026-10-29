@@ -8,8 +8,11 @@ from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock, PromptBlockAdapter
+from backend_v2.models.enums import PromptBlockCategory
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["MatrixRepositoryImpl"]
 
 
 class MatrixRepositoryImpl(AppendOnlyRepositoryBase):
@@ -20,8 +23,12 @@ class MatrixRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             List of evaluation matrix prompt block models.
+
+        Raises:
+            AppException: If an evaluation matrix record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
-        filters = [Filter("type", "==", "evaluation_matrix")]
+        filters = [Filter("category_id", "==", PromptBlockCategory.MATRIX.value)]
         raw_items = await self.driver.query("components", filters)
         matrices: list[PromptBlock] = []
         for item in raw_items:
@@ -31,7 +38,13 @@ class MatrixRepositoryImpl(AppendOnlyRepositoryBase):
                 item_id = "unknown"
                 if "id" in item:
                     item_id = str(item["id"])
-                logger.error("Failed to parse Matrix %s: %s", item_id, e, exc_info=True)
+                logger.error(
+                    "[MatrixRepository] %s: Failed to parse Matrix %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    item_id,
+                    e,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=f"Failed to parse Matrix {item_id} from database",
                     status_code=500,
@@ -47,6 +60,10 @@ class MatrixRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             The matrix PromptBlock if found, otherwise None.
+
+        Raises:
+            AppException: If the evaluation matrix record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         doc = await self.driver.get("components", matrix_id)
         if not doc:
@@ -54,7 +71,13 @@ class MatrixRepositoryImpl(AppendOnlyRepositoryBase):
         try:
             return PromptBlockAdapter.validate_python(doc, strict=False)
         except Exception as e:
-            logger.error("Failed to parse Matrix %s: %s", matrix_id, e, exc_info=True)
+            logger.error(
+                "[MatrixRepository] %s: Failed to parse Matrix %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                matrix_id,
+                e,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Failed to parse Matrix {matrix_id} from database",
                 status_code=500,
@@ -72,7 +95,7 @@ class MatrixRepositoryImpl(AppendOnlyRepositoryBase):
         """
         payload = matrix_data.model_dump(mode="json")
         doc_id = payload["id"]
-        payload["type"] = "evaluation_matrix"
+        payload["category_id"] = PromptBlockCategory.MATRIX.value
         return await self.driver.upsert("components", payload, doc_id)
 
     async def update_matrix(self, matrix_id: str, updates: PromptBlock) -> str:
@@ -86,10 +109,18 @@ class MatrixRepositoryImpl(AppendOnlyRepositoryBase):
             The updated matrix ID.
 
         Raises:
-            ResourceNotFoundError: If the matrix does not exist.
+            ResourceNotFoundError: If the evaluation matrix does not exist
+                (ErrorCodes.RESOURCE_NOT_FOUND).
+            AppException: If the existing evaluation matrix record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         comp = await self.get_matrix_by_id(matrix_id)
         if not comp:
+            logger.error(
+                "[MatrixRepository] %s: Matrix %s not found for update",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                matrix_id,
+            )
             raise ResourceNotFoundError(resource_type="Matrix", resource_id=matrix_id)
         payload = updates.model_dump(mode="json", exclude_unset=True)
         await self.driver.update("components", matrix_id, payload)
@@ -103,6 +134,10 @@ class MatrixRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             True if deleted, False if matrix does not exist.
+
+        Raises:
+            AppException: If the existing evaluation matrix record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         comp = await self.get_matrix_by_id(matrix_id)
         if not comp:
@@ -117,6 +152,10 @@ class MatrixRepositoryImpl(AppendOnlyRepositoryBase):
 
         Returns:
             List of matching matrix IDs.
+
+        Raises:
+            AppException: If an evaluation matrix record fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         matrices = await self.get_all_matrices()
         matches: list[str] = []
