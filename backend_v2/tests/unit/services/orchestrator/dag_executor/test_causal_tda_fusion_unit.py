@@ -64,7 +64,7 @@ def test_transform_causal_nodes_to_atoms_empty_and_populated() -> None:
 
     nodes = [
         CausalNodeDTO(
-            node_id="tda_0000000000000001",
+            node_id="tda_0195f3a0000070008000000000000001",
             claim="First causal proposition.",
             source_quotes=("Quote A", "Quote B"),
             paragraph_ref="P1",
@@ -73,7 +73,7 @@ def test_transform_causal_nodes_to_atoms_empty_and_populated() -> None:
             dependent_child_ids=[],
         ),
         CausalNodeDTO(
-            node_id="tda_0000000000000002",
+            node_id="tda_0195f3a0000070008000000000000002",
             claim="Second causal proposition without quotes.",
             source_quotes=None,
             paragraph_ref=None,
@@ -86,11 +86,11 @@ def test_transform_causal_nodes_to_atoms_empty_and_populated() -> None:
     atoms = transform_causal_nodes_to_atoms(nodes)
     assert len(atoms) == 2
     assert isinstance(atoms[0], FlattenedAtom)
-    assert atoms[0].atom_id == "tda_0000000000000001"
+    assert atoms[0].atom_id == "tda_0195f3a0000070008000000000000001"
     assert atoms[0].question == "First causal proposition."
     assert atoms[0].anchor_target == "P1"
     assert atoms[0].extraction_rule == "Quote A [...] Quote B"
-    assert atoms[1].atom_id == "tda_0000000000000002"
+    assert atoms[1].atom_id == "tda_0195f3a0000070008000000000000002"
     assert atoms[1].anchor_target == ""
     assert atoms[1].extraction_rule == ""
 
@@ -98,61 +98,61 @@ def test_transform_causal_nodes_to_atoms_empty_and_populated() -> None:
 def test_compute_causal_tda_fusion_result_falsification_and_elevation() -> None:
     """Verify compute_causal_tda_fusion_result projects atom statuses, scores, and remediations."""
     node1 = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Foundational root claim",
         source_quotes=("Verbatim quote 1",),
         paragraph_ref="P1",
         status=ExecutionStatus.PASSED,
         tda_score=1.0,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000002"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
         source_input_key="deliverable_doc",
     )
     node2 = CausalNodeDTO(
-        node_id="tda_0000000000000002",
+        node_id="tda_0195f3a0000070008000000000000002",
         claim="Downstream dependent claim",
         source_quotes=("Verbatim quote 2",),
         paragraph_ref="P2",
         status=ExecutionStatus.FAILED,
         tda_score=1.0,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
         source_input_key="deliverable_doc",
     )
     node3 = CausalNodeDTO(
-        node_id="tda_0000000000000003",
+        node_id="tda_0195f3a0000070008000000000000003",
         claim="Exogenous reference claim",
         source_quotes=None,
         paragraph_ref="P3",
         status=ExecutionStatus.PASSED,
         tda_score=3.0,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000002"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
         source_input_key="assignment_doc",
     )
     edges = [
         CausalEdgeDTO(
-            source_id="tda_0000000000000001",
-            target_id="tda_0000000000000002",
+            source_id="tda_0195f3a0000070008000000000000001",
+            target_id="tda_0195f3a0000070008000000000000002",
             reasoning="Direct causal link",
         ),
         CausalEdgeDTO(
-            source_id="tda_0000000000000003",
-            target_id="tda_0000000000000002",
+            source_id="tda_0195f3a0000070008000000000000003",
+            target_id="tda_0195f3a0000070008000000000000002",
             reasoning="Exogenous support link",
         ),
     ]
     graph = _make_graph(
         nodes=[node1, node2, node3],
         edges=edges,
-        root_cause_node_ids=["tda_0000000000000001"],
+        root_cause_node_ids=["tda_0195f3a0000070008000000000000001"],
         cycle_detected=False,
     )
 
     evaluated_atoms = [
         AtomResultDTO(
-            tda_id="tda_0000000000000001",
-            matrix_id="blk_1111222233334444",
+            tda_id="tda_0195f3a0000070008000000000000001",
+            matrix_id="blk_0195f3a0000070018111222233334444",
             status=ExecutionStatus.FAILED,
             evaluation_reasoning="Falsified by TDA evaluation.",
             source_quotes=None,
@@ -161,7 +161,7 @@ def test_compute_causal_tda_fusion_result_falsification_and_elevation() -> None:
             short_circuit_reason_tda_ids=[],
         ),
         AtomResultDTO(
-            tda_id="tda_0000000000000002",
+            tda_id="tda_0195f3a0000070008000000000000002",
             matrix_id=None,
             status=ExecutionStatus.PASSED,
             extracted_data=ExtractedValueDTO(value=5.0),
@@ -193,56 +193,56 @@ def test_compute_causal_tda_fusion_result_falsification_and_elevation() -> None:
 
     result = compute_causal_tda_fusion_result(
         graph=graph,
-        evaluative_matrices={"blk_1111222233334444": 1.0},
+        evaluative_matrices={"blk_0195f3a0000070018111222233334444": 1.0},
         evaluated_atoms=evaluated_atoms,
         dampening_factor=0.5,
         expected_inputs=expected_inputs,
     )
 
     projected_by_id = {n.node_id: n for n in result.graph.nodes}
-    assert projected_by_id["tda_0000000000000001"].status == ExecutionStatus.FAILED
-    assert projected_by_id["tda_0000000000000001"].tda_score == 1.0
-    assert projected_by_id["tda_0000000000000002"].status == ExecutionStatus.PASSED
-    assert projected_by_id["tda_0000000000000002"].tda_score == 5.0
-    assert projected_by_id["tda_0000000000000003"].status == ExecutionStatus.PASSED
+    assert projected_by_id["tda_0195f3a0000070008000000000000001"].status == ExecutionStatus.FAILED
+    assert projected_by_id["tda_0195f3a0000070008000000000000001"].tda_score == 1.0
+    assert projected_by_id["tda_0195f3a0000070008000000000000002"].status == ExecutionStatus.PASSED
+    assert projected_by_id["tda_0195f3a0000070008000000000000002"].tda_score == 5.0
+    assert projected_by_id["tda_0195f3a0000070008000000000000003"].status == ExecutionStatus.PASSED
     assert result.total_deliverable_nodes == 2
     assert len(result.prescriptive_remediations) == 1
-    assert result.prescriptive_remediations[0].target_node_id == "tda_0000000000000001"
-    assert result.prescriptive_remediations[0].unlocks_node_ids == ["tda_0000000000000002"]
+    assert result.prescriptive_remediations[0].target_node_id == "tda_0195f3a0000070008000000000000001"
+    assert result.prescriptive_remediations[0].unlocks_node_ids == ["tda_0195f3a0000070008000000000000002"]
 
 
 def test_compute_causal_tda_fusion_result_fallback_deliverables_and_cycles() -> None:
     """Verify deliverable fallback filtering, empty deliverable cohesion, and cycle penalty."""
     node1 = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Isolated claim in secondary doc",
         source_quotes=None,
         paragraph_ref="P1",
         status=ExecutionStatus.PASSED,
-        blame_parent_ids=["tda_0000000000000002"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000002"],
         dependent_child_ids=[],
         source_input_key="other_doc",
     )
     node2 = CausalNodeDTO(
-        node_id="tda_0000000000000002",
+        node_id="tda_0195f3a0000070008000000000000002",
         claim="Root cause node",
         source_quotes=("Quote",),
         paragraph_ref="P2",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000001"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000001"],
         source_input_key="other_doc",
     )
     graph_cycle = _make_graph(
         nodes=[node1, node2],
         edges=[
             CausalEdgeDTO(
-                source_id="tda_0000000000000002",
-                target_id="tda_0000000000000001",
+                source_id="tda_0195f3a0000070008000000000000002",
+                target_id="tda_0195f3a0000070008000000000000001",
                 reasoning="Link",
             )
         ],
-        root_cause_node_ids=["tda_0000000000000002"],
+        root_cause_node_ids=["tda_0195f3a0000070008000000000000002"],
         cycle_detected=True,
     )
 
@@ -285,5 +285,102 @@ def test_compute_causal_tda_fusion_result_degenerate_scale_raises_error() -> Non
     with pytest.raises(ValidationError):
         _make_graph(
             nodes=[],
-            root_cause_node_ids=["tda_0000000000000001"],
+            root_cause_node_ids=["tda_0195f3a0000070008000000000000001"],
         )
+
+
+def test_compute_causal_tda_fusion_topological_metrics_lcc_conv_and_steering() -> None:
+    """Verify r_LCC, r_conv, and kappa_steer computation over disjoint components and dialogue steering."""
+    d1 = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000001",
+        claim="Deliverable root 1",
+        source_quotes=("Quote 1",),
+        paragraph_ref="P1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000003"],
+        source_input_key="deliverable_doc",
+    )
+    d2 = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000002",
+        claim="Deliverable root 2",
+        source_quotes=("Quote 2",),
+        paragraph_ref="P2",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000003"],
+        source_input_key="deliverable_doc",
+    )
+    d3 = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000003",
+        claim="Convergent synthesis node",
+        source_quotes=("Quote 3",),
+        paragraph_ref="P3",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+        source_input_key="deliverable_doc",
+    )
+    d4 = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000004",
+        claim="Disjoint island node",
+        source_quotes=("Quote 4",),
+        paragraph_ref="P4",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+        source_input_key="deliverable_doc",
+    )
+    chat_node = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000005",
+        claim="Dialogue steering directive",
+        source_quotes=("Chat quote",),
+        paragraph_ref="C1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000001"],
+        source_input_key="chat_log",
+    )
+    edges = [
+        CausalEdgeDTO(
+            source_id="tda_0195f3a0000070008000000000000001",
+            target_id="tda_0195f3a0000070008000000000000003",
+            reasoning="Premise 1 to synthesis",
+        ),
+        CausalEdgeDTO(
+            source_id="tda_0195f3a0000070008000000000000002",
+            target_id="tda_0195f3a0000070008000000000000003",
+            reasoning="Premise 2 to synthesis",
+        ),
+        CausalEdgeDTO(
+            source_id="tda_0195f3a0000070008000000000000005",
+            target_id="tda_0195f3a0000070008000000000000001",
+            reasoning="Dialogue steers root 1",
+        ),
+    ]
+    graph = _make_graph(nodes=[d1, d2, d3, d4, chat_node], edges=edges)
+    expected_inputs = [
+        ExpectedInput(
+            input_key="deliverable_doc",
+            label=I18nText(translations={"en": "Deliverable"}),
+            required=True,
+            is_endorsed_deliverable=True,
+            input_modes=["text"],
+            description=I18nText(translations={"en": "Deliverable"}),
+        ),
+        ExpectedInput(
+            input_key="chat_log",
+            label=I18nText(translations={"en": "Chat"}),
+            required=True,
+            is_chat_history=True,
+            input_modes=["text"],
+            description=I18nText(translations={"en": "Chat history"}),
+        ),
+    ]
+    res = compute_causal_tda_fusion_result(graph=graph, expected_inputs=expected_inputs)
+    # 4 deliverable nodes: {d1, d2, d3} form component of size 3 -> r_LCC = 3/4 = 0.75
+    assert res.anti_fluff_audit.largest_component_ratio == 0.75
+    # d3 has 2 incoming parents -> r_conv = 1/4 = 0.25
+    assert res.anti_fluff_audit.branch_convergence_ratio == 0.25
+    # Deliverable roots (zero internal in-degree): d1, d2, d4 (3 roots); d1 is steered by chat_node -> 1/3 = 0.3333
+    assert res.anti_fluff_audit.steering_coupling_ratio == 0.3333

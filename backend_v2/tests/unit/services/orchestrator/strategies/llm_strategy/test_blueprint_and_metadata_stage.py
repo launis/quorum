@@ -59,7 +59,7 @@ def _create_rule_block(block_id: str) -> SystemRulePromptBlock:
 
 def _create_context(
     *,
-    output_profile_id: str | None = "prf_0123456789abcdef",
+    output_profile_id: str | None = "prf_0195f3a0000070008123456789abcdef",
     target_locale: str = "fi",
     context_variables: ContextVariablesDTO | None = None,
 ) -> StrategyContext:
@@ -68,8 +68,8 @@ def _create_context(
     if context_variables is not None:
         resolved_vars = context_variables
     return StrategyContext(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wf_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
         strictness_level=50,
         output_profile_id=output_profile_id,
         target_locale=target_locale,
@@ -84,7 +84,7 @@ def in_memory_repo() -> InMemoryUnifiedWorkflowRepository:
     """Provide a stateful in-memory repository pre-populated with baseline Stage 1 entities."""
     repo = InMemoryUnifiedWorkflowRepository()
     proto_blk = ProtocolPromptBlock(
-        id="blk_a000000000000002",
+        id="blk_0195f3a00000700a8000000000000002",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol", "fi": "Protokolla"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -92,9 +92,11 @@ def in_memory_repo() -> InMemoryUnifiedWorkflowRepository:
         protocol_instructions="Extract exact quotes.",
     )
     repo.seed_raw_prompt_block(proto_blk.id, proto_blk)
-    repo.seed_raw_prompt_block("blk_0123456789abcdef", _create_rule_block("blk_0123456789abcdef"))
+    repo.seed_raw_prompt_block(
+        "blk_0195f3a0000070008123456789abcdef", _create_rule_block("blk_0195f3a0000070008123456789abcdef")
+    )
     step = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a0000070008123456789abcdef",
         slug="test-step",
         name=I18nText(translations={"en": "Test Step", "fi": "Testivaihe"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -103,22 +105,22 @@ def in_memory_repo() -> InMemoryUnifiedWorkflowRepository:
         zone=StepZone.ZONE_B,
         cognitive_tier=CognitiveTier.BALANCED,
         extraction_protocol_block_id=proto_blk.id,
-        criteria_block_ids=["blk_0123456789abcdef"],
+        criteria_block_ids=["blk_0195f3a0000070008123456789abcdef"],
         is_system_core=False,
     )
     repo.seed_raw_step(step.id, step)
     repo.set_output_profiles(
         [
             OutputProfile(
-                id="prf_0123456789abcdef",
+                id="prf_0195f3a0000070008123456789abcdef",
                 slug="default-prf",
-                workflow_id="wf_0123456789abcdef",
+                workflow_id="wf_0195f3a0000070008123456789abcdef",
                 name=I18nText(translations={"en": "Default Profile", "fi": "Oletusprofiili"}),
                 description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
                 tone_instruction="Maintain a formal tone.",
                 matrix_synthesis_groups=[
                     MatrixSynthesisGroup(
-                        id="grp_0123456789abcdef",
+                        id="grp_0195f3a0000070008123456789abcdef",
                         title=I18nText(translations={"en": "Group", "fi": "Ryhma"}),
                         target_blocks=["*"],
                     )
@@ -128,15 +130,19 @@ def in_memory_repo() -> InMemoryUnifiedWorkflowRepository:
     )
     repo.set_workflow(
         Workflow(
-            id="wf_0123456789abcdef",
+            id="wf_0195f3a0000070008123456789abcdef",
             slug="test-wf",
             name=I18nText(translations={"en": "Test Workflow", "fi": "Testityonkulku"}),
             description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
             status="published",
             version=1,
             historical_context_mode=HistoricalContextMode.DISABLED,
-            model_registry_id="cfg_model_registry_01",
-            steps=[StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef")],
+            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            steps=[
+                StepRule(
+                    id="sr_0195f3a0000070008123456789abcdef", task_blueprint="stp_0195f3a0000070008123456789abcdef"
+                )
+            ],
             expected_inputs=[
                 ExpectedInput(
                     input_key="doc",
@@ -189,37 +195,37 @@ def test_dlq_handle_debug_log_error_emits_warning(caplog: pytest.LogCaptureFixtu
 def test_extract_step_context_metadata_dto_and_atom_branches() -> None:
     """Verify extract_step_context_metadata extracts gvars, doc_aliases, and AtomResultDTO dag_results."""
     atom_1 = AtomResultDTO(
-        tda_id="tda_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Direct atom DTO",
         contextual_override=True,
     )
     atom_2 = AtomResultDTO(
-        tda_id="tda_fedcba9876543210",
+        tda_id="tda_0195f3a00000700f8edcba9876543210",
         status=ExecutionStatus.FAILED,
         evaluation_reasoning="Standalone atom DTO",
         contextual_override=False,
     )
     atom_3 = AtomResultDTO(
-        tda_id="tda_1111222233334444",
+        tda_id="tda_0195f3a0000070018111222233334444",
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Nested results atom DTO",
         contextual_override=True,
     )
 
     hook_state = HookState.model_construct(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wf_0123456789abcdef",
-        step_id="sr_0123456789abcdef",
-        task_blueprint="stp_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
+        step_id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(language="fi"),
         inputs=ExecutionInputsDTO.model_construct(
             raw_inputs={
                 "list_atoms": [
                     atom_1,
-                    {"atom_id": "tda_aaaa1111bbbb2222"},
-                    {"tda_id": "tda_cccc3333dddd4444", "evaluation_reasoning": "Custom"},
+                    {"atom_id": "tda_0195f3a00000700a8aaa1111bbbb2222"},
+                    {"tda_id": "tda_0195f3a00000700c8ccc3333dddd4444", "evaluation_reasoning": "Custom"},
                 ],
                 "single_atom": atom_2,
             },
@@ -227,8 +233,8 @@ def test_extract_step_context_metadata_dto_and_atom_branches() -> None:
                 "nested_step": {
                     "results": [
                         atom_3,
-                        {"atom_id": "tda_eeee5555ffff6666"},
-                        {"tda_id": "tda_9999888877776666"},
+                        {"atom_id": "tda_0195f3a00000700e8eee5555ffff6666"},
+                        {"tda_id": "tda_0195f3a0000070098999888877776666"},
                     ]
                 }
             },
@@ -243,23 +249,23 @@ def test_extract_step_context_metadata_dto_and_atom_branches() -> None:
     meta = extract_step_context_metadata(hook_state, ctx)
     assert meta.gvars["language"] == "fi"
     assert meta.doc_aliases == ["doc_a"]
-    assert "tda_0123456789abcdef" in meta.dag_results
-    assert "tda_fedcba9876543210" in meta.dag_results
-    assert "tda_1111222233334444" in meta.dag_results
-    assert meta.dag_results["tda_aaaa1111bbbb2222"].status == ExecutionStatus.PASSED
-    assert meta.dag_results["tda_aaaa1111bbbb2222"].contextual_override is True
-    assert meta.dag_results["tda_cccc3333dddd4444"].evaluation_reasoning == "Custom"
-    assert meta.dag_results["tda_eeee5555ffff6666"].evaluation_reasoning == "Extracted"
-    assert meta.dag_results["tda_9999888877776666"].status == ExecutionStatus.PASSED
+    assert "tda_0195f3a0000070008123456789abcdef" in meta.dag_results
+    assert "tda_0195f3a00000700f8edcba9876543210" in meta.dag_results
+    assert "tda_0195f3a0000070018111222233334444" in meta.dag_results
+    assert meta.dag_results["tda_0195f3a00000700a8aaa1111bbbb2222"].status == ExecutionStatus.PASSED
+    assert meta.dag_results["tda_0195f3a00000700a8aaa1111bbbb2222"].contextual_override is True
+    assert meta.dag_results["tda_0195f3a00000700c8ccc3333dddd4444"].evaluation_reasoning == "Custom"
+    assert meta.dag_results["tda_0195f3a00000700e8eee5555ffff6666"].evaluation_reasoning == "Extracted"
+    assert meta.dag_results["tda_0195f3a0000070098999888877776666"].status == ExecutionStatus.PASSED
 
 
 def test_extract_step_context_metadata_mapping_gvars_and_default_aliases() -> None:
     """Verify extract_step_context_metadata handles mapping gvars and defaults doc_aliases to N/A."""
     hook_state = HookState.model_construct(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wf_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
         step_id="step_1",
-        task_blueprint="stp_0123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
         global_context_vars={"strictness_level": 40},
         inputs=ExecutionInputsDTO(raw_inputs={"plain": "text"}, dynamic_inputs={}),
     )
@@ -276,7 +282,7 @@ async def test_execute_with_role_and_persona_and_protocol(
 ) -> None:
     """Verify execute_blueprint_and_pre_hooks_stage resolves role, protocol, persona, criteria, and OutputProfile."""
     role_blk = PersonaPromptBlock(
-        id="blk_a000000000000001",
+        id="blk_0195f3a00000700a8000000000000001",
         slug="role-blk",
         label=I18nText(translations={"en": "Role", "fi": "Rooli"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -284,7 +290,7 @@ async def test_execute_with_role_and_persona_and_protocol(
         role_enforcement="Act as auditor.",
     )
     proto_blk = ProtocolPromptBlock(
-        id="blk_a000000000000002",
+        id="blk_0195f3a00000700a8000000000000002",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol", "fi": "Protokolla"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -292,20 +298,20 @@ async def test_execute_with_role_and_persona_and_protocol(
         protocol_instructions="Extract exact quotes.",
     )
     persona_blk = PersonaPromptBlock(
-        id="blk_a000000000000003",
+        id="blk_0195f3a00000700a8000000000000003",
         slug="pers-blk",
         label=I18nText(translations={"en": "Persona", "fi": "Persoona"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
         category_id=PromptBlockCategory.EXECUTION_PERSONA,
         role_enforcement="Strict evaluator.",
     )
-    crit_blk = _create_rule_block("blk_a000000000000004")
+    crit_blk = _create_rule_block("blk_0195f3a00000700a8000000000000004")
 
     for b in (role_blk, proto_blk, persona_blk, crit_blk):
         in_memory_repo.seed_raw_prompt_block(b.id, b)
 
     step_def = Step(
-        id="stp_a000000000000001",
+        id="stp_0195f3a00000700a8000000000000001",
         slug="full-step",
         name=I18nText(translations={"en": "Full Step", "fi": "Taysi vaihe"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -322,7 +328,7 @@ async def test_execute_with_role_and_persona_and_protocol(
     in_memory_repo.seed_raw_step(step_def.id, step_def)
 
     step_rule = StepRule(
-        id="sr_a000000000000001",
+        id="sr_0195f3a00000700a8000000000000001",
         task_blueprint=step_def.id,
         input_mappings={"doc": "$inputs.doc"},
     )
@@ -353,7 +359,7 @@ async def test_execute_with_role_and_persona_and_protocol(
     assert result.execution_persona_block is not None and result.execution_persona_block.id == persona_blk.id
     assert len(result.criteria_blocks_models) == 1
     assert result.criteria_blocks_models[0].id == crit_blk.id
-    assert result.output_profile.id == "prf_0123456789abcdef"
+    assert result.output_profile.id == "prf_0195f3a0000070008123456789abcdef"
     assert result.target_locale == "fi"
     assert "Primary source content." in result.global_source_text
     assert result.inputs_payload.raw_inputs == {"doc": "Primary source content."}
@@ -379,7 +385,7 @@ async def test_execute_fails_fast_on_missing_prompt_block(
 
     # 1. Missing role_block_id -> ConfigurationError
     step_role = Step(
-        id="stp_b000000000000001",
+        id="stp_0195f3a00000700b8000000000000001",
         slug="miss-role",
         name=I18nText(translations={"en": "Miss Role", "fi": "Puuttuva rooli"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -387,16 +393,16 @@ async def test_execute_fails_fast_on_missing_prompt_block(
         engine_type=EngineType.PROMPT,
         zone=StepZone.ZONE_B,
         cognitive_tier=CognitiveTier.BALANCED,
-        role_block_id="blk_b000000000000001",
-        extraction_protocol_block_id="blk_a000000000000002",
-        criteria_block_ids=["blk_0123456789abcdef"],
+        role_block_id="blk_0195f3a00000700b8000000000000001",
+        extraction_protocol_block_id="blk_0195f3a00000700a8000000000000002",
+        criteria_block_ids=["blk_0195f3a0000070008123456789abcdef"],
     )
     in_memory_repo.seed_raw_step(step_role.id, step_role)
 
     with caplog.at_level(logging.ERROR, logger="backend_v2.services.orchestrator.strategies.llm_strategy"):
-        with pytest.raises(ConfigurationError, match="Role Block 'blk_b000000000000001' not found"):
+        with pytest.raises(ConfigurationError, match="Role Block 'blk_0195f3a00000700b8000000000000001' not found"):
             await execute_blueprint_and_pre_hooks_stage(
-                step=StepRule(id="sr_0000000000000001", task_blueprint=step_role.id),
+                step=StepRule(id="sr_0195f3a0000070008000000000000001", task_blueprint=step_role.id),
                 projector=projector,
                 context=_create_context(),
                 deps=strategy_deps,
@@ -407,15 +413,17 @@ async def test_execute_fails_fast_on_missing_prompt_block(
     # 2. Missing extraction_protocol_block_id -> ConfigurationError
     step_proto = step_role.model_copy(
         update={
-            "id": "stp_b000000000000002",
+            "id": "stp_0195f3a00000700b8000000000000002",
             "role_block_id": None,
-            "extraction_protocol_block_id": "blk_b000000000000002",
+            "extraction_protocol_block_id": "blk_0195f3a00000700b8000000000000002",
         }
     )
     in_memory_repo.seed_raw_step(step_proto.id, step_proto)
-    with pytest.raises(ConfigurationError, match="Extraction Protocol Block 'blk_b000000000000002' not found"):
+    with pytest.raises(
+        ConfigurationError, match="Extraction Protocol Block 'blk_0195f3a00000700b8000000000000002' not found"
+    ):
         await execute_blueprint_and_pre_hooks_stage(
-            step=StepRule(id="sr_0000000000000002", task_blueprint=step_proto.id),
+            step=StepRule(id="sr_0195f3a0000070008000000000000002", task_blueprint=step_proto.id),
             projector=projector,
             context=_create_context(),
             deps=strategy_deps,
@@ -426,15 +434,17 @@ async def test_execute_fails_fast_on_missing_prompt_block(
     # 3. Missing execution_persona_block_id -> ConfigurationError
     step_pers = step_role.model_copy(
         update={
-            "id": "stp_b000000000000003",
+            "id": "stp_0195f3a00000700b8000000000000003",
             "role_block_id": None,
-            "execution_persona_block_id": "blk_b000000000000003",
+            "execution_persona_block_id": "blk_0195f3a00000700b8000000000000003",
         }
     )
     in_memory_repo.seed_raw_step(step_pers.id, step_pers)
-    with pytest.raises(ConfigurationError, match="Execution Persona Block 'blk_b000000000000003' not found"):
+    with pytest.raises(
+        ConfigurationError, match="Execution Persona Block 'blk_0195f3a00000700b8000000000000003' not found"
+    ):
         await execute_blueprint_and_pre_hooks_stage(
-            step=StepRule(id="sr_0000000000000003", task_blueprint=step_pers.id),
+            step=StepRule(id="sr_0195f3a0000070008000000000000003", task_blueprint=step_pers.id),
             projector=projector,
             context=_create_context(),
             deps=strategy_deps,
@@ -445,15 +455,17 @@ async def test_execute_fails_fast_on_missing_prompt_block(
     # 4. Missing criteria_block_ids -> AppException (VALIDATION_FAILED)
     step_crit = step_role.model_copy(
         update={
-            "id": "stp_b000000000000004",
+            "id": "stp_0195f3a00000700b8000000000000004",
             "role_block_id": None,
-            "criteria_block_ids": ["blk_b000000000000004"],
+            "criteria_block_ids": ["blk_0195f3a00000700b8000000000000004"],
         }
     )
     in_memory_repo.seed_raw_step(step_crit.id, step_crit)
-    with pytest.raises(AppException, match="Criteria PromptBlock 'blk_b000000000000004' not found") as exc_info:
+    with pytest.raises(
+        AppException, match="Criteria PromptBlock 'blk_0195f3a00000700b8000000000000004' not found"
+    ) as exc_info:
         await execute_blueprint_and_pre_hooks_stage(
-            step=StepRule(id="sr_0000000000000004", task_blueprint=step_crit.id),
+            step=StepRule(id="sr_0195f3a0000070008000000000000004", task_blueprint=step_crit.id),
             projector=projector,
             context=_create_context(),
             deps=strategy_deps,
@@ -483,7 +495,9 @@ async def test_execute_blueprint_stage_error_and_boundary_branches(
     invalid_call = functools.partial(execute_blueprint_and_pre_hooks_stage, semaphore=MagicMock())
     with pytest.raises(TypeError):
         await invalid_call(
-            step=StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef"),
+            step=StepRule(
+                id="sr_0195f3a0000070008123456789abcdef", task_blueprint="stp_0195f3a0000070008123456789abcdef"
+            ),
             projector=projector,
             context=_create_context(),
             deps=strategy_deps,
@@ -491,7 +505,9 @@ async def test_execute_blueprint_stage_error_and_boundary_branches(
         )
 
     # 2. Missing task_blueprint on StepRule
-    empty_bp_step = StepRule.model_construct(id="sr_0123456789abcdef", task_blueprint="", input_mappings={})
+    empty_bp_step = StepRule.model_construct(
+        id="sr_0195f3a0000070008123456789abcdef", task_blueprint="", input_mappings={}
+    )
     with pytest.raises(AppException, match="has no task_blueprint configured"):
         await execute_blueprint_and_pre_hooks_stage(
             step=empty_bp_step,
@@ -502,9 +518,11 @@ async def test_execute_blueprint_stage_error_and_boundary_branches(
         )
 
     # 3. Step blueprint not found in workflow_repo
-    with pytest.raises(AppException, match="Step 'stp_0000000000099999' not found"):
+    with pytest.raises(AppException, match="Step 'stp_0195f3a0000070008000000000099999' not found"):
         await execute_blueprint_and_pre_hooks_stage(
-            step=StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0000000000099999"),
+            step=StepRule(
+                id="sr_0195f3a0000070008123456789abcdef", task_blueprint="stp_0195f3a0000070008000000000099999"
+            ),
             projector=projector,
             context=_create_context(),
             deps=strategy_deps,
@@ -515,7 +533,9 @@ async def test_execute_blueprint_stage_error_and_boundary_branches(
     ctx_no_profile = _create_context().model_copy(update={"output_profile_id": ""})
     with pytest.raises(ConfigurationError, match="missing mandatory 'output_profile_id'"):
         await execute_blueprint_and_pre_hooks_stage(
-            step=StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef"),
+            step=StepRule(
+                id="sr_0195f3a0000070008123456789abcdef", task_blueprint="stp_0195f3a0000070008123456789abcdef"
+            ),
             projector=projector,
             context=ctx_no_profile,
             deps=strategy_deps,
@@ -526,7 +546,9 @@ async def test_execute_blueprint_stage_error_and_boundary_branches(
     ctx_no_locale = _create_context().model_copy(update={"target_locale": ""})
     with pytest.raises(ConfigurationError, match="missing mandatory 'target_locale'"):
         await execute_blueprint_and_pre_hooks_stage(
-            step=StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef"),
+            step=StepRule(
+                id="sr_0195f3a0000070008123456789abcdef", task_blueprint="stp_0195f3a0000070008123456789abcdef"
+            ),
             projector=projector,
             context=ctx_no_locale,
             deps=strategy_deps,
@@ -534,10 +556,12 @@ async def test_execute_blueprint_stage_error_and_boundary_branches(
         )
 
     # 6. OutputProfile not found in output_profile_repo
-    ctx_bad_profile = _create_context(output_profile_id="prf_0000000000099999")
-    with pytest.raises(AppException, match="OutputProfile 'prf_0000000000099999' not found"):
+    ctx_bad_profile = _create_context(output_profile_id="prf_0195f3a0000070008000000000099999")
+    with pytest.raises(AppException, match="OutputProfile 'prf_0195f3a0000070008000000000099999' not found"):
         await execute_blueprint_and_pre_hooks_stage(
-            step=StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef"),
+            step=StepRule(
+                id="sr_0195f3a0000070008123456789abcdef", task_blueprint="stp_0195f3a0000070008123456789abcdef"
+            ),
             projector=projector,
             context=ctx_bad_profile,
             deps=strategy_deps,
@@ -545,9 +569,9 @@ async def test_execute_blueprint_stage_error_and_boundary_branches(
         )
 
     # 7. Context with explicit prompt_blocks list and mapping global_context_vars
-    blk = _create_rule_block("blk_0123456789abcdef")
+    blk = _create_rule_block("blk_0195f3a0000070008123456789abcdef")
     proto_blk = ProtocolPromptBlock(
-        id="blk_a000000000000002",
+        id="blk_0195f3a00000700a8000000000000002",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol", "fi": "Protokolla"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -571,7 +595,7 @@ async def test_execute_blueprint_stage_error_and_boundary_branches(
         return mutated, []
 
     res = await execute_blueprint_and_pre_hooks_stage(
-        step=StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef"),
+        step=StepRule(id="sr_0195f3a0000070008123456789abcdef", task_blueprint="stp_0195f3a0000070008123456789abcdef"),
         projector=projector,
         context=ctx_with_blocks,
         deps=strategy_deps,
@@ -598,7 +622,7 @@ async def test_execute_blueprint_stage_error_and_boundary_branches(
         return mutated, []
 
     res_empty = await execute_blueprint_and_pre_hooks_stage(
-        step=StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef"),
+        step=StepRule(id="sr_0195f3a0000070008123456789abcdef", task_blueprint="stp_0195f3a0000070008123456789abcdef"),
         projector=projector,
         context=ctx_empty_gvars,
         deps=strategy_deps,
@@ -608,10 +632,14 @@ async def test_execute_blueprint_stage_error_and_boundary_branches(
     assert isinstance(res_empty.hook_state.global_context_vars, GlobalContextVarsDTO)
 
     # 8. Malformed PromptBlock in DB raises VALIDATION_FAILED
-    in_memory_repo.seed_raw_prompt_block("blk_bad0123456789abc", {"id": "blk_bad0123456789abc", "category_id": "BAD"})
+    in_memory_repo.seed_raw_prompt_block(
+        "blk_0195f3a00000700b8ad0123456789abc", {"id": "blk_0195f3a00000700b8ad0123456789abc", "category_id": "BAD"}
+    )
     with pytest.raises(AppException, match="Malformed PromptBlock in DB"):
         await execute_blueprint_and_pre_hooks_stage(
-            step=StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef"),
+            step=StepRule(
+                id="sr_0195f3a0000070008123456789abcdef", task_blueprint="stp_0195f3a0000070008123456789abcdef"
+            ),
             projector=projector,
             context=_create_context(),
             deps=strategy_deps,

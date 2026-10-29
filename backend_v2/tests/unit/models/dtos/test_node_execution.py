@@ -23,7 +23,7 @@ from backend_v2.models.execution_core import ExecutionMetadata
 def test_node_execution_update_dto() -> None:
     """Test NodeExecutionUpdateDTO creation, conversion to ExecutionUpdateDTO, and immutability."""
     step_state = ExecutionStepState(
-        id="stp_1234567890abcdef",
+        id="stp_0195f3a0000070018234567890abcdef",
         label="Step 1",
         status=ExecutionStatus.PASSED,
     )
@@ -31,17 +31,17 @@ def test_node_execution_update_dto() -> None:
     dto = NodeExecutionUpdateDTO(
         status=ExecutionStatus.RUNNING,
         execution_trace=[],
-        step_states={"stp_1234567890abcdef": step_state},
+        step_states={"stp_0195f3a0000070018234567890abcdef": step_state},
         frozen_context=None,
         context_variables=cv,
         error=None,
-        steps=[ExecutionStep(id="stp_1234567890abcdef", label="Step 1", status=ExecutionStatus.PASSED)],
+        steps=[ExecutionStep(id="stp_0195f3a0000070018234567890abcdef", label="Step 1", status=ExecutionStatus.PASSED)],
     )
 
     update_dto = dto.to_execution_update_dto()
     assert isinstance(update_dto, ExecutionUpdateDTO)
     assert update_dto.status == ExecutionStatus.RUNNING
-    assert update_dto.step_states == {"stp_1234567890abcdef": step_state}
+    assert update_dto.step_states == {"stp_0195f3a0000070018234567890abcdef": step_state}
     assert update_dto.context_variables == cv
     assert update_dto.context_variables is not None
     assert update_dto.context_variables["key"] == "val"

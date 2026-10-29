@@ -264,8 +264,8 @@ def test_create_execution_record_injects_telemetry() -> None:
     from backend_v2.services.execution.ingress_service import create_execution_record
 
     record = create_execution_record(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={}),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
@@ -277,8 +277,8 @@ def test_create_execution_record_injects_telemetry() -> None:
 
     custom_carrier = TraceContextCarrierDTO(traceparent="00-11112222333344445555666677778888-9999000011112222-01")
     record2 = create_execution_record(
-        execution_id="exe_1123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0195f3a0000070018123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={}),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
@@ -376,9 +376,7 @@ def test_local_trace_snapshot_exporter_invalid_trace_dir_raises() -> None:
 
 
 @pytest.mark.parametrize("invalid_timeout", [0, -1, -500])
-def test_local_trace_snapshot_exporter_force_flush_invalid_timeout_raises(
-    tmp_path: Path, invalid_timeout: int
-) -> None:
+def test_local_trace_snapshot_exporter_force_flush_invalid_timeout_raises(tmp_path: Path, invalid_timeout: int) -> None:
     """Verifies force_flush raises AppException on non-positive timeout_millis boundary values."""
     exporter = LocalTraceSnapshotExporter(trace_dir=tmp_path)
     with pytest.raises(AppException) as exc_info:
@@ -422,4 +420,3 @@ def test_get_tracer_empty_name_raises() -> None:
     with pytest.raises(AppException) as exc_info:
         get_tracer("   ")
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
-

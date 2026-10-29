@@ -15,7 +15,7 @@ from backend_v2.services.sdui.adapters.base_adapter import AdapterContext, SduiA
 def valid_output_profile_fixture() -> OutputProfile:
     """Fixture for a valid output profile to use in tests."""
     return OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="test-profile",
         workflow_id="wfw_test",
         name=I18nText(translations={"en": "Test Profile"}),

@@ -69,15 +69,15 @@ def mock_studio_services() -> tuple[AsyncMock, AsyncMock]:
 def sample_workflow() -> Workflow:
     """Create a valid sample Workflow domain model."""
     return Workflow(
-        id="wor_1234567890abcdef",
+        id="wor_0195f3a0000070018234567890abcdef",
         slug="test_wf",
         name=I18nText(translations={"fi": "Testi", "en": "Test"}),
         description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
         status="active",
         version=1,
-        default_profile_id="prf_1234567890abcdef",
+        default_profile_id="prf_0195f3a0000070018234567890abcdef",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         expected_inputs=[],
         steps=[],
     )
@@ -106,7 +106,7 @@ async def test_get_workflows(
     response = client.get("/workflows/")
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert response.json()[0]["id"] == "wor_1234567890abcdef"
+    assert response.json()[0]["id"] == "wor_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio
@@ -119,7 +119,7 @@ async def test_create_workflow(
 
     response = client.post("/workflows/")
     assert response.status_code == 200
-    assert response.json()["id"] == "wor_1234567890abcdef"
+    assert response.json()["id"] == "wor_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio
@@ -130,15 +130,13 @@ async def test_get_workflow(
     mock_workflow, _ = mock_studio_services
     mock_workflow.get_workflow.return_value = sample_workflow_response_dto
 
-    response = client.get("/workflows/wor_1234567890abcdef")
+    response = client.get("/workflows/wor_0195f3a0000070018234567890abcdef")
     assert response.status_code == 200
-    assert response.json()["id"] == "wor_1234567890abcdef"
+    assert response.json()["id"] == "wor_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio
-async def test_simulate_workflow(
-    mock_studio_services: tuple[AsyncMock, AsyncMock], sample_workflow: Workflow
-) -> None:
+async def test_simulate_workflow(mock_studio_services: tuple[AsyncMock, AsyncMock], sample_workflow: Workflow) -> None:
     """Test POST /workflows/simulate validates workflow DAG topology."""
     _, mock_simulation = mock_studio_services
     sim_response = WorkflowSimulationResponse(
@@ -161,7 +159,7 @@ async def test_get_workflow_available_extensions(mock_studio_services: tuple[Asy
     mock_workflow, _ = mock_studio_services
     mock_workflow.get_workflow_available_extensions.return_value = ["ext_1", "ext_2"]
 
-    response = client.get("/workflows/wor_1234567890abcdef/available-extensions")
+    response = client.get("/workflows/wor_0195f3a0000070018234567890abcdef/available-extensions")
     assert response.status_code == 200
     assert response.json()["available_extensions"] == ["ext_1", "ext_2"]
 
@@ -174,9 +172,9 @@ async def test_clone_workflow(
     mock_workflow, _ = mock_studio_services
     mock_workflow.clone_workflow.return_value = sample_workflow_response_dto
 
-    response = client.post("/workflows/wor_1234567890abcdef/clone")
+    response = client.post("/workflows/wor_0195f3a0000070018234567890abcdef/clone")
     assert response.status_code == 200
-    assert response.json()["id"] == "wor_1234567890abcdef"
+    assert response.json()["id"] == "wor_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio
@@ -189,9 +187,11 @@ async def test_save_workflow(
     mock_workflow, _ = mock_studio_services
     mock_workflow.save_workflow.return_value = sample_workflow_response_dto
 
-    response = client.put("/workflows/wor_1234567890abcdef", json=sample_workflow.model_dump(mode="json"))
+    response = client.put(
+        "/workflows/wor_0195f3a0000070018234567890abcdef", json=sample_workflow.model_dump(mode="json")
+    )
     assert response.status_code == 200
-    assert response.json()["id"] == "wor_1234567890abcdef"
+    assert response.json()["id"] == "wor_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio
@@ -200,9 +200,9 @@ async def test_delete_workflow(mock_studio_services: tuple[AsyncMock, AsyncMock]
     mock_workflow, _ = mock_studio_services
     mock_workflow.delete_workflow.return_value = None
 
-    response = client.delete("/workflows/wor_1234567890abcdef")
+    response = client.delete("/workflows/wor_0195f3a0000070018234567890abcdef")
     assert response.status_code == 200
-    assert response.json() == {"status": "success", "deleted_id": "wor_1234567890abcdef"}
+    assert response.json() == {"status": "success", "deleted_id": "wor_0195f3a0000070018234567890abcdef"}
 
 
 @pytest.mark.asyncio
@@ -236,19 +236,19 @@ async def test_delete_workflow_permission_denied_raises_app_exception(
     """Negative test: delete_workflow propagates PermissionDeniedError (AppException) on unauthorized access."""
     mock_workflow, _ = mock_studio_services
     mock_workflow.delete_workflow.side_effect = PermissionDeniedError(
-        message="Permission denied to delete workflow wor_1234567890abcdef"
+        message="Permission denied to delete workflow wor_0195f3a0000070018234567890abcdef"
     )
 
     with pytest.raises(AppException) as exc_info:
         await delete_workflow(
-            id="wor_1234567890abcdef",
+            id="wor_0195f3a0000070018234567890abcdef",
             current_user=mock_get_current_user(),
             studio_workflow_service=mock_workflow,
         )
     assert exc_info.value.status_code == 403
     assert exc_info.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value
 
-    response = client.delete("/workflows/wor_1234567890abcdef")
+    response = client.delete("/workflows/wor_0195f3a0000070018234567890abcdef")
     assert response.status_code == 403
     assert response.json()["extensions"]["error_code"] == ErrorCodes.PERMISSION_DENIED.value
 

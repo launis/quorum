@@ -86,30 +86,31 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     """
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_step(
-        "blp_1111222233334444",
+        "blp_0195f3a0000070018111222233334444",
         {
-            "id": "blp_1111222233334444",
+            "id": "blp_0195f3a0000070018111222233334444",
             "type": "causal_discovery",
             "slug": "causal_step",
             "name": {"translations": {"en": "Causal Discovery Step"}},
             "description": {"translations": {"en": "Exploratory Causal Graph"}},
             "engine_type": "causal_discovery",
             "cognitive_tier": "fast",
-            "extraction_protocol_block_id": "blk_1111222233334444",
+            "extraction_protocol_block_id": "blk_0195f3a0000070018111222233334444",
             "post_hooks": [],
+            "criteria_block_ids": ["blk_0195f3a00000700c80a1e50000000001"],
         },
     )
     repo.seed_raw_step(
-        "blp_5555666677778888",
+        "blp_0195f3a0000070058555666677778888",
         {
-            "id": "blp_5555666677778888",
+            "id": "blp_0195f3a0000070058555666677778888",
             "type": "llm",
             "slug": "tda_step",
             "name": {"translations": {"en": "TDA Fusion Step"}},
             "description": {"translations": {"en": "Downstream TDA Evaluation"}},
             "engine_type": "tda",
-            "criteria_block_ids": ["blk_5555666677778888"],
-            "extraction_protocol_block_id": "blk_1111222233334444",
+            "criteria_block_ids": ["blk_0195f3a0000070058555666677778888"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070018111222233334444",
             "post_hooks": ["apply_scoring_logic_hook"],
         },
     )
@@ -135,7 +136,7 @@ def test_causal_to_tda_fusion_transforms_nodes_to_flattened_atoms() -> None:
     """Verifies transform_causal_nodes_to_atoms converts CausalNodeDTO to FlattenedAtom."""
     nodes = [
         CausalNodeDTO(
-            node_id="tda_0000000000000001",
+            node_id="tda_0195f3a0000070008000000000000001",
             claim="Higher prices decrease customer demand.",
             source_quotes="When prices rose by 10%, volume dropped.",
             paragraph_ref="P1",
@@ -144,7 +145,7 @@ def test_causal_to_tda_fusion_transforms_nodes_to_flattened_atoms() -> None:
             dependent_child_ids=[],
         ),
         CausalNodeDTO(
-            node_id="tda_0000000000000002",
+            node_id="tda_0195f3a0000070008000000000000002",
             claim="Lower demand reduces quarterly revenues.",
             source_quotes="Revenues contracted following the volume drop.",
             paragraph_ref="P2",
@@ -153,7 +154,7 @@ def test_causal_to_tda_fusion_transforms_nodes_to_flattened_atoms() -> None:
             dependent_child_ids=[],
         ),
         CausalNodeDTO(
-            node_id="tda_0000000000000003",
+            node_id="tda_0195f3a0000070008000000000000003",
             claim="Supply chain costs offset revenue gains.",
             source_quotes="Freight rate surcharges erased margin gains.",
             paragraph_ref="P3",
@@ -197,7 +198,7 @@ def test_transform_causal_nodes_empty_list_returns_empty_list() -> None:
 def test_transform_causal_nodes_with_none_quote_transforms_cleanly() -> None:
     """Verifies transform_causal_nodes_to_atoms handles None quote and paragraph references cleanly."""
     node = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Market share expanded without explicit source quote.",
         source_quotes=None,
         paragraph_ref=None,
@@ -210,7 +211,7 @@ def test_transform_causal_nodes_with_none_quote_transforms_cleanly() -> None:
 
     assert len(atoms) == 1
     atom = atoms[0]
-    assert atom.atom_id == "tda_0000000000000001"
+    assert atom.atom_id == "tda_0195f3a0000070008000000000000001"
     assert atom.question == "Market share expanded without explicit source quote."
     assert atom.anchor_target == ""
     assert atom.extraction_rule == ""
@@ -241,25 +242,25 @@ async def test_causal_fusion_starvation_empty_nodes_raises_app_exception(
     )
 
     step_causal = StepRule(
-        id="stp_1111222233334444",
-        task_blueprint="blp_1111222233334444",
+        id="stp_0195f3a0000070018111222233334444",
+        task_blueprint="blp_0195f3a0000070018111222233334444",
         depends_on=[],
     )
     step_tda = StepRule(
-        id="stp_5555666677778888",
-        task_blueprint="blp_5555666677778888",
-        depends_on=["stp_1111222233334444"],
-        causal_source_step_id="stp_1111222233334444",
+        id="stp_0195f3a0000070058555666677778888",
+        task_blueprint="blp_0195f3a0000070058555666677778888",
+        depends_on=["stp_0195f3a0000070018111222233334444"],
+        causal_source_step_id="stp_0195f3a0000070018111222233334444",
     )
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_starvation",
         status="draft",
         version=1,
-        default_profile_id="prof_1111222233334444",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a0000070018111222233334444",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Starvation Workflow"}),
         description=I18nText(translations={"en": "Starvation Test"}),
         steps=[step_causal, step_tda],
@@ -275,10 +276,10 @@ async def test_causal_fusion_starvation_empty_nodes_raises_app_exception(
 
     async def fake_node_execute(*args: Any, **kwargs: Any) -> list[TraceEvent]:
         step_arg = kwargs["step"] if "step" in kwargs else None
-        if step_arg and step_arg.id == "stp_1111222233334444":
+        if step_arg and step_arg.id == "stp_0195f3a0000070018111222233334444":
             return [
                 TraceEvent(
-                    step_name="stp_1111222233334444",
+                    step_name="stp_0195f3a0000070018111222233334444",
                     event_type="output",
                     content=empty_graph,
                 )
@@ -298,7 +299,7 @@ async def test_causal_fusion_starvation_empty_nodes_raises_app_exception(
 
         with pytest.raises(AppException) as exc_info:
             await executor.execute_workflow(
-                execution_id="exe_1111222233334444",
+                execution_id="exe_0195f3a0000070018111222233334444",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(dynamic_inputs={"text": "sample"}),
             )
@@ -317,9 +318,9 @@ def test_causal_fusion_missing_upstream_step_raises_app_exception() -> None:
     """Verifies that referencing a causal_source_step_id not in depends_on raises VALIDATION_FAILED."""
     with pytest.raises(AppException) as exc_info:
         StepRule(
-            id="stp_5555666677778888",
-            task_blueprint="blp_5555666677778888",
-            causal_source_step_id="stp_9999999999999999",
+            id="stp_0195f3a0000070058555666677778888",
+            task_blueprint="blp_0195f3a0000070058555666677778888",
+            causal_source_step_id="stp_0195f3a0000070098999999999999999",
             depends_on=[],
         )
 
@@ -354,52 +355,58 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
     )
 
     step_causal = StepRule(
-        id="stp_1111222233334444",
-        task_blueprint="blp_1111222233334444",
+        id="stp_0195f3a0000070018111222233334444",
+        task_blueprint="blp_0195f3a0000070018111222233334444",
         depends_on=[],
     )
     step_tda = StepRule(
-        id="stp_5555666677778888",
-        task_blueprint="blp_5555666677778888",
-        depends_on=["stp_1111222233334444"],
-        causal_source_step_id="stp_1111222233334444",
+        id="stp_0195f3a0000070058555666677778888",
+        task_blueprint="blp_0195f3a0000070058555666677778888",
+        depends_on=["stp_0195f3a0000070018111222233334444"],
+        causal_source_step_id="stp_0195f3a0000070018111222233334444",
     )
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_fusion_pop",
         status="draft",
         version=1,
-        default_profile_id="prof_1111222233334444",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a0000070018111222233334444",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Fusion Pop Workflow"}),
         description=I18nText(translations={"en": "Fusion Pop Test"}),
         steps=[step_causal, step_tda],
     )
 
     node1 = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Discovered proposition 1",
         source_quotes="Quote 1",
         paragraph_ref="P1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000002"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
     )
     node2 = CausalNodeDTO(
-        node_id="tda_0000000000000002",
+        node_id="tda_0195f3a0000070008000000000000002",
         claim="Discovered proposition 2",
         source_quotes="Quote 2",
         paragraph_ref="P2",
         status=ExecutionStatus.PASSED,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
     )
     valid_graph = _create_test_graph(
         nodes=[node1, node2],
-        edges=[CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000002", reasoning="r1")],
-        root_cause_node_ids=["tda_0000000000000001"],
+        edges=[
+            CausalEdgeDTO(
+                source_id="tda_0195f3a0000070008000000000000001",
+                target_id="tda_0195f3a0000070008000000000000002",
+                reasoning="r1",
+            )
+        ],
+        root_cause_node_ids=["tda_0195f3a0000070008000000000000001"],
         cycle_detected=False,
         isolated_node_ids=[],
     )
@@ -409,24 +416,24 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
     async def fake_node_execute(*args: Any, **kwargs: Any) -> list[TraceEvent]:
         nonlocal observed_shuffled_atoms
         step_arg = kwargs["step"] if "step" in kwargs else None
-        if step_arg and step_arg.id == "stp_1111222233334444":
+        if step_arg and step_arg.id == "stp_0195f3a0000070018111222233334444":
             return [
                 TraceEvent(
-                    step_name="stp_1111222233334444",
+                    step_name="stp_0195f3a0000070018111222233334444",
                     event_type="output",
                     content=valid_graph,
                 )
             ]
-        if step_arg and step_arg.id == "stp_5555666677778888":
+        if step_arg and step_arg.id == "stp_0195f3a0000070058555666677778888":
             gvars = kwargs["global_context_vars"] if "global_context_vars" in kwargs else None
             if gvars is not None:
                 observed_shuffled_atoms = gvars.shuffled_atoms
             return [
                 TraceEvent(
-                    step_name="stp_5555666677778888",
+                    step_name="stp_0195f3a0000070058555666677778888",
                     event_type="output",
                     content=AtomResultDTO(
-                        tda_id="tda_0000000000000001",
+                        tda_id="tda_0195f3a0000070008000000000000001",
                         status=ExecutionStatus.PASSED,
                         evaluation_reasoning="Validly passed downstream TDA.",
                         source_quotes="Quote 1",
@@ -450,7 +457,7 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
         )
 
         record = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"text": "sample"}),
         )
@@ -458,8 +465,8 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
         assert record.status == ExecutionStatus.RUNNING
         assert observed_shuffled_atoms is not None
         assert len(observed_shuffled_atoms) == 2
-        assert observed_shuffled_atoms[0].atom_id == "tda_0000000000000001"
-        assert observed_shuffled_atoms[1].atom_id == "tda_0000000000000002"
+        assert observed_shuffled_atoms[0].atom_id == "tda_0195f3a0000070008000000000000001"
+        assert observed_shuffled_atoms[1].atom_id == "tda_0195f3a0000070008000000000000002"
         assert record.metadata is not None
         assert record.metadata.global_context_vars is not None
         assert record.metadata.global_context_vars.shuffled_atoms is not None
@@ -473,32 +480,32 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
 def test_fair_scoring_deduplication_applies_dampening() -> None:
     """Verifies fair scoring arithmetic dampens secondary faults and satisfies the mathematical identity."""
     node1 = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Root cause error",
         source_quotes="Quote 1",
         paragraph_ref="P1",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000002"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
     )
     node2 = CausalNodeDTO(
-        node_id="tda_0000000000000002",
+        node_id="tda_0195f3a0000070008000000000000002",
         claim="Cascading secondary fault",
         source_quotes="Quote 2",
         paragraph_ref="P2",
         status=ExecutionStatus.FAILED,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
     )
     edge = CausalEdgeDTO(
-        source_id="tda_0000000000000001",
-        target_id="tda_0000000000000002",
+        source_id="tda_0195f3a0000070008000000000000001",
+        target_id="tda_0195f3a0000070008000000000000002",
         reasoning="Causal dependency",
     )
     graph = _create_test_graph(
         nodes=[node1, node2],
         edges=[edge],
-        root_cause_node_ids=["tda_0000000000000001"],
+        root_cause_node_ids=["tda_0195f3a0000070008000000000000001"],
         cycle_detected=False,
         isolated_node_ids=[],
     )
@@ -547,38 +554,46 @@ def test_fair_scoring_identity_violation_raises_value_error() -> None:
 def test_prescriptive_remediation_identifies_root_causes() -> None:
     """Verifies prescriptive remediation prioritizes root causes with cascading unlocks."""
     node1 = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Fundamental assumption error",
         source_quotes="Quote 1",
         paragraph_ref="P1",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000002", "tda_0000000000000003"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002", "tda_0195f3a0000070008000000000000003"],
     )
     node2 = CausalNodeDTO(
-        node_id="tda_0000000000000002",
+        node_id="tda_0195f3a0000070008000000000000002",
         claim="Derivative projection 1",
         source_quotes="Quote 2",
         paragraph_ref="P2",
         status=ExecutionStatus.FAILED,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
     )
     node3 = CausalNodeDTO(
-        node_id="tda_0000000000000003",
+        node_id="tda_0195f3a0000070008000000000000003",
         claim="Derivative projection 2",
         source_quotes="Quote 3",
         paragraph_ref="P3",
         status=ExecutionStatus.FAILED,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
     )
-    edge1 = CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000002", reasoning="r1")
-    edge2 = CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000003", reasoning="r2")
+    edge1 = CausalEdgeDTO(
+        source_id="tda_0195f3a0000070008000000000000001",
+        target_id="tda_0195f3a0000070008000000000000002",
+        reasoning="r1",
+    )
+    edge2 = CausalEdgeDTO(
+        source_id="tda_0195f3a0000070008000000000000001",
+        target_id="tda_0195f3a0000070008000000000000003",
+        reasoning="r2",
+    )
     graph = _create_test_graph(
         nodes=[node1, node2, node3],
         edges=[edge1, edge2],
-        root_cause_node_ids=["tda_0000000000000001"],
+        root_cause_node_ids=["tda_0195f3a0000070008000000000000001"],
         cycle_detected=False,
         isolated_node_ids=[],
     )
@@ -587,8 +602,11 @@ def test_prescriptive_remediation_identifies_root_causes() -> None:
 
     assert len(fusion.prescriptive_remediations) == 1
     remediation = fusion.prescriptive_remediations[0]
-    assert remediation.target_node_id == "tda_0000000000000001"
-    assert remediation.unlocks_node_ids == ["tda_0000000000000002", "tda_0000000000000003"]
+    assert remediation.target_node_id == "tda_0195f3a0000070008000000000000001"
+    assert remediation.unlocks_node_ids == [
+        "tda_0195f3a0000070008000000000000002",
+        "tda_0195f3a0000070008000000000000003",
+    ]
     assert remediation.potential_score_impact == 3.0
 
 
@@ -600,25 +618,25 @@ def test_prescriptive_remediation_identifies_root_causes() -> None:
 def test_anti_fluff_audit_identifies_isolated_concepts() -> None:
     """Verifies anti-fluff shield calculates isolated concepts and cohesion score correctly."""
     node1 = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Connected core premise",
         source_quotes="Quote 1",
         paragraph_ref="P1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000002"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
     )
     node2 = CausalNodeDTO(
-        node_id="tda_0000000000000002",
+        node_id="tda_0195f3a0000070008000000000000002",
         claim="Connected conclusion",
         source_quotes="Quote 2",
         paragraph_ref="P2",
         status=ExecutionStatus.PASSED,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
     )
     node3 = CausalNodeDTO(
-        node_id="tda_0000000000000003",
+        node_id="tda_0195f3a0000070008000000000000003",
         claim="Decorative non-sequitur assertion",
         source_quotes="Quote 3",
         paragraph_ref="P3",
@@ -626,13 +644,17 @@ def test_anti_fluff_audit_identifies_isolated_concepts() -> None:
         blame_parent_ids=[],
         dependent_child_ids=[],
     )
-    edge = CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000002", reasoning="r1")
+    edge = CausalEdgeDTO(
+        source_id="tda_0195f3a0000070008000000000000001",
+        target_id="tda_0195f3a0000070008000000000000002",
+        reasoning="r1",
+    )
     graph = _create_test_graph(
         nodes=[node1, node2, node3],
         edges=[edge],
         root_cause_node_ids=[],
         cycle_detected=False,
-        isolated_node_ids=["tda_0000000000000003"],
+        isolated_node_ids=["tda_0195f3a0000070008000000000000003"],
     )
 
     fusion = compute_causal_tda_fusion_result(graph=graph)
@@ -641,7 +663,7 @@ def test_anti_fluff_audit_identifies_isolated_concepts() -> None:
     assert fluff.isolated_concept_count == 1
     assert fluff.cycle_detected is False
     assert 0.66 <= fluff.logical_cohesion_score <= 0.67
-    assert graph.isolated_node_ids == ["tda_0000000000000003"]
+    assert graph.isolated_node_ids == ["tda_0195f3a0000070008000000000000003"]
 
 
 # ---------------------------------------------------------------------------
@@ -669,19 +691,19 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
     )
 
     step_causal = StepRule(
-        id="stp_1111222233334444",
-        task_blueprint="blp_1111222233334444",
+        id="stp_0195f3a0000070018111222233334444",
+        task_blueprint="blp_0195f3a0000070018111222233334444",
         depends_on=[],
     )
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_standalone_causal",
         status="draft",
         version=1,
-        default_profile_id="prof_1111222233334444",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a0000070018111222233334444",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Standalone Causal Workflow"}),
         description=I18nText(translations={"en": "Standalone Causal Test"}),
         steps=[step_causal],
@@ -690,7 +712,7 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
     graph = _create_test_graph(
         nodes=[
             CausalNodeDTO(
-                node_id="tda_0000000000000001",
+                node_id="tda_0195f3a0000070008000000000000001",
                 claim="Autonomous claim",
                 source_quotes="Quote",
                 paragraph_ref="P1",
@@ -702,13 +724,13 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
         edges=[],
         root_cause_node_ids=[],
         cycle_detected=False,
-        isolated_node_ids=["tda_0000000000000001"],
+        isolated_node_ids=["tda_0195f3a0000070008000000000000001"],
     )
 
     async def fake_node_execute(*args: Any, **kwargs: Any) -> list[TraceEvent]:
         return [
             TraceEvent(
-                step_name="stp_1111222233334444",
+                step_name="stp_0195f3a0000070018111222233334444",
                 event_type="output",
                 content=graph,
             )
@@ -726,7 +748,7 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
         )
 
         record = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"text": "sample"}),
         )
@@ -745,20 +767,20 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
 def test_compute_causal_tda_fusion_evaluative_matrices_and_extracted_data() -> None:
     """Verify lines 166-170 in compute_causal_tda_fusion_result."""
     node1 = CausalNodeDTO(
-        node_id="nod_1111222233334444",
+        node_id="nod_0195f3a0000070018111222233334444",
         claim="Claim 1",
         status=ExecutionStatus.PENDING,
         blame_parent_ids=[],
-        dependent_child_ids=["nod_2222333344445555"],
+        dependent_child_ids=["nod_0195f3a0000070028222333344445555"],
         source_quotes="Quote 1",
         paragraph_ref="P1",
         tda_score=2.0,
     )
     node2 = CausalNodeDTO(
-        node_id="nod_2222333344445555",
+        node_id="nod_0195f3a0000070028222333344445555",
         claim="Claim 2",
         status=ExecutionStatus.PENDING,
-        blame_parent_ids=["nod_1111222233334444"],
+        blame_parent_ids=["nod_0195f3a0000070018111222233334444"],
         dependent_child_ids=[],
         source_quotes="Quote 2",
         paragraph_ref="P2",
@@ -767,8 +789,8 @@ def test_compute_causal_tda_fusion_evaluative_matrices_and_extracted_data() -> N
     graph = _create_test_graph(nodes=[node1, node2], edges=[])
 
     atom1 = AtomResultDTO(
-        tda_id="nod_1111222233334444",
-        matrix_id="mat_1111222233334444",
+        tda_id="nod_0195f3a0000070018111222233334444",
+        matrix_id="mat_0195f3a0000070018111222233334444",
         status=ExecutionStatus.PASSED,
         source_quotes="Quote 1",
         evaluation_reasoning="Valid claim verified",
@@ -778,7 +800,7 @@ def test_compute_causal_tda_fusion_evaluative_matrices_and_extracted_data() -> N
         short_circuit_reason_tda_ids=[],
     )
     atom2 = AtomResultDTO(
-        tda_id="nod_2222333344445555",
+        tda_id="nod_0195f3a0000070028222333344445555",
         matrix_id=None,
         status=ExecutionStatus.FAILED,
         evaluation_reasoning="Failed evidence",
@@ -790,13 +812,13 @@ def test_compute_causal_tda_fusion_evaluative_matrices_and_extracted_data() -> N
 
     res = compute_causal_tda_fusion_result(
         graph=graph,
-        evaluative_matrices={"mat_1111222233334444": 4.8},
+        evaluative_matrices={"mat_0195f3a0000070018111222233334444": 4.8},
         evaluated_atoms=[atom1, atom2],
         dampening_factor=0.5,
     )
     assert res is not None
-    n1_updated = next(n for n in res.graph.nodes if n.node_id == "nod_1111222233334444")
-    n2_updated = next(n for n in res.graph.nodes if n.node_id == "nod_2222333344445555")
+    n1_updated = next(n for n in res.graph.nodes if n.node_id == "nod_0195f3a0000070018111222233334444")
+    n2_updated = next(n for n in res.graph.nodes if n.node_id == "nod_0195f3a0000070028222333344445555")
     assert n1_updated.tda_score == 4.8
     assert n2_updated.tda_score == 1.5
 
@@ -806,9 +828,9 @@ async def test_dag_executor_scoring_hook_separation_contract() -> None:
     """Verify lines 465-473 & 721-724 in dag_executor.py."""
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_step(
-        "blp_1111222233334444",
+        "blp_0195f3a0000070018111222233334444",
         {
-            "id": "blp_1111222233334444",
+            "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "causal_step",
             "name": {"translations": {"en": "Causal Step"}},
@@ -821,25 +843,25 @@ async def test_dag_executor_scoring_hook_separation_contract() -> None:
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_causal_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
             StepRule(
-                id="stp_1111222233334444",
-                task_blueprint="blp_1111222233334444",
+                id="stp_0195f3a0000070018111222233334444",
+                task_blueprint="blp_0195f3a0000070018111222233334444",
                 expected_sdui_type="markdown",
             )
         ],
     )
 
     initial_record = create_execution_record(
-        execution_id="exe_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
         workflow_id=workflow.id,
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         frozen_context=FrozenContext(),
@@ -874,14 +896,14 @@ async def test_dag_executor_scoring_hook_separation_contract() -> None:
             )
         )
         rec = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         )
         assert rec.status in (ExecutionStatus.PASSED, ExecutionStatus.RUNNING)
-        persisted = await repo.get_execution("exe_1111222233334444")
+        persisted = await repo.get_execution("exe_0195f3a0000070018111222233334444")
         assert persisted is not None
-        assert persisted.step_states["stp_1111222233334444"].status == ExecutionStatus.PASSED
+        assert persisted.step_states["stp_0195f3a0000070018111222233334444"].status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -889,20 +911,21 @@ async def test_dag_executor_blocked_cascading_failure() -> None:
     """Verify lines 993-1006 cascading failure when dependency failed."""
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_step(
-        "blp_1111222233334444",
+        "blp_0195f3a0000070018111222233334444",
         {
-            "id": "blp_1111222233334444",
+            "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "s1",
             "name": {"translations": {"en": "S1"}},
             "description": {"translations": {"en": "D1"}},
+            "criteria_block_ids": ["blk_0195f3a00000700c80a1e50000000001"],
             "hook": "mock_hook",
         },
     )
     repo.seed_raw_step(
-        "blp_2222333344445555",
+        "blp_0195f3a0000070028222333344445555",
         {
-            "id": "blp_2222333344445555",
+            "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "s2",
             "name": {"translations": {"en": "S2"}},
@@ -913,27 +936,31 @@ async def test_dag_executor_blocked_cascading_failure() -> None:
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_cascade_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
-            StepRule(id="stp_1111222233334444", task_blueprint="blp_1111222233334444", expected_sdui_type="markdown"),
             StepRule(
-                id="stp_2222333344445555",
-                task_blueprint="blp_2222333344445555",
-                depends_on=["stp_1111222233334444"],
+                id="stp_0195f3a0000070018111222233334444",
+                task_blueprint="blp_0195f3a0000070018111222233334444",
+                expected_sdui_type="markdown",
+            ),
+            StepRule(
+                id="stp_0195f3a0000070028222333344445555",
+                task_blueprint="blp_0195f3a0000070028222333344445555",
+                depends_on=["stp_0195f3a0000070018111222233334444"],
                 expected_sdui_type="markdown",
             ),
         ],
     )
 
     initial_record = create_execution_record(
-        execution_id="exe_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
         workflow_id=workflow.id,
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         frozen_context=FrozenContext(),
@@ -959,7 +986,7 @@ async def test_dag_executor_blocked_cascading_failure() -> None:
 
     async def mock_node_execute(*args: Any, **kwargs: Any) -> list[Any]:
         step = kwargs["step"]
-        if step.id == "stp_1111222233334444":
+        if step.id == "stp_0195f3a0000070018111222233334444":
             raise RuntimeError("Step 1 failed")
         return []
 
@@ -975,15 +1002,15 @@ async def test_dag_executor_blocked_cascading_failure() -> None:
         )
         with pytest.raises((BaseExceptionGroup, Exception)):
             await executor.execute_workflow(
-                execution_id="exe_1111222233334444",
+                execution_id="exe_0195f3a0000070018111222233334444",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
             )
 
-        persisted = await repo.get_execution("exe_1111222233334444")
+        persisted = await repo.get_execution("exe_0195f3a0000070018111222233334444")
         assert persisted is not None
-        assert persisted.step_states["stp_1111222233334444"].status == ExecutionStatus.FAILED
-        assert persisted.step_states["stp_2222333344445555"].status == ExecutionStatus.BLOCKED
+        assert persisted.step_states["stp_0195f3a0000070018111222233334444"].status == ExecutionStatus.FAILED
+        assert persisted.step_states["stp_0195f3a0000070028222333344445555"].status == ExecutionStatus.BLOCKED
 
 
 @pytest.mark.asyncio
@@ -991,20 +1018,21 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
     """Verify lines 1044-1060 & 1309-1327 in dag_executor.py."""
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_step(
-        "blp_1111222233334444",
+        "blp_0195f3a0000070018111222233334444",
         {
-            "id": "blp_1111222233334444",
+            "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "causal_source",
             "name": {"translations": {"en": "Causal Source"}},
             "description": {"translations": {"en": "D1"}},
+            "criteria_block_ids": ["blk_0195f3a00000700c80a1e50000000001"],
             "hook": "mock_hook",
         },
     )
     repo.seed_raw_step(
-        "blp_2222333344445555",
+        "blp_0195f3a0000070028222333344445555",
         {
-            "id": "blp_2222333344445555",
+            "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "tda_downstream",
             "name": {"translations": {"en": "TDA Downstream"}},
@@ -1015,28 +1043,32 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_causal_fusion_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
-            StepRule(id="stp_1111222233334444", task_blueprint="blp_1111222233334444", expected_sdui_type="markdown"),
             StepRule(
-                id="stp_2222333344445555",
-                task_blueprint="blp_2222333344445555",
-                depends_on=["stp_1111222233334444"],
-                causal_source_step_id="stp_1111222233334444",
+                id="stp_0195f3a0000070018111222233334444",
+                task_blueprint="blp_0195f3a0000070018111222233334444",
+                expected_sdui_type="markdown",
+            ),
+            StepRule(
+                id="stp_0195f3a0000070028222333344445555",
+                task_blueprint="blp_0195f3a0000070028222333344445555",
+                depends_on=["stp_0195f3a0000070018111222233334444"],
+                causal_source_step_id="stp_0195f3a0000070018111222233334444",
                 expected_sdui_type="markdown",
             ),
         ],
     )
 
     initial_record = create_execution_record(
-        execution_id="exe_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
         workflow_id=workflow.id,
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         frozen_context=FrozenContext(),
@@ -1061,7 +1093,7 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
     )
 
     node = CausalNodeDTO(
-        node_id="nod_1111222233334444",
+        node_id="nod_0195f3a0000070018111222233334444",
         claim="Claim 1",
         status=ExecutionStatus.PENDING,
         blame_parent_ids=[],
@@ -1074,7 +1106,7 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
 
     async def mock_node_execute(*args: Any, **kwargs: Any) -> list[Any]:
         step = kwargs["step"]
-        if step.id == "stp_1111222233334444":
+        if step.id == "stp_0195f3a0000070018111222233334444":
             return [
                 TraceEvent(
                     step_name=step.id,
@@ -1094,7 +1126,7 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
                     step_name=step.id,
                     event_type="output",
                     content=AtomResultDTO(
-                        tda_id="nod_1111222233334444",
+                        tda_id="nod_0195f3a0000070018111222233334444",
                         matrix_id="mat_x",
                         status=ExecutionStatus.PASSED,
                         source_quotes="Quote 1",
@@ -1118,14 +1150,14 @@ async def test_dag_executor_causal_step_output_content_and_context_updates() -> 
             )
         )
         rec = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         )
         assert rec.status in (ExecutionStatus.PASSED, ExecutionStatus.RUNNING)
-        persisted = await repo.get_execution("exe_1111222233334444")
+        persisted = await repo.get_execution("exe_0195f3a0000070018111222233334444")
         assert persisted is not None
-        assert persisted.step_states["stp_2222333344445555"].status == ExecutionStatus.PASSED
+        assert persisted.step_states["stp_0195f3a0000070028222333344445555"].status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -1133,32 +1165,37 @@ async def test_dag_executor_input_delta_variants() -> None:
     """Verify lines 880-891 delta_content_dict serialization variants."""
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_step(
-        "blp_1111222233334444",
+        "blp_0195f3a0000070018111222233334444",
         {
-            "id": "blp_1111222233334444",
+            "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "s1",
             "name": {"translations": {"en": "S1"}},
             "description": {"translations": {"en": "D1"}},
+            "criteria_block_ids": ["blk_0195f3a00000700c80a1e50000000001"],
             "hook": "mock_hook",
         },
     )
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_delta_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
-            StepRule(id="stp_1111222233334444", task_blueprint="blp_1111222233334444", expected_sdui_type="markdown"),
+            StepRule(
+                id="stp_0195f3a0000070018111222233334444",
+                task_blueprint="blp_0195f3a0000070018111222233334444",
+                expected_sdui_type="markdown",
+            ),
         ],
     )
     initial_record = create_execution_record(
-        execution_id="exe_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
         workflow_id=workflow.id,
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         frozen_context=FrozenContext(),
@@ -1194,7 +1231,7 @@ async def test_dag_executor_input_delta_variants() -> None:
             )
         )
         rec = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         )
@@ -1208,7 +1245,7 @@ async def test_dag_executor_input_delta_variants() -> None:
             )
         )
         rec2 = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         )
@@ -1220,20 +1257,21 @@ async def test_dag_executor_causal_step_output_validation_error() -> None:
     """Verify lines 1050-1076 when upstream step output has invalid structure."""
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_step(
-        "blp_1111222233334444",
+        "blp_0195f3a0000070018111222233334444",
         {
-            "id": "blp_1111222233334444",
+            "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "causal_source",
             "name": {"translations": {"en": "Causal Source"}},
             "description": {"translations": {"en": "D1"}},
+            "criteria_block_ids": ["blk_0195f3a00000700c80a1e50000000001"],
             "hook": "mock_hook",
         },
     )
     repo.seed_raw_step(
-        "blp_2222333344445555",
+        "blp_0195f3a0000070028222333344445555",
         {
-            "id": "blp_2222333344445555",
+            "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "tda_downstream",
             "name": {"translations": {"en": "TDA Downstream"}},
@@ -1244,28 +1282,32 @@ async def test_dag_executor_causal_step_output_validation_error() -> None:
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_causal_fusion_invalid",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
-            StepRule(id="stp_1111222233334444", task_blueprint="blp_1111222233334444", expected_sdui_type="markdown"),
             StepRule(
-                id="stp_2222333344445555",
-                task_blueprint="blp_2222333344445555",
-                depends_on=["stp_1111222233334444"],
-                causal_source_step_id="stp_1111222233334444",
+                id="stp_0195f3a0000070018111222233334444",
+                task_blueprint="blp_0195f3a0000070018111222233334444",
+                expected_sdui_type="markdown",
+            ),
+            StepRule(
+                id="stp_0195f3a0000070028222333344445555",
+                task_blueprint="blp_0195f3a0000070028222333344445555",
+                depends_on=["stp_0195f3a0000070018111222233334444"],
+                causal_source_step_id="stp_0195f3a0000070018111222233334444",
                 expected_sdui_type="markdown",
             ),
         ],
     )
 
     initial_record = create_execution_record(
-        execution_id="exe_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
         workflow_id=workflow.id,
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         frozen_context=FrozenContext(),
@@ -1291,7 +1333,7 @@ async def test_dag_executor_causal_step_output_validation_error() -> None:
 
     async def mock_node_execute(*args: Any, **kwargs: Any) -> list[Any]:
         step = kwargs["step"]
-        if step.id == "stp_1111222233334444":
+        if step.id == "stp_0195f3a0000070018111222233334444":
             return [
                 TraceEvent(
                     step_name=step.id,
@@ -1313,7 +1355,7 @@ async def test_dag_executor_causal_step_output_validation_error() -> None:
         )
         with pytest.raises(AppException) as exc_info:
             await executor.execute_workflow(
-                execution_id="exe_1111222233334444",
+                execution_id="exe_0195f3a0000070018111222233334444",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
             )
@@ -1326,20 +1368,21 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
     """Verify lines 1079-1084 and 1258-1269 resolution from projector snapshot and raw results dict."""
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_step(
-        "blp_1111222233334444",
+        "blp_0195f3a0000070018111222233334444",
         {
-            "id": "blp_1111222233334444",
+            "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "causal_source",
             "name": {"translations": {"en": "Causal Source"}},
             "description": {"translations": {"en": "D1"}},
+            "criteria_block_ids": ["blk_0195f3a00000700c80a1e50000000001"],
             "hook": "mock_hook",
         },
     )
     repo.seed_raw_step(
-        "blp_2222333344445555",
+        "blp_0195f3a0000070028222333344445555",
         {
-            "id": "blp_2222333344445555",
+            "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "tda_downstream",
             "name": {"translations": {"en": "TDA Downstream"}},
@@ -1350,28 +1393,32 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_snap_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
-            StepRule(id="stp_1111222233334444", task_blueprint="blp_1111222233334444", expected_sdui_type="markdown"),
             StepRule(
-                id="stp_2222333344445555",
-                task_blueprint="blp_2222333344445555",
-                depends_on=["stp_1111222233334444"],
-                causal_source_step_id="stp_1111222233334444",
+                id="stp_0195f3a0000070018111222233334444",
+                task_blueprint="blp_0195f3a0000070018111222233334444",
+                expected_sdui_type="markdown",
+            ),
+            StepRule(
+                id="stp_0195f3a0000070028222333344445555",
+                task_blueprint="blp_0195f3a0000070028222333344445555",
+                depends_on=["stp_0195f3a0000070018111222233334444"],
+                causal_source_step_id="stp_0195f3a0000070018111222233334444",
                 expected_sdui_type="markdown",
             ),
         ],
     )
 
     initial_record = create_execution_record(
-        execution_id="exe_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
         workflow_id=workflow.id,
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         frozen_context=FrozenContext(),
@@ -1396,7 +1443,7 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
     )
 
     node = CausalNodeDTO(
-        node_id="nod_1111222233334444",
+        node_id="nod_0195f3a0000070018111222233334444",
         claim="Claim 1",
         status=ExecutionStatus.PENDING,
         blame_parent_ids=[],
@@ -1408,7 +1455,7 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
     graph = _create_test_graph(nodes=[node], edges=[])
 
     atom = AtomResultDTO(
-        tda_id="nod_1111222233334444",
+        tda_id="nod_0195f3a0000070018111222233334444",
         matrix_id="mat_x",
         status=ExecutionStatus.PASSED,
         source_quotes="Quote 1",
@@ -1421,12 +1468,12 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
 
     async def mock_node_execute(*args: Any, **kwargs: Any) -> list[Any]:
         step = kwargs["step"]
-        if step.id == "stp_1111222233334444":
+        if step.id == "stp_0195f3a0000070018111222233334444":
             return [
                 TraceEvent(
                     step_name=step.id,
                     event_type="input",
-                    content=StepOutputContentDTO(data={"blk_1111222233334444": graph}),
+                    content=StepOutputContentDTO(data={"blk_0195f3a0000070018111222233334444": graph}),
                 )
             ]
         else:
@@ -1449,7 +1496,7 @@ async def test_dag_executor_causal_snapshot_resolution_and_raw_results() -> None
             )
         )
         rec = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         )
@@ -1461,9 +1508,9 @@ async def test_dag_executor_causal_source_missing_from_steps_by_id() -> None:
     """Verify lines 1012-1021 when causal_source_step_id is not in workflow steps."""
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_step(
-        "blp_2222333344445555",
+        "blp_0195f3a0000070028222333344445555",
         {
-            "id": "blp_2222333344445555",
+            "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "tda_downstream",
             "name": {"translations": {"en": "TDA Downstream"}},
@@ -1474,27 +1521,27 @@ async def test_dag_executor_causal_source_missing_from_steps_by_id() -> None:
 
     workflow = Workflow.model_construct(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_missing_source_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
             StepRule.model_construct(
-                id="stp_2222333344445555",
-                task_blueprint="blp_2222333344445555",
+                id="stp_0195f3a0000070028222333344445555",
+                task_blueprint="blp_0195f3a0000070028222333344445555",
                 depends_on=[],
-                causal_source_step_id="stp_9999888877776666",
+                causal_source_step_id="stp_0195f3a0000070098999888877776666",
                 expected_sdui_type="markdown",
             ),
         ],
     )
 
     initial_record = create_execution_record(
-        execution_id="exe_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
         workflow_id=workflow.id,
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         frozen_context=FrozenContext(),
@@ -1527,7 +1574,7 @@ async def test_dag_executor_causal_source_missing_from_steps_by_id() -> None:
         )
         with pytest.raises(AppException) as exc_info:
             await executor.execute_workflow(
-                execution_id="exe_1111222233334444",
+                execution_id="exe_0195f3a0000070018111222233334444",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
             )
@@ -1544,20 +1591,21 @@ async def test_dag_executor_causal_upstream_not_passed() -> None:
     """Verify lines 1027-1035 when upstream causal step status is not PASSED."""
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_step(
-        "blp_1111222233334444",
+        "blp_0195f3a0000070018111222233334444",
         {
-            "id": "blp_1111222233334444",
+            "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "causal_up",
             "name": {"translations": {"en": "Causal Up"}},
             "description": {"translations": {"en": "D1"}},
+            "criteria_block_ids": ["blk_0195f3a00000700c80a1e50000000001"],
             "hook": "mock_hook",
         },
     )
     repo.seed_raw_step(
-        "blp_2222333344445555",
+        "blp_0195f3a0000070028222333344445555",
         {
-            "id": "blp_2222333344445555",
+            "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "tda_downstream",
             "name": {"translations": {"en": "TDA Downstream"}},
@@ -1568,32 +1616,32 @@ async def test_dag_executor_causal_upstream_not_passed() -> None:
 
     workflow = Workflow.model_construct(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_failed_causal_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
             StepRule(
-                id="stp_1111222233334444",
-                task_blueprint="blp_1111222233334444",
+                id="stp_0195f3a0000070018111222233334444",
+                task_blueprint="blp_0195f3a0000070018111222233334444",
                 expected_sdui_type="markdown",
             ),
             StepRule.model_construct(
-                id="stp_2222333344445555",
-                task_blueprint="blp_2222333344445555",
+                id="stp_0195f3a0000070028222333344445555",
+                task_blueprint="blp_0195f3a0000070028222333344445555",
                 depends_on=[],
-                causal_source_step_id="stp_1111222233334444",
+                causal_source_step_id="stp_0195f3a0000070018111222233334444",
                 expected_sdui_type="markdown",
             ),
         ],
     )
 
     initial_record = create_execution_record(
-        execution_id="exe_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
         workflow_id=workflow.id,
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         frozen_context=FrozenContext(),
@@ -1601,8 +1649,8 @@ async def test_dag_executor_causal_upstream_not_passed() -> None:
         status=ExecutionStatus.PENDING,
         steps=[],
         step_states={
-            "stp_1111222233334444": ExecutionStepState(
-                id="stp_1111222233334444", label="Causal Up", status=ExecutionStatus.FAILED
+            "stp_0195f3a0000070018111222233334444": ExecutionStepState(
+                id="stp_0195f3a0000070018111222233334444", label="Causal Up", status=ExecutionStatus.FAILED
             ),
         },
     )
@@ -1625,7 +1673,7 @@ async def test_dag_executor_causal_upstream_not_passed() -> None:
 
     async def mock_node_execute(*args: Any, **kwargs: Any) -> list[Any]:
         step = kwargs["step"]
-        if step.id == "stp_1111222233334444":
+        if step.id == "stp_0195f3a0000070018111222233334444":
             await asyncio.sleep(0.5)
             return []
         return []
@@ -1642,7 +1690,7 @@ async def test_dag_executor_causal_upstream_not_passed() -> None:
         )
         with pytest.raises(AppException) as exc_info:
             await executor.execute_workflow(
-                execution_id="exe_1111222233334444",
+                execution_id="exe_0195f3a0000070018111222233334444",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
             )
@@ -1659,20 +1707,21 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
     """Verify lines 1108-1115 when snapshot payload fails CausalGraphPayloadDTO validation."""
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_step(
-        "blp_1111222233334444",
+        "blp_0195f3a0000070018111222233334444",
         {
-            "id": "blp_1111222233334444",
+            "id": "blp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "causal_up",
             "name": {"translations": {"en": "Causal Up"}},
             "description": {"translations": {"en": "D1"}},
+            "criteria_block_ids": ["blk_0195f3a00000700c80a1e50000000001"],
             "hook": "mock_hook",
         },
     )
     repo.seed_raw_step(
-        "blp_2222333344445555",
+        "blp_0195f3a0000070028222333344445555",
         {
-            "id": "blp_2222333344445555",
+            "id": "blp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "tda_downstream",
             "name": {"translations": {"en": "TDA Downstream"}},
@@ -1683,32 +1732,32 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_snap_err_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
             StepRule(
-                id="stp_1111222233334444",
-                task_blueprint="blp_1111222233334444",
+                id="stp_0195f3a0000070018111222233334444",
+                task_blueprint="blp_0195f3a0000070018111222233334444",
                 expected_sdui_type="markdown",
             ),
             StepRule(
-                id="stp_2222333344445555",
-                task_blueprint="blp_2222333344445555",
-                depends_on=["stp_1111222233334444"],
-                causal_source_step_id="stp_1111222233334444",
+                id="stp_0195f3a0000070028222333344445555",
+                task_blueprint="blp_0195f3a0000070028222333344445555",
+                depends_on=["stp_0195f3a0000070018111222233334444"],
+                causal_source_step_id="stp_0195f3a0000070018111222233334444",
                 expected_sdui_type="markdown",
             ),
         ],
     )
 
     initial_record = create_execution_record(
-        execution_id="exe_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
         workflow_id=workflow.id,
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
         frozen_context=FrozenContext(),
@@ -1734,12 +1783,12 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
 
     async def mock_node_execute(*args: Any, **kwargs: Any) -> list[Any]:
         step = kwargs["step"]
-        if step.id == "stp_1111222233334444":
+        if step.id == "stp_0195f3a0000070018111222233334444":
             return [
                 TraceEvent(
                     step_name=step.id,
                     event_type="input",
-                    content=StepOutputContentDTO(data={"blk_1111222233334444": "invalid-graph-string"}),
+                    content=StepOutputContentDTO(data={"blk_0195f3a0000070018111222233334444": "invalid-graph-string"}),
                 )
             ]
         return []
@@ -1756,7 +1805,7 @@ async def test_dag_executor_causal_snapshot_invalid_payload_error() -> None:
         )
         with pytest.raises(AppException) as exc_info:
             await executor.execute_workflow(
-                execution_id="exe_1111222233334444",
+                execution_id="exe_0195f3a0000070018111222233334444",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "text"}),
             )
@@ -1836,7 +1885,7 @@ def test_causal_fusion_deliverable_subgraph_induction() -> None:
     Also asserts total_deliverable_nodes equals deliverable node count.
     """
     node_d1 = _create_test_node(
-        node_id="tda_d100000000000001",
+        node_id="tda_0195f3a00000700d8100000000000001",
         claim="Deliverable core claim 1",
         source_quotes="Quote 1",
         paragraph_ref="[B0]",
@@ -1844,7 +1893,7 @@ def test_causal_fusion_deliverable_subgraph_induction() -> None:
         source_input_key="deliverable",
     )
     node_d2 = _create_test_node(
-        node_id="tda_d200000000000002",
+        node_id="tda_0195f3a00000700d8200000000000002",
         claim="Deliverable core claim 2",
         source_quotes="Quote 2",
         paragraph_ref="[B1]",
@@ -1852,7 +1901,7 @@ def test_causal_fusion_deliverable_subgraph_induction() -> None:
         source_input_key="deliverable",
     )
     node_chat = _create_test_node(
-        node_id="tda_c100000000000003",
+        node_id="tda_0195f3a00000700c8100000000000003",
         claim="Isolated conversational claim",
         source_quotes="Quote 3",
         paragraph_ref="[B2]",
@@ -1860,15 +1909,15 @@ def test_causal_fusion_deliverable_subgraph_induction() -> None:
         source_input_key="chat",
     )
     edge = _create_test_edge(
-        source_id="tda_d100000000000001",
-        target_id="tda_d200000000000002",
+        source_id="tda_0195f3a00000700d8100000000000001",
+        target_id="tda_0195f3a00000700d8200000000000002",
     )
     graph = _create_test_graph(
         nodes=[node_d1, node_d2, node_chat],
         edges=[edge],
         partition_node_ids={
-            "deliverable": ["tda_d100000000000001", "tda_d200000000000002"],
-            "chat": ["tda_c100000000000003"],
+            "deliverable": ["tda_0195f3a00000700d8100000000000001", "tda_0195f3a00000700d8200000000000002"],
+            "chat": ["tda_0195f3a00000700c8100000000000003"],
         },
     )
     expected_inputs = [
@@ -1895,7 +1944,7 @@ def test_causal_fusion_exogenous_boundary_axiom_support() -> None:
     so Y is not isolated, while X is excluded from V_deliverable.
     """
     node_chat = _create_test_node(
-        node_id="tda_c100000000000001",
+        node_id="tda_0195f3a00000700c8100000000000001",
         claim="Dialogue context assumption",
         source_quotes="Chat quote",
         paragraph_ref="[B0]",
@@ -1903,7 +1952,7 @@ def test_causal_fusion_exogenous_boundary_axiom_support() -> None:
         source_input_key="chat",
     )
     node_deliv = _create_test_node(
-        node_id="tda_d100000000000002",
+        node_id="tda_0195f3a00000700d8100000000000002",
         claim="Deliverable final recommendation",
         source_quotes="Deliverable quote",
         paragraph_ref="[B1]",
@@ -1911,15 +1960,15 @@ def test_causal_fusion_exogenous_boundary_axiom_support() -> None:
         source_input_key="deliverable",
     )
     cross_edge = _create_test_edge(
-        source_id="tda_c100000000000001",
-        target_id="tda_d100000000000002",
+        source_id="tda_0195f3a00000700c8100000000000001",
+        target_id="tda_0195f3a00000700d8100000000000002",
     )
     graph = _create_test_graph(
         nodes=[node_chat, node_deliv],
         edges=[cross_edge],
         partition_node_ids={
-            "chat": ["tda_c100000000000001"],
-            "deliverable": ["tda_d100000000000002"],
+            "chat": ["tda_0195f3a00000700c8100000000000001"],
+            "deliverable": ["tda_0195f3a00000700d8100000000000002"],
         },
     )
     expected_inputs = [

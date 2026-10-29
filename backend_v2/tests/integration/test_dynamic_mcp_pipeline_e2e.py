@@ -256,7 +256,7 @@ async def test_dynamic_mcp_pipeline_full_lifecycle_e2e(root_token: TokenData) ->
         "default_mcp_gateway__mcp_tavily_search",
         {"query": "WHO physical activity guidelines", "max_results": 3, "search_depth": "basic"},
         allowed_step_tools={"default_mcp_gateway__mcp_tavily_search"},
-        step_name="sp_76eedbc020274f66",
+        step_name="sp_0195f3a00000700786eedbc020274f66",
         claim_text="Adults should do at least 150 minutes of physical activity per week.",
         reasoning="Verify official WHO physical activity recommendation.",
     )
@@ -266,7 +266,7 @@ async def test_dynamic_mcp_pipeline_full_lifecycle_e2e(root_token: TokenData) ->
     assert audit_trace.gateway_slug == "default_mcp_gateway"
     assert audit_trace.namespaced_alias == "default_mcp_gateway__mcp_tavily_search"
     assert audit_trace.tool_id == "mcp_tavily_search"
-    assert audit_trace.step_name == "sp_76eedbc020274f66"
+    assert audit_trace.step_name == "sp_0195f3a00000700786eedbc020274f66"
     assert audit_trace.query == "WHO physical activity guidelines"
     assert audit_trace.response_summary.startswith("<![CDATA[")
     assert audit_trace.response_summary.endswith("]]>")
@@ -275,9 +275,9 @@ async def test_dynamic_mcp_pipeline_full_lifecycle_e2e(root_token: TokenData) ->
 
     # 5. Verify SDUI rendering via McpAuditAdapter and PrintableSourcesAdapter
     mock_profile = OutputProfile(
-        id="prf_1111222233334444",
+        id="prf_0195f3a0000070018111222233334444",
         slug="default_profile",
-        workflow_id="wor_1111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         name=I18nText(translations={"fi": "Oletusprofiili", "en": "Default Profile"}),
         target_block_order=[
             TargetBlockType.PRINTABLE_SOURCES_BLOCK,
@@ -367,14 +367,14 @@ async def test_dynamic_mcp_multi_gateway_namespace_isolation_e2e(root_token: Tok
     studio_service = StudioSystemConfigService(system_repo=system_repo, mcp_client=mcp_client)
 
     gw_alpha = SystemConfigMCPGateways(
-        id="sys_aaaa111122223333",
+        id="sys_0195f3a00000700a8aaa111122223333",
         slug="alpha_gw",
         type="mcp_gateways",
         endpoint_url="https://alpha.mcp.example.com/rpc",
         tools=[],
     )
     gw_beta = SystemConfigMCPGateways(
-        id="sys_bbbb444455556666",
+        id="sys_0195f3a00000700b8bbb444455556666",
         slug="beta_gw",
         type="mcp_gateways",
         endpoint_url="https://beta.mcp.example.com/rpc",
@@ -393,21 +393,21 @@ async def test_dynamic_mcp_multi_gateway_namespace_isolation_e2e(root_token: Tok
         "alpha_gw__search",
         {"query": "test alpha"},
         allowed_step_tools=allowed,
-        step_name="sp_76eedbc020274f66",
+        step_name="sp_0195f3a00000700786eedbc020274f66",
     )
     trace_beta = await dispatcher.execute_tool(
         "beta_gw__search",
         {"query": "test beta"},
         allowed_step_tools=allowed,
-        step_name="sp_76eedbc020274f66",
+        step_name="sp_0195f3a00000700786eedbc020274f66",
     )
 
-    assert trace_alpha.gateway_id == "sys_aaaa111122223333"
+    assert trace_alpha.gateway_id == "sys_0195f3a00000700a8aaa111122223333"
     assert trace_alpha.gateway_slug == "alpha_gw"
     assert trace_alpha.namespaced_alias == "alpha_gw__search"
     assert "Response from alpha.mcp.example.com." in trace_alpha.response_summary
 
-    assert trace_beta.gateway_id == "sys_bbbb444455556666"
+    assert trace_beta.gateway_id == "sys_0195f3a00000700b8bbb444455556666"
     assert trace_beta.gateway_slug == "beta_gw"
     assert trace_beta.namespaced_alias == "beta_gw__search"
     assert "Response from beta.mcp.example.com." in trace_beta.response_summary
@@ -434,7 +434,7 @@ async def test_dynamic_mcp_pipeline_negative_unallowed_step_tool_rejected(root_t
             "default_mcp_gateway__wikipedia_lookup",
             {"query": "Quantum computing"},
             allowed_step_tools={"default_mcp_gateway__mcp_tavily_search"},
-            step_name="sp_76eedbc020274f66",
+            step_name="sp_0195f3a00000700786eedbc020274f66",
         )
     assert exc_info.value.status_code == 403
     assert exc_info.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value
@@ -463,7 +463,7 @@ async def test_dynamic_mcp_pipeline_negative_invalid_runtime_schema_arguments_re
             "default_mcp_gateway__mcp_tavily_search",
             {"query": "WHO guidelines", "search_depth": "invalid_depth_value"},
             allowed_step_tools={"default_mcp_gateway__mcp_tavily_search"},
-            step_name="sp_76eedbc020274f66",
+            step_name="sp_0195f3a00000700786eedbc020274f66",
         )
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -500,7 +500,7 @@ async def test_dynamic_mcp_pipeline_negative_disabled_tool_rejected(root_token: 
             "default_mcp_gateway__mcp_tavily_search",
             {"query": "WHO guidelines"},
             allowed_step_tools={"default_mcp_gateway__mcp_tavily_search"},
-            step_name="sp_76eedbc020274f66",
+            step_name="sp_0195f3a00000700786eedbc020274f66",
         )
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

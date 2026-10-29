@@ -48,8 +48,8 @@ def test_prompt_architecture_segregation() -> None:
 def test_output_profile_substantive_directives_database_sovereignty() -> None:
     """Verify that all 8 substantive directives are pre-populated in OutputProfile drafts (Database Sovereignty)."""
     profile = build_draft_output_profile(
-        profile_id="prf_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
     )
     assert profile.executive_summary_directive is not None
     assert profile.matrix_1d_synthesis_directive is not None
@@ -66,14 +66,14 @@ def test_output_profile_dto_put_save_with_id() -> None:
     """Verify OutputProfileUpdateDTO allows id from frontend and OutputProfileCreateDTO excludes it."""
     # Update DTO accepts client id
     update_data = {
-        "id": "prf_1234567890abcdef",
+        "id": "prf_0195f3a0000070018234567890abcdef",
         "slug": "exec_summary",
-        "workflow_id": "wf_1234567890abcdef",
+        "workflow_id": "wf_0195f3a0000070018234567890abcdef",
         "name": {"translations": {"en": "Executive Summary"}},
         "matrix_visible_columns": ["label", "distribution", "raw_score"],
     }
     update_dto = OutputProfileUpdateDTO.model_validate(update_data)
-    assert update_dto.id == "prf_1234567890abcdef"
+    assert update_dto.id == "prf_0195f3a0000070018234567890abcdef"
     assert update_dto.matrix_visible_columns == ["label", "distribution", "raw_score"]
 
     # Create DTO forbids id (per AST guardrail QGR011)
@@ -120,14 +120,14 @@ def test_matrix_graphs_adapter_view_type_dispatch() -> None:
 
     # 1. 1D Metrics View
     p_1d = OutputProfile(
-        id="prf_1111111111111111",
+        id="prf_0195f3a0000070018111111111111111",
         slug="test_1d",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "1D Test"}),
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_1111111111111111",
+                id="grp_0195f3a0000070018111111111111111",
                 title=I18nText(translations={"en": "1D Group"}),
                 target_blocks=["m1"],
                 view_type=PresetView.METRICS_1D,
@@ -152,14 +152,14 @@ def test_matrix_graphs_adapter_view_type_dispatch() -> None:
 
     # 2. 2D Compare View
     p_2d = OutputProfile(
-        id="prf_2222222222222222",
+        id="prf_0195f3a0000070028222222222222222",
         slug="test_2d",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "2D Test"}),
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_2222222222222222",
+                id="grp_0195f3a0000070028222222222222222",
                 title=I18nText(translations={"en": "2D Group"}),
                 target_blocks=["m1", "m2"],
                 view_type=PresetView.COMPARE_2D,
@@ -184,14 +184,14 @@ def test_matrix_graphs_adapter_view_type_dispatch() -> None:
 
     # 3. 3D Radar View
     p_3d = OutputProfile(
-        id="prf_3333333333333333",
+        id="prf_0195f3a0000070038333333333333333",
         slug="test_3d",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "3D Test"}),
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_3333333333333333",
+                id="grp_0195f3a0000070038333333333333333",
                 title=I18nText(translations={"en": "3D Group"}),
                 target_blocks=["m1", "m2", "m3"],
                 view_type=PresetView.MATRIX_3D,
@@ -216,14 +216,14 @@ def test_matrix_graphs_adapter_view_type_dispatch() -> None:
 
     # 4. Text-Only View
     p_text = OutputProfile(
-        id="prf_4444444444444444",
+        id="prf_0195f3a0000070048444444444444444",
         slug="test_text",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "Text Test"}),
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_4444444444444444",
+                id="grp_0195f3a0000070048444444444444444",
                 title=I18nText(translations={"en": "Text Group"}),
                 target_blocks=["m1"],
                 view_type=PresetView.TEXT_ONLY,
@@ -262,7 +262,7 @@ def test_matrix_summary_table_adapter_respects_visible_columns() -> None:
     }
     custom_cols = ["label", "raw_score"]
     profile = OutputProfile(
-        id="prf_5555555555555555",
+        id="prf_0195f3a0000070058555555555555555",
         slug="test_cols",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "Cols Test"}),
@@ -387,7 +387,7 @@ def test_all_seed_output_profiles_variance_dynamic_scale_parity() -> None:
             ),
         )
         exec_rec = ExecutionRecord(
-            id="exe_0123456789abcdef01",
+            id="exe_0195f3a00000700283456789abcdef01",
             workflow_id=prof.workflow_id,
             output_profile_id=prof.id,
             execution_trace=[],

@@ -193,7 +193,7 @@ def test_parse_matrices_level_breakdown_and_synthesis_cache() -> None:
         update={
             "matrix_synthesis_groups": [
                 MatrixSynthesisGroup(
-                    id="grp_1234567890123456",
+                    id="grp_0195f3a0000070018234567890123456",
                     title=I18nText(translations={"en": "Matrix"}),
                     target_blocks=["blk_1234567890abcdef1234567890abcdef"],
                 )
@@ -267,8 +267,8 @@ def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache(
     )
 
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id=profile.id,
         profile_syntheses={profile.id: starvation_cache},
         target_locale="fi",

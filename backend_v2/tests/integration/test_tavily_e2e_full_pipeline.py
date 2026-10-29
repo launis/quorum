@@ -11,9 +11,11 @@ Tests the complete lifecycle:
 import _socket
 import os
 import socket
+from pathlib import Path
 
 import httpx
 import pytest
+from dotenv import dotenv_values
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -105,6 +107,11 @@ def _build_tavily_mcp_transport() -> httpx.MockTransport:
 def allow_live_network(monkeypatch: pytest.MonkeyPatch) -> None:
     """Restores unblocked C-level socket getaddrinfo for live LLM calls and binds MCP JSON-RPC transport."""
     monkeypatch.setattr(socket, "getaddrinfo", _socket.getaddrinfo)
+    env_path = Path(__file__).resolve().parents[3] / ".env"
+    if env_path.exists():
+        for k, v in dotenv_values(env_path).items():
+            if v is not None:
+                monkeypatch.setenv(k, v)
     mock_transport = _build_tavily_mcp_transport()
     orig_init = GenericMCPClient.__init__
 
@@ -135,10 +142,10 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
 
     # 1. Pipeline Step 1: Execute Pre-Hook
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
-        step_id="sp_76eedbc020274f66",
-        metadata=ExecutionMetadata(),
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
+        step_id="stp_0195f3a00000700786eedbc020274f66",
+        metadata=ExecutionMetadata(model_registry_id="sys_0195f3a00000700b81c2d3e4f5a60718"),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}, target_locale="fi"),
     )
@@ -186,9 +193,9 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
 
     # 3. Pipeline Step 3: Server-Driven UI Rendering (SDUI)
     mock_profile = OutputProfile(
-        id="prf_1111222233334444",
+        id="prf_0195f3a0000070018111222233334444",
         slug="default_profile",
-        workflow_id="wor_1111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         name=I18nText(translations={"fi": "Oletusprofiili", "en": "Default Profile"}),
         target_block_order=[TargetBlockType.PRINTABLE_SOURCES_BLOCK],
     )
@@ -253,10 +260,10 @@ async def test_full_e2e_tavily_empty_claims_invalid_skips_search_and_hides_sdui_
     document_text = "Hei kaikille ja tervetuloa tämänpäiväiseen kokoukseen."
 
     state = HookState(
-        execution_id="exe_2222333344445555",
-        workflow_id="wor_2222333344445555",
-        step_id="sp_76eedbc020274f66",
-        metadata=ExecutionMetadata(),
+        execution_id="exe_0195f3a0000070028222333344445555",
+        workflow_id="wf_0195f3a0000070028222333344445555",
+        step_id="stp_0195f3a00000700786eedbc020274f66",
+        metadata=ExecutionMetadata(model_registry_id="sys_0195f3a00000700b81c2d3e4f5a60718"),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"document_text": document_text}, target_locale="fi"),
     )
@@ -283,9 +290,9 @@ async def test_full_e2e_tavily_empty_claims_invalid_skips_search_and_hides_sdui_
 
     # Build SDUI with empty audit map
     mock_profile = OutputProfile(
-        id="prf_2222333344445555",
+        id="prf_0195f3a0000070028222333344445555",
         slug="empty_profile",
-        workflow_id="wor_2222333344445555",
+        workflow_id="wf_0195f3a0000070028222333344445555",
         name=I18nText(translations={"fi": "Tyhjä profiili", "en": "Empty Profile"}),
         target_block_order=[TargetBlockType.PRINTABLE_SOURCES_BLOCK],
     )

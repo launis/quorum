@@ -44,8 +44,8 @@ def test_start_execution_null_matrix_sampling_strategy_regression(
     client = TestClient(app)
 
     mock_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wor_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         output_profile_id="prf_001",
         target_locale="fi",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
@@ -53,7 +53,7 @@ def test_start_execution_null_matrix_sampling_strategy_regression(
     mock_execution_service.start_execution.return_value = mock_record
 
     payload = {
-        "workflow_id": "wor_1234567890abcdef",
+        "workflow_id": "wor_0195f3a0000070018234567890abcdef",
         "target_locale": "fi",
         "raw_inputs": {"dynamic_inputs": {}},
         "profile_id": None,
@@ -70,8 +70,8 @@ def test_list_executions_returns_records(override_dependencies: Any, mock_execut
     """Test GET /api/v2/execution/executions/ returns execution records."""
     client = TestClient(app)
     mock_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wor_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         output_profile_id="prf_001",
         target_locale="fi",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
@@ -82,41 +82,41 @@ def test_list_executions_returns_records(override_dependencies: Any, mock_execut
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
-    assert data[0]["id"] == "exe_1234567890abcdef"
+    assert data[0]["id"] == "exe_0195f3a0000070018234567890abcdef"
 
 
 def test_get_execution_status(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Test GET /api/v2/execution/executions/{execution_id} returns status."""
     client = TestClient(app)
     mock_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wor_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         output_profile_id="prf_001",
         target_locale="fi",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
     )
     mock_execution_service.get_execution.return_value = mock_record
 
-    response = client.get("/api/v2/execution/executions/exe_1234567890abcdef")
+    response = client.get("/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef")
     assert response.status_code == 200
-    assert response.json()["id"] == "exe_1234567890abcdef"
+    assert response.json()["id"] == "exe_0195f3a0000070018234567890abcdef"
 
 
 def test_resume_execution(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Test POST /api/v2/execution/executions/{execution_id}/resume resumes workflow."""
     client = TestClient(app)
     mock_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wor_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         output_profile_id="prf_001",
         target_locale="fi",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
     )
     mock_execution_service.resume_execution.return_value = mock_record
 
-    response = client.post("/api/v2/execution/executions/exe_1234567890abcdef/resume")
+    response = client.post("/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/resume")
     assert response.status_code == 202
-    assert response.json()["id"] == "exe_1234567890abcdef"
+    assert response.json()["id"] == "exe_0195f3a0000070018234567890abcdef"
 
 
 def test_stream_execution_status(override_dependencies: Any, mock_execution_service: Any) -> None:
@@ -128,7 +128,7 @@ def test_stream_execution_status(override_dependencies: Any, mock_execution_serv
 
     mock_execution_service.stream_status = fake_stream
 
-    response = client.get("/api/v2/execution/executions/exe_1234567890abcdef/stream")
+    response = client.get("/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/stream")
     assert response.status_code == 200
     assert "text/event-stream" in response.headers["content-type"]
 
@@ -138,7 +138,7 @@ def test_delete_execution(override_dependencies: Any, mock_execution_service: An
     client = TestClient(app)
     mock_execution_service.delete_execution.return_value = None
 
-    response = client.delete("/api/v2/execution/executions/exe_1234567890abcdef")
+    response = client.delete("/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef")
     assert response.status_code == 204
 
 
@@ -147,7 +147,7 @@ def test_download_frozen_context(override_dependencies: Any, mock_execution_serv
     client = TestClient(app)
     mock_execution_service.get_frozen_context_bytes.return_value = (b'{"key": "val"}', "frozen_context.json")
 
-    response = client.get("/api/v2/execution/executions/exe_1234567890abcdef/frozen_context")
+    response = client.get("/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/frozen_context")
     assert response.status_code == 200
     assert response.headers["content-disposition"] == 'attachment; filename="frozen_context.json"'
     assert response.content == b'{"key": "val"}'
@@ -158,7 +158,7 @@ def test_delete_profile_synthesis(override_dependencies: Any, mock_execution_ser
     client = TestClient(app)
     mock_execution_service.clear_profile_synthesis.return_value = None
 
-    response = client.delete("/api/v2/execution/executions/exe_1234567890abcdef/profiles/prf_001")
+    response = client.delete("/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/profiles/prf_001")
     assert response.status_code == 204
 
 
@@ -169,7 +169,7 @@ def test_override_atom(override_dependencies: Any, mock_execution_service: Any) 
 
     payload = {"reason": "Manual review correction", "new_status": "PASSED"}
     response = client.patch(
-        "/api/v2/execution/executions/exe_1234567890abcdef/atoms/atm_001/override",
+        "/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/atoms/atm_001/override",
         json=payload,
     )
     assert response.status_code == 200
@@ -183,7 +183,7 @@ def test_reject_evidence_quote(override_dependencies: Any, mock_execution_servic
 
     payload = {"rejection_reason": "Out of context evidence"}
     response = client.put(
-        "/api/v2/execution/executions/exe_1234567890abcdef/evidence/evq_001/reject",
+        "/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/evidence/evq_001/reject",
         json=payload,
     )
     assert response.status_code == 200

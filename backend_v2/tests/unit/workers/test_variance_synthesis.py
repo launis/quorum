@@ -26,7 +26,7 @@ from backend_v2.workers.variance_synthesis import (
     build_variance_metrics_and_task,
 )
 
-TARGET_BLOCK_ID = "blk_0123456789abcdef01"
+TARGET_BLOCK_ID = "blk_0195f3a00000700283456789abcdef01"
 
 
 def _make_matrix_prompt_block(
@@ -59,9 +59,9 @@ def _make_execution(
 ) -> ExecutionRecord:
     cv = ContextVariablesDTO(variables=context_vars or {})
     return ExecutionRecord(
-        id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
-        output_profile_id="pro_0123456789abcdef01",
+        id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
+        output_profile_id="pro_0195f3a00000700283456789abcdef01",
         status=ExecutionStatus.PASSED,
         target_locale="en",
         metadata=ExecutionMetadata(),
@@ -80,9 +80,9 @@ def _make_profile(
     exts = [XaiExtensionType.VARIANCE_VALIDATION] if has_ext else []
     target_blk = target_block if has_ext else None
     return OutputProfile(
-        id="pro_0123456789abcdef01",
+        id="pro_0195f3a00000700283456789abcdef01",
         slug="prof_test",
-        workflow_id="wor_0123456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         name=I18nText(translations={"en": "Test Profile"}),
         visible_workflow_extensions=exts,
         variance_target_block=target_blk,
@@ -134,9 +134,9 @@ async def test_build_variance_metrics_missing_target_block_raises() -> None:
     """Test build_variance_metrics_and_task raises AppException if variance_target_block missing."""
     rec = _make_execution()
     prof = OutputProfile.model_construct(
-        id="pro_0123456789abcdef01",
+        id="pro_0195f3a00000700283456789abcdef01",
         slug="prof_test",
-        workflow_id="wor_0123456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         name=I18nText(translations={"en": "Test Profile"}),
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
         variance_target_block=None,
@@ -381,9 +381,9 @@ async def test_build_variance_metrics_trace_extraction_direct_models() -> None:
         content=mat,
     )
     rec = ExecutionRecord.model_construct(
-        id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
-        output_profile_id="pro_0123456789abcdef01",
+        id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
+        output_profile_id="pro_0195f3a00000700283456789abcdef01",
         status=ExecutionStatus.PASSED,
         target_locale="en",
         metadata=ExecutionMetadata(),

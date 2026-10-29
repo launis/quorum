@@ -68,6 +68,15 @@ abstract class AntiFluffAuditDto with _$AntiFluffAuditDto {
     required int unsupportedClaimsCount,
     @JsonKey(name: 'logical_cohesion_score')
     required double logicalCohesionScore,
+    @JsonKey(name: 'largest_component_ratio')
+    @Default(1.0)
+    double largestComponentRatio,
+    @JsonKey(name: 'branch_convergence_ratio')
+    @Default(0.0)
+    double branchConvergenceRatio,
+    @JsonKey(name: 'steering_coupling_ratio')
+    @Default(0.0)
+    double steeringCouplingRatio,
     @JsonKey(name: 'detected_hollow_terms')
     @Default([])
     List<String> detectedHollowTerms,
@@ -108,4 +117,24 @@ abstract class FairScoringBreakdownDto with _$FairScoringBreakdownDto {
 
   factory FairScoringBreakdownDto.fromJson(Map<String, dynamic> json) =>
       _$FairScoringBreakdownDtoFromJson(json);
+}
+
+@Freezed(equal: false)
+abstract class CounterfactualSimulationResultDto
+    with _$CounterfactualSimulationResultDto {
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory CounterfactualSimulationResultDto({
+    @JsonKey(name: 'retracted_root_id') required String retractedRootId,
+    @JsonKey(name: 'collapsed_node_ids')
+    @Default([])
+    List<String> collapsedNodeIds,
+    @JsonKey(name: 'surviving_node_ids')
+    @Default([])
+    List<String> survivingNodeIds,
+    @JsonKey(name: 'collapse_ratio') @Default(0.0) double collapseRatio,
+    @JsonKey(name: 'max_cascade_depth') @Default(0) int maxCascadeDepth,
+  }) = _CounterfactualSimulationResultDto;
+
+  factory CounterfactualSimulationResultDto.fromJson(Map<String, dynamic> j) =>
+      _$CounterfactualSimulationResultDtoFromJson(j);
 }

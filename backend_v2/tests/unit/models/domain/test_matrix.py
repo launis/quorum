@@ -50,7 +50,7 @@ def test_tda_assertion_valid() -> None:
         depends_on=(
             CausalEdge(
                 tda_id="tda_0123456789abcdef0123456789abcdef",
-                source_id="chk_0123456789abcdef",
+                source_id="chk_0195f3a0000070008123456789abcdef",
                 edge_reasoning="Causal dependency exists because X implies Y",
             ),
         ),
@@ -103,7 +103,7 @@ def test_matrix_row() -> None:
 def test_tda_assertion_depends_on_list_coercion() -> None:
     edge = CausalEdge(
         tda_id="tda_0123456789abcdef0123456789abcdef",
-        source_id="chk_0123456789abcdef",
+        source_id="chk_0195f3a0000070008123456789abcdef",
         edge_reasoning="Causal reason",
     )
     tda = TDAAssertion(
@@ -189,11 +189,11 @@ def test_flattened_atom_v2_core_base_inheritance_and_whitespace_stripping() -> N
     assert issubclass(FlattenedAtom, V2CoreBase)
 
     atom = FlattenedAtom(
-        atom_id="  atm_0123456789abcdef  ",
+        atom_id="  atm_0195f3a0000070008123456789abcdef  ",
         question="  Does the candidate explain X?  ",
     )
     # V2CoreBase string whitespace stripping
-    assert atom.atom_id == "atm_0123456789abcdef"
+    assert atom.atom_id == "atm_0195f3a0000070008123456789abcdef"
     assert atom.question == "Does the candidate explain X?"
 
     # Extra fields forbidden

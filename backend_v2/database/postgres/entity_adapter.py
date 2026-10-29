@@ -351,13 +351,12 @@ FROM executions
 
 _UPSERT_ORGANIZATION_SQL: str = """
 INSERT INTO organizations (
-    id, slug, name, created_at, is_active, tier, contact_email, billing_id,
+    id, slug, name, is_active, tier, contact_email, billing_id,
     subscription_status, quota_limit, tpm_limit, rpm_limit
-) VALUES ($1::uuid, $2, $3, $4::timestamptz, $5, $6, $7, $8, $9, $10::numeric, $11::bigint, $12)
+) VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9::numeric, $10::bigint, $11)
 ON CONFLICT (id) DO UPDATE SET
     slug = EXCLUDED.slug,
     name = EXCLUDED.name,
-    created_at = EXCLUDED.created_at,
     is_active = EXCLUDED.is_active,
     tier = EXCLUDED.tier,
     contact_email = EXCLUDED.contact_email,
@@ -383,8 +382,8 @@ FROM organizations
 
 _UPSERT_USER_SQL: str = """
 INSERT INTO users (
-    id, slug, email, name, role, organization_id, is_active, language, theme_mode, created_at, created_by
-) VALUES ($1::uuid, $2, $3, $4, $5, $6::uuid, $7, $8, $9, $10::timestamptz, $11)
+    id, slug, email, name, role, organization_id, is_active, language, theme_mode, created_by
+) VALUES ($1::uuid, $2, $3, $4, $5, $6::uuid, $7, $8, $9, $10)
 ON CONFLICT (id) DO UPDATE SET
     slug = EXCLUDED.slug,
     email = EXCLUDED.email,
@@ -394,7 +393,6 @@ ON CONFLICT (id) DO UPDATE SET
     is_active = EXCLUDED.is_active,
     language = EXCLUDED.language,
     theme_mode = EXCLUDED.theme_mode,
-    created_at = EXCLUDED.created_at,
     created_by = EXCLUDED.created_by
 """
 
@@ -844,20 +842,19 @@ def _parse_org_uuid7(raw: str | None) -> uuid.UUID | None:
     Raises:
         AppException: With VALIDATION_FAILED if raw is an invalid organization ID.
     """
-    if raw is None:
+    if raw is None or raw == "SYSTEM":
         return None
-    if raw == "SYSTEM":
-        return _SYSTEM_ORG_UUID7
     if raw == "org_system000000":
         return _ROOT_SYSTEM_ORG_UUID7
     return parse_prefixed_uuid7(raw, EntityPrefix.ORGANIZATION)
 
 
-def _format_org_uuid7(raw: object) -> str | None:
+def _format_org_uuid7(raw: object, *, default_system: bool = False) -> str | None:
     """Format a database organization_id UUID column into 'org_<32_hex>', 'org_system000000', 'SYSTEM', or None.
 
     Args:
         raw: Database organization_id value (uuid.UUID, str, or None).
+        default_system: Whether None should reconstitute to 'SYSTEM' for system-defaulted entities.
 
     Returns:
         Canonical 'org_<32_hex>', 'org_system000000', 'SYSTEM', or None.
@@ -866,7 +863,7 @@ def _format_org_uuid7(raw: object) -> str | None:
         AppException: With VALIDATION_FAILED if raw is non-None and invalid.
     """
     if raw is None:
-        return None
+        return "SYSTEM" if default_system else None
     coerced = _coerce_uuid_or_str(raw)
     if coerced == _SYSTEM_ORG_UUID7 or str(coerced) in {str(_SYSTEM_ORG_UUID7), "SYSTEM"}:
         return "SYSTEM"
@@ -1351,7 +1348,6 @@ class PostgresEntityAdapter:
             org_uuid,
             org.slug,
             org.name,
-            org.created_at,
             org.is_active,
             org.tier,
             org.contact_email,
@@ -1437,7 +1433,6 @@ class PostgresEntityAdapter:
             user.is_active,
             str(user.language),
             user.theme_mode,
-            user.created_at,
             user.created_by,
             entity_label="user",
             entity_id=user.id,
@@ -1776,7 +1771,7 @@ class PostgresEntityAdapter:
             {
                 "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.STEP),
                 "slug": row["slug"],
-                "organization_id": _format_org_uuid7(row["organization_id"]),
+                "organization_id": _format_org_uuid7(row["organization_id"], default_system=True),
                 "name": _decode_jsonb_column(row["name"]),
                 "description": _decode_jsonb_column(row["description"]),
                 "type": row["type"],
@@ -1887,7 +1882,7 @@ class PostgresEntityAdapter:
                 "status": row["status"],
                 "version": row["version"],
                 "is_public": row["is_public"],
-                "organization_id": _format_org_uuid7(row["organization_id"]),
+                "organization_id": _format_org_uuid7(row["organization_id"], default_system=True),
                 "default_profile_id": _format_optional_uuid7(row["default_profile_id"], EntityPrefix.OUTPUT_PROFILE),
                 "mcp_gateway_id": _format_optional_uuid7(row["mcp_gateway_id"], EntityPrefix.SYSTEM_CONFIG),
                 "model_registry_id": format_prefixed_uuid7(
@@ -1988,7 +1983,7 @@ class PostgresEntityAdapter:
                 "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.OUTPUT_PROFILE),
                 "slug": row["slug"],
                 "workflow_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["workflow_id"]), EntityPrefix.WORKFLOW),
-                "organization_id": _format_org_uuid7(row["organization_id"]),
+                "organization_id": _format_org_uuid7(row["organization_id"], default_system=True),
                 "name": _decode_jsonb_column(row["name"]),
                 "description": _decode_jsonb_column(row["description"]),
                 "user_role_label": _decode_jsonb_column(row["user_role_label"]),

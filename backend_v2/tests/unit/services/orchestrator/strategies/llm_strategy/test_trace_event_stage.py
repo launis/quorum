@@ -69,7 +69,7 @@ def _build_stages_for_trace(
     """Build Stage 1, Stage 2, and Stage 3 results for Stage 4 unit testing."""
     repo = InMemoryUnifiedWorkflowRepository()
     proto_blk = ProtocolPromptBlock(
-        id="blk_a000000000000002",
+        id="blk_0195f3a00000700a8000000000000002",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol", "fi": "Protokolla"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -77,7 +77,7 @@ def _build_stages_for_trace(
         protocol_instructions="Extract exact quotes.",
     )
     rule_blk = SystemRulePromptBlock(
-        id="blk_0123456789abcdef",
+        id="blk_0195f3a0000070008123456789abcdef",
         slug="rule-blk",
         label=I18nText(translations={"en": "Rule", "fi": "Saanto"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -86,7 +86,7 @@ def _build_stages_for_trace(
     )
     raw_tier: Any = cognitive_tier
     step_obj = Step.model_construct(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a0000070008123456789abcdef",
         slug="test-step",
         name=I18nText(translations={"en": "Test Step", "fi": "Testivaihe"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -101,24 +101,26 @@ def _build_stages_for_trace(
         is_system_core=False,
     )
     profile = OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="default-prf",
-        workflow_id="wf_0123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
         name=I18nText(translations={"en": "Default"}),
         target_block_order=[],
     )
     inputs_dto = ExecutionInputsDTO(raw_inputs={"doc": "Source text."})
     hook_state = HookState(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wf_0123456789abcdef",
-        step_id="sr_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
+        step_id="sr_0195f3a0000070008123456789abcdef",
         task_blueprint=step_obj.id,
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=inputs_dto,
     )
-    pre_event = TraceEvent(step_name="sr_0123456789abcdef", event_type="input", content={"pre": True})
-    post_event = TraceEvent(step_name="sr_0123456789abcdef", event_type="decision", content={"post": True})
+    pre_event = TraceEvent(step_name="sr_0195f3a0000070008123456789abcdef", event_type="input", content={"pre": True})
+    post_event = TraceEvent(
+        step_name="sr_0195f3a0000070008123456789abcdef", event_type="decision", content={"post": True}
+    )
 
     stage1 = BlueprintStageResult(
         step_obj=step_obj,
@@ -171,7 +173,7 @@ def _build_stages_for_trace(
     mock_client.model_name = "vertex_ai/gemini-2.5-pro"
     audit_trace = MCPAuditTrace(
         tool_id="web_search",
-        step_name="sr_0123456789abcdef",
+        step_name="sr_0195f3a0000070008123456789abcdef",
         query="test",
         duration_ms=15,
     )
@@ -210,7 +212,11 @@ def test_llm_strategy_propagates_engine_usage_to_trace_event() -> None:
         dynamic_schema=_DummyDynamicSchema,
         cognitive_tier=CognitiveTier.BALANCED,
     )
-    step = StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef", input_mappings={})
+    step = StepRule(
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
+        input_mappings={},
+    )
     mock_engine = MagicMock()
     mock_engine.telemetry_strategy_label = "tda_engine"
 
@@ -253,9 +259,9 @@ def test_trace_event_stage_combines_existing_step_metadata_usage_with_retrieval_
     stage1, stage2, stage3 = _build_stages_for_trace(
         state_data={
             "_step_metadata": {
-                "execution_id": "exe_0123456789abcdef",
-                "workflow_id": "wf_0123456789abcdef",
-                "step_id": "sr_0123456789abcdef",
+                "execution_id": "exe_0195f3a0000070008123456789abcdef",
+                "workflow_id": "wf_0195f3a0000070008123456789abcdef",
+                "step_id": "sr_0195f3a0000070008123456789abcdef",
                 "token_usage": existing_usage.model_dump(),
             }
         },
@@ -266,7 +272,11 @@ def test_trace_event_stage_combines_existing_step_metadata_usage_with_retrieval_
         dynamic_schema=None,
         cognitive_tier="fast",
     )
-    step = StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef", input_mappings={})
+    step = StepRule(
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
+        input_mappings={},
+    )
     mock_engine = MagicMock()
     mock_engine.telemetry_strategy_label = 12345  # Non-string label triggers "prompt" fallback
 
@@ -294,9 +304,9 @@ def test_trace_event_stage_hydrates_step_metadata_from_stage3_final_dict() -> No
     """Verify _step_metadata is hydrated from stage3.final_dict when absent from stage1.state_data."""
     zero_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0, cost_usd=0.0)
     raw_meta: Any = {
-        "execution_id": "exe_0123456789abcdef",
-        "workflow_id": "wf_0123456789abcdef",
-        "step_id": "sr_0123456789abcdef",
+        "execution_id": "exe_0195f3a0000070008123456789abcdef",
+        "workflow_id": "wf_0195f3a0000070008123456789abcdef",
+        "step_id": "sr_0195f3a0000070008123456789abcdef",
         "chunk_size": 3,
     }
     stage1, stage2, stage3 = _build_stages_for_trace(
@@ -311,7 +321,11 @@ def test_trace_event_stage_hydrates_step_metadata_from_stage3_final_dict() -> No
         dynamic_schema=None,
         cognitive_tier=None,
     )
-    step = StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef", input_mappings={})
+    step = StepRule(
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
+        input_mappings={},
+    )
 
     traces = build_llm_step_trace_events(
         stage1=stage1,
@@ -347,7 +361,7 @@ def test_trace_event_stage_fails_fast_on_empty_or_whitespace_step_id(
     for invalid_id in ("", "   "):
         invalid_step = StepRule.model_construct(
             id=invalid_id,
-            task_blueprint="stp_0123456789abcdef",
+            task_blueprint="stp_0195f3a0000070008123456789abcdef",
             input_mappings={},
         )
         with caplog.at_level(logging.ERROR, logger=test_logger.name):
@@ -376,7 +390,11 @@ def test_trace_event_stage_fails_fast_on_malformed_step_metadata(
         retrieval_usage=zero_usage,
         usage_agg=zero_usage,
     )
-    step = StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef", input_mappings={})
+    step = StepRule(
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
+        input_mappings={},
+    )
     test_logger = logging.getLogger("backend_v2.services.orchestrator.strategies.llm_strategy.trace_event_stage")
 
     with caplog.at_level(logging.ERROR, logger=test_logger.name):

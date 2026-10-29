@@ -129,11 +129,11 @@ def test_audit_and_usage_dtos_validation_partitions() -> None:
     """Test AuditLogCreateDTO, UsageAggregateUpdateDTO, UsageAggregateDTO, DetailedUsageDTO."""
     audit_dto = AuditLogCreateDTO(
         action="USER_LOGIN",
-        actor_id="usr_1234567890abcdef",
+        actor_id="usr_0195f3a0000070018234567890abcdef",
         details={"client_zone": "eu-north-1", "attempts": 1},
     )
     assert audit_dto.action == "USER_LOGIN"
-    assert audit_dto.actor_id == "usr_1234567890abcdef"
+    assert audit_dto.actor_id == "usr_0195f3a0000070018234567890abcdef"
     assert audit_dto.details == {"client_zone": "eu-north-1", "attempts": 1}
 
     with pytest.raises(ValidationError) as exc:

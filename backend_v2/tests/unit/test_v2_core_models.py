@@ -13,7 +13,7 @@ _ = WorkflowState
 
 def test_prompt_block_fail_fast_on_corrupt_type() -> None:
     data = {
-        "id": "blk_1111111111111111",
+        "id": "blk_0195f3a0000070018111111111111111",
         "slug": "pb_1",
         "label": {"translations": {"en": "T", "fi": "T"}},
         "description": {"translations": {"en": "D", "fi": "D"}},
@@ -33,7 +33,12 @@ def test_mcp_audit_trace_fail_fast_on_corrupt_timestamp() -> None:
 
 
 def test_execution_record_fail_fast_on_corrupt_status() -> None:
-    data = {"id": "exe_eeeeeeeeeeeeeeee", "workflow_id": "wf_1", "status": "INVALID_STATUS", "raw_inputs": {}}
+    data = {
+        "id": "exe_0195f3a00000700e8eeeeeeeeeeeeeee",
+        "workflow_id": "wf_1",
+        "status": "INVALID_STATUS",
+        "raw_inputs": {},
+    }
     with pytest.raises(ValidationError) as exc_info:
         ExecutionRecord.model_validate(data)
     # Phase 1: status is now LaxExecutionStatus (enum) inherited from ExecutionCoreFields
@@ -43,9 +48,9 @@ def test_execution_record_fail_fast_on_corrupt_status() -> None:
 def test_embedded_output_profile_description_parsing() -> None:
     # 1. Success case with valid I18nText
     valid_data: dict[str, JsonValue] = {
-        "id": "prf_1234567890123456",
+        "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
-        "workflow_id": "wf_9d68c573802341db",
+        "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"en": "My Profile", "fi": "My Profile"}},
         "description": {
             "translations": {"en": "A valid description", "fi": "A valid description"},
@@ -60,9 +65,9 @@ def test_embedded_output_profile_description_parsing() -> None:
 
     # 2. Fail-fast case with invalid description
     invalid_data: dict[str, JsonValue] = {
-        "id": "prf_1234567890123456",
+        "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
-        "workflow_id": "wf_9d68c573802341db",
+        "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"en": "My Profile", "fi": "My Profile"}},
         "description": "This is a simple string instead of I18nText dict",
         "display_scale": DisplayScale.ORIGINAL,
@@ -74,9 +79,9 @@ def test_embedded_output_profile_description_parsing() -> None:
 
 def test_execution_record_has_context_variables() -> None:
     data = {
-        "id": "exe_1234567890123456",
+        "id": "exe_0195f3a0000070018234567890123456",
         "workflow_id": "wf_1234567890",
-        "output_profile_id": "prof_1234567890123456",
+        "output_profile_id": "prof_0195f3a0000070018234567890123456",
         "status": "PENDING",
         "target_locale": "fi",
         "metadata": {},
@@ -169,9 +174,9 @@ def test_output_profile_rejects_purged_synthesis_field() -> None:
     from backend_v2.models.domain.output_profile import OutputProfile
 
     payload = {
-        "id": "prf_1234567890abcdef",
+        "id": "prf_0195f3a0000070018234567890abcdef",
         "slug": "test-profile",
-        "workflow_id": "wf_1234567890abcdef",
+        "workflow_id": "wf_0195f3a0000070018234567890abcdef",
         "name": I18nText(translations={"en": "Test Profile"}),
         "synthesis": {},
     }
@@ -188,9 +193,9 @@ def test_output_profile_computed_properties() -> None:
     from backend_v2.models.enums import TargetBlockType
 
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test-profile",
-        workflow_id="wf_1234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
         name=I18nText(translations={"en": "Test Profile"}),
         target_block_order=[
             TargetBlockType.METADATA_BLOCK,
@@ -199,7 +204,7 @@ def test_output_profile_computed_properties() -> None:
         ],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_1111111111111111",
+                id="grp_0195f3a0000070018111111111111111",
                 title=I18nText(translations={"en": "Group 1"}),
                 target_blocks=["blk_1"],
             )
@@ -225,12 +230,12 @@ def test_matrix_synthesis_group_validation() -> None:
 
     # Valid group with 16-hex Opaque ID
     group = MatrixSynthesisGroup(
-        id="grp_1111111111111111",
+        id="grp_0195f3a0000070018111111111111111",
         title=I18nText(translations={"en": "Group 1", "fi": "Ryhmä 1"}),
         target_blocks=["blk_1", "blk_2"],
         view_type="2d_compare",
     )
-    assert group.id == "grp_1111111111111111"
+    assert group.id == "grp_0195f3a0000070018111111111111111"
     assert group.target_blocks == ["blk_1", "blk_2"]
     assert group.view_type == "2d_compare"
 
@@ -253,7 +258,7 @@ def test_matrix_synthesis_group_validation() -> None:
     # Empty target_blocks
     with pytest.raises(ValidationError):
         MatrixSynthesisGroup(
-            id="grp_1111111111111111",
+            id="grp_0195f3a0000070018111111111111111",
             title=I18nText(translations={"en": "Group 1", "fi": "Ryhmä 1"}),
             target_blocks=[],
         )
@@ -267,16 +272,16 @@ def test_output_profile_validate_matrix_graphs_coherence() -> None:
     from backend_v2.models.enums import TargetBlockType
 
     group = MatrixSynthesisGroup(
-        id="grp_1111111111111111",
+        id="grp_0195f3a0000070018111111111111111",
         title=I18nText(translations={"en": "Grp", "fi": "Ryhmä"}),
         target_blocks=["blk_1"],
     )
 
     # Valid: matrix_graphs_block with at least 1 synthesis group
     profile = OutputProfile(
-        id="prf_1234567890123456",
+        id="prf_0195f3a0000070018234567890123456",
         slug="test-profile",
-        workflow_id="wf_1234567890123456",
+        workflow_id="wf_0195f3a0000070018234567890123456",
         name=I18nText(translations={"en": "Name", "fi": "Nimi"}),
         target_block_order=[TargetBlockType.MATRIX_GRAPHS_BLOCK],
         matrix_synthesis_groups=[group],
@@ -286,9 +291,9 @@ def test_output_profile_validate_matrix_graphs_coherence() -> None:
     # Invalid: matrix_graphs_block with empty matrix_synthesis_groups raises ValueError
     with pytest.raises(ValidationError) as exc_info:
         OutputProfile(
-            id="prf_1234567890123456",
+            id="prf_0195f3a0000070018234567890123456",
             slug="test-profile",
-            workflow_id="wf_1234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
             name=I18nText(translations={"en": "Name", "fi": "Nimi"}),
             target_block_order=[TargetBlockType.MATRIX_GRAPHS_BLOCK],
             matrix_synthesis_groups=[],
@@ -312,9 +317,9 @@ def test_output_profile_rejects_purged_legacy_fields(purged_field: str) -> None:
     from backend_v2.models.domain.output_profile import OutputProfile
 
     payload = {
-        "id": "prf_1234567890123456",
+        "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
-        "workflow_id": "wf_1234567890123456",
+        "workflow_id": "wf_0195f3a0000070018234567890123456",
         "name": {"translations": {"en": "Name", "fi": "Nimi"}},
         "target_block_order": ["metadata_block"],
         purged_field: [],
@@ -333,43 +338,70 @@ def test_matrix_synthesis_group_cardinality_validation() -> None:
     title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
 
     # 1D metrics: exactly 1 block
-    MatrixSynthesisGroup(id="grp_1111111111111111", title=title, target_blocks=["b1"], view_type=PresetView.METRICS_1D)
+    MatrixSynthesisGroup(
+        id="grp_0195f3a0000070018111111111111111", title=title, target_blocks=["b1"], view_type=PresetView.METRICS_1D
+    )
     with pytest.raises(ValidationError) as exc:
         MatrixSynthesisGroup(
-            id="grp_1111111111111111", title=title, target_blocks=["b1", "b2"], view_type=PresetView.METRICS_1D
+            id="grp_0195f3a0000070018111111111111111",
+            title=title,
+            target_blocks=["b1", "b2"],
+            view_type=PresetView.METRICS_1D,
         )
     assert "view_type '1d_metrics' requires exactly 1 target block" in str(exc.value)
 
     # 2D compare: exactly 2 blocks
     MatrixSynthesisGroup(
-        id="grp_2222222222222222", title=title, target_blocks=["b1", "b2"], view_type=PresetView.COMPARE_2D
+        id="grp_0195f3a0000070028222222222222222",
+        title=title,
+        target_blocks=["b1", "b2"],
+        view_type=PresetView.COMPARE_2D,
     )
     with pytest.raises(ValidationError) as exc:
         MatrixSynthesisGroup(
-            id="grp_2222222222222222", title=title, target_blocks=["b1"], view_type=PresetView.COMPARE_2D
+            id="grp_0195f3a0000070028222222222222222",
+            title=title,
+            target_blocks=["b1"],
+            view_type=PresetView.COMPARE_2D,
         )
     assert "view_type '2d_compare' requires exactly 2 target blocks" in str(exc.value)
 
     # 3D radar: at least 3 blocks
     MatrixSynthesisGroup(
-        id="grp_3333333333333333", title=title, target_blocks=["b1", "b2", "b3"], view_type=PresetView.MATRIX_3D
+        id="grp_0195f3a0000070038333333333333333",
+        title=title,
+        target_blocks=["b1", "b2", "b3"],
+        view_type=PresetView.MATRIX_3D,
     )
     MatrixSynthesisGroup(
-        id="grp_3333333333333333", title=title, target_blocks=["b1", "b2", "b3", "b4"], view_type=PresetView.MATRIX_3D
+        id="grp_0195f3a0000070038333333333333333",
+        title=title,
+        target_blocks=["b1", "b2", "b3", "b4"],
+        view_type=PresetView.MATRIX_3D,
     )
     with pytest.raises(ValidationError) as exc:
         MatrixSynthesisGroup(
-            id="grp_3333333333333333", title=title, target_blocks=["b1", "b2"], view_type=PresetView.MATRIX_3D
+            id="grp_0195f3a0000070038333333333333333",
+            title=title,
+            target_blocks=["b1", "b2"],
+            view_type=PresetView.MATRIX_3D,
         )
     assert "view_type '3d_matrix' requires at least 3 target blocks" in str(exc.value)
 
     # Text only: at least 1 block
-    MatrixSynthesisGroup(id="grp_4444444444444444", title=title, target_blocks=["b1"], view_type=PresetView.TEXT_ONLY)
     MatrixSynthesisGroup(
-        id="grp_4444444444444444", title=title, target_blocks=["b1", "b2"], view_type=PresetView.TEXT_ONLY
+        id="grp_0195f3a0000070048444444444444444", title=title, target_blocks=["b1"], view_type=PresetView.TEXT_ONLY
+    )
+    MatrixSynthesisGroup(
+        id="grp_0195f3a0000070048444444444444444",
+        title=title,
+        target_blocks=["b1", "b2"],
+        view_type=PresetView.TEXT_ONLY,
     )
     with pytest.raises(ValidationError) as exc:
-        MatrixSynthesisGroup(id="grp_4444444444444444", title=title, target_blocks=[], view_type=PresetView.TEXT_ONLY)
+        MatrixSynthesisGroup(
+            id="grp_0195f3a0000070048444444444444444", title=title, target_blocks=[], view_type=PresetView.TEXT_ONLY
+        )
     assert "List should have at least 1 item after validation" in str(exc.value)
 
 
@@ -382,17 +414,17 @@ def test_output_profile_unique_group_ids_validation() -> None:
 
     title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
     grp1 = MatrixSynthesisGroup(
-        id="grp_1111111111111111", title=title, target_blocks=["b1"], view_type=PresetView.METRICS_1D
+        id="grp_0195f3a0000070018111111111111111", title=title, target_blocks=["b1"], view_type=PresetView.METRICS_1D
     )
     grp2 = MatrixSynthesisGroup(
-        id="grp_1111111111111111", title=title, target_blocks=["b2"], view_type=PresetView.METRICS_1D
+        id="grp_0195f3a0000070018111111111111111", title=title, target_blocks=["b2"], view_type=PresetView.METRICS_1D
     )
 
     with pytest.raises(ValidationError) as exc:
         OutputProfile(
-            id="prf_1234567890123456",
+            id="prf_0195f3a0000070018234567890123456",
             slug="test-profile",
-            workflow_id="wf_1234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
             name=title,
             target_block_order=[TargetBlockType.MATRIX_GRAPHS_BLOCK],
             matrix_synthesis_groups=[grp1, grp2],
@@ -408,9 +440,9 @@ def test_output_profile_plain_string_directives_and_length_constraints() -> None
 
     title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
     profile = OutputProfile(
-        id="prf_1234567890123456",
+        id="prf_0195f3a0000070018234567890123456",
         slug="test-profile",
-        workflow_id="wf_1234567890123456",
+        workflow_id="wf_0195f3a0000070018234567890123456",
         name=title,
         target_block_order=[TargetBlockType.METADATA_BLOCK],
         tone_instruction="Act as a Senior Executive Coach.",
@@ -445,9 +477,9 @@ def test_output_profile_matrix_graph_length_constraint_validation() -> None:
 
     title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
     base_kwargs = {
-        "id": "prf_1234567890123456",
+        "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
-        "workflow_id": "wf_1234567890123456",
+        "workflow_id": "wf_0195f3a0000070018234567890123456",
         "name": title,
         "target_block_order": [TargetBlockType.METADATA_BLOCK],
     }

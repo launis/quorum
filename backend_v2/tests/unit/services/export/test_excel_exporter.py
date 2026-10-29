@@ -34,16 +34,16 @@ def _build_sample_execution(
 ) -> ExecutionRecord:
     step_states: dict[str, ExecutionStepState] = {}
     if has_atoms:
-        step_states["stp_0123456789abcdef"] = ExecutionStepState(
-            id="stp_0123456789abcdef",
+        step_states["stp_0195f3a0000070008123456789abcdef"] = ExecutionStepState(
+            id="stp_0195f3a0000070008123456789abcdef",
             label="Matrix Step Label",
             status=ExecutionStatus.PASSED,
         )
 
     return ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=status,
         step_states=step_states,
@@ -52,7 +52,7 @@ def _build_sample_execution(
 
 def _build_sample_report_dto(has_atoms: bool = True) -> ReportDataDTO:
     axis = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Axis 1",
         label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
         score=4.5,
@@ -66,23 +66,23 @@ def _build_sample_report_dto(has_atoms: bool = True) -> ReportDataDTO:
     if has_atoms:
         results = [
             AtomResultDTO(
-                tda_id="tda_0123456789abcdef",
-                matrix_id="blk_0123456789abcdef",
+                tda_id="tda_0195f3a0000070008123456789abcdef",
+                matrix_id="blk_0195f3a0000070008123456789abcdef",
                 status=ExecutionStatus.PASSED,
                 source_quotes=["Verbatim quote from source document"],
                 evaluation_reasoning="Reasoning with several words here",
             )
         ]
         hydrated_references = {
-            "tda_0123456789abcdef": HydratedAtomDTO(
+            "tda_0195f3a0000070008123456789abcdef": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Claim Label",
             )
         }
     return ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prof_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prof_0195f3a0000070008123456789abcdef",
         global_score=4.5,
         has_warning=False,
         inner_sdui_blocks=[chart],
@@ -94,7 +94,7 @@ def _build_sample_report_dto(has_atoms: bool = True) -> ReportDataDTO:
 def _build_sample_matrix_rows(n: int = 1) -> list[MatrixScorecardRowDTO]:
     rows = [
         MatrixScorecardRowDTO(
-            block_id="blk_0123456789abcdef",
+            block_id="blk_0195f3a0000070008123456789abcdef",
             name="Matrix 0",
             label_i18n=I18nText(translations={"fi": "Matriisi 0", "en": "Matrix 0"}),
             score=4.5,
@@ -133,7 +133,7 @@ async def test_excel_exporter_direct_call() -> None:
         locale="fi",
     )
 
-    assert payload.filename == "execution_export_exe_0123456789abcdef.xlsx"
+    assert payload.filename == "execution_export_exe_0195f3a0000070008123456789abcdef.xlsx"
     assert payload.mime_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     assert len(payload.content_bytes) > 0
 
@@ -181,8 +181,8 @@ async def test_export_excel_includes_causal_propositions() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
 
     atom_res = AtomResultDTO(
-        tda_id="tda_0000000000000001",
-        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008000000000000001",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PASSED,
         source_quotes=["Quote 1"],
         evaluation_reasoning="Affirmative claim passed",
@@ -195,7 +195,7 @@ async def test_export_excel_includes_causal_propositions() -> None:
     causal_payload = CausalGraphPayloadDTO(
         nodes=[
             CausalNodeDTO(
-                node_id="tda_0000000000000001",
+                node_id="tda_0195f3a0000070008000000000000001",
                 claim="Atom 1 Claim",
                 paragraph_ref="p1",
                 status=ExecutionStatus.PASSED,
@@ -207,7 +207,7 @@ async def test_export_excel_includes_causal_propositions() -> None:
                 claim="Unmapped Causal Proposition",
                 paragraph_ref="p2",
                 status=ExecutionStatus.FAILED,
-                blame_parent_ids=["tda_0000000000000001"],
+                blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
                 dependent_child_ids=[],
             ),
         ],
@@ -231,7 +231,7 @@ async def test_export_excel_includes_causal_propositions() -> None:
     report_dto = report_dto.model_copy(
         update={
             "results": [atom_res],
-            "hydrated_references": {"tda_0000000000000001": hydrated},
+            "hydrated_references": {"tda_0195f3a0000070008000000000000001": hydrated},
         }
     )
     matrices = _build_sample_matrix_rows(1)
@@ -257,7 +257,7 @@ async def test_export_excel_includes_causal_propositions() -> None:
 @pytest.mark.asyncio
 async def test_export_excel_with_prompt_block_repo() -> None:
     """Verify ExcelExporter loads prompt blocks from repository when components is None."""
-    blk_id = "blk_0123456789abcdef"
+    blk_id = "blk_0195f3a0000070008123456789abcdef"
     lbl = I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"})
     desc = I18nText(translations={"fi": "Kuvaus 1", "en": "Description 1"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
@@ -283,7 +283,7 @@ async def test_export_excel_with_prompt_block_repo() -> None:
         matrices=matrices,
         locale="en",
     )
-    assert payload.filename == "execution_export_exe_0123456789abcdef.xlsx"
+    assert payload.filename == "execution_export_exe_0195f3a0000070008123456789abcdef.xlsx"
     assert repo._call_counts["get_all_prompt_blocks"] == 1
 
 
@@ -428,7 +428,7 @@ async def test_export_excel_with_all_matrices_override() -> None:
 @pytest.mark.asyncio
 async def test_export_excel_with_components_list() -> None:
     """Verify export_excel uses components list directly without repo lookup."""
-    blk_id = "blk_0123456789abcdef"
+    blk_id = "blk_0195f3a0000070008123456789abcdef"
     lbl = I18nText(translations={"fi": "Matriisi C", "en": "Matrix C"})
     desc = I18nText(translations={"fi": "Kuvaus C", "en": "Description C"})
     matrix_block = MatrixPromptBlock(
@@ -451,4 +451,4 @@ async def test_export_excel_with_components_list() -> None:
         components=[matrix_block],
         locale="en",
     )
-    assert payload.filename == "execution_export_exe_0123456789abcdef.xlsx"
+    assert payload.filename == "execution_export_exe_0195f3a0000070008123456789abcdef.xlsx"

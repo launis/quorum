@@ -127,12 +127,12 @@ def test_dlq_guard_atom_result_dto_system_error_fails_over_threshold(dummy_deps:
             raw_inputs={
                 "evaluations": [
                     AtomResultDTO(
-                        tda_id="tda_0000000000000001",
+                        tda_id="tda_0195f3a0000070008000000000000001",
                         status=ExecutionStatus.SYSTEM_ERROR,
                         error_details=ErrorDetailsDTO(error_code="LLM_TIMEOUT", message="Timeout"),
                     ),
                     AtomResultDTO(
-                        tda_id="tda_0000000000000002",
+                        tda_id="tda_0195f3a0000070008000000000000002",
                         status=ExecutionStatus.PASSED,
                         evaluation_reasoning="Verified claim.",
                         source_quotes=("Exact quote",),

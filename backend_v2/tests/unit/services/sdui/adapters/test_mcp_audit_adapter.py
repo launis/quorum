@@ -19,7 +19,7 @@ from backend_v2.services.sdui.adapters.mcp_audit_adapter import MCP_AUDIT_RULES,
 def sample_profile() -> OutputProfile:
     """Fixture providing a valid OutputProfile for testing."""
     return OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="test-profile",
         workflow_id="wfw_test",
         name=I18nText(translations={"en": "Test Profile"}),

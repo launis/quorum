@@ -120,7 +120,7 @@ async def test_process_inputs_missing_context() -> None:
 
 @pytest.mark.asyncio
 async def test_process_inputs_missing_language() -> None:
-    wf_id = "wor_1234567890123456"
+    wf_id = "wor_0195f3a0000070018234567890123456"
     state = HookState(
         workflow_id=wf_id,
         execution_id="e1",
@@ -134,7 +134,7 @@ async def test_process_inputs_missing_language() -> None:
         Workflow.model_validate(
             {
                 "id": wf_id,
-                "model_registry_id": "cfg_model_registry_01",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "historical_context_mode": "DISABLED",
                 "slug": "test_workflow",
                 "name": {"translations": {"en": "Test Workflow", "fi": "Test Workflow"}},
@@ -166,7 +166,7 @@ async def test_process_inputs_missing_language() -> None:
 
 @pytest.mark.asyncio
 async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatch) -> None:
-    wf_id = "wor_1234567890abcdef12"
+    wf_id = "wor_0195f3a00000700384567890abcdef12"
     state = HookState(
         execution_id="test_exec",
         workflow_id=wf_id,
@@ -193,7 +193,7 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
         Workflow.model_validate(
             {
                 "id": wf_id,
-                "model_registry_id": "cfg_model_registry_01",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "historical_context_mode": "DISABLED",
                 "slug": "test-wf",
                 "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
@@ -283,7 +283,7 @@ async def test_process_inputs_workflow_not_found() -> None:
 
 @pytest.mark.asyncio
 async def test_process_inputs_missing_required_input(monkeypatch: pytest.MonkeyPatch) -> None:
-    wf_id = "wor_1234567890abcdef12"
+    wf_id = "wor_0195f3a00000700384567890abcdef12"
     state = HookState(
         execution_id="test_exec",
         workflow_id=wf_id,
@@ -296,7 +296,7 @@ async def test_process_inputs_missing_required_input(monkeypatch: pytest.MonkeyP
         Workflow.model_validate(
             {
                 "id": wf_id,
-                "model_registry_id": "cfg_model_registry_01",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "historical_context_mode": "DISABLED",
                 "slug": "test-wf",
                 "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
@@ -344,13 +344,13 @@ async def test_process_inputs_missing_required_input(monkeypatch: pytest.MonkeyP
 
 @pytest.mark.asyncio
 async def test_process_inputs_with_chat_history_step(monkeypatch: pytest.MonkeyPatch) -> None:
-    wf_id = "wor_1234567890abcdef12"
+    wf_id = "wor_0195f3a00000700384567890abcdef12"
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(
         Workflow.model_validate(
             {
                 "id": wf_id,
-                "model_registry_id": "cfg_model_registry_01",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "historical_context_mode": "DISABLED",
                 "slug": "chat-wf",
                 "name": {"translations": {"en": "Chat WF", "fi": "Chat WF"}},
@@ -413,13 +413,13 @@ async def test_process_inputs_with_chat_history_step(monkeypatch: pytest.MonkeyP
 
 @pytest.mark.asyncio
 async def test_process_inputs_with_smoothing_and_anonymization(monkeypatch: pytest.MonkeyPatch) -> None:
-    wf_id = "wor_1234567890abcdef12"
+    wf_id = "wor_0195f3a00000700384567890abcdef12"
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(
         Workflow.model_validate(
             {
                 "id": wf_id,
-                "model_registry_id": "cfg_model_registry_01",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "historical_context_mode": "DISABLED",
                 "slug": "smooth-wf",
                 "name": {"translations": {"en": "Smooth WF", "fi": "Smooth WF"}},
@@ -484,13 +484,13 @@ async def test_process_inputs_with_smoothing_and_anonymization(monkeypatch: pyte
 
 @pytest.mark.asyncio
 async def test_process_inputs_dynamic_inputs_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
-    wf_id = "wor_1234567890abcdef12"
+    wf_id = "wor_0195f3a00000700384567890abcdef12"
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(
         Workflow.model_validate(
             {
                 "id": wf_id,
-                "model_registry_id": "cfg_model_registry_01",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "historical_context_mode": "DISABLED",
                 "slug": "test-wf",
                 "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
@@ -565,13 +565,13 @@ async def test_process_inputs_dynamic_inputs_resolution(monkeypatch: pytest.Monk
 
 @pytest.mark.asyncio
 async def test_process_inputs_missing_english_ai_description(monkeypatch: pytest.MonkeyPatch) -> None:
-    wf_id = "wor_1234567890abcdef12"
+    wf_id = "wor_0195f3a00000700384567890abcdef12"
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(
         Workflow.model_validate(
             {
                 "id": wf_id,
-                "model_registry_id": "cfg_model_registry_01",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "historical_context_mode": "DISABLED",
                 "slug": "desc-wf",
                 "name": {"translations": {"en": "WF", "fi": "WF"}},
@@ -618,13 +618,13 @@ async def test_process_inputs_missing_english_ai_description(monkeypatch: pytest
 
 @pytest.mark.asyncio
 async def test_process_inputs_with_gvars_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
-    wf_id = "wor_1234567890abcdef12"
+    wf_id = "wor_0195f3a00000700384567890abcdef12"
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(
         Workflow.model_validate(
             {
                 "id": wf_id,
-                "model_registry_id": "cfg_model_registry_01",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "historical_context_mode": "DISABLED",
                 "slug": "test-wf",
                 "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
@@ -862,7 +862,7 @@ async def test_resolve_input_and_extract_raw_value_edge_cases(monkeypatch: pytes
 
     state = HookState(
         execution_id="test_exec",
-        workflow_id="wor_1234567890abcdef12",
+        workflow_id="wor_0195f3a00000700384567890abcdef12",
         inputs=ExecutionInputsDTO(raw_inputs={}, target_locale="sv"),
         global_context_vars=GlobalContextVarsDTO(language="fi", target_locale="sv"),
         metadata=ExecutionMetadata(),
@@ -871,13 +871,13 @@ async def test_resolve_input_and_extract_raw_value_edge_cases(monkeypatch: pytes
     assert _extract_raw_value("target_locale", state) == "sv"
     assert _extract_raw_value("missing_key", state) is None
 
-    wf_id = "wor_1234567890abcdef12"
+    wf_id = "wor_0195f3a00000700384567890abcdef12"
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(
         Workflow.model_validate(
             {
                 "id": wf_id,
-                "model_registry_id": "cfg_model_registry_01",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "historical_context_mode": "DISABLED",
                 "slug": "test-wf",
                 "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},

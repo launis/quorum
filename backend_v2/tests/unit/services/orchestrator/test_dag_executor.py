@@ -28,9 +28,9 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_step(
-        "blp_1234567890abcdef",
+        "blp_0195f3a0000070018234567890abcdef",
         {
-            "id": "blp_1234567890abcdef",
+            "id": "blp_0195f3a0000070018234567890abcdef",
             "type": "logic",
             "slug": "mock_step",
             "name": {"translations": {"en": "Mock Step"}},
@@ -64,12 +64,12 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wf_5555555555555555",
+        id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[],
@@ -95,7 +95,7 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
             )
         )
         record = await executor.execute_workflow(
-            execution_id="exe_1231231231231231",
+            execution_id="exe_0195f3a0000070018231231231231231",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": "test"}, language="en", user_id="usr_test1234"),
         )
@@ -127,12 +127,12 @@ async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compil
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wf_5555555555555555",
+        id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[],
@@ -143,7 +143,7 @@ async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compil
 
         with pytest.raises(AppException) as exc_info:
             await executor.execute_workflow(
-                execution_id="exe_1231231231231231",
+                execution_id="exe_0195f3a0000070018231231231231231",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": "test"}),
             )
@@ -157,9 +157,9 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
     from backend_v2.models.domain.execution import ExecutionRecord
 
     record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wor_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         target_locale="en",
         metadata=ExecutionMetadata(),
         raw_inputs=WorkflowInputs(dynamic_inputs={}),
@@ -171,7 +171,7 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
         execution_trace=[],
     )
     await mock_repo.save_execution(record)
-    committer = ExecutionCommitter(mock_repo, "exe_1234567890abcdef")
+    committer = ExecutionCommitter(mock_repo, "exe_0195f3a0000070018234567890abcdef")
 
     await committer.commit_trace(
         trace=[],
@@ -182,7 +182,7 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
     )
 
     assert mock_repo.get_call_count("update_execution") == 1
-    updated = await mock_repo.get_execution("exe_1234567890abcdef")
+    updated = await mock_repo.get_execution("exe_0195f3a0000070018234567890abcdef")
     assert updated is not None
     assert updated.error == "test error"
     assert updated.context_variables is not None
@@ -207,12 +207,12 @@ async def test_dag_executor_pure_dispatch_without_semaphore(mock_repo: Any, mock
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wf_5555555555555555",
+        id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[],
@@ -237,8 +237,8 @@ async def test_dag_executor_pure_dispatch_without_semaphore(mock_repo: Any, mock
             update={
                 "steps": [
                     StepRule(
-                        id="stp_1234567890abcdef",
-                        task_blueprint="blp_1234567890abcdef",
+                        id="stp_0195f3a0000070018234567890abcdef",
+                        task_blueprint="blp_0195f3a0000070018234567890abcdef",
                         input_mappings={},
                         depends_on=[],
                     )
@@ -247,7 +247,7 @@ async def test_dag_executor_pure_dispatch_without_semaphore(mock_repo: Any, mock
         )
 
         await executor.execute_workflow(
-            execution_id="exe_1231231231231231",
+            execution_id="exe_0195f3a0000070018231231231231231",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": "test"}),
         )
@@ -280,18 +280,18 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wf_5555555555555555",
+        id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
             StepRule(
-                id="stp_1234567890abcdef",
-                task_blueprint="blp_1234567890abcdef",
+                id="stp_0195f3a0000070018234567890abcdef",
+                task_blueprint="blp_0195f3a0000070018234567890abcdef",
                 input_mappings={},
                 depends_on=[],
             )
@@ -311,7 +311,7 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         from backend_v2.services.execution import create_execution_record
 
         initial_record = create_execution_record(
-            execution_id="exe_1231231231231231",
+            execution_id="exe_0195f3a0000070018231231231231231",
             workflow_id=workflow.id,
             raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": "test"}),
             frozen_context=FrozenContext(),
@@ -327,7 +327,7 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
 
         with pytest.raises(AppException) as exc_info:
             await executor.execute_workflow(
-                execution_id="exe_1231231231231231",
+                execution_id="exe_0195f3a0000070018231231231231231",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": "test"}),
             )
@@ -336,7 +336,7 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         assert "Workflow failed" in exc_info.value.message
 
         # Verify that committer persisted FAILED status and error for the whole execution
-        persisted = await mock_repo.get_execution("exe_1231231231231231")
+        persisted = await mock_repo.get_execution("exe_0195f3a0000070018231231231231231")
         assert persisted is not None
         assert persisted.status == ExecutionStatus.FAILED
         assert persisted.error is not None and "System Crash" in persisted.error
@@ -354,9 +354,9 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
 
     mock_prompt_block_repo = InMemoryUnifiedWorkflowRepository()
     mock_prompt_block_repo.seed_raw_prompt_block(
-        "blk_1234567890abcdef",
+        "blk_0195f3a0000070018234567890abcdef",
         SystemRulePromptBlock(
-            id="blk_1234567890abcdef",
+            id="blk_0195f3a0000070018234567890abcdef",
             slug="synthesis-rule",
             label=I18nText(translations={"en": "Synthesis Rule"}),
             description=I18nText(translations={"en": "Synthesis Rule Desc"}),
@@ -378,22 +378,22 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
     executor = NodeExecutor(deps=deps)
 
     step = StepRule(
-        id="stp_1234567890abcdef",
-        task_blueprint="bp_1234567890abcdef",
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="bp_0195f3a0000070018234567890abcdef",
         expected_sdui_type="markdown",
     )
 
     mock_repo.seed_raw_step(
-        "bp_1234567890abcdef",
+        "bp_0195f3a0000070018234567890abcdef",
         {
-            "id": "bp_1234567890abcdef",
+            "id": "bp_0195f3a0000070018234567890abcdef",
             "slug": "synthesis-slug",
             "type": "llm",
             "cognitive_tier": "fast",
             "engine_type": "synthesis",
             "pre_hooks": ["atom_flattening_hook"],
-            "criteria_block_ids": ["blk_1234567890abcdef"],
-            "extraction_protocol_block_id": "blk_1234567890abcdef",
+            "criteria_block_ids": ["blk_0195f3a0000070018234567890abcdef"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070018234567890abcdef",
             "name": {"translations": {"en": "en"}},
             "description": {"translations": {"en": "en"}},
         },
@@ -441,13 +441,15 @@ async def test_node_executor_blueprint_missing_error(mock_repo: Any, mock_compil
         prompt_compiler=mock_compiler,
     )
     executor = NodeExecutor(deps=deps)
-    step = StepRule.model_construct(id="stp_1111222233334444", task_blueprint="", expected_sdui_type="markdown")
+    step = StepRule.model_construct(
+        id="stp_0195f3a0000070018111222233334444", task_blueprint="", expected_sdui_type="markdown"
+    )
     projector = MagicMock()
     projector.snapshot = []
     with pytest.raises(AppException) as exc_info:
         await executor.execute(
-            execution_id="exe_1111222233334444",
-            workflow_id="wor_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
+            workflow_id="wor_0195f3a0000070018111222233334444",
             step=step,
             metadata={},
             projector=projector,
@@ -476,13 +478,17 @@ async def test_node_executor_step_def_not_found_error(mock_repo: Any, mock_compi
         prompt_compiler=mock_compiler,
     )
     executor = NodeExecutor(deps=deps)
-    step = StepRule(id="stp_1111222233334444", task_blueprint="bp_1111222233334444", expected_sdui_type="markdown")
+    step = StepRule(
+        id="stp_0195f3a0000070018111222233334444",
+        task_blueprint="bp_0195f3a0000070018111222233334444",
+        expected_sdui_type="markdown",
+    )
     projector = MagicMock()
     projector.snapshot = []
     with pytest.raises(AppException) as exc_info:
         await executor.execute(
-            execution_id="exe_1111222233334444",
-            workflow_id="wor_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
+            workflow_id="wor_0195f3a0000070018111222233334444",
             step=step,
             metadata={},
             projector=projector,
@@ -506,7 +512,7 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
 
     mock_prompt_block_repo = InMemoryUnifiedWorkflowRepository()
     matrix_block = MatrixPromptBlock(
-        id="blk_1111222233334444",
+        id="blk_0195f3a0000070018111222233334444",
         slug="matrix-block",
         label=I18nText(translations={"en": "Matrix"}),
         description=I18nText(translations={"en": "Matrix Desc"}),
@@ -520,14 +526,14 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
         ],
     )
     system_block = SystemRulePromptBlock(
-        id="blk_5555666677778888",
+        id="blk_0195f3a0000070058555666677778888",
         slug="sys-block",
         label=I18nText(translations={"en": "Sys"}),
         description=I18nText(translations={"en": "Sys Desc"}),
         category_id=PromptBlockCategory.SYSTEM_RULE,
     )
-    mock_prompt_block_repo.seed_raw_prompt_block("blk_1111222233334444", matrix_block)
-    mock_prompt_block_repo.seed_raw_prompt_block("blk_5555666677778888", system_block)
+    mock_prompt_block_repo.seed_raw_prompt_block("blk_0195f3a0000070018111222233334444", matrix_block)
+    mock_prompt_block_repo.seed_raw_prompt_block("blk_0195f3a0000070058555666677778888", system_block)
 
     deps = StrategyDependencies(
         exec_repo=mock_repo,
@@ -543,15 +549,15 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
     executor = NodeExecutor(deps=deps)
 
     matrix_step_def = Step(
-        id="stp_1111222233334444",
+        id="stp_0195f3a0000070018111222233334444",
         slug="matrix-slug",
         type=StepType.LLM,
         cognitive_tier=CognitiveTier.FAST,
         engine_type=EngineType.TDA,
-        criteria_block_ids=["blk_1111222233334444"],
-        role_block_id="blk_5555666677778888",
-        extraction_protocol_block_id="blk_5555666677778888",
-        execution_persona_block_id="blk_5555666677778888",
+        criteria_block_ids=["blk_0195f3a0000070018111222233334444"],
+        role_block_id="blk_0195f3a0000070058555666677778888",
+        extraction_protocol_block_id="blk_0195f3a0000070058555666677778888",
+        execution_persona_block_id="blk_0195f3a0000070058555666677778888",
         name=I18nText(translations={"en": "Matrix Step"}),
         description=I18nText(translations={"en": "Matrix Step"}),
     )
@@ -560,13 +566,13 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
     assert isinstance(tda_engine, TDAEngine)
 
     prompt_step_def = Step(
-        id="stp_5555666677778888",
+        id="stp_0195f3a0000070058555666677778888",
         slug="prompt-slug",
         type=StepType.LLM,
         cognitive_tier=CognitiveTier.FAST,
         engine_type=EngineType.PROMPT,
-        criteria_block_ids=["blk_5555666677778888"],
-        extraction_protocol_block_id="blk_5555666677778888",
+        criteria_block_ids=["blk_0195f3a0000070058555666677778888"],
+        extraction_protocol_block_id="blk_0195f3a0000070058555666677778888",
         name=I18nText(translations={"en": "Prompt Step"}),
         description=I18nText(translations={"en": "Prompt Step"}),
     )
@@ -574,13 +580,13 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
     assert isinstance(prompt_engine, PromptEngine)
 
     synthesis_step_def = Step(
-        id="stp_9999888877776666",
+        id="stp_0195f3a0000070098999888877776666",
         slug="synthesis-slug",
         type=StepType.LLM,
         cognitive_tier=CognitiveTier.FAST,
         engine_type=EngineType.SYNTHESIS,
-        criteria_block_ids=["blk_5555666677778888"],
-        extraction_protocol_block_id="blk_5555666677778888",
+        criteria_block_ids=["blk_0195f3a0000070058555666677778888"],
+        extraction_protocol_block_id="blk_0195f3a0000070058555666677778888",
         name=I18nText(translations={"en": "Synthesis Step"}),
         description=I18nText(translations={"en": "Synthesis Step"}),
     )
@@ -603,9 +609,9 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
 
     mock_pb_repo = InMemoryUnifiedWorkflowRepository()
     mock_pb_repo.seed_raw_prompt_block(
-        "blk_1111222233334444",
+        "blk_0195f3a0000070018111222233334444",
         SystemRulePromptBlock(
-            id="blk_1111222233334444",
+            id="blk_0195f3a0000070018111222233334444",
             slug="rule",
             label=I18nText(translations={"en": "Rule"}),
             description=I18nText(translations={"en": "Desc"}),
@@ -625,14 +631,14 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
     )
     executor = NodeExecutor(deps=deps)
     step = StepRule(
-        id="stp_1111222233334444",
-        task_blueprint="bp_1111222233334444",
+        id="stp_0195f3a0000070018111222233334444",
+        task_blueprint="bp_0195f3a0000070018111222233334444",
         input_mappings={"text": "steps.step1.text_field"},
     )
     mock_repo.seed_raw_step(
-        "bp_1111222233334444",
+        "bp_0195f3a0000070018111222233334444",
         {
-            "id": "bp_1111222233334444",
+            "id": "bp_0195f3a0000070018111222233334444",
             "slug": "s",
             "type": "logic",
             "cognitive_tier": "fast",
@@ -653,10 +659,10 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
         mock_factory.return_value = mock_strat
 
         events = await executor.execute(
-            execution_id="exe_1111222233334444",
-            workflow_id="wor_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
+            workflow_id="wor_0195f3a0000070018111222233334444",
             step=step,
-            metadata={"organization_id": "org_1111222233334444"},
+            metadata={"organization_id": "org_0195f3a0000070018111222233334444"},
             projector=projector,
         )
         assert len(events) == 1
@@ -687,24 +693,30 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wor_1111222233334444",
+        id="wor_0195f3a0000070018111222233334444",
         slug="wf_cascading",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Cascading WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[
-            StepRule(id="stp_1111222233334444", task_blueprint="bp_1111222233334444", depends_on=[]),
             StepRule(
-                id="stp_5555666677778888", task_blueprint="bp_5555666677778888", depends_on=["stp_1111222233334444"]
+                id="stp_0195f3a0000070018111222233334444",
+                task_blueprint="bp_0195f3a0000070018111222233334444",
+                depends_on=[],
+            ),
+            StepRule(
+                id="stp_0195f3a0000070058555666677778888",
+                task_blueprint="bp_0195f3a0000070058555666677778888",
+                depends_on=["stp_0195f3a0000070018111222233334444"],
             ),
         ],
     )
     step_data_1 = {
-        "id": "bp_1111222233334444",
-        "slug": "bp_1111222233334444",
+        "id": "bp_0195f3a0000070018111222233334444",
+        "slug": "bp_0195f3a0000070018111222233334444",
         "type": "logic",
         "cognitive_tier": "fast",
         "hook": "mock_hook",
@@ -712,16 +724,16 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
         "description": {"translations": {"en": "en"}},
     }
     step_data_2 = {
-        "id": "bp_5555666677778888",
-        "slug": "bp_5555666677778888",
+        "id": "bp_0195f3a0000070058555666677778888",
+        "slug": "bp_0195f3a0000070058555666677778888",
         "type": "logic",
         "cognitive_tier": "fast",
         "hook": "mock_hook",
         "name": {"translations": {"en": "en"}},
         "description": {"translations": {"en": "en"}},
     }
-    mock_repo.seed_raw_step("bp_1111222233334444", step_data_1)
-    mock_repo.seed_raw_step("bp_5555666677778888", step_data_2)
+    mock_repo.seed_raw_step("bp_0195f3a0000070018111222233334444", step_data_1)
+    mock_repo.seed_raw_step("bp_0195f3a0000070058555666677778888", step_data_2)
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -729,12 +741,16 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
     ):
         mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={}))
         mock_node_execute.return_value = [
-            ErrorTraceEvent(step_name="stp_1111222233334444", error_code="STEP_FAILED", error_message="Step 1 crashed")
+            ErrorTraceEvent(
+                step_name="stp_0195f3a0000070018111222233334444",
+                error_code="STEP_FAILED",
+                error_message="Step 1 crashed",
+            )
         ]
 
         with pytest.raises(AppException) as exc_info:
             await executor.execute_workflow(
-                execution_id="exe_1111222233334444",
+                execution_id="exe_0195f3a0000070018111222233334444",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(dynamic_inputs={}),
             )
@@ -768,39 +784,41 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         prompt_compiler=mock_compiler,
     )
 
-    step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
+    step1 = StepRule(
+        id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444", depends_on=[]
+    )
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wor_1111222233334444",
+        id="wor_0195f3a0000070018111222233334444",
         slug="wf_resume",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Resume WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
     )
 
     mock_repo.seed_raw_step(
-        "stp_1111222233334444",
+        "stp_0195f3a0000070018111222233334444",
         {
-            "id": "stp_1111222233334444",
+            "id": "stp_0195f3a0000070018111222233334444",
             "slug": "synthesis",
             "type": "llm",
             "cognitive_tier": "fast",
             "pre_hooks": ["atom_flattening_hook"],
-            "criteria_block_ids": ["blk_1111222233334444"],
-            "extraction_protocol_block_id": "blk_1111222233334444",
+            "criteria_block_ids": ["blk_0195f3a0000070018111222233334444"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070018111222233334444",
             "name": {"translations": {"en": "en"}},
             "description": {"translations": {"en": "en"}},
         },
     )
 
     existing_record = ExecutionRecord(
-        id="exe_1111222233334444",
+        id="exe_0195f3a0000070018111222233334444",
         workflow_id=workflow.id,
-        output_profile_id="prof_dddd1111dddd1111",
+        output_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
         target_locale="en",
         metadata=ExecutionMetadata(),
         raw_inputs=WorkflowInputs(dynamic_inputs={}),
@@ -808,8 +826,8 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         step_states={
-            "stp_1111222233334444": ExecutionStepState(
-                id="stp_1111222233334444", label="Step 1", status=ExecutionStatus.FAILED
+            "stp_0195f3a0000070018111222233334444": ExecutionStepState(
+                id="stp_0195f3a0000070018111222233334444", label="Step 1", status=ExecutionStatus.FAILED
             )
         },
         execution_trace=[TraceEvent(step_name="raw_inputs", event_type="input", content={})],
@@ -825,15 +843,15 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         mock_matrix_reducer.return_value = mock_reduced
 
         event_with_mcp = TraceEvent(
-            step_name="stp_1111222233334444",
+            step_name="stp_0195f3a0000070018111222233334444",
             event_type="output",
             content={"result": "ok"},
             metadata={"generated_schema": {"type": "object"}},
             mcp_audit_traces=[
                 MCPAuditTrace(
-                    id="tr_1111222233334444",
+                    id="tr_0195f3a0000070018111222233334444",
                     tool_id="tool_search",
-                    step_name="stp_1111222233334444",
+                    step_name="stp_0195f3a0000070018111222233334444",
                     query="test search query",
                 )
             ],
@@ -848,7 +866,7 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         mock_node_execute.side_effect = fake_node_execute
 
         record = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
@@ -865,7 +883,7 @@ async def test_execution_committer_raises_app_exception_on_update_failure(mock_r
     from backend_v2.exceptions import ErrorCodes
 
     mock_repo.inject_fault("update_execution", Exception("Database connection lost"), trigger_count=1)
-    committer = ExecutionCommitter(mock_repo, "exe_1111222233334444")
+    committer = ExecutionCommitter(mock_repo, "exe_0195f3a0000070018111222233334444")
 
     with pytest.raises(AppException) as exc_info:
         await committer.commit_trace(
@@ -897,30 +915,32 @@ async def test_dag_executor_rag_preflight_failure_handling(mock_repo: Any, mock_
         prompt_compiler=mock_compiler,
     )
 
-    step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
+    step1 = StepRule(
+        id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444", depends_on=[]
+    )
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wor_1111222233334444",
+        id="wor_0195f3a0000070018111222233334444",
         slug="wf_preflight_fail",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Preflight WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
     )
 
     mock_repo.seed_raw_step(
-        "stp_1111222233334444",
+        "stp_0195f3a0000070018111222233334444",
         {
-            "id": "stp_1111222233334444",
+            "id": "stp_0195f3a0000070018111222233334444",
             "slug": "synthesis",
             "type": "llm",
             "cognitive_tier": "fast",
             "pre_hooks": ["atom_flattening_hook"],
-            "criteria_block_ids": ["blk_1111222233334444"],
-            "extraction_protocol_block_id": "blk_1111222233334444",
+            "criteria_block_ids": ["blk_0195f3a0000070018111222233334444"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070018111222233334444",
             "name": {"translations": {"en": "en"}},
             "description": {"translations": {"en": "en"}},
         },
@@ -932,7 +952,7 @@ async def test_dag_executor_rag_preflight_failure_handling(mock_repo: Any, mock_
     ):
         mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={}))
         await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
@@ -954,30 +974,32 @@ async def test_dag_executor_matrix_reducer_failure(mock_repo: Any, mock_compiler
         prompt_compiler=mock_compiler,
     )
 
-    step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
+    step1 = StepRule(
+        id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444", depends_on=[]
+    )
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wor_1111222233334444",
+        id="wor_0195f3a0000070018111222233334444",
         slug="wf_matrix_fail",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Matrix Fail WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
     )
 
     mock_repo.seed_raw_step(
-        "stp_1111222233334444",
+        "stp_0195f3a0000070018111222233334444",
         {
-            "id": "stp_1111222233334444",
+            "id": "stp_0195f3a0000070018111222233334444",
             "slug": "synthesis",
             "type": "llm",
             "cognitive_tier": "fast",
             "pre_hooks": ["atom_flattening_hook"],
-            "criteria_block_ids": ["blk_1111222233334444"],
-            "extraction_protocol_block_id": "blk_1111222233334444",
+            "criteria_block_ids": ["blk_0195f3a0000070018111222233334444"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070018111222233334444",
             "name": {"translations": {"en": "en"}},
             "description": {"translations": {"en": "en"}},
         },
@@ -992,7 +1014,7 @@ async def test_dag_executor_matrix_reducer_failure(mock_repo: Any, mock_compiler
         mock_matrix_reducer.side_effect = Exception("Matrix Reduction Error")
 
         await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
@@ -1017,24 +1039,26 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
         prompt_compiler=mock_compiler,
     )
 
-    step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
+    step1 = StepRule(
+        id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444", depends_on=[]
+    )
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wor_1111222233334444",
+        id="wor_0195f3a0000070018111222233334444",
         slug="wf_prog",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Prog WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
     )
 
     mock_repo.seed_raw_step(
-        "stp_1111222233334444",
+        "stp_0195f3a0000070018111222233334444",
         {
-            "id": "stp_1111222233334444",
+            "id": "stp_0195f3a0000070018111222233334444",
             "slug": "logic",
             "type": "logic",
             "hook": "mock_hook",
@@ -1044,7 +1068,7 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
     )
 
     decision_event = TraceEvent(
-        step_name="stp_1111222233334444",
+        step_name="stp_0195f3a0000070018111222233334444",
         event_type="decision",
         content={"custom_var": "updated_value"},
         metadata={"is_context_update": True},
@@ -1064,7 +1088,7 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
         mock_node_execute.side_effect = fake_node_execute
 
         record = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
@@ -1091,24 +1115,26 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
         prompt_compiler=mock_compiler,
     )
 
-    step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
+    step1 = StepRule(
+        id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444", depends_on=[]
+    )
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wor_1111222233334444",
+        id="wor_0195f3a0000070018111222233334444",
         slug="wf_mcp_audit",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "MCP Audit WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
     )
 
     mock_repo.seed_raw_step(
-        "stp_1111222233334444",
+        "stp_0195f3a0000070018111222233334444",
         {
-            "id": "stp_1111222233334444",
+            "id": "stp_0195f3a0000070018111222233334444",
             "slug": "logic",
             "type": "logic",
             "hook": "mock_hook",
@@ -1122,7 +1148,7 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
     trace = MCPAuditTrace(
         id="tavily_12345678",
         tool_id="mcp_tavily_search",
-        step_name="stp_1111222233334444",
+        step_name="stp_0195f3a0000070018111222233334444",
         query="Fact check query",
         reasoning="Verification",
         response_summary="Verified truth",
@@ -1132,7 +1158,7 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
     )
 
     decision_event = TraceEvent(
-        step_name="stp_1111222233334444",
+        step_name="stp_0195f3a0000070018111222233334444",
         event_type="decision",
         content={"mcp_audit_traces": [trace.model_dump(mode="json")]},
         metadata=TraceEventMetadataDTO(mcp_audit_traces=[trace]),
@@ -1147,7 +1173,7 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
         mock_node_execute.return_value = [decision_event]
 
         record = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
@@ -1167,7 +1193,7 @@ def test_dag_executor_mcp_audit_decision_event_invalid_payload_fails_fast() -> N
 
     with pytest.raises(pydantic.ValidationError) as exc_info:
         TraceEvent(
-            step_name="stp_1111222233334444",
+            step_name="stp_0195f3a0000070018111222233334444",
             event_type="decision",
             content={"mcp_audit_traces": [{"invalid_field": 123}]},
             metadata={"mcp_audit_traces": [{"invalid_field": 123}]},
@@ -1262,18 +1288,18 @@ async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncM
 async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock_repo: Any, mock_compiler: Any) -> None:
     """Regression Test: step_states resolves human-readable step name instead of raw rule ID."""
     step_rule = StepRule(
-        id="sr_f0a26d17cc9b48a7",
+        id="sr_0195f3a00000700f80a26d17cc9b48a7",
         task_blueprint="bp_11112222333344445555666677778888",
         input_mappings={},
     )
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wf_5555555555555555",
+        id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[step_rule],
@@ -1316,13 +1342,13 @@ async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock
         )
         mock_node_exec.return_value = []
         record = await executor.execute_workflow(
-            execution_id="exe_1231231231231231",
+            execution_id="exe_0195f3a0000070018231231231231231",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={}, language="fi"),
         )
 
     # Step label must be human-readable resolved Finnish name, NOT 'sr_f0a26d17cc9b48a7'
-    assert record.step_states["sr_f0a26d17cc9b48a7"].label == "Johtoryhmän analyysi"
+    assert record.step_states["sr_0195f3a00000700f80a26d17cc9b48a7"].label == "Johtoryhmän analyysi"
 
 
 @pytest.mark.asyncio
@@ -1346,9 +1372,9 @@ async def test_dag_executor_intermediate_progress_callback_lock_failure_does_not
     )
 
     mock_repo.seed_raw_step(
-        "bp_1111222233334444",
+        "bp_0195f3a0000070018111222233334444",
         {
-            "id": "bp_1111222233334444",
+            "id": "bp_0195f3a0000070018111222233334444",
             "type": "logic",
             "slug": "progress_step",
             "name": {"translations": {"en": "Progress Step"}},
@@ -1359,16 +1385,16 @@ async def test_dag_executor_intermediate_progress_callback_lock_failure_does_not
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_progress_test",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Progress Test", "fi": "Progress Test"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
-            StepRule(id="sr_1111222233334444", task_blueprint="bp_1111222233334444"),
+            StepRule(id="sr_0195f3a0000070018111222233334444", task_blueprint="bp_0195f3a0000070018111222233334444"),
         ],
     )
 
@@ -1391,11 +1417,11 @@ async def test_dag_executor_intermediate_progress_callback_lock_failure_does_not
         mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         with patch.object(executor.node_executor, "execute", side_effect=mock_execute):
             result = await executor.execute_workflow(
-                execution_id="exe_1111222233334444",
+                execution_id="exe_0195f3a0000070018111222233334444",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
             )
-            assert result.step_states["sr_1111222233334444"].status == ExecutionStatus.PASSED
+            assert result.step_states["sr_0195f3a0000070018111222233334444"].status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -1436,23 +1462,23 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wf_2222333344445555",
+        id="wf_0195f3a0000070028222333344445555",
         slug="wf_preflight_test",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Preflight Test", "fi": "Preflight Test"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         steps=[
-            StepRule(id="sr_2222333344445555", task_blueprint="bp_2222333344445555"),
+            StepRule(id="sr_0195f3a0000070028222333344445555", task_blueprint="bp_0195f3a0000070028222333344445555"),
         ],
     )
 
     mock_repo.seed_raw_step(
-        "bp_2222333344445555",
+        "bp_0195f3a0000070028222333344445555",
         {
-            "id": "bp_2222333344445555",
+            "id": "bp_0195f3a0000070028222333344445555",
             "type": "logic",
             "pre_hooks": ["synthesis_distiller_hook"],
             "slug": "synth_step",
@@ -1471,11 +1497,11 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
         mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         with patch.object(executor.node_executor, "execute", side_effect=mock_execute):
             result = await executor.execute_workflow(
-                execution_id="exe_2222333344445555",
+                execution_id="exe_0195f3a0000070028222333344445555",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
             )
-            assert result.step_states["sr_2222333344445555"].status == ExecutionStatus.PASSED
+            assert result.step_states["sr_0195f3a0000070028222333344445555"].status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -1496,22 +1522,22 @@ async def test_dag_executor_step_blueprint_not_found_fails_fast(mock_repo: Any, 
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_missing_bp",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Missing BP"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[
-            StepRule(id="stp_1111222233334444", task_blueprint="bp_1111222233334444"),
+            StepRule(id="stp_0195f3a0000070018111222233334444", task_blueprint="bp_0195f3a0000070018111222233334444"),
         ],
     )
 
     with pytest.raises((AppException, ExceptionGroup)) as exc_info:
         await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
@@ -1530,24 +1556,26 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
     from backend_v2.models.state import TraceEvent
     from backend_v2.services.execution import create_execution_record
 
-    step_rule = StepRule(id="stp_2222333344445555", task_blueprint="bp_2222333344445555")
+    step_rule = StepRule(
+        id="stp_0195f3a0000070028222333344445555", task_blueprint="bp_0195f3a0000070028222333344445555"
+    )
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wf_2222333344445555",
+        id="wf_0195f3a0000070028222333344445555",
         slug="wf_resume_meta",
         status="draft",
         version=3,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_99",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa34599",
         name=I18nText(translations={"en": "Resume Meta"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step_rule],
     )
 
     mock_repo.seed_raw_step(
-        "bp_2222333344445555",
+        "bp_0195f3a0000070028222333344445555",
         {
-            "id": "bp_2222333344445555",
+            "id": "bp_0195f3a0000070028222333344445555",
             "type": "logic",
             "slug": "logic_step",
             "name": {"translations": {"en": "Logic Step"}},
@@ -1557,16 +1585,18 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
     )
 
     existing_record = create_execution_record(
-        execution_id="exe_2222333344445555",
+        execution_id="exe_0195f3a0000070028222333344445555",
         workflow_id=workflow.id,
         raw_inputs=WorkflowInputs(dynamic_inputs={}),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
-        steps=[ExecutionStep(id="stp_2222333344445555", label="Old Label", status=ExecutionStatus.PENDING)],
+        steps=[
+            ExecutionStep(id="stp_0195f3a0000070028222333344445555", label="Old Label", status=ExecutionStatus.PENDING)
+        ],
         step_states={
-            "stp_2222333344445555": ExecutionStep(
-                id="stp_2222333344445555", label="Old Label", status=ExecutionStatus.PENDING
+            "stp_0195f3a0000070028222333344445555": ExecutionStep(
+                id="stp_0195f3a0000070028222333344445555", label="Old Label", status=ExecutionStatus.PENDING
             )
         },
     ).model_copy(update={"metadata": None})
@@ -1586,7 +1616,7 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
     )
 
     async def mock_node_execute(*args: Any, **kwargs: Any) -> list[Any]:
-        return [TraceEvent(step_name="stp_2222333344445555", event_type="output", content={"ok": True})]
+        return [TraceEvent(step_name="stp_0195f3a0000070028222333344445555", event_type="output", content={"ok": True})]
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -1594,15 +1624,15 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
     ):
         mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         record = await executor.execute_workflow(
-            execution_id="exe_2222333344445555",
+            execution_id="exe_0195f3a0000070028222333344445555",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
 
     assert record.metadata is not None
-    assert record.metadata.model_registry_id == "cfg_model_registry_99"
+    assert record.metadata.model_registry_id == "sys_0195f3a00000700e826807f3bfa34599"
     assert record.metadata.workflow_version == 3
-    assert record.step_states["stp_2222333344445555"].status == ExecutionStatus.PASSED
+    assert record.step_states["stp_0195f3a0000070028222333344445555"].status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -1613,66 +1643,70 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
     from backend_v2.models.state import TraceEvent
     from backend_v2.services.execution import create_execution_record
 
-    step1 = StepRule(id="stp_3333444455556666", task_blueprint="bp_3333444455556666", depends_on=[])
+    step1 = StepRule(
+        id="stp_0195f3a0000070038333444455556666", task_blueprint="bp_0195f3a0000070038333444455556666", depends_on=[]
+    )
     step2 = StepRule(
-        id="stp_4444555566667777", task_blueprint="bp_4444555566667777", depends_on=["stp_3333444455556666"]
+        id="stp_0195f3a0000070048444555566667777",
+        task_blueprint="bp_0195f3a0000070048444555566667777",
+        depends_on=["stp_0195f3a0000070038333444455556666"],
     )
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wf_3333444455556666",
+        id="wf_0195f3a0000070038333444455556666",
         slug="wf_resume_skips",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Resume Skips"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1, step2],
     )
 
     mock_repo.seed_raw_step(
-        "bp_3333444455556666",
+        "bp_0195f3a0000070038333444455556666",
         {
-            "id": "bp_3333444455556666",
+            "id": "bp_0195f3a0000070038333444455556666",
             "type": "logic",
-            "slug": "bp_3333444455556666",
-            "name": {"translations": {"en": "bp_3333444455556666"}},
-            "description": {"translations": {"en": "bp_3333444455556666"}},
+            "slug": "bp_0195f3a0000070038333444455556666",
+            "name": {"translations": {"en": "bp_0195f3a0000070038333444455556666"}},
+            "description": {"translations": {"en": "bp_0195f3a0000070038333444455556666"}},
             "hook": "mock_hook",
         },
     )
     mock_repo.seed_raw_step(
-        "bp_4444555566667777",
+        "bp_0195f3a0000070048444555566667777",
         {
-            "id": "bp_4444555566667777",
+            "id": "bp_0195f3a0000070048444555566667777",
             "type": "logic",
-            "slug": "bp_4444555566667777",
-            "name": {"translations": {"en": "bp_4444555566667777"}},
-            "description": {"translations": {"en": "bp_4444555566667777"}},
+            "slug": "bp_0195f3a0000070048444555566667777",
+            "name": {"translations": {"en": "bp_0195f3a0000070048444555566667777"}},
+            "description": {"translations": {"en": "bp_0195f3a0000070048444555566667777"}},
             "hook": "mock_hook",
         },
     )
 
     existing_record = create_execution_record(
-        execution_id="exe_3333444455556666",
+        execution_id="exe_0195f3a0000070038333444455556666",
         workflow_id=workflow.id,
         raw_inputs=WorkflowInputs(dynamic_inputs={}),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
         status=ExecutionStatus.FAILED,
         steps=[
-            ExecutionStep(id="stp_3333444455556666", label="Step 1", status=ExecutionStatus.PASSED),
-            ExecutionStep(id="stp_4444555566667777", label="Step 2", status=ExecutionStatus.FAILED),
+            ExecutionStep(id="stp_0195f3a0000070038333444455556666", label="Step 1", status=ExecutionStatus.PASSED),
+            ExecutionStep(id="stp_0195f3a0000070048444555566667777", label="Step 2", status=ExecutionStatus.FAILED),
         ],
         step_states={
-            "stp_3333444455556666": ExecutionStep(
-                id="stp_3333444455556666", label="Step 1", status=ExecutionStatus.PASSED
+            "stp_0195f3a0000070038333444455556666": ExecutionStep(
+                id="stp_0195f3a0000070038333444455556666", label="Step 1", status=ExecutionStatus.PASSED
             ),
-            "stp_4444555566667777": ExecutionStep(
-                id="stp_4444555566667777", label="Step 2", status=ExecutionStatus.FAILED
+            "stp_0195f3a0000070048444555566667777": ExecutionStep(
+                id="stp_0195f3a0000070048444555566667777", label="Step 2", status=ExecutionStatus.FAILED
             ),
         },
-        metadata=ExecutionMetadata(workflow_version=1, model_registry_id="cfg_model_registry_01"),
+        metadata=ExecutionMetadata(workflow_version=1, model_registry_id="sys_0195f3a00000700e826807f3bfa3454d"),
     )
     await mock_repo.save_execution(existing_record)
 
@@ -1701,16 +1735,16 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
     ):
         mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         record = await executor.execute_workflow(
-            execution_id="exe_3333444455556666",
+            execution_id="exe_0195f3a0000070038333444455556666",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
 
     # Step 1 was PASSED, so it should NOT be executed again. Step 2 should be executed.
-    assert "stp_3333444455556666" not in executed_step_ids
-    assert "stp_4444555566667777" in executed_step_ids
-    assert record.step_states["stp_3333444455556666"].status == ExecutionStatus.PASSED
-    assert record.step_states["stp_4444555566667777"].status == ExecutionStatus.PASSED
+    assert "stp_0195f3a0000070038333444455556666" not in executed_step_ids
+    assert "stp_0195f3a0000070048444555566667777" in executed_step_ids
+    assert record.step_states["stp_0195f3a0000070038333444455556666"].status == ExecutionStatus.PASSED
+    assert record.step_states["stp_0195f3a0000070048444555566667777"].status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -1718,24 +1752,24 @@ async def test_dag_executor_synchronous_running_dispatch_transitions_step(mock_r
     """Verify step transitions to RUNNING on dispatch with one commit, and QUEUED is never emitted."""
     from backend_v2.models.state import TraceEvent
 
-    step1 = StepRule(id="stp_5555666677778888", task_blueprint="bp_5555666677778888")
+    step1 = StepRule(id="stp_0195f3a0000070058555666677778888", task_blueprint="bp_0195f3a0000070058555666677778888")
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wf_5555666677778888",
+        id="wf_0195f3a0000070058555666677778888",
         slug="wf_watch_run",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Watch Run"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
     )
 
     mock_repo.seed_raw_step(
-        "bp_5555666677778888",
+        "bp_0195f3a0000070058555666677778888",
         {
-            "id": "bp_5555666677778888",
+            "id": "bp_0195f3a0000070058555666677778888",
             "type": "logic",
             "slug": "bp_watch_run",
             "name": {"translations": {"en": "Watch Run Step"}},
@@ -1760,9 +1794,15 @@ async def test_dag_executor_synchronous_running_dispatch_transitions_step(mock_r
     dispatch_step_status: list[ExecutionStatus] = []
     committed_step_statuses: list[ExecutionStatus] = []
 
-    async def mock_commit_trace(**kwargs: Any) -> None:
-        if "step_states" in kwargs and "stp_5555666677778888" in kwargs["step_states"]:
-            committed_step_statuses.append(kwargs["step_states"]["stp_5555666677778888"].status)
+    async def mock_commit_trace(*args: Any, **kwargs: Any) -> None:
+        if ("step_states" in kwargs and "stp_0195f3a0000070058555666677778888" in kwargs["step_states"]) or (
+            len(args) > 2 and "stp_0195f3a0000070058555666677778888" in args[2]
+        ):
+            committed_step_statuses.append(
+                (kwargs["step_states"] if "step_states" in kwargs else args[2])[
+                    "stp_0195f3a0000070058555666677778888"
+                ].status
+            )
 
     async def mock_node_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
         if len(committed_step_statuses) > 0:
@@ -1776,7 +1816,7 @@ async def test_dag_executor_synchronous_running_dispatch_transitions_step(mock_r
     ):
         mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         record = await executor.execute_workflow(
-            execution_id="exe_5555666677778888",
+            execution_id="exe_0195f3a0000070058555666677778888",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
@@ -1791,7 +1831,7 @@ async def test_dag_executor_synchronous_running_dispatch_transitions_step(mock_r
         ExecutionStatus.PASSED,
         ExecutionStatus.PASSED,
     ]
-    assert record.step_states["stp_5555666677778888"].status == ExecutionStatus.PASSED
+    assert record.step_states["stp_0195f3a0000070058555666677778888"].status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -1801,24 +1841,24 @@ async def test_dag_executor_step_generated_schemas_merged_into_frozen_context(
     """Verify TraceEvent with generated_schema is merged into frozen_context.generated_schemas."""
     from backend_v2.models.state import TraceEvent
 
-    step1 = StepRule(id="stp_6666777788889999", task_blueprint="bp_6666777788889999")
+    step1 = StepRule(id="stp_0195f3a0000070068666777788889999", task_blueprint="bp_0195f3a0000070068666777788889999")
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wf_6666777788889999",
+        id="wf_0195f3a0000070068666777788889999",
         slug="wf_schema_merge",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Schema Merge"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step1],
     )
 
     mock_repo.seed_raw_step(
-        "bp_6666777788889999",
+        "bp_0195f3a0000070068666777788889999",
         {
-            "id": "bp_6666777788889999",
+            "id": "bp_0195f3a0000070068666777788889999",
             "type": "logic",
             "slug": "bp_schema_merge",
             "name": {"translations": {"en": "Schema Merge Step"}},
@@ -1842,7 +1882,7 @@ async def test_dag_executor_step_generated_schemas_merged_into_frozen_context(
 
     test_schema = {"type": "object", "properties": {"extracted": {"type": "string"}}}
     schema_event = TraceEvent(
-        step_name="stp_6666777788889999",
+        step_name="stp_0195f3a0000070068666777788889999",
         event_type="decision",
         content={},
         metadata={"generated_schema": test_schema},
@@ -1855,13 +1895,13 @@ async def test_dag_executor_step_generated_schemas_merged_into_frozen_context(
         mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         mock_node_exec.return_value = [schema_event]
         record = await executor.execute_workflow(
-            execution_id="exe_6666777788889999",
+            execution_id="exe_0195f3a0000070068666777788889999",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
 
-    assert "stp_6666777788889999" in record.frozen_context.generated_schemas
-    assert record.frozen_context.generated_schemas["stp_6666777788889999"] == test_schema
+    assert "stp_0195f3a0000070068666777788889999" in record.frozen_context.generated_schemas
+    assert record.frozen_context.generated_schemas["stp_0195f3a0000070068666777788889999"] == test_schema
 
 
 @pytest.mark.asyncio
@@ -1887,9 +1927,13 @@ async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(mock
     )
     node_executor = NodeExecutor(deps=deps)
 
-    step_rule = StepRule(id="stp_7777888899990000", task_blueprint="bp_7777888899990000", input_mappings={})
+    step_rule = StepRule(
+        id="stp_0195f3a0000070078777888899990000",
+        task_blueprint="bp_0195f3a0000070078777888899990000",
+        input_mappings={},
+    )
     step_def = Step.model_construct(
-        id="bp_7777888899990000",
+        id="bp_0195f3a0000070078777888899990000",
         slug="logic_step",
         type=StepType.LOGIC,
         criteria_block_ids=[],
@@ -1921,8 +1965,8 @@ async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(mock
 
         await node_executor.execute(
             step=step_rule,
-            execution_id="exe_7777888899990000",
-            workflow_id="wf_7777888899990000",
+            execution_id="exe_0195f3a0000070078777888899990000",
+            workflow_id="wf_0195f3a0000070078777888899990000",
             metadata=meta,
             projector=StateProjector(),
             step_def=step_def,
@@ -1957,30 +2001,40 @@ async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(mock_re
     from backend_v2.models.domain.workflow import Workflow
     from backend_v2.services.execution import create_execution_record
 
-    step1 = StepRule(id="stp_1111111111111111", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[])
-    step2 = StepRule(id="stp_2222222222222222", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[])
-    step3 = StepRule(
-        id="stp_3333333333333333",
-        task_blueprint="blp_1234567890abcdef",
+    step1 = StepRule(
+        id="stp_0195f3a0000070018111111111111111",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
         input_mappings={},
-        depends_on=["stp_1111111111111111"],
+        depends_on=[],
+    )
+    step2 = StepRule(
+        id="stp_0195f3a0000070028222222222222222",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
+        input_mappings={},
+        depends_on=[],
+    )
+    step3 = StepRule(
+        id="stp_0195f3a0000070038333333333333333",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
+        input_mappings={},
+        depends_on=["stp_0195f3a0000070018111111111111111"],
     )
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        id="wf_9999888877776666",
+        id="wf_0195f3a0000070098999888877776666",
         slug="wf_wave_crash_test",
         status="active",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Wave Crash Test", "fi": "Aaltotesti"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
         steps=[step1, step2, step3],
     )
 
     initial_record = create_execution_record(
-        execution_id="exe_1234567890123456",
+        execution_id="exe_0195f3a0000070018234567890123456",
         workflow_id=workflow.id,
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "test"}),
         frozen_context=FrozenContext(),
@@ -2002,7 +2056,7 @@ async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(mock_re
 
     async def mock_node_execute(*args: Any, **kwargs: Any) -> list[Any]:
         current_step = kwargs["step"]
-        if current_step.id == "stp_1111111111111111":
+        if current_step.id == "stp_0195f3a0000070018111111111111111":
             raise RuntimeError("Fatal Wave 0 step 1 crash")
         # Step 2 sleeps so it gets cancelled by TaskGroup when step 1 raises
         await asyncio.sleep(1.0)
@@ -2021,7 +2075,7 @@ async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(mock_re
 
         with pytest.raises(AppException) as exc_info:
             await executor.execute_workflow(
-                execution_id="exe_1234567890123456",
+                execution_id="exe_0195f3a0000070018234567890123456",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "test"}),
             )
@@ -2029,14 +2083,14 @@ async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(mock_re
         assert exc_info.value.status_code == 500
         assert "Fatal Wave 0 step 1 crash" in exc_info.value.message
 
-    persisted = await mock_repo.get_execution("exe_1234567890123456")
+    persisted = await mock_repo.get_execution("exe_0195f3a0000070018234567890123456")
     assert persisted is not None
     assert persisted.status == ExecutionStatus.FAILED
 
     # Check step states
-    assert persisted.step_states["stp_1111111111111111"].status == ExecutionStatus.FAILED
-    assert persisted.step_states["stp_2222222222222222"].status == ExecutionStatus.FAILED
-    assert persisted.step_states["stp_3333333333333333"].status == ExecutionStatus.BLOCKED
+    assert persisted.step_states["stp_0195f3a0000070018111111111111111"].status == ExecutionStatus.FAILED
+    assert persisted.step_states["stp_0195f3a0000070028222222222222222"].status == ExecutionStatus.FAILED
+    assert persisted.step_states["stp_0195f3a0000070038333333333333333"].status == ExecutionStatus.BLOCKED
 
     # Zero steps remain in PENDING or RUNNING
     for s_id, s_state in persisted.step_states.items():
@@ -2046,9 +2100,9 @@ async def test_dag_executor_wave_cancellation_dlq_and_downstream_blocked(mock_re
 
     # Verify DLQ calls recorded all 3 steps
     dlq_step_ids = {r[0] for r in dlq_records}
-    assert "stp_1111111111111111" in dlq_step_ids
-    assert "stp_2222222222222222" in dlq_step_ids
-    assert "stp_3333333333333333" in dlq_step_ids
+    assert "stp_0195f3a0000070018111111111111111" in dlq_step_ids
+    assert "stp_0195f3a0000070028222222222222222" in dlq_step_ids
+    assert "stp_0195f3a0000070038333333333333333" in dlq_step_ids
 
 
 @pytest.mark.asyncio
@@ -2070,8 +2124,8 @@ async def test_node_executor_handles_unexpected_exception_and_context_vars(mock_
     )
     executor = NodeExecutor(deps=deps)
     step = StepRule(
-        id="stp_1111222233334444",
-        task_blueprint="blp_1234567890abcdef",
+        id="stp_0195f3a0000070018111222233334444",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
         expected_sdui_type="markdown",
     )
     projector = MagicMock()
@@ -2085,8 +2139,8 @@ async def test_node_executor_handles_unexpected_exception_and_context_vars(mock_
         pytest.raises(Exception) as exc_info,
     ):
         await executor.execute(
-            execution_id="exe_1111222233334444",
-            workflow_id="wor_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
+            workflow_id="wor_0195f3a0000070018111222233334444",
             step=step,
             metadata=ExecutionMetadata(),
             projector=projector,

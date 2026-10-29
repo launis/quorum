@@ -146,7 +146,7 @@ async def test_start_execution(
     subs["ingress"].start_execution = AsyncMock(return_value=expected)
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         raw_inputs=WorkflowInputsIngress(dynamic_inputs={"key": "val"}),
         matrix_sampling_strategy=10,
@@ -274,16 +274,16 @@ async def test_facade_negative_missing_resources_raise_app_exception(initiator: 
     service = ExecutionService(exec_repo=repo, workflow_repo=repo)
 
     with pytest.raises(ResourceNotFoundError) as exc_get:
-        await service.get_execution(initiator, "exe_0000000000000000")
+        await service.get_execution(initiator, "exe_0195f3a0000070008000000000000000")
     assert exc_get.value.status_code == 404
     assert exc_get.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
     with pytest.raises(ResourceNotFoundError) as exc_del:
-        await service.delete_execution(initiator, "exe_0000000000000000")
+        await service.delete_execution(initiator, "exe_0195f3a0000070008000000000000000")
     assert exc_del.value.status_code == 404
 
     with pytest.raises(ResourceNotFoundError) as exc_schema:
-        await service.get_workflow_ui_schema("wor_0000000000000000")
+        await service.get_workflow_ui_schema("wor_0195f3a0000070008000000000000000")
     assert exc_schema.value.status_code == 404
 
 
@@ -294,8 +294,8 @@ async def test_facade_negative_permission_denied_and_unresumable_state() -> None
     service = ExecutionService(exec_repo=repo, workflow_repo=repo)
 
     record = create_execution_record(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
@@ -307,13 +307,13 @@ async def test_facade_negative_permission_denied_and_unresumable_state() -> None
 
     outsider = TokenData(id="usr_outsider0000000", role=UserRole.MEMBER, organization_id="org_outsider0000000")
     with pytest.raises(PermissionDeniedError) as exc_perm:
-        await service.get_execution(outsider, "exe_0123456789abcdef")
+        await service.get_execution(outsider, "exe_0195f3a0000070008123456789abcdef")
     assert exc_perm.value.status_code == 403
     assert exc_perm.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value
 
     owner = TokenData(id="usr_owner0000000000", role=UserRole.MEMBER, organization_id="org_owner0000000000")
     with pytest.raises(AppException) as exc_resume:
-        await service.resume_execution(owner, "exe_0123456789abcdef", AsyncMock())
+        await service.resume_execution(owner, "exe_0195f3a0000070008123456789abcdef", AsyncMock())
     assert exc_resume.value.status_code == 400
     assert exc_resume.value.details["error_code"] == ErrorCodes.UNRESUMABLE_STATE_ERROR.value
 
@@ -321,7 +321,9 @@ async def test_facade_negative_permission_denied_and_unresumable_state() -> None
         new_status=ExecutionStatus.PASSED, reason="Missing target atom test", evidence_quotes=[]
     )
     with pytest.raises(AppException) as exc_override:
-        await service.override_atom(owner, "exe_0123456789abcdef", "atm_missing00000000", override_payload)
+        await service.override_atom(
+            owner, "exe_0195f3a0000070008123456789abcdef", "atm_missing00000000", override_payload
+        )
     assert exc_override.value.status_code == 404
     assert exc_override.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
@@ -331,7 +333,7 @@ def test_create_execution_record_negative_invalid_id_raises_app_exception() -> N
     with pytest.raises(AppException) as exc_info:
         create_execution_record(
             execution_id="invalid id with spaces",
-            workflow_id="wor_0123456789abcdef",
+            workflow_id="wor_0195f3a0000070008123456789abcdef",
             raw_inputs=WorkflowInputs(),
             frozen_context=FrozenContext(),
             source_identity_manifest={},

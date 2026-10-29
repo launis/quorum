@@ -38,7 +38,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
                 "organization_id": "root",
                 "matrix_synthesis_groups": [
                     {
-                        "id": "grp_1234567890123456",
+                        "id": "grp_0195f3a0000070018234567890123456",
                         "title": {"translations": {"en": "Test"}},
                         "target_blocks": ["*"],
                     }
@@ -56,7 +56,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
             "version": 1,
             "default_profile_id": "prof_0123456789abcdef0123456789abcdef",
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
+            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
             "steps": [],
         }
     )
@@ -67,14 +67,14 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
             "name": {"translations": {"en": "Matrix"}},
             "description": {"translations": {"en": "Matrix"}},
             "role_block_id": None,
-            "extraction_protocol_block_id": "blk_3333333333333333",
-            "criteria_block_ids": ["blk_5555555555555555"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070038333333333333333",
+            "criteria_block_ids": ["blk_0195f3a0000070058555555555555555"],
         }
     )
     repo.set_prompt_blocks(
         [
             {
-                "id": "blk_5555555555555555",
+                "id": "blk_0195f3a0000070058555555555555555",
                 "slug": "eval_matrix",
                 "category_id": "matrix",
                 "type": "float",
@@ -90,7 +90,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
                 ],
             },
             {
-                "id": "blk_3333333333333333",
+                "id": "blk_0195f3a0000070038333333333333333",
                 "slug": "zero_trust",
                 "category_id": "protocol",
                 "type": "instruction",
@@ -170,7 +170,7 @@ async def test_matrix_step_resolves_shuffled_atoms_from_global_context_vars(
     """
     sample_atoms = [
         FlattenedAtom(
-            atom_id="atm_1111111111111111",
+            atom_id="atm_0195f3a0000070018111111111111111",
             question="Question 1",
             depends_on=(),
             acceptance_criteria=(),
@@ -178,7 +178,7 @@ async def test_matrix_step_resolves_shuffled_atoms_from_global_context_vars(
             syntactic_anchors=(),
         ),
         FlattenedAtom(
-            atom_id="atm_2222222222222222",
+            atom_id="atm_0195f3a0000070028222222222222222",
             question="Question 2",
             depends_on=(),
             acceptance_criteria=(),
@@ -248,7 +248,7 @@ async def test_matrix_step_resolves_shuffled_atoms_from_global_context_vars(
     req_kwargs = mock_req.call_args.kwargs
     assert req_kwargs["shuffled_atoms"] is not None
     assert len(req_kwargs["shuffled_atoms"]) == 2
-    assert req_kwargs["shuffled_atoms"][0].atom_id == "atm_1111111111111111"
+    assert req_kwargs["shuffled_atoms"][0].atom_id == "atm_0195f3a0000070018111111111111111"
 
 
 @pytest.mark.asyncio

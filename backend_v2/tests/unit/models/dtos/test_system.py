@@ -68,7 +68,7 @@ def test_system_config_dtos_and_discriminated_union() -> None:
         max_tokens=2048,
     )
     model_reg = SystemConfigModelRegistry(
-        id="sys_1234567890abcdef",
+        id="sys_0195f3a0000070018234567890abcdef",
         name="Test Registry",
         type="model_registry",
         tier_definitions={
@@ -100,8 +100,8 @@ def test_system_config_dtos_and_discriminated_union() -> None:
 
     # 5. SystemConfigUpsertDTO
     upsert_dto = SystemConfigUpsertDTO(
-        id="sys_1234567890abcdef",
+        id="sys_0195f3a0000070018234567890abcdef",
         type="system_settings",
         content=settings_dto,
     )
-    assert upsert_dto.id == "sys_1234567890abcdef"
+    assert upsert_dto.id == "sys_0195f3a0000070018234567890abcdef"

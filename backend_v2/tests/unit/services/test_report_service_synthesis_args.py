@@ -31,10 +31,10 @@ async def test_process_artifact_compilation_calls_synthesis_with_correct_argumen
     """Verify synthesis worker is invoked with correct parameter bindings (no argument swap)."""
     repo = InMemoryUnifiedWorkflowRepository()
     report = ReportArtifact(
-        id="rep_1234567890abcdef",
-        execution_id="exe_1234567890abcdef",
-        workflow_id="wor_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        id="rep_0195f3a0000070018234567890abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         locale="fi",
         title="Test Report",
         status=ReportStatus.PENDING,
@@ -124,9 +124,9 @@ async def test_synthesis_task_rejects_empty_language(invalid_lang: str | None) -
     """Verify synthesis worker rejects empty or whitespace-only accept_language."""
     with pytest.raises(AppException) as exc_info:
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exe_1234567890abcdef",
+            execution_id="exe_0195f3a0000070018234567890abcdef",
             accept_language=invalid_lang,
-            profile_id="prf_01b1d71000000002",
+            profile_id="prf_0195f3a00000700081b1d71000000002",
         )
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -138,8 +138,8 @@ async def test_synthesis_task_rejects_locale_as_profile_id(monkeypatch: pytest.M
     """Verify synthesis worker validates real output_profile entity relation and raises ResourceNotFoundError."""
     repo = InMemoryUnifiedWorkflowRepository()
     record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wor_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         status=ExecutionStatus.PASSED,
         execution_trace=[],
         steps=[],
@@ -156,7 +156,7 @@ async def test_synthesis_task_rejects_locale_as_profile_id(monkeypatch: pytest.M
 
     with pytest.raises(ResourceNotFoundError) as exc_info:
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exe_1234567890abcdef",
+            execution_id="exe_0195f3a0000070018234567890abcdef",
             accept_language="fi",
             profile_id="fi",
         )

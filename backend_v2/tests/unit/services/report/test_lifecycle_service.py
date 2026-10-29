@@ -35,7 +35,7 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 
 def _create_dummy_execution(
-    execution_id: str = "exe_1234567890abcdef",
+    execution_id: str = "exe_0195f3a0000070018234567890abcdef",
     status: ExecutionStatus = ExecutionStatus.PASSED,
 ) -> ExecutionRecord:
     reasoning = ReasoningStepDTO(
@@ -45,7 +45,7 @@ def _create_dummy_execution(
         step_4_final_conclusion="Logic evaluated successfully.",
     )
     atom = ScorecardAtomDTO(
-        atom_id="atm_0123456789abcdef",
+        atom_id="atm_0195f3a0000070008123456789abcdef",
         level=3,
         level_name="Operational",
         claim_label="Strategic Claim",
@@ -63,41 +63,43 @@ def _create_dummy_execution(
         id="stp_1",
         label="Step 1",
         status=ExecutionStatus.PASSED,
-        scorecard_atoms={"atm_0123456789abcdef": atom},
+        scorecard_atoms={"atm_0195f3a0000070008123456789abcdef": atom},
     )
     return ExecutionRecord(
         id=execution_id,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=status,
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
         step_states={"stp_1": step},
-        profile_syntheses={"prf_1234567890abcdef": RenderedSynthesisCache(variance_explanation="Executive summary")},
+        profile_syntheses={
+            "prf_0195f3a0000070018234567890abcdef": RenderedSynthesisCache(variance_explanation="Executive summary")
+        },
     )
 
 
-def _create_dummy_profile(profile_id: str = "prf_1234567890abcdef") -> OutputProfile:
+def _create_dummy_profile(profile_id: str = "prf_0195f3a0000070018234567890abcdef") -> OutputProfile:
     return OutputProfile(
         id=profile_id,
         slug="executive_report",
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         name=I18nText(translations={"fi": "Johdon raportti", "en": "Executive Report"}),
         target_block_order=[],
     )
 
 
 def _create_dummy_report(
-    report_id: str = "rep_1234567890abcdef",
+    report_id: str = "rep_0195f3a0000070018234567890abcdef",
     status: ReportStatus = ReportStatus.PENDING,
 ) -> ReportArtifact:
     now = datetime.now(UTC)
     return ReportArtifact(
         id=report_id,
-        execution_id="exe_1234567890abcdef",
-        workflow_id="wor_0123456789abcdef",
-        profile_id="prf_1234567890abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         locale="fi",
         title="Johdon raportti",
         status=status,
@@ -115,8 +117,8 @@ def _create_dummy_report(
 
 def _create_dummy_report_data_dto() -> ReportDataDTO:
     atom_result = AtomResultDTO(
-        tda_id="tda_0123456789abcdef",
-        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008123456789abcdef",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PASSED,
         source_quotes=("Forensic quote",),
         evaluation_reasoning="Sound reasoning.",
@@ -129,14 +131,14 @@ def _create_dummy_report_data_dto() -> ReportDataDTO:
         resolved_claim="Strategic Claim",
     )
     return ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         global_score=4.0,
         has_warning=False,
         inner_sdui_blocks=[],
         results=[atom_result],
-        hydrated_references={"tda_0123456789abcdef": hydrated_ref},
+        hydrated_references={"tda_0195f3a0000070008123456789abcdef": hydrated_ref},
     )
 
 
@@ -144,13 +146,13 @@ def _create_dummy_report_data_dto() -> ReportDataDTO:
 async def test_get_report_success() -> None:
     """Verify get_report returns existing ReportArtifact matching repository state."""
     repo = InMemoryUnifiedWorkflowRepository()
-    expected_report = _create_dummy_report(report_id="rep_1234567890abcdef")
+    expected_report = _create_dummy_report(report_id="rep_0195f3a0000070018234567890abcdef")
     await repo.create_report_artifact(expected_report)
 
     service = ReportLifecycleService(repo=repo, storage_driver=AsyncMock())
-    result = await service.get_report("rep_1234567890abcdef")
+    result = await service.get_report("rep_0195f3a0000070018234567890abcdef")
 
-    assert result.id == "rep_1234567890abcdef"
+    assert result.id == "rep_0195f3a0000070018234567890abcdef"
     assert result.execution_id == expected_report.execution_id
     assert result.profile_id == expected_report.profile_id
 
@@ -162,7 +164,7 @@ async def test_get_report_not_found() -> None:
     service = ReportLifecycleService(repo=repo, storage_driver=AsyncMock())
 
     with pytest.raises(ResourceNotFoundError) as exc_info:
-        await service.get_report("rep_0000000000000000")
+        await service.get_report("rep_0195f3a0000070008000000000000000")
 
     assert exc_info.value.details is not None
     assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
@@ -177,14 +179,14 @@ async def test_create_report_artifact_persists_model() -> None:
 
     service = ReportLifecycleService(repo=repo, storage_driver=AsyncMock())
     payload = ReportArtifactCreateDTO(
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         locale="fi",
     )
 
     result = await service.create_report_artifact(payload)
     assert result.id.startswith("rep_")
-    assert result.execution_id == "exe_1234567890abcdef"
+    assert result.execution_id == "exe_0195f3a0000070018234567890abcdef"
     assert result.status == ReportStatus.PENDING
     assert result.title == "Johdon raportti"
 
@@ -202,14 +204,14 @@ async def test_create_report_artifact_entry_success() -> None:
 
     service = ReportLifecycleService(repo=repo, storage_driver=AsyncMock())
     payload = ReportArtifactCreateDTO(
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         locale="fi",
     )
 
     result = await service.create_report_artifact(payload)
     assert result.id.startswith("rep_")
-    assert result.execution_id == "exe_1234567890abcdef"
+    assert result.execution_id == "exe_0195f3a0000070018234567890abcdef"
     assert result.status == ReportStatus.PENDING
     assert result.title == "Johdon raportti"
 
@@ -236,7 +238,7 @@ async def test_create_report_artifact_entry_execution_not_passed() -> None:
     await repo.save_execution(_create_dummy_execution(status=ExecutionStatus.RUNNING))
     service = ReportLifecycleService(repo=repo, storage_driver=AsyncMock())
 
-    payload = ReportArtifactCreateDTO(execution_id="exe_1234567890abcdef", profile_id="prf_1")
+    payload = ReportArtifactCreateDTO(execution_id="exe_0195f3a0000070018234567890abcdef", profile_id="prf_1")
     with pytest.raises(AppException) as exc_info:
         await service.create_report_artifact(payload)
     assert exc_info.value.status_code == 409
@@ -249,7 +251,7 @@ async def test_create_report_artifact_entry_profile_not_found() -> None:
     await repo.save_execution(_create_dummy_execution())
     service = ReportLifecycleService(repo=repo, storage_driver=AsyncMock())
 
-    payload = ReportArtifactCreateDTO(execution_id="exe_1234567890abcdef", profile_id="prf_missing")
+    payload = ReportArtifactCreateDTO(execution_id="exe_0195f3a0000070018234567890abcdef", profile_id="prf_missing")
     with pytest.raises(ResourceNotFoundError):
         await service.create_report_artifact(payload)
 
@@ -264,8 +266,8 @@ async def test_create_report_artifact_workflow_id_mismatch() -> None:
 
     service = ReportLifecycleService(repo=repo, storage_driver=AsyncMock())
     payload = ReportArtifactCreateDTO(
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         locale="fi",
     )
 
@@ -289,7 +291,7 @@ async def test_get_or_create_default_artifact_returns_existing() -> None:
     service = ReportLifecycleService(repo=repo, storage_driver=AsyncMock())
     result = await service.get_or_create_default_artifact(
         execution_id=execution.id,
-        profile_id="prf_1234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         locale="fi",
     )
 
@@ -300,7 +302,9 @@ async def test_get_or_create_default_artifact_returns_existing() -> None:
 async def test_get_or_create_default_artifact_creates_when_none() -> None:
     """Verify get_or_create_default_artifact creates a new report artifact using execution default profile."""
     repo = InMemoryUnifiedWorkflowRepository()
-    execution = _create_dummy_execution().model_copy(update={"output_profile_id": "prf_1234567890abcdef"})
+    execution = _create_dummy_execution().model_copy(
+        update={"output_profile_id": "prf_0195f3a0000070018234567890abcdef"}
+    )
     await repo.save_execution(execution)
     await repo.save_output_profile(_create_dummy_profile())
 
@@ -310,7 +314,7 @@ async def test_get_or_create_default_artifact_creates_when_none() -> None:
     )
 
     assert result.execution_id == execution.id
-    assert result.profile_id == "prf_1234567890abcdef"
+    assert result.profile_id == "prf_0195f3a0000070018234567890abcdef"
     assert result.locale == "fi"
     persisted = await repo.get_report_artifact(result.id)
     assert persisted is not None
@@ -334,12 +338,12 @@ async def test_get_or_create_default_artifact_workflow_default_and_fallback() ->
     await repo.save_execution(execution)
 
     # Active profile ID resolution
-    exec_active = execution.model_copy(update={"active_profile_id": "prf_1234567890abcdef"})
+    exec_active = execution.model_copy(update={"active_profile_id": "prf_0195f3a0000070018234567890abcdef"})
     await repo.save_execution(exec_active)
     await repo.save_output_profile(_create_dummy_profile())
     service_active = ReportLifecycleService(repo=repo, storage_driver=AsyncMock())
     created_active = await service_active.get_or_create_default_artifact(exec_active.id)
-    assert created_active.profile_id == "prf_1234567890abcdef"
+    assert created_active.profile_id == "prf_0195f3a0000070018234567890abcdef"
 
     # Case 1: Workflow has default_profile_id
     repo1 = InMemoryUnifiedWorkflowRepository()
@@ -351,29 +355,29 @@ async def test_get_or_create_default_artifact_workflow_default_and_fallback() ->
         description="Desc",
         status="active",
         version=1,
-        default_profile_id="prf_0000000000000001",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prf_0195f3a0000070008000000000000001",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
     )
     await repo1.save_workflow(workflow)
-    default_profile = _create_dummy_profile(profile_id="prf_0000000000000001")
+    default_profile = _create_dummy_profile(profile_id="prf_0195f3a0000070008000000000000001")
     await repo1.save_output_profile(default_profile)
 
     service1 = ReportLifecycleService(repo=repo1, storage_driver=AsyncMock())
     res1 = await service1.get_or_create_default_artifact(execution.id)
-    assert res1.profile_id == "prf_0000000000000001"
+    assert res1.profile_id == "prf_0195f3a0000070008000000000000001"
 
     # Case 2: Workflow default_profile_id is None, falls back to first matching profile
     repo2 = InMemoryUnifiedWorkflowRepository()
     await repo2.save_execution(execution)
     workflow_no_default = workflow.model_copy(update={"default_profile_id": None})
     await repo2.save_workflow(workflow_no_default)
-    fallback_profile = _create_dummy_profile(profile_id="prf_0000000000000002")
+    fallback_profile = _create_dummy_profile(profile_id="prf_0195f3a0000070008000000000000002")
     await repo2.save_output_profile(fallback_profile)
 
     service2 = ReportLifecycleService(repo=repo2, storage_driver=AsyncMock())
     res2 = await service2.get_or_create_default_artifact(execution.id)
-    assert res2.profile_id == "prf_0000000000000002"
+    assert res2.profile_id == "prf_0195f3a0000070008000000000000002"
 
     # Case 3: No matching profiles or missing workflow raises ResourceNotFoundError
     repo3 = InMemoryUnifiedWorkflowRepository()
@@ -464,7 +468,7 @@ async def test_list_and_public_reports() -> None:
     storage.read.return_value = _create_dummy_report_data_dto().model_dump_json().encode("utf-8")
 
     service = ReportLifecycleService(repo=repo, storage_driver=storage)
-    summaries = await service.list_reports_for_execution("exe_1234567890abcdef")
+    summaries = await service.list_reports_for_execution("exe_0195f3a0000070018234567890abcdef")
     assert len(summaries) == 1
     assert summaries[0].id == report.id
 
@@ -481,7 +485,7 @@ async def test_list_and_public_reports() -> None:
     assert exc_500.value.status_code == 500
 
     # Pending report raises AppException 409
-    pending = _create_dummy_report(report_id="rep_0000000000000009", status=ReportStatus.PENDING)
+    pending = _create_dummy_report(report_id="rep_0195f3a0000070008000000000000009", status=ReportStatus.PENDING)
     await repo.create_report_artifact(pending)
     with pytest.raises(AppException) as exc_409:
         await service.get_public_report(pending.id)

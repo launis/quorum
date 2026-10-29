@@ -26,7 +26,7 @@ def mock_driver() -> AsyncMock:
     driver = AsyncMock(spec=StorageDriver)
     driver.query.return_value = []
     driver.get.return_value = None
-    driver.upsert.return_value = "org_1234567890abcdef"
+    driver.upsert.return_value = "org_0195f3a0000070018234567890abcdef"
     driver.update.return_value = True
     driver.delete.return_value = True
     return driver
@@ -42,7 +42,7 @@ def repo(mock_driver: AsyncMock) -> IdentityRepositoryImpl:
 def sample_organization() -> Organization:
     """Valid Organization domain model fixture."""
     return Organization(
-        id="org_1234567890abcdef",
+        id="org_0195f3a0000070018234567890abcdef",
         name="Test Org",
         is_active=True,
         tier="enterprise",
@@ -57,13 +57,13 @@ def sample_organization() -> Organization:
 def sample_user() -> User:
     """Valid User domain model fixture."""
     return User(
-        id="usr_1234567890abcdef",
+        id="usr_0195f3a0000070018234567890abcdef",
         email="user@example.com",
         role=UserRole.ADMIN,
         is_active=True,
         language="fi",
         theme_mode="system",
-        organization_id="org_1234567890abcdef",
+        organization_id="org_0195f3a0000070018234567890abcdef",
         created_at="2026-08-30T12:00:00Z",
     )
 
@@ -77,21 +77,26 @@ async def test_organization_crud(
     mock_driver.get.return_value = org_dict
     mock_driver.query.return_value = [org_dict]
 
-    org = await repo.get_organization("org_1234567890abcdef")
+    org = await repo.get_organization("org_0195f3a0000070018234567890abcdef")
     assert org is not None
-    assert org.id == "org_1234567890abcdef"
+    assert org.id == "org_0195f3a0000070018234567890abcdef"
     assert org.name == "Test Org"
 
-    org_model = await repo.get_organization_model("org_1234567890abcdef")
+    org_model = await repo.get_organization_model("org_0195f3a0000070018234567890abcdef")
     assert org_model is not None
 
     orgs = await repo.list_organizations()
     assert len(orgs) == 1
-    assert orgs[0].id == "org_1234567890abcdef"
+    assert orgs[0].id == "org_0195f3a0000070018234567890abcdef"
 
-    assert await repo.create_organization(sample_organization) == "org_1234567890abcdef"
-    assert await repo.update_organization("org_1234567890abcdef", OrganizationUpdateDTO(name="Updated Org")) is True
-    assert await repo.delete_organization("org_1234567890abcdef") is True
+    assert await repo.create_organization(sample_organization) == "org_0195f3a0000070018234567890abcdef"
+    assert (
+        await repo.update_organization(
+            "org_0195f3a0000070018234567890abcdef", OrganizationUpdateDTO(name="Updated Org")
+        )
+        is True
+    )
+    assert await repo.delete_organization("org_0195f3a0000070018234567890abcdef") is True
 
 
 @pytest.mark.asyncio
@@ -117,24 +122,24 @@ async def test_user_crud(repo: IdentityRepositoryImpl, mock_driver: AsyncMock, s
     mock_driver.get.return_value = user_dict
     mock_driver.query.return_value = [user_dict]
 
-    user = await repo.get_user("usr_1234567890abcdef")
+    user = await repo.get_user("usr_0195f3a0000070018234567890abcdef")
     assert user is not None
-    assert user.id == "usr_1234567890abcdef"
+    assert user.id == "usr_0195f3a0000070018234567890abcdef"
     assert user.email == "user@example.com"
 
-    users = await repo.list_users(org_id="org_1234567890abcdef")
+    users = await repo.list_users(org_id="org_0195f3a0000070018234567890abcdef")
     assert len(users) == 1
     assert users[0].email == "user@example.com"
 
     mock_driver.query.return_value = [user_dict]
     by_email = await repo.get_user_by_email("user@example.com")
     assert by_email is not None
-    assert by_email.id == "usr_1234567890abcdef"
+    assert by_email.id == "usr_0195f3a0000070018234567890abcdef"
 
-    mock_driver.upsert.return_value = "usr_1234567890abcdef"
-    assert await repo.create_user(sample_user) == "usr_1234567890abcdef"
-    assert await repo.update_user("usr_1234567890abcdef", UserUpdate(language="en")) is True
-    assert await repo.delete_user("usr_1234567890abcdef") is True
+    mock_driver.upsert.return_value = "usr_0195f3a0000070018234567890abcdef"
+    assert await repo.create_user(sample_user) == "usr_0195f3a0000070018234567890abcdef"
+    assert await repo.update_user("usr_0195f3a0000070018234567890abcdef", UserUpdate(language="en")) is True
+    assert await repo.delete_user("usr_0195f3a0000070018234567890abcdef") is True
 
 
 @pytest.mark.asyncio

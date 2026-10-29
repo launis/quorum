@@ -87,11 +87,11 @@ def test_workflow_responses_strictness() -> None:
 def test_core_response_dto_strictness() -> None:
     # Need to pass all required fields from the base models (Workflow, Step, PromptBlock)
     # The IDs must match opaque stripe ID regex: ^([a-z]{2,5})_[a-fA-F0-9]{16,32}$
-    valid_id_wf = "wf_0123456789abcdef"
-    valid_id_stp = "stp_0123456789abcdef"
-    valid_id_blk = "blk_0123456789abcdef"
-    valid_id_prf = "prf_0123456789abcdef"
-    valid_id_org = "org_0123456789abcdef"
+    valid_id_wf = "wf_0195f3a0000070008123456789abcdef"
+    valid_id_stp = "stp_0195f3a0000070008123456789abcdef"
+    valid_id_blk = "blk_0195f3a0000070008123456789abcdef"
+    valid_id_prf = "prf_0195f3a0000070008123456789abcdef"
+    valid_id_org = "org_0195f3a0000070008123456789abcdef"
 
     wf = WorkflowResponseDTO.model_validate(
         {
@@ -102,7 +102,7 @@ def test_core_response_dto_strictness() -> None:
             "version": 1,
             "status": "draft",
             "default_profile_id": valid_id_prf,
-            "model_registry_id": "sys_0123456789abcdef",
+            "model_registry_id": "sys_0195f3a0000070008123456789abcdef",
             "historical_context_mode": "DISABLED",
             "organization_id": valid_id_org,
         }
@@ -117,8 +117,8 @@ def test_core_response_dto_strictness() -> None:
             "type": "llm",
             "description": {"translations": {"en": "test", "fi": "testi"}},
             "cognitive_tier": "fast",
-            "extraction_protocol_block_id": "blk_0123456789abcdef",
-            "criteria_block_ids": ["blk_0123456789abcdef"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070008123456789abcdef",
+            "criteria_block_ids": ["blk_0195f3a0000070008123456789abcdef"],
             "organization_id": valid_id_org,
         }
     )
@@ -284,13 +284,13 @@ def test_step_simulation_request_strictness() -> None:
     from backend_v2.models.domain.step import Step
 
     step = Step(
-        id="stp_1111111111111111",
+        id="stp_0195f3a0000070018111111111111111",
         slug="test_step",
         name=I18nText(translations={"en": "Test Step"}),
         description=I18nText(translations={"en": "Desc"}),
         cognitive_tier="fast",
-        extraction_protocol_block_id="blk_2222222222222222",
-        criteria_block_ids=["blk_1111111111111111"],
+        extraction_protocol_block_id="blk_0195f3a0000070028222222222222222",
+        criteria_block_ids=["blk_0195f3a0000070018111111111111111"],
     )
 
     # Positive test with defaults
@@ -400,9 +400,9 @@ def test_create_dtos_and_metadata_dtos_bva_and_negative_partitions() -> None:
     step_create = StepCreateDTO(
         slug="stp_slug",
         name=I18nText(translations={"en": "Step"}),
-        role_block_id="blk_0123456789abcdef",
+        role_block_id="blk_0195f3a0000070008123456789abcdef",
     )
-    assert step_create.role_block_id == "blk_0123456789abcdef"
+    assert step_create.role_block_id == "blk_0195f3a0000070008123456789abcdef"
     # Invalid Opaque Stripe ID on role_block_id
     with pytest.raises(ValidationError):
         StepCreateDTO(

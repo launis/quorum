@@ -66,7 +66,7 @@ class _SampleSynthesisModel(BaseModel):
     optional_note: str | None = None
 
 
-def _create_rule_block(block_id: str = "blk_0123456789abcdef") -> SystemRulePromptBlock:
+def _create_rule_block(block_id: str = "blk_0195f3a0000070008123456789abcdef") -> SystemRulePromptBlock:
     """Create a valid SystemRulePromptBlock for Stage 3 testing."""
     return SystemRulePromptBlock(
         id=block_id,
@@ -78,7 +78,7 @@ def _create_rule_block(block_id: str = "blk_0123456789abcdef") -> SystemRuleProm
     )
 
 
-def _create_matrix_block(block_id: str = "blk_5555555555555555") -> MatrixPromptBlock:
+def _create_matrix_block(block_id: str = "blk_0195f3a0000070058555555555555555") -> MatrixPromptBlock:
     """Create a valid MatrixPromptBlock for Stage 3 testing."""
     from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 
@@ -119,7 +119,7 @@ def _build_stage1_and_stage2(
 ) -> tuple[BlueprintStageResult, PromptAndSchemaStageResult]:
     """Construct paired Stage 1 and Stage 2 containers for Stage 3 unit testing."""
     proto_blk = ProtocolPromptBlock(
-        id="blk_a000000000000002",
+        id="blk_0195f3a00000700a8000000000000002",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol", "fi": "Protokolla"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -127,7 +127,7 @@ def _build_stage1_and_stage2(
         protocol_instructions="Extract exact quotes.",
     )
     step_obj = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a0000070008123456789abcdef",
         slug="test-step",
         name=I18nText(translations={"en": "Test Step", "fi": "Testivaihe"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -142,9 +142,9 @@ def _build_stage1_and_stage2(
         is_system_core=False,
     )
     profile = OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="default-prf",
-        workflow_id="wf_0123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
         name=I18nText(translations={"en": "Default"}),
         target_block_order=[],
     )
@@ -154,9 +154,9 @@ def _build_stage1_and_stage2(
         target_locale="en",
     )
     hook_state = HookState(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wf_0123456789abcdef",
-        step_id="sr_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
+        step_id="sr_0195f3a0000070008123456789abcdef",
         task_blueprint=step_obj.id,
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
@@ -218,9 +218,9 @@ def _create_ctx(cognitive_tier: CognitiveTier | None = CognitiveTier.FAST) -> St
     if cognitive_tier is None:
         raw_none_tier: Any = None
         return StrategyContext.model_construct(
-            execution_id="exe_0123456789abcdef",
-            workflow_id="wf_0123456789abcdef",
-            output_profile_id="prf_0123456789abcdef",
+            execution_id="exe_0195f3a0000070008123456789abcdef",
+            workflow_id="wf_0195f3a0000070008123456789abcdef",
+            output_profile_id="prf_0195f3a0000070008123456789abcdef",
             target_locale="en",
             cognitive_tier=raw_none_tier,
             metadata=ExecutionMetadata(),
@@ -232,9 +232,9 @@ def _create_ctx(cognitive_tier: CognitiveTier | None = CognitiveTier.FAST) -> St
             model_registry_id=None,
         )
     return StrategyContext(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wf_0123456789abcdef",
-        output_profile_id="prf_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         target_locale="en",
         cognitive_tier=cognitive_tier,
         metadata=ExecutionMetadata(),
@@ -251,15 +251,15 @@ def in_memory_repo() -> InMemoryUnifiedWorkflowRepository:
     repo = InMemoryUnifiedWorkflowRepository()
     repo.set_execution(
         ExecutionRecord(
-            id="exe_0123456789abcdef",
-            workflow_id="wf_0123456789abcdef",
-            output_profile_id="prf_0123456789abcdef",
+            id="exe_0195f3a0000070008123456789abcdef",
+            workflow_id="wf_0195f3a0000070008123456789abcdef",
+            output_profile_id="prf_0195f3a0000070008123456789abcdef",
             target_locale="en",
             status=ExecutionStatus.RUNNING,
             metadata=ExecutionMetadata(),
             step_states={
-                "sr_0123456789abcdef": ExecutionStepState(
-                    id="sr_0123456789abcdef",
+                "sr_0195f3a0000070008123456789abcdef": ExecutionStepState(
+                    id="sr_0195f3a0000070008123456789abcdef",
                     label="Test Step",
                     status=ExecutionStatus.RUNNING,
                 )
@@ -293,7 +293,11 @@ async def test_execute_anomaly_retry_flow(
     """Verify execute_engine_retry_stage retries on llm_anomaly_retry_requested and updates step_states in DB."""
     rule_block = _create_rule_block()
     stage1, stage2 = _build_stage1_and_stage2(repo=in_memory_repo, criteria_blocks=[rule_block])
-    step = StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef", input_mappings={})
+    step = StepRule(
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
+        input_mappings={},
+    )
     ctx = _create_ctx()
 
     mock_engine = MagicMock()
@@ -366,10 +370,10 @@ async def test_execute_anomaly_retry_flow(
     assert result.usage_agg.total_tokens == 30
 
     # Verify stateful roundtrip persistence on ExecutionRecord.step_states
-    persisted_exec = await in_memory_repo.get_execution("exe_0123456789abcdef")
+    persisted_exec = await in_memory_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert persisted_exec is not None
-    assert persisted_exec.step_states["sr_0123456789abcdef"].status == ExecutionStatus.RUNNING
-    assert persisted_exec.step_states["sr_0123456789abcdef"].message_code == "event_llm_anomaly_retry"
+    assert persisted_exec.step_states["sr_0195f3a0000070008123456789abcdef"].status == ExecutionStatus.RUNNING
+    assert persisted_exec.step_states["sr_0195f3a0000070008123456789abcdef"].message_code == "event_llm_anomaly_retry"
 
 
 @pytest.mark.asyncio
@@ -380,7 +384,11 @@ async def test_execute_fails_fast_when_no_engine_configured(
     """Verify execute_engine_retry_stage raises ConfigurationError when engine=None or cognitive_tier is missing."""
     rule_block = _create_rule_block()
     stage1, stage2 = _build_stage1_and_stage2(repo=in_memory_repo, criteria_blocks=[rule_block])
-    step = StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef", input_mappings={})
+    step = StepRule(
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
+        input_mappings={},
+    )
 
     # 1. Missing cognitive_tier fails fast before LLMClient.from_tier
     ctx_no_tier = _create_ctx(cognitive_tier=None)
@@ -422,7 +430,7 @@ async def test_engine_retry_stage_mcp_retrieval_synthesis_matrix_and_max_retries
 ) -> None:
     """Verify MCP tool retrieval enrichment, synthesis/matrix branches, CausalGraph output, and max retry limit."""
     gateway = SystemConfigMCPGateways(
-        id="sys_0123456789abcdef",
+        id="sys_0195f3a0000070008123456789abcdef",
         slug="search_gateway",
         endpoint_url="https://mcp.example.com/sse",
         tools=[],
@@ -438,8 +446,8 @@ async def test_engine_retry_stage_mcp_retrieval_synthesis_matrix_and_max_retries
         global_source_text="",
     )
     step = StepRule(
-        id="sr_0123456789abcdef",
-        task_blueprint="stp_0123456789abcdef",
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
         input_mappings={},
         expected_sdui_type="hero_insight",
     )
@@ -447,7 +455,7 @@ async def test_engine_retry_stage_mcp_retrieval_synthesis_matrix_and_max_retries
 
     audit_trace = MCPAuditTrace(
         tool_id="web_search",
-        step_name="sr_0123456789abcdef",
+        step_name="sr_0195f3a0000070008123456789abcdef",
         query="quorum",
         duration_ms=42,
     )

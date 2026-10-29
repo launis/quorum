@@ -934,6 +934,4 @@ def test_build_edge_case_branches_full_coverage(
     assert (
         PrintableSourcesAdapter._resolve_tool_badge(None, ctx_simple, "en") == "External Information Retrieval Gateway"
     )
-    assert (
-        PrintableSourcesAdapter._resolve_tool_badge(None, ctx_verified, "fi") == "Ulkoisen tiedonhaun yhdyskäytävä"
-    )
+    assert PrintableSourcesAdapter._resolve_tool_badge(None, ctx_verified, "fi") == "Ulkoisen tiedonhaun yhdyskäytävä"

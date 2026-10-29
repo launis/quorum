@@ -70,7 +70,7 @@ def test_guided_reflection_dto_to_markdown() -> None:
 @pytest.mark.asyncio
 async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the input hook correctly validates and parses a questionnaire dictionary."""
-    wf_id = "wor_1234567890abcdef12"
+    wf_id = "wor_0195f3a00000700384567890abcdef12"
     state = HookState(
         execution_id="test_exec",
         workflow_id=wf_id,
@@ -98,7 +98,7 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
             {
                 "id": wf_id,
                 "historical_context_mode": "DISABLED",
-                "model_registry_id": "cfg_model_registry_01",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "slug": "test-wf",
                 "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
                 "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -177,7 +177,7 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
 @pytest.mark.asyncio
 async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the input hook correctly raises Fail-Fast validation error on bad dictionary."""
-    wf_id = "wor_1234567890abcdef12"
+    wf_id = "wor_0195f3a00000700384567890abcdef12"
     state = HookState(
         execution_id="test_exec",
         workflow_id=wf_id,
@@ -196,7 +196,7 @@ async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPa
             {
                 "id": wf_id,
                 "historical_context_mode": "DISABLED",
-                "model_registry_id": "cfg_model_registry_01",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "slug": "test-wf",
                 "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
                 "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -239,7 +239,7 @@ async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPa
 @pytest.mark.asyncio
 async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that SpaCy smoothing and Presidio masking are invoked via background threads when enabled."""
-    wf_id = "wor_abcdef123456789012"
+    wf_id = "wor_0195f3a00000700c8def123456789012"
     state = HookState(
         execution_id="test_exec",
         workflow_id=wf_id,
@@ -256,7 +256,7 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
             {
                 "id": wf_id,
                 "historical_context_mode": "DISABLED",
-                "model_registry_id": "cfg_model_registry_01",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "slug": "test-wf-features",
                 "name": {"translations": {"en": "WF", "fi": "WF"}},
                 "description": {"translations": {"en": "Desc", "fi": "Desc"}},

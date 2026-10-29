@@ -27,7 +27,7 @@ def test_rendered_synthesis_cache_valid_hydration() -> None:
     """Verify clean Pydantic V2 discriminated union hydration for RenderedSynthesisCache."""
     block = ParagraphBlock(text="Analyysin sisältö...", exact_quotes=[], citations=[])
     valid_payload = {
-        "section_syntheses": {"blk_34def5d628ba4ed4": [block]},
+        "section_syntheses": {"blk_0195f3a00000700384def5d628ba4ed4": [block]},
         "row_explanations": {"mat_12345678": "Explanation text"},
         "row_curated_quotes": {},
         "variance_explanation": "Variance analysis text...",
@@ -37,8 +37,8 @@ def test_rendered_synthesis_cache_valid_hydration() -> None:
 
     cache = RenderedSynthesisCache.model_validate(valid_payload)
     assert cache is not None
-    assert "blk_34def5d628ba4ed4" in cache.section_syntheses
-    first_block = cache.section_syntheses["blk_34def5d628ba4ed4"][0]
+    assert "blk_0195f3a00000700384def5d628ba4ed4" in cache.section_syntheses
+    first_block = cache.section_syntheses["blk_0195f3a00000700384def5d628ba4ed4"][0]
     assert isinstance(first_block, ParagraphBlock)
     assert first_block.text == "Analyysin sisältö..."
     assert cache.variance_explanation == "Variance analysis text..."

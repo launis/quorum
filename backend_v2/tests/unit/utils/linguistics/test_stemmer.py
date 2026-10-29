@@ -235,4 +235,3 @@ def test_stemmed_match_result_dto_strict_validation_negative() -> None:
             '{"is_match": true, "similarity_score": 100.0, "matched_content_stems": ["johtajuu"], '
             '"total_content_stems": 1, "content_coverage_ratio": 1.0, "unexpected_extra_field": "forbidden"}'
         )
-

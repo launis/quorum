@@ -96,11 +96,11 @@ def test_execution_create_and_update_dto_negative_partitions() -> None:
 
     # Positive test ExecutionCreateDTO
     create_dto = ExecutionCreateDTO(
-        workflow_id="wor_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
     )
-    assert create_dto.workflow_id == "wor_1234567890abcdef"
-    assert create_dto.output_profile_id == "prof_1234567890abcdef"
+    assert create_dto.workflow_id == "wor_0195f3a0000070018234567890abcdef"
+    assert create_dto.output_profile_id == "prof_0195f3a0000070018234567890abcdef"
     assert create_dto.target_locale == "fi"
     assert create_dto.status == "PENDING"
 
@@ -109,7 +109,7 @@ def test_execution_create_and_update_dto_negative_partitions() -> None:
         ExecutionCreateDTO.model_validate({})
 
     # ExecutionCreateDTO: output_profile_id is optional per Ingress Decoupling
-    valid_no_profile = ExecutionCreateDTO.model_validate({"workflow_id": "wor_1234567890abcdef"})
+    valid_no_profile = ExecutionCreateDTO.model_validate({"workflow_id": "wor_0195f3a0000070018234567890abcdef"})
     assert valid_no_profile.output_profile_id is None
 
     # Negative ExecutionCreateDTO: extra forbidden field

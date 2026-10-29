@@ -190,7 +190,7 @@ RESIDUAL_FUTURE_PHASE_QGR028_FILES: frozenset[str] = frozenset(
 )
 
 _QGR030_ENTITY_PREFIXES: frozenset[str] = frozenset(
-    {"exe", "rep", "tda", "wf", "stp", "prf", "blk", "sys", "usr", "org", "nod", "edg"}
+    {"exe", "rep", "tda", "wf", "stp", "sr", "prf", "blk", "sys", "usr", "org", "nod", "edg", "sc"}
 )
 _QGR030_MOCK_ID_REGEX: re.Pattern[str] = re.compile(r"^([a-z]{2,5})_([a-zA-Z0-9]{14,32})$")
 _QGR030_NON_HEX_CHARS: frozenset[str] = frozenset("ghijklmnopqrstuvwxyzGHIJKLMNOPQRSTUVWXYZ")
@@ -2684,7 +2684,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     severity=GuardrailSeverity.FATAL,
                 )
 
-        # QGR030: Ban non-hexadecimal mock entity ID string literals
+        # QGR030: Ban non-hexadecimal or non-32-hex entity ID string literals
         if isinstance(node.value, str) and not self.is_guardrail_self:
             id_match = _QGR030_MOCK_ID_REGEX.match(node.value)
             if id_match is not None:
@@ -2692,13 +2692,13 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 if prefix in _QGR030_ENTITY_PREFIXES:
                     has_digits = any(c.isdigit() for c in suffix)
                     has_non_hex = any(c in _QGR030_NON_HEX_CHARS for c in suffix)
+                    is_strict_id_scope = (
+                        self._is_domain_code
+                        or (not self._is_test_file and "scripts" in self._path_parts)
+                        or "factories" in self._path_parts
+                        or self._normalized_path.endswith("sample.py")
+                    )
                     if has_digits and has_non_hex:
-                        is_strict_id_scope = (
-                            self._is_domain_code
-                            or "scripts" in self._path_parts
-                            or "factories" in self._path_parts
-                            or self._normalized_path.endswith("sample.py")
-                        )
                         distinct_digits = {c for c in suffix if c.isdigit()}
                         is_sequential_mock_id = len(distinct_digits) >= 9 and not suffix.startswith(
                             ("test1234", "step1234")
@@ -2708,9 +2708,17 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                                 node,
                                 "QGR030",
                                 f"Banned non-hexadecimal entity ID literal `{node.value}` detected.",
-                                "All entity IDs must conform to canonical hexadecimal format `^([a-z]{2,5})_[a-fA-F0-9]{16,32}$` via `generate_opaque_id(EntityPrefix.<TYPE>)`.",
+                                "All entity IDs must conform to canonical 32-hex UUIDv7 format `^([a-z]{2,5})_[a-fA-F0-9]{32}$` via `generate_opaque_id(EntityPrefix.<TYPE>)`.",
                                 severity=GuardrailSeverity.FATAL,
                             )
+                    elif is_strict_id_scope and not has_non_hex and len(suffix) != 32:
+                        self._add_violation(
+                            node,
+                            "QGR030",
+                            f"Banned non-32-hex entity ID literal `{node.value}` detected.",
+                            "All entity IDs must conform to canonical 32-hex UUIDv7 format `^([a-z]{2,5})_[a-fA-F0-9]{32}$` via `generate_opaque_id(EntityPrefix.<TYPE>)`.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
         self.generic_visit(node)
 
     def visit_BoolOp(self, node: ast.BoolOp) -> None:

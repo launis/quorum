@@ -408,7 +408,7 @@ async def test_analyze_interaction_role_registry_and_provider_override(
         execution_id="sub-123",
         workflow_id="wf-123",
         metadata=ExecutionMetadata(
-            model_registry_id="sys_1234567890abcdef",
+            model_registry_id="sys_0195f3a0000070018234567890abcdef",
             provider_override=LLMProvider.VERTEX_AI,
         ),
         global_context_vars=GlobalContextVarsDTO(),
@@ -449,7 +449,7 @@ async def test_analyze_interaction_role_registry_and_provider_override(
         "fast",
         repository=mock_repository,
         pipeline_name="interaction_hook",
-        registry_id="sys_1234567890abcdef",
+        registry_id="sys_0195f3a0000070018234567890abcdef",
         provider=LLMProvider.VERTEX_AI,
     )
 

@@ -37,7 +37,7 @@ from backend_v2.services.studio.workflow_service import StudioWorkflowService
 pytestmark = pytest.mark.asyncio
 
 
-def _create_sample_prompt_block(block_id: str = "blk_1234567890abcdef") -> PersonaPromptBlock:
+def _create_sample_prompt_block(block_id: str = "blk_0195f3a0000070018234567890abcdef") -> PersonaPromptBlock:
     """Helper to create a valid minimal PersonaPromptBlock domain model."""
     return PersonaPromptBlock(
         id=block_id,
@@ -53,8 +53,8 @@ def _create_sample_prompt_block(block_id: str = "blk_1234567890abcdef") -> Perso
 
 
 def _create_sample_workflow(
-    workflow_id: str = "wf_1234567890abcdef",
-    model_registry_id: str = "sys_e26807f3bfa3454d",
+    workflow_id: str = "wf_0195f3a0000070018234567890abcdef",
+    model_registry_id: str = "sys_0195f3a00000700e826807f3bfa3454d",
 ) -> Workflow:
     """Helper to create a valid minimal Workflow domain model."""
     return Workflow(
@@ -64,7 +64,7 @@ def _create_sample_workflow(
         description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
         status="active",
         version=1,
-        default_profile_id="prf_1234567890abcdef",
+        default_profile_id="prf_0195f3a0000070018234567890abcdef",
         default_strictness_level=50,
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],
@@ -72,7 +72,7 @@ def _create_sample_workflow(
     )
 
 
-def _create_sample_step(step_id: str = "stp_1234567890abcdef") -> Step:
+def _create_sample_step(step_id: str = "stp_0195f3a0000070018234567890abcdef") -> Step:
     """Helper to create a valid minimal Step domain model."""
     return Step(
         id=step_id,
@@ -85,8 +85,8 @@ def _create_sample_step(step_id: str = "stp_1234567890abcdef") -> Step:
 
 
 def _create_sample_output_profile(
-    profile_id: str = "prf_1234567890abcdef",
-    workflow_id: str = "wf_1234567890abcdef",
+    profile_id: str = "prf_0195f3a0000070018234567890abcdef",
+    workflow_id: str = "wf_0195f3a0000070018234567890abcdef",
 ) -> OutputProfile:
     """Helper to create a valid minimal OutputProfile domain model."""
     return OutputProfile(
@@ -116,12 +116,12 @@ async def test_save_workflow_updates_inplace_and_preserves_preflight() -> None:
     )
 
     root_token = TokenData(id="usr_root", role=UserRole.ROOT)
-    target_id = "wf_1234567890abcdef"
+    target_id = "wf_0195f3a0000070018234567890abcdef"
     initial_wf = _create_sample_workflow(target_id)
 
     await driver.upsert("workflows", initial_wf.model_dump(mode="json"), target_id)
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         workflow_id=target_id,
         slug="default",
         name=I18nText(translations={"en": "Default Profile", "fi": "Oletusprofiili"}),
@@ -130,7 +130,7 @@ async def test_save_workflow_updates_inplace_and_preserves_preflight() -> None:
         target_block_order=[],
         matrix_synthesis_groups=[],
     )
-    await driver.upsert("output_profiles", profile.model_dump(mode="json"), "prf_1234567890abcdef")
+    await driver.upsert("output_profiles", profile.model_dump(mode="json"), "prf_0195f3a0000070018234567890abcdef")
 
     updated_data = initial_wf.model_copy(
         update={
@@ -177,7 +177,7 @@ async def test_save_step_updates_inplace_and_preserves_preflight() -> None:
     )
 
     root_token = TokenData(id="usr_root", role=UserRole.ROOT)
-    target_id = "stp_1234567890abcdef"
+    target_id = "stp_0195f3a0000070018234567890abcdef"
     initial_step = _create_sample_step(target_id)
 
     await driver.upsert("steps", initial_step.model_dump(mode="json"), target_id)
@@ -228,8 +228,8 @@ async def test_save_output_profile_updates_inplace_and_preserves_preflight() -> 
     )
 
     root_token = TokenData(id="usr_root", role=UserRole.ROOT)
-    wf_id = "wf_1234567890abcdef"
-    prof_id = "prf_1234567890abcdef"
+    wf_id = "wf_0195f3a0000070018234567890abcdef"
+    prof_id = "prf_0195f3a0000070018234567890abcdef"
 
     initial_wf = _create_sample_workflow(wf_id)
     await driver.upsert("workflows", initial_wf.model_dump(mode="json"), wf_id)
@@ -281,7 +281,7 @@ async def test_create_output_profile_draft_binds_to_valid_workflow() -> None:
     )
 
     root_token = TokenData(id="usr_root", role=UserRole.ROOT)
-    wf_id = "wf_1234567890abcdef"
+    wf_id = "wf_0195f3a0000070018234567890abcdef"
     initial_wf = _create_sample_workflow(wf_id)
     await driver.upsert("workflows", initial_wf.model_dump(mode="json"), wf_id)
 
@@ -312,8 +312,8 @@ async def test_save_output_profile_invalid_target_component_fails_fast() -> None
     )
 
     root_token = TokenData(id="usr_root", role=UserRole.ROOT)
-    wf_id = "wf_1234567890abcdef"
-    prof_id = "prf_1234567890abcdef"
+    wf_id = "wf_0195f3a0000070018234567890abcdef"
+    prof_id = "prf_0195f3a0000070018234567890abcdef"
 
     initial_wf = _create_sample_workflow(wf_id)
     await driver.upsert("workflows", initial_wf.model_dump(mode="json"), wf_id)
@@ -322,7 +322,7 @@ async def test_save_output_profile_invalid_target_component_fails_fast() -> None
         update={
             "matrix_synthesis_groups": [
                 MatrixSynthesisGroup(
-                    id="grp_1234567890abcdef",
+                    id="grp_0195f3a0000070018234567890abcdef",
                     title=I18nText(translations={"en": "Invalid Group"}),
                     target_blocks=["unsupported_target_block"],
                 )
@@ -358,8 +358,8 @@ async def test_save_output_profile_nonexistent_workflow_raises_resource_not_foun
     )
 
     root_token = TokenData(id="usr_root", role=UserRole.ROOT)
-    prof_id = "prf_1234567890abcdef"
-    missing_wf_id = "wf_0000000000000000"
+    prof_id = "prf_0195f3a0000070018234567890abcdef"
+    missing_wf_id = "wf_0195f3a0000070008000000000000000"
 
     prof = _create_sample_output_profile(prof_id, missing_wf_id)
 
@@ -380,7 +380,7 @@ async def test_save_prompt_block_updates_inplace_and_preserves_preflight() -> No
     )
 
     root_token = TokenData(id="usr_root", role=UserRole.ROOT)
-    target_id = "blk_1234567890abcdef"
+    target_id = "blk_0195f3a0000070018234567890abcdef"
     initial_block = _create_sample_prompt_block(target_id)
 
     await driver.upsert("prompt_blocks", initial_block.model_dump(mode="json"), target_id)

@@ -395,7 +395,7 @@ def test_source_document_packer_dotted_step_reference_and_matrix_reducer() -> No
             ],
         ),
         StepOutputDTO(
-            step_id="sr_03c1d71000000006",
+            step_id="sr_0195f3a00000700083c1d71000000006",
             block_id="results",
             data_type="text",
             payload={"text": "Step 6 evaluation output."},
@@ -403,7 +403,7 @@ def test_source_document_packer_dotted_step_reference_and_matrix_reducer() -> No
     ]
 
     mappings = {
-        "results": "$steps.sr_03c1d71000000006",
+        "results": "$steps.sr_0195f3a00000700083c1d71000000006",
         "reduced_matrix": "$steps.matrix_reducer.reduced_atoms",
         "assignment_context": "$inputs.assignment_context",
     }
@@ -415,7 +415,7 @@ def test_source_document_packer_dotted_step_reference_and_matrix_reducer() -> No
         targets=targets,
         step_outputs=step_outputs,
     )
-    assert '<step_output step_id="sr_03c1d71000000006">' in packed
+    assert '<step_output step_id="sr_0195f3a00000700083c1d71000000006">' in packed
     assert "Step 6 evaluation output." in packed
     assert "The assignment brief." in packed
 

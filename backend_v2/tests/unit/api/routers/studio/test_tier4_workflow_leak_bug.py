@@ -68,7 +68,7 @@ async def test_workflow_does_not_leak_metric_mappings(mock_studio_service: Async
         version=1,
         default_profile_id="prof_0123456789abcdef0123456789abcdef",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         organization_id="root_org",
         output_profiles={"prof_0123456789abcdef0123456789abcdef": mock_profile_dto},
     )

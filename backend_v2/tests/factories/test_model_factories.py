@@ -118,8 +118,8 @@ def test_polyfactory_causal_graph_referential_integrity_error() -> None:
         CausalGraphPayloadDTOFactory.build(
             edges=[
                 CausalEdgeDTO(
-                    source_id="tda_0000000000000001",
-                    target_id="tda_ffffffffffffffff",
+                    source_id="tda_0195f3a0000070008000000000000001",
+                    target_id="tda_0195f3a0000070008000ffffffffffff",
                     reasoning="Dangling target reference.",
                 )
             ]

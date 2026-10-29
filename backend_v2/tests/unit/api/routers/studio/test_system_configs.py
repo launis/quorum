@@ -23,29 +23,30 @@ def test_router_metadata_and_defaults() -> None:
 @pytest.mark.parametrize(
     "valid_id",
     [
-        "sys_" + "a" * 16,
+        "sys_" + "a" * 32,
         "sys_" + "f" * 32,
-        "sys_0123456789abcdef",
+        "sys_0195f3a0000070008123456789abcdef",
     ],
 )
 def test_validate_system_config_id_valid_boundaries(valid_id: str) -> None:
-    """Test validate_system_config_id accepts exact min (16) and max (32) hex length boundaries."""
+    """Test validate_system_config_id accepts exact 32-hex length boundaries."""
     assert validate_system_config_id(valid_id) == valid_id
 
 
 @pytest.mark.parametrize(
     "invalid_id",
     [
-        "sys_" + "a" * 15,
+        "sys_" + "a" * 16,
+        "sys_" + "a" * 31,
         "sys_" + "a" * 33,
-        "wf_" + "a" * 16,
+        "wf_" + "a" * 32,
         "sys_invalid-id",
         "",
         "   ",
     ],
 )
 def test_validate_system_config_id_invalid_boundaries_raise_app_exception(invalid_id: str) -> None:
-    """Test validate_system_config_id raises AppException on min-1 (15), max+1 (33), and wrong prefix."""
+    """Test validate_system_config_id raises AppException on min-1 (31), max+1 (33), legacy 16-hex, and wrong prefix."""
     with pytest.raises(AppException) as exc_info:
         validate_system_config_id(invalid_id)
 

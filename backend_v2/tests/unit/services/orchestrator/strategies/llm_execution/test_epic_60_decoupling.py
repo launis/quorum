@@ -14,12 +14,12 @@ def test_step_validation_fails_without_criteria_or_protocol() -> None:
     # 1. Missing criteria_block_ids
     with pytest.raises(AppException) as exc_info:
         Step(
-            id="stp_1234567890123456",
+            id="stp_0195f3a0000070018234567890123456",
             slug="test_step_missing_criteria",
             name=I18nText(translations={"en": "Test Step", "fi": "Testi"}),
             type="llm",
             cognitive_tier="fast",
-            extraction_protocol_block_id="blk_a1b2c3d4e5f60011",
+            extraction_protocol_block_id="blk_0195f3a00000700a81b2c3d4e5f60011",
             criteria_block_ids=[],  # Empty list
         )
     assert "must define at least one criteria_block_id" in str(exc_info.value)
@@ -27,13 +27,13 @@ def test_step_validation_fails_without_criteria_or_protocol() -> None:
     # 2. Missing extraction_protocol_block_id
     with pytest.raises(AppException) as exc_info:
         Step(
-            id="stp_1234567890123457",
+            id="stp_0195f3a0000070018234567890123457",
             slug="test_step_missing_protocol",
             name=I18nText(translations={"en": "Test Step", "fi": "Testi"}),
             type="llm",
             cognitive_tier="fast",
             extraction_protocol_block_id=None,  # Missing protocol
-            criteria_block_ids=["blk_a1b2c3d4e5f60012"],
+            criteria_block_ids=["blk_0195f3a00000700a81b2c3d4e5f60012"],
         )
     assert "must define a valid extraction_protocol_block_id" in str(exc_info.value)
 
@@ -49,7 +49,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
 
     role_block = PromptBlockAdapter.validate_python(
         {
-            "id": "blk_1122334455667788",
+            "id": "blk_0195f3a0000070018122334455667788",
             "slug": "role_critic",
             "label": {"translations": {"en": "Role Critic", "fi": "Kriitikko"}},
             "description": {"translations": {"en": "Role Desc", "fi": "Kuvaus"}},
@@ -61,7 +61,7 @@ def test_prompt_factory_build_integrates_decoupled_blocks() -> None:
 
     protocol_block = PromptBlockAdapter.validate_python(
         {
-            "id": "blk_9988776655443322",
+            "id": "blk_0195f3a0000070098988776655443322",
             "slug": "extraction_protocol",
             "label": {"translations": {"en": "Extraction Protocol", "fi": "Protokolla"}},
             "description": {"translations": {"en": "Protocol Desc", "fi": "Kuvaus"}},

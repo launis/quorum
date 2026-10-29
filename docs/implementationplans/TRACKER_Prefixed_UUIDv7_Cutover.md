@@ -19,12 +19,12 @@
 
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]
 
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md] @[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md] @[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]`
   - [x] Step 1: Phase 1: Pre-Implementation Technical Debt Cleanups & Core PrefixedUUID7 SSOT Lock
   - [x] Step 2: Phase 2: Deterministic seed_data.json 32-Hex UUIDv7 Cutover & sanitize_seed_vault.py Auto-ID Generator
   - [x] Step 3: Phase 3: PostgreSQL 19 12-Table Native UUIDv7 DDL & Symmetric Adapter Bridge
   - [x] Step 4: Phase 4: Studio Draft Anchor Eradication & Direct Causal Cohesion Matrix Binding
-  - [ ] Step 5: Phase 5: Topological Graph Mathematics Synchronization, Counterfactual Simulation & Full-Duplex Parity
+  - [x] Step 5: Phase 5: Topological Graph Mathematics Synchronization, Counterfactual Simulation & Full-Duplex Parity
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md] @[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]`
 
 ### Post-Implementation Gates
@@ -92,29 +92,28 @@
 | REQ-007 | Standardize `@[backend_v2/database/postgres/entity_adapter.py#L828-L2366]` to apply symmetric `parse_prefixed_uuid7()` and `format_prefixed_uuid7()` conversion across all 12 tables and enforce via `@[scripts/audit_zero_orm_strictness.py#L550-L579]`. | Step 3 | [x] Completed |
 | REQ-008 | Replace hardcoded `"blk_440a5fef9331451b"` and `"prf_0000000000000000"` in `@[backend_v2/services/studio/workflow_service.py#L348-L390]` and `@[backend_v2/services/studio/workflow_service.py#L677-L729]` and `"sys_8172bda70c8641c5"` in `@[backend_v2/models/domain/workflow.py#L25-L217]` with dynamic repository lookups and `None` defaults. | Step 4 | [x] Completed |
 | REQ-009 | Bind the BARS causal cohesion matrix directly to `Step.criteria_block_ids` on `StepType.CAUSAL_DISCOVERY` in `@[backend_v2/models/domain/step.py#L125-L185]`, remove `causal_cohesion_block_id` from `@[backend_v2/models/domain/workflow.py#L194-L217]`, and read the step's hydrated matrix in `@[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py#L79-L123]`. | Step 4 | [x] Completed |
-| REQ-010 | Delete `causal_cohesion_matrix_block_id` from `@[backend_v2/settings.py#L47-L1087]` and remove `CAUSAL_COHESION_TDA_IDS` and `CAUSAL_COHESION_CLAIMS` from `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py#L80-L302]`. | Step 5 | [ ] Pending |
-| REQ-011 | Add `largest_component_ratio`, `branch_convergence_ratio`, `steering_coupling_ratio`, and `[NEW]` `CounterfactualSimulationResultDTO` / `CounterfactualSimulationResultDto` to `@[backend_v2/models/dtos/causal_discovery.py#L208-L228]`, `@[backend_v2/models/dtos/causal_discovery.py#L305-L332]`, and `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart#L61-L78]`. | Step 5 | [ ] Pending |
-| REQ-012 | Compute $r_{\text{LCC}}$, $r_{\text{conv}}$, and $\kappa_{\text{steer}}$ in `compute_causal_tda_fusion_result` (`@[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py#L64-L238]`). | Step 5 | [ ] Pending |
-| REQ-013 | Configure Equation (13) Guttman tier thresholds (`causal_cohesion_l2_min_nodes` through `causal_cohesion_l4_convergence_min`) in `@[backend_v2/settings.py#L47-L1087]` and enforce them in `CausalCohesionEvaluator.evaluate_causal_cohesion` (`@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py#L163-L302]`). | Step 5 | [ ] Pending |
-| REQ-014 | Implement `simulate_counterfactual_retraction(graph, retracted_node_id, conjunctive)` per Algorithm 1 in `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py#L163-L302]`. | Step 5 | [ ] Pending |
-| REQ-015 | Tighten `QGR030` in `@[scripts/_ast_guardrails.py#L2670-L2714]` to enforce 32-hex `{prefix}_{32_hex}` IDs across all test fixtures. | Step 5 | [ ] Pending |
+| REQ-010 | Delete `causal_cohesion_matrix_block_id` from `@[backend_v2/settings.py#L47-L1087]` and remove `CAUSAL_COHESION_TDA_IDS` and `CAUSAL_COHESION_CLAIMS` from `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py#L80-L302]`. | Step 5 | [x] Completed |
+| REQ-011 | Add `largest_component_ratio`, `branch_convergence_ratio`, `steering_coupling_ratio`, and `[NEW]` `CounterfactualSimulationResultDTO` / `CounterfactualSimulationResultDto` to `@[backend_v2/models/dtos/causal_discovery.py#L208-L228]`, `@[backend_v2/models/dtos/causal_discovery.py#L305-L332]`, and `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart#L61-L78]`. | Step 5 | [x] Completed |
+| REQ-012 | Compute $r_{\text{LCC}}$, $r_{\text{conv}}$, and $\kappa_{\text{steer}}$ in `compute_causal_tda_fusion_result` (`@[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py#L64-L238]`). | Step 5 | [x] Completed |
+| REQ-013 | Configure Equation (13) Guttman tier thresholds (`causal_cohesion_l2_min_nodes` through `causal_cohesion_l4_convergence_min`) in `@[backend_v2/settings.py#L47-L1087]` and enforce them in `CausalCohesionEvaluator.evaluate_causal_cohesion` (`@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py#L163-L302]`). | Step 5 | [x] Completed |
+| REQ-014 | Implement `simulate_counterfactual_retraction(graph, retracted_node_id, conjunctive)` per Algorithm 1 in `@[backend_v2/services/orchestrator/causal_cohesion_evaluator.py#L163-L302]`. | Step 5 | [x] Completed |
+| REQ-015 | Tighten `QGR030` in `@[scripts/_ast_guardrails.py#L2670-L2714]` to enforce 32-hex `{prefix}_{32_hex}` IDs across all test fixtures. | Step 5 | [x] Completed |
 
 # Session Handover Context
 
 ## Achieved
-- Created `@[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]` and `@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]`.
-- Executed `/tier0-research-plan` System 2 Red-Team Audit and Five-Axis Deconstruction (`CONVERGENCE ACHIEVED: 0 architectural defects found`).
-- Verified AST symbol boundaries (`scripts/audit_markdown_boundaries.py`), tracker structural parity (`scripts/audit_tracker_output.py`), and touched-scope technical debt (`scripts/audit_technical_debt.py`, `Status: PASSED`).
+- Completed and atomically committed Steps 1 through 5 (`REQ-001` through `REQ-015`) of `@[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]`.
+- Re-seeded local PostgreSQL 19 (`backend_v2/seed/run_seed.py local`) across all 12 native `UUIDv7` tables (`organizations`, `users`, `system_configs`, `prompt_blocks`, `steps`, `workflows`, `output_profiles`, `executions`, `report_artifacts`, `report_binaries`, `proposition_nodes`, `dependency_edges`).
+- Verified Global Backend Audit Loop (`backend_audit_loop.py backend_v2/ --test --ast-strict`: `6563 passed`, `97.34%` coverage, 0 static violations), Global Flutter Audit Loop (`flutter_audit_loop.py client_app_v2/ --build`: `607 passed`, 0 issues), and live E2E pipeline verification (`test_tavily_e2e_full_pipeline.py`: `2 passed`).
 
 ## Learned
-- All 14 entity prefixes (`org`, `usr`, `sys`, `blk`, `stp`, `sr`, `wf`, `prf`, `exe`, `rep`, `nod`, `edg`, `tda`, `sc`) are governed by `EntityPrefix` in `backend_v2/models/enums.py`.
-- Binding the causal cohesion BARS matrix directly to `Step.criteria_block_ids` on `StepType.CAUSAL_DISCOVERY` eliminates the `causal_cohesion_matrix_block_id` setting and `CAUSAL_COHESION_TDA_IDS` / `CAUSAL_COHESION_CLAIMS` tuples completely.
-- `AntiFluffAuditDTO` float bounds (`[0.0, 1.0]`) for `largest_component_ratio`, `branch_convergence_ratio`, and `steering_coupling_ratio` must be enforced via `@field_validator` rather than `Field(ge=..., le=...)` to comply with `vertex_serving_grammar_fix`.
+- System-level core entities (`Step`, `Workflow`, `OutputProfile`) with `organization_id="SYSTEM"` map to `NULL` (`None`) in PostgreSQL 19 foreign key columns (`REFERENCES organizations(id)`) and reconstitute `"SYSTEM"` on read when `default_system=True` in `PostgresEntityAdapter._format_org_uuid7`.
+- `CausalCohesionEvaluator` enforces Equation (13) Guttman tier gates ($N_{\min}$, $r_{\text{LCC}}$, $r_{\text{conv}}$, $r_{\text{iso}}$, acyclicity) and executes deterministic $\mathcal{O}(|\mathcal{V}| + |\mathcal{E}|)$ counterfactual retraction via `simulate_counterfactual_retraction`.
 
 ## Remaining
-- Execute Steps 1 through 5 via `/tier2-execute --full-auto`.
+- Execute `/tier8-audit-plan` on `@[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]` and `@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]`.
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md] @[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md] @[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]
 ```

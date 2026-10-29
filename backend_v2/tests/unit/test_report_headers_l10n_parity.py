@@ -261,9 +261,9 @@ async def test_mathematical_dumb_painter_invariance() -> None:
     """Verify exact Dumb Painter row and column count invariance across Excel Tab 1, Tab 2, and CSV."""
     service = ExportService()
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=ExecutionStatus.PASSED,
         step_states={
@@ -277,7 +277,7 @@ async def test_mathematical_dumb_painter_invariance() -> None:
 
     matrices = [
         MatrixScorecardRowDTO(
-            block_id="blk_0123456789abcdef",
+            block_id="blk_0195f3a0000070008123456789abcdef",
             name="Logiikkamatriisi Alpha",
             label_i18n=I18nText(translations={"fi": "Logiikkamatriisi Alpha", "en": "Logic Matrix Alpha"}),
             score=8.5,
@@ -287,7 +287,7 @@ async def test_mathematical_dumb_painter_invariance() -> None:
             is_evaluative=True,
         ),
         MatrixScorecardRowDTO(
-            block_id="blk_fedcba9876543210",
+            block_id="blk_0195f3a00000700f8edcba9876543210",
             name="Logiikkamatriisi Beta",
             label_i18n=I18nText(translations={"fi": "Logiikkamatriisi Beta", "en": "Logic Matrix Beta"}),
             score=7.0,
@@ -300,22 +300,22 @@ async def test_mathematical_dumb_painter_invariance() -> None:
 
     report_results = [
         AtomResultDTO(
-            tda_id="tda_0000000000000001",
-            matrix_id="blk_0123456789abcdef",
+            tda_id="tda_0195f3a0000070008000000000000001",
+            matrix_id="blk_0195f3a0000070008123456789abcdef",
             status=ExecutionStatus.PASSED,
             source_quotes=("Lainaus 1",),
             evaluation_reasoning="Pätevä perustelu 1",
         ),
         AtomResultDTO(
-            tda_id="tda_0000000000000002",
-            matrix_id="blk_0123456789abcdef",
+            tda_id="tda_0195f3a0000070008000000000000002",
+            matrix_id="blk_0195f3a0000070008123456789abcdef",
             status=ExecutionStatus.FAILED,
             source_quotes=None,
             evaluation_reasoning="Hylätty perustelu 2",
         ),
         AtomResultDTO(
-            tda_id="tda_0000000000000003",
-            matrix_id="blk_fedcba9876543210",
+            tda_id="tda_0195f3a0000070008000000000000003",
+            matrix_id="blk_0195f3a00000700f8edcba9876543210",
             status=ExecutionStatus.PASSED,
             source_quotes=("Lainaus 3",),
             evaluation_reasoning="Pätevä perustelu 3",
@@ -323,24 +323,24 @@ async def test_mathematical_dumb_painter_invariance() -> None:
     ]
 
     hydrated_refs = {
-        "tda_0000000000000001": HydratedAtomDTO(
+        "tda_0195f3a0000070008000000000000001": HydratedAtomDTO(
             sdui_component="boolean_card",
             resolved_claim="Väite 1",
         ),
-        "tda_0000000000000002": HydratedAtomDTO(
+        "tda_0195f3a0000070008000000000000002": HydratedAtomDTO(
             sdui_component="boolean_card",
             resolved_claim="Väite 2",
         ),
-        "tda_0000000000000003": HydratedAtomDTO(
+        "tda_0195f3a0000070008000000000000003": HydratedAtomDTO(
             sdui_component="boolean_card",
             resolved_claim="Väite 3",
         ),
     }
 
     report_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prf_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prf_0195f3a0000070008123456789abcdef",
         results=report_results,
         hydrated_references=hydrated_refs,
     )

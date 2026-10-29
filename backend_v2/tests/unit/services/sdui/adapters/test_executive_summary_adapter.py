@@ -17,7 +17,7 @@ from backend_v2.services.sdui.adapters.executive_summary_adapter import Executiv
 
 
 def _make_matrix_row(
-    block_id: str = "blk_53f32679aa514fcb",
+    block_id: str = "blk_0195f3a00000700583f32679aa514fcb",
     score: float | None = 4.0,
     raw_score: float | None = None,
     scale_min: float | None = 1.0,
@@ -112,7 +112,7 @@ def test_build_valid_role_returns_paragraph_block() -> None:
         content_blocks=[],
         target_block_order=[],
         user_role_label=I18nText(translations={"en": "Role", "fi": "Rooli"}),
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=3.0)
     context = _make_context(
@@ -137,7 +137,7 @@ def test_build_valid_role_with_narrative_and_section_syntheses() -> None:
         content_blocks=[],
         target_block_order=[],
         user_role_label=I18nText(translations={"en": "Role", "fi": "Rooli"}),
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=3.0, level_names={"3": "Navigator"})
     cache = RenderedSynthesisCache(
@@ -176,7 +176,7 @@ def test_build_legacy_unmapped_section_key_ignored_negative() -> None:
         content_blocks=[],
         target_block_order=[],
         user_role_label=I18nText(translations={"en": "Role", "fi": "Rooli"}),
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=3.0, level_names={"3": "Navigator"})
     cache = RenderedSynthesisCache(
@@ -239,7 +239,7 @@ def test_build_valid_role_with_default_label() -> None:
         content_blocks=[],
         target_block_order=[],
         user_role_label=None,
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=4.0, level_names={"4": "Driver"})
     context = _make_context(
@@ -317,13 +317,13 @@ def test_build_matrix_target_block_resolves_deterministic_role_badge() -> None:
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=4.0)
     context = _make_context(
         locale="fi",
         profile=profile,
-        parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
+        parsed_matrices={"blk_0195f3a00000700583f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert len(blocks) == 1
@@ -340,7 +340,7 @@ def test_build_matrix_target_block_resolves_bilingual_english() -> None:
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     en_levels = {
         "1": "Passenger (Blind Faith)",
@@ -353,7 +353,7 @@ def test_build_matrix_target_block_resolves_bilingual_english() -> None:
     context = _make_context(
         locale="en",
         profile=profile,
-        parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
+        parsed_matrices={"blk_0195f3a00000700583f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert len(blocks) == 1
@@ -382,13 +382,13 @@ def test_build_matrix_target_block_clamping_boundary_scores(score: float, expect
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=score)
     context = _make_context(
         locale="fi",
         profile=profile,
-        parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
+        parsed_matrices={"blk_0195f3a00000700583f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert len(blocks) == 1
@@ -411,14 +411,14 @@ def test_build_matrix_target_block_custom_levels_not_leaked() -> None:
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     custom_levels = {"1": "Perusvuorovaikutus (Noviisi)"}
     matrix_row = _make_matrix_row(score=1.0, level_names=custom_levels)
     context = _make_context(
         locale="fi",
         profile=profile,
-        parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
+        parsed_matrices={"blk_0195f3a00000700583f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert len(blocks) == 1
@@ -436,7 +436,7 @@ def test_build_matrix_target_block_missing_from_parsed_matrices_omits_badge() ->
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     context = _make_context(
         locale="fi",
@@ -456,7 +456,7 @@ def test_build_matrix_target_block_score_none_omits_badge_gracefully() -> None:
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=None)
     cache = RenderedSynthesisCache(
@@ -470,7 +470,7 @@ def test_build_matrix_target_block_score_none_omits_badge_gracefully() -> None:
         locale="fi",
         profile=profile,
         profile_cache=cache,
-        parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
+        parsed_matrices={"blk_0195f3a00000700583f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert len(blocks) == 1
@@ -487,13 +487,13 @@ def test_build_matrix_target_block_float_key_lookup() -> None:
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=4.0, level_names={"4.0": "Driver Float Key"})
     context = _make_context(
         locale="en",
         profile=profile,
-        parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
+        parsed_matrices={"blk_0195f3a00000700583f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert len(blocks) == 1
@@ -510,13 +510,13 @@ def test_build_matrix_target_block_raw_score_none_omits_badge() -> None:
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=None, raw_score=None, level_names={})
     context = _make_context(
         locale="en",
         profile=profile,
-        parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
+        parsed_matrices={"blk_0195f3a00000700583f32679aa514fcb": matrix_row},
     )
     blocks = ExecutiveSummaryAdapter.build(context)
     assert blocks == []
@@ -531,10 +531,10 @@ def test_build_matrix_target_block_with_composite_step_block_id_key() -> None:
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(
-        block_id="blk_53f32679aa514fcb",
+        block_id="blk_0195f3a00000700583f32679aa514fcb",
         score=4.0,
         level_names={"4": "Driver (Critical Guide)"},
     )
@@ -558,7 +558,7 @@ def test_build_matrix_target_block_absent_omits_badge_without_fallback() -> None
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     cache = RenderedSynthesisCache(
         user_role=RoleClassification.PASSENGER.value,
@@ -650,13 +650,13 @@ def test_build_missing_localization_key_raises_app_exception_negative(monkeypatc
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=3.0)
     context = _make_context(
         locale="fi",
         profile=profile,
-        parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
+        parsed_matrices={"blk_0195f3a00000700583f32679aa514fcb": matrix_row},
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -675,16 +675,15 @@ def test_build_corrupted_user_role_label_raises_app_exception_negative() -> None
         content_blocks=[],
         target_block_order=[],
         user_role_label=corrupted_label,
-        user_role_target_block="blk_53f32679aa514fcb",
+        user_role_target_block="blk_0195f3a00000700583f32679aa514fcb",
     )
     matrix_row = _make_matrix_row(score=4.0)
     context = _make_context(
         locale="fi",
         profile=profile,
-        parsed_matrices={"blk_53f32679aa514fcb": matrix_row},
+        parsed_matrices={"blk_0195f3a00000700583f32679aa514fcb": matrix_row},
     )
 
     with pytest.raises(AppException) as exc_info:
         ExecutiveSummaryAdapter.build(context)
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-

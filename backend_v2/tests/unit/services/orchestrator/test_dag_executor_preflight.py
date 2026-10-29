@@ -22,9 +22,9 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_step(
-        "blp_1234567890abcdef",
+        "blp_0195f3a0000070018234567890abcdef",
         {
-            "id": "blp_1234567890abcdef",
+            "id": "blp_0195f3a0000070018234567890abcdef",
             "type": "logic",
             "cognitive_tier": "fast",
             "slug": "mock_step",
@@ -60,8 +60,8 @@ async def test_dag_executor_preflight_skip(
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        model_registry_id="cfg_model_registry_01",
-        id="wf_1234567890abcdef",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
         status="draft",
         version=1,
@@ -69,7 +69,12 @@ async def test_dag_executor_preflight_skip(
         name=I18nText(translations={"en": "test"}),
         description=I18nText(translations={"en": "test"}),
         steps=[
-            StepRule(id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[])
+            StepRule(
+                id="stp_0195f3a0000070018234567890abcdef",
+                task_blueprint="blp_0195f3a0000070018234567890abcdef",
+                input_mappings={},
+                depends_on=[],
+            )
         ],
     )
 
@@ -82,7 +87,7 @@ async def test_dag_executor_preflight_skip(
         )
 
         await executor.execute_workflow(
-            execution_id="exe_1234567890abcdef",
+            execution_id="exe_0195f3a0000070018234567890abcdef",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         )
@@ -109,8 +114,8 @@ async def test_dag_executor_preflight_execution(
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        model_registry_id="cfg_model_registry_01",
-        id="wf_1234567890abcdef",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
         status="draft",
         version=1,
@@ -119,8 +124,8 @@ async def test_dag_executor_preflight_execution(
         description=I18nText(translations={"en": "test"}),
         steps=[
             StepRule(
-                id="stp_1234567890abcdef",
-                task_blueprint="blp_1234567890abcdef",
+                id="stp_0195f3a0000070018234567890abcdef",
+                task_blueprint="blp_0195f3a0000070018234567890abcdef",
                 input_mappings={},
                 depends_on=[],
             )
@@ -128,9 +133,9 @@ async def test_dag_executor_preflight_execution(
     )
 
     mock_repo.seed_raw_step(
-        "blp_1234567890abcdef",
+        "blp_0195f3a0000070018234567890abcdef",
         {
-            "id": "blp_1234567890abcdef",
+            "id": "blp_0195f3a0000070018234567890abcdef",
             "type": "logic",
             "cognitive_tier": "fast",
             "slug": "mock_step",
@@ -151,7 +156,7 @@ async def test_dag_executor_preflight_execution(
         executor.rag_preflight.execute.return_value = GlobalAtomBlackboard(atoms_by_input={})
 
         record = await executor.execute_workflow(
-            execution_id="exe_1234567890abcdef",
+            execution_id="exe_0195f3a0000070018234567890abcdef",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         )
@@ -179,8 +184,8 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        model_registry_id="cfg_model_registry_01",
-        id="wf_1234567890abcdef",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
         status="draft",
         version=1,
@@ -189,8 +194,8 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
         description=I18nText(translations={"en": "test"}),
         steps=[
             StepRule(
-                id="stp_1234567890abcdef",
-                task_blueprint="blp_1234567890abcdef",
+                id="stp_0195f3a0000070018234567890abcdef",
+                task_blueprint="blp_0195f3a0000070018234567890abcdef",
                 input_mappings={},
                 depends_on=[],
             )
@@ -198,9 +203,9 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
     )
 
     mock_repo.seed_raw_step(
-        "blp_1234567890abcdef",
+        "blp_0195f3a0000070018234567890abcdef",
         {
-            "id": "blp_1234567890abcdef",
+            "id": "blp_0195f3a0000070018234567890abcdef",
             "type": "logic",
             "pre_hooks": ["synthesis_distiller_hook"],
             "slug": "synthesis_step",
@@ -220,7 +225,7 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
         executor.rag_preflight.execute.return_value = GlobalAtomBlackboard(atoms_by_input={})
 
         record = await executor.execute_workflow(
-            execution_id="exe_1234567890abcdef",
+            execution_id="exe_0195f3a0000070018234567890abcdef",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         )
@@ -248,8 +253,8 @@ async def test_dag_executor_virtual_step(
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        model_registry_id="cfg_model_registry_01",
-        id="wf_1234567890abcdef",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
         status="draft",
         version=1,
@@ -258,8 +263,8 @@ async def test_dag_executor_virtual_step(
         description=I18nText(translations={"en": "test"}),
         steps=[
             StepRule(
-                id="stp_1234567890abcdef",
-                task_blueprint="blp_1234567890abcdef",
+                id="stp_0195f3a0000070018234567890abcdef",
+                task_blueprint="blp_0195f3a0000070018234567890abcdef",
                 input_mappings={},
                 depends_on=[],
             )
@@ -267,9 +272,9 @@ async def test_dag_executor_virtual_step(
     )
 
     mock_repo.seed_raw_step(
-        "blp_1234567890abcdef",
+        "blp_0195f3a0000070018234567890abcdef",
         {
-            "id": "blp_1234567890abcdef",
+            "id": "blp_0195f3a0000070018234567890abcdef",
             "type": "logic",
             "cognitive_tier": "fast",
             "slug": "mock_step",
@@ -290,7 +295,7 @@ async def test_dag_executor_virtual_step(
         executor.rag_preflight.execute.return_value = {"atoms_by_input": {}}
 
         record = await executor.execute_workflow(
-            execution_id="exe_1234567890abcdef",
+            execution_id="exe_0195f3a0000070018234567890abcdef",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         )
@@ -323,8 +328,8 @@ async def test_dag_executor_preflight_ignores_system_keys(
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        model_registry_id="cfg_model_registry_01",
-        id="wf_1234567890abcdef",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
         status="draft",
         version=1,
@@ -333,8 +338,8 @@ async def test_dag_executor_preflight_ignores_system_keys(
         description=I18nText(translations={"en": "test"}),
         steps=[
             StepRule(
-                id="stp_1234567890abcdef",
-                task_blueprint="blp_1234567890abcdef",
+                id="stp_0195f3a0000070018234567890abcdef",
+                task_blueprint="blp_0195f3a0000070018234567890abcdef",
                 input_mappings={},
                 depends_on=[],
             )
@@ -342,20 +347,20 @@ async def test_dag_executor_preflight_ignores_system_keys(
     )
 
     step_data = {
-        "id": "stp_1234567890abcdef",
+        "id": "stp_0195f3a0000070018234567890abcdef",
         "slug": "blp_test",
         "name": {"translations": {"en": "blp_test"}},
         "cognitive_tier": "fast",
-        "criteria_block_ids": ["blk_1234567890abcdef"],
-        "extraction_protocol_block_id": "blk_1234567890abcdef",
+        "criteria_block_ids": ["blk_0195f3a0000070018234567890abcdef"],
+        "extraction_protocol_block_id": "blk_0195f3a0000070018234567890abcdef",
         "type": "llm",
     }
-    mock_repo.seed_raw_step("stp_1234567890abcdef", step_data)
-    mock_repo.seed_raw_step("blp_1234567890abcdef", step_data)
+    mock_repo.seed_raw_step("stp_0195f3a0000070018234567890abcdef", step_data)
+    mock_repo.seed_raw_step("blp_0195f3a0000070018234567890abcdef", step_data)
 
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_1234567890abcde",
         target_locale="en",
         metadata=ExecutionMetadata(),
@@ -428,25 +433,25 @@ async def test_rag_preflight_service_input_chars_below_threshold_skips_atomizati
     )
 
     step_rule = StepRule(
-        id="stp_1234567890abcdef",
-        task_blueprint="blp_1234567890abcdef",
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
         input_mappings={},
         depends_on=[],
     )
     step_def = Step.model_validate(
         {
-            "id": "stp_1234567890abcdef",
+            "id": "stp_0195f3a0000070018234567890abcdef",
             "slug": "blp_test",
             "name": {"translations": {"en": "blp_test"}},
             "cognitive_tier": "fast",
-            "criteria_block_ids": ["blk_1234567890abcdef"],
-            "extraction_protocol_block_id": "blk_1234567890abcdef",
+            "criteria_block_ids": ["blk_0195f3a0000070018234567890abcdef"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070018234567890abcdef",
             "type": "llm",
         }
     )
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_1234567890abcde",
         target_locale="en",
         metadata=ExecutionMetadata(),
@@ -483,19 +488,19 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
     )
 
     step_rule = StepRule(
-        id="stp_1234567890abcdef",
-        task_blueprint="blp_1234567890abcdef",
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
         input_mappings={},
         depends_on=[],
     )
     step_def = Step.model_validate(
         {
-            "id": "stp_1234567890abcdef",
+            "id": "stp_0195f3a0000070018234567890abcdef",
             "slug": "blp_test",
             "name": {"translations": {"en": "blp_test"}},
             "cognitive_tier": "fast",
-            "criteria_block_ids": ["blk_1234567890abcdef"],
-            "extraction_protocol_block_id": "blk_1234567890abcdef",
+            "criteria_block_ids": ["blk_0195f3a0000070018234567890abcdef"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070018234567890abcdef",
             "type": "llm",
         }
     )
@@ -504,8 +509,8 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
         "tuotantojulkaisua asiakasympäristöön."
     )  # 112 chars (>= 100)
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_1234567890abcde",
         target_locale="fi",
         metadata=ExecutionMetadata(),

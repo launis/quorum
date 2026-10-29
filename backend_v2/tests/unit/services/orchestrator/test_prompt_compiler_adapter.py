@@ -103,7 +103,7 @@ def test_prompt_compiler_adapter_extended_delegation() -> None:
 
     # 2. compile_static_instructions & compile_dynamic_instructions
     static_block = SystemRulePromptBlock(
-        id="blk_1111222233334444",
+        id="blk_0195f3a0000070018111222233334444",
         slug="static_inst",
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
@@ -115,7 +115,7 @@ def test_prompt_compiler_adapter_extended_delegation() -> None:
     assert "Static directive instruction" in static_out
 
     dynamic_block = SystemRulePromptBlock(
-        id="blk_2222333344445555",
+        id="blk_0195f3a0000070028222333344445555",
         slug="dyn_inst",
         category_id=PromptBlockCategory.RUNTIME_VARIABLES,
         type=BlockDataType.STRING,

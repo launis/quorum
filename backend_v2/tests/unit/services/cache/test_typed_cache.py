@@ -149,7 +149,7 @@ async def test_typed_cache_get_cached_auto_eviction_delete_fails() -> None:
 async def test_mcp_gateway_cache_memory_and_redis_roundtrip() -> None:
     """Verify MCPGatewayCache stores, retrieves, and invalidates gateway records."""
     gateway = SystemConfigMCPGateways(
-        id="sys_8172bda70c8641c5",
+        id="sys_0195f3a00000700080008172bda70c86",
         slug="tavily_gateway",
         type="mcp_gateways",
         tools=[
@@ -162,25 +162,28 @@ async def test_mcp_gateway_cache_memory_and_redis_roundtrip() -> None:
         ],
     )
     gw_cache = MCPGatewayCache()
-    assert MCPGatewayCache.build_key("sys_8172bda70c8641c5") == "mcp_gateway:sys_8172bda70c8641c5"
-    assert await gw_cache.get_gateway("sys_8172bda70c8641c5") is None
+    assert (
+        MCPGatewayCache.build_key("sys_0195f3a00000700080008172bda70c86")
+        == "mcp_gateway:sys_0195f3a00000700080008172bda70c86"
+    )
+    assert await gw_cache.get_gateway("sys_0195f3a00000700080008172bda70c86") is None
 
     await gw_cache.set_gateway(gateway, expire_seconds=300)
-    cached = await gw_cache.get_gateway("sys_8172bda70c8641c5")
+    cached = await gw_cache.get_gateway("sys_0195f3a00000700080008172bda70c86")
     assert cached is not None
-    assert cached.id == "sys_8172bda70c8641c5"
+    assert cached.id == "sys_0195f3a00000700080008172bda70c86"
     assert cached.slug == "tavily_gateway"
     assert len(cached.tools) == 1
 
-    await gw_cache.invalidate("sys_8172bda70c8641c5")
-    assert await gw_cache.get_gateway("sys_8172bda70c8641c5") is None
+    await gw_cache.invalidate("sys_0195f3a00000700080008172bda70c86")
+    assert await gw_cache.get_gateway("sys_0195f3a00000700080008172bda70c86") is None
 
 
 @pytest.mark.asyncio
 async def test_mcp_gateway_cache_redis_hit_hydrates_memory() -> None:
     """Verify MCPGatewayCache populates in-memory cache when Redis returns a hit."""
     gateway = SystemConfigMCPGateways(
-        id="sys_8172bda70c8641c5",
+        id="sys_0195f3a00000700080008172bda70c86",
         slug="tavily_gateway",
         type="mcp_gateways",
         tools=[],
@@ -189,7 +192,7 @@ async def test_mcp_gateway_cache_redis_hit_hydrates_memory() -> None:
     mock_redis.get.return_value = gateway.model_dump_json()
 
     gw_cache = MCPGatewayCache(cache_service=TypedCacheService(redis=mock_redis))
-    hit = await gw_cache.get_gateway("sys_8172bda70c8641c5")
+    hit = await gw_cache.get_gateway("sys_0195f3a00000700080008172bda70c86")
     assert hit is not None
-    assert hit.id == "sys_8172bda70c8641c5"
-    mock_redis.get.assert_called_once_with("mcp_gateway:sys_8172bda70c8641c5")
+    assert hit.id == "sys_0195f3a00000700080008172bda70c86"
+    mock_redis.get.assert_called_once_with("mcp_gateway:sys_0195f3a00000700080008172bda70c86")

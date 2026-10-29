@@ -62,16 +62,16 @@ def _build_sample_execution(
 ) -> ExecutionRecord:
     step_states: dict[str, ExecutionStepState] = {}
     if has_atoms:
-        step_states["stp_0123456789abcdef"] = ExecutionStepState(
-            id="stp_0123456789abcdef",
+        step_states["stp_0195f3a0000070008123456789abcdef"] = ExecutionStepState(
+            id="stp_0195f3a0000070008123456789abcdef",
             label="Matrix Step Label",
             status=ExecutionStatus.PASSED,
         )
 
     return ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=status,
         step_states=step_states,
@@ -80,7 +80,7 @@ def _build_sample_execution(
 
 def _build_sample_report_dto(has_atoms: bool = True) -> ReportDataDTO:
     axis = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Axis 1",
         label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
         score=4.5,
@@ -94,23 +94,23 @@ def _build_sample_report_dto(has_atoms: bool = True) -> ReportDataDTO:
     if has_atoms:
         results = [
             AtomResultDTO(
-                tda_id="tda_0123456789abcdef",
-                matrix_id="blk_0123456789abcdef",
+                tda_id="tda_0195f3a0000070008123456789abcdef",
+                matrix_id="blk_0195f3a0000070008123456789abcdef",
                 status=ExecutionStatus.PASSED,
                 source_quotes="Verbatim quote from source document",
                 evaluation_reasoning="Reasoning with several words here",
             )
         ]
         hydrated_references = {
-            "tda_0123456789abcdef": HydratedAtomDTO(
+            "tda_0195f3a0000070008123456789abcdef": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Claim Label",
             )
         }
     return ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prof_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prof_0195f3a0000070008123456789abcdef",
         global_score=4.5,
         has_warning=False,
         inner_sdui_blocks=[chart],
@@ -145,7 +145,7 @@ async def test_export_excel_success_fi() -> None:
     desc = I18nText(translations={"fi": "D", "en": "D"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
     matrix_block = MatrixPromptBlock(
-        id="blk_0123456789abcdef",
+        id="blk_0195f3a0000070008123456789abcdef",
         slug="m_slug",
         label=lbl,
         description=desc,
@@ -160,7 +160,7 @@ async def test_export_excel_success_fi() -> None:
         components=[matrix_block],
     )
 
-    assert payload.filename == "execution_export_exe_0123456789abcdef.xlsx"
+    assert payload.filename == "execution_export_exe_0195f3a0000070008123456789abcdef.xlsx"
     assert len(payload.content_bytes) > 0
     assert payload.content_bytes.startswith(b"PK")
 
@@ -172,7 +172,7 @@ async def test_export_excel_success_en_with_prompt_block_repo() -> None:
     desc = I18nText(translations={"fi": "D", "en": "D"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
     matrix_block = MatrixPromptBlock(
-        id="blk_0123456789abcdef",
+        id="blk_0195f3a0000070008123456789abcdef",
         slug="m_slug",
         label=lbl,
         description=desc,
@@ -192,7 +192,7 @@ async def test_export_excel_success_en_with_prompt_block_repo() -> None:
         locale="en",
     )
 
-    assert payload.filename == "execution_export_exe_0123456789abcdef.xlsx"
+    assert payload.filename == "execution_export_exe_0195f3a0000070008123456789abcdef.xlsx"
     assert len(payload.content_bytes) > 0
     assert prompt_block_repo._call_counts["get_all_prompt_blocks"] == 1
 
@@ -243,7 +243,7 @@ async def test_export_excel_writer_error() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
     report_dto = _build_sample_report_dto()
     matching_matrix = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Axis 1",
         label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
         score=4.5,
@@ -266,7 +266,7 @@ async def test_export_flat_csv_success() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
     report_dto = _build_sample_report_dto()
     matching_matrix = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Axis 1",
         label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
         score=4.5,
@@ -310,8 +310,8 @@ async def test_export_excel_with_report_dto_results_atoms() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED, has_atoms=False)
 
     atom_result = AtomResultDTO(
-        tda_id="tda_0123456789abcdef",
-        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008123456789abcdef",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PASSED,
         source_quotes="Verbatim quote from source document",
         evaluation_reasoning="Sound reasoning based on evidence.",
@@ -322,7 +322,7 @@ async def test_export_excel_with_report_dto_results_atoms() -> None:
     )
 
     axis = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Strategy Matrix",
         label_i18n=I18nText(translations={"fi": "Strategiamatriisi", "en": "Strategy Matrix"}),
         score=4.0,
@@ -333,14 +333,14 @@ async def test_export_excel_with_report_dto_results_atoms() -> None:
     chart = SduiRadarChartBlock(axes=[axis])
 
     report_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prof_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prof_0195f3a0000070008123456789abcdef",
         global_score=4.0,
         has_warning=False,
         inner_sdui_blocks=[chart],
         results=[atom_result],
-        hydrated_references={"tda_0123456789abcdef": hydrated_ref},
+        hydrated_references={"tda_0195f3a0000070008123456789abcdef": hydrated_ref},
     )
 
     payload = await service.export_excel(
@@ -350,7 +350,7 @@ async def test_export_excel_with_report_dto_results_atoms() -> None:
         locale="fi",
     )
 
-    assert payload.filename == "execution_export_exe_0123456789abcdef.xlsx"
+    assert payload.filename == "execution_export_exe_0195f3a0000070008123456789abcdef.xlsx"
     assert len(payload.content_bytes) > 0
 
 
@@ -361,7 +361,7 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED, has_atoms=False)
 
     axis_custom = MatrixScorecardRowDTO(
-        block_id="blk_aaaaaaaaaaaaaaaa",
+        block_id="blk_0195f3a00000700a8aaaaaaaaaaaaaaa",
         name="Custom Axis",
         label_i18n=I18nText(translations={"en": "Custom Axis"}),
         score=3.0,
@@ -373,8 +373,8 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
     text_block = ParagraphBlock(text="Informational text")
 
     atom_with_extensions = AtomResultDTO(
-        tda_id="tda_bbbbbbbbbbbbbbbb",
-        matrix_id="blk_aaaaaaaaaaaaaaaa",
+        tda_id="tda_0195f3a00000700b8bbbbbbbbbbbbbbb",
+        matrix_id="blk_0195f3a00000700a8aaaaaaaaaaaaaaa",
         status=ExecutionStatus.FAILED,
         source_quotes=None,
         evaluation_reasoning="Failed check due to missing policy.",
@@ -386,8 +386,8 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
         },
     )
     atom_system_error = AtomResultDTO(
-        tda_id="tda_cccccccccccccccc",
-        matrix_id="blk_aaaaaaaaaaaaaaaa",
+        tda_id="tda_0195f3a00000700c8ccccccccccccccc",
+        matrix_id="blk_0195f3a00000700a8aaaaaaaaaaaaaaa",
         status=ExecutionStatus.SYSTEM_ERROR,
         source_quotes=None,
         evaluation_reasoning=None,
@@ -400,21 +400,21 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
     )
 
     component_block = SystemRulePromptBlock(
-        id="blk_dddddddddddddddd",
+        id="blk_0195f3a00000700d8ddddddddddddddd",
         slug="comp_slug",
         label=I18nText(translations={"fi": "Komponentti", "en": "Component"}),
         description=I18nText(translations={"fi": "D", "en": "D"}),
         instruction_text="Component rule instruction",
     )
     tda_matched_block = SystemRulePromptBlock(
-        id="tda_eeeeeeeeeeeeeeee",
+        id="tda_0195f3a00000700e8eeeeeeeeeeeeeee",
         slug="tda_slug",
         label=I18nText(translations={"fi": "TDA Block", "en": "TDA Block"}),
         description=I18nText(translations={"fi": "D", "en": "D"}),
         instruction_text="TDA matched instruction",
     )
     unmatched_block = SystemRulePromptBlock(
-        id="blk_0000000000000000",
+        id="blk_0195f3a0000070008000000000000000",
         slug="unmatched_slug",
         label=I18nText(translations={"fi": "Tuntematon", "en": "Unknown"}),
         description=I18nText(translations={"fi": "D", "en": "D"}),
@@ -422,39 +422,39 @@ async def test_export_excel_with_all_extensions_and_blocks() -> None:
     )
 
     atom_with_comp_matrix = AtomResultDTO(
-        tda_id="tda_eeeeeeeeeeeeeeee",
-        matrix_id="blk_dddddddddddddddd",
+        tda_id="tda_0195f3a00000700e8eeeeeeeeeeeeeee",
+        matrix_id="blk_0195f3a00000700d8ddddddddddddddd",
         status=ExecutionStatus.PASSED,
         source_quotes="Explicit quote",
         evaluation_reasoning="Evaluation passed smoothly.",
     )
     atom_unmatched = AtomResultDTO(
-        tda_id="tda_ffffffffffffffff",
-        matrix_id="blk_0000000000000000",
+        tda_id="tda_0195f3a00000700f8fffffffffffffff",
+        matrix_id="blk_0195f3a0000070008000000000000000",
         status=ExecutionStatus.PASSED,
         source_quotes="Unknown quote",
         evaluation_reasoning="Evaluation for unknown block.",
     )
 
     report_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prof_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prof_0195f3a0000070008123456789abcdef",
         global_score=3.5,
         has_warning=False,
         inner_sdui_blocks=[text_block, chart],
         results=[atom_with_extensions, atom_system_error, atom_with_comp_matrix, atom_unmatched],
         hydrated_references={
-            "tda_bbbbbbbbbbbbbbbb": hydrated_ref_with_quote,
-            "tda_cccccccccccccccc": HydratedAtomDTO(
+            "tda_0195f3a00000700b8bbbbbbbbbbbbbbb": hydrated_ref_with_quote,
+            "tda_0195f3a00000700c8ccccccccccccccc": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Claim for system error",
             ),
-            "tda_eeeeeeeeeeeeeeee": HydratedAtomDTO(
+            "tda_0195f3a00000700e8eeeeeeeeeeeeeee": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Claim for component matrix",
             ),
-            "tda_ffffffffffffffff": HydratedAtomDTO(
+            "tda_0195f3a00000700f8fffffffffffffff": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Claim for unknown block",
             ),
@@ -481,7 +481,7 @@ async def test_export_flat_csv_default_execution_id() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
     report_dto = _build_sample_report_dto()
     matching_matrix = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Axis 1",
         label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
         score=4.5,
@@ -498,7 +498,7 @@ async def test_export_flat_csv_default_execution_id() -> None:
         locale="fi",
     )
 
-    assert payload.filename == "execution_export_exe_0123456789abcdef.csv"
+    assert payload.filename == "execution_export_exe_0195f3a0000070008123456789abcdef.csv"
     assert len(payload.content_bytes) > 0
     csv_text = payload.content_bytes.decode("utf-8-sig")
     assert "Logiikkamatriisi" in csv_text
@@ -553,9 +553,9 @@ async def test_export_excel_emits_exact_9_rows_summary_and_claim_classifications
     )
 
     report_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prof_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prof_0195f3a0000070008123456789abcdef",
         global_score=4.0,
         has_warning=False,
         inner_sdui_blocks=[],
@@ -619,7 +619,7 @@ async def test_export_excel_with_prompt_block_repo_resolves_matrix_names_and_inv
     desc = I18nText(translations={"fi": "Kuvaus", "en": "Description"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
     matrix_block = MatrixPromptBlock(
-        id="blk_53f32679aa514fcb",
+        id="blk_0195f3a00000700583f32679aa514fcb",
         slug="active_steering",
         label=lbl,
         description=desc,
@@ -634,7 +634,7 @@ async def test_export_excel_with_prompt_block_repo_resolves_matrix_names_and_inv
 
     atom_inv = AtomResultDTO(
         tda_id="tda_53f32679aa514fcb0000000000000000",
-        matrix_id="blk_53f32679aa514fcb",
+        matrix_id="blk_0195f3a00000700583f32679aa514fcb",
         status=ExecutionStatus.PASSED,
         source_quotes=None,
         evaluation_reasoning="No performativity error detected in leadership steering.",
@@ -642,9 +642,9 @@ async def test_export_excel_with_prompt_block_repo_resolves_matrix_names_and_inv
     )
 
     report_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prof_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prof_0195f3a0000070008123456789abcdef",
         global_score=4.0,
         has_warning=False,
         inner_sdui_blocks=[],
@@ -690,7 +690,7 @@ async def test_export_excel_with_failed_inverse_claim_emits_status_zero_negative
     )
     scale = MatrixScale(score=1, ai_label="L1", claims=[claim])
     matrix_block = MatrixPromptBlock(
-        id="blk_0000000000000001",
+        id="blk_0195f3a0000070008000000000000001",
         slug="matrix_0001",
         label=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),
         description=I18nText(translations={"fi": "Kuvaus 1", "en": "Desc 1"}),
@@ -703,7 +703,7 @@ async def test_export_excel_with_failed_inverse_claim_emits_status_zero_negative
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
     matrices = [
         MatrixScorecardRowDTO(
-            block_id="blk_0000000000000001",
+            block_id="blk_0195f3a0000070008000000000000001",
             name="Matrix 1",
             label_i18n=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),
             score=4.0,
@@ -715,7 +715,7 @@ async def test_export_excel_with_failed_inverse_claim_emits_status_zero_negative
 
     atom_failed = AtomResultDTO(
         tda_id=tda_id,
-        matrix_id="blk_0000000000000001",
+        matrix_id="blk_0195f3a0000070008000000000000001",
         status=ExecutionStatus.FAILED,
         source_quotes=None,
         evaluation_reasoning="Performative bias was detected in steering.",
@@ -723,9 +723,9 @@ async def test_export_excel_with_failed_inverse_claim_emits_status_zero_negative
     )
 
     report_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prof_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prof_0195f3a0000070008123456789abcdef",
         global_score=4.0,
         has_warning=False,
         inner_sdui_blocks=[],
@@ -768,9 +768,9 @@ async def test_export_excel_missing_matrix_in_repo_raises_fail_fast_negative() -
     )
 
     report_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prof_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prof_0195f3a0000070008123456789abcdef",
         global_score=4.0,
         has_warning=False,
         inner_sdui_blocks=[],
@@ -804,7 +804,7 @@ async def test_export_excel_tab1_ssot_localization() -> None:
     report_dto = _build_sample_report_dto()
     matrices = [
         MatrixScorecardRowDTO(
-            block_id="blk_0123456789abcdef",
+            block_id="blk_0195f3a0000070008123456789abcdef",
             name="Axis 1",
             label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
             score=4.5,
@@ -844,7 +844,7 @@ async def test_export_excel_tab2_ssot_localization() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
     report_dto = _build_sample_report_dto()
     matching_matrix = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Axis 1",
         label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
         score=4.5,
@@ -953,9 +953,9 @@ async def test_export_excel_with_scorecard_atoms_and_rich_matrix_metadata() -> N
     )
 
     report_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prof_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prof_0195f3a0000070008123456789abcdef",
         global_score=3.5,
         has_warning=False,
         inner_sdui_blocks=[],
@@ -994,9 +994,9 @@ async def test_export_excel_atom_missing_matrix_id_and_parent_fails_fast() -> No
         evaluation_reasoning="Reason",
     )
     report_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prof_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prof_0195f3a0000070008123456789abcdef",
         global_score=3.5,
         has_warning=False,
         inner_sdui_blocks=[],
@@ -1034,7 +1034,7 @@ async def test_export_flat_csv_resolves_matrix_from_prompt_block_repo() -> None:
     """Regression test: export_flat_csv must resolve matrix blocks from prompt_block_repo.
 
     When an atom belongs to an informational or secondary matrix block not included
-    in the evaluative 'matrices' list (e.g. blk_53f32679aa514fcb), export_flat_csv
+    in the evaluative 'matrices' list (e.g. blk_0195f3a00000700583f32679aa514fcb), export_flat_csv
     must resolve the matrix metadata instead of crashing with 404 RESOURCE_NOT_FOUND.
     """
     prompt_block_repo = InMemoryPromptBlockRepository()
@@ -1052,7 +1052,7 @@ async def test_export_flat_csv_resolves_matrix_from_prompt_block_repo() -> None:
     scale = MatrixScale(score=1, ai_label="L1", claims=[claim])
     desc = I18nText(translations={"fi": "Kuvaus", "en": "Description"})
     informational_block = MatrixPromptBlock(
-        id="blk_53f32679aa514fcb",
+        id="blk_0195f3a00000700583f32679aa514fcb",
         slug="m_slug",
         label=lbl,
         description=desc,
@@ -1065,15 +1065,15 @@ async def test_export_flat_csv_resolves_matrix_from_prompt_block_repo() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
     atom_result = AtomResultDTO(
         tda_id="tda_135ee4d2f4e28b3305cbae57482e34b0",
-        matrix_id="blk_53f32679aa514fcb",
+        matrix_id="blk_0195f3a00000700583f32679aa514fcb",
         status=ExecutionStatus.PASSED,
         source_quotes="Verbatim quote",
         evaluation_reasoning="Evaluation reasoning",
     )
     report_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prof_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prof_0195f3a0000070008123456789abcdef",
         global_score=4.0,
         has_warning=False,
         inner_sdui_blocks=[],
@@ -1115,7 +1115,7 @@ async def test_informational_matrix_parity_excel_and_csv() -> None:
     """
     prompt_block_repo = InMemoryPromptBlockRepository()
     info_block = MatrixPromptBlock(
-        id="blk_1111222233334444",
+        id="blk_0195f3a0000070018111222233334444",
         slug="info_slug",
         label=I18nText(translations={"fi": "Informaatiomatriisi", "en": "Informational Matrix"}),
         description=I18nText(translations={"fi": "Kuvaus", "en": "Desc"}),
@@ -1136,7 +1136,7 @@ async def test_informational_matrix_parity_excel_and_csv() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
 
     info_scorecard_atom = ScorecardAtomDTO(
-        atom_id="tda_1111222233334444",
+        atom_id="tda_0195f3a0000070018111222233334444",
         claim_label="Informaatioväite",
         level=3,
         level_name="Taso 3 Nimi",
@@ -1156,7 +1156,7 @@ async def test_informational_matrix_parity_excel_and_csv() -> None:
     )
 
     eval_scorecard_atom = ScorecardAtomDTO(
-        atom_id="tda_5555666677778888",
+        atom_id="tda_0195f3a0000070058555666677778888",
         claim_label="Arviointiväite",
         level=5,
         level_name="Taso 5 Nimi",
@@ -1176,7 +1176,7 @@ async def test_informational_matrix_parity_excel_and_csv() -> None:
     )
 
     eval_matrix = MatrixScorecardRowDTO(
-        block_id="blk_5555666677778888",
+        block_id="blk_0195f3a0000070058555666677778888",
         name="Eval Matrix",
         label_i18n=I18nText(translations={"fi": "Arvioiva Matriisi", "en": "Evaluative Matrix"}),
         score=5.0,
@@ -1189,7 +1189,7 @@ async def test_informational_matrix_parity_excel_and_csv() -> None:
     )
 
     info_matrix = MatrixScorecardRowDTO(
-        block_id="blk_1111222233334444",
+        block_id="blk_0195f3a0000070018111222233334444",
         name="Info Matrix",
         label_i18n=I18nText(translations={"fi": "Informaatiomatriisi", "en": "Informational Matrix"}),
         score=3.0,
@@ -1202,34 +1202,34 @@ async def test_informational_matrix_parity_excel_and_csv() -> None:
     )
 
     atom_eval = AtomResultDTO(
-        tda_id="tda_5555666677778888",
-        matrix_id="blk_5555666677778888",
+        tda_id="tda_0195f3a0000070058555666677778888",
+        matrix_id="blk_0195f3a0000070058555666677778888",
         status=ExecutionStatus.PASSED,
         source_quotes="Eval quote",
         evaluation_reasoning="Eval reasoning",
     )
     atom_info = AtomResultDTO(
-        tda_id="tda_1111222233334444",
-        matrix_id="blk_1111222233334444",
+        tda_id="tda_0195f3a0000070018111222233334444",
+        matrix_id="blk_0195f3a0000070018111222233334444",
         status=ExecutionStatus.PASSED,
         source_quotes="Info quote",
         evaluation_reasoning="Info reasoning",
     )
 
     report_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prof_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prof_0195f3a0000070008123456789abcdef",
         global_score=5.0,
         has_warning=False,
         inner_sdui_blocks=[],
         results=[atom_eval, atom_info],
         hydrated_references={
-            "tda_5555666677778888": HydratedAtomDTO(
+            "tda_0195f3a0000070058555666677778888": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Arviointiväite",
             ),
-            "tda_1111222233334444": HydratedAtomDTO(
+            "tda_0195f3a0000070018111222233334444": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Informaatioväite",
             ),
@@ -1308,7 +1308,7 @@ async def test_export_flat_csv_row_count_matches_results() -> None:
     report_dto = _build_sample_report_dto()
     matrices = [
         MatrixScorecardRowDTO(
-            block_id="blk_0123456789abcdef",
+            block_id="blk_0195f3a0000070008123456789abcdef",
             name="Matrix 1",
             label_i18n=I18nText(translations={"en": "Matrix 1"}),
             score=4.0,
@@ -1335,42 +1335,42 @@ async def test_export_causal_enrichment_parity() -> None:
     service = ExportService()
 
     node1 = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Foundational architecture assumption holds true.",
         source_quotes="Foundational verified quote.",
         paragraph_ref="Section 1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000002"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
         tda_score=5.0,
         tda_level_key="L5",
     )
     node2 = CausalNodeDTO(
-        node_id="tda_0000000000000002",
+        node_id="tda_0195f3a0000070008000000000000002",
         claim="Downstream interface verification.",
         source_quotes="Interface failure quote.",
         paragraph_ref="Section 2",
         status=ExecutionStatus.FAILED,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
         tda_score=1.0,
         tda_level_key="L1",
     )
     edge = CausalEdgeDTO(
-        source_id="tda_0000000000000001",
-        target_id="tda_0000000000000002",
+        source_id="tda_0195f3a0000070008000000000000001",
+        target_id="tda_0195f3a0000070008000000000000002",
         reasoning="Dependency implies interface requirement.",
     )
     graph = CausalGraphPayloadDTO(
         nodes=[node1, node2],
         edges=[edge],
-        root_cause_node_ids=["tda_0000000000000001"],
+        root_cause_node_ids=["tda_0195f3a0000070008000000000000001"],
         cycle_detected=False,
         isolated_node_ids=[],
     )
     diag = CausalRootCauseDiagnosisDTO(
-        failing_node_id="tda_0000000000000002",
-        root_cause_parent_id="tda_0000000000000001",
+        failing_node_id="tda_0195f3a0000070008000000000000002",
+        root_cause_parent_id="tda_0195f3a0000070008000000000000001",
         paragraph_ref="Section 2",
         explanation="Root assumption lacked schema boundary.",
         penalty_points=1.5,
@@ -1383,9 +1383,9 @@ async def test_export_causal_enrichment_parity() -> None:
         detected_hollow_terms=[],
     )
     remediation = PrescriptiveRemediationDTO(
-        target_node_id="tda_0000000000000002",
+        target_node_id="tda_0195f3a0000070008000000000000002",
         required_action="Add extra='forbid' to model.",
-        unlocks_node_ids=["tda_0000000000000003"],
+        unlocks_node_ids=["tda_0195f3a0000070008000000000000003"],
         potential_score_impact=1.5,
     )
     fair_scoring = FairScoringBreakdownDTO(
@@ -1404,9 +1404,9 @@ async def test_export_causal_enrichment_parity() -> None:
     )
 
     exec_record = ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="en",
         status=ExecutionStatus.PASSED,
         execution_trace=[
@@ -1419,30 +1419,30 @@ async def test_export_causal_enrichment_parity() -> None:
     )
 
     atom1 = AtomResultDTO(
-        tda_id="tda_0000000000000001",
-        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008000000000000001",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PASSED,
         source_quotes="Foundational verified quote.",
         evaluation_reasoning="Valid reasoning 1",
     )
     atom2 = AtomResultDTO(
-        tda_id="tda_0000000000000002",
-        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008000000000000002",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.FAILED,
         source_quotes=None,
         evaluation_reasoning="Failure reasoning 2",
     )
     report_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prf_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prf_0195f3a0000070008123456789abcdef",
         results=[atom1, atom2],
         hydrated_references={
-            "tda_0000000000000001": HydratedAtomDTO(
+            "tda_0195f3a0000070008000000000000001": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Claim 1",
             ),
-            "tda_0000000000000002": HydratedAtomDTO(
+            "tda_0195f3a0000070008000000000000002": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Claim 2",
             ),
@@ -1450,7 +1450,7 @@ async def test_export_causal_enrichment_parity() -> None:
     )
     matrices = [
         MatrixScorecardRowDTO(
-            block_id="blk_0123456789abcdef",
+            block_id="blk_0195f3a0000070008123456789abcdef",
             name="Matrix 1",
             label_i18n=I18nText(translations={"en": "Matrix 1"}),
             score=4.0,
@@ -1483,7 +1483,7 @@ async def test_export_causal_enrichment_parity() -> None:
 
     # Node 2: cascading_fault, blame parent 'tda_0000000000000001', 0 dependent children
     assert df.iloc[1][causal_status_col] == "cascading_fault"
-    assert df.iloc[1][blame_parent_col] == "tda_0000000000000001"
+    assert df.iloc[1][blame_parent_col] == "tda_0195f3a0000070008000000000000001"
     assert int(df.iloc[1][dep_count_col]) == 0
 
     # 2. Verify CSV stream
@@ -1504,7 +1504,7 @@ async def test_export_causal_enrichment_parity() -> None:
 
     # Node 2 row
     assert csv_rows[2][19] == "cascading_fault"
-    assert csv_rows[2][20] == "tda_0000000000000001"
+    assert csv_rows[2][20] == "tda_0195f3a0000070008000000000000001"
     assert csv_rows[2][21] == "0"
 
 
@@ -1560,9 +1560,9 @@ async def test_export_flat_csv_fails_empty_results() -> None:
     service = ExportService()
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED, has_atoms=False)
     report_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_0123456789abcdef",
-        profile_id="prf_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        profile_id="prf_0195f3a0000070008123456789abcdef",
         results=[],
     )
     with pytest.raises(AppException) as exc_info:
@@ -1574,42 +1574,42 @@ async def test_export_flat_csv_fails_empty_results() -> None:
 def _build_test_causal_payloads() -> tuple[CausalGraphPayloadDTO, CausalTdaFusionResultDTO]:
     """Helper constructing validated CausalGraphPayloadDTO and CausalTdaFusionResultDTO."""
     node1 = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Foundational architecture assumption holds true.",
         source_quotes="Foundational verified quote.",
         paragraph_ref="Section 1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000002"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
         tda_score=5.0,
         tda_level_key="L5",
     )
     node2 = CausalNodeDTO(
-        node_id="tda_0000000000000002",
+        node_id="tda_0195f3a0000070008000000000000002",
         claim="Downstream interface verification.",
         source_quotes="Interface failure quote.",
         paragraph_ref="Section 2",
         status=ExecutionStatus.FAILED,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
         tda_score=1.0,
         tda_level_key="L1",
     )
     edge = CausalEdgeDTO(
-        source_id="tda_0000000000000001",
-        target_id="tda_0000000000000002",
+        source_id="tda_0195f3a0000070008000000000000001",
+        target_id="tda_0195f3a0000070008000000000000002",
         reasoning="Dependency implies interface requirement.",
     )
     graph = CausalGraphPayloadDTO(
         nodes=[node1, node2],
         edges=[edge],
-        root_cause_node_ids=["tda_0000000000000001"],
+        root_cause_node_ids=["tda_0195f3a0000070008000000000000001"],
         cycle_detected=False,
         isolated_node_ids=[],
     )
     diag = CausalRootCauseDiagnosisDTO(
-        failing_node_id="tda_0000000000000002",
-        root_cause_parent_id="tda_0000000000000001",
+        failing_node_id="tda_0195f3a0000070008000000000000002",
+        root_cause_parent_id="tda_0195f3a0000070008000000000000001",
         paragraph_ref="Section 2",
         explanation="Root assumption lacked schema boundary.",
         penalty_points=1.5,
@@ -1622,9 +1622,9 @@ def _build_test_causal_payloads() -> tuple[CausalGraphPayloadDTO, CausalTdaFusio
         detected_hollow_terms=[],
     )
     remediation = PrescriptiveRemediationDTO(
-        target_node_id="tda_0000000000000002",
+        target_node_id="tda_0195f3a0000070008000000000000002",
         required_action="Add extra='forbid' to model.",
-        unlocks_node_ids=["tda_0000000000000001"],
+        unlocks_node_ids=["tda_0195f3a0000070008000000000000001"],
         potential_score_impact=1.5,
     )
     fair_scoring = FairScoringBreakdownDTO(
@@ -1658,9 +1658,9 @@ def test_extract_causal_result_from_trace_fusion_and_graph() -> None:
 
     # 1. content is typed CausalTdaFusionResultDTO
     exec_fusion = ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="en",
         status=ExecutionStatus.PASSED,
         execution_trace=[
@@ -1677,9 +1677,9 @@ def test_extract_causal_result_from_trace_fusion_and_graph() -> None:
 
     # 2. content is typed CausalGraphPayloadDTO
     exec_graph = ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="en",
         status=ExecutionStatus.PASSED,
         execution_trace=[
@@ -1696,9 +1696,9 @@ def test_extract_causal_result_from_trace_fusion_and_graph() -> None:
 
     # 3. ISTQB Negative Partition: content is untyped dict/primitive, fails-fast to None
     exec_raw_dict = ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="en",
         status=ExecutionStatus.PASSED,
         execution_trace=[
@@ -1719,15 +1719,15 @@ def test_extract_causal_result_from_step_states() -> None:
 
     # 1. StepOutputDTO with CausalTdaFusionResultDTO payload
     exec_step_fusion = ExecutionRecord.model_construct(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="en",
         status=ExecutionStatus.PASSED,
         step_states={
             "causal_step": StepOutputDTO(
-                step_id="stp_0123456789abcdef",
-                block_id="blk_0123456789abcdef",
+                step_id="stp_0195f3a0000070008123456789abcdef",
+                block_id="blk_0195f3a0000070008123456789abcdef",
                 data_type="causal",
                 payload=fusion,
             )
@@ -1737,15 +1737,15 @@ def test_extract_causal_result_from_step_states() -> None:
 
     # 2. StepOutputDTO with CausalGraphPayloadDTO payload
     exec_step_graph = ExecutionRecord.model_construct(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="en",
         status=ExecutionStatus.PASSED,
         step_states={
             "causal_step": StepOutputDTO(
-                step_id="stp_0123456789abcdef",
-                block_id="blk_0123456789abcdef",
+                step_id="stp_0195f3a0000070008123456789abcdef",
+                block_id="blk_0195f3a0000070008123456789abcdef",
                 data_type="causal",
                 payload=graph,
             )
@@ -1755,9 +1755,9 @@ def test_extract_causal_result_from_step_states() -> None:
 
     # 3. Direct causal DTO in step_states
     exec_direct = ExecutionRecord.model_construct(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="en",
         status=ExecutionStatus.PASSED,
         step_states={"causal_step": graph},
@@ -1766,15 +1766,15 @@ def test_extract_causal_result_from_step_states() -> None:
 
     # 4. StepOutputDTO with non-causal payload
     exec_other = ExecutionRecord.model_construct(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="en",
         status=ExecutionStatus.PASSED,
         step_states={
             "text_step": StepOutputDTO(
-                step_id="stp_0123456789abcdef",
-                block_id="blk_0123456789abcdef",
+                step_id="stp_0195f3a0000070008123456789abcdef",
+                block_id="blk_0195f3a0000070008123456789abcdef",
                 data_type="text",
                 payload="unrelated text",
             )
@@ -1793,7 +1793,7 @@ def test_resolve_causal_meta_all_branches() -> None:
 
     # 2. Isolated set -> orphan
     node_orphan = CausalNodeDTO(
-        node_id="tda_0000000000000003",
+        node_id="tda_0195f3a0000070008000000000000003",
         claim="Claim orphan",
         source_quotes="Quote",
         paragraph_ref="Section 1",
@@ -1803,18 +1803,18 @@ def test_resolve_causal_meta_all_branches() -> None:
         tda_score=3.0,
         tda_level_key="L3",
     )
-    meta_orphan = ExportService._resolve_causal_meta(node_orphan, set(), {"tda_0000000000000003"})
+    meta_orphan = ExportService._resolve_causal_meta(node_orphan, set(), {"tda_0195f3a0000070008000000000000003"})
     assert meta_orphan.causal_status == "orphan"
 
     # 3. Passed -> validated
     node_passed = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Claim passed",
         source_quotes="Quote",
         paragraph_ref="Section 1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000002"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
         tda_score=5.0,
         tda_level_key="L5",
     )
@@ -1824,29 +1824,29 @@ def test_resolve_causal_meta_all_branches() -> None:
 
     # 4. Failed with blame parents -> cascading_fault
     node_cascading = CausalNodeDTO(
-        node_id="tda_0000000000000002",
+        node_id="tda_0195f3a0000070008000000000000002",
         claim="Claim cascading",
         source_quotes="Quote",
         paragraph_ref="Section 2",
         status=ExecutionStatus.FAILED,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
         tda_score=1.0,
         tda_level_key="L1",
     )
     meta_cascading = ExportService._resolve_causal_meta(node_cascading, set(), set())
     assert meta_cascading.causal_status == "cascading_fault"
-    assert meta_cascading.blame_parent_id == "tda_0000000000000001"
+    assert meta_cascading.blame_parent_id == "tda_0195f3a0000070008000000000000001"
 
     # 5. Failed without blame parents -> root_cause
     node_root = CausalNodeDTO(
-        node_id="tda_0000000000000004",
+        node_id="tda_0195f3a0000070008000000000000004",
         claim="Claim root cause",
         source_quotes="Quote",
         paragraph_ref="Section 3",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000005"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000005"],
         tda_score=1.0,
         tda_level_key="L1",
     )
@@ -1863,7 +1863,7 @@ def test_resolve_context_target_and_matrix_label_branches() -> None:
 
     # Context target with fallback string
     row = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Axis 1",
         label_i18n=I18nText(translations={"en": "Axis 1"}),
         score=3.0,
@@ -1876,7 +1876,7 @@ def test_resolve_context_target_and_matrix_label_branches() -> None:
 
     # _resolve_matrix_label parent_m name fallback when label_i18n resolved
     row_label = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Fallback Matrix Name",
         label_i18n=I18nText(translations={"en": "Parent Matrix Label", "fi": "Suomeksi"}),
         score=3.0,
@@ -1885,7 +1885,7 @@ def test_resolve_context_target_and_matrix_label_branches() -> None:
         is_evaluative=True,
     )
     resolved_name = ExportService._resolve_matrix_label(
-        tda_id="tda_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008123456789abcdef",
         atom_matrix_id="blk_unregistered_id",
         parent_m=row_label,
         matrix_title_lookup={},
@@ -1897,8 +1897,8 @@ def test_resolve_context_target_and_matrix_label_branches() -> None:
 
     # _resolve_matrix_label atom_scale_meta path when atom_matrix_id and parent_m are None
     scale_meta = {
-        "tda_0123456789abcdef": AtomScaleMetadataDTO(
-            matrix_id="blk_0123456789abcdef",
+        "tda_0195f3a0000070008123456789abcdef": AtomScaleMetadataDTO(
+            matrix_id="blk_0195f3a0000070008123456789abcdef",
             level=1,
             level_name="Level 1",
             criterion="Criterion",
@@ -1906,10 +1906,10 @@ def test_resolve_context_target_and_matrix_label_branches() -> None:
         )
     }
     resolved_scale = ExportService._resolve_matrix_label(
-        tda_id="tda_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008123456789abcdef",
         atom_matrix_id=None,
         parent_m=None,
-        matrix_title_lookup={"blk_0123456789abcdef": "Lookup Title"},
+        matrix_title_lookup={"blk_0195f3a0000070008123456789abcdef": "Lookup Title"},
         blocks_by_id={},
         atom_scale_meta=scale_meta,
         locale="en",
@@ -1921,7 +1921,7 @@ def test_build_matrix_summary_rows_extra_branches() -> None:
     """Verify _build_summary_dtos handles raw_score, cited_source_id, and localized label."""
     service = ExportService()
     row = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Fallback Axis Name",
         label_i18n=I18nText(translations={"en": "English Axis", "fi": "Akseli"}),
         score=4.0,
@@ -1931,7 +1931,7 @@ def test_build_matrix_summary_rows_extra_branches() -> None:
         is_evaluative=True,
         cited_source_id="[src_doc_1]",
     )
-    rows = service._build_summary_dtos([row], "en", "exe_0123456789abcdef")
+    rows = service._build_summary_dtos([row], "en", "exe_0195f3a0000070008123456789abcdef")
     assert len(rows) == 1
     assert rows[0].label == "English Axis"
     assert rows[0].raw_score == 3.5
@@ -1954,8 +1954,8 @@ async def test_export_excel_includes_causal_propositions_with_metrics() -> None:
 
     # 1 mapped atom
     atom_res = AtomResultDTO(
-        tda_id="tda_0000000000000001",
-        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008000000000000001",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PASSED,
         source_quotes="Quote 1",
         evaluation_reasoning="Affirmative claim passed",
@@ -1968,7 +1968,7 @@ async def test_export_excel_includes_causal_propositions_with_metrics() -> None:
     causal_payload = CausalGraphPayloadDTO(
         nodes=[
             CausalNodeDTO(
-                node_id="tda_0000000000000001",
+                node_id="tda_0195f3a0000070008000000000000001",
                 claim="Atom 1 Claim",
                 paragraph_ref="p1",
                 status=ExecutionStatus.PASSED,
@@ -1980,7 +1980,7 @@ async def test_export_excel_includes_causal_propositions_with_metrics() -> None:
                 claim="Unmapped Causal Proposition",
                 paragraph_ref="p2",
                 status=ExecutionStatus.FAILED,
-                blame_parent_ids=["tda_0000000000000001"],
+                blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
                 dependent_child_ids=[],
             ),
         ],
@@ -2004,12 +2004,12 @@ async def test_export_excel_includes_causal_propositions_with_metrics() -> None:
     report_dto = report_dto.model_copy(
         update={
             "results": [atom_res],
-            "hydrated_references": {"tda_0000000000000001": hydrated},
+            "hydrated_references": {"tda_0195f3a0000070008000000000000001": hydrated},
         }
     )
     matrices = [
         MatrixScorecardRowDTO(
-            block_id="blk_0123456789abcdef",
+            block_id="blk_0195f3a0000070008123456789abcdef",
             name="Matrix 1",
             label_i18n=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),
             score=5.0,
@@ -2053,7 +2053,7 @@ async def test_export_excel_includes_causal_propositions_with_metrics() -> None:
     assert rows[2][6] == 0  # is_inverse
     assert rows[2][7] == 0.0  # points_awarded
     assert rows[2][11] == "cascading_fault"  # causal_status
-    assert rows[2][12] == "tda_0000000000000001"  # blame_parent_id
+    assert rows[2][12] == "tda_0195f3a0000070008000000000000001"  # blame_parent_id
     assert rows[2][13] == 0  # dependent_count
 
 
@@ -2070,8 +2070,8 @@ async def test_export_csv_includes_causal_and_ml_columns() -> None:
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
 
     atom_res_1 = AtomResultDTO(
-        tda_id="tda_0000000000000001",
-        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008000000000000001",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PASSED,
         source_quotes="Quote 1",
         evaluation_reasoning="Affirmative passed",
@@ -2082,8 +2082,8 @@ async def test_export_csv_includes_causal_and_ml_columns() -> None:
         resolved_claim="Criterion 1",
     )
     atom_res_2 = AtomResultDTO(
-        tda_id="tda_0000000000000002",
-        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008000000000000002",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PASSED,
         source_quotes=None,
         evaluation_reasoning="Inverse claim passed (anti-pattern absent = clean finding)",
@@ -2126,14 +2126,14 @@ async def test_export_csv_includes_causal_and_ml_columns() -> None:
         update={
             "results": [atom_res_1, atom_res_2],
             "hydrated_references": {
-                "tda_0000000000000001": hydrated_1,
-                "tda_0000000000000002": hydrated_2,
+                "tda_0195f3a0000070008000000000000001": hydrated_1,
+                "tda_0195f3a0000070008000000000000002": hydrated_2,
             },
         }
     )
     matrices = [
         MatrixScorecardRowDTO(
-            block_id="blk_0123456789abcdef",
+            block_id="blk_0195f3a0000070008123456789abcdef",
             name="Matrix 1",
             label_i18n=I18nText(translations={"en": "Matrix 1"}),
             score=5.0,
@@ -2206,7 +2206,7 @@ async def test_package_facade_export_excel_parity() -> None:
     report_dto = _build_sample_report_dto()
     matrices = [
         MatrixScorecardRowDTO(
-            block_id="blk_0123456789abcdef",
+            block_id="blk_0195f3a0000070008123456789abcdef",
             name="Matrix 1",
             label_i18n=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),
             score=4.0,
@@ -2236,7 +2236,7 @@ async def test_package_facade_export_flat_csv_parity() -> None:
     report_dto = _build_sample_report_dto()
     matrices = [
         MatrixScorecardRowDTO(
-            block_id="blk_0123456789abcdef",
+            block_id="blk_0195f3a0000070008123456789abcdef",
             name="Matrix 1",
             label_i18n=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),
             score=4.0,
@@ -2340,7 +2340,7 @@ def test_export_service_proxy_delegations_coverage() -> None:
     desc = I18nText(translations={"fi": "D", "en": "D"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
     matrix_block = MatrixPromptBlock(
-        id="blk_0123456789abcdef",
+        id="blk_0195f3a0000070008123456789abcdef",
         slug="m_slug",
         label=lbl,
         description=desc,
@@ -2376,6 +2376,6 @@ def test_export_service_proxy_delegations_coverage() -> None:
         locale="fi",
         blocks_by_id=blocks_by_id,
         matrix_title_lookup=title_lookup,
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
     assert len(denorm_rows) == 1

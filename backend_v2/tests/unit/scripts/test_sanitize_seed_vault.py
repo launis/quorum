@@ -21,10 +21,8 @@ from scripts.sanitize_seed_vault import (
     create_vault_backup,
     main,
     run_seed_vault_sanitization,
-    sanitize_output_profiles,
     sanitize_prompt_blocks,
     sanitize_steps,
-    sanitize_workflows,
     strip_raw_xml,
 )
 

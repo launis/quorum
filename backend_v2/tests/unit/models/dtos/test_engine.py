@@ -118,7 +118,7 @@ def test_engine_execution_request_pure_fields() -> None:
     atom = FlattenedAtom(atom_id="atm_1", question="Q", depends_on=(edge,))
     assert atom.depends_on[0].tda_id == "tda_11111111111111111111111111111111"
 
-    step = StepRule(id="stp_1111111111111111", task_blueprint="bp_1")
+    step = StepRule(id="stp_0195f3a0000070018111111111111111", task_blueprint="bp_1")
     context = StrategyContext(
         execution_id="exe_1",
         workflow_id="wf_1",
@@ -155,7 +155,7 @@ def test_engine_execution_request_rejects_semaphore_kwarg() -> None:
     from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
-    step = StepRule(id="stp_1111111111111111", task_blueprint="bp_1")
+    step = StepRule(id="stp_0195f3a0000070018111111111111111", task_blueprint="bp_1")
     context = StrategyContext(
         execution_id="exe_1",
         workflow_id="wf_1",
@@ -191,7 +191,7 @@ def test_engine_execution_request_rejects_running_event_kwarg() -> None:
     from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
-    step = StepRule(id="stp_1111111111111111", task_blueprint="bp_1")
+    step = StepRule(id="stp_0195f3a0000070018111111111111111", task_blueprint="bp_1")
     context = StrategyContext(
         execution_id="exe_1",
         workflow_id="wf_1",
@@ -226,7 +226,7 @@ def test_engine_execution_request_hydrated_messages_typed() -> None:
     from backend_v2.models.llm import LLMMessageDTO
     from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
-    step = StepRule(id="stp_1111111111111111", task_blueprint="bp_1")
+    step = StepRule(id="stp_0195f3a0000070018111111111111111", task_blueprint="bp_1")
     context = StrategyContext(
         execution_id="exe_1",
         workflow_id="wf_1",
@@ -263,7 +263,7 @@ def test_engine_execution_request_extra_fields_rejected() -> None:
     from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
-    step = StepRule(id="stp_1111111111111111", task_blueprint="bp_1")
+    step = StepRule(id="stp_0195f3a0000070018111111111111111", task_blueprint="bp_1")
     context = StrategyContext(
         execution_id="exe_1",
         workflow_id="wf_1",

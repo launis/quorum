@@ -528,7 +528,7 @@ def test_build_compiled_prompt_polyfactory_cdata_encapsulation() -> None:
     class MatrixEvaluationContextFactory(ModelFactory[MatrixEvaluationContext]):
         __model__ = MatrixEvaluationContext
 
-    atom_id = "tda_abcdef1234567890"
+    atom_id = "tda_0195f3a00000700a8bcdef1234567890"
     alias = "a0"
 
     flat_atom = FlattenedAtomFactory.build(

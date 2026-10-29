@@ -23,7 +23,7 @@ def test_state_projector_atom_result_dto_does_not_corrupt_snapshot() -> None:
     """Verifies that TraceEvents containing AtomResultDTO do not crash StateProjector.snapshot."""
     projector = StateProjector()
 
-    step_id = "sr_c4a5a1d15c00438a"
+    step_id = "sr_0195f3a00000700c84a5a1d15c00438a"
 
     # 1. Causal Discovery step emits its graph output
     node = CausalNodeDTO(
@@ -53,8 +53,8 @@ def test_state_projector_atom_result_dto_does_not_corrupt_snapshot() -> None:
 
     # 2. Causal Cohesion evaluator emits atom results with step_name=causal_source_step_id
     atom = AtomResultDTO(
-        tda_id="tda_c0a1e50000000001",
-        matrix_id="blk_c0a1e50000000001",
+        tda_id="tda_0195f3a00000700c80a1e50000000001",
+        matrix_id="blk_0195f3a00000700c80a1e50000000001",
         status=ExecutionStatus.PASSED,
         contextual_override=True,
         is_inverse_evidence=False,
@@ -81,7 +81,7 @@ def test_state_projector_atom_result_dto_does_not_corrupt_snapshot() -> None:
 def test_state_projector_atom_result_dto_preserves_graph_and_accumulates_results() -> None:
     """Verifies that multiple AtomResultDTOs accumulate into results while preserving graph key."""
     projector = StateProjector()
-    step_id = "sr_c4a5a1d15c00438a"
+    step_id = "sr_0195f3a00000700c84a5a1d15c00438a"
 
     # Step emits initial graph
     node = CausalNodeDTO(
@@ -212,7 +212,7 @@ def test_state_projector_unsupported_content_type_fails_fast() -> None:
 def test_state_projector_results_dict_preserves_graph_and_accumulates_results() -> None:
     """Verifies that TraceEvents containing {'results': [atoms]} preserve graph and populate results block."""
     projector = StateProjector()
-    step_id = "sr_c4a5a1d15c00438a"
+    step_id = "sr_0195f3a00000700c84a5a1d15c00438a"
 
     # Step emits initial graph
     node = CausalNodeDTO(
@@ -281,7 +281,7 @@ def test_state_projector_results_dict_preserves_graph_and_accumulates_results() 
 def test_state_projector_results_dict_with_raw_dicts_deserializes_and_accumulates() -> None:
     """Verifies that replaying a JSON trace with raw atom dicts inside {'results': [...]} deserializes cleanly."""
     projector = StateProjector()
-    step_id = "sr_c4a5a1d15c00438a"
+    step_id = "sr_0195f3a00000700c84a5a1d15c00438a"
 
     # Step emits initial graph
     node = CausalNodeDTO(
@@ -356,7 +356,7 @@ def test_state_projector_results_dict_with_raw_dicts_deserializes_and_accumulate
 
 def test_matrix_reducer_extracts_causal_cohesion_when_wrapped_in_results() -> None:
     """Verifies that MatrixReducer extracts evaluated matrices and atoms when wrapped in {'results': [...]}."""
-    step_id = "sr_c4a5a1d15c00438a"
+    step_id = "sr_0195f3a00000700c84a5a1d15c00438a"
 
     atom_1 = AtomResultDTO(
         tda_id="tda_1",
@@ -389,8 +389,8 @@ def test_matrix_reducer_extracts_causal_cohesion_when_wrapped_in_results() -> No
         )
     ]
     record = ExecutionRecord(
-        id="exe_0000000000000001",
-        workflow_id="wf_0000000000000001",
+        id="exe_0195f3a0000070008000000000000001",
+        workflow_id="wf_0195f3a0000070008000000000000001",
         target_locale="en",
         execution_trace=events,
     )
@@ -419,7 +419,6 @@ def test_causal_cohesion_trace_event_must_provide_hydrated_references_for_report
     from backend_v2.models.dtos.causal_discovery import AntiFluffAuditDTO
     from backend_v2.models.dtos.report_data import ReportDataDTO
     from backend_v2.services.orchestrator.causal_cohesion_evaluator import (
-        CAUSAL_COHESION_TDA_IDS,
         CausalCohesionEvaluator,
     )
 
@@ -434,18 +433,17 @@ def test_causal_cohesion_trace_event_must_provide_hydrated_references_for_report
         audit=audit,
         total_nodes=10,
         strictness_level=0,
-        matrix_block_id="blk_c0a1e50000000001",
+        matrix_block_id="blk_0195f3a00000700c80a1e50000000001",
     )
 
     # Invariant: eval_dto must expose hydrated_references for all 5 BARS atoms
     assert eval_dto.hydrated_references is not None, "CausalCohesionEvaluationDTO must provide hydrated_references"
-    assert len(eval_dto.hydrated_references) == len(CAUSAL_COHESION_TDA_IDS)
-    for tda_id in CAUSAL_COHESION_TDA_IDS:
-        assert tda_id in eval_dto.hydrated_references
+    assert len(eval_dto.hydrated_references) == 5
+    for tda_id in eval_dto.hydrated_references:
         assert isinstance(eval_dto.hydrated_references[tda_id], HydratedAtomDTO)
 
     # Invariant: TraceEvent content must bundle hydrated_references alongside results
-    step_id = "sr_c4a5a1d15c00438a"
+    step_id = "sr_0195f3a00000700c84a5a1d15c00438a"
     event = TraceEvent(
         step_name=step_id,
         event_type="output",
@@ -473,12 +471,12 @@ def test_causal_cohesion_trace_event_must_provide_hydrated_references_for_report
         scoring_strategy="UNIFIED",
         scoring_engine_name="UNIFIED",
         user_name="Test User",
-        workflow_id="wf_0000000000000001",
-        execution_id="exe_0000000000000001",
-        profile_id="prf_0000000000000001",
+        workflow_id="wf_0195f3a0000070008000000000000001",
+        execution_id="exe_0195f3a0000070008000000000000001",
+        profile_id="prf_0195f3a0000070008000000000000001",
         profile_name=i18n,
         profile_description=i18n,
-        available_profiles={"prf_0000000000000001": i18n},
+        available_profiles={"prf_0195f3a0000070008000000000000001": i18n},
         created_at=datetime.now(timezone.utc),
         local_time_str="2026-10-15 20:35:48",
         custom_preface_md=None,

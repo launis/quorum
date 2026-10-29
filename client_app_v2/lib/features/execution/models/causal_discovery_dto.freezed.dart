@@ -841,7 +841,7 @@ as CausalRootCauseType,
 /// @nodoc
 mixin _$AntiFluffAuditDto {
 
-@JsonKey(name: 'isolated_concept_count') int get isolatedConceptCount;@JsonKey(name: 'cycle_detected') bool get cycleDetected;@JsonKey(name: 'unsupported_claims_count') int get unsupportedClaimsCount;@JsonKey(name: 'logical_cohesion_score') double get logicalCohesionScore;@JsonKey(name: 'detected_hollow_terms') List<String> get detectedHollowTerms;
+@JsonKey(name: 'isolated_concept_count') int get isolatedConceptCount;@JsonKey(name: 'cycle_detected') bool get cycleDetected;@JsonKey(name: 'unsupported_claims_count') int get unsupportedClaimsCount;@JsonKey(name: 'logical_cohesion_score') double get logicalCohesionScore;@JsonKey(name: 'largest_component_ratio') double get largestComponentRatio;@JsonKey(name: 'branch_convergence_ratio') double get branchConvergenceRatio;@JsonKey(name: 'steering_coupling_ratio') double get steeringCouplingRatio;@JsonKey(name: 'detected_hollow_terms') List<String> get detectedHollowTerms;
 /// Create a copy of AntiFluffAuditDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -856,7 +856,7 @@ $AntiFluffAuditDtoCopyWith<AntiFluffAuditDto> get copyWith => _$AntiFluffAuditDt
 
 @override
 String toString() {
-  return 'AntiFluffAuditDto(isolatedConceptCount: $isolatedConceptCount, cycleDetected: $cycleDetected, unsupportedClaimsCount: $unsupportedClaimsCount, logicalCohesionScore: $logicalCohesionScore, detectedHollowTerms: $detectedHollowTerms)';
+  return 'AntiFluffAuditDto(isolatedConceptCount: $isolatedConceptCount, cycleDetected: $cycleDetected, unsupportedClaimsCount: $unsupportedClaimsCount, logicalCohesionScore: $logicalCohesionScore, largestComponentRatio: $largestComponentRatio, branchConvergenceRatio: $branchConvergenceRatio, steeringCouplingRatio: $steeringCouplingRatio, detectedHollowTerms: $detectedHollowTerms)';
 }
 
 
@@ -867,7 +867,7 @@ abstract mixin class $AntiFluffAuditDtoCopyWith<$Res>  {
   factory $AntiFluffAuditDtoCopyWith(AntiFluffAuditDto value, $Res Function(AntiFluffAuditDto) _then) = _$AntiFluffAuditDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'isolated_concept_count') int isolatedConceptCount,@JsonKey(name: 'cycle_detected') bool cycleDetected,@JsonKey(name: 'unsupported_claims_count') int unsupportedClaimsCount,@JsonKey(name: 'logical_cohesion_score') double logicalCohesionScore,@JsonKey(name: 'detected_hollow_terms') List<String> detectedHollowTerms
+@JsonKey(name: 'isolated_concept_count') int isolatedConceptCount,@JsonKey(name: 'cycle_detected') bool cycleDetected,@JsonKey(name: 'unsupported_claims_count') int unsupportedClaimsCount,@JsonKey(name: 'logical_cohesion_score') double logicalCohesionScore,@JsonKey(name: 'largest_component_ratio') double largestComponentRatio,@JsonKey(name: 'branch_convergence_ratio') double branchConvergenceRatio,@JsonKey(name: 'steering_coupling_ratio') double steeringCouplingRatio,@JsonKey(name: 'detected_hollow_terms') List<String> detectedHollowTerms
 });
 
 
@@ -884,12 +884,15 @@ class _$AntiFluffAuditDtoCopyWithImpl<$Res>
 
 /// Create a copy of AntiFluffAuditDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? isolatedConceptCount = null,Object? cycleDetected = null,Object? unsupportedClaimsCount = null,Object? logicalCohesionScore = null,Object? detectedHollowTerms = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? isolatedConceptCount = null,Object? cycleDetected = null,Object? unsupportedClaimsCount = null,Object? logicalCohesionScore = null,Object? largestComponentRatio = null,Object? branchConvergenceRatio = null,Object? steeringCouplingRatio = null,Object? detectedHollowTerms = null,}) {
   return _then(_self.copyWith(
 isolatedConceptCount: null == isolatedConceptCount ? _self.isolatedConceptCount : isolatedConceptCount // ignore: cast_nullable_to_non_nullable
 as int,cycleDetected: null == cycleDetected ? _self.cycleDetected : cycleDetected // ignore: cast_nullable_to_non_nullable
 as bool,unsupportedClaimsCount: null == unsupportedClaimsCount ? _self.unsupportedClaimsCount : unsupportedClaimsCount // ignore: cast_nullable_to_non_nullable
 as int,logicalCohesionScore: null == logicalCohesionScore ? _self.logicalCohesionScore : logicalCohesionScore // ignore: cast_nullable_to_non_nullable
+as double,largestComponentRatio: null == largestComponentRatio ? _self.largestComponentRatio : largestComponentRatio // ignore: cast_nullable_to_non_nullable
+as double,branchConvergenceRatio: null == branchConvergenceRatio ? _self.branchConvergenceRatio : branchConvergenceRatio // ignore: cast_nullable_to_non_nullable
+as double,steeringCouplingRatio: null == steeringCouplingRatio ? _self.steeringCouplingRatio : steeringCouplingRatio // ignore: cast_nullable_to_non_nullable
 as double,detectedHollowTerms: null == detectedHollowTerms ? _self.detectedHollowTerms : detectedHollowTerms // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
@@ -976,10 +979,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'isolated_concept_count')  int isolatedConceptCount, @JsonKey(name: 'cycle_detected')  bool cycleDetected, @JsonKey(name: 'unsupported_claims_count')  int unsupportedClaimsCount, @JsonKey(name: 'logical_cohesion_score')  double logicalCohesionScore, @JsonKey(name: 'detected_hollow_terms')  List<String> detectedHollowTerms)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'isolated_concept_count')  int isolatedConceptCount, @JsonKey(name: 'cycle_detected')  bool cycleDetected, @JsonKey(name: 'unsupported_claims_count')  int unsupportedClaimsCount, @JsonKey(name: 'logical_cohesion_score')  double logicalCohesionScore, @JsonKey(name: 'largest_component_ratio')  double largestComponentRatio, @JsonKey(name: 'branch_convergence_ratio')  double branchConvergenceRatio, @JsonKey(name: 'steering_coupling_ratio')  double steeringCouplingRatio, @JsonKey(name: 'detected_hollow_terms')  List<String> detectedHollowTerms)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AntiFluffAuditDto() when $default != null:
-return $default(_that.isolatedConceptCount,_that.cycleDetected,_that.unsupportedClaimsCount,_that.logicalCohesionScore,_that.detectedHollowTerms);case _:
+return $default(_that.isolatedConceptCount,_that.cycleDetected,_that.unsupportedClaimsCount,_that.logicalCohesionScore,_that.largestComponentRatio,_that.branchConvergenceRatio,_that.steeringCouplingRatio,_that.detectedHollowTerms);case _:
   return orElse();
 
 }
@@ -997,10 +1000,10 @@ return $default(_that.isolatedConceptCount,_that.cycleDetected,_that.unsupported
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'isolated_concept_count')  int isolatedConceptCount, @JsonKey(name: 'cycle_detected')  bool cycleDetected, @JsonKey(name: 'unsupported_claims_count')  int unsupportedClaimsCount, @JsonKey(name: 'logical_cohesion_score')  double logicalCohesionScore, @JsonKey(name: 'detected_hollow_terms')  List<String> detectedHollowTerms)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'isolated_concept_count')  int isolatedConceptCount, @JsonKey(name: 'cycle_detected')  bool cycleDetected, @JsonKey(name: 'unsupported_claims_count')  int unsupportedClaimsCount, @JsonKey(name: 'logical_cohesion_score')  double logicalCohesionScore, @JsonKey(name: 'largest_component_ratio')  double largestComponentRatio, @JsonKey(name: 'branch_convergence_ratio')  double branchConvergenceRatio, @JsonKey(name: 'steering_coupling_ratio')  double steeringCouplingRatio, @JsonKey(name: 'detected_hollow_terms')  List<String> detectedHollowTerms)  $default,) {final _that = this;
 switch (_that) {
 case _AntiFluffAuditDto():
-return $default(_that.isolatedConceptCount,_that.cycleDetected,_that.unsupportedClaimsCount,_that.logicalCohesionScore,_that.detectedHollowTerms);case _:
+return $default(_that.isolatedConceptCount,_that.cycleDetected,_that.unsupportedClaimsCount,_that.logicalCohesionScore,_that.largestComponentRatio,_that.branchConvergenceRatio,_that.steeringCouplingRatio,_that.detectedHollowTerms);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1017,10 +1020,10 @@ return $default(_that.isolatedConceptCount,_that.cycleDetected,_that.unsupported
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'isolated_concept_count')  int isolatedConceptCount, @JsonKey(name: 'cycle_detected')  bool cycleDetected, @JsonKey(name: 'unsupported_claims_count')  int unsupportedClaimsCount, @JsonKey(name: 'logical_cohesion_score')  double logicalCohesionScore, @JsonKey(name: 'detected_hollow_terms')  List<String> detectedHollowTerms)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'isolated_concept_count')  int isolatedConceptCount, @JsonKey(name: 'cycle_detected')  bool cycleDetected, @JsonKey(name: 'unsupported_claims_count')  int unsupportedClaimsCount, @JsonKey(name: 'logical_cohesion_score')  double logicalCohesionScore, @JsonKey(name: 'largest_component_ratio')  double largestComponentRatio, @JsonKey(name: 'branch_convergence_ratio')  double branchConvergenceRatio, @JsonKey(name: 'steering_coupling_ratio')  double steeringCouplingRatio, @JsonKey(name: 'detected_hollow_terms')  List<String> detectedHollowTerms)?  $default,) {final _that = this;
 switch (_that) {
 case _AntiFluffAuditDto() when $default != null:
-return $default(_that.isolatedConceptCount,_that.cycleDetected,_that.unsupportedClaimsCount,_that.logicalCohesionScore,_that.detectedHollowTerms);case _:
+return $default(_that.isolatedConceptCount,_that.cycleDetected,_that.unsupportedClaimsCount,_that.logicalCohesionScore,_that.largestComponentRatio,_that.branchConvergenceRatio,_that.steeringCouplingRatio,_that.detectedHollowTerms);case _:
   return null;
 
 }
@@ -1032,13 +1035,16 @@ return $default(_that.isolatedConceptCount,_that.cycleDetected,_that.unsupported
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _AntiFluffAuditDto implements AntiFluffAuditDto {
-  const _AntiFluffAuditDto({@JsonKey(name: 'isolated_concept_count') required this.isolatedConceptCount, @JsonKey(name: 'cycle_detected') required this.cycleDetected, @JsonKey(name: 'unsupported_claims_count') required this.unsupportedClaimsCount, @JsonKey(name: 'logical_cohesion_score') required this.logicalCohesionScore, @JsonKey(name: 'detected_hollow_terms') final  List<String> detectedHollowTerms = const []}): _detectedHollowTerms = detectedHollowTerms;
+  const _AntiFluffAuditDto({@JsonKey(name: 'isolated_concept_count') required this.isolatedConceptCount, @JsonKey(name: 'cycle_detected') required this.cycleDetected, @JsonKey(name: 'unsupported_claims_count') required this.unsupportedClaimsCount, @JsonKey(name: 'logical_cohesion_score') required this.logicalCohesionScore, @JsonKey(name: 'largest_component_ratio') this.largestComponentRatio = 1.0, @JsonKey(name: 'branch_convergence_ratio') this.branchConvergenceRatio = 0.0, @JsonKey(name: 'steering_coupling_ratio') this.steeringCouplingRatio = 0.0, @JsonKey(name: 'detected_hollow_terms') final  List<String> detectedHollowTerms = const []}): _detectedHollowTerms = detectedHollowTerms;
   factory _AntiFluffAuditDto.fromJson(Map<String, dynamic> json) => _$AntiFluffAuditDtoFromJson(json);
 
 @override@JsonKey(name: 'isolated_concept_count') final  int isolatedConceptCount;
 @override@JsonKey(name: 'cycle_detected') final  bool cycleDetected;
 @override@JsonKey(name: 'unsupported_claims_count') final  int unsupportedClaimsCount;
 @override@JsonKey(name: 'logical_cohesion_score') final  double logicalCohesionScore;
+@override@JsonKey(name: 'largest_component_ratio') final  double largestComponentRatio;
+@override@JsonKey(name: 'branch_convergence_ratio') final  double branchConvergenceRatio;
+@override@JsonKey(name: 'steering_coupling_ratio') final  double steeringCouplingRatio;
  final  List<String> _detectedHollowTerms;
 @override@JsonKey(name: 'detected_hollow_terms') List<String> get detectedHollowTerms {
   if (_detectedHollowTerms is EqualUnmodifiableListView) return _detectedHollowTerms;
@@ -1062,7 +1068,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'AntiFluffAuditDto(isolatedConceptCount: $isolatedConceptCount, cycleDetected: $cycleDetected, unsupportedClaimsCount: $unsupportedClaimsCount, logicalCohesionScore: $logicalCohesionScore, detectedHollowTerms: $detectedHollowTerms)';
+  return 'AntiFluffAuditDto(isolatedConceptCount: $isolatedConceptCount, cycleDetected: $cycleDetected, unsupportedClaimsCount: $unsupportedClaimsCount, logicalCohesionScore: $logicalCohesionScore, largestComponentRatio: $largestComponentRatio, branchConvergenceRatio: $branchConvergenceRatio, steeringCouplingRatio: $steeringCouplingRatio, detectedHollowTerms: $detectedHollowTerms)';
 }
 
 
@@ -1073,7 +1079,7 @@ abstract mixin class _$AntiFluffAuditDtoCopyWith<$Res> implements $AntiFluffAudi
   factory _$AntiFluffAuditDtoCopyWith(_AntiFluffAuditDto value, $Res Function(_AntiFluffAuditDto) _then) = __$AntiFluffAuditDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'isolated_concept_count') int isolatedConceptCount,@JsonKey(name: 'cycle_detected') bool cycleDetected,@JsonKey(name: 'unsupported_claims_count') int unsupportedClaimsCount,@JsonKey(name: 'logical_cohesion_score') double logicalCohesionScore,@JsonKey(name: 'detected_hollow_terms') List<String> detectedHollowTerms
+@JsonKey(name: 'isolated_concept_count') int isolatedConceptCount,@JsonKey(name: 'cycle_detected') bool cycleDetected,@JsonKey(name: 'unsupported_claims_count') int unsupportedClaimsCount,@JsonKey(name: 'logical_cohesion_score') double logicalCohesionScore,@JsonKey(name: 'largest_component_ratio') double largestComponentRatio,@JsonKey(name: 'branch_convergence_ratio') double branchConvergenceRatio,@JsonKey(name: 'steering_coupling_ratio') double steeringCouplingRatio,@JsonKey(name: 'detected_hollow_terms') List<String> detectedHollowTerms
 });
 
 
@@ -1090,12 +1096,15 @@ class __$AntiFluffAuditDtoCopyWithImpl<$Res>
 
 /// Create a copy of AntiFluffAuditDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? isolatedConceptCount = null,Object? cycleDetected = null,Object? unsupportedClaimsCount = null,Object? logicalCohesionScore = null,Object? detectedHollowTerms = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? isolatedConceptCount = null,Object? cycleDetected = null,Object? unsupportedClaimsCount = null,Object? logicalCohesionScore = null,Object? largestComponentRatio = null,Object? branchConvergenceRatio = null,Object? steeringCouplingRatio = null,Object? detectedHollowTerms = null,}) {
   return _then(_AntiFluffAuditDto(
 isolatedConceptCount: null == isolatedConceptCount ? _self.isolatedConceptCount : isolatedConceptCount // ignore: cast_nullable_to_non_nullable
 as int,cycleDetected: null == cycleDetected ? _self.cycleDetected : cycleDetected // ignore: cast_nullable_to_non_nullable
 as bool,unsupportedClaimsCount: null == unsupportedClaimsCount ? _self.unsupportedClaimsCount : unsupportedClaimsCount // ignore: cast_nullable_to_non_nullable
 as int,logicalCohesionScore: null == logicalCohesionScore ? _self.logicalCohesionScore : logicalCohesionScore // ignore: cast_nullable_to_non_nullable
+as double,largestComponentRatio: null == largestComponentRatio ? _self.largestComponentRatio : largestComponentRatio // ignore: cast_nullable_to_non_nullable
+as double,branchConvergenceRatio: null == branchConvergenceRatio ? _self.branchConvergenceRatio : branchConvergenceRatio // ignore: cast_nullable_to_non_nullable
+as double,steeringCouplingRatio: null == steeringCouplingRatio ? _self.steeringCouplingRatio : steeringCouplingRatio // ignore: cast_nullable_to_non_nullable
 as double,detectedHollowTerms: null == detectedHollowTerms ? _self._detectedHollowTerms : detectedHollowTerms // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
@@ -1623,6 +1632,279 @@ as int,rawPenaltyPoints: null == rawPenaltyPoints ? _self.rawPenaltyPoints : raw
 as double,deduplicatedPenaltyPoints: null == deduplicatedPenaltyPoints ? _self.deduplicatedPenaltyPoints : deduplicatedPenaltyPoints // ignore: cast_nullable_to_non_nullable
 as double,dampenedSavingsPoints: null == dampenedSavingsPoints ? _self.dampenedSavingsPoints : dampenedSavingsPoints // ignore: cast_nullable_to_non_nullable
 as double,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$CounterfactualSimulationResultDto {
+
+@JsonKey(name: 'retracted_root_id') String get retractedRootId;@JsonKey(name: 'collapsed_node_ids') List<String> get collapsedNodeIds;@JsonKey(name: 'surviving_node_ids') List<String> get survivingNodeIds;@JsonKey(name: 'collapse_ratio') double get collapseRatio;@JsonKey(name: 'max_cascade_depth') int get maxCascadeDepth;
+/// Create a copy of CounterfactualSimulationResultDto
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CounterfactualSimulationResultDtoCopyWith<CounterfactualSimulationResultDto> get copyWith => _$CounterfactualSimulationResultDtoCopyWithImpl<CounterfactualSimulationResultDto>(this as CounterfactualSimulationResultDto, _$identity);
+
+  /// Serializes this CounterfactualSimulationResultDto to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+
+
+@override
+String toString() {
+  return 'CounterfactualSimulationResultDto(retractedRootId: $retractedRootId, collapsedNodeIds: $collapsedNodeIds, survivingNodeIds: $survivingNodeIds, collapseRatio: $collapseRatio, maxCascadeDepth: $maxCascadeDepth)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CounterfactualSimulationResultDtoCopyWith<$Res>  {
+  factory $CounterfactualSimulationResultDtoCopyWith(CounterfactualSimulationResultDto value, $Res Function(CounterfactualSimulationResultDto) _then) = _$CounterfactualSimulationResultDtoCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(name: 'retracted_root_id') String retractedRootId,@JsonKey(name: 'collapsed_node_ids') List<String> collapsedNodeIds,@JsonKey(name: 'surviving_node_ids') List<String> survivingNodeIds,@JsonKey(name: 'collapse_ratio') double collapseRatio,@JsonKey(name: 'max_cascade_depth') int maxCascadeDepth
+});
+
+
+
+
+}
+/// @nodoc
+class _$CounterfactualSimulationResultDtoCopyWithImpl<$Res>
+    implements $CounterfactualSimulationResultDtoCopyWith<$Res> {
+  _$CounterfactualSimulationResultDtoCopyWithImpl(this._self, this._then);
+
+  final CounterfactualSimulationResultDto _self;
+  final $Res Function(CounterfactualSimulationResultDto) _then;
+
+/// Create a copy of CounterfactualSimulationResultDto
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? retractedRootId = null,Object? collapsedNodeIds = null,Object? survivingNodeIds = null,Object? collapseRatio = null,Object? maxCascadeDepth = null,}) {
+  return _then(_self.copyWith(
+retractedRootId: null == retractedRootId ? _self.retractedRootId : retractedRootId // ignore: cast_nullable_to_non_nullable
+as String,collapsedNodeIds: null == collapsedNodeIds ? _self.collapsedNodeIds : collapsedNodeIds // ignore: cast_nullable_to_non_nullable
+as List<String>,survivingNodeIds: null == survivingNodeIds ? _self.survivingNodeIds : survivingNodeIds // ignore: cast_nullable_to_non_nullable
+as List<String>,collapseRatio: null == collapseRatio ? _self.collapseRatio : collapseRatio // ignore: cast_nullable_to_non_nullable
+as double,maxCascadeDepth: null == maxCascadeDepth ? _self.maxCascadeDepth : maxCascadeDepth // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [CounterfactualSimulationResultDto].
+extension CounterfactualSimulationResultDtoPatterns on CounterfactualSimulationResultDto {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _CounterfactualSimulationResultDto value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _CounterfactualSimulationResultDto() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _CounterfactualSimulationResultDto value)  $default,){
+final _that = this;
+switch (_that) {
+case _CounterfactualSimulationResultDto():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _CounterfactualSimulationResultDto value)?  $default,){
+final _that = this;
+switch (_that) {
+case _CounterfactualSimulationResultDto() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'retracted_root_id')  String retractedRootId, @JsonKey(name: 'collapsed_node_ids')  List<String> collapsedNodeIds, @JsonKey(name: 'surviving_node_ids')  List<String> survivingNodeIds, @JsonKey(name: 'collapse_ratio')  double collapseRatio, @JsonKey(name: 'max_cascade_depth')  int maxCascadeDepth)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _CounterfactualSimulationResultDto() when $default != null:
+return $default(_that.retractedRootId,_that.collapsedNodeIds,_that.survivingNodeIds,_that.collapseRatio,_that.maxCascadeDepth);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'retracted_root_id')  String retractedRootId, @JsonKey(name: 'collapsed_node_ids')  List<String> collapsedNodeIds, @JsonKey(name: 'surviving_node_ids')  List<String> survivingNodeIds, @JsonKey(name: 'collapse_ratio')  double collapseRatio, @JsonKey(name: 'max_cascade_depth')  int maxCascadeDepth)  $default,) {final _that = this;
+switch (_that) {
+case _CounterfactualSimulationResultDto():
+return $default(_that.retractedRootId,_that.collapsedNodeIds,_that.survivingNodeIds,_that.collapseRatio,_that.maxCascadeDepth);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'retracted_root_id')  String retractedRootId, @JsonKey(name: 'collapsed_node_ids')  List<String> collapsedNodeIds, @JsonKey(name: 'surviving_node_ids')  List<String> survivingNodeIds, @JsonKey(name: 'collapse_ratio')  double collapseRatio, @JsonKey(name: 'max_cascade_depth')  int maxCascadeDepth)?  $default,) {final _that = this;
+switch (_that) {
+case _CounterfactualSimulationResultDto() when $default != null:
+return $default(_that.retractedRootId,_that.collapsedNodeIds,_that.survivingNodeIds,_that.collapseRatio,_that.maxCascadeDepth);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class _CounterfactualSimulationResultDto implements CounterfactualSimulationResultDto {
+  const _CounterfactualSimulationResultDto({@JsonKey(name: 'retracted_root_id') required this.retractedRootId, @JsonKey(name: 'collapsed_node_ids') final  List<String> collapsedNodeIds = const [], @JsonKey(name: 'surviving_node_ids') final  List<String> survivingNodeIds = const [], @JsonKey(name: 'collapse_ratio') this.collapseRatio = 0.0, @JsonKey(name: 'max_cascade_depth') this.maxCascadeDepth = 0}): _collapsedNodeIds = collapsedNodeIds,_survivingNodeIds = survivingNodeIds;
+  factory _CounterfactualSimulationResultDto.fromJson(Map<String, dynamic> json) => _$CounterfactualSimulationResultDtoFromJson(json);
+
+@override@JsonKey(name: 'retracted_root_id') final  String retractedRootId;
+ final  List<String> _collapsedNodeIds;
+@override@JsonKey(name: 'collapsed_node_ids') List<String> get collapsedNodeIds {
+  if (_collapsedNodeIds is EqualUnmodifiableListView) return _collapsedNodeIds;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_collapsedNodeIds);
+}
+
+ final  List<String> _survivingNodeIds;
+@override@JsonKey(name: 'surviving_node_ids') List<String> get survivingNodeIds {
+  if (_survivingNodeIds is EqualUnmodifiableListView) return _survivingNodeIds;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_survivingNodeIds);
+}
+
+@override@JsonKey(name: 'collapse_ratio') final  double collapseRatio;
+@override@JsonKey(name: 'max_cascade_depth') final  int maxCascadeDepth;
+
+/// Create a copy of CounterfactualSimulationResultDto
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CounterfactualSimulationResultDtoCopyWith<_CounterfactualSimulationResultDto> get copyWith => __$CounterfactualSimulationResultDtoCopyWithImpl<_CounterfactualSimulationResultDto>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$CounterfactualSimulationResultDtoToJson(this, );
+}
+
+
+
+@override
+String toString() {
+  return 'CounterfactualSimulationResultDto(retractedRootId: $retractedRootId, collapsedNodeIds: $collapsedNodeIds, survivingNodeIds: $survivingNodeIds, collapseRatio: $collapseRatio, maxCascadeDepth: $maxCascadeDepth)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CounterfactualSimulationResultDtoCopyWith<$Res> implements $CounterfactualSimulationResultDtoCopyWith<$Res> {
+  factory _$CounterfactualSimulationResultDtoCopyWith(_CounterfactualSimulationResultDto value, $Res Function(_CounterfactualSimulationResultDto) _then) = __$CounterfactualSimulationResultDtoCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(name: 'retracted_root_id') String retractedRootId,@JsonKey(name: 'collapsed_node_ids') List<String> collapsedNodeIds,@JsonKey(name: 'surviving_node_ids') List<String> survivingNodeIds,@JsonKey(name: 'collapse_ratio') double collapseRatio,@JsonKey(name: 'max_cascade_depth') int maxCascadeDepth
+});
+
+
+
+
+}
+/// @nodoc
+class __$CounterfactualSimulationResultDtoCopyWithImpl<$Res>
+    implements _$CounterfactualSimulationResultDtoCopyWith<$Res> {
+  __$CounterfactualSimulationResultDtoCopyWithImpl(this._self, this._then);
+
+  final _CounterfactualSimulationResultDto _self;
+  final $Res Function(_CounterfactualSimulationResultDto) _then;
+
+/// Create a copy of CounterfactualSimulationResultDto
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? retractedRootId = null,Object? collapsedNodeIds = null,Object? survivingNodeIds = null,Object? collapseRatio = null,Object? maxCascadeDepth = null,}) {
+  return _then(_CounterfactualSimulationResultDto(
+retractedRootId: null == retractedRootId ? _self.retractedRootId : retractedRootId // ignore: cast_nullable_to_non_nullable
+as String,collapsedNodeIds: null == collapsedNodeIds ? _self._collapsedNodeIds : collapsedNodeIds // ignore: cast_nullable_to_non_nullable
+as List<String>,survivingNodeIds: null == survivingNodeIds ? _self._survivingNodeIds : survivingNodeIds // ignore: cast_nullable_to_non_nullable
+as List<String>,collapseRatio: null == collapseRatio ? _self.collapseRatio : collapseRatio // ignore: cast_nullable_to_non_nullable
+as double,maxCascadeDepth: null == maxCascadeDepth ? _self.maxCascadeDepth : maxCascadeDepth // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

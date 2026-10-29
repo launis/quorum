@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from pathlib import Path
 
 from fastapi.concurrency import run_in_threadpool
@@ -12,6 +11,7 @@ from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
 from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.studio import (
@@ -20,6 +20,7 @@ from backend_v2.models.dtos.studio import (
     WorkflowCreateDTO,
     WorkflowUpdateDTO,
 )
+from backend_v2.models.enums import EntityPrefix
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +157,7 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             The created workflow ID.
         """
         data = workflow_data.model_dump(mode="json", exclude_unset=True)
-        doc_id: str = str(data["id"]) if "id" in data and data["id"] else f"wf_{uuid.uuid4().hex[:16]}"
+        doc_id: str = str(data["id"]) if "id" in data and data["id"] else generate_opaque_id(EntityPrefix.WORKFLOW)
         data["id"] = doc_id
         data.setdefault("version", 1)
         data.setdefault("status", "draft")
@@ -334,7 +335,7 @@ class WorkflowRepositoryImpl(AppendOnlyRepositoryBase):
             The created step ID.
         """
         data = step_data.model_dump(mode="json", exclude_unset=True)
-        doc_id: str = str(data["id"]) if "id" in data and data["id"] else f"stp_{uuid.uuid4().hex[:16]}"
+        doc_id: str = str(data["id"]) if "id" in data and data["id"] else generate_opaque_id(EntityPrefix.STEP)
         data["id"] = doc_id
         return await self.driver.upsert("steps", data, doc_id)
 

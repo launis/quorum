@@ -29,11 +29,11 @@ from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.variance_adapter import VarianceAdapter
 
 
-def _build_test_hook_state(step_id: str = "sr_f0a26d17cc9b48a7") -> HookState:
+def _build_test_hook_state(step_id: str = "sr_0195f3a00000700f80a26d17cc9b48a7") -> HookState:
     """Build a standard HookState for testing."""
     return HookState(
         execution_id="exe_test_linguistics_001",
-        workflow_id="wf_9d68c573802341db",
+        workflow_id="wf_0195f3a0000070098d68c573802341db",
         step_id=step_id,
         metadata=ExecutionMetadata(matrix_sampling_strategy=10, workflow_version=1),
         global_context_vars=GlobalContextVarsDTO(language="fi"),
@@ -47,7 +47,7 @@ def test_reduce_hook_delta_linguistics_must_emit_decision_trace_event() -> None:
     Without this event, dag_executor does not update execution.context_variables and
     execution_trace lacks the decision event, causing step_linguistics to be discarded.
     """
-    state = _build_test_hook_state(step_id="sr_f0a26d17cc9b48a7")
+    state = _build_test_hook_state(step_id="sr_0195f3a00000700f80a26d17cc9b48a7")
     pat = PerformativePatternDTO(
         pattern_id="ptrn_test01",
         detected_phrase="luonnollisesti",
@@ -59,7 +59,7 @@ def test_reduce_hook_delta_linguistics_must_emit_decision_trace_event() -> None:
     )
     delta_dto = HookDeltaDTO(delta=ling_dto)
 
-    new_state, emitted_events = reduce_hook_delta(state, delta_dto, step_id="sr_f0a26d17cc9b48a7")
+    new_state, emitted_events = reduce_hook_delta(state, delta_dto, step_id="sr_0195f3a00000700f80a26d17cc9b48a7")
 
     # In current buggy code, emitted_events is []
     # This assertion EXPECTS emitted_events to contain the decision event for context updates!
@@ -71,7 +71,7 @@ def test_reduce_hook_delta_linguistics_must_emit_decision_trace_event() -> None:
 
     evt = emitted_events[0]
     assert evt.event_type == "decision"
-    assert evt.step_name == "sr_f0a26d17cc9b48a7"
+    assert evt.step_name == "sr_0195f3a00000700f80a26d17cc9b48a7"
     assert evt.metadata.is_context_update is True
     assert type(evt.content) is dict
     assert "step_linguistics" in evt.content
@@ -82,19 +82,19 @@ def test_reduce_hook_delta_linguistics_must_emit_decision_trace_event() -> None:
 def test_variance_adapter_crashes_when_extension_metrics_missing() -> None:
     """Proves the exact crash site in VarianceAdapter when extension_metrics is None."""
     prof = OutputProfile(
-        id="prf_5d6e7f8091a2b3c4",
+        id="prf_0195f3a0000070058d6e7f8091a2b3c4",
         slug="holistic_audit",
-        workflow_id="wf_9d68c573802341db",
+        workflow_id="wf_0195f3a0000070098d68c573802341db",
         name=I18nText(translations={"en": "Holistic Audit", "fi": "Kokonaisvaltainen Auditointi"}),
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
-        variance_target_block="blk_53f32679aa514fcb",
+        variance_target_block="blk_0195f3a00000700583f32679aa514fcb",
         variance_synthesis_directive="Synthesize cognitive variance.",
         target_block_order=[TargetBlockType.VARIANCE_VALIDATION_BLOCK],
     )
     rec = ExecutionRecord(
-        id="exe_b3bd261ce76e41d0",
-        workflow_id="wf_9d68c573802341db",
-        output_profile_id="prf_5d6e7f8091a2b3c4",
+        id="exe_0195f3a00000700b83bd261ce76e41d0",
+        workflow_id="wf_0195f3a0000070098d68c573802341db",
+        output_profile_id="prf_0195f3a0000070058d6e7f8091a2b3c4",
         status=ExecutionStatus.PASSED,
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -135,7 +135,7 @@ def test_reduce_hook_delta_linguistics_boundary_empty_and_none_gvars() -> None:
     """
     state_empty_gvars = HookState(
         execution_id="exe_test_boundary_001",
-        workflow_id="wf_9d68c573802341db",
+        workflow_id="wf_0195f3a0000070098d68c573802341db",
         step_id="sr_test_boundary",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10, workflow_version=1),
         global_context_vars=GlobalContextVarsDTO(),
@@ -163,7 +163,7 @@ def test_reduce_hook_delta_linguistics_boundary_empty_and_none_gvars() -> None:
     # Partition 2: global_context_vars defaulted via clean constructor
     state_none_gvars = HookState(
         execution_id="exe_test_boundary_002",
-        workflow_id="wf_9d68c573802341db",
+        workflow_id="wf_0195f3a0000070098d68c573802341db",
         step_id="sr_test_boundary_2",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10, workflow_version=1),
         inputs=ExecutionInputsDTO(raw_inputs={"text": "none"}),

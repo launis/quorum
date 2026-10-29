@@ -135,8 +135,8 @@ def test_build_title_map_with_blocks_and_steps() -> None:
     from backend_v2.services.orchestrator.synthesis_distiller import _build_title_map
 
     blocks_by_id: dict[str, PromptBlock] = {
-        "blk_1234567890abcdef": SystemRulePromptBlock(
-            id="blk_1234567890abcdef",
+        "blk_0195f3a0000070018234567890abcdef": SystemRulePromptBlock(
+            id="blk_0195f3a0000070018234567890abcdef",
             slug="test_block",
             type=BlockDataType.INSTRUCTION,
             category_id=PromptBlockCategory.SYSTEM_RULE,
@@ -146,7 +146,7 @@ def test_build_title_map_with_blocks_and_steps() -> None:
     }
 
     step_blueprint = Step(
-        id="sp_1111111111111111",
+        id="sp_0195f3a0000070018111111111111111",
         slug="step_one",
         name=I18nText(translations={"en": "Step Blueprint Name"}),
         cognitive_tier=CognitiveTier.FAST,
@@ -155,16 +155,18 @@ def test_build_title_map_with_blocks_and_steps() -> None:
     )
 
     wf = Workflow(
-        id="wf_1111111111111111",
+        id="wf_0195f3a0000070018111111111111111",
         slug="test_wf",
         name=I18nText(translations={"en": "Workflow Name"}),
         description=I18nText(translations={"en": "Workflow Desc"}),
         status="draft",
         version=1,
-        default_profile_id="prof_1111111111111111",
+        default_profile_id="prof_0195f3a0000070018111111111111111",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
-        steps=[StepRule(id="sr_1111111111111111", task_blueprint="sp_1111111111111111")],
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        steps=[
+            StepRule(id="sr_0195f3a0000070018111111111111111", task_blueprint="sp_0195f3a0000070018111111111111111")
+        ],
         expected_inputs=[
             ExpectedInput(
                 input_key="interview_text",
@@ -178,13 +180,13 @@ def test_build_title_map_with_blocks_and_steps() -> None:
 
     # Resolve FI
     title_map = _build_title_map(wf, [step_blueprint], "fi", blocks_by_id)
-    assert title_map["blk_1234567890abcdef"] == "Lohkon nimi FI"
-    assert title_map["sr_1111111111111111"] == "Step Blueprint Name"
+    assert title_map["blk_0195f3a0000070018234567890abcdef"] == "Lohkon nimi FI"
+    assert title_map["sr_0195f3a0000070018111111111111111"] == "Step Blueprint Name"
     assert title_map["interview_text"] == "Interview Text"
 
     # None workflow
     title_map_none = _build_title_map(None, [], "en", blocks_by_id)
-    assert title_map_none["blk_1234567890abcdef"] == "Block Label EN"
+    assert title_map_none["blk_0195f3a0000070018234567890abcdef"] == "Block Label EN"
 
 
 def test_build_title_map_missing_blueprint_raises() -> None:
@@ -198,16 +200,18 @@ def test_build_title_map_missing_blueprint_raises() -> None:
     from backend_v2.services.orchestrator.synthesis_distiller import _build_title_map
 
     wf = Workflow(
-        id="wf_1111111111111111",
+        id="wf_0195f3a0000070018111111111111111",
         slug="test_wf",
         name=I18nText(translations={"en": "Workflow Name"}),
         description=I18nText(translations={"en": "Workflow Desc"}),
         status="draft",
         version=1,
-        default_profile_id="prof_1111111111111111",
+        default_profile_id="prof_0195f3a0000070018111111111111111",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
-        steps=[StepRule(id="sr_1111111111111111", task_blueprint="sp_2222222222222222")],
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        steps=[
+            StepRule(id="sr_0195f3a0000070018111111111111111", task_blueprint="sp_0195f3a0000070028222222222222222")
+        ],
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -246,8 +250,8 @@ async def test_build_historical_context_all_branches() -> None:
     )
 
     state = HookState(
-        execution_id="ex_0000000000000000",
-        workflow_id="wf_1111111111111111",
+        execution_id="ex_0195f3a0000070008000000000000000",
+        workflow_id="wf_0195f3a0000070018111111111111111",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(initiator_id="u1", organization_id="org1"),
         inputs=ExecutionInputsDTO(),
@@ -259,8 +263,8 @@ async def test_build_historical_context_all_branches() -> None:
 
     # 2. No user or org
     empty_state = HookState(
-        execution_id="ex_0000000000000000",
-        workflow_id="wf_1111111111111111",
+        execution_id="ex_0195f3a0000070008000000000000000",
+        workflow_id="wf_0195f3a0000070018111111111111111",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(),
@@ -270,8 +274,8 @@ async def test_build_historical_context_all_branches() -> None:
 
     # 3. Valid past executions
     past_exec1 = ExecutionRecord(
-        id="ex_1111111111111111",
-        workflow_id="wf_1111111111111111",
+        id="ex_0195f3a0000070018111111111111111",
+        workflow_id="wf_0195f3a0000070018111111111111111",
         output_profile_id="prof_1",
         status=ExecutionStatus.PASSED,
         progress=100,
@@ -288,8 +292,8 @@ async def test_build_historical_context_all_branches() -> None:
         },
     )
     past_exec2 = ExecutionRecord(
-        id="ex_0000000000000000",  # should be ignored (matches state.execution_id)
-        workflow_id="wf_1111111111111111",
+        id="ex_0195f3a0000070008000000000000000",  # should be ignored (matches state.execution_id)
+        workflow_id="wf_0195f3a0000070018111111111111111",
         output_profile_id="prof_1",
         status=ExecutionStatus.PASSED,
         progress=100,
@@ -300,8 +304,8 @@ async def test_build_historical_context_all_branches() -> None:
         metadata=ExecutionMetadata(),
     )
     past_exec3 = ExecutionRecord(
-        id="ex_2222222222222222",  # should be ignored
-        workflow_id="wf_1111111111111111",
+        id="ex_0195f3a0000070028222222222222222",  # should be ignored
+        workflow_id="wf_0195f3a0000070018111111111111111",
         output_profile_id="prof_1",
         status=ExecutionStatus.FAILED,
         progress=0,
@@ -323,8 +327,8 @@ async def test_build_historical_context_all_branches() -> None:
 
     # 4. Past execs with missing profile, empty sections, or empty blocks
     past_exec_wrong_profile = ExecutionRecord(
-        id="ex_3333333333333333",
-        workflow_id="wf_1111111111111111",
+        id="ex_0195f3a0000070038333333333333333",
+        workflow_id="wf_0195f3a0000070018111111111111111",
         output_profile_id="prof_2",
         status=ExecutionStatus.PASSED,
         progress=100,
@@ -340,8 +344,8 @@ async def test_build_historical_context_all_branches() -> None:
         },
     )
     past_exec_empty_sections = ExecutionRecord(
-        id="ex_4444444444444444",
-        workflow_id="wf_1111111111111111",
+        id="ex_0195f3a0000070048444444444444444",
+        workflow_id="wf_0195f3a0000070018111111111111111",
         output_profile_id="prof_1",
         status=ExecutionStatus.PASSED,
         progress=100,
@@ -357,8 +361,8 @@ async def test_build_historical_context_all_branches() -> None:
         },
     )
     past_exec_empty_blocks = ExecutionRecord(
-        id="ex_5555555555555555",
-        workflow_id="wf_1111111111111111",
+        id="ex_0195f3a0000070058555555555555555",
+        workflow_id="wf_0195f3a0000070018111111111111111",
         output_profile_id="prof_1",
         status=ExecutionStatus.PASSED,
         progress=100,
@@ -402,7 +406,7 @@ async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
 
     deps = _build_mock_deps()
     bp1 = Step(
-        id="bp_0123456789abcdef01",
+        id="bp_0195f3a00000700283456789abcdef01",
         slug="step_bp1",
         name=I18nText(translations={"en": "Blueprint 1"}),
         cognitive_tier=CognitiveTier.FAST,
@@ -410,7 +414,7 @@ async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
         hook="text_consolidation_hook",
     )
     bp2 = Step(
-        id="bp_0123456789abcdef02",
+        id="bp_0195f3a00000700283456789abcdef02",
         slug="step_bp2",
         name=I18nText(translations={"en": "Blueprint 2"}),
         cognitive_tier=CognitiveTier.FAST,
@@ -421,49 +425,49 @@ async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
     repo.seed_raw_step(bp1.id, bp1)
     repo.seed_raw_step(bp2.id, bp2)
     repo.seed_raw_workflow(
-        "wor_0123456789abcdef01",
+        "wor_0195f3a00000700283456789abcdef01",
         {
-            "id": "wor_0123456789abcdef01",
+            "id": "wor_0195f3a00000700283456789abcdef01",
             "slug": "test_workflow",
             "name": {"translations": {"en": "Test Workflow"}},
             "description": {"translations": {"en": "Test Description"}},
             "status": "active",
             "version": 1,
-            "organization_id": "org_0123456789abcdef01",
-            "default_profile_id": "pro_0123456789abcdef01",
+            "organization_id": "org_0195f3a00000700283456789abcdef01",
+            "default_profile_id": "pro_0195f3a00000700283456789abcdef01",
             "steps": [
                 {
-                    "id": "stp_0123456789abcdef01",
-                    "task_blueprint": "bp_0123456789abcdef01",
+                    "id": "stp_0195f3a00000700283456789abcdef01",
+                    "task_blueprint": "bp_0195f3a00000700283456789abcdef01",
                     "is_synthesis_source": True,
                 },
                 {
-                    "id": "stp_0123456789abcdef02",
-                    "task_blueprint": "bp_0123456789abcdef02",
+                    "id": "stp_0195f3a00000700283456789abcdef02",
+                    "task_blueprint": "bp_0195f3a00000700283456789abcdef02",
                     "is_synthesis_source": False,
                 },
             ],
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
+            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         },
     )
 
     # Case 1: single StepOutputDTO in steps_data (line 233)
     single_step = StepOutputDTO(
-        step_id="stp_0123456789abcdef01",
-        block_id="blk_0123456789abcdef01",
+        step_id="stp_0195f3a00000700283456789abcdef01",
+        block_id="blk_0195f3a00000700283456789abcdef01",
         data_type="text",
         payload="Single step text payload",
     )
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             dynamic_inputs={"steps": single_step},
             target_locale="en",
         ),
-        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0195f3a00000700283456789abcdef01"),
     )
     result = await synthesis_distiller_hook(state, deps)
     assert result.success is True
@@ -471,32 +475,32 @@ async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
     # Case 2: list with is_synthesis_source=False, block_id starting with _, and empty payload
     # Covers lines 321-323, 329, 331, 337-342
     step_false = StepOutputDTO(
-        step_id="stp_0123456789abcdef02",
-        block_id="blk_0123456789abcdef02",
+        step_id="stp_0195f3a00000700283456789abcdef02",
+        block_id="blk_0195f3a00000700283456789abcdef02",
         data_type="text",
         payload="Should be skipped as non-synthesis source",
     )
     step_internal = StepOutputDTO(
-        step_id="stp_0123456789abcdef03",
+        step_id="stp_0195f3a00000700283456789abcdef03",
         block_id="_internal_block",
         data_type="text",
         payload="Should be skipped due to underscore",
     )
     step_empty = StepOutputDTO(
-        step_id="stp_0123456789abcdef04",
-        block_id="blk_0123456789abcdef04",
+        step_id="stp_0195f3a00000700283456789abcdef04",
+        block_id="blk_0195f3a00000700283456789abcdef04",
         data_type="text",
         payload=None,
     )
     state_multi = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             dynamic_inputs={"steps": [single_step, step_false, step_internal, step_empty]},
             target_locale="en",
         ),
-        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0195f3a00000700283456789abcdef01"),
     )
     res_multi = await synthesis_distiller_hook(state_multi, deps)
     assert res_multi.success is True

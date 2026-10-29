@@ -20,7 +20,7 @@ def test_context_builder_json_serialization_crash():
 
     dtos = [
         StepOutputDTO(
-            step_id="sr_aaaaaaaaaaaaaaaa",
+            step_id="sr_0195f3a00000700a8aaaaaaaaaaaaaaa",
             block_id="steps",
             data_type="text",
             payload=[nested_dto],  # The payload is a list of Pydantic models
@@ -29,7 +29,7 @@ def test_context_builder_json_serialization_crash():
 
     output_profile = None
     schema_type = "TEXT"
-    schema_map = {"sr_aaaaaaaaaaaaaaaa": "TEXT"}
+    schema_map = {"sr_0195f3a00000700a8aaaaaaaaaaaaaaa": "TEXT"}
 
     # Run _process_trace_dtos which calls _project_compressed
     result = ContextBuilder._process_trace_dtos(dtos, output_profile, schema_type, schema_map)

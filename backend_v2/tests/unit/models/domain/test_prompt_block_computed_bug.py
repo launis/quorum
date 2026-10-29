@@ -9,7 +9,7 @@ def test_prompt_block_computed_min_max_float() -> None:
     for computed_min and computed_max which causes a validation error in Pydantic V2.
     """
     payload = {
-        "id": "blk_123456789012345678901234",
+        "id": "blk_0195f3a0000070098012345678901234",
         "slug": "test_block",
         "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
         "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
@@ -33,7 +33,7 @@ def test_prompt_block_accepts_new_flutter_payload() -> None:
     and computed_max, and correctly calculates them from the scales array.
     """
     payload = {
-        "id": "blk_123456789012345678901234",
+        "id": "blk_0195f3a0000070098012345678901234",
         "slug": "test_block",
         "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
         "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},

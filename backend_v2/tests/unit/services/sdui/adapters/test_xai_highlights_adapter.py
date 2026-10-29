@@ -35,7 +35,7 @@ from backend_v2.services.sdui.adapters.xai_highlights_adapter import (
 def valid_output_profile_fixture() -> OutputProfile:
     """Fixture for a valid output profile to use in tests."""
     return OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="test-profile",
         workflow_id="wfw_test",
         name=I18nText(translations={"en": "Test Profile"}),
@@ -51,9 +51,9 @@ def valid_output_profile_fixture() -> OutputProfile:
 def test_build_empty_execution_trace_returns_empty_list(valid_output_profile_fixture: OutputProfile) -> None:
     """Boundary: empty execution trace returns empty list."""
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wfw_test",
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -76,9 +76,9 @@ def test_build_empty_execution_trace_returns_empty_list(valid_output_profile_fix
 def test_build_single_extension_group_returns_blocks(valid_output_profile_fixture: OutputProfile) -> None:
     """Positive: single extension group parses from trace."""
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wfw_test",
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         execution_trace=[
             TraceEvent(
                 event_type="output",
@@ -120,9 +120,9 @@ def test_build_single_extension_group_returns_blocks(valid_output_profile_fixtur
 def test_build_multiple_extension_groups_flattens_all(valid_output_profile_fixture: OutputProfile) -> None:
     """Positive: multiple extensions from trace are correctly extracted."""
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wfw_test",
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         execution_trace=[
             TraceEvent(
                 event_type="output",
@@ -166,9 +166,9 @@ def test_build_multiple_extension_groups_flattens_all(valid_output_profile_fixtu
 def test_build_does_not_mutate_context(valid_output_profile_fixture: OutputProfile) -> None:
     """Negative: context remains frozen after the call."""
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wfw_test",
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -194,9 +194,9 @@ def test_build_does_not_mutate_context(valid_output_profile_fixture: OutputProfi
 def test_build_graceful_degradation_disabled_extensions(valid_output_profile_fixture: OutputProfile) -> None:
     """Boundary: visible_block_extensions=[] returns empty list."""
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wfw_test",
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -224,9 +224,9 @@ def test_build_graceful_degradation_disabled_extensions(valid_output_profile_fix
 def test_build_graceful_degradation_zero_max_items(valid_output_profile_fixture: OutputProfile) -> None:
     """Boundary: max_extension_items=0 returns empty list."""
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wfw_test",
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -254,9 +254,9 @@ def test_build_graceful_degradation_zero_max_items(valid_output_profile_fixture:
 def test_build_ranked_round_robin_distribution(valid_output_profile_fixture: OutputProfile) -> None:
     """Positive: 3 categories with 4 items each are curated fairly without Primacy Bias."""
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wfw_test",
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -330,9 +330,9 @@ def test_build_malformed_highlight_item_skipped(
 ) -> None:
     """Error path: hallucinated or empty extension type is skipped with warning log."""
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wfw_test",
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -377,9 +377,9 @@ def test_build_missing_aesthetics_rule_raises_app_exception(
 ) -> None:
     """Error path: missing aesthetics rule mapping raises AppException with CONFIGURATION_ERROR."""
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wfw_test",
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -413,9 +413,9 @@ def test_build_missing_aesthetics_rule_raises_app_exception(
 def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) -> None:
     """Regression test: All block-level XaiExtensionType values have aesthetic rules across locales."""
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wfw_test",
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -427,7 +427,7 @@ def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) 
 
     for i, ext_type in enumerate(block_extensions):
         profile = OutputProfile(
-            id=f"prf_{i:016x}",
+            id=f"prf_0195f3a000007000{i:016x}",
             slug=f"profile-{ext_type.value}",
             workflow_id="wfw_test",
             name=I18nText(translations={"en": f"Profile {ext_type.value}"}),
@@ -465,9 +465,9 @@ def test_xai_aesthetics_rules_attributes() -> None:
 def test_build_negative_max_extension_items_returns_empty_list(valid_output_profile_fixture: OutputProfile) -> None:
     """Negative boundary (BVA min-1): max_extension_items < 0 returns empty list."""
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wfw_test",
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -495,9 +495,9 @@ def test_build_negative_max_extension_items_returns_empty_list(valid_output_prof
 def test_build_empty_or_invisible_highlights_returns_empty_list(valid_output_profile_fixture: OutputProfile) -> None:
     """Negative: highlights with empty fields or non-visible extension types return empty list."""
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wfw_test",
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -528,9 +528,9 @@ def test_build_empty_or_invisible_highlights_returns_empty_list(valid_output_pro
 def test_build_deduplicates_identical_highlight_content(valid_output_profile_fixture: OutputProfile) -> None:
     """Boundary: duplicate highlight content within the same extension group is added only once."""
     execution = ExecutionRecord(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         workflow_id="wfw_test",
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         execution_trace=[],
         target_locale="fi",
         metadata=ExecutionMetadata(),

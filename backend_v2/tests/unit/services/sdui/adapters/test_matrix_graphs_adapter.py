@@ -21,7 +21,7 @@ from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MATRIX_GRAPH
 
 def test_matrix_graphs_adapter_empty_groups() -> None:
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
@@ -46,13 +46,13 @@ def test_matrix_graphs_adapter_empty_groups() -> None:
 
 def test_matrix_graphs_adapter_single_group_1d() -> None:
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_1111111111111111",
+                id="grp_0195f3a0000070018111111111111111",
                 title=I18nText(translations={"en": "Metrics 1D"}),
                 target_blocks=["m1"],
             )
@@ -91,13 +91,13 @@ def test_matrix_graphs_adapter_single_group_1d() -> None:
 
 def test_matrix_graphs_adapter_single_group_2d() -> None:
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_2222222222222222",
+                id="grp_0195f3a0000070028222222222222222",
                 title=I18nText(translations={"en": "Compare 2D"}),
                 target_blocks=["m1", "m2"],
                 view_type=PresetView.COMPARE_2D,
@@ -147,13 +147,13 @@ def test_matrix_graphs_adapter_single_group_2d() -> None:
 
 def test_matrix_graphs_adapter_success_3d() -> None:
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_3333333333333333",
+                id="grp_0195f3a0000070038333333333333333",
                 title=I18nText(translations={"en": "Graph 3D"}),
                 target_blocks=["m1", "m2", "m3"],
                 view_type=PresetView.MATRIX_3D,
@@ -213,13 +213,13 @@ def test_matrix_graphs_adapter_success_3d() -> None:
 def test_matrix_graphs_adapter_wildcard_target_blocks() -> None:
     """Verify target_blocks=['*'] matches all parsed matrices."""
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_4444444444444444",
+                id="grp_0195f3a0000070048444444444444444",
                 title=I18nText(translations={"en": "All Matrices"}),
                 target_blocks=["*"],
             )
@@ -276,13 +276,13 @@ def test_matrix_graphs_adapter_wildcard_target_blocks() -> None:
 
 def test_matrix_graphs_adapter_with_section_syntheses() -> None:
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_5555555555555555",
+                id="grp_0195f3a0000070058555555555555555",
                 title=I18nText(translations={"en": "Synthesized Group"}),
                 target_blocks=["m1"],
             )
@@ -290,7 +290,7 @@ def test_matrix_graphs_adapter_with_section_syntheses() -> None:
     )
     cache = RenderedSynthesisCache(
         section_syntheses={
-            "grp_5555555555555555": [
+            "grp_0195f3a0000070058555555555555555": [
                 ParagraphBlock(text="Section synthesis summary text.", exact_quotes=[], citations=[])
             ]
         }
@@ -329,13 +329,13 @@ def test_matrix_graphs_adapter_with_section_syntheses() -> None:
 def test_matrix_graphs_adapter_text_only_with_section_syntheses() -> None:
     """Verify that text_only synthesis group emits MarkdownBlock title header before synthesis text."""
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test_text_only",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_aaaaaaaaaaaaaaaa",
+                id="grp_0195f3a00000700a8aaaaaaaaaaaaaaa",
                 title=I18nText(translations={"en": "Text Only Group", "fi": "Tekstiryhmä"}),
                 target_blocks=["m1"],
                 view_type=PresetView.TEXT_ONLY,
@@ -344,7 +344,7 @@ def test_matrix_graphs_adapter_text_only_with_section_syntheses() -> None:
     )
     cache = RenderedSynthesisCache(
         section_syntheses={
-            "grp_aaaaaaaaaaaaaaaa": [
+            "grp_0195f3a00000700a8aaaaaaaaaaaaaaa": [
                 ParagraphBlock(text="Text-only qualitative narrative.", exact_quotes=[], citations=[])
             ]
         }
@@ -383,13 +383,13 @@ def test_matrix_graphs_adapter_text_only_with_section_syntheses() -> None:
 def test_matrix_graphs_adapter_insufficient_axes_with_section_syntheses() -> None:
     """Verify that synthesis group with axes below chart threshold emits MarkdownBlock title header before synthesis text."""
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test_insufficient_axes",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_bbbbbbbbbbbbbbbb",
+                id="grp_0195f3a00000700b8bbbbbbbbbbbbbbb",
                 title=I18nText(translations={"en": "Radar Under Axes Group", "fi": "Tutka vajaat akselit"}),
                 target_blocks=["m1", "m2", "m3"],
                 view_type=PresetView.MATRIX_3D,
@@ -398,7 +398,7 @@ def test_matrix_graphs_adapter_insufficient_axes_with_section_syntheses() -> Non
     )
     cache = RenderedSynthesisCache(
         section_syntheses={
-            "grp_bbbbbbbbbbbbbbbb": [
+            "grp_0195f3a00000700b8bbbbbbbbbbbbbbb": [
                 ParagraphBlock(text="Synthesis text when chart cannot be drawn.", exact_quotes=[], citations=[])
             ]
         }
@@ -438,13 +438,13 @@ def test_matrix_graphs_adapter_insufficient_axes_with_section_syntheses() -> Non
 def test_matrix_graphs_adapter_data_starvation_returns_empty() -> None:
     """Verify that when context.is_data_starved is True, build() deterministically returns empty list."""
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test_starvation",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_cccccccccccccccc",
+                id="grp_0195f3a00000700c8ccccccccccccccc",
                 title=I18nText(translations={"en": "Starved Group"}),
                 target_blocks=["m1"],
                 view_type=PresetView.METRICS_1D,
@@ -453,7 +453,9 @@ def test_matrix_graphs_adapter_data_starvation_returns_empty() -> None:
     )
     cache = RenderedSynthesisCache(
         section_syntheses={
-            "grp_cccccccccccccccc": [ParagraphBlock(text="Starved synthesis text.", exact_quotes=[], citations=[])]
+            "grp_0195f3a00000700c8ccccccccccccccc": [
+                ParagraphBlock(text="Starved synthesis text.", exact_quotes=[], citations=[])
+            ]
         },
         data_starvation=DataStarvationEvent(total_atoms=0, reason="insufficient_tokens"),
     )
@@ -521,14 +523,14 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
 
     # 1. 2D compare
     p_2d = OutputProfile(
-        id="prf_2222222222222222",
+        id="prf_0195f3a0000070028222222222222222",
         slug="test_2d",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "2D"}),
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_2222222222222222",
+                id="grp_0195f3a0000070028222222222222222",
                 title=I18nText(translations={"en": "2D"}),
                 target_blocks=["m1", "m2"],
                 view_type="2d_compare",
@@ -555,14 +557,14 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
 
     # 2. 3D matrix
     p_3d = OutputProfile(
-        id="prf_3333333333333333",
+        id="prf_0195f3a0000070038333333333333333",
         slug="test_3d",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "3D"}),
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_3333333333333333",
+                id="grp_0195f3a0000070038333333333333333",
                 title=I18nText(translations={"en": "3D"}),
                 target_blocks=["m1", "m2", "m3"],
                 view_type="3d_matrix",
@@ -588,14 +590,14 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
 
     # 3. text_only
     p_text = OutputProfile(
-        id="prf_4444444444444444",
+        id="prf_0195f3a0000070048444444444444444",
         slug="test_text",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "Text"}),
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_4444444444444444",
+                id="grp_0195f3a0000070048444444444444444",
                 title=I18nText(translations={"en": "Text"}),
                 target_blocks=["m1"],
                 view_type="text_only",
@@ -621,14 +623,14 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
 def test_matrix_graphs_adapter_unsupported_view_type_fails_fast() -> None:
     """Negative: Unsupported view_type raises Fail-Fast AppException with CONFIGURATION_ERROR."""
     p_invalid = OutputProfile(
-        id="prf_9999999999999999",
+        id="prf_0195f3a0000070098999999999999999",
         slug="test_invalid",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "Invalid"}),
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup.model_construct(
-                id="grp_9999999999999999",
+                id="grp_0195f3a0000070098999999999999999",
                 title=I18nText(translations={"en": "Invalid"}),
                 target_blocks=["m1"],
                 view_type="unsupported_view_type",
@@ -666,14 +668,14 @@ def test_matrix_graphs_adapter_unsupported_view_type_fails_fast() -> None:
 def test_matrix_graphs_adapter_empty_view_type_boundary_fails_fast() -> None:
     """Negative (Boundary): Empty string view_type raises Fail-Fast AppException with CONFIGURATION_ERROR."""
     p_empty_view = OutputProfile(
-        id="prf_8888888888888888",
+        id="prf_0195f3a0000070088888888888888888",
         slug="test_empty_view",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "Empty View"}),
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup.model_construct(
-                id="grp_8888888888888888",
+                id="grp_0195f3a0000070088888888888888888",
                 title=I18nText(translations={"en": "Empty View"}),
                 target_blocks=["m1"],
                 view_type="",
@@ -711,14 +713,14 @@ def test_matrix_graphs_adapter_empty_view_type_boundary_fails_fast() -> None:
 def test_matrix_graphs_adapter_2d_boundary_insufficient_axes() -> None:
     """Boundary (min_axes - 1): 2d_compare with only 1 matched axis omits scatter plot block."""
     p_2d_under = OutputProfile(
-        id="prf_7777777777777777",
+        id="prf_0195f3a0000070078777777777777777",
         slug="test_2d_under",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "2D Under"}),
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_7777777777777777",
+                id="grp_0195f3a0000070078777777777777777",
                 title=I18nText(translations={"en": "2D Under"}),
                 target_blocks=["m1", "m2"],
                 view_type=PresetView.COMPARE_2D,
@@ -755,14 +757,14 @@ def test_matrix_graphs_adapter_2d_boundary_insufficient_axes() -> None:
 def test_matrix_graphs_adapter_1d_boundary_insufficient_axes_with_section_syntheses() -> None:
     """Boundary (min_axes - 1): 1d_metrics with 0 matched axes but section_syntheses present emits MarkdownBlock."""
     p_1d_under = OutputProfile(
-        id="prf_6666666666666666",
+        id="prf_0195f3a0000070068666666666666666",
         slug="test_1d_under",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "1D Under"}),
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_6666666666666666",
+                id="grp_0195f3a0000070068666666666666666",
                 title=I18nText(translations={"en": "1D Under Header"}),
                 target_blocks=["m_missing"],
                 view_type=PresetView.METRICS_1D,
@@ -771,7 +773,9 @@ def test_matrix_graphs_adapter_1d_boundary_insufficient_axes_with_section_synthe
     )
     cache = RenderedSynthesisCache(
         section_syntheses={
-            "grp_6666666666666666": [ParagraphBlock(text="1D fallback prose.", exact_quotes=[], citations=[])]
+            "grp_0195f3a0000070068666666666666666": [
+                ParagraphBlock(text="1D fallback prose.", exact_quotes=[], citations=[])
+            ]
         }
     )
     context = AdapterContext(

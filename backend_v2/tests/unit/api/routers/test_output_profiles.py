@@ -43,9 +43,9 @@ def mock_get_current_user_root() -> TokenData:
     """
     return TokenData(
         email="root@test.com",
-        id="usr_0123456789abcdef",
+        id="usr_0195f3a0000070008123456789abcdef",
         role=UserRole.ROOT,
-        organization_id="org_0123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
     )
 
 
@@ -84,15 +84,15 @@ def sample_output_profile() -> OutputProfile:
         Strictly typed OutputProfile instance.
     """
     return OutputProfileFactory.build(
-        id="prof_0123456789abcdef",
-        workflow_id="wf_0123456789abcdef",
+        id="prof_0195f3a0000070008123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
         slug="test-profile",
         name=I18nText(translations={"en": "Test Profile", "fi": "Testiprofiili"}),
-        organization_id="org_0123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         content_blocks=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_1234567890123456",
+                id="grp_0195f3a0000070018234567890123456",
                 title=I18nText(translations={"en": "Group", "fi": "Ryhmä"}),
                 target_blocks=["*"],
             )
@@ -114,10 +114,8 @@ async def test_list_output_profiles_returns_200(
     assert isinstance(data, list)
     assert len(data) == 1
     dto = OutputProfileResponseDTO.model_validate(data[0])
-    assert dto.id == "prof_0123456789abcdef"
-    mock_studio_service.list_output_profiles.assert_awaited_once_with(
-        initiator=mock_get_current_user_root()
-    )
+    assert dto.id == "prof_0195f3a0000070008123456789abcdef"
+    mock_studio_service.list_output_profiles.assert_awaited_once_with(initiator=mock_get_current_user_root())
 
 
 @pytest.mark.asyncio
@@ -131,10 +129,8 @@ async def test_create_output_profile_draft_returns_201(
     response = client.post("/api/v2/output-profiles/")
     assert response.status_code == status.HTTP_201_CREATED
     dto = OutputProfileResponseDTO.model_validate(response.json())
-    assert dto.id == "prof_0123456789abcdef"
-    mock_studio_service.create_output_profile_draft.assert_awaited_once_with(
-        initiator=mock_get_current_user_root()
-    )
+    assert dto.id == "prof_0195f3a0000070008123456789abcdef"
+    mock_studio_service.create_output_profile_draft.assert_awaited_once_with(initiator=mock_get_current_user_root())
 
 
 @pytest.mark.asyncio
@@ -145,13 +141,13 @@ async def test_get_output_profile_returns_200(
 ) -> None:
     """Test retrieving an output profile by valid ID returns HTTP 200."""
     mock_studio_service.get_output_profile.return_value = sample_output_profile
-    response = client.get("/api/v2/output-profiles/prof_0123456789abcdef")
+    response = client.get("/api/v2/output-profiles/prof_0195f3a0000070008123456789abcdef")
     assert response.status_code == status.HTTP_200_OK
     dto = OutputProfileResponseDTO.model_validate(response.json())
-    assert dto.id == "prof_0123456789abcdef"
+    assert dto.id == "prof_0195f3a0000070008123456789abcdef"
     mock_studio_service.get_output_profile.assert_awaited_once_with(
         initiator=mock_get_current_user_root(),
-        id="prof_0123456789abcdef",
+        id="prof_0195f3a0000070008123456789abcdef",
     )
 
 
@@ -162,12 +158,12 @@ async def test_get_output_profile_with_prf_prefix_returns_200(
     sample_output_profile: OutputProfile,
 ) -> None:
     """Test retrieving an output profile with 'prf_' prefix passes regex and returns HTTP 200."""
-    prf_profile = sample_output_profile.model_copy(update={"id": "prf_0123456789abcdef"})
+    prf_profile = sample_output_profile.model_copy(update={"id": "prf_0195f3a0000070008123456789abcdef"})
     mock_studio_service.get_output_profile.return_value = prf_profile
-    response = client.get("/api/v2/output-profiles/prf_0123456789abcdef")
+    response = client.get("/api/v2/output-profiles/prf_0195f3a0000070008123456789abcdef")
     assert response.status_code == status.HTTP_200_OK
     dto = OutputProfileResponseDTO.model_validate(response.json())
-    assert dto.id == "prf_0123456789abcdef"
+    assert dto.id == "prf_0195f3a0000070008123456789abcdef"
 
 
 @pytest.mark.asyncio
@@ -190,15 +186,15 @@ async def test_upsert_output_profile_returns_200(
     """Test updating an output profile with matching ID returns HTTP 200."""
     mock_studio_service.save_output_profile.return_value = sample_output_profile
     response = client.put(
-        "/api/v2/output-profiles/prof_0123456789abcdef",
+        "/api/v2/output-profiles/prof_0195f3a0000070008123456789abcdef",
         json=sample_output_profile.model_dump(mode="json"),
     )
     assert response.status_code == status.HTTP_200_OK
     dto = OutputProfileResponseDTO.model_validate(response.json())
-    assert dto.id == "prof_0123456789abcdef"
+    assert dto.id == "prof_0195f3a0000070008123456789abcdef"
     mock_studio_service.save_output_profile.assert_awaited_once_with(
         initiator=mock_get_current_user_root(),
-        id="prof_0123456789abcdef",
+        id="prof_0195f3a0000070008123456789abcdef",
         data=sample_output_profile,
     )
 
@@ -210,9 +206,9 @@ async def test_upsert_output_profile_id_mismatch_returns_400(
     sample_output_profile: OutputProfile,
 ) -> None:
     """Test updating an output profile with mismatched path ID and payload ID returns HTTP 400."""
-    mismatched_payload = sample_output_profile.model_copy(update={"id": "prof_9999999999999999"})
+    mismatched_payload = sample_output_profile.model_copy(update={"id": "prof_0195f3a0000070098999999999999999"})
     response = client.put(
-        "/api/v2/output-profiles/prof_0123456789abcdef",
+        "/api/v2/output-profiles/prof_0195f3a0000070008123456789abcdef",
         json=mismatched_payload.model_dump(mode="json"),
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -225,13 +221,13 @@ async def test_upsert_output_profile_direct_raises_app_exception_on_id_mismatch(
     sample_output_profile: OutputProfile,
 ) -> None:
     """Test upsert_output_profile directly raises AppException (ID_MISMATCH) when IDs differ."""
-    mismatched_payload = sample_output_profile.model_copy(update={"id": "prof_9999999999999999"})
+    mismatched_payload = sample_output_profile.model_copy(update={"id": "prof_0195f3a0000070098999999999999999"})
     with pytest.raises(AppException) as exc_info:
         await upsert_output_profile(
             data=mismatched_payload,
             initiator=mock_get_current_user_root(),
             service=mock_studio_service,
-            profile_id="prof_0123456789abcdef",
+            profile_id="prof_0195f3a0000070008123456789abcdef",
         )
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
     assert exc_info.value.details == {"error_code": ErrorCodes.ID_MISMATCH.value}
@@ -245,13 +241,13 @@ async def test_get_output_profile_direct_raises_app_exception_when_not_found(
     """Test get_output_profile propagates ResourceNotFoundError (AppException) on missing ID."""
     mock_studio_service.get_output_profile.side_effect = ResourceNotFoundError(
         resource_type="output_profile",
-        resource_id="prof_0000000000000000",
+        resource_id="prof_0195f3a0000070008000000000000000",
     )
     with pytest.raises(AppException) as exc_info:
         await get_output_profile(
             initiator=mock_get_current_user_root(),
             service=mock_studio_service,
-            profile_id="prof_0000000000000000",
+            profile_id="prof_0195f3a0000070008000000000000000",
         )
     assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
 
@@ -268,7 +264,7 @@ async def test_delete_output_profile_direct_raises_app_exception_on_permission_d
         await delete_output_profile(
             initiator=mock_get_current_user_root(),
             service=mock_studio_service,
-            profile_id="prof_0123456789abcdef",
+            profile_id="prof_0195f3a0000070008123456789abcdef",
         )
     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
 
@@ -293,11 +289,11 @@ async def test_delete_output_profile_returns_204(
     mock_studio_service: AsyncMock,
 ) -> None:
     """Test deleting an output profile returns HTTP 204."""
-    response = client.delete("/api/v2/output-profiles/prof_0123456789abcdef")
+    response = client.delete("/api/v2/output-profiles/prof_0195f3a0000070008123456789abcdef")
     assert response.status_code == status.HTTP_204_NO_CONTENT
     mock_studio_service.delete_output_profile.assert_awaited_once_with(
         initiator=mock_get_current_user_root(),
-        id="prof_0123456789abcdef",
+        id="prof_0195f3a0000070008123456789abcdef",
     )
 
 
@@ -319,15 +315,15 @@ async def test_clone_output_profile_returns_201(
     sample_output_profile: OutputProfile,
 ) -> None:
     """Test deep cloning an output profile returns HTTP 201 with cloned model."""
-    cloned_profile = sample_output_profile.model_copy(update={"id": "prof_1111111111111112"})
+    cloned_profile = sample_output_profile.model_copy(update={"id": "prof_0195f3a0000070018111111111111112"})
     mock_studio_service.clone_output_profile.return_value = cloned_profile
-    response = client.post("/api/v2/output-profiles/prof_0123456789abcdef/clone")
+    response = client.post("/api/v2/output-profiles/prof_0195f3a0000070008123456789abcdef/clone")
     assert response.status_code == status.HTTP_201_CREATED
     dto = OutputProfileResponseDTO.model_validate(response.json())
-    assert dto.id == "prof_1111111111111112"
+    assert dto.id == "prof_0195f3a0000070018111111111111112"
     mock_studio_service.clone_output_profile.assert_awaited_once_with(
         initiator=mock_get_current_user_root(),
-        id="prof_0123456789abcdef",
+        id="prof_0195f3a0000070008123456789abcdef",
     )
 
 
@@ -338,9 +334,9 @@ async def test_clone_output_profile_not_found_returns_404(
 ) -> None:
     """Test cloning a non-existent output profile returns HTTP 404."""
     mock_studio_service.clone_output_profile.side_effect = ResourceNotFoundError(
-        resource_type="output_profile", resource_id="prof_0000000000000000"
+        resource_type="output_profile", resource_id="prof_0195f3a0000070008000000000000000"
     )
-    response = client.post("/api/v2/output-profiles/prof_0000000000000000/clone")
+    response = client.post("/api/v2/output-profiles/prof_0195f3a0000070008000000000000000/clone")
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 

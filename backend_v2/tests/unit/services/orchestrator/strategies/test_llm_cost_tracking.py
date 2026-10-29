@@ -41,7 +41,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
                     "organization_id": "root",
                     "matrix_synthesis_groups": [
                         {
-                            "id": "grp_1234567890123456",
+                            "id": "grp_0195f3a0000070018234567890123456",
                             "title": {"translations": {"en": "Test"}},
                             "target_blocks": ["*"],
                         }
@@ -61,7 +61,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
             "version": 1,
             "default_profile_id": "prof",
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
+            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
             "steps": [],
         },
     )
@@ -115,7 +115,9 @@ async def test_tda_engine_aggregates_token_usage_and_cost(
         compiled_schema=None,
         hydrated_messages=None,
         system_prompt="Test System Prompt",
-        step=StepRule(id="step_a1b2c3d4e5f6a7b8", task_blueprint="task_123", depends_on=[], input_mappings={}),
+        step=StepRule(
+            id="stp_0195f3a00000700a81b2c3d4e5f6a7b8", task_blueprint="task_123", depends_on=[], input_mappings={}
+        ),
         context=StrategyContext(
             execution_id="exe_abc12345",
             workflow_id="wor_xyz12345",
@@ -187,7 +189,7 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "description": {"translations": {"en": "Test", "fi": "Test"}},
         "role_block_id": None,
-        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
         "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
     }
     mock_repo.seed_raw_step("stp_0123456789abcdef0123456789abcdef", step_payload)
@@ -205,9 +207,9 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
         },
     )
     mock_repo.seed_raw_prompt_block(
-        "blk_573802341db9d68c",
+        "blk_0195f3a000007005873802341db9d68c",
         {
-            "id": "blk_573802341db9d68c",
+            "id": "blk_0195f3a000007005873802341db9d68c",
             "slug": "zero_trust_extraction_protocol",
             "category_id": "system_rule",
             "type": "instruction",

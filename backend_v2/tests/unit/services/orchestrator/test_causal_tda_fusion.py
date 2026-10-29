@@ -23,9 +23,9 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.matrix import FlattenedAtom
-from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.step import ExpectedInput, StepRule
 from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.atom_result import AtomResultDTO, ExtractedValueDTO
 from backend_v2.models.dtos.causal_discovery import (
     CausalEdgeDTO,
     CausalGraphPayloadDTO,
@@ -77,31 +77,62 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
         InMemoryUnifiedWorkflowRepository instance.
     """
     repo = InMemoryUnifiedWorkflowRepository()
-    repo.seed_raw_step(
-        "blp_1111222233334444",
+    repo.seed_raw_prompt_block(
+        "blk_0195f3a00000700080009f6d2c1b0a5e",
         {
-            "id": "blp_1111222233334444",
+            "id": "blk_0195f3a00000700080009f6d2c1b0a5e",
+            "slug": "causal_cohesion_matrix",
+            "name": {"translations": {"en": "Causal Cohesion Matrix"}},
+            "category_id": "matrix",
+            "ai_description": "Evaluate structural causal cohesion.",
+            "scale_min": 1,
+            "scale_max": 5,
+            "scales": [
+                {
+                    "id": f"sc_0195f3a0000070008800000000000000{lvl}",
+                    "score": lvl,
+                    "label": {"translations": {"en": f"Level {lvl}"}},
+                    "concept_description": f"Level {lvl} description.",
+                    "tda_assertions": [
+                        {
+                            "tda_id": f"tda_0195f3a0000070008800000000000001{lvl}",
+                            "claim": f"Cohesion claim L{lvl}.",
+                            "anchor_target": "Deliverable Argument Graph",
+                            "extraction_rule": "Graph topology verification.",
+                            "depends_on_tda_ids": [],
+                        }
+                    ],
+                }
+                for lvl in range(1, 6)
+            ],
+        },
+    )
+    repo.seed_raw_step(
+        "stp_0195f3a0000070008000111122223333",
+        {
+            "id": "stp_0195f3a0000070008000111122223333",
             "type": "causal_discovery",
             "slug": "causal_step",
             "name": {"translations": {"en": "Causal Discovery Step"}},
             "description": {"translations": {"en": "Exploratory Causal Graph"}},
             "engine_type": "causal_discovery",
             "cognitive_tier": "fast",
-            "extraction_protocol_block_id": "blk_1111222233334444",
+            "criteria_block_ids": ["blk_0195f3a00000700080009f6d2c1b0a5e"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070008000111122223333",
             "post_hooks": [],
         },
     )
     repo.seed_raw_step(
-        "blp_5555666677778888",
+        "stp_0195f3a0000070008000555566667777",
         {
-            "id": "blp_5555666677778888",
+            "id": "stp_0195f3a0000070008000555566667777",
             "type": "llm",
             "slug": "tda_step",
             "name": {"translations": {"en": "TDA Fusion Step"}},
             "description": {"translations": {"en": "Downstream TDA Evaluation"}},
             "engine_type": "tda",
-            "criteria_block_ids": ["blk_5555666677778888"],
-            "extraction_protocol_block_id": "blk_1111222233334444",
+            "criteria_block_ids": ["blk_0195f3a0000070008000555566667777"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070008000111122223333",
             "post_hooks": ["apply_scoring_logic_hook"],
         },
     )
@@ -127,7 +158,7 @@ def test_causal_to_tda_fusion_transforms_nodes_to_flattened_atoms() -> None:
     """Verifies transform_causal_nodes_to_atoms converts CausalNodeDTO to FlattenedAtom."""
     nodes = [
         CausalNodeDTO(
-            node_id="tda_0000000000000001",
+            node_id="tda_0195f3a0000070008000000000000001",
             claim="Higher prices decrease customer demand.",
             source_quotes=("When prices rose by 10%, volume dropped.",),
             paragraph_ref="P1",
@@ -136,7 +167,7 @@ def test_causal_to_tda_fusion_transforms_nodes_to_flattened_atoms() -> None:
             dependent_child_ids=[],
         ),
         CausalNodeDTO(
-            node_id="tda_0000000000000002",
+            node_id="tda_0195f3a0000070008000000000000002",
             claim="Lower demand reduces quarterly revenues.",
             source_quotes=("Revenues contracted following the volume drop.",),
             paragraph_ref="P2",
@@ -145,7 +176,7 @@ def test_causal_to_tda_fusion_transforms_nodes_to_flattened_atoms() -> None:
             dependent_child_ids=[],
         ),
         CausalNodeDTO(
-            node_id="tda_0000000000000003",
+            node_id="tda_0195f3a0000070008000000000000003",
             claim="Supply chain costs offset revenue gains.",
             source_quotes=("Freight rate surcharges erased margin gains.",),
             paragraph_ref="P3",
@@ -189,7 +220,7 @@ def test_transform_causal_nodes_empty_list_returns_empty_list() -> None:
 def test_transform_causal_nodes_with_none_quote_transforms_cleanly() -> None:
     """Verifies transform_causal_nodes_to_atoms handles None quote and paragraph references cleanly."""
     node = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Market share expanded without explicit source quote.",
         source_quotes=None,
         paragraph_ref=None,
@@ -202,7 +233,7 @@ def test_transform_causal_nodes_with_none_quote_transforms_cleanly() -> None:
 
     assert len(atoms) == 1
     atom = atoms[0]
-    assert atom.atom_id == "tda_0000000000000001"
+    assert atom.atom_id == "tda_0195f3a0000070008000000000000001"
     assert atom.question == "Market share expanded without explicit source quote."
     assert atom.anchor_target == ""
     assert atom.extraction_rule == ""
@@ -233,25 +264,25 @@ async def test_causal_fusion_starvation_empty_nodes_raises_app_exception(
     )
 
     step_causal = StepRule(
-        id="stp_1111222233334444",
-        task_blueprint="blp_1111222233334444",
+        id="sr_0195f3a0000070008000111122223333",
+        task_blueprint="stp_0195f3a0000070008000111122223333",
         depends_on=[],
     )
     step_tda = StepRule(
-        id="stp_5555666677778888",
-        task_blueprint="blp_5555666677778888",
-        depends_on=["stp_1111222233334444"],
-        causal_source_step_id="stp_1111222233334444",
+        id="sr_0195f3a0000070008000555566667777",
+        task_blueprint="stp_0195f3a0000070008000555566667777",
+        depends_on=["sr_0195f3a0000070008000111122223333"],
+        causal_source_step_id="sr_0195f3a0000070008000111122223333",
     )
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070008000111122223333",
         slug="wf_starvation",
         status="draft",
         version=1,
-        default_profile_id="prof_1111222233334444",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prf_0195f3a0000070008000111122223333",
+        model_registry_id="sys_0195f3a0000070008000111122223333",
         name=I18nText(translations={"en": "Starvation Workflow"}),
         description=I18nText(translations={"en": "Starvation Test"}),
         steps=[step_causal, step_tda],
@@ -267,10 +298,10 @@ async def test_causal_fusion_starvation_empty_nodes_raises_app_exception(
 
     async def fake_node_execute(*args: Any, **kwargs: Any) -> list[TraceEvent]:
         step_arg = kwargs["step"] if "step" in kwargs else None
-        if step_arg and step_arg.id == "stp_1111222233334444":
+        if step_arg and step_arg.id == "sr_0195f3a0000070008000111122223333":
             return [
                 TraceEvent(
-                    step_name="stp_1111222233334444",
+                    step_name="sr_0195f3a0000070008000111122223333",
                     event_type="output",
                     content=empty_graph,
                 )
@@ -290,7 +321,7 @@ async def test_causal_fusion_starvation_empty_nodes_raises_app_exception(
 
         with pytest.raises(AppException) as exc_info:
             await executor.execute_workflow(
-                execution_id="exe_1111222233334444",
+                execution_id="exe_0195f3a0000070008000111122223333",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(dynamic_inputs={"text": "sample"}),
             )
@@ -309,9 +340,9 @@ def test_causal_fusion_missing_upstream_step_raises_app_exception() -> None:
     """Verifies that referencing a causal_source_step_id not in depends_on raises VALIDATION_FAILED."""
     with pytest.raises(AppException) as exc_info:
         StepRule(
-            id="stp_5555666677778888",
-            task_blueprint="blp_5555666677778888",
-            causal_source_step_id="stp_9999999999999999",
+            id="sr_0195f3a0000070008000555566667777",
+            task_blueprint="stp_0195f3a0000070008000555566667777",
+            causal_source_step_id="sr_0195f3a0000070008000999999999999",
             depends_on=[],
         )
 
@@ -346,52 +377,58 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
     )
 
     step_causal = StepRule(
-        id="stp_1111222233334444",
-        task_blueprint="blp_1111222233334444",
+        id="sr_0195f3a0000070008000111122223333",
+        task_blueprint="stp_0195f3a0000070008000111122223333",
         depends_on=[],
     )
     step_tda = StepRule(
-        id="stp_5555666677778888",
-        task_blueprint="blp_5555666677778888",
-        depends_on=["stp_1111222233334444"],
-        causal_source_step_id="stp_1111222233334444",
+        id="sr_0195f3a0000070008000555566667777",
+        task_blueprint="stp_0195f3a0000070008000555566667777",
+        depends_on=["sr_0195f3a0000070008000111122223333"],
+        causal_source_step_id="sr_0195f3a0000070008000111122223333",
     )
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070008000111122223333",
         slug="wf_fusion_pop",
         status="draft",
         version=1,
-        default_profile_id="prof_1111222233334444",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prf_0195f3a0000070008000111122223333",
+        model_registry_id="sys_0195f3a0000070008000111122223333",
         name=I18nText(translations={"en": "Fusion Pop Workflow"}),
         description=I18nText(translations={"en": "Fusion Pop Test"}),
         steps=[step_causal, step_tda],
     )
 
     node1 = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Discovered proposition 1",
         source_quotes=("Quote 1",),
         paragraph_ref="P1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000002"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
     )
     node2 = CausalNodeDTO(
-        node_id="tda_0000000000000002",
+        node_id="tda_0195f3a0000070008000000000000002",
         claim="Discovered proposition 2",
         source_quotes=("Quote 2",),
         paragraph_ref="P2",
         status=ExecutionStatus.PASSED,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
     )
     valid_graph = _create_test_graph(
         nodes=[node1, node2],
-        edges=[CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000002", reasoning="r1")],
-        root_cause_node_ids=["tda_0000000000000001"],
+        edges=[
+            CausalEdgeDTO(
+                source_id="tda_0195f3a0000070008000000000000001",
+                target_id="tda_0195f3a0000070008000000000000002",
+                reasoning="r1",
+            )
+        ],
+        root_cause_node_ids=["tda_0195f3a0000070008000000000000001"],
         cycle_detected=False,
         isolated_node_ids=[],
     )
@@ -401,24 +438,24 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
     async def fake_node_execute(*args: Any, **kwargs: Any) -> list[TraceEvent]:
         nonlocal observed_shuffled_atoms
         step_arg = kwargs["step"] if "step" in kwargs else None
-        if step_arg and step_arg.id == "stp_1111222233334444":
+        if step_arg and step_arg.id == "sr_0195f3a0000070008000111122223333":
             return [
                 TraceEvent(
-                    step_name="stp_1111222233334444",
+                    step_name="sr_0195f3a0000070008000111122223333",
                     event_type="output",
                     content=valid_graph,
                 )
             ]
-        if step_arg and step_arg.id == "stp_5555666677778888":
+        if step_arg and step_arg.id == "sr_0195f3a0000070008000555566667777":
             gvars = kwargs["global_context_vars"] if "global_context_vars" in kwargs else None
             if gvars is not None:
                 observed_shuffled_atoms = gvars.shuffled_atoms
             return [
                 TraceEvent(
-                    step_name="stp_5555666677778888",
+                    step_name="sr_0195f3a0000070008000555566667777",
                     event_type="output",
                     content=AtomResultDTO(
-                        tda_id="tda_0000000000000001",
+                        tda_id="tda_0195f3a0000070008000000000000001",
                         status=ExecutionStatus.PASSED,
                         evaluation_reasoning="Validly passed downstream TDA.",
                         source_quotes=("Quote 1",),
@@ -442,7 +479,7 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
         )
 
         record = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070008000111122223333",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"text": "sample"}),
         )
@@ -450,8 +487,8 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
         assert record.status == ExecutionStatus.RUNNING
         assert observed_shuffled_atoms is not None
         assert len(observed_shuffled_atoms) == 2
-        assert observed_shuffled_atoms[0].atom_id == "tda_0000000000000001"
-        assert observed_shuffled_atoms[1].atom_id == "tda_0000000000000002"
+        assert observed_shuffled_atoms[0].atom_id == "tda_0195f3a0000070008000000000000001"
+        assert observed_shuffled_atoms[1].atom_id == "tda_0195f3a0000070008000000000000002"
         assert record.metadata is not None
         assert record.metadata.global_context_vars is not None
         assert record.metadata.global_context_vars.shuffled_atoms is not None
@@ -465,32 +502,32 @@ async def test_causal_fusion_populates_global_context_vars_shuffled_atoms(
 def test_fair_scoring_deduplication_applies_dampening() -> None:
     """Verifies fair scoring arithmetic dampens secondary faults and satisfies the mathematical identity."""
     node1 = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Root cause error",
         source_quotes=("Quote 1",),
         paragraph_ref="P1",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000002"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
     )
     node2 = CausalNodeDTO(
-        node_id="tda_0000000000000002",
+        node_id="tda_0195f3a0000070008000000000000002",
         claim="Cascading secondary fault",
         source_quotes=("Quote 2",),
         paragraph_ref="P2",
         status=ExecutionStatus.FAILED,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
     )
     edge = CausalEdgeDTO(
-        source_id="tda_0000000000000001",
-        target_id="tda_0000000000000002",
+        source_id="tda_0195f3a0000070008000000000000001",
+        target_id="tda_0195f3a0000070008000000000000002",
         reasoning="Causal dependency",
     )
     graph = _create_test_graph(
         nodes=[node1, node2],
         edges=[edge],
-        root_cause_node_ids=["tda_0000000000000001"],
+        root_cause_node_ids=["tda_0195f3a0000070008000000000000001"],
         cycle_detected=False,
         isolated_node_ids=[],
     )
@@ -539,38 +576,46 @@ def test_fair_scoring_identity_violation_raises_value_error() -> None:
 def test_prescriptive_remediation_identifies_root_causes() -> None:
     """Verifies prescriptive remediation prioritizes root causes with cascading unlocks."""
     node1 = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Fundamental assumption error",
         source_quotes=("Quote 1",),
         paragraph_ref="P1",
         status=ExecutionStatus.FAILED,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000002", "tda_0000000000000003"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002", "tda_0195f3a0000070008000000000000003"],
     )
     node2 = CausalNodeDTO(
-        node_id="tda_0000000000000002",
+        node_id="tda_0195f3a0000070008000000000000002",
         claim="Derivative projection 1",
         source_quotes=("Quote 2",),
         paragraph_ref="P2",
         status=ExecutionStatus.FAILED,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
     )
     node3 = CausalNodeDTO(
-        node_id="tda_0000000000000003",
+        node_id="tda_0195f3a0000070008000000000000003",
         claim="Derivative projection 2",
         source_quotes=("Quote 3",),
         paragraph_ref="P3",
         status=ExecutionStatus.FAILED,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
     )
-    edge1 = CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000002", reasoning="r1")
-    edge2 = CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000003", reasoning="r2")
+    edge1 = CausalEdgeDTO(
+        source_id="tda_0195f3a0000070008000000000000001",
+        target_id="tda_0195f3a0000070008000000000000002",
+        reasoning="r1",
+    )
+    edge2 = CausalEdgeDTO(
+        source_id="tda_0195f3a0000070008000000000000001",
+        target_id="tda_0195f3a0000070008000000000000003",
+        reasoning="r2",
+    )
     graph = _create_test_graph(
         nodes=[node1, node2, node3],
         edges=[edge1, edge2],
-        root_cause_node_ids=["tda_0000000000000001"],
+        root_cause_node_ids=["tda_0195f3a0000070008000000000000001"],
         cycle_detected=False,
         isolated_node_ids=[],
     )
@@ -579,8 +624,11 @@ def test_prescriptive_remediation_identifies_root_causes() -> None:
 
     assert len(fusion.prescriptive_remediations) == 1
     remediation = fusion.prescriptive_remediations[0]
-    assert remediation.target_node_id == "tda_0000000000000001"
-    assert remediation.unlocks_node_ids == ["tda_0000000000000002", "tda_0000000000000003"]
+    assert remediation.target_node_id == "tda_0195f3a0000070008000000000000001"
+    assert remediation.unlocks_node_ids == [
+        "tda_0195f3a0000070008000000000000002",
+        "tda_0195f3a0000070008000000000000003",
+    ]
     assert remediation.potential_score_impact == 3.0
 
 
@@ -592,25 +640,25 @@ def test_prescriptive_remediation_identifies_root_causes() -> None:
 def test_anti_fluff_audit_identifies_isolated_concepts() -> None:
     """Verifies anti-fluff shield calculates isolated concepts and cohesion score correctly."""
     node1 = CausalNodeDTO(
-        node_id="tda_0000000000000001",
+        node_id="tda_0195f3a0000070008000000000000001",
         claim="Connected core premise",
         source_quotes=("Quote 1",),
         paragraph_ref="P1",
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
-        dependent_child_ids=["tda_0000000000000002"],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
     )
     node2 = CausalNodeDTO(
-        node_id="tda_0000000000000002",
+        node_id="tda_0195f3a0000070008000000000000002",
         claim="Connected conclusion",
         source_quotes=("Quote 2",),
         paragraph_ref="P2",
         status=ExecutionStatus.PASSED,
-        blame_parent_ids=["tda_0000000000000001"],
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
         dependent_child_ids=[],
     )
     node3 = CausalNodeDTO(
-        node_id="tda_0000000000000003",
+        node_id="tda_0195f3a0000070008000000000000003",
         claim="Decorative non-sequitur assertion",
         source_quotes=("Quote 3",),
         paragraph_ref="P3",
@@ -618,13 +666,17 @@ def test_anti_fluff_audit_identifies_isolated_concepts() -> None:
         blame_parent_ids=[],
         dependent_child_ids=[],
     )
-    edge = CausalEdgeDTO(source_id="tda_0000000000000001", target_id="tda_0000000000000002", reasoning="r1")
+    edge = CausalEdgeDTO(
+        source_id="tda_0195f3a0000070008000000000000001",
+        target_id="tda_0195f3a0000070008000000000000002",
+        reasoning="r1",
+    )
     graph = _create_test_graph(
         nodes=[node1, node2, node3],
         edges=[edge],
         root_cause_node_ids=[],
         cycle_detected=False,
-        isolated_node_ids=["tda_0000000000000003"],
+        isolated_node_ids=["tda_0195f3a0000070008000000000000003"],
     )
 
     fusion = compute_causal_tda_fusion_result(graph=graph)
@@ -633,7 +685,7 @@ def test_anti_fluff_audit_identifies_isolated_concepts() -> None:
     assert fluff.isolated_concept_count == 1
     assert fluff.cycle_detected is False
     assert 0.66 <= fluff.logical_cohesion_score <= 0.67
-    assert graph.isolated_node_ids == ["tda_0000000000000003"]
+    assert graph.isolated_node_ids == ["tda_0195f3a0000070008000000000000003"]
 
 
 # ---------------------------------------------------------------------------
@@ -661,19 +713,19 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
     )
 
     step_causal = StepRule(
-        id="stp_1111222233334444",
-        task_blueprint="blp_1111222233334444",
+        id="sr_0195f3a0000070008000111122223333",
+        task_blueprint="stp_0195f3a0000070008000111122223333",
         depends_on=[],
     )
 
     workflow = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070008000111122223333",
         slug="wf_standalone_causal",
         status="draft",
         version=1,
-        default_profile_id="prof_1111222233334444",
-        model_registry_id="cfg_model_registry_01",
+        default_profile_id="prf_0195f3a0000070008000111122223333",
+        model_registry_id="sys_0195f3a0000070008000111122223333",
         name=I18nText(translations={"en": "Standalone Causal Workflow"}),
         description=I18nText(translations={"en": "Standalone Causal Test"}),
         steps=[step_causal],
@@ -682,7 +734,7 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
     graph = _create_test_graph(
         nodes=[
             CausalNodeDTO(
-                node_id="tda_0000000000000001",
+                node_id="tda_0195f3a0000070008000000000000001",
                 claim="Autonomous claim",
                 source_quotes=("Quote",),
                 paragraph_ref="P1",
@@ -694,13 +746,13 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
         edges=[],
         root_cause_node_ids=[],
         cycle_detected=False,
-        isolated_node_ids=["tda_0000000000000001"],
+        isolated_node_ids=["tda_0195f3a0000070008000000000000001"],
     )
 
     async def fake_node_execute(*args: Any, **kwargs: Any) -> list[TraceEvent]:
         return [
             TraceEvent(
-                step_name="stp_1111222233334444",
+                step_name="sr_0195f3a0000070008000111122223333",
                 event_type="output",
                 content=graph,
             )
@@ -718,7 +770,7 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
         )
 
         record = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070008000111122223333",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"text": "sample"}),
         )
@@ -727,3 +779,164 @@ async def test_standalone_causal_workflow_omits_scoring_hook(
         for call_args in mock_hooks.execute.call_args_list:
             hook_name = call_args[0][0]
             assert hook_name != "apply_scoring_logic_hook"
+
+
+def test_causal_fusion_falsification_elevation_and_topological_metrics() -> None:
+    """Verifies atom score projection, deliverable filtering, and topological metrics (r_LCC, r_conv, kappa_steer)."""
+    d1 = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000001",
+        claim="Deliverable root 1",
+        source_quotes=("Quote 1",),
+        paragraph_ref="P1",
+        status=ExecutionStatus.PASSED,
+        tda_score=1.0,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000003"],
+        source_input_key="deliverable_doc",
+    )
+    d2 = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000002",
+        claim="Deliverable root 2",
+        source_quotes=("Quote 2",),
+        paragraph_ref="P2",
+        status=ExecutionStatus.FAILED,
+        tda_score=1.0,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000003"],
+        source_input_key="deliverable_doc",
+    )
+    d3 = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000003",
+        claim="Convergent synthesis node",
+        source_quotes=("Quote 3",),
+        paragraph_ref="P3",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+        source_input_key="deliverable_doc",
+    )
+    d4 = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000004",
+        claim="Disjoint island node",
+        source_quotes=("Quote 4",),
+        paragraph_ref="P4",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+        source_input_key="deliverable_doc",
+    )
+    chat_node = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000005",
+        claim="Dialogue steering directive",
+        source_quotes=("Chat quote",),
+        paragraph_ref="C1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000001"],
+        source_input_key="chat_log",
+    )
+    edges = [
+        CausalEdgeDTO(
+            source_id="tda_0195f3a0000070008000000000000001",
+            target_id="tda_0195f3a0000070008000000000000003",
+            reasoning="Premise 1 to synthesis",
+        ),
+        CausalEdgeDTO(
+            source_id="tda_0195f3a0000070008000000000000002",
+            target_id="tda_0195f3a0000070008000000000000003",
+            reasoning="Premise 2 to synthesis",
+        ),
+        CausalEdgeDTO(
+            source_id="tda_0195f3a0000070008000000000000005",
+            target_id="tda_0195f3a0000070008000000000000001",
+            reasoning="Dialogue steers root 1",
+        ),
+    ]
+    graph = _create_test_graph(nodes=[d1, d2, d3, d4, chat_node], edges=edges)
+    evaluated_atoms = [
+        AtomResultDTO(
+            tda_id="tda_0195f3a0000070008000000000000001",
+            matrix_id="blk_0195f3a0000070008000111122223333",
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="Falsified by TDA evaluation.",
+            source_quotes=None,
+            extensions={},
+            depends_on_tda_ids=[],
+            short_circuit_reason_tda_ids=[],
+        ),
+        AtomResultDTO(
+            tda_id="tda_0195f3a0000070008000000000000002",
+            matrix_id=None,
+            status=ExecutionStatus.PASSED,
+            extracted_data=ExtractedValueDTO(value=5.0),
+            evaluation_reasoning="Elevated by TDA evaluation.",
+            source_quotes=("Quote 2",),
+            extensions={},
+            depends_on_tda_ids=[],
+            short_circuit_reason_tda_ids=[],
+        ),
+    ]
+    expected_inputs = [
+        ExpectedInput(
+            input_key="deliverable_doc",
+            label=I18nText(translations={"en": "Deliverable"}),
+            required=True,
+            is_endorsed_deliverable=True,
+            input_modes=["text"],
+            description=I18nText(translations={"en": "Deliverable"}),
+        ),
+        ExpectedInput(
+            input_key="chat_log",
+            label=I18nText(translations={"en": "Chat"}),
+            required=True,
+            is_chat_history=True,
+            input_modes=["text"],
+            description=I18nText(translations={"en": "Chat history"}),
+        ),
+    ]
+    res = compute_causal_tda_fusion_result(
+        graph=graph,
+        evaluative_matrices={"blk_0195f3a0000070008000111122223333": 1.0},
+        evaluated_atoms=evaluated_atoms,
+        expected_inputs=expected_inputs,
+    )
+    projected_by_id = {n.node_id: n for n in res.graph.nodes}
+    assert projected_by_id["tda_0195f3a0000070008000000000000001"].status == ExecutionStatus.FAILED
+    assert projected_by_id["tda_0195f3a0000070008000000000000002"].status == ExecutionStatus.PASSED
+    assert projected_by_id["tda_0195f3a0000070008000000000000002"].tda_score == 5.0
+    assert res.anti_fluff_audit.largest_component_ratio == 0.75
+    assert res.anti_fluff_audit.branch_convergence_ratio == 0.25
+    assert res.anti_fluff_audit.steering_coupling_ratio == 0.3333
+
+    # Verify fallback deliverable filtering and cycle cohesion penalty
+    fallback_inputs = [
+        ExpectedInput(
+            input_key="unmatched_deliverable",
+            label=I18nText(translations={"en": "Unmatched"}),
+            required=True,
+            is_endorsed_deliverable=False,
+            input_modes=["text"],
+            description=I18nText(translations={"en": "Unmatched text input"}),
+        )
+    ]
+    graph_cycle = _create_test_graph(
+        nodes=[d1, d2],
+        edges=[
+            CausalEdgeDTO(
+                source_id="tda_0195f3a0000070008000000000000001",
+                target_id="tda_0195f3a0000070008000000000000002",
+                reasoning="Link",
+            )
+        ],
+        cycle_detected=True,
+    )
+    empty_deliv_res = compute_causal_tda_fusion_result(
+        graph=graph_cycle,
+        expected_inputs=fallback_inputs,
+    )
+    assert empty_deliv_res.total_deliverable_nodes == 0
+    assert empty_deliv_res.anti_fluff_audit.logical_cohesion_score == 1.0
+
+    cycle_res = compute_causal_tda_fusion_result(graph=graph_cycle, expected_inputs=None)
+    assert cycle_res.anti_fluff_audit.cycle_detected is True
+    assert cycle_res.anti_fluff_audit.logical_cohesion_score == 0.5

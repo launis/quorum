@@ -24,25 +24,25 @@ def test_context_mapper_build_ordinal_mapping_success() -> None:
         MatrixScale(score=5, ai_label="HIGH", name=I18nText(translations={"en": "High", "fi": "Korkea"})),
     ]
     pb_matrix = MatrixPromptBlock(
-        id="pb_0123456789abcdef",
+        id="pb_0195f3a0000070008123456789abcdef",
         slug="matrix_1",
         label=I18nText(translations={"en": "Matrix", "fi": "Matriisi"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
         scales=scales,
     )
     pb_instruction = SystemRulePromptBlock(
-        id="pb_fedcba9876543210",
+        id="pb_0195f3a00000700f8edcba9876543210",
         slug="inst_1",
         label=I18nText(translations={"en": "Inst", "fi": "Ohje"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
     )
 
     mapping = ContextMapper.build_ordinal_mapping(
-        ["pb_0123456789abcdef", "pb_fedcba9876543210"], [pb_matrix, pb_instruction]
+        ["pb_0195f3a0000070008123456789abcdef", "pb_0195f3a00000700f8edcba9876543210"], [pb_matrix, pb_instruction]
     )
     assert "TARGET DATA MAPPING" in mapping
-    assert "Target Data Element -> ID: pb_0123456789abcdef (Absolute Scale Limits: 1 to 5)" in mapping
-    assert "Target Data Element -> ID: pb_fedcba9876543210\n" in mapping
+    assert "Target Data Element -> ID: pb_0195f3a0000070008123456789abcdef (Absolute Scale Limits: 1 to 5)" in mapping
+    assert "Target Data Element -> ID: pb_0195f3a00000700f8edcba9876543210\n" in mapping
 
 
 def test_context_mapper_build_ordinal_mapping_invalid_block_type_raises() -> None:
@@ -58,14 +58,14 @@ def test_context_mapper_build_ordinal_mapping_invalid_block_type_raises() -> Non
 def test_context_mapper_build_ordinal_mapping_mixed_invalid_element_raises() -> None:
     """Test that a corrupted non-model element after a valid block in all_blocks raises AppException."""
     valid_block = SystemRulePromptBlock(
-        id="pb_fedcba9876543210",
+        id="pb_0195f3a00000700f8edcba9876543210",
         slug="inst_1",
         label=I18nText(translations={"en": "Inst", "fi": "Ohje"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
     )
     mixed_blocks: Any = [valid_block, "corrupted_raw_string"]
     with pytest.raises(AppException) as exc_info:
-        ContextMapper.build_ordinal_mapping(["pb_0123456789abcdef"], mixed_blocks)
+        ContextMapper.build_ordinal_mapping(["pb_0195f3a0000070008123456789abcdef"], mixed_blocks)
 
     assert exc_info.value.error_code == "DATA_CORRUPTION"
     assert exc_info.value.status_code == 500

@@ -45,7 +45,7 @@ def _configure_repo_model_registry(repo: InMemoryUnifiedWorkflowRepository, rpm_
     """Configure model registry on the mock repo with the specified rpm_limit."""
     model_reg = SystemConfigModelRegistry.model_validate(
         {
-            "id": "sys_e26807f3bfa3454d",
+            "id": "sys_0195f3a00000700e826807f3bfa3454d",
             "name": "Default Stack",
             "tier_definitions": {
                 tier: {
@@ -69,12 +69,12 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
 
     def _mock_step_data():
         return {
-            "id": "stp_1234567890abcdef",
+            "id": "stp_0195f3a0000070018234567890abcdef",
             "type": "llm",
             "cognitive_tier": "fast",
             "slug": "mock",
-            "criteria_block_ids": ["blk_1234567890abcdef"],
-            "extraction_protocol_block_id": "blk_1234567890abcdef",
+            "criteria_block_ids": ["blk_0195f3a0000070018234567890abcdef"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070018234567890abcdef",
             "name": {"translations": {"en": "mock"}},
             "description": {"translations": {"en": "mock"}},
         }
@@ -83,9 +83,9 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.seed_raw_step("bp_fuzz", _mock_step_data())
     repo.set_execution(
         ExecutionRecord(
-            id="exe_1111222233334444",
-            workflow_id="wf_0000000000000000",
-            output_profile_id="prof_0000000000000000",
+            id="exe_0195f3a0000070018111222233334444",
+            workflow_id="wf_0195f3a0000070008000000000000000",
+            output_profile_id="prof_0195f3a0000070008000000000000000",
             status=ExecutionStatus.PENDING,
             target_locale="en",
             raw_inputs={"dynamic_inputs": {"log": "test"}},
@@ -96,7 +96,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     prompt_blocks = [
         PromptBlockAdapter.validate_python(
             {
-                "id": "blk_1234567890abcdef",
+                "id": "blk_0195f3a0000070018234567890abcdef",
                 "slug": "zero_trust_extraction_protocol",
                 "label": {"translations": {"fi": "Testi", "en": "Test"}},
                 "description": {"translations": {"fi": "Kuvaus", "en": "Desc"}},
@@ -112,15 +112,15 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.set_output_profiles(
         [
             {
-                "id": "prof_0000000000000000",
+                "id": "prof_0195f3a0000070008000000000000000",
                 "slug": "test_profile",
-                "workflow_id": "wf_0000000000000000",
+                "workflow_id": "wf_0195f3a0000070008000000000000000",
                 "name": {"translations": {"en": "Test Profile"}},
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
                     {
-                        "id": "grp_0000000000000001",
+                        "id": "grp_0195f3a0000070008000000000000001",
                         "title": {"translations": {"en": "Default"}},
                         "target_blocks": ["*"],
                     }
@@ -149,15 +149,15 @@ def mock_compiler() -> MagicMock:
 def _create_workflow(num_steps: int) -> Workflow:
     return Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_e26807f3bfa3454d",
-        id="wf_0000000000000000",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        id="wf_0195f3a0000070008000000000000000",
         slug="wf_fuzz",
         status="draft",
         version=1,
-        default_profile_id="prof_0000000000000000",
+        default_profile_id="prof_0195f3a0000070008000000000000000",
         name=I18nText(translations={"en": "Fuzz"}),
         description=I18nText(translations={"en": "Fuzz"}),
-        steps=[StepRule(id=f"step_{i:016x}", task_blueprint="bp_fuzz") for i in range(num_steps)],
+        steps=[StepRule(id=f"stp_0195f3a0000070008000{i:012x}", task_blueprint="bp_fuzz") for i in range(num_steps)],
     )
 
 
@@ -206,7 +206,7 @@ async def _execute_and_measure_peak_concurrency(
             )
 
             await executor.execute_workflow(
-                execution_id="exe_1111222233334444",
+                execution_id="exe_0195f3a0000070018111222233334444",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
             )

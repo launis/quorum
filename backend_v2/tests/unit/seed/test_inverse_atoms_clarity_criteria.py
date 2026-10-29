@@ -1,7 +1,7 @@
 """Unit tests verifying inverse evidence boundary criteria hardening in seed_data.json.
 
 Asserts that tda_103195327c15b2aa2c6f1abf10170473 and tda_3254ee4d52793e8de78f67c29c8ce48b
-in block blk_f6e286f050c94d60 parse strictly through TDAAssertion with zero-overfitting
+in block blk_0195f3a00000700f86e286f050c94d60 parse strictly through TDAAssertion with zero-overfitting
 toy-domain contrastive examples and unambiguous structural criteria.
 """
 
@@ -17,7 +17,7 @@ from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 
 
 def _load_block_assertions() -> dict[str, TDAAssertion]:
-    """Loads and extracts validated TDA assertions for block blk_f6e286f050c94d60."""
+    """Loads and extracts validated TDA assertions for block blk_0195f3a00000700f86e286f050c94d60."""
     seed_path = Path("backend_v2/seed/seed_data.json")
     with seed_path.open("r", encoding="utf-8") as f:
         data: dict[str, JsonValue] = json.load(f)
@@ -26,11 +26,13 @@ def _load_block_assertions() -> dict[str, TDAAssertion]:
     assert type(prompt_blocks) is list
     target_block: MatrixPromptBlock | None = None
     for raw_block in prompt_blocks:
-        if type(raw_block) is dict and raw_block["id"] == "blk_f6e286f050c94d60":
+        if type(raw_block) is dict and raw_block["id"] == "blk_0195f3a00000700f86e286f050c94d60":
             target_block = MatrixPromptBlock.model_validate(raw_block, strict=False)
             break
 
-    assert target_block is not None, "Target matrix block blk_f6e286f050c94d60 not found in seed_data.json"
+    assert target_block is not None, (
+        "Target matrix block blk_0195f3a00000700f86e286f050c94d60 not found in seed_data.json"
+    )
 
     assertions_map: dict[str, TDAAssertion] = {}
     for scale in target_block.scales:
@@ -45,7 +47,7 @@ def test_tda_103195327c15b2aa2c6f1abf10170473_boundary_hardening() -> None:
     """Verifies academic citation inverse atom criteria and non-overfitting toy contrastive example."""
     assertions = _load_block_assertions()
     atom_id = "tda_103195327c15b2aa2c6f1abf10170473"
-    assert atom_id in assertions, f"Atom {atom_id} missing from block blk_f6e286f050c94d60"
+    assert atom_id in assertions, f"Atom {atom_id} missing from block blk_0195f3a00000700f86e286f050c94d60"
 
     tda = assertions[atom_id]
     assert tda.inverse_evidence is True
@@ -80,7 +82,7 @@ def test_tda_3254ee4d52793e8de78f67c29c8ce48b_boundary_hardening() -> None:
     """Verifies asymmetrical reasoning inverse atom criteria and non-overfitting toy contrastive example."""
     assertions = _load_block_assertions()
     atom_id = "tda_3254ee4d52793e8de78f67c29c8ce48b"
-    assert atom_id in assertions, f"Atom {atom_id} missing from block blk_f6e286f050c94d60"
+    assert atom_id in assertions, f"Atom {atom_id} missing from block blk_0195f3a00000700f86e286f050c94d60"
 
     tda = assertions[atom_id]
     assert tda.inverse_evidence is True

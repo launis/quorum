@@ -46,29 +46,29 @@ def _build_mock_deps() -> HookDependencies:
     """Helper to create fully mocked HookDependencies with standard returns matching strict Pydantic schemas."""
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_workflow(
-        "wor_0123456789abcdef01",
+        "wor_0195f3a00000700283456789abcdef01",
         {
-            "id": "wor_0123456789abcdef01",
+            "id": "wor_0195f3a00000700283456789abcdef01",
             "slug": "test_workflow",
             "name": {"translations": {"en": "Test Workflow"}},
             "description": {"translations": {"en": "Test Description"}},
             "status": "active",
             "version": 1,
-            "organization_id": "org_0123456789abcdef01",
-            "default_profile_id": "pro_0123456789abcdef01",
+            "organization_id": "org_0195f3a00000700283456789abcdef01",
+            "default_profile_id": "pro_0195f3a00000700283456789abcdef01",
             "steps": [],
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
+            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         },
     )
     repo.set_execution(
         {
-            "id": "exe_0123456789abcdef01",
-            "workflow_id": "wor_0123456789abcdef01",
+            "id": "exe_0195f3a00000700283456789abcdef01",
+            "workflow_id": "wor_0195f3a00000700283456789abcdef01",
             "status": "PASSED",
             "target_locale": "en",
             "metadata": {},
-            "output_profile_id": "pro_0123456789abcdef01",
+            "output_profile_id": "pro_0195f3a00000700283456789abcdef01",
             "raw_inputs": {"dynamic_inputs": {}},
             "step_states": {},
         }
@@ -77,13 +77,13 @@ def _build_mock_deps() -> HookDependencies:
         [
             OutputProfile.model_validate(
                 {
-                    "id": "pro_0123456789abcdef01",
+                    "id": "pro_0195f3a00000700283456789abcdef01",
                     "slug": "prof_standard",
-                    "workflow_id": "wor_0123456789abcdef01",
+                    "workflow_id": "wor_0195f3a00000700283456789abcdef01",
                     "name": {"translations": {"en": "Standard Profile"}},
                     "matrix_synthesis_groups": [
                         {
-                            "id": "grp_0000000000000001",
+                            "id": "grp_0195f3a0000070008000000000000001",
                             "title": {"translations": {"en": "Default"}},
                             "target_blocks": ["*"],
                         }
@@ -139,7 +139,7 @@ async def test_synthesis_distiller_wiring_passes_unfiltered_dtos() -> None:
     # Step 3: Matrix step
     matrix_output = LightweightMatrixOutput(
         evaluated_atoms={
-            "tda_0123456789abcdef01": ExecutionStatus.PASSED,
+            "tda_0195f3a00000700283456789abcdef01": ExecutionStatus.PASSED,
         },
         extensions={},
     )
@@ -151,14 +151,14 @@ async def test_synthesis_distiller_wiring_passes_unfiltered_dtos() -> None:
     )
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             dynamic_inputs={"steps": [step1, step2, step3]},
             target_locale="en",
         ),
-        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0195f3a00000700283456789abcdef01"),
     )
 
     with patch(
@@ -183,7 +183,7 @@ async def test_synthesis_distiller_wiring_passes_unfiltered_dtos() -> None:
         distilled = distillation_dto.distilled_inputs
         assert "Leadership resilience verified" in distilled
         assert "Strategic alignment demonstrated" in distilled
-        assert "tda_0123456789abcdef01" in distilled
+        assert "tda_0195f3a00000700283456789abcdef01" in distilled
 
         # Verify MatrixExplanationService received all 3 unfiltered DTOs
         mock_assemble.assert_called_once()
@@ -210,8 +210,8 @@ async def test_synthesis_distiller_wiring_invalid_inputs_type_raises_invalid_sch
     deps = _build_mock_deps()
 
     state = HookState.model_construct(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=cast(ExecutionInputsDTO, "invalid_inputs_string"),
         global_context_vars=GlobalContextVarsDTO(),
@@ -230,8 +230,8 @@ async def test_synthesis_distiller_wiring_missing_steps_key_raises_validation_fa
     deps = _build_mock_deps()
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"other_key": "data"}, target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(),
@@ -250,8 +250,8 @@ async def test_synthesis_distiller_wiring_missing_target_locale_raises_app_excep
     deps = _build_mock_deps()
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -270,8 +270,8 @@ async def test_synthesis_distiller_wiring_whitespace_target_locale_raises_app_ex
     deps = _build_mock_deps()
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}, target_locale="   "),
         global_context_vars=GlobalContextVarsDTO(),
@@ -290,8 +290,8 @@ async def test_synthesis_distiller_wiring_empty_target_locale_raises_app_excepti
     deps = _build_mock_deps()
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}, target_locale=""),
         global_context_vars=GlobalContextVarsDTO(),
@@ -319,14 +319,14 @@ async def test_synthesis_distiller_wiring_dict_steps_hydrated_successfully() -> 
     }
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO.model_construct(
             dynamic_inputs={"steps": [raw_step_dict]},
             target_locale="en",
         ),
-        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0195f3a00000700283456789abcdef01"),
     )
 
     result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
@@ -344,8 +344,8 @@ async def test_synthesis_distiller_wiring_missing_output_profile_id_raises_confi
     cast(InMemoryUnifiedWorkflowRepository, deps.exec_repo).set_execution(None)
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}, target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(),
@@ -364,7 +364,7 @@ async def test_synthesis_distiller_wiring_workflow_not_found_raises_resource_not
     deps = _build_mock_deps()
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
         workflow_id="wor_missing_0123456789",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}, target_locale="en"),
@@ -385,8 +385,8 @@ async def test_synthesis_distiller_wiring_output_profile_not_found_raises_resour
     cast(InMemoryUnifiedWorkflowRepository, deps.output_profile_repo).set_output_profiles([])
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": []}, target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(),
@@ -412,11 +412,11 @@ async def test_synthesis_distiller_wiring_state_delta_purges_legacy_language_key
     )
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}, target_locale="fi"),
-        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0195f3a00000700283456789abcdef01"),
     )
 
     result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
@@ -442,11 +442,11 @@ async def test_synthesis_distiller_wiring_string_payload_distills_successfully()
     )
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}, target_locale="en"),
-        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0195f3a00000700283456789abcdef01"),
     )
 
     result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
@@ -489,14 +489,14 @@ async def test_synthesis_distiller_wiring_filters_empty_and_metadata_blocks() ->
     )
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             dynamic_inputs={"steps": [step_valid, step_empty_dict, step_meta, step_none]},
             target_locale="en",
         ),
-        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0195f3a00000700283456789abcdef01"),
     )
 
     result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
@@ -523,79 +523,79 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
     # Configure workflow with 2 steps: 1 excluded (is_synthesis_source=False), 1 included
     repo = cast(InMemoryUnifiedWorkflowRepository, deps.workflow_repo)
     repo.seed_raw_workflow(
-        "wor_0123456789abcdef01",
+        "wor_0195f3a00000700283456789abcdef01",
         {
-            "id": "wor_0123456789abcdef01",
+            "id": "wor_0195f3a00000700283456789abcdef01",
             "slug": "test_workflow",
             "name": {"translations": {"en": "Test Workflow"}},
             "description": {"translations": {"en": "Test Description"}},
             "status": "active",
             "version": 1,
-            "organization_id": "org_0123456789abcdef01",
-            "default_profile_id": "pro_0123456789abcdef01",
+            "organization_id": "org_0195f3a00000700283456789abcdef01",
+            "default_profile_id": "pro_0195f3a00000700283456789abcdef01",
             "steps": [
                 {
-                    "id": "sr_111111111111111111111111",
-                    "task_blueprint": "sp_111111111111111111111111",
+                    "id": "sr_0195f3a0000070018111111111111111",
+                    "task_blueprint": "sp_0195f3a0000070018111111111111111",
                     "is_synthesis_source": False,
                 },
                 {
-                    "id": "sr_222222222222222222222222",
-                    "task_blueprint": "sp_222222222222222222222222",
+                    "id": "sr_0195f3a0000070028222222222222222",
+                    "task_blueprint": "sp_0195f3a0000070028222222222222222",
                     "is_synthesis_source": True,
                 },
             ],
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
+            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         },
     )
     repo.seed_raw_step(
-        "sp_111111111111111111111111",
+        "sp_0195f3a0000070018111111111111111",
         {
-            "id": "sp_111111111111111111111111",
+            "id": "sp_0195f3a0000070018111111111111111",
             "slug": "input_raw",
             "name": {"translations": {"en": "Input Processing"}},
             "type": "logic",
             "hook": "input_processing_hook",
-            "organization_id": "org_0123456789abcdef01",
+            "organization_id": "org_0195f3a00000700283456789abcdef01",
         },
     )
     repo.seed_raw_step(
-        "sp_222222222222222222222222",
+        "sp_0195f3a0000070028222222222222222",
         {
-            "id": "sp_222222222222222222222222",
+            "id": "sp_0195f3a0000070028222222222222222",
             "slug": "specialist",
             "name": {"translations": {"en": "Specialist Analysis"}},
             "type": "llm",
             "cognitive_tier": "fast",
-            "criteria_block_ids": ["blk_222222222222222222222222"],
-            "extraction_protocol_block_id": "blk_222222222222222222222222",
-            "organization_id": "org_0123456789abcdef01",
+            "criteria_block_ids": ["blk_0195f3a0000070028222222222222222"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070028222222222222222",
+            "organization_id": "org_0195f3a00000700283456789abcdef01",
         },
     )
 
     step_excluded = StepOutputDTO(
-        step_id="sr_111111111111111111111111",
-        block_id="blk_111111111111111111111111",
+        step_id="sr_0195f3a0000070018111111111111111",
+        block_id="blk_0195f3a0000070018111111111111111",
         data_type="text",
         payload="Raw ingested document text",
     )
     step_included = StepOutputDTO(
-        step_id="sr_222222222222222222222222",
-        block_id="blk_222222222222222222222222",
+        step_id="sr_0195f3a0000070028222222222222222",
+        block_id="blk_0195f3a0000070028222222222222222",
         data_type="text",
         payload="Specialist distilled analysis",
     )
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             dynamic_inputs={"steps": [step_excluded, step_included]},
             target_locale="en",
         ),
-        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0195f3a00000700283456789abcdef01"),
     )
 
     result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
@@ -622,11 +622,11 @@ async def test_synthesis_distiller_wiring_forwards_output_profile_limits() -> No
     )
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}, target_locale="en"),
-        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0195f3a00000700283456789abcdef01"),
     )
 
     with patch(

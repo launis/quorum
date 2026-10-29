@@ -14,8 +14,8 @@ def test_get_forensic_input_path() -> None:
 
 def test_get_forensic_input_path_valid_alphanumeric_and_separators() -> None:
     """Verify standard execution_id and alphanumeric/underscore/hyphen input_key."""
-    path = get_forensic_input_path("exe_a1b2c3d4e5f60718", "doc_01-primary")
-    assert path == "executions/exe_a1b2c3d4e5f60718/inputs/input_doc_01-primary.md"
+    path = get_forensic_input_path("exe_0195f3a00000700a81b2c3d4e5f60718", "doc_01-primary")
+    assert path == "executions/exe_0195f3a00000700a81b2c3d4e5f60718/inputs/input_doc_01-primary.md"
 
 
 @pytest.mark.parametrize("invalid_exec_id", ["", "   ", "../etc", "exec/123", "exec\\123"])

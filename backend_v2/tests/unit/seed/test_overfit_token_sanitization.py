@@ -51,11 +51,11 @@ def test_role_enforcement_persona_neutrality_and_ambiguity_eradication() -> None
 
     target_block = None
     for block in prompt_blocks:
-        if block["id"] == "blk_e6b638d1307641da83ed192c65c0283f":
+        if block["id"] == "blk_0195f3a0000071da83ed192c65c0283f":
             target_block = block
             break
 
-    assert target_block is not None, "Target persona block blk_e6b638d1307641da83ed192c65c0283f not found."
+    assert target_block is not None, "Target persona block blk_0195f3a0000071da83ed192c65c0283f not found."
 
     role_enforcement: str = target_block["role_enforcement"]
 
@@ -181,8 +181,8 @@ def test_tda_bloom_anti_patterns_domain_neutrality() -> None:
     data = _load_seed_data()
     prompt_blocks = data["prompt_blocks"]
 
-    bloom_block = next((b for b in prompt_blocks if b["id"] == "blk_f921c7c0989b47e8"), None)
-    assert bloom_block is not None, "Bloom matrix block blk_f921c7c0989b47e8 not found."
+    bloom_block = next((b for b in prompt_blocks if b["id"] == "blk_0195f3a00000700f8921c7c0989b47e8"), None)
+    assert bloom_block is not None, "Bloom matrix block blk_0195f3a00000700f8921c7c0989b47e8 not found."
 
     banned_tokens = [
         "e.g.",

@@ -47,8 +47,8 @@ def _create_mock_atom(atom_id: str = "tda_1") -> ScorecardAtomDTO:
 
 
 def _create_mock_record(
-    execution_id: str = "exe_1234567890abcdef",
-    workflow_id: str = "wor_0123456789abcdef",
+    execution_id: str = "exe_0195f3a0000070018234567890abcdef",
+    workflow_id: str = "wor_0195f3a0000070008123456789abcdef",
     org_id: str = "org_1",
     user_id: str = "usr_1",
     atom_id: str = "tda_1",
@@ -68,18 +68,18 @@ def _create_mock_record(
         target_locale="fi",
         organization_id=org_id,
         created_by=user_id,
-        output_profile_id="prf_0123456789abcdef",
-        active_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
+        active_profile_id="prf_0195f3a0000070008123456789abcdef",
         pdf_report_path=pdf_path,
         step_states={"sr_1": step_state},
-        profile_syntheses={"prf_0123456789abcdef": RenderedSynthesisCache()},
+        profile_syntheses={"prf_0195f3a0000070008123456789abcdef": RenderedSynthesisCache()},
         context_variables=ContextVariablesDTO(),
     )
 
 
 def _create_mock_workflow(
-    workflow_id: str = "wor_0123456789abcdef",
-    profile_id: str = "prf_0123456789abcdef",
+    workflow_id: str = "wor_0195f3a0000070008123456789abcdef",
+    profile_id: str = "prf_0195f3a0000070008123456789abcdef",
 ) -> Workflow:
     return Workflow(
         id=workflow_id,
@@ -91,7 +91,7 @@ def _create_mock_workflow(
         organization_id="org_1",
         default_strictness_level=1,
         default_profile_id=profile_id,
-        model_registry_id="sys_e26807f3bfa3454d",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],
     )
@@ -274,7 +274,7 @@ async def test_clear_profile_synthesis_success() -> None:
     record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
     await exec_repo.save_execution(record)
 
-    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0123456789abcdef")
+    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0195f3a0000070008123456789abcdef")
     await workflow_repo.save_workflow(mock_wf)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
@@ -284,14 +284,14 @@ async def test_clear_profile_synthesis_success() -> None:
         await service.clear_profile_synthesis(
             initiator=initiator,
             execution_id=record.id,
-            profile_id="prf_0123456789abcdef",
+            profile_id="prf_0195f3a0000070008123456789abcdef",
         )
 
     storage_mock.delete.assert_called_once_with("reports/pdf_1.pdf")
     assert exec_repo.get_call_count("update_execution") > 0
     updated = await exec_repo.get_execution(record.id)
     assert updated is not None
-    assert "prf_0123456789abcdef" not in updated.profile_syntheses
+    assert "prf_0195f3a0000070008123456789abcdef" not in updated.profile_syntheses
     assert updated.pdf_report_path is None
 
 
@@ -305,7 +305,7 @@ async def test_clear_profile_synthesis_pdf_delete_404_ignored() -> None:
     record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
     await exec_repo.save_execution(record)
 
-    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0123456789abcdef")
+    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0195f3a0000070008123456789abcdef")
     await workflow_repo.save_workflow(mock_wf)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
@@ -315,7 +315,7 @@ async def test_clear_profile_synthesis_pdf_delete_404_ignored() -> None:
         await service.clear_profile_synthesis(
             initiator=initiator,
             execution_id=record.id,
-            profile_id="prf_0123456789abcdef",
+            profile_id="prf_0195f3a0000070008123456789abcdef",
         )
     assert exec_repo.get_call_count("update_execution") > 0
 
@@ -330,7 +330,7 @@ async def test_clear_profile_synthesis_pdf_delete_409_reraised() -> None:
     record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
     await exec_repo.save_execution(record)
 
-    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0123456789abcdef")
+    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0195f3a0000070008123456789abcdef")
     await workflow_repo.save_workflow(mock_wf)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
@@ -341,7 +341,7 @@ async def test_clear_profile_synthesis_pdf_delete_409_reraised() -> None:
             await service.clear_profile_synthesis(
                 initiator=initiator,
                 execution_id=record.id,
-                profile_id="prf_0123456789abcdef",
+                profile_id="prf_0195f3a0000070008123456789abcdef",
             )
         assert exc_info.value.status_code == 409
 
@@ -358,7 +358,7 @@ async def test_clear_profile_synthesis_workflow_missing_raises() -> None:
         await service.clear_profile_synthesis(
             initiator=initiator,
             execution_id=record.id,
-            profile_id="prf_0123456789abcdef",
+            profile_id="prf_0195f3a0000070008123456789abcdef",
         )
 
 
@@ -426,7 +426,7 @@ async def test_clear_profile_synthesis_pdf_delete_500_raises() -> None:
     record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
     await exec_repo.save_execution(record)
 
-    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0123456789abcdef")
+    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0195f3a0000070008123456789abcdef")
     await workflow_repo.save_workflow(mock_wf)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
@@ -434,7 +434,7 @@ async def test_clear_profile_synthesis_pdf_delete_500_raises() -> None:
         await service.clear_profile_synthesis(
             initiator=initiator,
             execution_id=record.id,
-            profile_id="prf_0123456789abcdef",
+            profile_id="prf_0195f3a0000070008123456789abcdef",
         )
     assert exc_info.value.status_code == 500
 
@@ -449,7 +449,7 @@ async def test_clear_profile_synthesis_pdf_delete_generic_exception_raises() -> 
     record = _create_mock_record(pdf_path="reports/pdf_1.pdf")
     await exec_repo.save_execution(record)
 
-    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0123456789abcdef")
+    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0195f3a0000070008123456789abcdef")
     await workflow_repo.save_workflow(mock_wf)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
@@ -457,7 +457,7 @@ async def test_clear_profile_synthesis_pdf_delete_generic_exception_raises() -> 
         await service.clear_profile_synthesis(
             initiator=initiator,
             execution_id=record.id,
-            profile_id="prf_0123456789abcdef",
+            profile_id="prf_0195f3a0000070008123456789abcdef",
         )
     assert exc_info.value.status_code == 500
 
@@ -469,7 +469,7 @@ async def test_clear_profile_synthesis_profile_not_in_syntheses() -> None:
     record = _create_mock_record(pdf_path=None)
     await exec_repo.save_execution(record)
 
-    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0123456789abcdef")
+    mock_wf = _create_mock_workflow(workflow_id=record.workflow_id, profile_id="prf_0195f3a0000070008123456789abcdef")
     await workflow_repo.save_workflow(mock_wf)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
@@ -536,4 +536,3 @@ async def test_reject_evidence_quote_permission_denied_with_custom_getter() -> N
             evq_id="evq_test123",
             reason="Unauthorized rejection",
         )
-

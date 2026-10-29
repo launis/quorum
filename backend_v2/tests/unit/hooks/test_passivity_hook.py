@@ -129,9 +129,9 @@ async def test_passivity_hook_missing_state_raises() -> None:
 async def test_passivity_hook_missing_workflow_repo_raises() -> None:
     """Test that enforce_passivity_penalty_hook raises HOOK_EXECUTION_FAILED when workflow_repo is None."""
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
-        step_id="stp_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
+        step_id="stp_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
     )
     deps = _build_mock_deps(workflow_repo=None)
@@ -144,8 +144,8 @@ async def test_passivity_hook_missing_workflow_repo_raises() -> None:
 async def test_passivity_hook_missing_blueprint_id_raises() -> None:
     """Test that enforce_passivity_penalty_hook raises VALIDATION_FAILED when blueprint_id is missing."""
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=None,
         task_blueprint=None,
         metadata=ExecutionMetadata(),
@@ -162,8 +162,8 @@ async def test_passivity_hook_step_not_found_raises() -> None:
     deps = _build_mock_deps()
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id="stp_nonexistent1234",
         metadata=ExecutionMetadata(),
     )
@@ -175,13 +175,13 @@ async def test_passivity_hook_step_not_found_raises() -> None:
 @pytest.mark.asyncio
 async def test_passivity_hook_step_validation_error_raises() -> None:
     """Test that enforce_passivity_penalty_hook wraps Step ValidationError in VALIDATION_FAILED."""
-    repo = _build_repo(step={"id": "stp_1111222233334444", "invalid_key": "missing_required_fields"})
+    repo = _build_repo(step={"id": "stp_0195f3a0000070018111222233334444", "invalid_key": "missing_required_fields"})
     deps = _build_mock_deps(repo=repo)
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
-        step_id="stp_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
+        step_id="stp_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
     )
     with pytest.raises(AppException) as exc_info:
@@ -192,8 +192,8 @@ async def test_passivity_hook_step_validation_error_raises() -> None:
 @pytest.mark.asyncio
 async def test_passivity_hook_matrix_has_no_scales_raises() -> None:
     """Test that enforce_passivity_penalty_hook raises CONFIGURATION_ERROR when scales are empty."""
-    step_id = "stp_1111222233334444"
-    pb_id = "blk_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
+    pb_id = "blk_0195f3a0000070018111222233334444"
 
     repo = _build_repo(
         step=_build_test_step(step_id, [pb_id]),
@@ -202,8 +202,8 @@ async def test_passivity_hook_matrix_has_no_scales_raises() -> None:
     deps = _build_mock_deps(repo=repo)
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
     )
@@ -218,8 +218,8 @@ async def test_passivity_hook_matrix_has_no_scales_raises() -> None:
 @pytest.mark.asyncio
 async def test_passivity_hook_non_matrix_prompt_block_skipped() -> None:
     """Test that enforce_passivity_penalty_hook cleanly skips non-matrix prompt blocks."""
-    step_id = "stp_1111222233334444"
-    pb_id = "blk_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
+    pb_id = "blk_0195f3a0000070018111222233334444"
 
     non_matrix_pb = PromptBlockAdapter.validate_python(
         {
@@ -235,8 +235,8 @@ async def test_passivity_hook_non_matrix_prompt_block_skipped() -> None:
     deps = _build_mock_deps(repo=repo)
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={pb_id: {"raw_score": 1.0}}),
@@ -250,13 +250,13 @@ async def test_passivity_hook_non_matrix_prompt_block_skipped() -> None:
 @pytest.mark.asyncio
 async def test_passivity_hook_legacy_score_card_raises() -> None:
     """Test that enforce_passivity_penalty_hook raises VALIDATION_FAILED if legacy score_card is found."""
-    step_id = "stp_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
     repo = _build_repo(step=_build_test_step(step_id, []))
     deps = _build_mock_deps(repo=repo)
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"score_card": "legacy_score_card"}),
@@ -270,15 +270,15 @@ async def test_passivity_hook_legacy_score_card_raises() -> None:
 @pytest.mark.asyncio
 async def test_passivity_hook_corrupted_matrix_payload_raises() -> None:
     """Test that enforce_passivity_penalty_hook raises VALIDATION_FAILED on corrupted matrix payload."""
-    step_id = "stp_1111222233334444"
-    pb_id = "blk_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
+    pb_id = "blk_0195f3a0000070018111222233334444"
 
     repo = _build_repo(step=_build_test_step(step_id, [pb_id]), prompt_block=_build_test_matrix_block(pb_id))
     deps = _build_mock_deps(repo=repo)
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO.model_construct(
@@ -293,8 +293,8 @@ async def test_passivity_hook_corrupted_matrix_payload_raises() -> None:
 @pytest.mark.asyncio
 async def test_passivity_hook_penalty_triggered_when_score_at_min() -> None:
     """Test that enforce_passivity_penalty_hook detects passivity when raw_score <= math_min."""
-    step_id = "stp_1111222233334444"
-    pb_id = "blk_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
+    pb_id = "blk_0195f3a0000070018111222233334444"
 
     repo = _build_repo(step=_build_test_step(step_id, [pb_id]), prompt_block=_build_test_matrix_block(pb_id))
     deps = _build_mock_deps(repo=repo)
@@ -306,8 +306,8 @@ async def test_passivity_hook_penalty_triggered_when_score_at_min() -> None:
     )
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={pb_id: matrix_output.model_dump(mode="json")}),
@@ -321,8 +321,8 @@ async def test_passivity_hook_penalty_triggered_when_score_at_min() -> None:
 @pytest.mark.asyncio
 async def test_passivity_hook_no_penalty_when_score_above_min() -> None:
     """Test that enforce_passivity_penalty_hook does not penalize scores strictly above math_min."""
-    step_id = "stp_1111222233334444"
-    pb_id = "blk_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
+    pb_id = "blk_0195f3a0000070018111222233334444"
 
     repo = _build_repo(step=_build_test_step(step_id, [pb_id]), prompt_block=_build_test_matrix_block(pb_id))
     deps = _build_mock_deps(repo=repo)
@@ -334,8 +334,8 @@ async def test_passivity_hook_no_penalty_when_score_above_min() -> None:
     )
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={pb_id: matrix_output.model_dump(mode="json")}),
@@ -349,8 +349,8 @@ async def test_passivity_hook_no_penalty_when_score_above_min() -> None:
 @pytest.mark.asyncio
 async def test_passivity_hook_raw_score_none_does_not_trigger_penalty() -> None:
     """Test that enforce_passivity_penalty_hook ignores raw_score=None."""
-    step_id = "stp_1111222233334444"
-    pb_id = "blk_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
+    pb_id = "blk_0195f3a0000070018111222233334444"
 
     repo = _build_repo(step=_build_test_step(step_id, [pb_id]), prompt_block=_build_test_matrix_block(pb_id))
     deps = _build_mock_deps(repo=repo)
@@ -362,8 +362,8 @@ async def test_passivity_hook_raw_score_none_does_not_trigger_penalty() -> None:
     )
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={pb_id: matrix_output.model_dump(mode="json")}),
@@ -377,8 +377,8 @@ async def test_passivity_hook_raw_score_none_does_not_trigger_penalty() -> None:
 @pytest.mark.asyncio
 async def test_passivity_hook_dynamic_inputs_preference() -> None:
     """Test that dynamic_inputs takes precedence over raw_inputs."""
-    step_id = "stp_1111222233334444"
-    pb_id = "blk_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
+    pb_id = "blk_0195f3a0000070018111222233334444"
 
     repo = _build_repo(step=_build_test_step(step_id, [pb_id]), prompt_block=_build_test_matrix_block(pb_id))
     deps = _build_mock_deps(repo=repo)
@@ -388,8 +388,8 @@ async def test_passivity_hook_dynamic_inputs_preference() -> None:
     low_matrix = LightweightMatrixOutput(raw_score=1.0, normalized_score=0.0, justification="Low")
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
@@ -408,8 +408,8 @@ async def test_passivity_hook_with_base_model_input() -> None:
     """Test that enforce_passivity_penalty_hook handles
     LightweightMatrixOutput model instances directly in raw_inputs.
     """
-    step_id = "stp_1111222233334444"
-    pb_id = "blk_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
+    pb_id = "blk_0195f3a0000070018111222233334444"
 
     repo = _build_repo(step=_build_test_step(step_id, [pb_id]), prompt_block=_build_test_matrix_block(pb_id))
     deps = _build_mock_deps(repo=repo)
@@ -417,8 +417,8 @@ async def test_passivity_hook_with_base_model_input() -> None:
     matrix_model = LightweightMatrixOutput(raw_score=1.0, normalized_score=0.0, justification="Low score via BaseModel")
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={pb_id: matrix_model}),
@@ -432,13 +432,13 @@ async def test_passivity_hook_with_base_model_input() -> None:
 @pytest.mark.asyncio
 async def test_passivity_hook_empty_inputs_continues_cleanly() -> None:
     """Test that enforce_passivity_penalty_hook cleanly handles empty inputs."""
-    step_id = "stp_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
     repo = _build_repo(step=_build_test_step(step_id, []))
     deps = _build_mock_deps(repo=repo)
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(),
@@ -452,13 +452,13 @@ async def test_passivity_hook_empty_inputs_continues_cleanly() -> None:
 @pytest.mark.asyncio
 async def test_passivity_hook_uses_task_blueprint_fallback() -> None:
     """Test that enforce_passivity_penalty_hook falls back to task_blueprint when step_id is None."""
-    blueprint_id = "stp_1234567890abcdef"
+    blueprint_id = "stp_0195f3a0000070018234567890abcdef"
     repo = _build_repo(step=_build_test_step(blueprint_id, []))
     deps = _build_mock_deps(repo=repo)
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=None,
         task_blueprint=blueprint_id,
         metadata=ExecutionMetadata(),
@@ -473,8 +473,8 @@ async def test_passivity_hook_uses_task_blueprint_fallback() -> None:
 @pytest.mark.asyncio
 async def test_passivity_hook_prompt_block_validation_error_raises() -> None:
     """Test that enforce_passivity_penalty_hook wraps PromptBlock ValidationError in VALIDATION_FAILED."""
-    step_id = "stp_1111222233334444"
-    pb_id = "blk_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
+    pb_id = "blk_0195f3a0000070018111222233334444"
 
     repo = _build_repo(
         step=_build_test_step(step_id, [pb_id]),
@@ -483,8 +483,8 @@ async def test_passivity_hook_prompt_block_validation_error_raises() -> None:
     deps = _build_mock_deps(repo=repo)
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
     )
@@ -496,8 +496,8 @@ async def test_passivity_hook_prompt_block_validation_error_raises() -> None:
 @pytest.mark.asyncio
 async def test_passivity_hook_matrix_aggregation_state_dto_passive_detected() -> None:
     """Test passivity detection when MatrixAggregationStateDTO only has minimum scale hits."""
-    step_id = "stp_1111222233334444"
-    pb_id = "blk_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
+    pb_id = "blk_0195f3a0000070018111222233334444"
 
     repo = _build_repo(step=_build_test_step(step_id, [pb_id]), prompt_block=_build_test_matrix_block(pb_id))
     deps = _build_mock_deps(repo=repo)
@@ -510,8 +510,8 @@ async def test_passivity_hook_matrix_aggregation_state_dto_passive_detected() ->
     )
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={pb_id: aggregation_state}),
@@ -526,8 +526,8 @@ async def test_passivity_hook_matrix_aggregation_state_dto_passive_detected() ->
 @pytest.mark.asyncio
 async def test_passivity_hook_matrix_aggregation_state_dto_not_passive() -> None:
     """Test that passivity is not detected when higher scale levels have hits."""
-    step_id = "stp_1111222233334444"
-    pb_id = "blk_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
+    pb_id = "blk_0195f3a0000070018111222233334444"
 
     repo = _build_repo(step=_build_test_step(step_id, [pb_id]), prompt_block=_build_test_matrix_block(pb_id))
     deps = _build_mock_deps(repo=repo)
@@ -540,8 +540,8 @@ async def test_passivity_hook_matrix_aggregation_state_dto_not_passive() -> None
     )
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={pb_id: aggregation_state}),
@@ -556,8 +556,8 @@ async def test_passivity_hook_matrix_aggregation_state_dto_not_passive() -> None
 @pytest.mark.asyncio
 async def test_passivity_hook_empty_scales_raises_configuration_error() -> None:
     """Test that enforce_passivity_penalty_hook raises CONFIGURATION_ERROR if matrix block has empty scales."""
-    step_id = "stp_1111222233334444"
-    pb_id = "blk_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
+    pb_id = "blk_0195f3a0000070018111222233334444"
 
     repo = _build_repo(
         step=_build_test_step(step_id, [pb_id]),
@@ -566,8 +566,8 @@ async def test_passivity_hook_empty_scales_raises_configuration_error() -> None:
     deps = _build_mock_deps(repo=repo)
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wf_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
     )

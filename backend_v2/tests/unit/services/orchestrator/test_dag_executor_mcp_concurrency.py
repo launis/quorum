@@ -36,11 +36,11 @@ class MockDependenciesContainer:
 def mock_repos() -> MockDependenciesContainer:
     repo = InMemoryUnifiedWorkflowRepository()
     for bp_id in [
-        "bp_aaaaaaaaaaaaaaaa",
-        "bp_bbbbbbbbbbbbbbbb",
-        "bp_cccccccccccccccc",
-        "bp_1111111111111111",
-        "bp_2222222222222222",
+        "bp_0195f3a00000700a8aaaaaaaaaaaaaaa",
+        "bp_0195f3a00000700b8bbbbbbbbbbbbbbb",
+        "bp_0195f3a00000700c8ccccccccccccccc",
+        "bp_0195f3a0000070018111111111111111",
+        "bp_0195f3a0000070028222222222222222",
     ]:
         repo.seed_raw_step(
             bp_id,
@@ -57,8 +57,8 @@ def mock_repos() -> MockDependenciesContainer:
         )
 
     for wf_id, name in [
-        ("wf_1111111111111111", "Concurrency Test"),
-        ("wf_2222222222222222", "Schema Test"),
+        ("wf_0195f3a0000070018111111111111111", "Concurrency Test"),
+        ("wf_0195f3a0000070028222222222222222", "Schema Test"),
     ]:
         repo.seed_raw_workflow(
             wf_id,
@@ -69,9 +69,9 @@ def mock_repos() -> MockDependenciesContainer:
                 description=I18nText(translations={"en": "Desc"}),
                 version=1,
                 status="active",
-                default_profile_id="prof_1111111111111111",
+                default_profile_id="prof_0195f3a0000070018111111111111111",
                 historical_context_mode="DISABLED",
-                model_registry_id="cfg_model_registry_01",
+                model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
                 steps=[],
             ),
         )
@@ -108,21 +108,33 @@ async def test_dag_executor_mcp_concurrency_deduplication(mock_repos: MockDepend
 
     # 3 parallel steps without dependencies
     steps = [
-        StepRule(id="stp_aaaaaaaaaaaaaaaa", task_blueprint="bp_aaaaaaaaaaaaaaaa", depends_on=[]),
-        StepRule(id="stp_bbbbbbbbbbbbbbbb", task_blueprint="bp_bbbbbbbbbbbbbbbb", depends_on=[]),
-        StepRule(id="stp_cccccccccccccccc", task_blueprint="bp_cccccccccccccccc", depends_on=[]),
+        StepRule(
+            id="stp_0195f3a00000700a8aaaaaaaaaaaaaaa",
+            task_blueprint="bp_0195f3a00000700a8aaaaaaaaaaaaaaa",
+            depends_on=[],
+        ),
+        StepRule(
+            id="stp_0195f3a00000700b8bbbbbbbbbbbbbbb",
+            task_blueprint="bp_0195f3a00000700b8bbbbbbbbbbbbbbb",
+            depends_on=[],
+        ),
+        StepRule(
+            id="stp_0195f3a00000700c8ccccccccccccccc",
+            task_blueprint="bp_0195f3a00000700c8ccccccccccccccc",
+            depends_on=[],
+        ),
     ]
 
     workflow = Workflow(
-        id="wf_1111111111111111",
+        id="wf_0195f3a0000070018111111111111111",
         slug="wf_concurrency_1",
         name=I18nText(translations={"en": "Concurrency Test"}),
         description=I18nText(translations={"en": "Concurrency Test"}),
         version=1,
         status="active",
-        default_profile_id="prof_1111111111111111",
+        default_profile_id="prof_0195f3a0000070018111111111111111",
         historical_context_mode="DISABLED",
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         steps=steps,
     )
 
@@ -130,14 +142,14 @@ async def test_dag_executor_mcp_concurrency_deduplication(mock_repos: MockDepend
     trace_1 = MCPAuditTrace(
         id="mcp_trace_1",
         tool_id="web_search",
-        step_name="stp_aaaaaaaaaaaaaaaa",
+        step_name="stp_0195f3a00000700a8aaaaaaaaaaaaaaa",
         query="test 1",
         response_summary="found 1",
     )
     trace_2 = MCPAuditTrace(
         id="mcp_trace_2",
         tool_id="doc_fetch",
-        step_name="stp_aaaaaaaaaaaaaaaa",
+        step_name="stp_0195f3a00000700a8aaaaaaaaaaaaaaa",
         query="doc_1",
         response_summary="data 1",
     )
@@ -146,7 +158,7 @@ async def test_dag_executor_mcp_concurrency_deduplication(mock_repos: MockDepend
     trace_3 = MCPAuditTrace(
         id="mcp_trace_3",
         tool_id="web_search",
-        step_name="stp_bbbbbbbbbbbbbbbb",
+        step_name="stp_0195f3a00000700b8bbbbbbbbbbbbbbb",
         query="test 3",
         response_summary="found 3",
     )
@@ -154,7 +166,7 @@ async def test_dag_executor_mcp_concurrency_deduplication(mock_repos: MockDepend
     # Step C emits duplicate trace_2
     async def mock_execute_node(step: StepRule, **kwargs: Any) -> list[TraceEvent]:
         await asyncio.sleep(0.01)  # Yield to maximize concurrency interleaving
-        if step.id == "stp_aaaaaaaaaaaaaaaa":
+        if step.id == "stp_0195f3a00000700a8aaaaaaaaaaaaaaa":
             return [
                 TraceEvent(
                     step_name=step.id,
@@ -163,7 +175,7 @@ async def test_dag_executor_mcp_concurrency_deduplication(mock_repos: MockDepend
                     mcp_audit_traces=[trace_1, trace_2],
                 )
             ]
-        elif step.id == "stp_bbbbbbbbbbbbbbbb":
+        elif step.id == "stp_0195f3a00000700b8bbbbbbbbbbbbbbb":
             return [
                 TraceEvent(
                     step_name=step.id,
@@ -184,7 +196,7 @@ async def test_dag_executor_mcp_concurrency_deduplication(mock_repos: MockDepend
 
     with patch.object(executor.node_executor, "execute", side_effect=mock_execute_node):
         record = await executor.execute_workflow(
-            execution_id="exe_1111111111111111",
+            execution_id="exe_0195f3a0000070018111111111111111",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"text": "hello"}, language="en"),
         )
@@ -213,20 +225,28 @@ async def test_dag_executor_generated_schemas_accumulation(mock_repos: MockDepen
     )
 
     steps = [
-        StepRule(id="stp_1111111111111111", task_blueprint="bp_1111111111111111", depends_on=[]),
-        StepRule(id="stp_2222222222222222", task_blueprint="bp_2222222222222222", depends_on=[]),
+        StepRule(
+            id="stp_0195f3a0000070018111111111111111",
+            task_blueprint="bp_0195f3a0000070018111111111111111",
+            depends_on=[],
+        ),
+        StepRule(
+            id="stp_0195f3a0000070028222222222222222",
+            task_blueprint="bp_0195f3a0000070028222222222222222",
+            depends_on=[],
+        ),
     ]
 
     workflow = Workflow(
-        id="wf_2222222222222222",
+        id="wf_0195f3a0000070028222222222222222",
         slug="wf_concurrency_2",
         name=I18nText(translations={"en": "Schema Test"}),
         description=I18nText(translations={"en": "Schema Test"}),
         version=1,
         status="active",
-        default_profile_id="prof_1111111111111111",
+        default_profile_id="prof_0195f3a0000070018111111111111111",
         historical_context_mode="DISABLED",
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         steps=steps,
     )
 
@@ -235,7 +255,7 @@ async def test_dag_executor_generated_schemas_accumulation(mock_repos: MockDepen
 
     async def mock_execute_node(step: StepRule, **kwargs: Any) -> list[TraceEvent]:
         await asyncio.sleep(0.01)
-        schema = schema_x if step.id == "stp_1111111111111111" else schema_y
+        schema = schema_x if step.id == "stp_0195f3a0000070018111111111111111" else schema_y
         return [
             TraceEvent(
                 step_name=step.id,
@@ -247,14 +267,14 @@ async def test_dag_executor_generated_schemas_accumulation(mock_repos: MockDepen
 
     with patch.object(executor.node_executor, "execute", side_effect=mock_execute_node):
         record = await executor.execute_workflow(
-            execution_id="exe_2222222222222222",
+            execution_id="exe_0195f3a0000070028222222222222222",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"text": "hello"}, language="en"),
         )
 
     # Verify that generated_schemas contains schemas for both steps
     schemas = record.frozen_context.generated_schemas
-    assert "stp_1111111111111111" in schemas
-    assert schemas["stp_1111111111111111"] == schema_x
-    assert "stp_2222222222222222" in schemas
-    assert schemas["stp_2222222222222222"] == schema_y
+    assert "stp_0195f3a0000070018111111111111111" in schemas
+    assert schemas["stp_0195f3a0000070018111111111111111"] == schema_x
+    assert "stp_0195f3a0000070028222222222222222" in schemas
+    assert schemas["stp_0195f3a0000070028222222222222222"] == schema_y

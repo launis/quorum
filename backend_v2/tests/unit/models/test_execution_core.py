@@ -141,8 +141,8 @@ class TestExecutionCoreFieldsValidation:
         from backend_v2.models.domain.execution import ExecutionRecord
 
         payload = {
-            "id": "exe_1234567890abcdef",
-            "workflow_id": "wor_1234567890abcdef",
+            "id": "exe_0195f3a0000070018234567890abcdef",
+            "workflow_id": "wor_0195f3a0000070018234567890abcdef",
             "metadata": {},
         }
         with pytest.raises(ValidationError):
@@ -153,19 +153,21 @@ class TestExecutionCoreFieldsValidation:
         from backend_v2.models.domain.execution import ExecutionRecord
 
         payload = {
-            "id": "exe_1234567890abcdef",
-            "workflow_id": "wor_1234567890abcdef",
-            "output_profile_id": "prof_1234567890abcdef",
+            "id": "exe_0195f3a0000070018234567890abcdef",
+            "workflow_id": "wor_0195f3a0000070018234567890abcdef",
+            "output_profile_id": "prof_0195f3a0000070018234567890abcdef",
             "target_locale": "en",
             "status": "PASSED",
             "metadata": {"workflow_version": 1},
             "frozen_context": None,
-            "frozen_context_storage_path": "executions/exe_1234567890abcdef/frozen_context.json",
+            "frozen_context_storage_path": "executions/exe_0195f3a0000070018234567890abcdef/frozen_context.json",
         }
         record = ExecutionRecord.model_validate(payload)
-        assert record.id == "exe_1234567890abcdef"
+        assert record.id == "exe_0195f3a0000070018234567890abcdef"
         assert record.frozen_context is None
-        assert record.frozen_context_storage_path == "executions/exe_1234567890abcdef/frozen_context.json"
+        assert (
+            record.frozen_context_storage_path == "executions/exe_0195f3a0000070018234567890abcdef/frozen_context.json"
+        )
 
 
 class TestExecutionMetadata:

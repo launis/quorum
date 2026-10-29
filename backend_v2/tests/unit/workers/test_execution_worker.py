@@ -19,7 +19,7 @@ from backend_v2.workers.execution_worker import execute_workflow_job
 
 def _create_mock_workflow(strictness: int = 1, lexical_strictness: int = 50) -> Workflow:
     return Workflow(
-        id="wor_0123456789abcdef",
+        id="wor_0195f3a0000070008123456789abcdef",
         slug="test-workflow",
         name="Test Workflow",
         description="Test Description",
@@ -27,7 +27,7 @@ def _create_mock_workflow(strictness: int = 1, lexical_strictness: int = 50) -> 
         version=1,
         default_strictness_level=strictness,
         default_lexical_strictness_level=lexical_strictness,
-        model_registry_id="sys_e26807f3bfa3454d",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],
     )
@@ -35,15 +35,15 @@ def _create_mock_workflow(strictness: int = 1, lexical_strictness: int = 50) -> 
 
 def _create_mock_record(target_locale: str = "fi") -> ExecutionRecord:
     return ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PENDING,
         target_locale=target_locale,
         progress=None,
         status_message=None,
         steps=[
             ExecutionStep(
-                id="stp_0123456789abcdef",
+                id="stp_0195f3a0000070008123456789abcdef",
                 label="Analytical Step",
                 status=ExecutionStatus.PASSED,
             )
@@ -72,13 +72,13 @@ async def test_execution_worker_sets_status_passed_and_no_synthetic_steps() -> N
 
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
 
     assert result.status == "COMPLETED"
-    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.PASSED
     assert updated_rec.completed_at is not None
@@ -110,13 +110,13 @@ async def test_execution_worker_enqueues_zero_downstream_jobs() -> None:
 
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
 
     assert result.status == "COMPLETED"
-    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.PASSED
     assert "enqueue_job" not in dir(mock_redis) or not mock_redis.enqueue_job.called
@@ -143,9 +143,9 @@ async def test_execution_worker_transits_decoupled_strictness_parameters() -> No
 
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
 
     assert result.status == "COMPLETED"
@@ -171,10 +171,10 @@ async def test_execution_worker_missing_workflow_raises() -> None:
         ctx=ctx,
         workflow_id="wor_missing00000000",
         inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
     assert result.status == "FAILED/DLQ"
-    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.FAILED
 
@@ -193,12 +193,12 @@ async def test_execution_worker_missing_execution_raises() -> None:
 
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
     assert result.status == "FAILED/DLQ"
-    assert (await mock_repo.get_execution("exe_0123456789abcdef")) is None
+    assert (await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")) is None
 
 
 @pytest.mark.asyncio
@@ -218,12 +218,12 @@ async def test_execution_worker_missing_target_locale_raises() -> None:
 
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
     assert result.status == "FAILED/DLQ"
-    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.FAILED
 
@@ -232,7 +232,7 @@ async def test_execution_worker_missing_target_locale_raises() -> None:
 async def test_execution_worker_trace_telemetry_aggregation() -> None:
     """Verify FinOps telemetry aggregation across TraceEvents with StepTraceMetadataDTO."""
     mock_workflow = _create_mock_workflow(strictness=3)
-    step_id = "stp_0123456789abcdef"
+    step_id = "stp_0195f3a0000070008123456789abcdef"
 
     usage1 = TokenUsage(
         prompt_tokens=100,
@@ -301,15 +301,15 @@ async def test_execution_worker_trace_telemetry_aggregation() -> None:
 
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_test12345678",
         user_id="usr_test12345678",
     )
 
     assert result.status == "COMPLETED"
-    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.prompt_tokens == 100
     assert updated_rec.completion_tokens == 50
@@ -327,7 +327,7 @@ async def test_execution_worker_offloaded_trace_reading() -> None:
     mock_workflow = _create_mock_workflow()
     base_record = _create_mock_record()
 
-    step_id = "stp_0123456789abcdef"
+    step_id = "stp_0195f3a0000070008123456789abcdef"
     usage = TokenUsage(
         prompt_tokens=40,
         completion_tokens=20,
@@ -351,7 +351,7 @@ async def test_execution_worker_offloaded_trace_reading() -> None:
     mock_executed_record = base_record.model_copy(
         update={
             "execution_trace": [],
-            "execution_trace_storage_path": "traces/exe_0123456789abcdef.json",
+            "execution_trace_storage_path": "traces/exe_0195f3a0000070008123456789abcdef.json",
         }
     )
 
@@ -373,13 +373,13 @@ async def test_execution_worker_offloaded_trace_reading() -> None:
         }
         result = await execute_workflow_job(
             ctx=ctx,
-            workflow_id="wor_0123456789abcdef",
+            workflow_id="wor_0195f3a0000070008123456789abcdef",
             inputs=ExecutionInputsDTO(),
-            execution_id="exe_0123456789abcdef",
+            execution_id="exe_0195f3a0000070008123456789abcdef",
         )
 
     assert result.status == "COMPLETED"
-    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.prompt_tokens == 40
 
@@ -393,7 +393,7 @@ async def test_execution_worker_offloaded_trace_read_failure_raises() -> None:
     mock_executed_record = base_record.model_copy(
         update={
             "execution_trace": [],
-            "execution_trace_storage_path": "traces/exe_0123456789abcdef.json",
+            "execution_trace_storage_path": "traces/exe_0195f3a0000070008123456789abcdef.json",
         }
     )
 
@@ -415,13 +415,13 @@ async def test_execution_worker_offloaded_trace_read_failure_raises() -> None:
         }
         result = await execute_workflow_job(
             ctx=ctx,
-            workflow_id="wor_0123456789abcdef",
+            workflow_id="wor_0195f3a0000070008123456789abcdef",
             inputs=ExecutionInputsDTO(),
-            execution_id="exe_0123456789abcdef",
+            execution_id="exe_0195f3a0000070008123456789abcdef",
         )
 
     assert result.status == "FAILED/DLQ"
-    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.FAILED
 
@@ -453,13 +453,13 @@ async def test_execution_worker_corrupted_metadata_raises() -> None:
     }
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
 
     assert result.status == "FAILED/DLQ"
-    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.FAILED
 
@@ -485,13 +485,13 @@ async def test_execution_worker_workflow_failure_dlq() -> None:
 
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
 
     assert result.status == "FAILED/DLQ"
-    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.FAILED
 
@@ -517,13 +517,13 @@ async def test_execution_worker_cancelled_error_dlq() -> None:
 
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
 
     assert result.status == "FAILED/DLQ"
-    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.FAILED
 
@@ -551,9 +551,9 @@ async def test_execution_worker_failure_update_error_resilience() -> None:
     try:
         result = await execute_workflow_job(
             ctx=ctx,
-            workflow_id="wor_0123456789abcdef",
+            workflow_id="wor_0195f3a0000070008123456789abcdef",
             inputs=ExecutionInputsDTO(),
-            execution_id="exe_0123456789abcdef",
+            execution_id="exe_0195f3a0000070008123456789abcdef",
         )
     finally:
         mock_repo.clear_faults()
@@ -584,9 +584,9 @@ async def test_execution_worker_cancelled_update_error_resilience() -> None:
     try:
         result = await execute_workflow_job(
             ctx=ctx,
-            workflow_id="wor_0123456789abcdef",
+            workflow_id="wor_0195f3a0000070008123456789abcdef",
             inputs=ExecutionInputsDTO(),
-            execution_id="exe_0123456789abcdef",
+            execution_id="exe_0195f3a0000070008123456789abcdef",
         )
     finally:
         mock_repo.clear_faults()
@@ -597,7 +597,7 @@ async def test_execution_worker_cancelled_update_error_resilience() -> None:
 @pytest.mark.asyncio
 async def test_execution_worker_with_execution_inputs_dto_and_telemetry() -> None:
     """Verify worker processes ExecutionInputsDTO and populates step telemetry."""
-    step_id = "stp_0123456789abcdef"
+    step_id = "stp_0195f3a0000070008123456789abcdef"
     mock_workflow = _create_mock_workflow()
     mock_record = _create_mock_record()
     envelope_instance = TraceEventMetadataEnvelope(
@@ -657,13 +657,13 @@ async def test_execution_worker_with_execution_inputs_dto_and_telemetry() -> Non
 
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs=inputs,
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
 
     assert result.status == "COMPLETED"
-    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.prompt_tokens == 100
     assert updated_rec.steps[0].prompt_tokens == 100
@@ -700,7 +700,7 @@ async def test_execution_worker_with_workflow_inputs_generated_id() -> None:
     with patch("backend_v2.workers.execution_worker.generate_opaque_id", return_value=generated_id):
         result = await execute_workflow_job(
             ctx=ctx,
-            workflow_id="wor_0123456789abcdef",
+            workflow_id="wor_0195f3a0000070008123456789abcdef",
             inputs=inputs,
             execution_id=None,
         )
@@ -738,15 +738,15 @@ async def test_execution_worker_w3c_trace_propagation_with_carrier() -> None:
 
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_test123",
         user_id="usr_test456",
     )
 
     assert result.status == "COMPLETED"
-    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.PASSED
 
@@ -777,13 +777,13 @@ async def test_execution_worker_orphan_span_when_carrier_missing() -> None:
 
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
 
     assert result.status == "COMPLETED"
-    updated_rec = await mock_repo.get_execution("exe_0123456789abcdef")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.PASSED
 
@@ -809,8 +809,8 @@ async def test_execution_worker_zero_strictness_workflow_crash_reproduction() ->
 
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs=ExecutionInputsDTO(),
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
     assert result.status == "COMPLETED"

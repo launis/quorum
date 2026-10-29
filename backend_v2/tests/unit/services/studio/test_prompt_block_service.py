@@ -54,7 +54,7 @@ def other_admin_token() -> TokenData:
 @pytest.fixture
 def sample_block() -> PersonaPromptBlock:
     return PersonaPromptBlock(
-        id="blk_1234567890abcdef",
+        id="blk_0195f3a0000070018234567890abcdef",
         slug="blk_1",
         label=I18nText(translations={"en": "Block"}),
         description=I18nText(translations={"en": "Desc"}),
@@ -82,7 +82,7 @@ async def test_list_prompt_blocks_success(
     await prompt_block_repo.create_prompt_block(sample_block)
     res = await prompt_block_service.list_prompt_blocks(root_token)
     assert len(res) == 1
-    assert res[0].id == "blk_1234567890abcdef"
+    assert res[0].id == "blk_0195f3a0000070018234567890abcdef"
 
 
 async def test_list_prompt_blocks_tenant_filtering(
@@ -92,11 +92,13 @@ async def test_list_prompt_blocks_tenant_filtering(
     sample_block: PersonaPromptBlock,
 ) -> None:
     await prompt_block_repo.create_prompt_block(sample_block)
-    blk_other = sample_block.model_copy(update={"id": "blk_5555666677778888", "organization_id": "org_other_999"})
+    blk_other = sample_block.model_copy(
+        update={"id": "blk_0195f3a0000070058555666677778888", "organization_id": "org_other_999"}
+    )
     await prompt_block_repo.create_prompt_block(blk_other)
     res = await prompt_block_service.list_prompt_blocks(admin_token)
     assert len(res) == 1
-    assert res[0].id == "blk_1234567890abcdef"
+    assert res[0].id == "blk_0195f3a0000070018234567890abcdef"
 
 
 async def test_get_prompt_block_success(
@@ -106,8 +108,8 @@ async def test_get_prompt_block_success(
     sample_block: PersonaPromptBlock,
 ) -> None:
     await prompt_block_repo.create_prompt_block(sample_block)
-    block = await prompt_block_service.get_prompt_block(admin_token, "blk_1234567890abcdef")
-    assert block.id == "blk_1234567890abcdef"
+    block = await prompt_block_service.get_prompt_block(admin_token, "blk_0195f3a0000070018234567890abcdef")
+    assert block.id == "blk_0195f3a0000070018234567890abcdef"
 
 
 async def test_get_prompt_block_not_found(
@@ -128,7 +130,7 @@ async def test_get_prompt_block_tenant_isolation_fails(
 ) -> None:
     await prompt_block_repo.create_prompt_block(sample_block)
     with pytest.raises(PermissionDeniedError):
-        await prompt_block_service.get_prompt_block(other_admin_token, "blk_1234567890abcdef")
+        await prompt_block_service.get_prompt_block(other_admin_token, "blk_0195f3a0000070018234567890abcdef")
 
 
 async def test_save_prompt_block_success(
@@ -139,17 +141,19 @@ async def test_save_prompt_block_success(
 ) -> None:
     await prompt_block_repo.create_prompt_block(sample_block)
     updated_block = sample_block.model_copy(update={"role_enforcement": "Updated strict enforcement."})
-    res = await prompt_block_service.save_prompt_block(admin_token, "blk_1234567890abcdef", updated_block)
-    assert res.id == "blk_1234567890abcdef"
+    res = await prompt_block_service.save_prompt_block(
+        admin_token, "blk_0195f3a0000070018234567890abcdef", updated_block
+    )
+    assert res.id == "blk_0195f3a0000070018234567890abcdef"
     assert isinstance(res, PersonaPromptBlock)
     assert res.role_enforcement == "Updated strict enforcement."
 
     # Stateful roundtrip verification via repository re-fetch
-    persisted = await prompt_block_repo.get_prompt_block_by_id("blk_1234567890abcdef")
+    persisted = await prompt_block_repo.get_prompt_block_by_id("blk_0195f3a0000070018234567890abcdef")
     assert persisted is not None
     assert isinstance(persisted, PersonaPromptBlock)
     assert persisted.role_enforcement == "Updated strict enforcement."
-    assert persisted.id == "blk_1234567890abcdef"
+    assert persisted.id == "blk_0195f3a0000070018234567890abcdef"
 
 
 async def test_save_prompt_block_missing_after_save_raises(
@@ -160,11 +164,13 @@ async def test_save_prompt_block_missing_after_save_raises(
 ) -> None:
     prompt_block_repo.inject_fault(
         "get_prompt_block_by_id",
-        ResourceNotFoundError(resource_type="prompt_block", resource_id="blk_1234567890abcdef"),
+        ResourceNotFoundError(resource_type="prompt_block", resource_id="blk_0195f3a0000070018234567890abcdef"),
     )
     try:
         with pytest.raises(ResourceNotFoundError):
-            await prompt_block_service.save_prompt_block(admin_token, "blk_1234567890abcdef", sample_block)
+            await prompt_block_service.save_prompt_block(
+                admin_token, "blk_0195f3a0000070018234567890abcdef", sample_block
+            )
     finally:
         prompt_block_repo.clear_faults()
 
@@ -183,7 +189,7 @@ async def test_save_prompt_block_atomization_failure_raises(
         _fail_atomize,
     )
     with pytest.raises(AppException) as exc_info:
-        await prompt_block_service.save_prompt_block(admin_token, "blk_1234567890abcdef", sample_block)
+        await prompt_block_service.save_prompt_block(admin_token, "blk_0195f3a0000070018234567890abcdef", sample_block)
     assert exc_info.value.status_code == 500
     assert exc_info.value.details == {"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL}
 
@@ -194,7 +200,7 @@ async def test_save_prompt_block_id_mismatch_normalizes_id(
     admin_token: TokenData,
     sample_block: PersonaPromptBlock,
 ) -> None:
-    authoritative_id = "blk_abcdef1234567890"
+    authoritative_id = "blk_0195f3a00000700a8bcdef1234567890"
     res = await prompt_block_service.save_prompt_block(admin_token, authoritative_id, sample_block)
     assert res.id == authoritative_id
     persisted = await prompt_block_repo.get_prompt_block_by_id(authoritative_id)
@@ -209,8 +215,8 @@ async def test_delete_prompt_block_success(
     sample_block: PersonaPromptBlock,
 ) -> None:
     await prompt_block_repo.create_prompt_block(sample_block)
-    await prompt_block_service.delete_prompt_block(admin_token, "blk_1234567890abcdef")
-    persisted = await prompt_block_repo.get_prompt_block_by_id("blk_1234567890abcdef")
+    await prompt_block_service.delete_prompt_block(admin_token, "blk_0195f3a0000070018234567890abcdef")
+    persisted = await prompt_block_repo.get_prompt_block_by_id("blk_0195f3a0000070018234567890abcdef")
     assert persisted is None
 
 
@@ -244,9 +250,9 @@ async def test_clone_prompt_block_success(
     sample_block: PersonaPromptBlock,
 ) -> None:
     await prompt_block_repo.create_prompt_block(sample_block)
-    cloned = await prompt_block_service.clone_prompt_block(admin_token, "blk_1234567890abcdef")
+    cloned = await prompt_block_service.clone_prompt_block(admin_token, "blk_0195f3a0000070018234567890abcdef")
     assert cloned.id.startswith("blk_")
-    assert cloned.id != "blk_1234567890abcdef"
+    assert cloned.id != "blk_0195f3a0000070018234567890abcdef"
     assert cloned.label.translations["en"] == "Block (Copy)"
 
     persisted = await prompt_block_repo.get_prompt_block_by_id(cloned.id)

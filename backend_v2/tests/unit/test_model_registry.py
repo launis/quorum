@@ -246,27 +246,27 @@ async def test_model_registry_router_negative_rbac_and_missing_resource(
 
     with pytest.raises(PermissionDeniedError):
         await get_model_registry(
-            registry_id="sys_1234567890abcdef",
+            registry_id="sys_0195f3a0000070018234567890abcdef",
             current_user=admin_user,
             studio_service=studio_service,
         )
 
     with pytest.raises(PermissionDeniedError):
         await clone_model_registry(
-            registry_id="sys_1234567890abcdef",
+            registry_id="sys_0195f3a0000070018234567890abcdef",
             current_user=admin_user,
             studio_service=studio_service,
         )
 
     with pytest.raises(PermissionDeniedError):
         await delete_model_registry(
-            registry_id="sys_1234567890abcdef",
+            registry_id="sys_0195f3a0000070018234567890abcdef",
             current_user=admin_user,
             studio_service=studio_service,
         )
 
     # Non-existent Opaque Stripe ID triggers ResourceNotFoundError for ROOT
-    missing_id = "sys_9999999999999999"
+    missing_id = "sys_0195f3a0000070098999999999999999"
     with pytest.raises(ResourceNotFoundError) as exc_not_found:
         await get_model_registry(
             registry_id=missing_id,
@@ -293,7 +293,7 @@ async def test_model_registry_router_negative_rbac_and_missing_resource(
 def test_model_profile_and_registry_accepts_reasoning_effort_in_additional_params() -> None:
     """Verifies that ModelProfile and SystemConfigModelRegistry accept reasoning_effort in additional_params."""
     payload = {
-        "id": "sys_b1c2d3e4f5a60718",
+        "id": "sys_0195f3a00000700b81c2d3e4f5a60718",
         "name": "Default Model Registry",
         "type": "model_registry",
         "default_provider": "ai_studio",

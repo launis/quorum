@@ -51,7 +51,7 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion() -> None:
     """PROMISE: Prove execution_state.evidence_quotes strictly converts to QuoteEvidenceDTO list."""
     repo = InMemoryUnifiedWorkflowRepository()
     wf = Workflow(
-        id="wf_0123456789abcdef01",
+        id="wf_0195f3a00000700283456789abcdef01",
         slug="wf_slug",
         name="wf",
         description="Workflow description",
@@ -61,29 +61,29 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion() -> None:
         default_profile_id="prof1",
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],
-        model_registry_id="sys_e26807f3bfa3454d",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
     )
     repo._workflows._storage[wf.id] = wf
 
     exe = ExecutionRecord(
-        id="exe_0123456789abcdef01",
+        id="exe_0195f3a00000700283456789abcdef01",
         workflow_id=wf.id,
         status=ExecutionStatus.PASSED,
         target_locale="en",
-        output_profile_id="prof_1111111111111111",
+        output_profile_id="prof_0195f3a0000070018111111111111111",
         raw_inputs=WorkflowInputs(),
         step_states={},
     )
     repo._executions._storage[exe.id] = exe
 
     prof = OutputProfile(
-        id="prof_1111111111111111",
+        id="prof_0195f3a0000070018111111111111111",
         slug="prof1",
         workflow_id=wf.id,
         name=I18nText(translations={"en": "Prof 1"}),
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_0000000000000001",
+                id="grp_0195f3a0000070008000000000000001",
                 title=I18nText(translations={"en": "Default"}),
                 target_blocks=["*"],
             )
@@ -102,8 +102,8 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion() -> None:
     )
 
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wf_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wf_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}, target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(organization_id="org1"),
@@ -131,8 +131,8 @@ async def test_synthesis_distiller_hook_negative_missing_locale() -> None:
 
     # State intentionally missing target_locale in metadata
     state = HookState(
-        execution_id="exe_0123456789abcdef01",
-        workflow_id="wf_0123456789abcdef01",
+        execution_id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wf_0195f3a00000700283456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}),
         global_context_vars=GlobalContextVarsDTO(organization_id="org1"),

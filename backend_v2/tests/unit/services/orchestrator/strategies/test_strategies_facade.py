@@ -128,7 +128,7 @@ async def test_logic_strategy_execution_via_facade_factory(
     assert isinstance(strategy, LogicNodeStrategy)
 
     step = StepRule(
-        id="sr_0123456789abcdef",
+        id="sr_0195f3a0000070008123456789abcdef",
         task_blueprint="stp_0123456789abcdef0123456789abcdef",
     )
     projector = MagicMock(spec=StateProjector)
@@ -201,7 +201,7 @@ async def test_llm_node_strategy_execute_pipeline_via_facade(
                 "organization_id": "root",
                 "matrix_synthesis_groups": [
                     {
-                        "id": "grp_1234567890123456",
+                        "id": "grp_0195f3a0000070018234567890123456",
                         "title": {"translations": {"en": "Test Group"}},
                         "target_blocks": ["*"],
                     }
@@ -216,7 +216,7 @@ async def test_llm_node_strategy_execute_pipeline_via_facade(
             "name": {"translations": {"en": "Facade Step", "fi": "Julkisivuvaihe"}},
             "description": {"translations": {"en": "Description", "fi": "Kuvaus"}},
             "role_block_id": None,
-            "extraction_protocol_block_id": "blk_573802341db9d68c",
+            "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
             "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
         }
     )
@@ -232,7 +232,7 @@ async def test_llm_node_strategy_execute_pipeline_via_facade(
                 "instruction_text": "Evaluate input clarity.",
             },
             {
-                "id": "blk_573802341db9d68c",
+                "id": "blk_0195f3a000007005873802341db9d68c",
                 "slug": "zero_trust_extraction_protocol",
                 "category_id": "system_rule",
                 "type": "instruction",
@@ -252,7 +252,7 @@ async def test_llm_node_strategy_execute_pipeline_via_facade(
             "version": 1,
             "default_profile_id": "prf_0123456789abcdef0123456789abcdef",
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_e26807f3bfa3454d",
+            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
             "steps": [],
         }
     )
@@ -273,7 +273,7 @@ async def test_llm_node_strategy_execute_pipeline_via_facade(
     )
 
     step = StepRule(
-        id="sr_0123456789abcdef",
+        id="sr_0195f3a0000070008123456789abcdef",
         task_blueprint="stp_0123456789abcdef0123456789abcdef",
         input_mappings={"$doc": "inputs.doc"},
     )
@@ -384,7 +384,7 @@ async def test_negative_llm_node_strategy_missing_blueprint_raises_app_exception
     strategy = LLMNodeStrategy(deps=strategy_deps, engine=mock_engine)
 
     step = MagicMock(spec=StepRule)
-    step.id = "sr_0123456789abcdef"
+    step.id = "sr_0195f3a0000070008123456789abcdef"
     step.task_blueprint = None
     step.input_mappings = {}
 

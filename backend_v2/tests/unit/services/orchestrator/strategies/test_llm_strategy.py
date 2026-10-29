@@ -35,7 +35,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
     # Setup system config model registry for cognitive tier
     reg = SystemConfigModelRegistry.model_validate(
         {
-            "id": "sys_e26807f3bfa3454d",
+            "id": "sys_0195f3a00000700e826807f3bfa3454d",
             "name": "Default Stack",
             "tier_definitions": {
                 "fast": {
@@ -78,7 +78,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
     # Setup Workflow
     repo.set_workflow(
         {
-            "id": "wor_0123456789abcdef",
+            "id": "wor_0195f3a0000070008123456789abcdef",
             "slug": "test_wf",
             "name": {"translations": {"en": "Test WF"}},
             "description": {"translations": {"en": "Test Desc"}},
@@ -86,15 +86,15 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
             "version": 1,
             "default_profile_id": "prof_0123456789abcdef0123456789abcde1",
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_e26807f3bfa3454d",
+            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
             "steps": [],
         }
     )
 
     # Setup Execution Record
     exec_rec = ExecutionRecord(
-        id="exc_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
+        id="exc_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PENDING,
         target_locale="en",
         steps=[],
@@ -105,7 +105,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.set_prompt_blocks(
         [
             {
-                "id": "blk_0123456789abcdef",
+                "id": "blk_0195f3a0000070008123456789abcdef",
                 "slug": "test_protocol",
                 "category_id": PromptBlockCategory.PROTOCOL.value,
                 "type": BlockDataType.STRING.value,
@@ -114,7 +114,7 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
                 "protocol_instructions": "Extract all claims strictly according to protocol.",
             },
             {
-                "id": "blk_0123456789abcde0",
+                "id": "blk_0195f3a0000070008123456789abcde0",
                 "slug": "test_criteria",
                 "category_id": PromptBlockCategory.SYSTEM_RULE.value,
                 "type": BlockDataType.CRITERIA.value,
@@ -128,15 +128,15 @@ def test_repo() -> InMemoryUnifiedWorkflowRepository:
     # Setup Step
     repo.set_step(
         {
-            "id": "stp_0123456789abcdef",
+            "id": "stp_0195f3a0000070008123456789abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Blueprint"}},
             "description": {"translations": {"en": "Blueprint"}},
             "type": "llm",
             "cognitive_tier": "fast",
             "role_block_id": None,
-            "extraction_protocol_block_id": "blk_0123456789abcdef",
-            "criteria_block_ids": ["blk_0123456789abcde0"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070008123456789abcdef",
+            "criteria_block_ids": ["blk_0195f3a0000070008123456789abcde0"],
             "allowed_mcp_tools": [],
         }
     )
@@ -157,12 +157,12 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
         {
             "id": "prof_0123456789abcdef0123456789abcde1",
             "slug": "formal_coaching",
-            "workflow_id": "wor_0123456789abcdef",
+            "workflow_id": "wor_0195f3a0000070008123456789abcdef",
             "name": {"translations": {"en": "Formal Coaching Profile"}},
             "tone_instruction": "Formal coaching tone, rigorous and objective.",
             "matrix_synthesis_groups": [
                 {
-                    "id": "grp_1111222233334444",
+                    "id": "grp_0195f3a0000070018111222233334444",
                     "title": {"translations": {"en": "Synthesis Group 1"}},
                     "target_blocks": ["*"],
                 }
@@ -173,12 +173,12 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
         {
             "id": "prof_0123456789abcdef0123456789abcde2",
             "slug": "executive_summary",
-            "workflow_id": "wor_0123456789abcdef",
+            "workflow_id": "wor_0195f3a0000070008123456789abcdef",
             "name": {"translations": {"en": "Executive Summary Profile"}},
             "tone_instruction": "Concise executive summary for CEO.",
             "matrix_synthesis_groups": [
                 {
-                    "id": "grp_2222333344445555",
+                    "id": "grp_0195f3a0000070028222333344445555",
                     "title": {"translations": {"en": "Synthesis Group 2"}},
                     "target_blocks": ["*"],
                 }
@@ -211,29 +211,29 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
     strategy = LLMNodeStrategy(deps=deps, engine=mock_engine)
 
     step = StepRule(
-        id="sr_0123456789abcdef",
-        task_blueprint="stp_0123456789abcdef",
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
         input_mappings={},
     )
 
     context_1 = StrategyContext(
-        execution_id="exc_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
+        execution_id="exc_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         output_profile_id="prof_0123456789abcdef0123456789abcde1",
         target_locale="en",
         cognitive_tier=CognitiveTier.FAST,
-        model_registry_id="sys_e26807f3bfa3454d",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
 
     context_2 = StrategyContext(
-        execution_id="exc_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
+        execution_id="exc_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         output_profile_id="prof_0123456789abcdef0123456789abcde2",
         target_locale="en",
         cognitive_tier=CognitiveTier.FAST,
-        model_registry_id="sys_e26807f3bfa3454d",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
@@ -293,11 +293,11 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
     payload_1 = user_payloads_captured[0]
     assert "<execution_parameters>" in payload_1
     assert "<tone_instruction>Formal coaching tone, rigorous and objective.</tone_instruction>" in payload_1
-    assert "grp_1111222233334444" in payload_1
-    assert "grp_2222333344445555" not in payload_1
+    assert "grp_0195f3a0000070018111222233334444" in payload_1
+    assert "grp_0195f3a0000070028222333344445555" not in payload_1
 
     payload_2 = user_payloads_captured[1]
     assert "<execution_parameters>" in payload_2
     assert "<tone_instruction>Concise executive summary for CEO.</tone_instruction>" in payload_2
-    assert "grp_2222333344445555" in payload_2
-    assert "grp_1111222233334444" not in payload_2
+    assert "grp_0195f3a0000070028222333344445555" in payload_2
+    assert "grp_0195f3a0000070018111222233334444" not in payload_2

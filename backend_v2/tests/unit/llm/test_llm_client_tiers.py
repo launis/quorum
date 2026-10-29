@@ -99,7 +99,7 @@ class TestLLMClientCognitiveTiers:
             tier=CognitiveTier.FAST,
             repository=fake_repository,
             provider=LLMProvider.VERTEX_AI,
-            registry_id="sys_b1c2d3e4f5a60718",
+            registry_id="sys_0195f3a00000700b81c2d3e4f5a60718",
         )
 
         assert client is not None
@@ -132,7 +132,7 @@ class TestLLMClientCognitiveTiers:
             tier=tier,
             repository=fake_repository,
             provider=LLMProvider.OPENAI,
-            registry_id="sys_6f8b1c4a2e0d49f1",
+            registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
         )
 
         assert client is not None
@@ -175,7 +175,7 @@ class TestLLMClientCognitiveTiers:
         client_openai = await LLMClient.from_tier(
             tier=CognitiveTier.FAST,
             repository=fake_repository,
-            registry_id="sys_6f8b1c4a2e0d49f1",
+            registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
         )
         assert client_openai.provider_name == "openai"
         assert "gpt-5" in client_openai.model_name.lower()
@@ -184,7 +184,7 @@ class TestLLMClientCognitiveTiers:
         client_google = await LLMClient.from_tier(
             tier=CognitiveTier.FAST,
             repository=fake_repository,
-            registry_id="sys_e26807f3bfa3454d",
+            registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         )
         assert client_google.provider_name == "ai_studio"
         assert "flash" in client_google.model_name.lower()

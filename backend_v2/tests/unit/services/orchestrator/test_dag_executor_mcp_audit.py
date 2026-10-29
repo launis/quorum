@@ -22,9 +22,9 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 def mock_repo() -> Any:
     repo = InMemoryUnifiedWorkflowRepository()
     repo.seed_raw_step(
-        "stp_1111222233334444",
+        "stp_0195f3a0000070018111222233334444",
         {
-            "id": "stp_1111222233334444",
+            "id": "stp_0195f3a0000070018111222233334444",
             "slug": "logic",
             "type": "logic",
             "cognitive_tier": "fast",
@@ -43,15 +43,17 @@ def mock_compiler() -> Any:
 
 @pytest.fixture
 def workflow_fixture() -> Workflow:
-    step = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
+    step = StepRule(
+        id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444", depends_on=[]
+    )
     return Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
-        id="wor_1111222233334444",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        id="wor_0195f3a0000070018111222233334444",
         slug="wf_mcp_audit_test",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
         name=I18nText(translations={"en": "MCP Audit Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[step],
@@ -79,7 +81,7 @@ async def test_dag_executor_mcp_audit_trace_event_direct_accumulation(
     trace = MCPAuditTrace(
         id="tavily_001",
         tool_id="mcp_tavily_search",
-        step_name="stp_1111222233334444",
+        step_name="stp_0195f3a0000070018111222233334444",
         query="Verify quantum supremacy claim",
         reasoning="Fact check",
         response_summary="Google claimed supremacy in 2019",
@@ -89,7 +91,7 @@ async def test_dag_executor_mcp_audit_trace_event_direct_accumulation(
     )
 
     trace_event = TraceEvent(
-        step_name="stp_1111222233334444",
+        step_name="stp_0195f3a0000070018111222233334444",
         event_type="output",
         content={"result": "done"},
         mcp_audit_traces=[trace],
@@ -103,7 +105,7 @@ async def test_dag_executor_mcp_audit_trace_event_direct_accumulation(
         mock_node_execute.return_value = [trace_event]
 
         record = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow_fixture,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
@@ -136,7 +138,7 @@ async def test_dag_executor_mcp_audit_decision_event_merge_and_deduplication(
     trace1 = MCPAuditTrace(
         id="tavily_dup_1",
         tool_id="mcp_tavily_search",
-        step_name="stp_1111222233334444",
+        step_name="stp_0195f3a0000070018111222233334444",
         query="Query 1",
         reasoning="Reasoning 1",
         response_summary="Summary 1",
@@ -147,7 +149,7 @@ async def test_dag_executor_mcp_audit_decision_event_merge_and_deduplication(
     trace2 = MCPAuditTrace(
         id="tavily_dup_1",  # Same ID should be deduplicated
         tool_id="mcp_tavily_search",
-        step_name="stp_1111222233334444",
+        step_name="stp_0195f3a0000070018111222233334444",
         query="Query 1 duplicate",
         reasoning="Reasoning 1",
         response_summary="Summary 1",
@@ -157,7 +159,7 @@ async def test_dag_executor_mcp_audit_decision_event_merge_and_deduplication(
     )
 
     decision_event = TraceEvent(
-        step_name="stp_1111222233334444",
+        step_name="stp_0195f3a0000070018111222233334444",
         event_type="decision",
         content={"mcp_audit_traces": [trace1.model_dump(mode="json"), trace2.model_dump(mode="json")]},
         metadata={"mcp_audit_traces": [trace1, trace2]},
@@ -172,7 +174,7 @@ async def test_dag_executor_mcp_audit_decision_event_merge_and_deduplication(
         mock_node_execute.return_value = [decision_event]
 
         record = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow_fixture,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
@@ -192,7 +194,7 @@ def test_dag_executor_mcp_audit_invalid_trace_fails_fast() -> None:
 
     with pytest.raises(pydantic.ValidationError) as exc_info:
         TraceEvent(
-            step_name="stp_1111222233334444",
+            step_name="stp_0195f3a0000070018111222233334444",
             event_type="decision",
             content={"mcp_audit_traces": [malformed_trace]},
             metadata={"mcp_audit_traces": [malformed_trace]},
@@ -225,7 +227,7 @@ async def test_dag_executor_mcp_audit_decision_event_with_iso_string_timestamp(
     raw_trace_iso = {
         "id": "tavily_iso_001",
         "tool_id": "mcp_tavily_search",
-        "step_name": "stp_1111222233334444",
+        "step_name": "stp_0195f3a0000070018111222233334444",
         "query": "Verify fact check",
         "reasoning": "Reasoning text",
         "response_summary": "Extracted summary",
@@ -238,7 +240,7 @@ async def test_dag_executor_mcp_audit_decision_event_with_iso_string_timestamp(
     trace = MCPAuditTrace.model_validate(raw_trace_iso, strict=False)
 
     decision_event = TraceEvent(
-        step_name="stp_1111222233334444",
+        step_name="stp_0195f3a0000070018111222233334444",
         event_type="decision",
         content={"mcp_audit_traces": [raw_trace_iso]},
         metadata={"mcp_audit_traces": [trace]},
@@ -253,7 +255,7 @@ async def test_dag_executor_mcp_audit_decision_event_with_iso_string_timestamp(
         mock_node_execute.return_value = [decision_event]
 
         record = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
             workflow=workflow_fixture,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
@@ -272,7 +274,7 @@ def test_mcp_audit_trace_istqb_negative_boundary_partitions() -> None:
     # Partition Neg-1: Malformed dictionary in TraceEvent(mcp_audit_traces=[...]) fails fast with ValidationError
     with pytest.raises(pydantic.ValidationError) as exc_neg1:
         TraceEvent(
-            step_name="stp_1111222233334444",
+            step_name="stp_0195f3a0000070018111222233334444",
             event_type="decision",
             mcp_audit_traces=[{"invalid_field": 123}],
         )

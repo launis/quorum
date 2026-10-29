@@ -117,7 +117,7 @@ def _build_valid_pb(
     return PromptBlockAdapter.validate_python(pb_dict, strict=False)
 
 
-def _build_valid_step(prompt_blocks: list[str], step_id: str = "st_1234567890123456") -> Step:
+def _build_valid_step(prompt_blocks: list[str], step_id: str = "st_0195f3a0000070018234567890123456") -> Step:
     """Builds a valid step model."""
     return Step(
         id=step_id,
@@ -126,7 +126,7 @@ def _build_valid_step(prompt_blocks: list[str], step_id: str = "st_1234567890123
         type="logic",
         hook="dummy_hook",
         role_block_id=None,
-        extraction_protocol_block_id="blk_573802341db9d68c",
+        extraction_protocol_block_id="blk_0195f3a000007005873802341db9d68c",
         criteria_block_ids=prompt_blocks,
     )
 
@@ -138,7 +138,7 @@ def _build_valid_execution(execution_id: str, strategy: str = "WATERFALL") -> Ex
         workflow_id="wf_123",
         organization_id="org_123",
         created_by="usr_123",
-        output_profile_id="prof_1111111111111111",
+        output_profile_id="prof_0195f3a0000070018111111111111111",
         status=ExecutionStatus.PENDING,
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -153,7 +153,7 @@ def _build_valid_execution(execution_id: str, strategy: str = "WATERFALL") -> Ex
 
 async def _create_test_scoring_repo(
     *,
-    pb_id: str = "pb_1234567890123456",
+    pb_id: str = "pb_0195f3a0000070018234567890123456",
     scales: Sequence[MatrixScale] | None = None,
     corrupt_scale: bool = False,
     corrupt_step: bool = False,
@@ -167,14 +167,14 @@ async def _create_test_scoring_repo(
     allow_contextual_override: bool = True,
     extra_pbs: Sequence[AnyPromptBlock] | None = None,
     step_blocks: list[str] | None = None,
-    profile_id: str = "prof_1111111111111111",
+    profile_id: str = "prof_0195f3a0000070018111111111111111",
     display_scale: str = "original",
     variance_target_block: str | None = None,
     variance_scale_levels: list[int] | None = None,
     visible_block_extensions: list[str] | None = None,
-    workflow_id: str = "wflow_1234567890123456",
-    step_id: str = "st_1234567890123456",
-    execution_id: str = "ex_1234567890abcdef",
+    workflow_id: str = "wflow_0195f3a0000070018234567890123456",
+    step_id: str = "st_0195f3a0000070018234567890123456",
+    execution_id: str = "ex_0195f3a0000070018234567890abcdef",
     security_penalty: float = 0.0,
     post_hoc_penalty: float = 0.0,
     passivity_penalty: float = 0.0,
@@ -297,7 +297,7 @@ async def _create_test_scoring_repo(
                 "sp_1",
                 "sp_empty_evals",
                 "st_1",
-                "st_1234567890123456",
+                "st_0195f3a0000070018234567890123456",
                 "st_falsifier",
                 "st_matrix",
                 "st_panel",
@@ -306,7 +306,7 @@ async def _create_test_scoring_repo(
                 "st_sec",
                 "step1",
                 "step_final",
-                "stp_1234567890123456",
+                "stp_0195f3a0000070018234567890123456",
                 "test_blueprint",
                 "test_step",
             ]:
@@ -318,36 +318,36 @@ async def _create_test_scoring_repo(
         await repo.save_execution(exec_model)
         for ex_alias in [
             "ex_1",
-            "ex_1111111111111111",
-            "ex_1111222233334444",
-            "ex_1234567890abcdef",
-            "ex_2222222222222222",
-            "ex_2222333344445555",
-            "ex_3333333333333333",
-            "ex_3333444455556666",
-            "ex_5555666677778888",
-            "ex_9999999999999999",
-            "exe_1111111111111111",
-            "exe_1111222233334444",
-            "exe_1234567890123456",
-            "exec_0000000000000001",
-            "exec_0000000000000002",
-            "exec_0000000000000003",
-            "exec_0000000000000004",
-            "exec_0000000000000005",
-            "exec_0000000000000006",
-            "exec_0000000000000007",
-            "exec_0000000000000008",
-            "exec_0000000000000009",
-            "exec_0000000000000010",
-            "exec_0000000000000011",
-            "exec_0000000000000012",
-            "exec_0000000000000013",
-            "exec_0000000000000014",
-            "exec_0000000000000015",
-            "exec_0000000000000016",
-            "exec_0000000000000017",
-            "exec_0123456789abcdef",
+            "ex_0195f3a0000070018111111111111111",
+            "ex_0195f3a0000070018111222233334444",
+            "ex_0195f3a0000070018234567890abcdef",
+            "ex_0195f3a0000070028222222222222222",
+            "ex_0195f3a0000070028222333344445555",
+            "ex_0195f3a0000070038333333333333333",
+            "ex_0195f3a0000070038333444455556666",
+            "ex_0195f3a0000070058555666677778888",
+            "ex_0195f3a0000070098999999999999999",
+            "exe_0195f3a0000070018111111111111111",
+            "exe_0195f3a0000070018111222233334444",
+            "exe_0195f3a0000070018234567890123456",
+            "exec_0195f3a0000070008000000000000001",
+            "exec_0195f3a0000070008000000000000002",
+            "exec_0195f3a0000070008000000000000003",
+            "exec_0195f3a0000070008000000000000004",
+            "exec_0195f3a0000070008000000000000005",
+            "exec_0195f3a0000070008000000000000006",
+            "exec_0195f3a0000070008000000000000007",
+            "exec_0195f3a0000070008000000000000008",
+            "exec_0195f3a0000070008000000000000009",
+            "exec_0195f3a0000070008000000000000010",
+            "exec_0195f3a0000070008000000000000011",
+            "exec_0195f3a0000070008000000000000012",
+            "exec_0195f3a0000070008000000000000013",
+            "exec_0195f3a0000070008000000000000014",
+            "exec_0195f3a0000070008000000000000015",
+            "exec_0195f3a0000070008000000000000016",
+            "exec_0195f3a0000070008000000000000017",
+            "exec_0195f3a0000070008123456789abcdef",
         ]:
             repo._executions._storage[ex_alias] = exec_model
 
@@ -363,7 +363,7 @@ async def _create_test_scoring_repo(
             "default_profile_id": profile_id,
             "default_strictness_level": strictness_level,
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "cfg_model_registry_01",
+            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
             "enable_contextual_overrides": enable_overrides,
             "security_penalty": security_penalty,
             "post_hoc_penalty": post_hoc_penalty,
@@ -374,9 +374,9 @@ async def _create_test_scoring_repo(
             "wf1",
             "wf_1",
             "wf_123",
-            "wflow_1234567890123456",
-            "wor_1111222233334444",
-            "wor_1234567890123456",
+            "wflow_0195f3a0000070018234567890123456",
+            "wor_0195f3a0000070018111222233334444",
+            "wor_0195f3a0000070018234567890123456",
         ]
         if strictness_level is None:
             repo._workflows._storage[workflow_id] = wf_dict
@@ -397,7 +397,7 @@ async def _create_test_scoring_repo(
             "name": {"translations": {"en": "Test", "fi": "Test"}},
             "matrix_synthesis_groups": [
                 {
-                    "id": "grp_0000000000000001",
+                    "id": "grp_0195f3a0000070008000000000000001",
                     "title": {"translations": {"en": "Default", "fi": "Default"}},
                     "target_blocks": ["*"],
                 }
@@ -412,7 +412,12 @@ async def _create_test_scoring_repo(
             prof_dict["visible_block_extensions"] = visible_block_extensions
         prof_model = OutputProfile.model_validate(prof_dict)
         await repo.create_output_profile(prof_model)
-        for prf_alias in ["prof_1111111111111111", "prof_123", "prf_1111222233334444", "prf_123"]:
+        for prf_alias in [
+            "prof_0195f3a0000070018111111111111111",
+            "prof_123",
+            "prf_0195f3a0000070018111222233334444",
+            "prf_123",
+        ]:
             repo._output_profiles._storage[prf_alias] = prof_model
 
     return repo
@@ -443,14 +448,14 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
     """Test that setting a corrupted non-float scale in PromptBlocks causes a fail fast AppException."""
     repo = await _create_test_scoring_repo(corrupt_scale=True)
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="test_wf",
         step_id="test_step",
         task_blueprint="test_blueprint",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
-                "pb_1234567890123456": {
+                "pb_0195f3a0000070018234567890123456": {
                     "raw_score": 5.0,
                     "normalized_score": 100.0,
                     "justification": "[INITIALIZING]",
@@ -467,21 +472,24 @@ async def test_normalize_matrix_scores_fails_on_corrupt_scale() -> None:
         await normalize_matrix_scores_hook(state, deps)
 
     assert exc_info.value.error_code == "VALIDATION_FAILED"
-    assert "Strict Fail-Fast Enforced: Invalid PromptBlock format for 'pb_1234567890123456'" in exc_info.value.message
+    assert (
+        "Strict Fail-Fast Enforced: Invalid PromptBlock format for 'pb_0195f3a0000070018234567890123456'"
+        in exc_info.value.message
+    )
 
 
 @pytest.mark.asyncio
 async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
     """Test that Tapa 2 string PromptBlocks preserve XAI variables in the new LightweightMatrixOutput."""
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="test_wf",
         step_id="test_step",
         task_blueprint="test_blueprint",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
-                "tb_1234567890123456": LightweightMatrixOutput(
+                "tb_0195f3a0000070018234567890123456": LightweightMatrixOutput(
                     raw_score=5.0,
                     normalized_score=100.0,
                     justification="Tämä on perustelu\n\nKitkaa on",
@@ -496,7 +504,7 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
         global_context_vars=GlobalContextVarsDTO(),
     )
     repo = await _create_test_scoring_repo(
-        pb_id="tb_1234567890123456",
+        pb_id="tb_0195f3a0000070018234567890123456",
         scales=[
             _build_valid_scale(1, ["tapa_atom_1"]),
             _build_valid_scale(5, ["tapa_atom_5"]),
@@ -511,7 +519,7 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
     assert delta is not None
     assert isinstance(delta, MatrixHookResultDTO)
 
-    parsed_output = delta.matrix_outputs["tb_1234567890123456"]
+    parsed_output = delta.matrix_outputs["tb_0195f3a0000070018234567890123456"]
     extensions = parsed_output.extensions
 
     if XaiExtensionType.CITATION in extensions:
@@ -532,7 +540,7 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
 async def test_normalize_matrix_scores_missing_workflow_repo_raises() -> None:
     """Test that normalize_matrix_scores_hook raises HOOK_EXECUTION_FAILED when workflow_repo is missing."""
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="test_wf",
         step_id="test_step",
         task_blueprint="test_blueprint",
@@ -554,7 +562,7 @@ async def test_normalize_matrix_scores_step_not_found_raises() -> None:
     """Test that normalize_matrix_scores_hook raises RESOURCE_NOT_FOUND when step is not in database."""
     repo = await _create_test_scoring_repo(omit_step=True)
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="test_wf",
         step_id="st_missing",
         task_blueprint="st_missing",
@@ -575,14 +583,14 @@ async def test_normalize_matrix_scores_missing_prompt_block_raises() -> None:
     """Test that normalize_matrix_scores_hook raises RESOURCE_NOT_FOUND when prompt block is missing."""
     repo = await _create_test_scoring_repo(omit_pb=True)
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="test_wf",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
-                "pb_1234567890123456": {
+                "pb_0195f3a0000070018234567890123456": {
                     "raw_score": 3.0,
                     "normalized_score": 50.0,
                     "justification": "J",
@@ -607,14 +615,14 @@ async def test_normalize_matrix_scores_invalid_input_payload_raises() -> None:
     repo = await _create_test_scoring_repo(scales=scales)
 
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="test_wf",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
-                "pb_1234567890123456": "not_a_valid_matrix_dict",
+                "pb_0195f3a0000070018234567890123456": "not_a_valid_matrix_dict",
             }
         ),
         global_context_vars=GlobalContextVarsDTO(),
@@ -632,7 +640,7 @@ async def test_normalize_matrix_scores_invalid_input_payload_raises() -> None:
 async def test_normalize_matrix_scores_empty_blueprint_raises() -> None:
     """Test that normalize_matrix_scores_hook raises VALIDATION_FAILED when task_blueprint and step_id are empty."""
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="test_wf",
         step_id="",
         task_blueprint="",
@@ -654,10 +662,10 @@ async def test_normalize_matrix_scores_no_matrix_updates_returns_empty_delta() -
     """Test that normalize_matrix_scores_hook returns empty state_delta when no prompt blocks match."""
     repo = await _create_test_scoring_repo()
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="test_wf",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"other_block": 123}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -676,14 +684,14 @@ async def test_normalize_matrix_scores_non_matrix_prompt_block_skipped() -> None
     repo = await _create_test_scoring_repo(pb_category="execution_persona")
 
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="test_wf",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
-                "pb_1234567890123456": "some text data",
+                "pb_0195f3a0000070018234567890123456": "some text data",
             }
         ),
         global_context_vars=GlobalContextVarsDTO(),
@@ -702,7 +710,7 @@ async def test_normalize_matrix_scores_step_validation_error_raises() -> None:
     repo = await _create_test_scoring_repo(corrupt_step=True)
     repo._workflows._steps["st_invalid"] = {"invalid": "schema"}
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="test_wf",
         step_id="st_invalid",
         task_blueprint="st_invalid",
@@ -724,11 +732,11 @@ async def test_normalize_matrix_scores_recalculate_invalid_lightweight_matrix_ra
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
     scales = [_build_valid_scale(1, ["atom_1"])]
-    pb_model = _build_valid_pb("pb_1234567890123456", scales=scales)
+    pb_model = _build_valid_pb("pb_0195f3a0000070018234567890123456", scales=scales)
 
     payload = ContextVariablesDTO.model_construct(
         variables={
-            "pb_1234567890123456": {
+            "pb_0195f3a0000070018234567890123456": {
                 "evaluated_atoms": {"atom_1": "PASSED"},
                 "justification": "some text",
                 "raw_score": "not_a_float",
@@ -737,12 +745,12 @@ async def test_normalize_matrix_scores_recalculate_invalid_lightweight_matrix_ra
     )
 
     repo = await _create_test_scoring_repo(scales=scales)
-    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_model
+    repo._prompt_blocks._storage["pb_0195f3a0000070018234567890123456"] = pb_model
 
     deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
-        await recalculate(payload, "prof_1111111111111111", deps)
+        await recalculate(payload, "prof_0195f3a0000070018111111111111111", deps)
 
     assert exc_info.value.error_code == "VALIDATION_FAILED"
 
@@ -760,7 +768,7 @@ async def test_normalize_matrix_scores_recalculate_success() -> None:
         _build_valid_scale(5, ["atom_5"]),
     ]
     pb_model = _build_valid_pb(
-        "pb_1234567890123456",
+        "pb_0195f3a0000070018234567890123456",
         scales=scales,
         output_extensions=["citation", "falsification"],
     )
@@ -778,16 +786,16 @@ async def test_normalize_matrix_scores_recalculate_success() -> None:
 
     payload = ContextVariablesDTO(
         variables={
-            "pb_1234567890123456": matrix_dto.model_dump(mode="json"),
+            "pb_0195f3a0000070018234567890123456": matrix_dto.model_dump(mode="json"),
         }
     )
 
     repo = await _create_test_scoring_repo(scales=scales)
-    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_model
+    repo._prompt_blocks._storage["pb_0195f3a0000070018234567890123456"] = pb_model
 
     deps = _build_test_scoring_deps(repo)
 
-    recalculated = await recalculate(payload, "prof_1111111111111111", deps)
+    recalculated = await recalculate(payload, "prof_0195f3a0000070018111111111111111", deps)
     assert "true_atoms_count" in recalculated
     assert "false_atoms_count" in recalculated
     assert recalculated["true_atoms_count"] == 1
@@ -801,7 +809,7 @@ async def test_recalculate_unsupported_xai_extension_raises() -> None:
 
     scales = [_build_valid_scale(1, ["atom_1"]), _build_valid_scale(5, ["atom_5"])]
     pb_dict = {
-        "id": "pb_1234567890123456",
+        "id": "pb_0195f3a0000070018234567890123456",
         "slug": "test_slug",
         "label": {"translations": {"en": "Test Label", "fi": "Test Label"}},
         "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
@@ -824,17 +832,17 @@ async def test_recalculate_unsupported_xai_extension_raises() -> None:
 
     payload = ContextVariablesDTO(
         variables={
-            "pb_1234567890123456": matrix_dto.model_dump(mode="json"),
+            "pb_0195f3a0000070018234567890123456": matrix_dto.model_dump(mode="json"),
         }
     )
 
     repo = await _create_test_scoring_repo(scales=scales)
-    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_dict
+    repo._prompt_blocks._storage["pb_0195f3a0000070018234567890123456"] = pb_dict
 
     deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc_info:
-        await recalculate(payload, "prof_1111111111111111", deps)
+        await recalculate(payload, "prof_0195f3a0000070018111111111111111", deps)
 
     assert exc_info.value.error_code == "VALIDATION_FAILED"
 
@@ -874,7 +882,7 @@ async def test_recalculate_workflow_not_found_raises() -> None:
     repo = await _create_test_scoring_repo(omit_workflow=True)
     deps = _build_test_scoring_deps(repo)
     with pytest.raises(AppException) as exc_info:
-        await recalculate(payload, "prof_1111111111111111", deps)
+        await recalculate(payload, "prof_0195f3a0000070018111111111111111", deps)
     assert exc_info.value.error_code == "VALIDATION_FAILED"
 
 
@@ -892,14 +900,14 @@ async def test_normalize_matrix_scores_missing_scales_raises() -> None:
     )
     repo = await _create_test_scoring_repo(no_scales=True)
     state = HookState(
-        execution_id="ex_1111222233334444",
+        execution_id="ex_0195f3a0000070018111222233334444",
         workflow_id="wf_123",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
-                "pb_1234567890123456": matrix_dto.model_dump(mode="json"),
+                "pb_0195f3a0000070018234567890123456": matrix_dto.model_dump(mode="json"),
             }
         ),
         global_context_vars=GlobalContextVarsDTO(),
@@ -916,7 +924,7 @@ async def test_recalculate_indeterminate_and_na_atom_coverage() -> None:
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
     scales = [_build_valid_scale(1, ["atom_1"]), _build_valid_scale(5, ["atom_5"])]
-    pb_model = _build_valid_pb("pb_1234567890123456", scales=scales)
+    pb_model = _build_valid_pb("pb_0195f3a0000070018234567890123456", scales=scales)
     atom_1_id = f"tda_{hashlib.md5(b'atom_1').hexdigest()[:32]}"
     atom_5_id = f"tda_{hashlib.md5(b'atom_5').hexdigest()[:32]}"
     matrix_dto = LightweightMatrixOutput(
@@ -931,14 +939,14 @@ async def test_recalculate_indeterminate_and_na_atom_coverage() -> None:
     )
     payload = ContextVariablesDTO(
         variables={
-            "pb_1234567890123456": matrix_dto.model_dump(mode="json"),
+            "pb_0195f3a0000070018234567890123456": matrix_dto.model_dump(mode="json"),
         }
     )
     repo = await _create_test_scoring_repo(scales=scales)
-    repo._prompt_blocks._storage["pb_1234567890123456"] = pb_model
+    repo._prompt_blocks._storage["pb_0195f3a0000070018234567890123456"] = pb_model
     deps = _build_test_scoring_deps(repo)
-    recalculated = await recalculate(payload, "prof_1111111111111111", deps)
-    pb_output = recalculated["pb_1234567890123456"]
+    recalculated = await recalculate(payload, "prof_0195f3a0000070018111111111111111", deps)
+    pb_output = recalculated["pb_0195f3a0000070018234567890123456"]
     assert isinstance(pb_output, LightweightMatrixOutput)
     assert "[INDETERMINATE]" in pb_output.justification
 
@@ -957,12 +965,12 @@ async def test_recalculate_skips_non_matrix_prompt_block() -> None:
     )
     payload = ContextVariablesDTO(
         variables={
-            "pi_1234567890123456": matrix_dto.model_dump(mode="json"),
+            "pi_0195f3a0000070018234567890123456": matrix_dto.model_dump(mode="json"),
         }
     )
-    repo = await _create_test_scoring_repo(pb_id="pi_1234567890123456", pb_category="system_rule")
+    repo = await _create_test_scoring_repo(pb_id="pi_0195f3a0000070018234567890123456", pb_category="system_rule")
     deps = _build_test_scoring_deps(repo)
-    recalculated = await recalculate(payload, "prof_1111111111111111", deps)
+    recalculated = await recalculate(payload, "prof_0195f3a0000070018111111111111111", deps)
     assert recalculated["true_atoms_count"] == 0
 
 
@@ -1000,8 +1008,8 @@ async def test_matrix_scoring_hook_prompt_block_validation_failure_raises() -> N
     state = HookState(
         execution_id="ex_1",
         workflow_id="wf1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -1021,8 +1029,8 @@ async def test_matrix_scoring_hook_missing_execution_id_raises() -> None:
     state = HookState(
         execution_id="",
         workflow_id="wf1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -1105,8 +1113,8 @@ async def test_matrix_scoring_hook_no_matrix_blocks_skips() -> None:
     state = HookState(
         execution_id="ex_1",
         workflow_id="wf1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -1125,10 +1133,10 @@ async def test_matrix_scoring_hook_missing_workflow_raises() -> None:
     scales = [_build_valid_scale(1, ["atom_1"]), _build_valid_scale(5, ["atom_5"])]
     repo = await _create_test_scoring_repo(scales=scales, omit_workflow=True)
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="wf1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -1147,10 +1155,10 @@ async def test_matrix_scoring_hook_missing_profile_config_raises() -> None:
     scales = [_build_valid_scale(1, ["atom_1"]), _build_valid_scale(5, ["atom_5"])]
     repo = await _create_test_scoring_repo(scales=scales, omit_profile=True)
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="wf1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -1172,8 +1180,8 @@ async def test_matrix_scoring_hook_missing_execution_raises() -> None:
     state = HookState(
         execution_id="ex_missing",
         workflow_id="wf1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -1191,7 +1199,7 @@ async def test_matrix_scoring_hook_missing_results_array_raises() -> None:
     """Test that matrix_scoring_hook raises VALIDATION_FAILED when 'results' is missing in state.inputs."""
     repo = await _create_test_scoring_repo()
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1213,7 +1221,7 @@ async def test_matrix_scoring_hook_invalid_extracted_facts_raises() -> None:
     """Test that matrix_scoring_hook raises VALIDATION_FAILED when extracted_facts is not a dictionary."""
     repo = await _create_test_scoring_repo()
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1240,7 +1248,7 @@ async def test_matrix_scoring_hook_evaluations_not_list_raises() -> None:
     """Test that matrix_scoring_hook raises VALIDATION_FAILED when results is not a list."""
     repo = await _create_test_scoring_repo()
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1268,7 +1276,7 @@ async def test_matrix_scoring_hook_ignores_instructions() -> None:
     atom_hash = generate_atom_hash("atom_1", mandate)
 
     state = HookState(
-        execution_id="ex_3333333333333333",
+        execution_id="ex_0195f3a0000070038333333333333333",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1314,7 +1322,7 @@ async def test_matrix_scoring_hook_pass_all() -> None:
         )
 
     state = HookState(
-        execution_id="ex_1111111111111111",
+        execution_id="ex_0195f3a0000070018111111111111111",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1329,9 +1337,15 @@ async def test_matrix_scoring_hook_pass_all() -> None:
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    assert delta.matrix_outputs["pb_1234567890123456"].raw_score == 5.0
-    assert delta.matrix_outputs["pb_1234567890123456"].justification == "Calculated via UnifiedScoringEngine."
-    assert delta.matrix_outputs["pb_1234567890123456"].xai_log.pedagogical_key == "xai_unified_engine_breakdown"
+    assert delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].raw_score == 5.0
+    assert (
+        delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].justification
+        == "Calculated via UnifiedScoringEngine."
+    )
+    assert (
+        delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].xai_log.pedagogical_key
+        == "xai_unified_engine_breakdown"
+    )
 
 
 @pytest.mark.asyncio
@@ -1360,7 +1374,7 @@ async def test_matrix_scoring_hook_inverse_evidence_passed_satisfies_level() -> 
     ]
 
     state = HookState(
-        execution_id="ex_1111222233334444",
+        execution_id="ex_0195f3a0000070018111222233334444",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1376,7 +1390,7 @@ async def test_matrix_scoring_hook_inverse_evidence_passed_satisfies_level() -> 
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
     # All 5 levels with inverse_evidence=True should be satisfied when status=PASSED
-    assert delta.matrix_outputs["pb_1234567890123456"].raw_score == 5.0
+    assert delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].raw_score == 5.0
 
 
 @pytest.mark.asyncio
@@ -1417,7 +1431,7 @@ async def test_matrix_scoring_hook_inverse_evidence_failed_blocks_level() -> Non
     )
 
     state = HookState(
-        execution_id="ex_5555666677778888",
+        execution_id="ex_0195f3a0000070058555666677778888",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1433,7 +1447,7 @@ async def test_matrix_scoring_hook_inverse_evidence_failed_blocks_level() -> Non
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
     # Level 1 failed, so waterfall ceiling caps raw_score < 5.0
-    assert delta.matrix_outputs["pb_1234567890123456"].raw_score < 5.0
+    assert delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].raw_score < 5.0
 
 
 @pytest.mark.asyncio
@@ -1463,7 +1477,7 @@ async def test_matrix_scoring_hook_inverse_evidence_passed_without_quote_survive
     ]
 
     state = HookState(
-        execution_id="ex_1111222233334444",
+        execution_id="ex_0195f3a0000070018111222233334444",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1479,7 +1493,7 @@ async def test_matrix_scoring_hook_inverse_evidence_passed_without_quote_survive
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
     # All 5 levels with inverse_evidence=True should be satisfied despite enable_contextual_overrides=False
-    assert delta.matrix_outputs["pb_1234567890123456"].raw_score == 5.0
+    assert delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].raw_score == 5.0
 
 
 @pytest.mark.asyncio
@@ -1509,7 +1523,7 @@ async def test_matrix_scoring_hook_non_inverse_override_demoted_when_overrides_d
     ]
 
     state = HookState(
-        execution_id="ex_2222333344445555",
+        execution_id="ex_0195f3a0000070028222333344445555",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1525,7 +1539,7 @@ async def test_matrix_scoring_hook_non_inverse_override_demoted_when_overrides_d
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
     # Level 1 has an unpermitted contextual override, demoted to FALSE -> waterfall ceiling caps score < 5.0
-    assert delta.matrix_outputs["pb_1234567890123456"].raw_score < 5.0
+    assert delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].raw_score < 5.0
 
 
 @pytest.mark.asyncio
@@ -1568,7 +1582,7 @@ async def test_matrix_scoring_hook_failed_inverse_claim_resolves_false() -> None
     )
 
     state = HookState(
-        execution_id="ex_3333444455556666",
+        execution_id="ex_0195f3a0000070038333444455556666",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1584,7 +1598,7 @@ async def test_matrix_scoring_hook_failed_inverse_claim_resolves_false() -> None
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
     # Level 1 failed, so waterfall ceiling caps raw_score < 5.0
-    assert delta.matrix_outputs["pb_1234567890123456"].raw_score < 5.0
+    assert delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].raw_score < 5.0
 
 
 @pytest.mark.asyncio
@@ -1627,7 +1641,7 @@ async def test_matrix_scoring_hook_pure_inverse_without_positive_competence_yiel
     ]
 
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1643,10 +1657,12 @@ async def test_matrix_scoring_hook_pure_inverse_without_positive_competence_yiel
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
     # Blank Page Fallacy eradication: zero positive competence yields math_min (1.0)
-    assert delta.matrix_outputs["pb_1234567890123456"].raw_score == 1.0
+    assert delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].raw_score == 1.0
     for i in range(1, 6):
         aid = generate_atom_hash(f"pure_inv_{i}", mandate)
-        assert delta.matrix_outputs["pb_1234567890123456"].evaluated_atoms[aid] == ExecutionStatus.PASSED
+        assert (
+            delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].evaluated_atoms[aid] == ExecutionStatus.PASSED
+        )
 
 
 @pytest.mark.asyncio
@@ -1669,7 +1685,7 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
         evaluations.append(evaluation)
 
     state = HookState(
-        execution_id="ex_2222222222222222",
+        execution_id="ex_0195f3a0000070028222222222222222",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1684,7 +1700,7 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
 
-    assert abs(delta.matrix_outputs["pb_1234567890123456"].raw_score - 4.136) < 0.01
+    assert abs(delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].raw_score - 4.136) < 0.01
 
 
 @pytest.mark.asyncio
@@ -1712,7 +1728,7 @@ async def test_matrix_scoring_hook_graceful_missing() -> None:
 
     with pytest.raises((AppException, ValidationError)):
         state = HookState(
-            execution_id="ex_3333333333333333",
+            execution_id="ex_0195f3a0000070038333333333333333",
             workflow_id="wf1",
             step_id="step1",
             task_blueprint="step1",
@@ -1792,7 +1808,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     ]
 
     state = HookState(
-        execution_id="ex_9999999999999999",
+        execution_id="ex_0195f3a0000070098999999999999999",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1808,9 +1824,15 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    assert delta.matrix_outputs["pb_1234567890123456"].raw_score > 1.0
-    assert delta.matrix_outputs["pb_1234567890123456"].justification == "Calculated via UnifiedScoringEngine."
-    assert delta.matrix_outputs["pb_1234567890123456"].xai_log.pedagogical_key == "xai_unified_engine_breakdown"
+    assert delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].raw_score > 1.0
+    assert (
+        delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].justification
+        == "Calculated via UnifiedScoringEngine."
+    )
+    assert (
+        delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].xai_log.pedagogical_key
+        == "xai_unified_engine_breakdown"
+    )
 
 
 @pytest.mark.asyncio
@@ -1833,7 +1855,7 @@ async def test_matrix_scoring_hook_missing_status_key() -> None:
 
     with pytest.raises((AppException, ValidationError)):
         state = HookState(
-            execution_id="exe_1111111111111111",
+            execution_id="exe_0195f3a0000070018111111111111111",
             workflow_id="wf1",
             step_id="step1",
             task_blueprint="step1",
@@ -1872,7 +1894,7 @@ async def test_matrix_scoring_hook_contextual_override() -> None:
     )
 
     state = HookState(
-        execution_id="exec_0123456789abcdef",
+        execution_id="exec_0195f3a0000070008123456789abcdef",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1888,7 +1910,7 @@ async def test_matrix_scoring_hook_contextual_override() -> None:
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
 
-    raw_score = delta.matrix_outputs["pb_1234567890123456"].raw_score
+    raw_score = delta.matrix_outputs["pb_0195f3a0000070018234567890123456"].raw_score
     assert abs(raw_score - 5.0) < 0.01
 
 
@@ -1909,7 +1931,7 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
     ]
 
     state = HookState(
-        execution_id="ex_1111111111111111",
+        execution_id="ex_0195f3a0000070018111111111111111",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1930,7 +1952,7 @@ async def test_matrix_scoring_hook_empty_evaluations() -> None:
     state = HookState(
         inputs=ExecutionInputsDTO(raw_inputs={"results": [], "extracted_facts": {}, "execution_metadata": {}}),
         step_id="sp_empty_evals",
-        execution_id="exe_1111111111111111",
+        execution_id="exe_0195f3a0000070018111111111111111",
         workflow_id="wf_1",
         task_blueprint="sp_1",
         metadata=ExecutionMetadata(),
@@ -1954,7 +1976,7 @@ async def test_matrix_scoring_hook_cognitive_dlq_status() -> None:
     atom_hash = generate_atom_hash("atom_1", EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value)
 
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -1990,10 +2012,10 @@ async def test_matrix_scoring_hook_override_disabled_returns_false() -> None:
     repo = await _create_test_scoring_repo(scales=scales, allow_contextual_override=False, enable_overrides=False)
 
     state = HookState(
-        execution_id="ex_1111222233334444",
+        execution_id="ex_0195f3a0000070018111222233334444",
         workflow_id="wf_123",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
@@ -2024,7 +2046,7 @@ async def test_matrix_scoring_hook_matrix_id_filtering() -> None:
     atom_hash = generate_atom_hash("atom_1", EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value)
 
     state = HookState(
-        execution_id="ex_1234567890abcdef",
+        execution_id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -2056,7 +2078,7 @@ async def test_matrix_scoring_hook_matrix_id_filtering() -> None:
 async def test_matrix_scoring_hook_extractive_sensor_and_dlq() -> None:
     """Test matrix_scoring_hook evaluates EXTRACTIVE_SENSOR assertions and records DLQ outcomes."""
     repo = await _create_test_scoring_repo()
-    pb_id = "pb_1234567890123456"
+    pb_id = "pb_0195f3a0000070018234567890123456"
     tda_sensor_id = f"tda_{hashlib.md5(b'sensor_atom_1').hexdigest()[:32]}"
     tda_dlq_id = f"tda_{hashlib.md5(b'cognitive_dlq_1').hexdigest()[:32]}"
 
@@ -2107,10 +2129,10 @@ async def test_matrix_scoring_hook_extractive_sensor_and_dlq() -> None:
     repo = await _create_test_scoring_repo(scales=[scale_1, scale_5])
 
     state = HookState(
-        execution_id="ex_1111222233334444",
+        execution_id="ex_0195f3a0000070018111222233334444",
         workflow_id="wf_123",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
@@ -2154,7 +2176,7 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
     ]
 
     state = HookState(
-        execution_id="ex_3333333333333333",
+        execution_id="ex_0195f3a0000070038333333333333333",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -2171,8 +2193,8 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    assert "pb_1234567890123456" in delta.matrix_outputs
-    matrix_output = delta.matrix_outputs["pb_1234567890123456"]
+    assert "pb_0195f3a0000070018234567890123456" in delta.matrix_outputs
+    matrix_output = delta.matrix_outputs["pb_0195f3a0000070018234567890123456"]
     assert matrix_output is not None
 
     extensions = matrix_output.extensions
@@ -2199,7 +2221,7 @@ async def test_scoring_matrix_namespace_isolation() -> None:
     }
 
     state = HookState(
-        execution_id="ex_1111111111111111",
+        execution_id="ex_0195f3a0000070018111111111111111",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -2215,8 +2237,8 @@ async def test_scoring_matrix_namespace_isolation() -> None:
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    assert "pb_1234567890123456" in delta.matrix_outputs
-    matrix_output = delta.matrix_outputs["pb_1234567890123456"]
+    assert "pb_0195f3a0000070018234567890123456" in delta.matrix_outputs
+    matrix_output = delta.matrix_outputs["pb_0195f3a0000070018234567890123456"]
     assert matrix_output.evaluated_atoms[atom_hash] == ExecutionStatus.FAILED
     assert matrix_output.raw_score == 1.0
 
@@ -2237,7 +2259,7 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
     }
 
     state = HookState(
-        execution_id="ex_1111111111111111",
+        execution_id="ex_0195f3a0000070018111111111111111",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -2253,8 +2275,8 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    assert "pb_1234567890123456" in delta.matrix_outputs
-    matrix_output = delta.matrix_outputs["pb_1234567890123456"]
+    assert "pb_0195f3a0000070018234567890123456" in delta.matrix_outputs
+    matrix_output = delta.matrix_outputs["pb_0195f3a0000070018234567890123456"]
     assert atom_hash in matrix_output.evaluated_atoms
     assert matrix_output.evaluated_atoms[atom_hash] == ExecutionStatus.PASSED
 
@@ -2267,7 +2289,7 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
 
     ev_dto = AtomResultDTO(
         tda_id=atom_hash,
-        matrix_id="pb_1234567890123456",
+        matrix_id="pb_0195f3a0000070018234567890123456",
         status=ExecutionStatus.FAILED,
         evaluation_reasoning="Failed reason",
         source_quotes=None,
@@ -2275,7 +2297,7 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
     )
 
     state = HookState(
-        execution_id="ex_1111111111111111",
+        execution_id="ex_0195f3a0000070018111111111111111",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -2291,8 +2313,8 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    assert "pb_1234567890123456" in delta.matrix_outputs
-    matrix_output = delta.matrix_outputs["pb_1234567890123456"]
+    assert "pb_0195f3a0000070018234567890123456" in delta.matrix_outputs
+    matrix_output = delta.matrix_outputs["pb_0195f3a0000070018234567890123456"]
     assert matrix_output.evaluated_atoms[atom_hash] == ExecutionStatus.FAILED
 
 
@@ -2307,7 +2329,7 @@ async def test_matrix_scoring_hook_illegal_override_penalty() -> None:
         evaluations.append(
             AtomResultDTO(
                 tda_id=generate_atom_hash(f"atom_{i}", mandate),
-                matrix_id="pb_1234567890123456",
+                matrix_id="pb_0195f3a0000070018234567890123456",
                 status=ExecutionStatus.PASSED,
                 evaluation_reasoning="Hyväksytty",
                 source_quotes=("mock quote",),
@@ -2317,7 +2339,7 @@ async def test_matrix_scoring_hook_illegal_override_penalty() -> None:
     evaluations.append(
         AtomResultDTO(
             tda_id=generate_atom_hash("atom_5", mandate),
-            matrix_id="pb_1234567890123456",
+            matrix_id="pb_0195f3a0000070018234567890123456",
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="Contested",
             source_quotes=None,
@@ -2326,7 +2348,7 @@ async def test_matrix_scoring_hook_illegal_override_penalty() -> None:
     )
 
     state = HookState(
-        execution_id="exec_0123456789abcdef",
+        execution_id="exec_0195f3a0000070008123456789abcdef",
         workflow_id="wf1",
         step_id="step1",
         task_blueprint="step1",
@@ -2342,7 +2364,7 @@ async def test_matrix_scoring_hook_illegal_override_penalty() -> None:
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
 
-    matrix_output = delta.matrix_outputs["pb_1234567890123456"]
+    matrix_output = delta.matrix_outputs["pb_0195f3a0000070018234567890123456"]
     assert matrix_output.evaluated_atoms[evaluations[4].tda_id] == ExecutionStatus.FAILED
     assert abs(matrix_output.raw_score - 3.0077) < 0.01
 
@@ -2375,7 +2397,7 @@ async def test_apply_scoring_logic_hook_success() -> None:
     """Test that apply_scoring_logic_hook computes commensurate average score correctly without penalties."""
     eval_matrices = {"blk_1": 80.0, "blk_2": 90.0}
     state = HookState(
-        execution_id="exec_0000000000000001",
+        execution_id="exec_0195f3a0000070008000000000000001",
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
@@ -2407,7 +2429,7 @@ async def test_apply_scoring_logic_hook_with_hoisted_step_output_dto() -> None:
         payload={"blk_1": 70.0, "blk_2": 90.0},
     )
     state = HookState(
-        execution_id="exec_0000000000000002",
+        execution_id="exec_0195f3a0000070008000000000000002",
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
@@ -2490,7 +2512,7 @@ async def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties() 
     }
 
     state = HookState(
-        execution_id="exec_0000000000000003",
+        execution_id="exec_0195f3a0000070008000000000000003",
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
@@ -2522,7 +2544,7 @@ async def test_apply_scoring_logic_hook_with_passivity_penalty() -> None:
     }
 
     state = HookState(
-        execution_id="exec_0000000000000004",
+        execution_id="exec_0195f3a0000070008000000000000004",
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
@@ -2546,7 +2568,7 @@ async def test_apply_scoring_logic_hook_with_passivity_penalty() -> None:
 async def test_apply_scoring_logic_hook_indeterminate_matrices() -> None:
     """Test that apply_scoring_logic_hook gracefully handles indeterminate matrix evaluations."""
     state = HookState(
-        execution_id="exec_0000000000000004",
+        execution_id="exec_0195f3a0000070008000000000000004",
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
@@ -2576,7 +2598,7 @@ async def test_apply_scoring_logic_hook_indeterminate_matrices() -> None:
 async def test_apply_scoring_logic_hook_missing_evaluative_matrices_raises() -> None:
     """Test that missing evaluative matrices without indeterminate reason raises AppException."""
     state = HookState(
-        execution_id="exec_0000000000000005",
+        execution_id="exec_0195f3a0000070008000000000000005",
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
@@ -2610,7 +2632,7 @@ async def test_apply_scoring_logic_hook_missing_state_raises() -> None:
 async def test_apply_scoring_logic_hook_missing_steps_in_snapshot_raises() -> None:
     """Test that apply_scoring_logic_hook raises VALIDATION_FAILED when steps key is missing."""
     state = HookState(
-        execution_id="exec_0000000000000006",
+        execution_id="exec_0195f3a0000070008000000000000006",
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
@@ -2632,7 +2654,7 @@ async def test_apply_scoring_logic_hook_missing_steps_in_snapshot_raises() -> No
 async def test_apply_scoring_logic_hook_invalid_step_payload_raises() -> None:
     """Test that apply_scoring_logic_hook raises VALIDATION_FAILED when step payload is an invalid dict."""
     state = HookState(
-        execution_id="exec_0000000000000007",
+        execution_id="exec_0195f3a0000070008000000000000007",
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
@@ -2700,7 +2722,7 @@ async def test_apply_scoring_logic_hook_with_input_processing_and_panel_dto() ->
         falsifier_data=falsifier_dto,
     )
     state = HookState(
-        execution_id="exec_0000000000000008",
+        execution_id="exec_0195f3a0000070008000000000000008",
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",
@@ -2747,7 +2769,7 @@ async def test_apply_scoring_logic_hook_with_input_processing_and_panel_dto() ->
 async def test_apply_scoring_logic_hook_missing_workflow_repo_raises() -> None:
     """Test that apply_scoring_logic_hook raises HOOK_EXECUTION_FAILED when workflow_repo is None."""
     state = HookState(
-        execution_id="exec_0000000000000001",
+        execution_id="exec_0195f3a0000070008000000000000001",
         workflow_id="wf_1",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"steps": [], "_evaluative_matrices": {"blk_1": 80.0}}),
@@ -2766,7 +2788,7 @@ async def test_apply_scoring_logic_hook_workflow_not_found_raises() -> None:
     """Test that apply_scoring_logic_hook raises RESOURCE_NOT_FOUND when workflow is not found."""
     repo = await _create_test_scoring_repo(omit_workflow=True)
     state = HookState(
-        execution_id="exec_0000000000000001",
+        execution_id="exec_0195f3a0000070008000000000000001",
         workflow_id="wf_nonexistent",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"steps": [], "_evaluative_matrices": {"blk_1": 80.0}}),
@@ -2799,7 +2821,7 @@ async def test_apply_scoring_logic_hook_with_nonzero_workflow_penalties() -> Non
         ),
     )
     state = HookState(
-        execution_id="exec_0000000000000001",
+        execution_id="exec_0195f3a0000070008000000000000001",
         workflow_id="wf_1",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO.model_construct(
@@ -2874,7 +2896,7 @@ async def test_apply_scoring_logic_hook_cumulative_clamped_at_max_ratio() -> Non
         falsifier_data=falsifier_dto,
     )
     state = HookState(
-        execution_id="exec_0000000000000001",
+        execution_id="exec_0195f3a0000070008000000000000001",
         workflow_id="wf_1",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO.model_construct(
@@ -2914,7 +2936,7 @@ async def test_apply_scoring_logic_hook_cumulative_clamped_at_max_ratio() -> Non
 async def test_apply_scoring_logic_hook_invalid_state_input_wrapper_raises() -> None:
     """Test that invalid payload in StateInputWrapper raises AppException with VALIDATION_FAILED."""
     state = HookState(
-        execution_id="exec_0000000000000001",
+        execution_id="exec_0195f3a0000070008000000000000001",
         workflow_id="wf_1",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO.model_construct(
@@ -2956,12 +2978,14 @@ async def test_enforce_passivity_penalty_hook_penalty_triggered() -> None:
     )
 
     state = HookState(
-        execution_id="exec_0000000000000010",
+        execution_id="exec_0195f3a0000070008000000000000010",
         workflow_id="wf_1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(raw_inputs={"pb_1234567890123456": matrix_output.model_dump(mode="json")}),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"pb_0195f3a0000070018234567890123456": matrix_output.model_dump(mode="json")}
+        ),
         global_context_vars=GlobalContextVarsDTO(),
     )
     repo = await _create_test_scoring_repo()
@@ -2987,12 +3011,14 @@ async def test_enforce_passivity_penalty_hook_no_penalty_when_above_min() -> Non
     )
 
     state = HookState(
-        execution_id="exec_0000000000000011",
+        execution_id="exec_0195f3a0000070008000000000000011",
         workflow_id="wf_1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(raw_inputs={"pb_1234567890123456": matrix_output.model_dump(mode="json")}),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"pb_0195f3a0000070018234567890123456": matrix_output.model_dump(mode="json")}
+        ),
         global_context_vars=GlobalContextVarsDTO(),
     )
     repo = await _create_test_scoring_repo()
@@ -3008,10 +3034,10 @@ async def test_enforce_passivity_penalty_hook_no_penalty_when_above_min() -> Non
 async def test_enforce_passivity_penalty_hook_legacy_score_card_raises() -> None:
     """Test that enforce_passivity_penalty_hook fails fast if legacy score_card is present."""
     state = HookState(
-        execution_id="exec_0000000000000012",
+        execution_id="exec_0195f3a0000070008000000000000012",
         workflow_id="wf_1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"score_card": {"dimension_1": 1.0}}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -3030,10 +3056,10 @@ async def test_enforce_passivity_penalty_hook_legacy_score_card_raises() -> None
 async def test_enforce_passivity_penalty_hook_missing_workflow_repo_raises() -> None:
     """Test that enforce_passivity_penalty_hook raises HOOK_EXECUTION_FAILED if workflow_repo is None."""
     state = HookState(
-        execution_id="exec_0000000000000013",
+        execution_id="exec_0195f3a0000070008000000000000013",
         workflow_id="wf_1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -3061,7 +3087,7 @@ async def test_enforce_passivity_penalty_hook_missing_state_raises() -> None:
 async def test_enforce_passivity_penalty_hook_missing_blueprint_id_raises() -> None:
     """Test that enforce_passivity_penalty_hook raises VALIDATION_FAILED if blueprint_id is missing."""
     state = HookState(
-        execution_id="exec_0000000000000013",
+        execution_id="exec_0195f3a0000070008000000000000013",
         workflow_id="wf_1",
         step_id="",
         task_blueprint=None,
@@ -3081,12 +3107,12 @@ async def test_enforce_passivity_penalty_hook_non_matrix_prompt_block_skipped() 
     """Test that enforce_passivity_penalty_hook skips non-matrix prompt blocks."""
     repo = await _create_test_scoring_repo(pb_category="system_rule")
     state = HookState(
-        execution_id="exec_0000000000000014",
+        execution_id="exec_0195f3a0000070008000000000000014",
         workflow_id="wf_1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(raw_inputs={"pb_1234567890123456": {"raw_score": 1.0}}),
+        inputs=ExecutionInputsDTO(raw_inputs={"pb_0195f3a0000070018234567890123456": {"raw_score": 1.0}}),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = _build_test_scoring_deps(repo)
@@ -3100,7 +3126,7 @@ async def test_enforce_passivity_penalty_hook_step_not_found_raises() -> None:
     """Test that enforce_passivity_penalty_hook raises RESOURCE_NOT_FOUND if step is not in database."""
     repo = await _create_test_scoring_repo(omit_step=True)
     state = HookState(
-        execution_id="exec_0000000000000014",
+        execution_id="exec_0195f3a0000070008000000000000014",
         workflow_id="wf_1",
         step_id="st_nonexistent",
         task_blueprint="st_nonexistent",
@@ -3122,10 +3148,10 @@ async def test_enforce_passivity_penalty_hook_matrix_has_no_scales_raises() -> N
     repo = await _create_test_scoring_repo(no_scales=True)
 
     state = HookState(
-        execution_id="exec_0000000000000015",
+        execution_id="exec_0195f3a0000070008000000000000015",
         workflow_id="wf_1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -3143,16 +3169,16 @@ async def test_enforce_passivity_penalty_hook_invalid_matrix_format_raises() -> 
     """Test that enforce_passivity_penalty_hook raises VALIDATION_FAILED when matrix format is corrupted."""
     repo = await _create_test_scoring_repo()
     state = HookState(
-        execution_id="exec_0000000000000016",
+        execution_id="exec_0195f3a0000070008000000000000016",
         workflow_id="wf_1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO.model_construct(
             raw_inputs={
-                "pb_1234567890123456": StepOutputDTO.model_construct(
-                    step_id="st_1234567890123456",
-                    block_id="pb_1234567890123456",
+                "pb_0195f3a0000070018234567890123456": StepOutputDTO.model_construct(
+                    step_id="st_0195f3a0000070018234567890123456",
+                    block_id="pb_0195f3a0000070018234567890123456",
                     data_type="matrix",
                     payload={"raw_score": "not_a_number", "normalized_score": 10.0, "justification": "J"},
                 )
@@ -3181,15 +3207,15 @@ async def test_enforce_passivity_penalty_hook_with_eval_map_and_bounds() -> None
         "extensions": {},
     }
     state = HookState(
-        execution_id="exec_0000000000000017",
+        execution_id="exec_0195f3a0000070008000000000000017",
         workflow_id="wf_1",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
-                "pb_1234567890123456": matrix_raw,
-                "_evaluative_matrices": {"pb_1234567890123456": 20.0},
+                "pb_0195f3a0000070018234567890123456": matrix_raw,
+                "_evaluative_matrices": {"pb_0195f3a0000070018234567890123456": 20.0},
             }
         ),
         global_context_vars=GlobalContextVarsDTO(),
@@ -3206,10 +3232,10 @@ async def test_enforce_passivity_penalty_hook_with_eval_map_and_bounds() -> None
 async def test_matrix_scoring_hook_direct_output_profile_id_resolution() -> None:
     """SSOT Invariant: matrix_scoring_hook directly accesses non-nullable output_profile_id."""
     state = HookState(
-        execution_id="exe_1234567890123456",
+        execution_id="exe_0195f3a0000070018234567890123456",
         workflow_id="wf_123",
-        step_id="st_1234567890123456",
-        task_blueprint="st_1234567890123456",
+        step_id="st_0195f3a0000070018234567890123456",
+        task_blueprint="st_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
@@ -3238,24 +3264,24 @@ async def test_normalize_matrix_scores_evaluative_matrices_and_branches() -> Non
         extensions={},
     )
     repo = await _create_test_scoring_repo(
-        pb_id="blk_1234567890123456",
+        pb_id="blk_0195f3a0000070018234567890123456",
         scales=[
             _build_valid_scale(1, ["atom_1"]),
             _build_valid_scale(5, ["atom_5"]),
         ],
-        step_id="stp_1234567890123456",
-        workflow_id="wor_1234567890123456",
-        execution_id="exe_1111222233334444",
+        step_id="stp_0195f3a0000070018234567890123456",
+        workflow_id="wor_0195f3a0000070018234567890123456",
+        execution_id="exe_0195f3a0000070018111222233334444",
     )
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1234567890123456",
-        step_id="stp_1234567890123456",
-        task_blueprint="stp_1234567890123456",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018234567890123456",
+        step_id="stp_0195f3a0000070018234567890123456",
+        task_blueprint="stp_0195f3a0000070018234567890123456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
-                "blk_1234567890123456": matrix_dto.model_dump(mode="json"),
+                "blk_0195f3a0000070018234567890123456": matrix_dto.model_dump(mode="json"),
                 "_evaluative_matrices": {"blk_other12345678": 50.0},
             }
         ),
@@ -3275,7 +3301,11 @@ async def test_recalculate_missing_strictness_and_branches() -> None:
     deps = _build_test_scoring_deps(repo)
 
     with pytest.raises(AppException) as exc:
-        await recalculate(ContextVariablesDTO(variables={"blk_1111222233334444": {}}), "prf_1111222233334444", deps)
+        await recalculate(
+            ContextVariablesDTO(variables={"blk_0195f3a0000070018111222233334444": {}}),
+            "prf_0195f3a0000070018111222233334444",
+            deps,
+        )
     assert exc.value.error_code == "VALIDATION_FAILED"
 
 
@@ -3366,15 +3396,15 @@ async def test_apply_scoring_logic_hook_with_workflow_domain_instance() -> None:
     from backend_v2.models.enums import HistoricalContextMode
 
     workflow_model = Workflow(
-        id="wor_1111222233334444",
+        id="wor_0195f3a0000070018111222233334444",
         slug="wf_test",
         name=I18nText(translations={"en": "Workflow", "fi": "Workflow"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         status="active",
         version=1,
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        default_profile_id="prf_1111222233334444",
+        default_profile_id="prf_0195f3a0000070018111222233334444",
         default_strictness_level=70,
         steps=[],
     )
@@ -3382,8 +3412,8 @@ async def test_apply_scoring_logic_hook_with_workflow_domain_instance() -> None:
     await repo.save_workflow(workflow_model)
 
     state = HookState(
-        execution_id="exec_0000000000000009",
-        workflow_id="wor_1111222233334444",
+        execution_id="exec_0195f3a0000070008000000000000009",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         step_id="step_final",
         task_blueprint="step_final",
         metadata=ExecutionMetadata(),
@@ -3411,14 +3441,14 @@ _TOULMIN_L3_01 = f"tda_{hashlib.md5(b'toulmin_l3_01').hexdigest()[:32]}"
 _TOULMIN_L4_01 = f"tda_{hashlib.md5(b'toulmin_l4_01').hexdigest()[:32]}"
 _TOULMIN_L5_01 = f"tda_{hashlib.md5(b'toulmin_l5_01').hexdigest()[:32]}"
 
-_TOULMIN_PB_ID = "blk_440a5fef9331451b"
-_TOULMIN_STEP_ID = "st_1111222233334444"
-_TOULMIN_WF_ID = "wor_1111222233334444"
-_TOULMIN_PROF_ID = "prof_1111222233334444"
-_TOULMIN_EXEC_ID = "exec_1111222233334444"
-_TOULMIN_ORG_ID = "org_1111222233334444"
-_TOULMIN_USER_ID = "usr_1111222233334444"
-_TOULMIN_PROTO_ID = "blk_573802341db9d68c"
+_TOULMIN_PB_ID = "blk_0195f3a000007004840a5fef9331451b"
+_TOULMIN_STEP_ID = "st_0195f3a0000070018111222233334444"
+_TOULMIN_WF_ID = "wor_0195f3a0000070018111222233334444"
+_TOULMIN_PROF_ID = "prof_0195f3a0000070018111222233334444"
+_TOULMIN_EXEC_ID = "exec_0195f3a0000070018111222233334444"
+_TOULMIN_ORG_ID = "org_0195f3a0000070018111222233334444"
+_TOULMIN_USER_ID = "usr_0195f3a0000070018111222233334444"
+_TOULMIN_PROTO_ID = "blk_0195f3a000007005873802341db9d68c"
 
 
 def _build_toulmin_dual_track_matrix(pb_id: str = _TOULMIN_PB_ID) -> AnyPromptBlock:
@@ -3573,7 +3603,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         status="active",
         version=1,
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         default_profile_id=_TOULMIN_PROF_ID,
         default_strictness_level=50,
@@ -3588,7 +3618,7 @@ async def test_toulmin_error_radar_clean_baseline() -> None:
         display_scale="original",
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_0000000000000001",
+                id="grp_0195f3a0000070008000000000000001",
                 title=I18nText(translations={"en": "Default", "fi": "Default"}),
                 target_blocks=["*"],
             )
@@ -3797,7 +3827,7 @@ async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
         status="active",
         version=1,
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         default_profile_id=_TOULMIN_PROF_ID,
         default_strictness_level=50,
@@ -3812,7 +3842,7 @@ async def test_toulmin_fatal_flaw_penalty_deduction() -> None:
         display_scale="original",
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_0000000000000001",
+                id="grp_0195f3a0000070008000000000000001",
                 title=I18nText(translations={"en": "Default", "fi": "Default"}),
                 target_blocks=["*"],
             )

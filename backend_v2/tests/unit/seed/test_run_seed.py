@@ -23,7 +23,7 @@ VALID_ORGANIZATION: dict[str, JsonValue] = {
 }
 
 VALID_USER: dict[str, JsonValue] = {
-    "id": "usr_1234567890abcdef",
+    "id": "usr_0195f3a0000070018234567890abcdef",
     "email": "admin@quorum.com",
     "role": "ROOT",
     "organization_id": "org_12345678abcd",
@@ -47,7 +47,7 @@ VALID_SYSTEM_CONFIG: dict[str, JsonValue] = {
 }
 
 VALID_PROMPT_BLOCK: dict[str, JsonValue] = {
-    "id": "blk_1234567890abcdef",
+    "id": "blk_0195f3a0000070018234567890abcdef",
     "slug": "rule_clean",
     "label": {"translations": {"en": "Rule", "fi": "Saanto"}},
     "description": {"translations": {"en": "Description", "fi": "Kuvaus"}},
@@ -57,7 +57,7 @@ VALID_PROMPT_BLOCK: dict[str, JsonValue] = {
 }
 
 VALID_STEP: dict[str, JsonValue] = {
-    "id": "stp_1234567890abcdef",
+    "id": "stp_0195f3a0000070018234567890abcdef",
     "slug": "step_guard",
     "name": {"translations": {"en": "Guard Step", "fi": "Suojavaihe"}},
     "type": "logic",
@@ -65,25 +65,25 @@ VALID_STEP: dict[str, JsonValue] = {
 }
 
 VALID_WORKFLOW: dict[str, JsonValue] = {
-    "id": "wor_1234567890abcdef",
+    "id": "wor_0195f3a0000070018234567890abcdef",
     "slug": "test_workflow",
     "name": "Test Workflow",
     "description": "Test description",
     "status": "published",
     "version": 1,
     "is_public": True,
-    "default_profile_id": "prf_1234567890abcdef",
+    "default_profile_id": "prf_0195f3a0000070018234567890abcdef",
     "historical_context_mode": "DISABLED",
     "model_registry_id": "sys_1234567890abcdef1234567890abcdef",
     "steps": [],
 }
 
 VALID_OUTPUT_PROFILE: dict[str, JsonValue] = {
-    "id": "prf_1234567890abcdef",
+    "id": "prf_0195f3a0000070018234567890abcdef",
     "slug": "test_profile",
     "name": {"translations": {"en": "Test Profile", "fi": "Testiprofiili"}},
     "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
-    "workflow_id": "wor_1234567890abcdef",
+    "workflow_id": "wor_0195f3a0000070018234567890abcdef",
     "target_block_order": ["executive_summary_block"],
 }
 

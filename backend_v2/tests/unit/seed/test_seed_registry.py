@@ -24,7 +24,7 @@ def test_system_config_discriminator_mcp_gateways() -> None:
         input_schema=MCPToolInputSchemaDTO(),
     )
     data = {
-        "id": "cfg_0123456789abcdef",
+        "id": "cfg_0195f3a0000070008123456789abcdef",
         "type": "mcp_gateways",
         "tools": [tool.model_dump(mode="json")],
     }
@@ -44,7 +44,7 @@ def test_system_config_discriminator_model_registry() -> None:
         provider="openai",
     )
     data = {
-        "id": "cfg_0123456789abcdef",
+        "id": "cfg_0195f3a0000070008123456789abcdef",
         "type": "model_registry",
         "tier_definitions": {tier.value: profile.model_dump(mode="json") for tier in CognitiveTier},
     }
@@ -57,7 +57,7 @@ def test_system_config_discriminator_model_registry() -> None:
 def test_system_config_discriminator_missing_type_fails() -> None:
     """Tests that missing type discriminator tag triggers ValidationError."""
     adapter = STANDARD_REGISTRY["system_config"]["model"]
-    data = {"id": "cfg_0123456789abcdef", "other": "value"}
+    data = {"id": "cfg_0195f3a0000070008123456789abcdef", "other": "value"}
     with pytest.raises(ValidationError):
         adapter.validate_python(data)
 
@@ -65,6 +65,6 @@ def test_system_config_discriminator_missing_type_fails() -> None:
 def test_system_config_discriminator_unknown_type_fails() -> None:
     """Tests that unknown type discriminator tag triggers ValidationError."""
     adapter = STANDARD_REGISTRY["system_config"]["model"]
-    data = {"id": "cfg_0123456789abcdef", "type": "unknown_config_type"}
+    data = {"id": "cfg_0195f3a0000070008123456789abcdef", "type": "unknown_config_type"}
     with pytest.raises(ValidationError):
         adapter.validate_python(data)

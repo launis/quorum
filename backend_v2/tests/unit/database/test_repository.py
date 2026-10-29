@@ -149,12 +149,14 @@ async def test_all_passthrough_methods() -> None:
     await repo.get_execution_status("1")
     await repo.create_execution(
         ExecutionCreateDTO(
-            workflow_id="wor_0123456789abcdef",
-            output_profile_id="pro_0123456789abcdef",
+            workflow_id="wor_0195f3a0000070008123456789abcdef",
+            output_profile_id="pro_0195f3a0000070008123456789abcdef",
             raw_inputs=None,
         )
     )
-    await repo.update_execution("exe_0123456789abcdef", ExecutionUpdateDTO(status=ExecutionStatus.PASSED))
+    await repo.update_execution(
+        "exe_0195f3a0000070008123456789abcdef", ExecutionUpdateDTO(status=ExecutionStatus.PASSED)
+    )
     await repo.delete_execution("1")
     await repo.get_all_executions()
     await repo.get_recent_completed_executions()
@@ -185,7 +187,7 @@ async def test_all_passthrough_methods() -> None:
     mock_driver.get.return_value = None
     await repo.get_component_by_id("1")
     persona_block = PersonaPromptBlock(
-        id="blk_0123456789abcdef",
+        id="blk_0195f3a0000070008123456789abcdef",
         slug="blk_1",
         label=I18nText(translations={"en": "Block"}),
         description=I18nText(translations={"en": "Desc"}),
@@ -219,7 +221,7 @@ async def test_all_passthrough_methods() -> None:
     await repo.count_workflows()
     await repo.get_prompt_template("1")
     dummy_reg = SystemConfigModelRegistry(
-        id="sys_1234567890abcdef",
+        id="sys_0195f3a0000070018234567890abcdef",
         name="Default Model Registry",
         type="model_registry",
         default_provider=LLMProvider.AI_STUDIO,
@@ -231,11 +233,15 @@ async def test_all_passthrough_methods() -> None:
         },
     )
     mock_driver.get.return_value = dummy_reg.model_dump(mode="json")
-    await repo.get_model_registry("sys_1234567890abcdef")
+    await repo.get_model_registry("sys_0195f3a0000070018234567890abcdef")
     await repo.update_model_registry(dummy_reg)
-    mock_driver.query.return_value = [{"id": "sys_1234567890abcdef", "type": "mcp_gateways", "tools": []}]
+    mock_driver.query.return_value = [
+        {"id": "sys_0195f3a0000070018234567890abcdef", "type": "mcp_gateways", "tools": []}
+    ]
     await repo.get_mcp_gateways()
-    await repo.update_mcp_gateways(SystemConfigMCPGateways(id="sys_1234567890abcdef", type="mcp_gateways", tools=[]))
+    await repo.update_mcp_gateways(
+        SystemConfigMCPGateways(id="sys_0195f3a0000070018234567890abcdef", type="mcp_gateways", tools=[])
+    )
     mock_driver.query.return_value = []
     await repo.count_executions_by_matrix("1")
     await repo.get_matrices_using_dimension("1")
@@ -244,7 +250,7 @@ async def test_all_passthrough_methods() -> None:
     await repo.get_organization("1")
     await repo.create_organization(
         Organization(
-            id="org_0123456789abcdef",
+            id="org_0195f3a0000070008123456789abcdef",
             name="Org",
             tier="enterprise",
             is_active=True,
@@ -261,14 +267,14 @@ async def test_all_passthrough_methods() -> None:
     await repo.get_user_by_email("email")
     await repo.create_user(
         User(
-            id="usr_0123456789abcdef",
+            id="usr_0195f3a0000070008123456789abcdef",
             email="test@test.com",
             role=UserRole.MEMBER,
             is_active=True,
             language="en",
             theme_mode="system",
             created_at="2026-01-01T00:00:00Z",
-            organization_id="org_0123456789abcdef",
+            organization_id="org_0195f3a0000070008123456789abcdef",
         )
     )
     await repo.update_user("1", UserUpdate(name="User New"))
@@ -282,9 +288,9 @@ async def test_all_passthrough_methods() -> None:
     await repo.get_output_profile_by_id("1")
     await repo.create_output_profile(
         OutputProfile(
-            id="prf_0123456789abcdef",
+            id="prf_0195f3a0000070008123456789abcdef",
             slug="prf_1",
-            workflow_id="wor_0123456789abcdef",
+            workflow_id="wor_0195f3a0000070008123456789abcdef",
             name=I18nText(translations={"en": "Profile"}),
             target_block_order=[TargetBlockType.METADATA_BLOCK],
         )
@@ -292,9 +298,9 @@ async def test_all_passthrough_methods() -> None:
     await repo.update_output_profile(
         "1",
         OutputProfile(
-            id="prf_0123456789abcdef",
+            id="prf_0195f3a0000070008123456789abcdef",
             slug="prf_1",
-            workflow_id="wor_0123456789abcdef",
+            workflow_id="wor_0195f3a0000070008123456789abcdef",
             name=I18nText(translations={"en": "Profile"}),
             target_block_order=[TargetBlockType.METADATA_BLOCK],
         ),
@@ -306,17 +312,19 @@ async def test_all_passthrough_methods() -> None:
 async def test_system_repo_get_mcp_gateways_with_id() -> None:
     """Positive: get_mcp_gateways with specific ID filters by id."""
     mock_driver = AsyncMock()
-    mock_driver.query.return_value = [{"id": "sys_1234567890abcdef", "type": "mcp_gateways", "tools": []}]
+    mock_driver.query.return_value = [
+        {"id": "sys_0195f3a0000070018234567890abcdef", "type": "mcp_gateways", "tools": []}
+    ]
 
     repo = UnifiedWorkflowRepository(driver=mock_driver)
-    res = await repo.get_mcp_gateways(id="sys_1234567890abcdef")
+    res = await repo.get_mcp_gateways(id="sys_0195f3a0000070018234567890abcdef")
 
-    assert res.id == "sys_1234567890abcdef"
+    assert res.id == "sys_0195f3a0000070018234567890abcdef"
     mock_driver.query.assert_called_once()
     filters = mock_driver.query.call_args[0][1]
     assert len(filters) == 1
     assert filters[0].field == "id"
-    assert filters[0].value == "sys_1234567890abcdef"
+    assert filters[0].value == "sys_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio

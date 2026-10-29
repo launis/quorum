@@ -53,27 +53,27 @@ def mock_studio_service() -> AsyncMock:
     # Configure mock returns for cloning
     service.clone_workflow.return_value = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
-        id="wf_3333333333333333",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        id="wf_0195f3a0000070038333333333333333",
         slug="test_wf_3333333333333333",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
         name=I18nText(translations={"en": "Workflow (Copy)", "fi": "Workflow (Copy)"}),
         description=I18nText(translations={"en": "test"}),
     )
     service.clone_step.return_value = Step(
-        id="step_1111111111111112",
+        id="stp_0195f3a0000070018111111111111112",
         slug="test_step_clone",
         name=I18nText(translations={"en": "Step (Copy)", "fi": "Step (Copy)"}),
         type=StepType.LLM,
         cognitive_tier="fast",
         role_block_id=None,
-        extraction_protocol_block_id="blk_573802341db9d68c",
-        criteria_block_ids=["blk_0123456789abcdef"],
+        extraction_protocol_block_id="blk_0195f3a000007005873802341db9d68c",
+        criteria_block_ids=["blk_0195f3a0000070008123456789abcdef"],
     )
     service.clone_prompt_block.return_value = SystemRulePromptBlock(
-        id="blk_1111111111111112",
+        id="blk_0195f3a0000070018111111111111112",
         slug="test_block_clone",
         label=I18nText(translations={"en": "Block (Copy)", "fi": "Block (Copy)"}),
         description=I18nText(translations={"en": "desc", "fi": "desc"}),
@@ -85,7 +85,7 @@ def mock_studio_service() -> AsyncMock:
 
     dummy_profile = ModelProfile(provider="vertex_ai", model_name="gemini-1.5-flash")
     service.clone_system_config.return_value = SystemConfigModelRegistry(
-        id="sys_1111111111111112",
+        id="sys_0195f3a0000070018111111111111112",
         slug="test_sys_clone",
         type="model_registry",
         tier_definitions={
@@ -96,7 +96,7 @@ def mock_studio_service() -> AsyncMock:
         },
     )
     service.clone_mcp_gateways.return_value = SystemConfigMCPGateways(
-        id="mcp_1111111111111112",
+        id="mcp_0195f3a0000070018111111111111112",
         slug="test_mcp_clone",
         type="mcp_gateways",
         tools=[],
@@ -104,14 +104,14 @@ def mock_studio_service() -> AsyncMock:
     from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 
     service.clone_output_profile.return_value = OutputProfile(
-        id="prof_1111111111111112",
+        id="prof_0195f3a0000070018111111111111112",
         slug="test_prof_clone",
-        workflow_id="wf_3333333333333333",
+        workflow_id="wf_0195f3a0000070038333333333333333",
         name=I18nText(translations={"en": "Profile (Copy)", "fi": "Profile (Copy)"}),
         target_block_order=[TargetBlockType.METADATA_BLOCK],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_0000000000000001",
+                id="grp_0195f3a0000070008000000000000001",
                 title=I18nText(translations={"en": "Default"}),
                 target_blocks=["*"],
             )
@@ -153,7 +153,7 @@ def test_clone_workflow_endpoint(client_admin: TestClient, mock_studio_service: 
     response = client_admin.post("/api/v2/studio/workflows/wf_12345/clone")
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == "wf_3333333333333333"
+    assert data["id"] == "wf_0195f3a0000070038333333333333333"
     mock_studio_service.clone_workflow.assert_called_once()
 
 
@@ -161,7 +161,7 @@ def test_clone_step_endpoint(client_admin: TestClient, mock_studio_service: Asyn
     response = client_admin.post("/api/v2/studio/steps/step_12345/clone")
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == "step_1111111111111112"
+    assert data["id"] == "stp_0195f3a0000070018111111111111112"
     mock_studio_service.clone_step.assert_called_once()
 
 
@@ -169,7 +169,7 @@ def test_clone_prompt_block_endpoint(client_admin: TestClient, mock_studio_servi
     response = client_admin.post("/api/v2/studio/prompt-blocks/blk_12345/clone")
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == "blk_1111111111111112"
+    assert data["id"] == "blk_0195f3a0000070018111111111111112"
     mock_studio_service.clone_prompt_block.assert_called_once()
 
 
@@ -178,7 +178,7 @@ def test_clone_model_registry_endpoint(client_root: TestClient, mock_studio_serv
     response = client_root.post("/api/v2/studio/model-registry/sys_12345/clone")
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == "sys_1111111111111112"
+    assert data["id"] == "sys_0195f3a0000070018111111111111112"
     mock_studio_service.clone_system_config.assert_called_once()
 
 
@@ -187,15 +187,15 @@ def test_clone_mcp_gateways_endpoint(client_root: TestClient, mock_studio_servic
     response = client_root.post("/api/v2/studio/mcp-gateways/mcp_12345/clone")
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == "mcp_1111111111111112"
+    assert data["id"] == "mcp_0195f3a0000070018111111111111112"
     mock_studio_service.clone_mcp_gateways.assert_called_once()
 
 
 def test_clone_output_profile_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
-    response = client_admin.post("/api/v2/output-profiles/prof_1111111111111111/clone")
+    response = client_admin.post("/api/v2/output-profiles/prof_0195f3a0000070018111111111111111/clone")
     assert response.status_code == 201
     data = response.json()
-    assert data["id"] == "prof_1111111111111112"
+    assert data["id"] == "prof_0195f3a0000070018111111111111112"
     mock_studio_service.clone_output_profile.assert_called_once()
 
 
@@ -207,8 +207,8 @@ def test_clone_output_profile_via_output_profiles_route(
     Flutter client StudioClient.cloneOutputProfile calls:
     POST /api/v2/output-profiles/{profile_id}/clone
     """
-    response = client_admin.post("/api/v2/output-profiles/prf_c3283d90d2f54c85/clone")
+    response = client_admin.post("/api/v2/output-profiles/prf_0195f3a00000700c83283d90d2f54c85/clone")
     assert response.status_code == 201
     data = response.json()
-    assert data["id"] == "prof_1111111111111112"
+    assert data["id"] == "prof_0195f3a0000070018111111111111112"
     mock_studio_service.clone_output_profile.assert_called_once()

@@ -180,7 +180,7 @@ def test_openai_adapter_prepare_kwargs_resolves_model_from_config_and_unindexed_
     assert "temperature" not in result
 
     provider_cfg = LLMProviderConfig(
-        id="cfg_1234567890abcdef",
+        id="cfg_0195f3a0000070018234567890abcdef",
         provider="openai",
         model_name="openai/gpt-4o-mini",
         tpm_limit=10000,

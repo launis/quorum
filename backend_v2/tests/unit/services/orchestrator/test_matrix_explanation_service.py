@@ -25,7 +25,7 @@ from backend_v2.services.orchestrator.matrix_explanation_service import (
 
 
 def _create_matrix_block(
-    block_id: str = "blk_1234567890abcdef12345678",
+    block_id: str = "blk_0195f3a00000700980abcdef12345678",
     scales: list[MatrixScale] | None = None,
     tda_ids: list[str] | None = None,
 ) -> PromptBlock:
@@ -128,7 +128,7 @@ def _make_step_dtos(
 
 def test_assemble_matrices_to_explain_basic() -> None:
     """Test basic assembly of matrices_to_explain from scored payloads with evaluated_atoms."""
-    block_id = "blk_111111111111111111111111"
+    block_id = "blk_0195f3a0000070018111111111111111"
     results = [
         {
             "tda_id": "tda_00000000000000000000000000000001",
@@ -174,7 +174,7 @@ def test_assemble_matrices_to_explain_basic() -> None:
 
 def test_assemble_matrices_to_explain_no_matching_quotes() -> None:
     """Test that matrices without evaluated_atoms are INCLUDED to prevent Fail-Fast crash in blueprint.py."""
-    block_id = "blk_222222222222222222222222"
+    block_id = "blk_0195f3a0000070028222222222222222"
     dtos = [
         StepOutputDTO(
             step_id="step1",
@@ -198,7 +198,7 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
 
     Prevents Fail-Fast crash in blueprint.py.
     """
-    block_id = "blk_333333333333333333333333"
+    block_id = "blk_0195f3a0000070038333333333333333"
     results = [
         {
             "tda_id": "tda_00000000000000000000000000000001",
@@ -229,7 +229,7 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
 
 def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
     """Test that duplicate block_id entries are deduplicated (first wins)."""
-    block_id = "blk_444444444444444444444444"
+    block_id = "blk_0195f3a0000070048444444444444444"
     dtos = _make_step_dtos(
         block_id=block_id,
         normalized_score=50.0,
@@ -273,7 +273,7 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
 
 def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
     """PROMISE: Matrix explanation must include FAILED claims under UNMET CRITERIA / DEFICITS: and skip N_A claims."""
-    block_id = "blk_555555555555555555555555"
+    block_id = "blk_0195f3a0000070058555555555555555"
     tda_id_1 = "tda_11111111111111111111111111111111"
     tda_id_3 = "tda_33333333333333333333333333333333"
 
@@ -348,7 +348,7 @@ def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
 
 def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
     """Verify alternating quote selection across claims up to max synthesis quotes per matrix (5)."""
-    block_id = "blk_666666666666666666666666"
+    block_id = "blk_0195f3a0000070068666666666666666"
 
     scale = MatrixScale(
         score=1,
@@ -358,7 +358,7 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
                 label=I18nText(translations={"en": "Claim Alpha"}),
                 tda_assertions=[
                     TDAAssertion(
-                        tda_id=f"tda_a000000000000000000000000000000{i}",
+                        tda_id=f"tda_0195f3a00000700a800000000000000{i}",
                         inverse_evidence=False,
                         aggregation_mode="ALL_MUST_COMPLY",
                         concept_description=f"Alpha Concept {i}",
@@ -370,7 +370,7 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
                 label=I18nText(translations={"en": "Claim Beta"}),
                 tda_assertions=[
                     TDAAssertion(
-                        tda_id=f"tda_b000000000000000000000000000000{i}",
+                        tda_id=f"tda_0195f3a00000700b800000000000000{i}",
                         inverse_evidence=False,
                         aggregation_mode="ALL_MUST_COMPLY",
                         concept_description=f"Beta Concept {i}",
@@ -384,8 +384,8 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
     results = []
     evaluated_atoms = {}
     for i in range(4):
-        tda_a = f"tda_a000000000000000000000000000000{i}"
-        tda_b = f"tda_b000000000000000000000000000000{i}"
+        tda_a = f"tda_0195f3a00000700a800000000000000{i}"
+        tda_b = f"tda_0195f3a00000700b800000000000000{i}"
         results.append(
             {
                 "tda_id": tda_a,
@@ -432,7 +432,7 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
 
 def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> None:
     """Verify candidate pre-deduplication returns full quota of unique quotes even when TDAs share duplicate quotes."""
-    block_id = "blk_777777777777777777777777"
+    block_id = "blk_0195f3a0000070078777777777777777"
 
     scale = MatrixScale(
         score=1,
@@ -442,7 +442,7 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
                 label=I18nText(translations={"en": "Claim A"}),
                 tda_assertions=[
                     TDAAssertion(
-                        tda_id=f"tda_da00000000000000000000000000000{i}",
+                        tda_id=f"tda_0195f3a00000700a800000000000000{i}",
                         inverse_evidence=False,
                         aggregation_mode="ALL_MUST_COMPLY",
                         concept_description=f"Concept A {i}",
@@ -454,7 +454,7 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
                 label=I18nText(translations={"en": "Claim B"}),
                 tda_assertions=[
                     TDAAssertion(
-                        tda_id=f"tda_db00000000000000000000000000000{i}",
+                        tda_id=f"tda_0195f3a00000700b800000000000000{i}",
                         inverse_evidence=False,
                         aggregation_mode="ALL_MUST_COMPLY",
                         concept_description=f"Concept B {i}",
@@ -468,8 +468,8 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
     results = []
     evaluated_atoms = {}
     for i in range(5):
-        tda_a = f"tda_da00000000000000000000000000000{i}"
-        tda_b = f"tda_db00000000000000000000000000000{i}"
+        tda_a = f"tda_0195f3a00000700a800000000000000{i}"
+        tda_b = f"tda_0195f3a00000700b800000000000000{i}"
         quote_a = f"Duplicate shared verbatim quote index {i if i < 2 else f'unique_a_{i}'}."
         quote_b = f"Duplicate shared verbatim quote index {i if i < 2 else f'unique_b_{i}'}."
 
@@ -516,7 +516,7 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
 
 def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
     """Verify Level 1 deficits prioritized over Level 5 aspirational misses."""
-    block_id = "blk_888888888888888888888888"
+    block_id = "blk_0195f3a0000070088888888888888888"
 
     scales = [
         MatrixScale(
@@ -527,7 +527,7 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
                     label=I18nText(translations={"en": f"Deficit Level 1 Claim {i}"}),
                     tda_assertions=[
                         TDAAssertion(
-                            tda_id=f"tda_1111111111111111111111111111111{i}",
+                            tda_id=f"tda_0195f3a000007001811111111111111{i}",
                             inverse_evidence=False,
                             aggregation_mode="ALL_MUST_COMPLY",
                             concept_description=f"Deficit Concept L1 {i}",
@@ -545,7 +545,7 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
                     label=I18nText(translations={"en": f"Deficit Level 2 Claim {i}"}),
                     tda_assertions=[
                         TDAAssertion(
-                            tda_id=f"tda_2222222222222222222222222222222{i}",
+                            tda_id=f"tda_0195f3a000007002822222222222222{i}",
                             inverse_evidence=False,
                             aggregation_mode="ALL_MUST_COMPLY",
                             concept_description=f"Deficit Concept L2 {i}",
@@ -563,7 +563,7 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
                     label=I18nText(translations={"en": f"Deficit Level 5 Claim {i}"}),
                     tda_assertions=[
                         TDAAssertion(
-                            tda_id=f"tda_5555555555555555555555555555555{i}",
+                            tda_id=f"tda_0195f3a000007005855555555555555{i}",
                             inverse_evidence=False,
                             aggregation_mode="ALL_MUST_COMPLY",
                             concept_description=f"Deficit Concept L5 {i}",
@@ -620,7 +620,7 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
 
 def test_assemble_matrices_to_explain_short_quote_filtering() -> None:
     """Verify quotes < 15 characters are excluded from SUPPORTING EVIDENCE."""
-    block_id = "blk_999999999999999999999999"
+    block_id = "blk_0195f3a0000070098999999999999999"
     results = [
         {
             "tda_id": "tda_00000000000000000000000000000001",
@@ -662,7 +662,7 @@ def test_assemble_matrices_to_explain_short_quote_filtering() -> None:
 
 def test_assemble_matrices_to_explain_multilingual_resolution() -> None:
     """Verify target_locale='fi' resolves Finnish claim translations while target_locale='en' resolves English."""
-    block_id = "blk_aaaaaaaaaaaaaaaaaaaaaaaa"
+    block_id = "blk_0195f3a00000700a8aaaaaaaaaaaaaaa"
     tda_id = "tda_99999999999999999999999999999999"
 
     scale = MatrixScale(
@@ -721,7 +721,7 @@ def test_assemble_matrices_to_explain_multilingual_resolution() -> None:
 
 def test_assemble_matrices_to_explain_corrupt_level_stats_raises() -> None:
     """Verify malformed level stats trigger Fail-Fast AppException."""
-    block_id = "blk_bbbbbbbbbbbbbbbbbbbbbbbb"
+    block_id = "blk_0195f3a00000700b8bbbbbbbbbbbbbbb"
 
     dtos = [
         StepOutputDTO.model_construct(
@@ -831,7 +831,7 @@ def test_assemble_matrices_to_explain_with_synthesis_config_profile_overrides() 
 
 def test_assemble_matrices_to_explain_malformed_atom_result_raises() -> None:
     """Test that malformed atom results raise AppException(VALIDATION_FAILED)."""
-    block_id = "blk_333333333333333333333333"
+    block_id = "blk_0195f3a0000070038333333333333333"
     dtos = [
         StepOutputDTO.model_construct(
             step_id="step_atoms",
@@ -859,7 +859,7 @@ def test_assemble_matrices_to_explain_malformed_atom_result_raises() -> None:
 
 def test_assemble_matrices_to_explain_invalid_matrix_payload_raises() -> None:
     """Test that invalid matrix payload raises AppException(VALIDATION_FAILED)."""
-    block_id = "blk_333333333333333333333333"
+    block_id = "blk_0195f3a0000070038333333333333333"
     dtos = [
         StepOutputDTO.model_construct(
             step_id="step1",
@@ -881,7 +881,7 @@ def test_assemble_matrices_to_explain_invalid_matrix_payload_raises() -> None:
 
 def test_assemble_matrices_to_explain_atom_missing_from_claim_map_raises() -> None:
     """Test that evaluated atom not declared in matrix block raises AppException."""
-    block_id = "blk_333333333333333333333333"
+    block_id = "blk_0195f3a0000070038333333333333333"
     dtos = [
         StepOutputDTO(
             step_id="step1",
@@ -903,7 +903,7 @@ def test_assemble_matrices_to_explain_atom_missing_from_claim_map_raises() -> No
 
 def test_assemble_matrices_to_explain_raw_level_breakdown_variations() -> None:
     """Test level breakdown non-mapping validation and valid level distribution formatting."""
-    block_id = "blk_333333333333333333333333"
+    block_id = "blk_0195f3a0000070038333333333333333"
 
     # 1. Non-mapping raw_level_breakdown raises AppException
     dtos_invalid = [
@@ -953,15 +953,15 @@ def test_assemble_matrices_to_explain_payload_skips() -> None:
     """Test skipping of non-matrix blocks, missing blocks, scalar payloads, and non-dict atoms."""
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 
-    block_id = "blk_333333333333333333333333"
+    block_id = "blk_0195f3a0000070038333333333333333"
     instruction_block = SystemRulePromptBlock.model_construct(
-        id="blk_444444444444444444444444",
+        id="blk_0195f3a0000070048444444444444444",
         category_id=PromptBlockCategory.SYSTEM_RULE,
     )
     matrix_block = _create_matrix_block(block_id=block_id)
     blocks_by_id = {
         block_id: matrix_block,
-        "blk_444444444444444444444444": instruction_block,
+        "blk_0195f3a0000070048444444444444444": instruction_block,
     }
 
     dtos = [
@@ -972,7 +972,7 @@ def test_assemble_matrices_to_explain_payload_skips() -> None:
         # Unknown block_id
         StepOutputDTO(step_id="s3", block_id="blk_unknown0000000000000000000", data_type="matrix", payload=None),
         # Non-matrix block category (system_rule)
-        StepOutputDTO(step_id="s4", block_id="blk_444444444444444444444444", data_type="text", payload=None),
+        StepOutputDTO(step_id="s4", block_id="blk_0195f3a0000070048444444444444444", data_type="text", payload=None),
         # Results containing None and scalar atoms
         StepOutputDTO.model_construct(
             step_id="s_atoms",
@@ -1014,7 +1014,7 @@ def test_quote_candidate_dto_model() -> None:
 
 def test_assemble_matrices_to_explain_non_mapping_container_payload_skips() -> None:
     """Test skipping when payload is a non-mapping collection like a set."""
-    block_id = "blk_333333333333333333333333"
+    block_id = "blk_0195f3a0000070038333333333333333"
     matrix_block = _create_matrix_block(block_id=block_id)
     blocks_by_id = {block_id: matrix_block}
 
@@ -1035,7 +1035,7 @@ def test_assemble_matrices_to_explain_non_mapping_container_payload_skips() -> N
 
 def test_assemble_matrices_to_explain_with_matrix_reducer_output_does_not_crash() -> None:
     """Regression test proving matrix_reducer outputs in available_dtos do not crash explanation assembly."""
-    matrix_block_id = "blk_53f32679aa514fcb"
+    matrix_block_id = "blk_0195f3a00000700583f32679aa514fcb"
     tda_id = "tda_71e60846894545b2bc43a3361b7a5a9c"
     matrix_block = _create_matrix_block(block_id=matrix_block_id, tda_ids=[tda_id])
     blocks_by_id = {matrix_block_id: matrix_block}

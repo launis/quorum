@@ -34,7 +34,7 @@ def test_parse_matrices_context_target_and_xai_extensions() -> None:
     profile = get_dummy_profile()
     pb = get_dummy_pb()
     step_rule = StepRule(
-        id="sr_1234567890abcdef",
+        id="sr_0195f3a0000070018234567890abcdef",
         task_blueprint="step_1234567890abcdef",
         input_mappings={"context": "$inputs.chat_log"},
     )
@@ -87,7 +87,7 @@ def test_parse_matrices_dynamic_filename_context_target() -> None:
     profile = get_dummy_profile()
     pb = get_dummy_pb()
     step_rule = StepRule(
-        id="sr_1234567890abcdef",
+        id="sr_0195f3a0000070018234567890abcdef",
         task_blueprint="step_1234567890abcdef",
         input_mappings={"context": "financials_q3"},
     )
@@ -136,7 +136,7 @@ def test_parse_matrices_dynamic_filename_context_target() -> None:
     assert row2.context_target_label.resolve("en") == "Q3 Financials"
 
     unmapped_rule = StepRule(
-        id="sr_1234567890abcdef",
+        id="sr_0195f3a0000070018234567890abcdef",
         task_blueprint="step_1234567890abcdef",
         input_mappings={"context": "unmapped_doc"},
     )
@@ -184,8 +184,8 @@ def test_parse_matrices_axis_collision_coverage() -> None:
     """Test axis name collision resolution loop for coverage."""
     profile = get_dummy_profile()
     pb = get_dummy_pb()
-    step_rule1 = StepRule(id="sr_1234567890abcdef", task_blueprint="step_1234567890abcdef")
-    step_rule2 = StepRule(id="sr_abcdef1234567890", task_blueprint="step_abcdef1234567890")
+    step_rule1 = StepRule(id="sr_0195f3a0000070018234567890abcdef", task_blueprint="step_1234567890abcdef")
+    step_rule2 = StepRule(id="sr_0195f3a00000700a8bcdef1234567890", task_blueprint="step_abcdef1234567890")
     payload = {"raw_score": 1.0, "normalized_score": 100.0, "evaluated_atoms": {}}
     dto1 = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
     dto2 = MockDTO(step_id="step2", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
@@ -202,7 +202,7 @@ def test_parse_matrices_axis_collision_coverage() -> None:
     )
     assert len(res.all_parsed_matrices) == 2
     row2 = res.all_parsed_matrices["step2_blk_1234567890abcdef1234567890abcdef"]
-    assert "sr_abcdef1234567890" in row2.name
+    assert "sr_0195f3a00000700a8bcdef1234567890" in row2.name
 
 
 def test_parse_matrices_prompt_block_explicit_target_input_key() -> None:
@@ -211,7 +211,7 @@ def test_parse_matrices_prompt_block_explicit_target_input_key() -> None:
     pb = get_dummy_pb()
     pb_with_target = pb.model_copy(update={"target_input_key": "product_text"})
     step_rule = StepRule(
-        id="sr_1234567890abcdef",
+        id="sr_0195f3a0000070018234567890abcdef",
         task_blueprint="step_1234567890abcdef",
         input_mappings={"context_a": "$inputs.product_text", "context_b": "$inputs.chat_log"},
     )
@@ -240,7 +240,7 @@ def test_parse_matrices_multi_input_step_fallback_to_all() -> None:
     profile = get_dummy_profile()
     pb = get_dummy_pb()
     step_rule = StepRule(
-        id="sr_1234567890abcdef",
+        id="sr_0195f3a0000070018234567890abcdef",
         task_blueprint="step_1234567890abcdef",
         input_mappings={"context_a": "$inputs.product_text", "context_b": "$inputs.chat_log"},
     )
@@ -299,7 +299,7 @@ def test_parse_matrices_theory_grounding_and_extensions() -> None:
 def test_resolve_unique_axis_name_missing_label_fail_fast() -> None:
     """ISTQB Negative: Verify resolve_unique_axis_name raises AppException when pb_meta.label is missing."""
     pb = get_dummy_pb().model_copy(update={"label": None})
-    step_rule = StepRule(id="sr_1234567890abcdef", task_blueprint="bp_1")
+    step_rule = StepRule(id="sr_0195f3a0000070018234567890abcdef", task_blueprint="bp_1")
 
     with pytest.raises(AppException) as exc_info:
         resolve_unique_axis_name(
@@ -318,7 +318,7 @@ def test_resolve_unique_axis_name_empty_string_fallback(monkeypatch: pytest.Monk
     """Verify resolve_unique_axis_name falls back to block_id when label resolves to empty string."""
     pb = get_dummy_pb()
     monkeypatch.setattr(I18nText, "resolve", lambda self, target_locale=None, fallback_locale="en": "")
-    step_rule = StepRule(id="sr_1234567890abcdef", task_blueprint="bp_1")
+    step_rule = StepRule(id="sr_0195f3a0000070018234567890abcdef", task_blueprint="bp_1")
 
     res = resolve_unique_axis_name(
         pb_meta=pb,
@@ -335,9 +335,9 @@ def test_resolve_unique_axis_name_secondary_collision() -> None:
     """Verify collision counter increments when both base and step_title names collide."""
     profile = get_dummy_profile()
     pb = get_dummy_pb()
-    step_rule1 = StepRule(id="sr_1234567890abcdef", task_blueprint="step_1")
-    step_rule2 = StepRule(id="sr_1234567890abcdef", task_blueprint="step_2")
-    step_rule3 = StepRule(id="sr_1234567890abcdef", task_blueprint="step_3")
+    step_rule1 = StepRule(id="sr_0195f3a0000070018234567890abcdef", task_blueprint="step_1")
+    step_rule2 = StepRule(id="sr_0195f3a0000070018234567890abcdef", task_blueprint="step_2")
+    step_rule3 = StepRule(id="sr_0195f3a0000070018234567890abcdef", task_blueprint="step_3")
     payload = {"raw_score": 1.0, "normalized_score": 100.0, "evaluated_atoms": {}}
     dto1 = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
     dto2 = MockDTO(step_id="step2", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
@@ -355,7 +355,7 @@ def test_resolve_unique_axis_name_secondary_collision() -> None:
     )
     assert len(res.all_parsed_matrices) == 3
     row3 = res.all_parsed_matrices["step3_blk_1234567890abcdef1234567890abcdef"]
-    assert "sr_1234567890abcdef 1" in row3.name
+    assert "sr_0195f3a0000070018234567890abcdef 1" in row3.name
 
 
 def test_resolve_axis_description_unset() -> None:
@@ -367,7 +367,7 @@ def test_resolve_axis_description_unset() -> None:
 def test_resolve_context_target_target_input_key_without_step_mappings() -> None:
     """Verify resolve_context_target resolves target_input_key when step input mappings are empty."""
     pb = get_dummy_pb().model_copy(update={"target_input_key": "custom_doc_key"})
-    step_rule = StepRule(id="sr_1234567890abcdef", task_blueprint="bp_1", input_mappings={})
+    step_rule = StepRule(id="sr_0195f3a0000070018234567890abcdef", task_blueprint="bp_1", input_mappings={})
 
     res = resolve_context_target(
         step_id="step1",

@@ -45,7 +45,7 @@ TESTILYHYT_DIR = os.path.join(WORKSPACE_ROOT, "docs", "testilyhyt")
 
 TARGET_WORKFLOW_ID = os.environ.get("TEST_WORKFLOW_ID", "wf_d653170e174847559e08af42b938d826")
 WAIT_TIMEOUT = int(os.environ.get("TEST_WAIT_TIMEOUT", "3600"))
-DEFAULT_GATEWAY_ID = "sys_8172bda70c8641c5"
+DEFAULT_GATEWAY_ID = "sys_0195f3a00000700080008172bda70c86"
 
 
 class _LocalMCPRequestHandler(BaseHTTPRequestHandler):
@@ -392,7 +392,7 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
         logger.info("Backend is already running. Re-using active instance.")
 
     headers = {
-        "Authorization": "Bearer mock-token:usr_18a0d5f6151349a5",
+        "Authorization": "Bearer mock-token:usr_0195f3a00000700188a0d5f6151349a5",
         "Content-Type": "application/json",
         "Accept-Language": "fi",
     }
@@ -423,7 +423,7 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
                 "content_type": "application/pdf",
             }
 
-        workflow_id = "wf_9d68c573802341db"
+        workflow_id = "wf_0195f3a0000070098d68c573802341db"
         payload = {"workflow_id": workflow_id, "target_locale": "fi", "raw_inputs": {"dynamic_inputs": dynamic_inputs}}
 
         logger.info("Sending execution POST request to backend...")
@@ -465,7 +465,7 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
         logger.info("Requesting report generation via canonical reports endpoint...")
         create_report_res = requests.post(
             f"http://127.0.0.1:8000/api/v2/executions/{execution_id}/reports",
-            json={"profile_id": "prf_5d6e7f8091a2b3c4"},
+            json={"profile_id": "prf_0195f3a0000070058d6e7f8091a2b3c4"},
             headers=headers,
             timeout=30,
         )

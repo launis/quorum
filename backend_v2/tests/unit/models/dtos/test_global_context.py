@@ -35,9 +35,9 @@ def test_global_context_vars_custom_values_and_alias() -> None:
             "language": "en",
             "target_locale": "fi",
             "system_locale": "en",
-            "profile_id": "prf_1234567890123456",
-            "organization_id": "org_1234567890123456",
-            "_sys_initiator_id": "usr_1234567890123456",
+            "profile_id": "prf_0195f3a0000070018234567890123456",
+            "organization_id": "org_0195f3a0000070018234567890123456",
+            "_sys_initiator_id": "usr_0195f3a0000070018234567890123456",
             "step_coach": {"status": "passed", "score": 4.5, "tags": ["lead"]},
             "knowledge_base": {"domain": "coaching", "active": True},
             "external_evidence": "verified search result",
@@ -46,9 +46,9 @@ def test_global_context_vars_custom_values_and_alias() -> None:
     assert dto.language == "en"
     assert dto.target_locale == "fi"
     assert dto.system_locale == "en"
-    assert dto.profile_id == "prf_1234567890123456"
-    assert dto.organization_id == "org_1234567890123456"
-    assert dto.initiator_id == "usr_1234567890123456"
+    assert dto.profile_id == "prf_0195f3a0000070018234567890123456"
+    assert dto.organization_id == "org_0195f3a0000070018234567890123456"
+    assert dto.initiator_id == "usr_0195f3a0000070018234567890123456"
     assert dto.step_coach == {"status": "passed", "score": 4.5, "tags": ["lead"]}
     assert dto.knowledge_base == {"domain": "coaching", "active": True}
     assert dto.external_evidence == "verified search result"

@@ -24,7 +24,7 @@ from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 
 def _build_gateway(
     *,
-    gateway_id: str = "sys_1111222233334444",
+    gateway_id: str = "sys_0195f3a0000070018111222233334444",
     slug: str = "default_mcp_gateway",
     tools: list[AllowedMCPTool] | None = None,
 ) -> SystemConfigMCPGateways:
@@ -81,7 +81,7 @@ def test_tool_dispatcher_init_and_get_declarations() -> None:
         enabled=False,
     )
     gw_disabled = _build_gateway(
-        gateway_id="sys_2222333344445555",
+        gateway_id="sys_0195f3a0000070028222333344445555",
         slug="disabled_gw",
         tools=[disabled_tool],
     )
@@ -180,7 +180,7 @@ def test_tool_dispatcher_build_search_arguments_positive_and_negative() -> None:
 
     # Unindexed MCPToolDescriptorDTO passed to get_argument_model
     unindexed_descriptor = MCPToolDescriptorDTO(
-        gateway_id="sys_1111222233334444",
+        gateway_id="sys_0195f3a0000070018111222233334444",
         gateway_slug="unindexed_gw",
         namespaced_alias="unindexed_gw__custom_search",
         tool_id="custom_search",
@@ -450,7 +450,7 @@ def test_tool_dispatcher_build_search_arguments_exa_web_search() -> None:
         ),
     )
     gw = SystemConfigMCPGateways(
-        id="sys_9c2093907e2d4d24",
+        id="sys_0195f3a0000070098c2093907e2d4d24",
         slug="exa_gateway",
         endpoint_url="https://mcp.exa.ai/mcp",
         transport_type=MCPTransportType.STREAMABLE_HTTP,

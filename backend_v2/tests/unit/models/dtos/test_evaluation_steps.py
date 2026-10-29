@@ -140,4 +140,3 @@ def test_parsing_log_steps_envelopes() -> None:
     # Negative test: missing required steps field
     with pytest.raises(ValidationError):
         ParsingLogStepsStrict.model_validate({})
-

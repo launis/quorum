@@ -144,4 +144,3 @@ def test_organization_update_dto_strictness() -> None:
     with pytest.raises(ValidationError) as exc:
         OrganizationUpdateDTO.model_validate({"name": "Acme", "unauthorized_extra": "fail"})
     assert "extra_forbidden" in str(exc.value) or "Extra inputs are not permitted" in str(exc.value)
-

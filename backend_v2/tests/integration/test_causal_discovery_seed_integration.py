@@ -41,20 +41,20 @@ class BlueprintSpecDTO(BaseModel):
 
 DEDICATED_BLUEPRINTS: list[BlueprintSpecDTO] = [
     BlueprintSpecDTO(
-        id="sp_c4a5a1d15c00438a",
+        id="stp_0195f3a00000700c84a5a1d15c00438a",
         slug="step_causal_discovery",
         expected_inputs=["product_text", "chat_log", "reflection_text"],
-        workflow_id="wf_9d68c573802341db",
-        step_rule_id="sr_c4a5a1d15c00438a",
-        downstream_fusion_step_id="sr_4d2272d8b4864847",
+        workflow_id="wf_0195f3a0000070098d68c573802341db",
+        step_rule_id="sr_0195f3a00000700c84a5a1d15c00438a",
+        downstream_fusion_step_id="sr_0195f3a0000070048d2272d8b4864847",
     ),
     BlueprintSpecDTO(
-        id="sp_c4a5a1d15c00438a",
+        id="stp_0195f3a00000700c84a5a1d15c00438a",
         slug="step_causal_discovery",
         expected_inputs=["product_text", "chat_log", "reflection_text"],
-        workflow_id="wf_a8f1d71000000001",
-        step_rule_id="sr_a8f1d71000000002",
-        downstream_fusion_step_id="sr_a8f1d71000000003",
+        workflow_id="wf_0195f3a00000700a88f1d71000000001",
+        step_rule_id="sr_0195f3a00000700a88f1d71000000002",
+        downstream_fusion_step_id="sr_0195f3a00000700a88f1d71000000003",
     ),
 ]
 
@@ -85,7 +85,7 @@ def test_dedicated_causal_blueprints_pydantic_schema(
         assert step_model.engine_type == EngineType.CAUSAL_DISCOVERY
         assert step_model.is_system_core is True
         assert step_model.expected_inputs == spec.expected_inputs
-        assert step_model.extraction_protocol_block_id == "blk_573802341db9d68c"
+        assert step_model.extraction_protocol_block_id == "blk_0195f3a000007005873802341db9d68c"
 
 
 def test_workflows_contain_dedicated_causal_step_rules(
@@ -146,10 +146,10 @@ def test_step_rule_validation_fails_when_causal_source_not_in_depends_on() -> No
     """Negative Test 1: StepRule with causal_source_step_id not in depends_on raises AppException(VALIDATION_FAILED)."""
     with pytest.raises(AppException) as exc_info:
         StepRule(
-            id="sr_1234567890abcdef",
-            task_blueprint="sp_bd0b3054fe664960",
-            depends_on=["sr_1111111111111111"],
-            causal_source_step_id="sr_2222222222222222",
+            id="sr_0195f3a0000070018234567890abcdef",
+            task_blueprint="sp_0195f3a00000700b8d0b3054fe664960",
+            depends_on=["sr_0195f3a0000070018111111111111111"],
+            causal_source_step_id="sr_0195f3a0000070028222222222222222",
         )
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
 
@@ -157,10 +157,10 @@ def test_step_rule_validation_fails_when_causal_source_not_in_depends_on() -> No
 def test_dag_compiler_fails_when_causal_dependency_missing_from_workflow() -> None:
     """Negative Test 2: DAGCompiler raises WorkflowCompilationError when a step depends on an unknown step ID."""
     broken_step = StepRule(
-        id="sr_1234567890abcdef",
-        task_blueprint="sp_bd0b3054fe664960",
-        depends_on=["sr_3333333333333333"],
-        causal_source_step_id="sr_3333333333333333",
+        id="sr_0195f3a0000070018234567890abcdef",
+        task_blueprint="sp_0195f3a00000700b8d0b3054fe664960",
+        depends_on=["sr_0195f3a0000070038333333333333333"],
+        causal_source_step_id="sr_0195f3a0000070038333333333333333",
     )
     with pytest.raises(WorkflowCompilationError):
         DAGCompilerService.compute_topological_waves([broken_step])

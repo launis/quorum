@@ -116,7 +116,7 @@ def test_hardening_retry_directive() -> None:
         "retry_allowed": True,
         "max_retries": 3,
         "current_retry_count": 1,
-        "target_block_ids": ["blk_1234567890123456"],
+        "target_block_ids": ["blk_0195f3a0000070018234567890123456"],
         "strictness_override": 80,
         "reason": "Verify exact match quote failed.",
     }

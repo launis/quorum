@@ -51,7 +51,7 @@ def test_reconcile_storage_check_dry_run_does_not_mutate(
     """Verifies that --check (fix=False) detects desyncs without mutating the database."""
     db_file, storage_dir = temp_environment
 
-    orphaned_id = "exe_1111222233334444"
+    orphaned_id = "exe_0195f3a0000070018111222233334444"
     _write_records(
         db_file,
         [
@@ -65,7 +65,7 @@ def test_reconcile_storage_check_dry_run_does_not_mutate(
         ],
     )
 
-    unindexed_id = "exe_5555666677778888"
+    unindexed_id = "exe_0195f3a0000070058555666677778888"
     exe_dir = storage_dir / unindexed_id
     exe_dir.mkdir(parents=True, exist_ok=True)
     trace_file = exe_dir / "execution_trace.json"
@@ -95,7 +95,7 @@ def test_reconcile_storage_fix_reconstitutes_and_prunes(
     """Verifies that --fix (fix=True) prunes ghost records and hydrates unindexed disk runs."""
     db_file, storage_dir = temp_environment
 
-    orphaned_id = "exe_0a1b2c3d4e5f6a7b"
+    orphaned_id = "exe_0195f3a0000070008a1b2c3d4e5f6a7b"
     _write_records(
         db_file,
         [
@@ -109,7 +109,7 @@ def test_reconcile_storage_fix_reconstitutes_and_prunes(
         ],
     )
 
-    unindexed_id = "exe_f0e1d2c3b4a59687"
+    unindexed_id = "exe_0195f3a00000700f80e1d2c3b4a59687"
     exe_dir = storage_dir / unindexed_id
     exe_dir.mkdir(parents=True, exist_ok=True)
     trace_file = exe_dir / "execution_trace.json"
@@ -139,7 +139,7 @@ def test_reconcile_storage_when_already_synced(
     """Verifies that synchronized DB and storage results in is_synced=True and zero modifications."""
     db_file, storage_dir = temp_environment
 
-    synced_id = "exe_7890abcdef123456"
+    synced_id = "exe_0195f3a0000070078890abcdef123456"
     exe_dir = storage_dir / synced_id
     exe_dir.mkdir(parents=True, exist_ok=True)
     trace_file = exe_dir / "execution_trace.json"
@@ -183,7 +183,7 @@ def test_reconcile_storage_fix_without_template_record(
     """Verifies that reconciliation succeeds even when DB has zero existing records (no template)."""
     db_file, storage_dir = temp_environment
 
-    unindexed_id = "exe_1122334455667788"
+    unindexed_id = "exe_0195f3a0000070018122334455667788"
     exe_dir = storage_dir / unindexed_id
     exe_dir.mkdir(parents=True, exist_ok=True)
     trace_file = exe_dir / "execution_trace.json"
@@ -225,7 +225,7 @@ def test_reconcile_storage_main_cli_desynced_and_fix(
     db_file, storage_dir = temp_environment
     from scripts.reconcile_storage import main
 
-    unindexed_id = "exe_aabbccddeeff0011"
+    unindexed_id = "exe_0195f3a00000700a8abbccddeeff0011"
     exe_dir = storage_dir / unindexed_id
     exe_dir.mkdir(parents=True, exist_ok=True)
     (exe_dir / "execution_trace.json").write_text("[]", encoding="utf-8")
@@ -252,7 +252,7 @@ def test_extract_trace_metadata_event_workflow_id_and_default_path(tmp_path: Pat
     from scripts.reconcile_storage import _extract_trace_metadata, _resolve_trace_path
 
     storage_dir = tmp_path / "executions"
-    exe_id = "exe_9999888877776666"
+    exe_id = "exe_0195f3a0000070098999888877776666"
     exe_dir = storage_dir / exe_id
     exe_dir.mkdir(parents=True, exist_ok=True)
     trace_file = exe_dir / "execution_trace.json"
@@ -301,7 +301,7 @@ def test_extract_trace_metadata_forensic_summary_and_reports(tmp_path: Path) -> 
     """Test extracting workflow_id, profile_id, and Finnish locale from summary and reports."""
     from scripts.reconcile_storage import _extract_profile_id, _extract_trace_metadata
 
-    exe_dir = tmp_path / "artifacts" / "executions" / "exe_1111222233334444"
+    exe_dir = tmp_path / "artifacts" / "executions" / "exe_0195f3a0000070018111222233334444"
     exe_dir.mkdir(parents=True, exist_ok=True)
     trace_file = exe_dir / "execution_trace.json"
     trace_file.write_text("[]", encoding="utf-8")
@@ -324,7 +324,7 @@ def test_extract_metadata_and_profile_from_reports_sdui(tmp_path: Path) -> None:
     """Test extracting workflow_id and profile_id from report.sdui.json."""
     from scripts.reconcile_storage import _extract_profile_id, _extract_trace_metadata
 
-    exe_name = "exe_5555666677778888"
+    exe_name = "exe_0195f3a0000070058555666677778888"
     exe_dir = tmp_path / "executions" / exe_name
     exe_dir.mkdir(parents=True, exist_ok=True)
     trace_file = exe_dir / "execution_trace.json"
@@ -355,16 +355,16 @@ def test_load_execution_records_fallback_list_and_empty(tmp_path: Path) -> None:
 
     list_file = tmp_path / "list.json"
     record_json = {
-        "id": "exe_1111222233334444",
+        "id": "exe_0195f3a0000070018111222233334444",
         "workflow_id": "wor_default",
         "target_locale": "en",
         "output_profile_id": "prof_default",
-        "execution_trace_storage_path": "executions/exe_1111222233334444/execution_trace.json",
+        "execution_trace_storage_path": "executions/exe_0195f3a0000070018111222233334444/execution_trace.json",
     }
     list_file.write_text(json.dumps([record_json]), encoding="utf-8")
     records = _load_execution_records(list_file)
     assert len(records) == 1
-    assert records[0].id == "exe_1111222233334444"
+    assert records[0].id == "exe_0195f3a0000070018111222233334444"
 
 
 def test_reconstitute_execution_record_with_template(tmp_path: Path) -> None:
@@ -374,7 +374,7 @@ def test_reconstitute_execution_record_with_template(tmp_path: Path) -> None:
 
     storage_dir = tmp_path / "executions"
     storage_dir.mkdir(parents=True, exist_ok=True)
-    exe_id = "exe_aabbccddeeff0011"
+    exe_id = "exe_0195f3a00000700a8abbccddeeff0011"
     exe_dir = storage_dir / exe_id
     exe_dir.mkdir(parents=True, exist_ok=True)
     (exe_dir / "execution_trace.json").write_text("[]", encoding="utf-8")
@@ -386,7 +386,7 @@ def test_reconstitute_execution_record_with_template(tmp_path: Path) -> None:
     )
 
     template = ExecutionRecord(
-        id="exe_0000000000000000",
+        id="exe_0195f3a0000070008000000000000000",
         workflow_id="wor_original",
         target_locale="en",
         output_profile_id="prof_original",

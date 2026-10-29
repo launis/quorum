@@ -85,19 +85,19 @@ def _build_deps(repo: InMemoryUnifiedWorkflowRepository) -> StrategyDependencies
 async def test_node_executor_resolves_engine_and_merges_post_hook_deltas() -> None:
     """Verify NodeExecutor.execute resolves ExecutionEngine, filters scoring hooks, and dispatches strategy."""
     repo = InMemoryUnifiedWorkflowRepository()
-    proto_block = SystemRulePromptBlockFactory.build(id="blk_1111222233334444")
+    proto_block = SystemRulePromptBlockFactory.build(id="blk_0195f3a0000070018111222233334444")
     await repo.create_prompt_block(proto_block)
 
     step_bp = Step(
-        id="stp_1111222233334444",
+        id="stp_0195f3a0000070018111222233334444",
         slug="step_test",
         name=I18nText(translations={"en": "Test Step", "fi": "Testivaihe"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
         type=StepType.CAUSAL_DISCOVERY,
         engine_type=EngineType.CAUSAL_DISCOVERY,
         cognitive_tier=CognitiveTier.FAST,
-        extraction_protocol_block_id="blk_1111222233334444",
-        criteria_block_ids=[],
+        extraction_protocol_block_id="blk_0195f3a0000070018111222233334444",
+        criteria_block_ids=["blk_0195f3a0000070018111222233334444"],
         post_hooks=["apply_scoring_logic_hook", "custom_post_hook"],
     )
     repo.set_step(step_bp)
@@ -106,8 +106,8 @@ async def test_node_executor_resolves_engine_and_merges_post_hook_deltas() -> No
     executor = NodeExecutor(deps=deps)
 
     step_rule = StepRule(
-        id="stp_aaaa1111bbbb2222",
-        task_blueprint="stp_1111222233334444",
+        id="stp_0195f3a00000700a8aaa1111bbbb2222",
+        task_blueprint="stp_0195f3a0000070018111222233334444",
         depends_on=[],
         input_mappings={"doc": "$inputs.doc"},
     )
@@ -116,7 +116,7 @@ async def test_node_executor_resolves_engine_and_merges_post_hook_deltas() -> No
 
     meta = ExecutionMetadata(
         workflow_version=1,
-        model_registry_id="sys_1111222233334444",
+        model_registry_id="sys_0195f3a0000070018111222233334444",
         global_context_vars=GlobalContextVarsDTO(language="fi", target_locale="fi"),
     )
 
@@ -138,28 +138,28 @@ async def test_node_executor_resolves_engine_and_merges_post_hook_deltas() -> No
     ):
         events = await executor.execute(
             step=step_rule,
-            execution_id="exe_1111222233334444",
-            workflow_id="wf_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
+            workflow_id="wf_0195f3a0000070018111222233334444",
             metadata=meta,
             projector=projector,
             arq_pool="fake_pool",
             context_variables=ContextVariablesDTO(),
             global_context_vars=None,
             target_locale="fi",
-            output_profile_id="prf_1111222233334444",
-            organization_id="org_1111222233334444",
+            output_profile_id="prf_0195f3a0000070018111222233334444",
+            organization_id="org_0195f3a0000070018111222233334444",
         )
 
     assert len(events) == 1
-    assert events[0].step_name == "stp_aaaa1111bbbb2222"
+    assert events[0].step_name == "stp_0195f3a00000700a8aaa1111bbbb2222"
     assert len(recorded_strategies) == 1
     strat = recorded_strategies[0]
     assert strat.engine is not None
     assert strat.deps.arq_pool == "fake_pool"
-    assert strat.quota_org_id == "org_1111222233334444"
+    assert strat.quota_org_id == "org_0195f3a0000070018111222233334444"
     assert strat.last_context is not None
     assert strat.last_context.cognitive_tier == CognitiveTier.FAST
-    assert strat.last_context.model_registry_id == "sys_1111222233334444"
+    assert strat.last_context.model_registry_id == "sys_0195f3a0000070018111222233334444"
     assert strat.last_context.global_context_vars.language == "fi"
 
 
@@ -172,7 +172,7 @@ async def test_node_executor_missing_blueprint_or_definition_raises_configuratio
     meta = ExecutionMetadata(workflow_version=1)
 
     empty_bp_rule = StepRule.model_construct(
-        id="stp_aaaa1111bbbb2222",
+        id="stp_0195f3a00000700a8aaa1111bbbb2222",
         task_blueprint="",
         depends_on=[],
         input_mappings={},
@@ -180,8 +180,8 @@ async def test_node_executor_missing_blueprint_or_definition_raises_configuratio
     with pytest.raises(AppException) as exc_empty:
         await executor.execute(
             step=empty_bp_rule,
-            execution_id="exe_1111222233334444",
-            workflow_id="wf_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
+            workflow_id="wf_0195f3a0000070018111222233334444",
             metadata=meta,
             projector=projector,
         )
@@ -189,16 +189,16 @@ async def test_node_executor_missing_blueprint_or_definition_raises_configuratio
     assert exc_empty.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR
 
     missing_bp_rule = StepRule(
-        id="stp_aaaa1111bbbb2222",
-        task_blueprint="stp_9999888877776666",
+        id="stp_0195f3a00000700a8aaa1111bbbb2222",
+        task_blueprint="stp_0195f3a0000070098999888877776666",
         depends_on=[],
         input_mappings={},
     )
     with pytest.raises(AppException) as exc_missing:
         await executor.execute(
             step=missing_bp_rule,
-            execution_id="exe_1111222233334444",
-            workflow_id="wf_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
+            workflow_id="wf_0195f3a0000070018111222233334444",
             metadata=meta,
             projector=projector,
         )
@@ -211,7 +211,7 @@ async def test_node_executor_dlq_error_recording_and_unhandled_exception_propaga
     """Verify NodeExecutor converts runtime/validation errors into ErrorTraceEvent and re-raises unknown exceptions."""
     repo = InMemoryUnifiedWorkflowRepository()
     step_bp = Step(
-        id="stp_1111222233334444",
+        id="stp_0195f3a0000070018111222233334444",
         slug="step_logic",
         name=I18nText(translations={"en": "Step", "fi": "Vaihe"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -223,8 +223,8 @@ async def test_node_executor_dlq_error_recording_and_unhandled_exception_propaga
 
     executor = NodeExecutor(deps=_build_deps(repo))
     step_rule = StepRule(
-        id="stp_aaaa1111bbbb2222",
-        task_blueprint="stp_1111222233334444",
+        id="stp_0195f3a00000700a8aaa1111bbbb2222",
+        task_blueprint="stp_0195f3a0000070018111222233334444",
         depends_on=[],
         input_mappings={},
     )
@@ -239,8 +239,8 @@ async def test_node_executor_dlq_error_recording_and_unhandled_exception_propaga
     ):
         dlq_events = await executor.execute(
             step=step_rule,
-            execution_id="exe_1111222233334444",
-            workflow_id="wf_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
+            workflow_id="wf_0195f3a0000070018111222233334444",
             metadata=meta,
             projector=projector,
             step_def=step_bp,
@@ -265,8 +265,8 @@ async def test_node_executor_dlq_error_recording_and_unhandled_exception_propaga
     ):
         await executor.execute(
             step=step_rule,
-            execution_id="exe_1111222233334444",
-            workflow_id="wf_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
+            workflow_id="wf_0195f3a0000070018111222233334444",
             metadata=meta,
             projector=projector,
             step_def=step_bp,
@@ -289,8 +289,8 @@ async def test_node_executor_dlq_error_recording_and_unhandled_exception_propaga
     ):
         await executor.execute(
             step=step_rule,
-            execution_id="exe_1111222233334444",
-            workflow_id="wf_1111222233334444",
+            execution_id="exe_0195f3a0000070018111222233334444",
+            workflow_id="wf_0195f3a0000070018111222233334444",
             metadata=meta,
             projector=projector,
             step_def=step_bp,

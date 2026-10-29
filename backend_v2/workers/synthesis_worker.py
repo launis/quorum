@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
@@ -570,12 +571,14 @@ async def generate_profile_synthesis_and_pdf_task(
         cache = RenderedSynthesisCache(
             section_syntheses=sec_dict,
             row_explanations=cache_row_explanations,
+            row_curated_quotes={},
             variance_explanation=variance_expl,
             cited_sources=cited_sources,
             xai_highlights=xai_highlights_list,
             user_role=user_role_val,
             user_role_justification=user_role_just,
             extension_metrics=ext_metrics,
+            created_at=datetime.now(timezone.utc),
         )
 
         current_syntheses: dict[str, RenderedSynthesisCache] = {}

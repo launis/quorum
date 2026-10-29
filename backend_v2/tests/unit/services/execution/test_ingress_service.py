@@ -34,19 +34,23 @@ from backend_v2.tests.fakes.in_memory_repositories import (
 @pytest.fixture
 def initiator() -> TokenData:
     """Fixture providing standard user token data."""
-    return TokenData(id="usr_0123456789abcdef", role=UserRole.MEMBER, organization_id="org_0123456789abcdef")
+    return TokenData(
+        id="usr_0195f3a0000070008123456789abcdef",
+        role=UserRole.MEMBER,
+        organization_id="org_0195f3a0000070008123456789abcdef",
+    )
 
 
 def _create_test_workflow() -> Workflow:
     return Workflow(
-        id="wor_0123456789abcdef",
+        id="wor_0195f3a0000070008123456789abcdef",
         slug="test-workflow",
         name="Test Workflow",
         description="Test Workflow Description",
         status="active",
         version=1,
         default_strictness_level=50,
-        model_registry_id="sys_e26807f3bfa3454d",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         expected_inputs=[
             ExpectedInput(
@@ -60,12 +64,12 @@ def _create_test_workflow() -> Workflow:
         ],
         steps=[
             StepRule(
-                id="stp_0123456789abcdef",
-                task_blueprint="stp_0123456789abcdef",
+                id="stp_0195f3a0000070008123456789abcdef",
+                task_blueprint="stp_0195f3a0000070008123456789abcdef",
             )
         ],
-        default_profile_id="prf_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        default_profile_id="prf_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         is_public=False,
     )
 
@@ -73,8 +77,8 @@ def _create_test_workflow() -> Workflow:
 def test_create_execution_record_injects_w3c_telemetry() -> None:
     """Verify create_execution_record attaches trace context to record.metadata.telemetry."""
     record = create_execution_record(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
@@ -90,8 +94,8 @@ def test_create_execution_record_preserves_custom_carrier() -> None:
     custom = TraceContextCarrierDTO(traceparent="00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
     meta = ExecutionMetadata(telemetry=custom)
     record = create_execution_record(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
@@ -105,8 +109,8 @@ def test_create_execution_record_preserves_custom_carrier() -> None:
 def test_create_execution_record_handles_dict_metadata() -> None:
     """Verify dictionary metadata is converted and injected with trace context."""
     record = create_execution_record(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
@@ -123,7 +127,7 @@ def test_create_execution_record_validation_failure() -> None:
     with pytest.raises(AppException) as exc_info:
         create_execution_record(
             execution_id="invalid_id",  # Invalid ID pattern
-            workflow_id="wor_0123456789abcdef",
+            workflow_id="wor_0195f3a0000070008123456789abcdef",
             raw_inputs=WorkflowInputs(),
             frozen_context=FrozenContext(),
             source_identity_manifest={},
@@ -143,7 +147,7 @@ async def test_get_workflow_ui_schema() -> None:
         workflow_repo=workflow_repo,
     )
 
-    schema = await service.get_workflow_ui_schema("wor_0123456789abcdef")
+    schema = await service.get_workflow_ui_schema("wor_0195f3a0000070008123456789abcdef")
     assert len(schema.expected_inputs) == 1
     assert schema.expected_inputs[0].input_key == "chat_log"
 
@@ -153,7 +157,7 @@ async def test_get_workflow_ui_schema() -> None:
         workflow_repo=empty_repo,
     )
     with pytest.raises(ResourceNotFoundError):
-        await service_empty.get_workflow_ui_schema("wor_0123456789abcdef")
+        await service_empty.get_workflow_ui_schema("wor_0195f3a0000070008123456789abcdef")
 
 
 @pytest.mark.asyncio
@@ -162,32 +166,32 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
     workflow = _create_test_workflow()
 
     step_obj = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a0000070008123456789abcdef",
         slug="analytical-step",
         name=I18nText(translations={"en": "Analytical Step", "fi": "Analyysi"}),
         type=StepType.LOGIC,
         hook="my_hook",
-        role_block_id="blk_0123456789abcdef",
-        extraction_protocol_block_id="blk_1123456789abcdef",
-        criteria_block_ids=["blk_2123456789abcdef"],
+        role_block_id="blk_0195f3a0000070008123456789abcdef",
+        extraction_protocol_block_id="blk_0195f3a0000070018123456789abcdef",
+        criteria_block_ids=["blk_0195f3a0000070028123456789abcdef"],
     )
 
     role_block = PersonaPromptBlock(
-        id="blk_0123456789abcdef",
+        id="blk_0195f3a0000070008123456789abcdef",
         slug="role-block",
         category_id=PromptBlockCategory.AGENT_ROLE,
         label=I18nText(translations={"en": "Role Block"}),
         description=I18nText(translations={"en": "Role Description"}),
     )
     protocol_block = ProtocolPromptBlock(
-        id="blk_1123456789abcdef",
+        id="blk_0195f3a0000070018123456789abcdef",
         slug="protocol-block",
         category_id=PromptBlockCategory.PROTOCOL,
         label=I18nText(translations={"en": "Protocol Block"}),
         description=I18nText(translations={"en": "Protocol Description"}),
     )
     matrix_block = MatrixPromptBlock(
-        id="blk_2123456789abcdef",
+        id="blk_0195f3a0000070028123456789abcdef",
         slug="matrix-block",
         category_id=PromptBlockCategory.MATRIX,
         label=I18nText(translations={"en": "Matrix Block"}),
@@ -217,12 +221,12 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
 
     assert len(steps) == 1
     assert len(step_states) == 1
-    assert steps[0].id == "stp_0123456789abcdef"
+    assert steps[0].id == "stp_0195f3a0000070008123456789abcdef"
     assert steps[0].label == "Analytical Step"
-    assert "blk_2123456789abcdef" in ui_hints
-    assert ui_hints["blk_2123456789abcdef"].component_type == ComponentType.SLIDER
-    assert ui_hints["blk_2123456789abcdef"].validation_rules == SystemValidationRulesDTO(max=5.0)
-    assert ui_hints["blk_0123456789abcdef"].component_type == ComponentType.HIDDEN
+    assert "blk_0195f3a0000070028123456789abcdef" in ui_hints
+    assert ui_hints["blk_0195f3a0000070028123456789abcdef"].component_type == ComponentType.SLIDER
+    assert ui_hints["blk_0195f3a0000070028123456789abcdef"].validation_rules == SystemValidationRulesDTO(max=5.0)
+    assert ui_hints["blk_0195f3a0000070008123456789abcdef"].component_type == ComponentType.HIDDEN
 
 
 @pytest.mark.asyncio
@@ -247,7 +251,7 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
     workflow = _create_test_workflow()
 
     step_obj = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a0000070008123456789abcdef",
         slug="analytical-step",
         name=I18nText(translations={"en": "Analytical Step", "fi": "Analyysi"}),
         type=StepType.LOGIC,
@@ -255,10 +259,10 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
     )
 
     profile_obj = OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="test-profile",
         name=I18nText(translations={"en": "Test Profile"}),
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         target_block_order=[],
         visible_block_extensions=[],
         visible_workflow_extensions=[],
@@ -286,10 +290,10 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
     )
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputsIngress(dynamic_inputs={"chat_log": "Hello, world!"}),
         target_locale="fi",
-        profile_id="prf_0123456789abcdef",
+        profile_id="prf_0195f3a0000070008123456789abcdef",
         matrix_sampling_strategy=10,
     )
 
@@ -300,7 +304,7 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
     )
 
     assert record.id.startswith("exe_")
-    assert record.workflow_id == "wor_0123456789abcdef"
+    assert record.workflow_id == "wor_0195f3a0000070008123456789abcdef"
     assert record.metadata is not None
     assert record.metadata.telemetry is not None
     assert record.metadata.telemetry.traceparent.startswith("00-")
@@ -316,7 +320,7 @@ async def test_start_execution_happy_path(initiator: TokenData) -> None:
     assert arq_pool.enqueue_job.called
     call_kwargs = arq_pool.enqueue_job.call_args[1]
     assert call_kwargs["execution_id"] == record.id
-    assert call_kwargs["workflow_id"] == "wor_0123456789abcdef"
+    assert call_kwargs["workflow_id"] == "wor_0195f3a0000070008123456789abcdef"
 
 
 @pytest.mark.asyncio
@@ -335,7 +339,7 @@ async def test_start_execution_permission_denied(initiator: TokenData) -> None:
     )
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputsIngress(dynamic_inputs={"chat_log": "Hello"}),
         target_locale="fi",
         matrix_sampling_strategy=10,
@@ -366,7 +370,7 @@ async def test_start_execution_quota_exceeded(initiator: TokenData) -> None:
     )
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputsIngress(dynamic_inputs={"chat_log": "Hello"}),
         target_locale="fi",
         matrix_sampling_strategy=10,
@@ -392,7 +396,7 @@ async def test_start_execution_workflow_not_found(initiator: TokenData) -> None:
     )
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputsIngress(dynamic_inputs={"chat_log": "Hello"}),
         target_locale="fi",
         matrix_sampling_strategy=10,
@@ -420,7 +424,7 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
         prompt_block_repo=None,
     )
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputsIngress(dynamic_inputs={"chat_log": "Hello"}),
         target_locale="fi",
         matrix_sampling_strategy=10,
@@ -431,7 +435,7 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
 
     # Case 2: Missing output_profile_repo when profile requested
     step_obj = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a0000070008123456789abcdef",
         slug="step-slug",
         name=I18nText(translations={"en": "Analytical Step"}),
         type=StepType.LOGIC,
@@ -462,7 +466,7 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
 
     # Case 4: Output profile workflow mismatch
     mismatched_profile = OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="mismatch",
         name=I18nText(translations={"en": "Mismatch"}),
         workflow_id="wor_mismatched00000000",
@@ -487,10 +491,10 @@ async def test_start_execution_missing_dependencies_and_entities(initiator: Toke
 
     # Case 5: Missing system_repo
     matching_profile = OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="matching",
         name=I18nText(translations={"en": "Matching"}),
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         target_block_order=[],
         visible_block_extensions=[],
         visible_workflow_extensions=[],
@@ -528,7 +532,7 @@ async def test_generate_sdui_hints_invalid_step_format_raises() -> None:
     workflow = _create_test_workflow()
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(workflow)
-    repo.seed_raw_step("stp_0123456789abcdef", {"id": "invalid_id_not_matching_step_schema"})
+    repo.seed_raw_step("stp_0195f3a0000070008123456789abcdef", {"id": "invalid_id_not_matching_step_schema"})
 
     with pytest.raises(AppException) as exc_info:
         await _generate_sdui_hints(
@@ -545,12 +549,12 @@ async def test_generate_sdui_hints_missing_and_invalid_prompt_block_raises() -> 
     """Verify _generate_sdui_hints raises ConfigurationError on missing PB and AppException on malformed PB."""
     workflow = _create_test_workflow()
     step_obj = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a0000070008123456789abcdef",
         slug="analytical-step",
         name=I18nText(translations={"en": "Analytical Step"}),
         type=StepType.LOGIC,
         hook="my_hook",
-        role_block_id="blk_0123456789abcdef",
+        role_block_id="blk_0195f3a0000070008123456789abcdef",
     )
     repo = InMemoryUnifiedWorkflowRepository()
     await repo.save_workflow(workflow)
@@ -566,7 +570,7 @@ async def test_generate_sdui_hints_missing_and_invalid_prompt_block_raises() -> 
         )
 
     # Malformed PB raises AppException(status_code=500)
-    repo.seed_raw_prompt_block("blk_0123456789abcdef", {"id": "invalid_not_prompt_block"})
+    repo.seed_raw_prompt_block("blk_0195f3a0000070008123456789abcdef", {"id": "invalid_not_prompt_block"})
     with pytest.raises(AppException) as exc_info:
         await _generate_sdui_hints(
             workflow=workflow,
@@ -582,17 +586,17 @@ async def test_start_execution_with_doc_service(initiator: TokenData) -> None:
     """Verify start_execution invokes doc_service.process_ingress_payload when provided."""
     workflow = _create_test_workflow()
     step_obj = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a0000070008123456789abcdef",
         slug="analytical-step",
         name=I18nText(translations={"en": "Analytical Step"}),
         type=StepType.LOGIC,
         hook="my_hook",
     )
     profile_obj = OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="test-profile",
         name=I18nText(translations={"en": "Test Profile"}),
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         target_block_order=[],
         visible_block_extensions=[],
         visible_workflow_extensions=[],
@@ -618,7 +622,7 @@ async def test_start_execution_with_doc_service(initiator: TokenData) -> None:
     doc_service.process_ingress_payload = AsyncMock(return_value=processed_ingress)
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputsIngress(dynamic_inputs={"chat_log": "Raw input"}),
         target_locale="en",
     )
@@ -638,17 +642,17 @@ async def test_start_execution_missing_model_registry_id_raises(initiator: Token
     """Verify start_execution raises 404 when model_registry_id resolves to empty."""
     workflow = _create_test_workflow()
     step_obj = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a0000070008123456789abcdef",
         slug="analytical-step",
         name=I18nText(translations={"en": "Analytical Step"}),
         type=StepType.LOGIC,
         hook="my_hook",
     )
     profile_obj = OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="test-profile",
         name=I18nText(translations={"en": "Test Profile"}),
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         target_block_order=[],
         visible_block_extensions=[],
         visible_workflow_extensions=[],
@@ -670,7 +674,7 @@ async def test_start_execution_missing_model_registry_id_raises(initiator: Token
     )
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputsIngress(dynamic_inputs={"chat_log": "Hello"}),
         target_locale="en",
         model_registry_id="",

@@ -6,13 +6,13 @@ from backend_v2.models.domain.output_profile import OutputProfile
 def test_worker_db_hydration_metric_mappings_bug() -> None:
     """Verify that worker.py hydrates a raw DB profile containing matrix_synthesis_groups cleanly."""
     db_profile_dict: dict[str, JsonValue] = {
-        "id": "prf_1234abcd1234abcd",
+        "id": "prf_0195f3a0000070018234abcd1234abcd",
         "slug": "test_slug",
-        "workflow_id": "wf_1234abcd1234abcd",
+        "workflow_id": "wf_0195f3a0000070018234abcd1234abcd",
         "name": {"translations": {"en": "Title", "fi": "Title"}},
         "matrix_synthesis_groups": [
             {
-                "id": "grp_1111111111111111",
+                "id": "grp_0195f3a0000070018111111111111111",
                 "title": {"translations": {"en": "Group 1"}},
                 "target_blocks": ["blk_1"],
             }

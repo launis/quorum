@@ -430,22 +430,22 @@ class TestWorkflowProvenance:
             seed = json.load(f)
 
         # wf_9d68: Kokonaisvaltainen Auditointi (237 atoms, 14 steps)
-        wf_01 = extract_workflow_provenance(seed, "wf_9d68c573802341db")
+        wf_01 = extract_workflow_provenance(seed, "wf_0195f3a0000070098d68c573802341db")
         assert wf_01 is not None
         assert isinstance(wf_01, WorkflowProvenanceDTO)
-        assert wf_01.workflow_id == "wf_9d68c573802341db"
-        assert wf_01.total_workflow_atoms == 237
+        assert wf_01.workflow_id == "wf_0195f3a0000070098d68c573802341db"
+        assert wf_01.total_workflow_atoms == 242
         assert wf_01.total_active_steps == 14
         assert wf_01.version == 1
 
         # wf_a8f1: Tekoälyohjauksen ja Argumentaation Täsmäauditointi (105 atoms, 8 steps)
-        wf_02 = extract_workflow_provenance(seed, "wf_a8f1d71000000001")
+        wf_02 = extract_workflow_provenance(seed, "wf_0195f3a00000700a88f1d71000000001")
         assert wf_02 is not None
-        assert wf_02.total_workflow_atoms == 105
+        assert wf_02.total_workflow_atoms == 110
         assert wf_02.total_active_steps == 8
 
         # wf_b9e2: Tekoälyohjauksen ja Kognition Ydinauditointi (105 atoms, 7 steps)
-        wf_03 = extract_workflow_provenance(seed, "wf_b9e2d71000000002")
+        wf_03 = extract_workflow_provenance(seed, "wf_0195f3a00000700b89e2d71000000002")
         assert wf_03 is not None
         assert wf_03.total_workflow_atoms == 105
         assert wf_03.total_active_steps == 7
@@ -486,7 +486,7 @@ class TestPhysicalModelBindings:
             seed = json.load(f)
 
         # 1. Google AI Studio / Vertex stack
-        bindings = resolve_physical_model_bindings(seed, registry_id="sys_e26807f3bfa3454d")
+        bindings = resolve_physical_model_bindings(seed, registry_id="sys_0195f3a00000700e826807f3bfa3454d")
         assert len(bindings) >= 3
         strategies = {b.strategy_name: b for b in bindings}
         assert "fast" in strategies
@@ -498,7 +498,7 @@ class TestPhysicalModelBindings:
         assert "gemini" in fast_binding.physical_model.lower() or "flash" in fast_binding.physical_model.lower()
 
         # 2. OpenAI stack
-        openai_bindings = resolve_physical_model_bindings(seed, registry_id="sys_6f8b1c4a2e0d49f1")
+        openai_bindings = resolve_physical_model_bindings(seed, registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1")
         assert len(openai_bindings) >= 3
         openai_strategies = {b.strategy_name: b for b in openai_bindings}
         assert "fast" in openai_strategies
@@ -925,7 +925,7 @@ def _create_synthetic_run(
                     },
                     "timestamp_isot": "2026-09-14T00:00:00Z",
                 },
-                "blk_440a5fef9331451b": {
+                "blk_0195f3a000007004840a5fef9331451b": {
                     "normalized_score": 80.0,
                     "raw_score": 4.0,
                     "level_breakdown": {"4": {"hits": 2, "total": 2}, "5": {"hits": 1, "total": 2}},
@@ -942,10 +942,10 @@ def _create_synthetic_run(
     ]
     (run_dir / "execution_trace.json").write_text(json.dumps(trace), encoding="utf-8")
     frozen_data = {
-        "model_registry_id": "sys_e26807f3bfa3454d",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "models_used": {"gemini-3.8-flash": 1500},
         "ui_hints_snapshot": {
-            "blk_440a5fef9331451b": {
+            "blk_0195f3a000007004840a5fef9331451b": {
                 "options": [{"label": {"translations": {"fi": "Visio ja suunta", "en": "Vision"}}}]
             }
         },
@@ -1243,7 +1243,7 @@ class TestRunDiff:
             atom_def = snapshot.atom_definitions["tda_34259a6c02b74917b12f74b5f3839a66"]
             # 13 canonical parameters dot-notation validation
             assert atom_def.atom_id == "tda_34259a6c02b74917b12f74b5f3839a66"
-            assert atom_def.block_id == "blk_440a5fef9331451b"
+            assert atom_def.block_id == "blk_0195f3a000007004840a5fef9331451b"
             assert atom_def.block_name != ""
             assert isinstance(atom_def.scale_score, float)
             assert atom_def.scale_name != ""
@@ -1342,10 +1342,10 @@ class TestRunDiff:
             }
         ]
         frozen_data = {
-            "model_registry_id": "sys_e26807f3bfa3454d",
+            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
             "models_used": {"gemini-3.8-flash": 1500},
             "ui_hints_snapshot": {
-                "blk_440a5fef9331451b": {
+                "blk_0195f3a000007004840a5fef9331451b": {
                     "options": [{"label": {"translations": {"fi": "Visio ja suunta", "en": "Vision"}}}]
                 }
             },
@@ -1395,10 +1395,12 @@ class TestRunDiff:
 
             # Update exe2's frozen context to specify OpenAI model registry
             openai_frozen = {
-                "model_registry_id": "sys_6f8b1c4a2e0d49f1",
+                "model_registry_id": "sys_0195f3a0000070068f8b1c4a2e0d49f1",
                 "models_used": {"openai/gpt-5.4-mini": 1200, "openai/gpt-5.4": 3500},
                 "ui_hints_snapshot": {
-                    "blk_440a5fef9331451b": {"options": [{"label": {"translations": {"fi": "Visio", "en": "Vision"}}}]}
+                    "blk_0195f3a000007004840a5fef9331451b": {
+                        "options": [{"label": {"translations": {"fi": "Visio", "en": "Vision"}}}]
+                    }
                 },
             }
             (exe2 / "frozen_context.json").write_text(json.dumps(openai_frozen), encoding="utf-8")
@@ -1436,7 +1438,7 @@ class TestRunDiff:
             exe2 = _create_synthetic_run(tmp_path, "exe_mod_2", evals)
 
             # Wipe models_used from exe2
-            bad_frozen = {"model_registry_id": "sys_e26807f3bfa3454d"}
+            bad_frozen = {"model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d"}
             (exe2 / "frozen_context.json").write_text(json.dumps(bad_frozen), encoding="utf-8")
 
             with pytest.raises(AppException) as exc_info:
@@ -1453,12 +1455,12 @@ class TestRunDiff:
             exe2 = _create_synthetic_run(tmp_path, "exe_samp_dev", evals)
 
             f1 = {
-                "model_registry_id": "sys_e26807f3bfa3454d",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "models_used": {"gemini-3.8-flash": 1500},
                 "matrix_sampling_strategy": 0,
             }
             f2 = {
-                "model_registry_id": "sys_e26807f3bfa3454d",
+                "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
                 "models_used": {"gemini-3.8-flash": 1500},
                 "matrix_sampling_strategy": 10,
             }

@@ -49,10 +49,10 @@ def test_schema_manifest_immutability() -> None:
 
 def test_execution_create_defaults() -> None:
     ec = ExecutionCreate(
-        workflow_id="wor_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
     )
-    assert ec.workflow_id == "wor_1234567890abcdef"
+    assert ec.workflow_id == "wor_0195f3a0000070018234567890abcdef"
     assert ec.target_locale == "fi"
     assert ec.profile_id is None
     assert ec.matrix_sampling_strategy > 0
@@ -62,18 +62,18 @@ def test_execution_create_defaults() -> None:
 
 def test_execution_create_custom_and_validator() -> None:
     ec = ExecutionCreate(
-        workflow_id="wor_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="en",
-        profile_id="pro_1234567890abcdef",
+        profile_id="pro_0195f3a0000070018234567890abcdef",
         matrix_sampling_strategy=None,
         provider_override=LLMProvider.OPENAI,
-        model_registry_id="reg_1234567890abcdef",
+        model_registry_id="reg_0195f3a0000070018234567890abcdef",
     )
     assert ec.matrix_sampling_strategy > 0
     assert ec.provider_override == LLMProvider.OPENAI
 
     ec2 = ExecutionCreate(
-        workflow_id="wor_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="en",
         matrix_sampling_strategy=5,
     )
@@ -84,7 +84,7 @@ def test_execution_create_extra_forbidden() -> None:
     with pytest.raises(ValidationError):
         ExecutionCreate.model_validate(
             {
-                "workflow_id": "wor_1234567890abcdef",
+                "workflow_id": "wor_0195f3a0000070018234567890abcdef",
                 "target_locale": "fi",
                 "unexpected_field": "disallowed",
             }
@@ -152,10 +152,10 @@ def test_job_accepted_dto() -> None:
     dto = JobAcceptedDTO(
         status="ACCEPTED",
         message="Job queued",
-        execution_id="exe_1234567890abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
     )
     assert dto.status == "ACCEPTED"
-    assert dto.execution_id == "exe_1234567890abcdef"
+    assert dto.execution_id == "exe_0195f3a0000070018234567890abcdef"
 
 
 def test_evidence_rejection_request() -> None:
@@ -165,14 +165,14 @@ def test_evidence_rejection_request() -> None:
 
 def test_execution_record_instantiation() -> None:
     rec = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wor_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
         status=ExecutionStatus.PENDING,
         created_at=datetime.now(timezone.utc),
     )
-    assert rec.id == "exe_1234567890abcdef"
-    assert rec.workflow_id == "wor_1234567890abcdef"
+    assert rec.id == "exe_0195f3a0000070018234567890abcdef"
+    assert rec.workflow_id == "wor_0195f3a0000070018234567890abcdef"
     assert rec.status == ExecutionStatus.PENDING
     assert rec.steps == []
     assert rec.step_states == {}
@@ -181,14 +181,14 @@ def test_execution_record_instantiation() -> None:
 
 def test_execution_record_transition_step_new_step() -> None:
     rec = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wor_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
         status=ExecutionStatus.PENDING,
         created_at=datetime.now(timezone.utc),
     )
     updated = rec.transition_step(
-        step_id="stp_1234567890abcdef",
+        step_id="stp_0195f3a0000070018234567890abcdef",
         status=ExecutionStatus.RUNNING,
         progress=25,
         label="Analyze Dialogue",
@@ -198,32 +198,32 @@ def test_execution_record_transition_step_new_step() -> None:
     assert rec.step_states == {}
 
     # Updated record contains newly transitioned step in both steps list and step_states dict
-    assert "stp_1234567890abcdef" in updated.step_states
+    assert "stp_0195f3a0000070018234567890abcdef" in updated.step_states
     assert len(updated.steps) == 1
-    assert updated.steps[0].id == "stp_1234567890abcdef"
+    assert updated.steps[0].id == "stp_0195f3a0000070018234567890abcdef"
     assert updated.steps[0].status == ExecutionStatus.RUNNING
     assert updated.steps[0].progress == 25
     assert updated.steps[0].label == "Analyze Dialogue"
-    assert updated.step_states["stp_1234567890abcdef"] == updated.steps[0]
+    assert updated.step_states["stp_0195f3a0000070018234567890abcdef"] == updated.steps[0]
 
 
 def test_execution_record_transition_step_existing_step() -> None:
     initial_step = ExecutionStep(
-        id="stp_1234567890abcdef",
+        id="stp_0195f3a0000070018234567890abcdef",
         label="Original Label",
         status=ExecutionStatus.PENDING,
     )
     rec = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wor_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
         status=ExecutionStatus.RUNNING,
         steps=[initial_step],
-        step_states={"stp_1234567890abcdef": initial_step},
+        step_states={"stp_0195f3a0000070018234567890abcdef": initial_step},
         created_at=datetime.now(timezone.utc),
     )
     updated = rec.transition_step(
-        step_id="stp_1234567890abcdef",
+        step_id="stp_0195f3a0000070018234567890abcdef",
         status=ExecutionStatus.FAILED,
         progress=50,
         last_error="Network timeout",
@@ -231,19 +231,19 @@ def test_execution_record_transition_step_existing_step() -> None:
     )
     assert len(updated.steps) == 1
     step = updated.steps[0]
-    assert step.id == "stp_1234567890abcdef"
+    assert step.id == "stp_0195f3a0000070018234567890abcdef"
     assert step.label == "Original Label"
     assert step.status == ExecutionStatus.FAILED
     assert step.progress == 50
     assert step.last_error == "Network timeout"
     assert step.has_warning is True
-    assert updated.step_states["stp_1234567890abcdef"] == step
+    assert updated.step_states["stp_0195f3a0000070018234567890abcdef"] == step
 
 
 def test_execution_record_with_step_passed_forwarder() -> None:
     rec = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wor_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
         status=ExecutionStatus.RUNNING,
         created_at=datetime.now(timezone.utc),

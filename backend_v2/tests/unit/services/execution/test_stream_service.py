@@ -17,14 +17,14 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryExecutionRepos
 
 
 def _make_record(
-    execution_id: str = "exe_0123456789abcdef",
-    org_id: str = "org_0123456789abcdef",
-    user_id: str = "usr_0123456789abcdef",
+    execution_id: str = "exe_0195f3a0000070008123456789abcdef",
+    org_id: str = "org_0195f3a0000070008123456789abcdef",
+    user_id: str = "usr_0195f3a0000070008123456789abcdef",
     status: ExecutionStatus = ExecutionStatus.PENDING,
 ) -> ExecutionRecord:
     return create_execution_record(
         execution_id=execution_id,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
@@ -36,7 +36,11 @@ def _make_record(
 
 @pytest.fixture
 def member_token() -> TokenData:
-    return TokenData(id="usr_0123456789abcdef", role=UserRole.MEMBER, organization_id="org_0123456789abcdef")
+    return TokenData(
+        id="usr_0195f3a0000070008123456789abcdef",
+        role=UserRole.MEMBER,
+        organization_id="org_0195f3a0000070008123456789abcdef",
+    )
 
 
 @pytest.fixture
@@ -52,8 +56,8 @@ async def test_default_get_execution_happy_path(member_token: TokenData) -> None
     await exec_repo.save_execution(rec)
 
     service = ExecutionStreamService(exec_repo=exec_repo)
-    result = await service._default_get_execution(member_token, "exe_0123456789abcdef")
-    assert result.id == "exe_0123456789abcdef"
+    result = await service._default_get_execution(member_token, "exe_0195f3a0000070008123456789abcdef")
+    assert result.id == "exe_0195f3a0000070008123456789abcdef"
 
 
 @pytest.mark.asyncio
@@ -75,7 +79,7 @@ async def test_default_get_execution_permission_denied(member_token: TokenData) 
 
     service = ExecutionStreamService(exec_repo=exec_repo)
     with pytest.raises(PermissionDeniedError):
-        await service._default_get_execution(member_token, "exe_0123456789abcdef")
+        await service._default_get_execution(member_token, "exe_0195f3a0000070008123456789abcdef")
 
 
 @pytest.mark.asyncio
@@ -106,7 +110,7 @@ async def test_stream_status_happy_path_completes(member_token: TokenData, monke
     monkeypatch.setattr("backend_v2.services.execution.stream_service.get_settings", lambda: test_settings)
 
     events: list[str] = []
-    async for event in service.stream_status(member_token, "exe_0123456789abcdef"):
+    async for event in service.stream_status(member_token, "exe_0195f3a0000070008123456789abcdef"):
         events.append(event)
 
     assert len(events) == 2
@@ -142,7 +146,7 @@ async def test_stream_status_failed_breaks(member_token: TokenData, monkeypatch:
     monkeypatch.setattr("backend_v2.services.execution.stream_service.get_settings", lambda: test_settings)
 
     events: list[str] = []
-    async for event in service.stream_status(member_token, "exe_0123456789abcdef"):
+    async for event in service.stream_status(member_token, "exe_0195f3a0000070008123456789abcdef"):
         events.append(event)
 
     assert len(events) == 1
@@ -186,7 +190,7 @@ async def test_stream_status_transient_retry_and_recovery(
     service = ExecutionStreamService(exec_repo=exec_repo, get_execution_fn=mock_get)
 
     events: list[str] = []
-    async for event in service.stream_status(member_token, "exe_0123456789abcdef"):
+    async for event in service.stream_status(member_token, "exe_0195f3a0000070008123456789abcdef"):
         events.append(event)
 
     assert len(events) == 1
@@ -223,7 +227,7 @@ async def test_stream_status_exceeded_retries_emits_error_event(
     service = ExecutionStreamService(exec_repo=exec_repo, get_execution_fn=mock_get)
 
     events: list[str] = []
-    async for event in service.stream_status(member_token, "exe_0123456789abcdef"):
+    async for event in service.stream_status(member_token, "exe_0195f3a0000070008123456789abcdef"):
         events.append(event)
 
     assert len(events) == 1
@@ -266,7 +270,7 @@ async def test_stream_status_generic_exception_emits_error_event(
     service = ExecutionStreamService(exec_repo=exec_repo, get_execution_fn=mock_get)
 
     events: list[str] = []
-    async for event in service.stream_status(member_token, "exe_0123456789abcdef"):
+    async for event in service.stream_status(member_token, "exe_0195f3a0000070008123456789abcdef"):
         events.append(event)
 
     assert len(events) == 1

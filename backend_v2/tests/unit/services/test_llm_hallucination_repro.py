@@ -14,7 +14,7 @@ def test_llm_hallucination_validation_error_repro():
     # 2. Check JSON Schema (LLM will see eval_1, NOT blk_2cbe...)
     schema_json = StrictDynamicSchema.model_json_schema()
     assert "eval_1" in schema_json["properties"]
-    assert "blk_2cbe96bffde04571" not in schema_json["properties"]
+    assert "blk_0195f3a0000070028cbe96bffde04571" not in schema_json["properties"]
 
     # 3. Simulate the LLM providing the safe alias eval_1
     llm_alias_payload = {"eval_1": "DATA_CHECKED_AND_SECURED"}

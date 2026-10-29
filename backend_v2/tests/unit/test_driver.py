@@ -90,13 +90,16 @@ async def test_storage_driver_abstract() -> None:
             return None
 
     driver = DummyDriver()
-    assert await driver.get("workflows", "wor_1234567890abcdef") == {
-        "id": "wor_1234567890abcdef",
+    assert await driver.get("workflows", "wor_0195f3a0000070018234567890abcdef") == {
+        "id": "wor_0195f3a0000070018234567890abcdef",
         "collection": "workflows",
     }
-    assert await driver.upsert("workflows", {"name": "wf"}, "wor_1234567890abcdef") == "wor_1234567890abcdef"
-    assert await driver.update("workflows", "wor_1234567890abcdef", {"name": "wf2"}) is True
-    assert await driver.delete("workflows", "wor_1234567890abcdef") is True
+    assert (
+        await driver.upsert("workflows", {"name": "wf"}, "wor_0195f3a0000070018234567890abcdef")
+        == "wor_0195f3a0000070018234567890abcdef"
+    )
+    assert await driver.update("workflows", "wor_0195f3a0000070018234567890abcdef", {"name": "wf2"}) is True
+    assert await driver.delete("workflows", "wor_0195f3a0000070018234567890abcdef") is True
     assert len(await driver.query("workflows")) == 1
     assert await driver.count("workflows", filters=[Filter("name", "==", "wf")]) == 0
     await driver.clear("workflows")

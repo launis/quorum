@@ -18,13 +18,13 @@ from backend_v2.models.dtos.output_profile import (
 def test_output_profile_response_dto_serializes_matrix_synthesis_groups() -> None:
     """OutputProfileResponseDTO must serialize matrix_synthesis_groups in JSON output."""
     db_profile_dict: dict[str, JsonValue] = {
-        "id": "prf_5d6e7f8091a2b3c4",
+        "id": "prf_0195f3a0000070058d6e7f8091a2b3c4",
         "slug": "test_profile",
-        "workflow_id": "wf_9d68c573802341db",
+        "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"fi": "Testi", "en": "Test"}},
         "matrix_synthesis_groups": [
             {
-                "id": "grp_1111111111111111",
+                "id": "grp_0195f3a0000070018111111111111111",
                 "title": {"translations": {"fi": "Ryhmä 1", "en": "Group 1"}},
                 "target_blocks": ["blk_1"],
                 "view_type": "1d_metrics",
@@ -43,20 +43,20 @@ def test_output_profile_response_dto_serializes_matrix_synthesis_groups() -> Non
         "matrix_synthesis_groups was excluded from serialized OutputProfileResponseDTO JSON response!"
     )
     assert len(serialized["matrix_synthesis_groups"]) == 1
-    assert serialized["matrix_synthesis_groups"][0]["id"] == "grp_1111111111111111"
+    assert serialized["matrix_synthesis_groups"][0]["id"] == "grp_0195f3a0000070018111111111111111"
 
 
 def test_output_profile_roundtrip_preserves_matrix_synthesis_groups() -> None:
     """Simulates GET -> Flutter Edit -> PUT roundtrip to ensure matrix_synthesis_groups is preserved."""
     db_profile = OutputProfile(
-        id="prf_5d6e7f8091a2b3c4",
+        id="prf_0195f3a0000070058d6e7f8091a2b3c4",
         slug="test_profile",
-        workflow_id="wf_9d68c573802341db",
+        workflow_id="wf_0195f3a0000070098d68c573802341db",
         name=I18nText(translations={"fi": "Testi", "en": "Test"}),
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_1111111111111111",
+                id="grp_0195f3a0000070018111111111111111",
                 title=I18nText(translations={"fi": "Ryhmä 1", "en": "Group 1"}),
                 target_blocks=["blk_1"],
             )
@@ -73,9 +73,9 @@ def test_output_profile_roundtrip_preserves_matrix_synthesis_groups() -> None:
     # 3. Backend receives PUT payload in OutputProfileCreateDTO and hydrates with path ID
     create_dto = OutputProfileCreateDTO.model_validate(put_payload)
     profile_dict = create_dto.model_dump()
-    profile_dict["id"] = "prf_1111111111111111"
+    profile_dict["id"] = "prf_0195f3a0000070018111111111111111"
     saved_profile = OutputProfile.model_validate(profile_dict)
 
     # 4. Verify matrix_synthesis_groups is preserved
     assert len(saved_profile.matrix_synthesis_groups) == 1
-    assert saved_profile.matrix_synthesis_groups[0].id == "grp_1111111111111111"
+    assert saved_profile.matrix_synthesis_groups[0].id == "grp_0195f3a0000070018111111111111111"

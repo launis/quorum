@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 
+from backend_v2.exceptions import AppException
 from backend_v2.main import app, lifespan
 from backend_v2.settings import get_settings
 
@@ -27,7 +28,7 @@ async def test_main_startup_logfire_error_fail_fast(monkeypatch: pytest.MonkeyPa
     tm._INSTRUMENTED_APPS.discard(id(app))
 
     try:
-        with pytest.raises(ValueError, match="Simulated logfire crash in FastAPI instrument"):
+        with pytest.raises(AppException, match="Simulated logfire crash in FastAPI instrument"):
             async with lifespan(app):
                 pass
     finally:

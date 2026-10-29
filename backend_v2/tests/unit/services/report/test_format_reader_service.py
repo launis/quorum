@@ -24,15 +24,15 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 
 def _create_dummy_report(
-    report_id: str = "rep_1234567890abcdef",
+    report_id: str = "rep_0195f3a0000070018234567890abcdef",
     status: ReportStatus = ReportStatus.READY,
 ) -> ReportArtifact:
     now = datetime.now(UTC)
     return ReportArtifact(
         id=report_id,
-        execution_id="exe_1234567890abcdef",
-        workflow_id="wor_0123456789abcdef",
-        profile_id="prf_1234567890abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         locale="fi",
         title="Johdon raportti",
         status=status,
@@ -50,8 +50,8 @@ def _create_dummy_report(
 
 def _create_dummy_report_data_dto() -> ReportDataDTO:
     atom_passed = AtomResultDTO(
-        tda_id="tda_0123456789abcdef",
-        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008123456789abcdef",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PASSED,
         source_quotes=("Forensic quote 1", "Forensic quote 2"),
         evaluation_reasoning="Sound reasoning.",
@@ -61,7 +61,7 @@ def _create_dummy_report_data_dto() -> ReportDataDTO:
         short_circuit_reason_tda_ids=[],
     )
     atom_failed_unhydrated = AtomResultDTO(
-        tda_id="tda_0000000000000002",
+        tda_id="tda_0195f3a0000070008000000000000002",
         matrix_id=None,
         status=ExecutionStatus.FAILED,
         source_quotes=None,
@@ -72,8 +72,8 @@ def _create_dummy_report_data_dto() -> ReportDataDTO:
         short_circuit_reason_tda_ids=[],
     )
     atom_passed_inverse = AtomResultDTO(
-        tda_id="tda_0000000000000003",
-        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008000000000000003",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PASSED,
         source_quotes=None,
         evaluation_reasoning="Inverse passed.",
@@ -87,20 +87,20 @@ def _create_dummy_report_data_dto() -> ReportDataDTO:
         resolved_claim="Strategic Claim",
     )
     return ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         global_score=4.0,
         has_warning=False,
         inner_sdui_blocks=[],
         results=[atom_passed, atom_failed_unhydrated, atom_passed_inverse],
         hydrated_references={
-            "tda_0123456789abcdef": hydrated_ref,
-            "tda_0000000000000002": HydratedAtomDTO(
+            "tda_0195f3a0000070008123456789abcdef": hydrated_ref,
+            "tda_0195f3a0000070008000000000000002": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Failed Claim",
             ),
-            "tda_0000000000000003": HydratedAtomDTO(
+            "tda_0195f3a0000070008000000000000003": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Inverse Claim",
             ),
@@ -156,9 +156,9 @@ async def test_get_report_sdui_and_streams() -> None:
 
     storage = AsyncMock()
     dummy_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
     )
     storage.read.side_effect = [
         dummy_dto.model_dump_json().encode("utf-8"),
@@ -217,7 +217,7 @@ async def test_get_report_rows() -> None:
     service = ReportFormatReaderService(repo=repo, storage_driver=storage)
     rows = await service.get_report_rows(report.id)
     assert len(rows) == 3
-    assert rows[0].metric_key == "blk_0123456789abcdef"
+    assert rows[0].metric_key == "blk_0195f3a0000070008123456789abcdef"
     assert rows[0].metric_label == "Strategic Claim"
     assert rows[0].score == 1.0
     assert rows[0].max_scale == 1.0
@@ -233,8 +233,8 @@ async def test_get_report_rows_propagates_is_inverse_evidence() -> None:
     await repo.create_report_artifact(report)
 
     atom_affirmative = AtomResultDTO(
-        tda_id="tda_0000000000000001",
-        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008000000000000001",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PASSED,
         source_quotes=("Affirmative quote",),
         evaluation_reasoning="Affirmative reasoning.",
@@ -244,8 +244,8 @@ async def test_get_report_rows_propagates_is_inverse_evidence() -> None:
         short_circuit_reason_tda_ids=[],
     )
     atom_inverse = AtomResultDTO(
-        tda_id="tda_0000000000000002",
-        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008000000000000002",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PASSED,
         source_quotes=None,
         evaluation_reasoning="Inverse reasoning.",
@@ -255,19 +255,19 @@ async def test_get_report_rows_propagates_is_inverse_evidence() -> None:
         short_circuit_reason_tda_ids=[],
     )
     report_data = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         global_score=4.0,
         has_warning=False,
         inner_sdui_blocks=[],
         results=[atom_affirmative, atom_inverse],
         hydrated_references={
-            "tda_0000000000000001": HydratedAtomDTO(
+            "tda_0195f3a0000070008000000000000001": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Affirmative Claim",
             ),
-            "tda_0000000000000002": HydratedAtomDTO(
+            "tda_0195f3a0000070008000000000000002": HydratedAtomDTO(
                 sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
                 resolved_claim="Inverse Claim",
             ),
@@ -302,19 +302,19 @@ async def test_get_report_rows_and_dlq_log(caplog: pytest.LogCaptureFixture) -> 
     rows = await service.get_report_rows(report.id)
 
     assert len(rows) == 3
-    assert rows[0].metric_key == "blk_0123456789abcdef"
+    assert rows[0].metric_key == "blk_0195f3a0000070008123456789abcdef"
     assert rows[0].metric_label == "Strategic Claim"
     assert rows[0].score == 1.0
     assert rows[0].quote == "Forensic quote 1 [...] Forensic quote 2"
     assert rows[0].is_inverse_evidence is False
 
-    assert rows[1].metric_key == "tda_0000000000000002"
+    assert rows[1].metric_key == "tda_0195f3a0000070008000000000000002"
     assert rows[1].metric_label == "Failed Claim"
     assert rows[1].score == 0.0
     assert rows[1].quote is None
     assert rows[1].is_inverse_evidence is False
 
-    assert rows[2].metric_key == "blk_0123456789abcdef"
+    assert rows[2].metric_key == "blk_0195f3a0000070008123456789abcdef"
     assert rows[2].metric_label == "Inverse Claim"
     assert rows[2].score == 1.0
     assert rows[2].quote is None
@@ -354,11 +354,11 @@ async def test_format_reader_negative_not_found_and_not_ready() -> None:
     service = ReportFormatReaderService(repo=repo, storage_driver=storage)
 
     with pytest.raises(ResourceNotFoundError) as exc_not_found:
-        await service.get_report_sdui("rep_0000000000000000")
+        await service.get_report_sdui("rep_0195f3a0000070008000000000000000")
     assert exc_not_found.value.details is not None
     assert exc_not_found.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
-    pending_report = _create_dummy_report(report_id="rep_0000000000000001", status=ReportStatus.PENDING)
+    pending_report = _create_dummy_report(report_id="rep_0195f3a0000070008000000000000001", status=ReportStatus.PENDING)
     await repo.create_report_artifact(pending_report)
     with pytest.raises(AppException) as exc_not_ready:
         await service.get_report_pdf_bytes(pending_report.id)
@@ -366,9 +366,9 @@ async def test_format_reader_negative_not_found_and_not_ready() -> None:
     assert exc_not_ready.value.details is not None
     assert exc_not_ready.value.details["error_code"] == ErrorCodes.REPORT_NOT_READY.value
 
-    empty_path_report = _create_dummy_report(report_id="rep_0000000000000002", status=ReportStatus.READY).model_copy(
-        update={"storage_paths": ReportStoragePathsDTO(pdf_path=None)}
-    )
+    empty_path_report = _create_dummy_report(
+        report_id="rep_0195f3a0000070008000000000000002", status=ReportStatus.READY
+    ).model_copy(update={"storage_paths": ReportStoragePathsDTO(pdf_path=None)})
     await repo.create_report_artifact(empty_path_report)
     with pytest.raises(AppException) as exc_no_path:
         await service.get_report_pdf_bytes(empty_path_report.id)

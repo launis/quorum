@@ -27,10 +27,10 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 async def test_execution_committer_dual_storage_and_lightweight_db_update() -> None:
     """Verify ExecutionCommitter.commit_trace persists trace, frozen_context, and step_states."""
     repo = InMemoryUnifiedWorkflowRepository()
-    execution_id = "exe_1111222233334444"
+    execution_id = "exe_0195f3a0000070018111222233334444"
     initial_record = ExecutionRecord(
         id=execution_id,
-        workflow_id="wf_1111222233334444",
+        workflow_id="wf_0195f3a0000070018111222233334444",
         target_locale="en",
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "initial content"}),
         frozen_context=FrozenContext(),
@@ -38,7 +38,7 @@ async def test_execution_committer_dual_storage_and_lightweight_db_update() -> N
         status=ExecutionStatus.PENDING,
         steps=[],
         step_states={},
-        output_profile_id="prf_1111222233334444",
+        output_profile_id="prf_0195f3a0000070018111222233334444",
     )
     repo.set_execution(initial_record)
 
@@ -47,20 +47,20 @@ async def test_execution_committer_dual_storage_and_lightweight_db_update() -> N
     assert committer.execution_id == execution_id
 
     step_item = ExecutionStep(
-        id="stp_1111222233334444",
+        id="stp_0195f3a0000070018111222233334444",
         label="Step 1",
         status=ExecutionStatus.PASSED,
         progress=100,
     )
     step_state = ExecutionStepState(
-        id="stp_1111222233334444",
+        id="stp_0195f3a0000070018111222233334444",
         status=ExecutionStatus.PASSED,
         progress=100,
         label="Step 1",
     )
     trace_events = [
         TraceEvent(
-            step_name="stp_1111222233334444",
+            step_name="stp_0195f3a0000070018111222233334444",
             event_type="output",
             content="completed",
         )
@@ -71,7 +71,7 @@ async def test_execution_committer_dual_storage_and_lightweight_db_update() -> N
     await committer.commit_trace(
         trace=trace_events,
         status=ExecutionStatus.RUNNING,
-        step_states={"stp_1111222233334444": step_state},
+        step_states={"stp_0195f3a0000070018111222233334444": step_state},
         error=None,
         frozen_context=frozen_ctx,
         context_variables=ctx_vars,
@@ -82,18 +82,18 @@ async def test_execution_committer_dual_storage_and_lightweight_db_update() -> N
     assert isinstance(updated, ExecutionRecord)
     assert updated.status == ExecutionStatus.RUNNING
     assert len(updated.execution_trace) == 1
-    assert updated.execution_trace[0].step_name == "stp_1111222233334444"
-    assert "stp_1111222233334444" in updated.step_states
-    assert updated.step_states["stp_1111222233334444"].status == ExecutionStatus.PASSED
+    assert updated.execution_trace[0].step_name == "stp_0195f3a0000070018111222233334444"
+    assert "stp_0195f3a0000070018111222233334444" in updated.step_states
+    assert updated.step_states["stp_0195f3a0000070018111222233334444"].status == ExecutionStatus.PASSED
     assert len(updated.steps) == 1
-    assert updated.steps[0].id == "stp_1111222233334444"
+    assert updated.steps[0].id == "stp_0195f3a0000070018111222233334444"
 
 
 @pytest.mark.asyncio
 async def test_execution_committer_repository_failure_raises_progress_update_failed() -> None:
     """Verify ExecutionCommitter.commit_trace logs and raises PROGRESS_UPDATE_FAILED on DB failure."""
     repo = InMemoryUnifiedWorkflowRepository()
-    execution_id = "exe_5555666677778888"
+    execution_id = "exe_0195f3a0000070058555666677778888"
     committer = ExecutionCommitter(exec_repo=repo, execution_id=execution_id)
 
     repo.inject_fault("update_execution", RuntimeError("Simulated database outage"))
@@ -139,7 +139,7 @@ async def test_execution_committer_empty_execution_id_raises_progress_update_fai
 async def test_execution_committer_timeout_failure_raises_progress_update_failed() -> None:
     """Verify ExecutionCommitter.commit_trace translates repository TimeoutError into AppException."""
     repo = InMemoryUnifiedWorkflowRepository()
-    execution_id = "exe_9999000011112222"
+    execution_id = "exe_0195f3a0000070098999000011112222"
     committer = ExecutionCommitter(exec_repo=repo, execution_id=execution_id)
 
     repo.inject_fault("update_execution", TimeoutError("Database commit timed out"))

@@ -189,7 +189,7 @@ def test_grid_schema_strategy_matrix_and_criteria() -> None:
     strat = GridSchemaStrategy(_mock_resolve_i18n)
 
     matrix_block = MatrixPromptBlock(
-        id="pb_1234567890abcdef",
+        id="pb_0195f3a0000070018234567890abcdef",
         slug="matrix-1",
         label=I18nText(translations={"en": "Matrix 1"}),
         description=I18nText(translations={"en": "Matrix description"}),
@@ -220,7 +220,7 @@ def test_grid_schema_strategy_matrix_and_criteria() -> None:
     )
 
     crit_instruction = SystemRulePromptBlock(
-        id="pb_2234567890abcdef",
+        id="pb_0195f3a0000070028234567890abcdef",
         slug="instruction-1",
         label=I18nText(translations={"en": "Instruction 1"}),
         description=I18nText(translations={"en": "Instruction desc"}),
@@ -229,7 +229,7 @@ def test_grid_schema_strategy_matrix_and_criteria() -> None:
     )
 
     crit_eval = SystemRulePromptBlock(
-        id="pb_3234567890abcdef",
+        id="pb_0195f3a0000070038234567890abcdef",
         slug="eval-1",
         label=I18nText(translations={"en": "Eval Criterion"}),
         description=I18nText(translations={"en": "Eval desc"}),
@@ -257,15 +257,15 @@ def test_grid_schema_strategy_matrix_and_criteria() -> None:
 
     fields = schema.model_fields
     assert "global_matrices" in fields
-    assert "pb_2234567890abcdef" in fields
-    assert "pb_3234567890abcdef" in fields
+    assert "pb_0195f3a0000070028234567890abcdef" in fields
+    assert "pb_0195f3a0000070038234567890abcdef" in fields
 
 
 def test_grid_schema_strategy_matrix_zero_evidence_omitted() -> None:
     strat = GridSchemaStrategy(_mock_resolve_i18n)
 
     matrix_block = MatrixPromptBlock(
-        id="pb_4234567890abcdef",
+        id="pb_0195f3a0000070048234567890abcdef",
         slug="no-ev-matrix",
         label=I18nText(translations={"en": "No Evidence Matrix"}),
         description=I18nText(translations={"en": "No ev desc"}),
@@ -307,7 +307,7 @@ def test_grid_schema_strategy_missing_label_raises_configuration_error() -> None
     strat = GridSchemaStrategy(_mock_resolve_i18n)
 
     invalid_block = SystemRulePromptBlock.model_construct(
-        id="pb_5234567890abcdef",
+        id="pb_0195f3a0000070058234567890abcdef",
         slug="invalid-block",
         label=None,
         description=I18nText(translations={"en": "Desc"}),
@@ -358,7 +358,7 @@ def test_grid_schema_strategy_instruction_block() -> None:
     """Test GridSchemaStrategy with instruction type prompt block."""
     strat = GridSchemaStrategy(resolve_i18n=_mock_resolve_i18n)
     instruction_block = SystemRulePromptBlock(
-        id="blk_1111222233334444",
+        id="blk_0195f3a0000070018111222233334444",
         slug="inst-block",
         label=I18nText(translations={"en": "Instruction Label"}),
         description=I18nText(translations={"en": "Desc"}),
@@ -372,14 +372,14 @@ def test_grid_schema_strategy_instruction_block() -> None:
         has_shuffled_atoms=False,
         strictness_level=70,
     )
-    assert "blk_1111222233334444" in schema.model_fields
+    assert "blk_0195f3a0000070018111222233334444" in schema.model_fields
 
 
 def test_grid_schema_strategy_numeric_and_boolean_output_extensions() -> None:
     """Test GridSchemaStrategy with confidence and risk_flag output extensions."""
     strat = GridSchemaStrategy(resolve_i18n=_mock_resolve_i18n)
     block_with_ext = SystemRulePromptBlock(
-        id="blk_5555666677778888",
+        id="blk_0195f3a0000070058555666677778888",
         slug="ext-block",
         label=I18nText(translations={"en": "Extended Block"}),
         description=I18nText(translations={"en": "Desc"}),
@@ -394,8 +394,8 @@ def test_grid_schema_strategy_numeric_and_boolean_output_extensions() -> None:
         has_shuffled_atoms=False,
         strictness_level=70,
     )
-    assert "blk_5555666677778888" in schema.model_fields
-    nested_model = schema.model_fields["blk_5555666677778888"].annotation
+    assert "blk_0195f3a0000070058555666677778888" in schema.model_fields
+    nested_model = schema.model_fields["blk_0195f3a0000070058555666677778888"].annotation
     assert nested_model is not None
 
 
@@ -432,7 +432,7 @@ def test_grid_schema_strategy_sequence_step_output_dto() -> None:
     strat = GridSchemaStrategy(_mock_resolve_i18n)
 
     matrix_block = MatrixPromptBlock(
-        id="pb_1234567890abcdef",
+        id="pb_0195f3a0000070018234567890abcdef",
         slug="test-matrix",
         label=I18nText(translations={"en": "Test Matrix"}),
         description=I18nText(translations={"en": "Test desc"}),
@@ -470,7 +470,7 @@ def test_grid_schema_strategy_sequence_step_output_dto() -> None:
     dag_results = [
         StepOutputDTO(
             step_id="stp_1",
-            block_id="pb_1234567890abcdef",
+            block_id="pb_0195f3a0000070018234567890abcdef",
             data_type="matrix",
             payload=AtomResultDTO(
                 tda_id="tda_12345678901234567890123456789012",
@@ -481,7 +481,7 @@ def test_grid_schema_strategy_sequence_step_output_dto() -> None:
         ),
         StepOutputDTO(
             step_id="stp_2",
-            block_id="pb_1234567890abcdef",
+            block_id="pb_0195f3a0000070018234567890abcdef",
             data_type="matrix",
             payload=[
                 AtomResultDTO(
@@ -524,7 +524,7 @@ def test_grid_schema_strategy_matrix_more_than_six_extensions_warning() -> None:
     """Test that GridSchemaStrategy logs warning when matrix has >6 dynamic output extensions."""
     strat = GridSchemaStrategy(resolve_i18n=_mock_resolve_i18n)
     matrix_block = MatrixPromptBlock(
-        id="pb_1111222233334444",
+        id="pb_0195f3a0000070018111222233334444",
         slug="many-ext-matrix",
         label=I18nText(translations={"en": "Many Ext Matrix"}),
         description=I18nText(translations={"en": "Desc"}),

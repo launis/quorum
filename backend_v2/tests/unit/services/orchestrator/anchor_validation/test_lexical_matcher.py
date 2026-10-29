@@ -312,7 +312,7 @@ def test_lexical_strictness_bounds_validation_negative() -> None:
     """Verify Pydantic ValidationError on out-of-bounds lexical strictness level (<0 or >100)."""
     with pytest.raises(ValidationError):
         Workflow(
-            id="wor_0123456789abcdef",
+            id="wor_0195f3a0000070008123456789abcdef",
             slug="test-wf",
             name="Test Workflow",
             description="Test",
@@ -324,7 +324,7 @@ def test_lexical_strictness_bounds_validation_negative() -> None:
 
     with pytest.raises(ValidationError):
         Workflow(
-            id="wor_0123456789abcdef",
+            id="wor_0195f3a0000070008123456789abcdef",
             slug="test-wf",
             name="Test Workflow",
             description="Test",
@@ -339,7 +339,7 @@ def test_lexical_strictness_bounds_validation_negative() -> None:
             slug="test-wf",
             name="Test Workflow",
             description="Test",
-            model_registry_id="sys_e26807f3bfa3454d",
+            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
             steps=[],
             default_lexical_strictness_level=-5,
         )
@@ -349,7 +349,7 @@ def test_lexical_strictness_bounds_validation_negative() -> None:
             slug="test-wf",
             name="Test Workflow",
             description="Test",
-            model_registry_id="sys_e26807f3bfa3454d",
+            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
             steps=[],
             default_lexical_strictness_level=150,
         )

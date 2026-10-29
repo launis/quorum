@@ -105,7 +105,7 @@ def repo(fake_driver: _FakeStorageDriver) -> ComponentRepositoryImpl:
 def sample_system_rule() -> SystemRulePromptBlock:
     """Provides a valid SystemRulePromptBlock instance from Polyfactory."""
     return SystemRulePromptBlockFactory.build(
-        id="blk_1111111111111111",
+        id="blk_0195f3a0000070018111111111111111",
         label=I18nText(translations={"en": "Test Rule", "fi": "Testi sääntö"}),
     )
 
@@ -114,7 +114,7 @@ def sample_system_rule() -> SystemRulePromptBlock:
 def sample_matrix() -> MatrixPromptBlock:
     """Provides a valid MatrixPromptBlock instance from Polyfactory."""
     return MatrixPromptBlockFactory.build(
-        id="blk_2222222222222222",
+        id="blk_0195f3a0000070028222222222222222",
         label=I18nText(translations={"en": "Test Matrix", "fi": "Testimatriisi"}),
         rows=[
             MatrixRow(
@@ -141,7 +141,7 @@ async def test_get_all_components(
 
     res_instruction = await repo.get_all_components(type="instruction", exclude_types=["float"])
     assert len(res_instruction) == 1
-    assert res_instruction[0].id == "blk_1111111111111111"
+    assert res_instruction[0].id == "blk_0195f3a0000070018111111111111111"
 
 
 @pytest.mark.asyncio
@@ -152,9 +152,9 @@ async def test_get_component_by_id(
 ) -> None:
     """Test getting component by ID."""
     await fake_driver.upsert("components", sample_system_rule.model_dump(mode="json"), sample_system_rule.id)
-    res = await repo.get_component_by_id("blk_1111111111111111")
+    res = await repo.get_component_by_id("blk_0195f3a0000070018111111111111111")
     assert res is not None
-    assert res.id == "blk_1111111111111111"
+    assert res.id == "blk_0195f3a0000070018111111111111111"
 
 
 @pytest.mark.asyncio
@@ -167,7 +167,7 @@ async def test_get_component_by_name(
     await fake_driver.upsert("components", sample_system_rule.model_dump(mode="json"), sample_system_rule.id)
     res = await repo.get_component_by_name("Test Rule")
     assert res is not None
-    assert res.id == "blk_1111111111111111"
+    assert res.id == "blk_0195f3a0000070018111111111111111"
 
 
 @pytest.mark.asyncio
@@ -178,9 +178,9 @@ async def test_update_component_metadata(
 ) -> None:
     """Test updating metadata for component."""
     await fake_driver.upsert("components", sample_system_rule.model_dump(mode="json"), sample_system_rule.id)
-    res = await repo.update_component_metadata("blk_1111111111111111", "mod", "cls")
+    res = await repo.update_component_metadata("blk_0195f3a0000070018111111111111111", "mod", "cls")
     assert res is True
-    updated = await fake_driver.get("components", "blk_1111111111111111")
+    updated = await fake_driver.get("components", "blk_0195f3a0000070018111111111111111")
     assert updated is not None
     assert updated["module"] == "mod"
     assert updated["class_name"] == "cls"
@@ -192,7 +192,7 @@ async def test_update_component_metadata_not_found(
     fake_driver: _FakeStorageDriver,
 ) -> None:
     """Test updating metadata for non-existent component."""
-    res = await repo.update_component_metadata("blk_0000000000000000", "mod", "cls")
+    res = await repo.update_component_metadata("blk_0195f3a0000070008000000000000000", "mod", "cls")
     assert res is False
 
 
@@ -203,25 +203,25 @@ async def test_create_register_update_delete_component(
 ) -> None:
     """Test basic stateful CRUD roundtrip for generic components."""
     res1 = await repo.create_component(sample_system_rule)
-    assert res1 == "blk_1111111111111111"
+    assert res1 == "blk_0195f3a0000070018111111111111111"
 
-    fetched = await repo.get_component_by_id("blk_1111111111111111")
+    fetched = await repo.get_component_by_id("blk_0195f3a0000070018111111111111111")
     assert fetched is not None
-    assert fetched.id == "blk_1111111111111111"
+    assert fetched.id == "blk_0195f3a0000070018111111111111111"
 
     updated_rule = sample_system_rule.model_copy(update={"instruction_text": "Updated instruction."})
-    res2 = await repo.update_component("blk_1111111111111111", updated_rule)
-    assert res2 == "blk_1111111111111111"
+    res2 = await repo.update_component("blk_0195f3a0000070018111111111111111", updated_rule)
+    assert res2 == "blk_0195f3a0000070018111111111111111"
 
-    refetched = await repo.get_component_by_id("blk_1111111111111111")
+    refetched = await repo.get_component_by_id("blk_0195f3a0000070018111111111111111")
     assert refetched is not None
     assert isinstance(refetched, SystemRulePromptBlock)
     assert refetched.instruction_text == "Updated instruction."
 
-    res3 = await repo.delete_component("blk_1111111111111111")
+    res3 = await repo.delete_component("blk_0195f3a0000070018111111111111111")
     assert res3 is True
 
-    assert await repo.get_component_by_id("blk_1111111111111111") is None
+    assert await repo.get_component_by_id("blk_0195f3a0000070018111111111111111") is None
 
 
 @pytest.mark.asyncio
@@ -229,7 +229,7 @@ async def test_delete_component_not_found(
     repo: ComponentRepositoryImpl,
 ) -> None:
     """Test deleting non-existent component."""
-    res = await repo.delete_component("blk_0000000000000000")
+    res = await repo.delete_component("blk_0195f3a0000070008000000000000000")
     assert res is False
 
 
@@ -240,9 +240,9 @@ async def test_update_component_not_found(
 ) -> None:
     """Negative: update_component raises ResourceNotFoundError when component missing."""
     with pytest.raises(ResourceNotFoundError) as exc_info:
-        await repo.update_component("blk_0000000000000000", sample_system_rule)
+        await repo.update_component("blk_0195f3a0000070008000000000000000", sample_system_rule)
     assert exc_info.value.details["resource_type"] == "PromptBlock"
-    assert exc_info.value.details["resource_id"] == "blk_0000000000000000"
+    assert exc_info.value.details["resource_id"] == "blk_0195f3a0000070008000000000000000"
 
 
 @pytest.mark.asyncio
@@ -251,7 +251,11 @@ async def test_get_all_components_corrupted_record(
     fake_driver: _FakeStorageDriver,
 ) -> None:
     """Negative: get_all_components raises AppException when a stored record is corrupted."""
-    await fake_driver.upsert("components", {"id": "blk_9999999999999999", "corrupted": True}, "blk_9999999999999999")
+    await fake_driver.upsert(
+        "components",
+        {"id": "blk_0195f3a0000070098999999999999999", "corrupted": True},
+        "blk_0195f3a0000070098999999999999999",
+    )
     with pytest.raises(AppException) as exc_info:
         await repo.get_all_components()
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -263,7 +267,7 @@ async def test_get_all_components_corrupted_record_without_id(
     fake_driver: _FakeStorageDriver,
 ) -> None:
     """Negative boundary: get_all_components raises AppException when corrupted record lacks id."""
-    await fake_driver.upsert("components", {"corrupted": True}, "blk_8888888888888888")
+    await fake_driver.upsert("components", {"corrupted": True}, "blk_0195f3a0000070088888888888888888")
     with pytest.raises(AppException) as exc_info:
         await repo.get_all_components()
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -280,8 +284,8 @@ async def test_get_component_by_name_not_found_and_corrupted(
 
     await fake_driver.upsert(
         "components",
-        {"id": "blk_7777777777777777", "name": "CorruptedByName", "corrupted": True},
-        "blk_7777777777777777",
+        {"id": "blk_0195f3a0000070078777777777777777", "name": "CorruptedByName", "corrupted": True},
+        "blk_0195f3a0000070078777777777777777",
     )
     with pytest.raises(AppException) as exc_info:
         await repo.get_component_by_name("CorruptedByName")
@@ -297,7 +301,7 @@ async def test_get_components_using_dimension(
     """Positive: tests searching matrix components referencing a dimension ID."""
     other_matrix = sample_matrix.model_copy(
         update={
-            "id": "blk_3333333333333333",
+            "id": "blk_0195f3a0000070038333333333333333",
             "rows": [
                 MatrixRow(
                     label=I18nText(translations={"en": "other_dim", "fi": "other_dim"}),
@@ -310,7 +314,7 @@ async def test_get_components_using_dimension(
     await fake_driver.upsert("components", other_matrix.model_dump(mode="json"), other_matrix.id)
 
     matches = await repo.get_components_using_dimension("dim_target")
-    assert matches == ["blk_2222222222222222"]
+    assert matches == ["blk_0195f3a0000070028222222222222222"]
 
 
 @pytest.mark.asyncio
@@ -318,7 +322,7 @@ async def test_update_component_empty_payload(
     repo: ComponentRepositoryImpl,
 ) -> None:
     """Negative ISTQB Boundary Partition: Updating non-existent component raises ResourceNotFoundError."""
-    empty_id = "blk_0000000000000000"
+    empty_id = "blk_0195f3a0000070008000000000000000"
     dummy_rule = SystemRulePromptBlockFactory.build(id=empty_id)
     with pytest.raises(ResourceNotFoundError):
         await repo.update_component(empty_id, dummy_rule)
@@ -330,7 +334,7 @@ async def test_get_component_malformed_id(
     fake_driver: _FakeStorageDriver,
 ) -> None:
     """Negative ISTQB Boundary Partition: Corrupt/malformed document in database raises AppException."""
-    malformed_id = "blk_9999999999999999"
+    malformed_id = "blk_0195f3a0000070098999999999999999"
     await fake_driver.upsert("components", {"id": malformed_id, "corrupted": True}, malformed_id)
     with pytest.raises(AppException) as exc_info:
         await repo.get_component_by_id(malformed_id)

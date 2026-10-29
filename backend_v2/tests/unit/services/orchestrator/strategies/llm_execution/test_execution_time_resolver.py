@@ -96,7 +96,7 @@ def test_resolve_llm_context_data_dto_raw_inputs_date() -> None:
 
 def test_resolve_physical_disk_file_mtime(tmp_path: Path) -> None:
     """Positive test: Resolves physical input file st_mtime when disk file exists."""
-    execution_id = "exec_1234567890abcdef"
+    execution_id = "exec_0195f3a0000070018234567890abcdef"
     input_dir = tmp_path / "data" / "files" / "executions" / execution_id / "inputs"
     input_dir.mkdir(parents=True, exist_ok=True)
     target_file = input_dir / "input_chat_log.md"
@@ -121,7 +121,7 @@ def test_resolve_physical_disk_file_mtime(tmp_path: Path) -> None:
 
 def test_resolve_physical_file_os_error_handling(tmp_path: Path) -> None:
     """Negative test: Handles OSError when stat-ing physical file without crashing."""
-    execution_id = "exec_1234567890abcdef"
+    execution_id = "exec_0195f3a0000070018234567890abcdef"
     input_dir = tmp_path / "data" / "files" / "executions" / execution_id / "inputs"
     input_dir.mkdir(parents=True, exist_ok=True)
     target_file = input_dir / "input_chat_log.md"

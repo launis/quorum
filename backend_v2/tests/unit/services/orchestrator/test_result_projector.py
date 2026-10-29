@@ -283,7 +283,7 @@ def test_result_projector_project_matrix_results():
     )
 
     matrix_block = MatrixPromptBlock(
-        id="blk_0123456789abcdef",
+        id="blk_0195f3a0000070008123456789abcdef",
         slug="matrix_test",
         label=I18nText(translations={"en": "Test Matrix"}),
         description=I18nText(translations={"en": "Description"}),
@@ -311,7 +311,7 @@ def test_result_projector_project_matrix_results():
     proj_matrix = ResultProjector.project_matrix_results(
         nodes=[node],
         states={tda_id: state},
-        matrix_id="blk_0123456789abcdef",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         matrix_block=matrix_block,
         raw_score=5.0,
         justification="Strong performance.",
@@ -375,7 +375,7 @@ def test_result_projector_external_edge_and_missing_context() -> None:
     )
 
     matrix_block = MatrixPromptBlock(
-        id="blk_0123456789abcdef",
+        id="blk_0195f3a0000070008123456789abcdef",
         slug="matrix_test",
         label=I18nText(translations={"en": "Test Matrix"}),
         description=I18nText(translations={"en": "Description"}),
@@ -415,7 +415,7 @@ def test_result_projector_external_edge_and_missing_context() -> None:
     proj_matrix = ResultProjector.project_matrix_results(
         nodes=[node_child, node_sys],
         states={tda_child: state_child, tda_sys: state_sys},
-        matrix_id="blk_0123456789abcdef",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         matrix_block=matrix_block,
         raw_score=1.0,
         justification="Poor performance.",

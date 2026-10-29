@@ -45,20 +45,20 @@ def client_member(mock_studio_service_manager: Any) -> Any:
 
 def test_step_rbac_save_member_forbidden(client_member: Any) -> None:
     payload = {
-        "id": "step_2222222222222222",
+        "id": "stp_0195f3a0000070028222222222222222",
         "name": {"translations": {"en": "new", "fi": "new"}},
         "description": {"translations": {"en": "desc", "fi": "desc"}},
         "type": "llm",
         "cognitive_tier": "fast",
         "role_block_id": None,
-        "extraction_protocol_block_id": "blk_573802341db9d68c",
-        "criteria_block_ids": ["blk_1111111111111111"],
+        "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
+        "criteria_block_ids": ["blk_0195f3a0000070018111111111111111"],
         "organization_id": "org_testorg123",
         "slug": "new_step",
     }
-    response = client_member.put("/api/v2/studio/steps/step_2222222222222222", json=payload)
+    response = client_member.put("/api/v2/studio/steps/stp_0195f3a0000070028222222222222222", json=payload)
     if response.status_code == 404:
-        response = client_member.put("/studio/steps/step_2222222222222222", json=payload)
+        response = client_member.put("/studio/steps/stp_0195f3a0000070028222222222222222", json=payload)
 
     assert response.status_code == 403
     assert "Permission" in response.json()["detail"] or "ADMIN" in response.json()["detail"]

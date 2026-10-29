@@ -332,9 +332,9 @@ async def test_gather_source_texts_with_storage() -> None:
 
     exec_repo = InMemoryUnifiedWorkflowRepository()
     exec_record = ExecutionRecord(
-        id="ex_1234567890abcdef",
+        id="ex_0195f3a0000070018234567890abcdef",
         workflow_id="wf1",
-        output_profile_id="prof_1234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         target_locale="en",
         status="RUNNING",
         metadata=ExecutionMetadata(),

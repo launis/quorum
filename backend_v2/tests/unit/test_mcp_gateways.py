@@ -174,34 +174,34 @@ async def test_mcp_gateways_router_negative_cases(
 
     with pytest.raises(ResourceNotFoundError):
         await get_mcp_gateway(
-            gateway_id="sys_9999999999999999",
+            gateway_id="sys_0195f3a0000070098999999999999999",
             current_user=root_user,
             studio_service=studio_service,
         )
 
     with pytest.raises(ResourceNotFoundError):
         await delete_mcp_gateway(
-            gateway_id="sys_9999999999999999",
+            gateway_id="sys_0195f3a0000070098999999999999999",
             current_user=root_user,
             studio_service=studio_service,
         )
 
     with pytest.raises(ResourceNotFoundError):
         await discover_mcp_gateway_tools(
-            gateway_id="sys_9999999999999999",
+            gateway_id="sys_0195f3a0000070098999999999999999",
             current_user=root_user,
             studio_service=studio_service,
         )
 
     duplicate_gw = SystemConfigMCPGateways(
-        id="sys_8172bda70c8641c5",
+        id="sys_0195f3a00000700080008172bda70c86",
         slug="default_mcp_gateway",
         type="mcp_gateways",
         tools=[],
     )
     with pytest.raises(AppException) as exc_info:
         await save_mcp_gateway(
-            gateway_id="sys_8172bda70c8641c5",
+            gateway_id="sys_0195f3a00000700080008172bda70c86",
             data=duplicate_gw,
             current_user=root_user,
             studio_service=studio_service,

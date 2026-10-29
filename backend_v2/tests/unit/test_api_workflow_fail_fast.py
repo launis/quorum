@@ -45,21 +45,21 @@ def client_admin(mock_studio_service_admin: Any) -> Any:
 def test_workflow_api_fails_fast_on_invalid_model_strategy(client_admin: Any) -> None:
     """Test that putting an invalid model strategy to the workflow root fails at the API boundary."""
     payload = {
-        "id": "wf_1111111111111111",
+        "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "slug": "valid_wf",
         "model_strategy": "super_mega_brain_5000",  # INVALID ENUM!
         "steps": [],
     }
-    response = client_admin.put("/api/v2/studio/workflows/wf_1111111111111111", json=payload)
+    response = client_admin.put("/api/v2/studio/workflows/wf_0195f3a0000070018111111111111111", json=payload)
     if response.status_code == 404:
-        response = client_admin.put("/studio/workflows/wf_1111111111111111", json=payload)
+        response = client_admin.put("/studio/workflows/wf_0195f3a0000070018111111111111111", json=payload)
 
     # Should be 422 Unprocessable Entity by FastAPI due to Pydantic Enum validation
     assert response.status_code == 422
@@ -69,14 +69,14 @@ def test_workflow_api_fails_fast_on_invalid_model_strategy(client_admin: Any) ->
 def test_workflow_api_fails_fast_on_invalid_step_id(client_admin: Any) -> None:
     """Test that providing an invalid Step ID pattern fails fast."""
     payload = {
-        "id": "wf_1111111111111111",
+        "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "slug": "valid_wf",
         "steps": [
             {
@@ -85,9 +85,9 @@ def test_workflow_api_fails_fast_on_invalid_step_id(client_admin: Any) -> None:
             }
         ],
     }
-    response = client_admin.put("/api/v2/studio/workflows/wf_1111111111111111", json=payload)
+    response = client_admin.put("/api/v2/studio/workflows/wf_0195f3a0000070018111111111111111", json=payload)
     if response.status_code == 404:
-        response = client_admin.put("/studio/workflows/wf_1111111111111111", json=payload)
+        response = client_admin.put("/studio/workflows/wf_0195f3a0000070018111111111111111", json=payload)
 
     assert response.status_code == 422
     assert "steps" in response.text
@@ -100,14 +100,14 @@ def test_workflow_api_strips_illegal_step_attributes(client_admin: Any, mock_stu
     Let's see if they survive into the validated payload.
     """
     payload = {
-        "id": "wf_1111111111111111",
+        "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "slug": "valid_wf",
         "steps": [
             {
@@ -121,9 +121,9 @@ def test_workflow_api_strips_illegal_step_attributes(client_admin: Any, mock_stu
         ],
     }
 
-    response = client_admin.put("/api/v2/studio/workflows/wf_1111111111111111", json=payload)
+    response = client_admin.put("/api/v2/studio/workflows/wf_0195f3a0000070018111111111111111", json=payload)
     if response.status_code == 404:
-        response = client_admin.put("/studio/workflows/wf_1111111111111111", json=payload)
+        response = client_admin.put("/studio/workflows/wf_0195f3a0000070018111111111111111", json=payload)
 
     assert response.status_code == 422, (
         f"API unexpectedly accepted ILLEGAL properties or failed differently: {response.text}"
@@ -165,8 +165,8 @@ def test_step_api_fails_fast_on_invalid_extra_attributes(client_admin: Any) -> N
         "type": "llm",
         "model_strategy": "fast",
         "role_block_id": None,
-        "extraction_protocol_block_id": "blk_573802341db9d68c",
-        "criteria_block_ids": ["blk_0123456789abcdef"],
+        "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
+        "criteria_block_ids": ["blk_0195f3a0000070008123456789abcdef"],
         "execution_logic": "Execute this.",
         "unexpected_garbage_property": "This should kill the request",  # ILLEGAL EXTRA
     }
@@ -182,26 +182,26 @@ def test_step_api_fails_fast_on_invalid_extra_attributes(client_admin: Any) -> N
 def test_workflow_api_fails_fast_on_orphan_dependency(client_admin: Any) -> None:
     """Test that a Workflow with a dependency pointing to a missing step is outright rejected."""
     payload = {
-        "id": "wf_1111111111111111",
+        "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "slug": "valid_wf",
         "steps": [
             {
-                "id": "blk_dddd4444dddd4444",
+                "id": "blk_0195f3a00000700d8ddd4444dddd4444",
                 "task_blueprint": "step_valid",
                 "depends_on": ["blk_missing1"],  # ORPHAN REFERENCE!
             }
         ],
     }
-    response = client_admin.put("/api/v2/studio/workflows/wf_1111111111111111", json=payload)
+    response = client_admin.put("/api/v2/studio/workflows/wf_0195f3a0000070018111111111111111", json=payload)
     if response.status_code == 404:
-        response = client_admin.put("/studio/workflows/wf_1111111111111111", json=payload)
+        response = client_admin.put("/studio/workflows/wf_0195f3a0000070018111111111111111", json=payload)
 
     assert response.status_code == 422
     assert "does not exist in this workflow" in response.text
@@ -210,31 +210,31 @@ def test_workflow_api_fails_fast_on_orphan_dependency(client_admin: Any) -> None
 def test_workflow_api_fails_fast_on_cyclic_dependency(client_admin: Any) -> None:
     """Test that a Workflow with A -> B -> A cyclical dependencies is outright rejected."""
     payload = {
-        "id": "wf_1111111111111111",
+        "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "slug": "valid_wf",
         "steps": [
             {
-                "id": "blk_aaaa111111111111",
+                "id": "blk_0195f3a00000700a8aaa111111111111",
                 "task_blueprint": "step_a_valid1",
-                "depends_on": ["blk_bbbb222222222222"],  # A depends on B
+                "depends_on": ["blk_0195f3a00000700b8bbb222222222222"],  # A depends on B
             },
             {
-                "id": "blk_bbbb222222222222",
+                "id": "blk_0195f3a00000700b8bbb222222222222",
                 "task_blueprint": "step_b_valid2",
-                "depends_on": ["blk_aaaa111111111111"],  # B depends on A (CYCLE!)
+                "depends_on": ["blk_0195f3a00000700a8aaa111111111111"],  # B depends on A (CYCLE!)
             },
         ],
     }
-    response = client_admin.put("/api/v2/studio/workflows/wf_1111111111111111", json=payload)
+    response = client_admin.put("/api/v2/studio/workflows/wf_0195f3a0000070018111111111111111", json=payload)
     if response.status_code == 404:
-        response = client_admin.put("/studio/workflows/wf_1111111111111111", json=payload)
+        response = client_admin.put("/studio/workflows/wf_0195f3a0000070018111111111111111", json=payload)
 
     assert response.status_code == 422
     assert "Circular dependency" in response.text
@@ -243,37 +243,40 @@ def test_workflow_api_fails_fast_on_cyclic_dependency(client_admin: Any) -> None
 def test_workflow_api_succeeds_with_valid_data(client_admin: Any, mock_studio_service_admin: Any) -> None:
     """Test the happy path: a valid Workflow DAG saves successfully passing all strict Pydantic locks."""
     payload = {
-        "id": "wf_1111111111111111",
+        "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Happy Path WF", "fi": "Happy Path WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "slug": "happy_path_wf",
         "steps": [
             {
-                "id": "blk_aaaa111111111111",
+                "id": "blk_0195f3a00000700a8aaa111111111111",
                 "task_blueprint": "step_valid_a",
                 "depends_on": [],  # Root Node
             },
             {
-                "id": "blk_bbbb222222222222",
+                "id": "blk_0195f3a00000700b8bbb222222222222",
                 "task_blueprint": "step_valid_b",
-                "depends_on": ["blk_aaaa111111111111"],  # B depends on A
+                "depends_on": ["blk_0195f3a00000700a8aaa111111111111"],  # B depends on A
             },
             {
-                "id": "blk_cccc333333333333",
+                "id": "blk_0195f3a00000700c8ccc333333333333",
                 "task_blueprint": "step_valid_c",
-                "depends_on": ["blk_aaaa111111111111", "blk_bbbb222222222222"],  # C depends on A and B (Valid DAG)
+                "depends_on": [
+                    "blk_0195f3a00000700a8aaa111111111111",
+                    "blk_0195f3a00000700b8bbb222222222222",
+                ],  # C depends on A and B (Valid DAG)
             },
         ],
     }
 
-    response = client_admin.put("/api/v2/studio/workflows/wf_1111111111111111", json=payload)
+    response = client_admin.put("/api/v2/studio/workflows/wf_0195f3a0000070018111111111111111", json=payload)
     if response.status_code == 404:
-        response = client_admin.put("/studio/workflows/wf_1111111111111111", json=payload)
+        response = client_admin.put("/studio/workflows/wf_0195f3a0000070018111111111111111", json=payload)
 
     assert response.status_code == 200, f"API unexpectedly rejected valid configuration: {response.text}"
 

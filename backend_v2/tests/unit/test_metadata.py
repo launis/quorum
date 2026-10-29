@@ -162,10 +162,10 @@ def test_inject_step_metadata_validation_failure() -> None:
 def test_step_metadata_dto_unix_time_boundary_valid() -> None:
     """Test StepMetadataDTO accepts boundary value unix_time=0."""
     dto = StepMetadataDTO(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        step_id="stp_0123456789abcdef",
-        initiator_id="usr_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        step_id="stp_0195f3a0000070008123456789abcdef",
+        initiator_id="usr_0195f3a0000070008123456789abcdef",
         timestamp_isot="2026-10-29T00:00:00Z",
         unix_time=0,
     )
@@ -177,10 +177,10 @@ def test_step_metadata_dto_negative_unix_time_raises_app_exception() -> None:
     """Test StepMetadataDTO rejects negative unix_time (-1 boundary) with AppException."""
     with pytest.raises(AppException) as exc_info:
         StepMetadataDTO(
-            execution_id="exe_0123456789abcdef",
-            workflow_id="wor_0123456789abcdef",
-            step_id="stp_0123456789abcdef",
-            initiator_id="usr_0123456789abcdef",
+            execution_id="exe_0195f3a0000070008123456789abcdef",
+            workflow_id="wor_0195f3a0000070008123456789abcdef",
+            step_id="stp_0195f3a0000070008123456789abcdef",
+            initiator_id="usr_0195f3a0000070008123456789abcdef",
             timestamp_isot="2026-10-29T00:00:00Z",
             unix_time=-1,
         )

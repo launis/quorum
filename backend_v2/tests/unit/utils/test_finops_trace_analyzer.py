@@ -276,4 +276,3 @@ def test_finalize_execution_with_trace_events_and_explicit_cost_usd(tmp_path: Pa
     res = finalize_execution(str(trace_file), str(telemetry_file))
     assert res.healing_cost_events == 1
     assert res.usd_cost == pytest.approx(0.042)
-

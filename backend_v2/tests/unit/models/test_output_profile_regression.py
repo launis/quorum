@@ -11,14 +11,14 @@ from backend_v2.models.enums import TargetBlockType
 def test_output_profile_response_dto_schema_parity() -> None:
     """Proof of success: OutputProfileResponseDTO accepts matrix_synthesis_groups and strictly forbids legacy dicts."""
     payload = {
-        "id": "prf_1234567890123456",
+        "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
-        "workflow_id": "wf_9d68c573802341db",
+        "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"en": "Test"}},
         "target_block_order": [TargetBlockType.METADATA_BLOCK],
         "matrix_synthesis_groups": [
             {
-                "id": "grp_1111111111111111",
+                "id": "grp_0195f3a0000070018111111111111111",
                 "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
                 "target_blocks": ["blk_1"],
             }
@@ -27,15 +27,15 @@ def test_output_profile_response_dto_schema_parity() -> None:
 
     dto = OutputProfileResponseDTO.model_validate(payload)
     assert len(dto.matrix_synthesis_groups) == 1
-    assert dto.matrix_synthesis_groups[0].id == "grp_1111111111111111"
+    assert dto.matrix_synthesis_groups[0].id == "grp_0195f3a0000070018111111111111111"
 
 
 def test_output_profile_response_dto_target_block_order_parity() -> None:
     """Proof of success: OutputProfileResponseDTO should accept target_block_order from database."""
     payload = {
-        "id": "prf_1234567890123456",
+        "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
-        "workflow_id": "wf_9d68c573802341db",
+        "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"en": "Test"}},
         "target_block_order": [TargetBlockType.METADATA_BLOCK, TargetBlockType.SYNTHESIS_TEXT_BLOCK],
         "matrix_synthesis_groups": [],
@@ -48,14 +48,14 @@ def test_output_profile_response_dto_target_block_order_parity() -> None:
 def test_embedded_output_profile_schema_parity() -> None:
     """Proof of success: OutputProfile accepts matrix_synthesis_groups."""
     payload = {
-        "id": "prf_1234567890123456",
+        "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
-        "workflow_id": "wf_9d68c573802341db",
+        "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"en": "Test"}},
         "target_block_order": [TargetBlockType.METADATA_BLOCK],
         "matrix_synthesis_groups": [
             {
-                "id": "grp_1111111111111111",
+                "id": "grp_0195f3a0000070018111111111111111",
                 "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
                 "target_blocks": ["blk_1"],
             }
@@ -69,9 +69,9 @@ def test_embedded_output_profile_schema_parity() -> None:
 def test_output_profile_response_dto_negative_extra_keys() -> None:
     """Proof of failure: extra='forbid' should reject unknown or purged keys."""
     payload = {
-        "id": "prf_1234567890123456",
+        "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
-        "workflow_id": "wf_9d68c573802341db",
+        "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"en": "Test"}},
         "invalid_extra_key": "should fail",
     }
@@ -83,9 +83,9 @@ def test_output_profile_response_dto_negative_extra_keys() -> None:
 def test_embedded_output_profile_negative_wrong_type() -> None:
     """Proof of failure: matrix_synthesis_groups must be a list of valid MatrixSynthesisGroup models."""
     payload = {
-        "id": "prf_1234567890123456",
+        "id": "prf_0195f3a0000070018234567890123456",
         "slug": "test-profile",
-        "workflow_id": "wf_9d68c573802341db",
+        "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"en": "Test"}},
         "target_block_order": [TargetBlockType.METADATA_BLOCK],
         "matrix_synthesis_groups": "not a list",

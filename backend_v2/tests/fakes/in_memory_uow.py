@@ -1297,10 +1297,28 @@ class InMemoryAsyncPgConnection:
                 rows: list[AsyncPgRecordProtocol] = []
                 for entry in self._store.seed_tables[tbl].values():
                     if isinstance(entry, Sequence):
-                        rows.append(InMemoryAsyncPgRecord({col: val for col, val in zip(cols, entry, strict=False)}))
+                        rows.append(InMemoryAsyncPgRecord(self._zip_select_row(cols, entry)))
                 return tuple(rows)
 
         return ()
+
+    @staticmethod
+    def _zip_select_row(
+        cols: list[str],
+        entry: Sequence[_ColumnValue],
+    ) -> dict[str, _ColumnValue]:
+        """Map SELECT column names to stored positional values, synthesizing VIRTUAL created_at if omitted on INSERT."""
+        if "created_at" in cols and len(entry) == len(cols) - 1:
+            non_virtual_cols = [c for c in cols if c != "created_at"]
+            mapped = {col: val for col, val in zip(non_virtual_cols, entry, strict=False)}
+            pk_val = entry[0] if entry else None
+            if isinstance(pk_val, uuid.UUID):
+                ts_ms = (pk_val.int >> 80) & ((1 << 48) - 1)
+                mapped["created_at"] = datetime.fromtimestamp(ts_ms / 1000.0, tz=timezone.utc)
+            else:
+                mapped["created_at"] = datetime.now(timezone.utc)
+            return mapped
+        return {col: val for col, val in zip(cols, entry, strict=False)}
 
     @staticmethod
     def _extract_select_columns(query: str) -> list[str]:
@@ -1467,7 +1485,7 @@ class InMemoryAsyncPgConnection:
                 entry = self._store.seed_tables[tbl][row_id]
                 if isinstance(entry, Sequence):
                     cols = self._extract_select_columns(query)
-                    return InMemoryAsyncPgRecord({col: val for col, val in zip(cols, entry, strict=False)})
+                    return InMemoryAsyncPgRecord(self._zip_select_row(cols, entry))
 
         return None
 

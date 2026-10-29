@@ -24,7 +24,7 @@ def test_prompt_block_allow_decimals_requires_numeric() -> None:
     scale = MatrixScale(score=1, ai_label="Level 1", claims=[claim])
 
     valid_block = MatrixPromptBlock(
-        id="blk_eeee5555eeee5555",
+        id="blk_0195f3a00000700e8eee5555eeee5555",
         slug="valid_slug",
         label=label,
         description=desc,
@@ -39,7 +39,7 @@ def test_prompt_block_allow_decimals_requires_numeric() -> None:
     # Should raise error for incompatible type with MatrixPromptBlock
     with pytest.raises(ValidationError) as exc_info:
         MatrixPromptBlock(
-            id="blk_ffff1111ffff1111",
+            id="blk_0195f3a00000700f8fff1111ffff1111",
             slug="invalid_slug",
             label=label,
             description=desc,
@@ -57,12 +57,12 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
 
     # Successful: Has prompt blocks
     valid_blueprint = Step(
-        id="step_11111111abababab",
+        id="stp_0195f3a00000700181111111abababab",
         slug="task_bp_valid",
         name=label,
         role_block_id=None,
-        extraction_protocol_block_id="blk_573802341db9d68c",
-        criteria_block_ids=["some_block"],
+        extraction_protocol_block_id="blk_0195f3a000007005873802341db9d68c",
+        criteria_block_ids=["blk_0195f3a00000700181111111abababab"],
         cognitive_tier=CognitiveTier.FAST,
     )
     assert valid_blueprint.slug == "task_bp_valid"
@@ -70,11 +70,11 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
     # Fails: Nothing defined
     with pytest.raises(AppException) as exc_info:
         Step(
-            id="step_ffff1111ffff1111",
+            id="stp_0195f3a00000700f8fff1111ffff1111",
             slug="task_bp_err",
             name=label,
             role_block_id=None,
-            extraction_protocol_block_id="blk_573802341db9d68c",
+            extraction_protocol_block_id="blk_0195f3a000007005873802341db9d68c",
             criteria_block_ids=[],
             pre_hooks=["some_hook"],
             cognitive_tier=CognitiveTier.FAST,
@@ -97,7 +97,7 @@ def test_opaque_id_regex_validation() -> None:
             type=BlockDataType.STRING,
             output_extensions=[],
         )
-    assert "String should match pattern '^([a-z]{2,5})_[a-fA-F0-9]{16,32}$'" in str(exc_pb.value)
+    assert "String should match pattern '^([a-z]{2,5})_[a-fA-F0-9]{32}$'" in str(exc_pb.value)
 
     # 2. Test Step creation rejection
     with pytest.raises(ValidationError) as exc_step:
@@ -106,8 +106,8 @@ def test_opaque_id_regex_validation() -> None:
             slug="slug",
             name=label,
             role_block_id=None,
-            extraction_protocol_block_id="blk_573802341db9d68c",
+            extraction_protocol_block_id="blk_0195f3a000007005873802341db9d68c",
             criteria_block_ids=["blk_test"],
             model_strategy="fast",
         )
-    assert "String should match pattern '^([a-z]{2,5})_[a-fA-F0-9]{16,32}$'" in str(exc_step.value)
+    assert "String should match pattern '^([a-z]{2,5})_[a-fA-F0-9]{32}$'" in str(exc_step.value)

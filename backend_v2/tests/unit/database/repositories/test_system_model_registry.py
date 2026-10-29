@@ -37,13 +37,13 @@ def _build_test_registry(
 @pytest.fixture
 def gemini_stack() -> SystemConfigModelRegistry:
     """Fixture for Gemini stack registry."""
-    return _build_test_registry("sys_e26807f3bfa3454d", "Google AI Studio Stack", LLMProvider.AI_STUDIO)
+    return _build_test_registry("sys_0195f3a00000700e826807f3bfa3454d", "Google AI Studio Stack", LLMProvider.AI_STUDIO)
 
 
 @pytest.fixture
 def openai_stack() -> SystemConfigModelRegistry:
     """Fixture for OpenAI stack registry."""
-    return _build_test_registry("sys_6f8b1c4a2e0d49f1", "OpenAI O-Series Stack", LLMProvider.OPENAI)
+    return _build_test_registry("sys_0195f3a0000070068f8b1c4a2e0d49f1", "OpenAI O-Series Stack", LLMProvider.OPENAI)
 
 
 @pytest.mark.asyncio
@@ -68,7 +68,7 @@ async def test_get_model_registry_by_id_not_found_raises() -> None:
     mock_driver.get.return_value = None
 
     repo = SystemRepositoryImpl(driver=mock_driver)
-    missing_id = "sys_9999999999999999"
+    missing_id = "sys_0195f3a0000070098999999999999999"
 
     with pytest.raises(ResourceNotFoundError) as exc_info:
         await repo.get_model_registry(registry_id=missing_id)
@@ -146,7 +146,7 @@ async def test_delete_system_config() -> None:
     mock_driver.delete.return_value = True
 
     repo = SystemRepositoryImpl(driver=mock_driver)
-    res = await repo.delete_system_config("sys_6f8b1c4a2e0d49f1")
+    res = await repo.delete_system_config("sys_0195f3a0000070068f8b1c4a2e0d49f1")
 
     assert res is True
-    mock_driver.delete.assert_called_once_with("system_config", "sys_6f8b1c4a2e0d49f1")
+    mock_driver.delete.assert_called_once_with("system_config", "sys_0195f3a0000070068f8b1c4a2e0d49f1")

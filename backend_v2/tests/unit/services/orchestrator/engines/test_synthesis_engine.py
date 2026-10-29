@@ -66,7 +66,7 @@ def engine(mock_executor: AsyncMock) -> SynthesisEngine:
 @pytest.fixture
 def base_request() -> EngineExecutionRequest:
     """Provides a base valid request with hydrated messages and sufficient atoms (>= 8) with matrix evidence."""
-    step = StepRule(id="sr_1234567890abcdef1234", task_blueprint="bp_1")
+    step = StepRule(id="sr_0195f3a000007005867890abcdef1234", task_blueprint="bp_1")
     context = StrategyContext(
         execution_id="exec_1",
         workflow_id="wf_1",
@@ -139,7 +139,7 @@ async def test_synthesis_engine_happy_path(
 
     assert len(result.trace_events) == 1
     trace = result.trace_events[0]
-    assert trace.step_name == "sr_1234567890abcdef1234"
+    assert trace.step_name == "sr_0195f3a000007005867890abcdef1234"
     assert trace.event_type == "output"
     assert trace.content["title"] == "Test"
     assert trace.content["_step_metadata"]["token_usage"]["total_tokens"] == 30
@@ -225,7 +225,7 @@ async def test_synthesis_engine_data_starvation_circuit_breaker(
     assert "zero atoms extracted" in result.synthesis_output.reason
     assert len(result.trace_events) == 1
     assert result.trace_events[0].content.event_type == "starvation"
-    assert result.trace_events[0].step_name == "sr_1234567890abcdef1234"
+    assert result.trace_events[0].step_name == "sr_0195f3a000007005867890abcdef1234"
 
     # Case B: 4 atoms (< 8) without matrix evidence
     req_b = base_request.model_copy(

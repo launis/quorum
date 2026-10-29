@@ -26,13 +26,13 @@ def _make_step_def() -> Step:
     """Creates a valid Step for testing."""
     return Step.model_validate(
         {
-            "id": "stp_1234567890abcdef",
+            "id": "stp_0195f3a0000070018234567890abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test Step"}},
             "description": {"translations": {"en": "Desc"}},
             "cognitive_tier": "fast",
-            "criteria_block_ids": ["blk_1234567890abcdef"],
-            "extraction_protocol_block_id": "blk_1234567890abcdef",
+            "criteria_block_ids": ["blk_0195f3a0000070018234567890abcdef"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070018234567890abcdef",
             "type": "llm",
         }
     )
@@ -81,16 +81,16 @@ async def test_preflight_inflated_by_chat_xml_and_ai_text() -> None:
     )
 
     step_rule = StepRule(
-        id="stp_1234567890abcdef",
-        task_blueprint="blp_1234567890abcdef",
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
         input_mappings={},
         depends_on=[],
     )
     step_def = _make_step_def()
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         target_locale="fi",
         metadata=ExecutionMetadata(),
         raw_inputs=WorkflowInputs(dynamic_inputs=dynamic_inputs),

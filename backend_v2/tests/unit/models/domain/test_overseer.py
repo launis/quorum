@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from polyfactory.factories.pydantic_factory import ModelFactory
 import pytest
+from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes

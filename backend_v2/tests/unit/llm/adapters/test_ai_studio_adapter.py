@@ -94,7 +94,7 @@ def cleanup_genai_mock() -> Any:
         google.genai = importlib.import_module("google.genai")
         importlib.import_module("google.genai.types")
         importlib.import_module("google.genai.errors")
-    except (ImportError, AttributeError, KeyError):
+    except ImportError, AttributeError, KeyError:
         pass
 
 

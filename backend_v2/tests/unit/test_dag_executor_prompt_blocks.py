@@ -27,7 +27,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     prompt_blocks = [
         PromptBlockAdapter.validate_python(
             {
-                "id": "blk_0123456789abcdef0123456789ab",
+                "id": "blk_0195f3a00000700c8def0123456789ab",
                 "slug": "task_bp",
                 "label": {"translations": {"fi": "Testi", "en": "Test"}},
                 "description": {"translations": {"fi": "Kuvaus", "en": "Desc"}},
@@ -39,7 +39,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
         ),
         PromptBlockAdapter.validate_python(
             {
-                "id": "blk_573802341db9d68c",
+                "id": "blk_0195f3a000007005873802341db9d68c",
                 "slug": "zero_trust_extraction_protocol",
                 "category_id": "system_rule",
                 "type": BlockDataType.STRING,
@@ -53,12 +53,12 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     ]
     repo.set_prompt_blocks(prompt_blocks)
     step_def = {
-        "id": "step_1111111111111111",
+        "id": "stp_0195f3a0000070018111111111111111",
         "slug": "task_bp",
         "name": {"translations": {"fi": "Vaihe", "en": "Step"}},
         "role_block_id": None,
-        "extraction_protocol_block_id": "blk_573802341db9d68c",
-        "criteria_block_ids": ["blk_0123456789abcdef0123456789ab"],
+        "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
+        "criteria_block_ids": ["blk_0195f3a00000700c8def0123456789ab"],
         "cognitive_tier": "reasoning",
         "pre_hooks": [],
     }
@@ -66,30 +66,30 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo.seed_raw_step("task_bp", step_def)
     repo.set_workflow(
         {
-            "id": "wf_5555555555555555",
+            "id": "wf_0195f3a0000070058555555555555555",
             "slug": "wf_test_slug",
             "status": "draft",
             "version": 1,
-            "default_profile_id": "prof_dddd1111dddd1111",
+            "default_profile_id": "prof_0195f3a00000700d8ddd1111dddd1111",
             "historical_context_mode": "DISABLED",
-            "model_registry_id": "sys_e26807f3bfa3454d",
+            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
             "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
             "description": {"translations": {"en": "Desc", "fi": "Desc"}},
-            "steps": [{"id": "step_1111111111111111", "task_blueprint": "task_bp"}],
+            "steps": [{"id": "stp_0195f3a0000070018111111111111111", "task_blueprint": "task_bp"}],
         }
     )
     repo.set_output_profiles(
         [
             {
-                "id": "prof_dddd1111dddd1111",
+                "id": "prof_0195f3a00000700d8ddd1111dddd1111",
                 "slug": "test_profile",
-                "workflow_id": "wf_5555555555555555",
+                "workflow_id": "wf_0195f3a0000070058555555555555555",
                 "name": {"translations": {"en": "Test Profile"}},
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
                     {
-                        "id": "grp_0000000000000001",
+                        "id": "grp_0195f3a0000070008000000000000001",
                         "title": {"translations": {"en": "Default"}},
                         "target_blocks": ["*"],
                     }
@@ -99,7 +99,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     )
     model_reg = SystemConfigModelRegistry.model_validate(
         {
-            "id": "sys_e26807f3bfa3454d",
+            "id": "sys_0195f3a00000700e826807f3bfa3454d",
             "name": "Default Stack",
             "tier_definitions": {
                 tier: {
@@ -123,7 +123,7 @@ def mock_compiler() -> Any:
     from pydantic import BaseModel, Field
 
     class MockSchema(BaseModel):
-        blk_0123456789abcdef0123456789ab: str | None = Field(default=None)
+        blk_0195f3a00000700c8def0123456789ab: str | None = Field(default=None)
 
     MockSchema.model_rebuild()
 
@@ -154,15 +154,15 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
     # Setup basic valid workflow
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        model_registry_id="sys_e26807f3bfa3454d",
-        id="wf_5555555555555555",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
         status="draft",
         version=1,
-        default_profile_id="prof_dddd1111dddd1111",
+        default_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
         name=I18nText(translations={"en": "Test WF", "fi": "Test WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
-        steps=[StepRule(id="step_1111111111111111", task_blueprint="task_bp")],
+        steps=[StepRule(id="stp_0195f3a0000070018111111111111111", task_blueprint="task_bp")],
     )
 
     # Execute
@@ -180,7 +180,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
         mock_schema_cls = mock_compiler.build_dynamic_schema.return_value
         mock_bound_client.run_structured_task.return_value = (
-            mock_schema_cls(blk_0123456789abcdef0123456789ab="test"),
+            mock_schema_cls(blk_0195f3a00000700c8def0123456789ab="test"),
             TokenUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         )
 
@@ -214,7 +214,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             mock_project.return_value = ProjectedResultsDTO(
                 results=[
                     AtomResultDTO(
-                        tda_id="blk_0123456789abcdef0123456789ab",
+                        tda_id="blk_0195f3a00000700c8def0123456789ab",
                         status=ExecutionStatus.PASSED,
                         contextual_override=True,
                         source_quotes=None,
@@ -230,11 +230,11 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
             mock_repo.set_execution(
                 ExecutionRecord(
-                    id="exe_1231231231231231",
-                    workflow_id="wf_5555555555555555",
+                    id="exe_0195f3a0000070018231231231231231",
+                    workflow_id="wf_0195f3a0000070058555555555555555",
                     status=ExecutionStatus.PENDING,
                     target_locale="fi",
-                    output_profile_id="prof_dddd1111dddd1111",
+                    output_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
                     raw_inputs={"dynamic_inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}},
                     metadata=ExecutionMetadata(),
                 )
@@ -257,7 +257,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
                 )
 
                 record = await executor.execute_workflow(
-                    execution_id="exe_1231231231231231",
+                    execution_id="exe_0195f3a0000070018231231231231231",
                     workflow=workflow,
                     raw_inputs=WorkflowInputs.model_validate(
                         {"dynamic_inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}}
@@ -277,7 +277,10 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
     found = False
     for dto in results:
-        if dto.step_id == "step_1111111111111111" and dto.block_id == "blk_0123456789abcdef0123456789ab":
+        if (
+            dto.step_id == "stp_0195f3a0000070018111111111111111"
+            and dto.block_id == "blk_0195f3a00000700c8def0123456789ab"
+        ):
             if dto.payload == "test":
                 found = True
                 break

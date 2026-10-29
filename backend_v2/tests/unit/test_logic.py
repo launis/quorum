@@ -46,7 +46,7 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
     from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 
     fake_repo = InMemoryUnifiedWorkflowRepository()
-    fake_repo.set_step({"id": "st_1234567890123456"}, step_id="blueprint_123")
+    fake_repo.set_step({"id": "st_0195f3a0000070018234567890123456"}, step_id="blueprint_123")
 
     compiler = MagicMock()
     deps = StrategyDependencies(

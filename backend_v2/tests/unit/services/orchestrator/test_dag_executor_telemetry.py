@@ -46,13 +46,13 @@ async def test_dag_executor_hierarchy_telemetry(in_memory_spans: InMemorySpanExp
     tracer = get_tracer("test_dag")
 
     with tracer.start_as_current_span("dag.orchestration") as parent_span:
-        parent_span.set_attribute("execution.id", "exe_1234567890abcdef")
-        parent_span.set_attribute("workflow.id", "wor_1234567890abcdef")
+        parent_span.set_attribute("execution.id", "exe_0195f3a0000070018234567890abcdef")
+        parent_span.set_attribute("workflow.id", "wor_0195f3a0000070018234567890abcdef")
 
         # Simulate child step execution
         with tracer.start_as_current_span("dag.node.stp_step001") as child_span:
             child_span.set_attribute("node.id", "stp_step001")
-            child_span.set_attribute("execution.id", "exe_1234567890abcdef")
+            child_span.set_attribute("execution.id", "exe_0195f3a0000070018234567890abcdef")
 
     spans = in_memory_spans.get_finished_spans()
     assert len(spans) == 2
@@ -66,7 +66,7 @@ async def test_dag_executor_hierarchy_telemetry(in_memory_spans: InMemorySpanExp
     assert child.attributes is not None
     assert child.attributes["node.id"] == "stp_step001"
     assert parent.attributes is not None
-    assert parent.attributes["execution.id"] == "exe_1234567890abcdef"
+    assert parent.attributes["execution.id"] == "exe_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio

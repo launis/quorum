@@ -64,7 +64,7 @@ def _build_test_step(step_id: str, block_id: str) -> Step:
         name=I18nText(translations={"en": "Step", "fi": "Askel"}),
         slug="step-test",
         role_block_id=None,
-        extraction_protocol_block_id="blk_573802341db9d68c",
+        extraction_protocol_block_id="blk_0195f3a000007005873802341db9d68c",
         criteria_block_ids=[block_id],
         cognitive_tier=CognitiveTier.FAST,
     )
@@ -97,7 +97,7 @@ async def test_sampling_determinism_across_distinct_execution_ids() -> None:
     step = _build_test_step(step_id, block_id)
     deps = await _build_dependencies(step, block)
 
-    shared_workflow_id = "wf_01a1d71000000001"
+    shared_workflow_id = "wf_0195f3a00000700081a1d71000000001"
 
     state_run1 = HookState(
         step_id=step_id,
@@ -150,7 +150,7 @@ async def test_sampling_divergence_across_distinct_workflow_ids() -> None:
 
     state_wf1 = HookState(
         step_id=step_id,
-        execution_id="exe_1111111111111111",
+        execution_id="exe_0195f3a0000070018111111111111111",
         workflow_id="wf_alpha_01a1d71000000001",
         task_blueprint=step_id,
         inputs=ExecutionInputsDTO(raw_inputs={}),
@@ -160,7 +160,7 @@ async def test_sampling_divergence_across_distinct_workflow_ids() -> None:
 
     state_wf2 = HookState(
         step_id=step_id,
-        execution_id="exe_2222222222222222",
+        execution_id="exe_0195f3a0000070028222222222222222",
         workflow_id="wf_beta_9999999999999999",
         task_blueprint=step_id,
         inputs=ExecutionInputsDTO(raw_inputs={}),

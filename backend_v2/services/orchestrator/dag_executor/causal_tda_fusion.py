@@ -7,6 +7,8 @@ analytic outputs.
 
 from __future__ import annotations
 
+from collections import deque
+
 from backend_v2.models.domain.matrix import FlattenedAtom
 from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.dtos.atom_result import AtomResultDTO
@@ -59,6 +61,157 @@ def transform_causal_nodes_to_atoms(nodes: list[CausalNodeDTO]) -> list[Flattene
             )
         )
     return atoms
+
+
+def _compute_largest_component_ratio(
+    deliverable_node_ids: set[str],
+    graph: CausalGraphPayloadDTO,
+) -> float:
+    """Compute Largest Weakly Connected Component ratio (r_LCC) on the deliverable subgraph.
+
+    Args:
+        deliverable_node_ids: Set of node IDs belonging to the induced deliverable subgraph.
+        graph: Projected CausalGraphPayloadDTO containing nodes and edges.
+
+    Returns:
+        Fraction of deliverable nodes in the largest weakly connected component in [0.0, 1.0].
+    """
+    total_deliverable = len(deliverable_node_ids)
+    if total_deliverable <= 1:
+        return 1.0
+
+    adjacency: dict[str, set[str]] = {nid: set() for nid in deliverable_node_ids}
+    for edge in graph.edges:
+        if (
+            edge.source_id in deliverable_node_ids
+            and edge.target_id in deliverable_node_ids
+            and edge.source_id != edge.target_id
+        ):
+            adjacency[edge.source_id].add(edge.target_id)
+            adjacency[edge.target_id].add(edge.source_id)
+
+    visited: set[str] = set()
+    max_component_size = 0
+    for start_id in deliverable_node_ids:
+        if start_id in visited:
+            continue
+        comp_size = 0
+        queue: deque[str] = deque([start_id])
+        visited.add(start_id)
+        while queue:
+            curr = queue.popleft()
+            comp_size += 1
+            for neighbor in adjacency[curr]:
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append(neighbor)
+        if comp_size > max_component_size:
+            max_component_size = comp_size
+
+    return round(max_component_size / total_deliverable, 4)
+
+
+def _compute_anti_fluff_audit(
+    projected_graph: CausalGraphPayloadDTO,
+    expected_inputs: list[ExpectedInput] | None,
+) -> tuple[AntiFluffAuditDTO, int]:
+    """Compute 0-token topological AntiFluffAuditDTO metrics over the induced deliverable subgraph.
+
+    Args:
+        projected_graph: CausalGraphPayloadDTO with overlaid TDA evaluation statuses.
+        expected_inputs: Optional ExpectedInput definitions classifying deliverable and dialogue inputs.
+
+    Returns:
+        2-tuple of (AntiFluffAuditDTO, total_deliverable_nodes).
+    """
+    # Phase 5, Step 5: Compute r_LCC, r_conv, and kappa_steer over induced deliverable subgraph
+    deliverable_keys: set[str] = set()
+    dialogue_keys: set[str] = set()
+    if expected_inputs:
+        deliverable_keys = {ei.input_key for ei in expected_inputs if ei.is_endorsed_deliverable}
+        if not deliverable_keys:
+            deliverable_keys = {
+                ei.input_key
+                for ei in expected_inputs
+                if not ei.is_chat_history and not ei.is_assignment and "questionnaire" not in ei.input_modes
+            }
+        dialogue_keys = {ei.input_key for ei in expected_inputs if ei.is_chat_history}
+
+    deliverable_nodes: list[CausalNodeDTO]
+    if deliverable_keys:
+        deliverable_nodes = [n for n in projected_graph.nodes if n.source_input_key in deliverable_keys]
+    else:
+        deliverable_nodes = list(projected_graph.nodes)
+
+    deliverable_node_ids = {n.node_id for n in deliverable_nodes}
+    if dialogue_keys:
+        dialogue_node_ids = {n.node_id for n in projected_graph.nodes if n.source_input_key in dialogue_keys}
+    else:
+        dialogue_node_ids = {n.node_id for n in projected_graph.nodes if n.node_id not in deliverable_node_ids}
+
+    deliverable_isolated_count = 0
+    convergent_count = 0
+    deliverable_root_ids: list[str] = []
+
+    for node in deliverable_nodes:
+        nid = node.node_id
+        internal_parents = {
+            e.source_id
+            for e in projected_graph.edges
+            if e.target_id == nid and e.source_id in deliverable_node_ids and e.source_id != nid
+        }
+        internal_children = {
+            e.target_id
+            for e in projected_graph.edges
+            if e.source_id == nid and e.target_id in deliverable_node_ids and e.target_id != nid
+        }
+        exogenous_parents = {
+            e.source_id for e in projected_graph.edges if e.target_id == nid and e.source_id not in deliverable_node_ids
+        }
+        all_incoming_parents = internal_parents | exogenous_parents
+        if len(all_incoming_parents) >= 2:
+            convergent_count += 1
+        if not internal_parents:
+            deliverable_root_ids.append(nid)
+        if not internal_parents and not internal_children and not exogenous_parents:
+            deliverable_isolated_count += 1
+
+    cycle = projected_graph.cycle_detected
+    unsupported_count = sum(1 for n in deliverable_nodes if not n.source_quotes)
+    total_deliverable_nodes = len(deliverable_nodes)
+    if total_deliverable_nodes == 0:
+        cohesion = 1.0
+        lcc_ratio = 1.0
+        conv_ratio = 0.0
+    else:
+        connected_ratio = max(0.0, 1.0 - (deliverable_isolated_count / total_deliverable_nodes))
+        if cycle:
+            connected_ratio *= 0.5
+        cohesion = round(connected_ratio, 4)
+        lcc_ratio = _compute_largest_component_ratio(deliverable_node_ids, projected_graph)
+        conv_ratio = round(convergent_count / total_deliverable_nodes, 4)
+
+    if not deliverable_root_ids:
+        steering_ratio = 0.0
+    else:
+        steered_roots = sum(
+            1
+            for root_id in deliverable_root_ids
+            if any(e.target_id == root_id and e.source_id in dialogue_node_ids for e in projected_graph.edges)
+        )
+        steering_ratio = round(steered_roots / len(deliverable_root_ids), 4)
+
+    audit = AntiFluffAuditDTO(
+        isolated_concept_count=deliverable_isolated_count,
+        cycle_detected=cycle,
+        unsupported_claims_count=unsupported_count,
+        logical_cohesion_score=cohesion,
+        largest_component_ratio=lcc_ratio,
+        branch_convergence_ratio=conv_ratio,
+        steering_coupling_ratio=steering_ratio,
+        detected_hollow_terms=[],
+    )
+    return audit, total_deliverable_nodes
 
 
 def compute_causal_tda_fusion_result(
@@ -123,56 +276,9 @@ def compute_causal_tda_fusion_result(
     root_cause_diagnoses = CausalCohesionEvaluator().diagnose_root_causes(projected_graph)
 
     # 3. Anti-Fluff Shield: Induce Deliverable Subgraph and evaluate Exogenous Boundary Axiom
-    deliverable_keys: set[str] = set()
-    if expected_inputs:
-        deliverable_keys = {ei.input_key for ei in expected_inputs if ei.is_endorsed_deliverable}
-        if not deliverable_keys:
-            deliverable_keys = {
-                ei.input_key
-                for ei in expected_inputs
-                if not ei.is_chat_history and not ei.is_assignment and "questionnaire" not in ei.input_modes
-            }
-
-    deliverable_nodes: list[CausalNodeDTO]
-    if deliverable_keys:
-        deliverable_nodes = [n for n in projected_graph.nodes if n.source_input_key in deliverable_keys]
-    else:
-        deliverable_nodes = list(projected_graph.nodes)
-
-    deliverable_node_ids = {n.node_id for n in deliverable_nodes}
-
-    # Exogenous Boundary Axiom: incoming cross-document edges prevent isolated status
-    deliverable_isolated_count = 0
-    for node in deliverable_nodes:
-        nid = node.node_id
-        has_internal_link = any(
-            (e.source_id == nid and e.target_id in deliverable_node_ids and e.target_id != nid)
-            or (e.target_id == nid and e.source_id in deliverable_node_ids and e.source_id != nid)
-            for e in projected_graph.edges
-        )
-        has_exogenous_support = any(
-            e.target_id == nid and e.source_id not in deliverable_node_ids for e in projected_graph.edges
-        )
-        if not has_internal_link and not has_exogenous_support:
-            deliverable_isolated_count += 1
-
-    cycle = projected_graph.cycle_detected
-    unsupported_count = sum(1 for n in deliverable_nodes if not n.source_quotes)
-    total_deliverable_nodes = len(deliverable_nodes)
-    if total_deliverable_nodes == 0:
-        cohesion = 1.0
-    else:
-        connected_ratio = max(0.0, 1.0 - (deliverable_isolated_count / total_deliverable_nodes))
-        if cycle:
-            connected_ratio *= 0.5
-        cohesion = round(connected_ratio, 4)
-
-    anti_fluff_audit = AntiFluffAuditDTO(
-        isolated_concept_count=deliverable_isolated_count,
-        cycle_detected=cycle,
-        unsupported_claims_count=unsupported_count,
-        logical_cohesion_score=cohesion,
-        detected_hollow_terms=[],
+    anti_fluff_audit, total_deliverable_nodes = _compute_anti_fluff_audit(
+        projected_graph=projected_graph,
+        expected_inputs=expected_inputs,
     )
 
     # 4. Prescriptive Remediation

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Annotated, Any, cast
 
 from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
@@ -433,12 +434,14 @@ async def handle_starvation_if_detected(
     cache = RenderedSynthesisCache(
         section_syntheses={},
         row_explanations={},
+        row_curated_quotes={},
         cited_sources=[],
         xai_highlights=[],
         user_role=None,
         user_role_justification=None,
         extension_metrics=None,
         data_starvation=starvation_dto,
+        created_at=datetime.now(timezone.utc),
     )
     current_syntheses: dict[str, RenderedSynthesisCache] = {}
     if execution.profile_syntheses is not None:

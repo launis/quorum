@@ -53,7 +53,7 @@ from scripts._ast_guardrails import GuardrailSeverity, scan_files_for_guardrails
 
 
 def _create_dummy_execution(
-    execution_id: str = "exe_1234567890abcdef",
+    execution_id: str = "exe_0195f3a0000070018234567890abcdef",
     status: ExecutionStatus = ExecutionStatus.PASSED,
 ) -> ExecutionRecord:
     reasoning = ReasoningStepDTO(
@@ -63,7 +63,7 @@ def _create_dummy_execution(
         step_4_final_conclusion="Logic evaluated successfully.",
     )
     atom = ScorecardAtomDTO(
-        atom_id="atm_0123456789abcdef",
+        atom_id="atm_0195f3a0000070008123456789abcdef",
         level=3,
         level_name="Operational",
         claim_label="Strategic Claim",
@@ -81,45 +81,47 @@ def _create_dummy_execution(
         id="stp_1",
         label="Step 1",
         status=ExecutionStatus.PASSED,
-        scorecard_atoms={"atm_0123456789abcdef": atom},
+        scorecard_atoms={"atm_0195f3a0000070008123456789abcdef": atom},
     )
     return ExecutionRecord(
         id=execution_id,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=status,
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
         step_states={"stp_1": step},
-        profile_syntheses={"prf_1234567890abcdef": RenderedSynthesisCache(variance_explanation="Executive summary")},
+        profile_syntheses={
+            "prf_0195f3a0000070018234567890abcdef": RenderedSynthesisCache(variance_explanation="Executive summary")
+        },
         metadata=ExecutionMetadata(
             provider_override=LLMProvider.VERTEX_AI,
-            model_registry_id="cfg_model_registry_01",
+            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         ),
     )
 
 
-def _create_dummy_profile(profile_id: str = "prf_1234567890abcdef") -> OutputProfile:
+def _create_dummy_profile(profile_id: str = "prf_0195f3a0000070018234567890abcdef") -> OutputProfile:
     return OutputProfile(
         id=profile_id,
         slug="executive_report",
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         name=I18nText(translations={"fi": "Johdon raportti", "en": "Executive Report"}),
         target_block_order=[],
     )
 
 
 def _create_dummy_report(
-    report_id: str = "rep_1234567890abcdef",
+    report_id: str = "rep_0195f3a0000070018234567890abcdef",
     status: ReportStatus = ReportStatus.PENDING,
 ) -> ReportArtifact:
     now = datetime.now(UTC)
     return ReportArtifact(
         id=report_id,
-        execution_id="exe_1234567890abcdef",
-        workflow_id="wor_0123456789abcdef",
-        profile_id="prf_1234567890abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         locale="fi",
         title="Johdon raportti",
         status=status,
@@ -137,8 +139,8 @@ def _create_dummy_report(
 
 def _create_dummy_report_data_dto() -> ReportDataDTO:
     atom_result = AtomResultDTO(
-        tda_id="tda_0123456789abcdef",
-        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_0195f3a0000070008123456789abcdef",
+        matrix_id="blk_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PASSED,
         source_quotes=("Forensic quote",),
         evaluation_reasoning="Sound reasoning.",
@@ -151,14 +153,14 @@ def _create_dummy_report_data_dto() -> ReportDataDTO:
         resolved_claim="Strategic Claim",
     )
     return ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         global_score=4.0,
         has_warning=False,
         inner_sdui_blocks=[],
         results=[atom_result],
-        hydrated_references={"tda_0123456789abcdef": hydrated_ref},
+        hydrated_references={"tda_0195f3a0000070008123456789abcdef": hydrated_ref},
     )
 
 
@@ -228,19 +230,21 @@ async def test_package_facade_instantiation(monkeypatch: pytest.MonkeyPatch) -> 
     # 1. create_report_artifact, get_report, list_reports_for_execution, get_or_create_default_artifact
     created = await service.create_report_artifact(
         ReportArtifactCreateDTO(
-            execution_id="exe_1234567890abcdef",
-            profile_id="prf_1234567890abcdef",
+            execution_id="exe_0195f3a0000070018234567890abcdef",
+            profile_id="prf_0195f3a0000070018234567890abcdef",
             locale="fi",
         )
     )
     fetched = await service.get_report(created.id)
     assert fetched.id == created.id
 
-    summaries = await service.list_reports_for_execution("exe_1234567890abcdef")
+    summaries = await service.list_reports_for_execution("exe_0195f3a0000070018234567890abcdef")
     assert len(summaries) == 1
     assert summaries[0].id == created.id
 
-    default_art = await service.get_or_create_default_artifact("exe_1234567890abcdef", "prf_1234567890abcdef", "fi")
+    default_art = await service.get_or_create_default_artifact(
+        "exe_0195f3a0000070018234567890abcdef", "prf_0195f3a0000070018234567890abcdef", "fi"
+    )
     assert default_art.id == created.id
 
     # 2. compile_and_persist_artifact & process_artifact_compilation
@@ -258,11 +262,11 @@ async def test_package_facade_instantiation(monkeypatch: pytest.MonkeyPatch) -> 
     assert raw_bytes == sdui_bytes
 
     sdui_out = await service.get_report_sdui(created.id)
-    assert sdui_out.execution_id == "exe_1234567890abcdef"
+    assert sdui_out.execution_id == "exe_0195f3a0000070018234567890abcdef"
 
     rows = await service.get_report_rows(created.id)
     assert len(rows) == 1
-    assert rows[0].metric_key == "blk_0123456789abcdef"
+    assert rows[0].metric_key == "blk_0195f3a0000070008123456789abcdef"
 
     public_dto = await service.get_public_report(created.id)
     assert public_dto.report_id == created.id
@@ -301,13 +305,13 @@ async def test_package_facade_negative_not_found() -> None:
     service = ReportService(repo=repo, storage_driver=AsyncMock())
 
     with pytest.raises(ResourceNotFoundError):
-        await service.get_report("rep_0000000000000000")
+        await service.get_report("rep_0195f3a0000070008000000000000000")
 
     with pytest.raises(ResourceNotFoundError):
         await service.create_report_artifact(
             ReportArtifactCreateDTO(
-                execution_id="exe_0000000000000000",
-                profile_id="prf_1234567890abcdef",
+                execution_id="exe_0195f3a0000070008000000000000000",
+                profile_id="prf_0195f3a0000070018234567890abcdef",
                 locale="fi",
             )
         )
@@ -325,14 +329,14 @@ async def test_package_facade_negative_not_ready() -> None:
     with pytest.raises(ExecutionNotReadyError):
         await service.create_report_artifact(
             ReportArtifactCreateDTO(
-                execution_id="exe_1234567890abcdef",
-                profile_id="prf_1234567890abcdef",
+                execution_id="exe_0195f3a0000070018234567890abcdef",
+                profile_id="prf_0195f3a0000070018234567890abcdef",
                 locale="fi",
             )
         )
 
     with pytest.raises(AppException) as exc_info:
-        await service.get_report_sdui("rep_1234567890abcdef")
+        await service.get_report_sdui("rep_0195f3a0000070018234567890abcdef")
     assert exc_info.value.details is not None
     assert exc_info.value.details["error_code"] == ErrorCodes.REPORT_NOT_READY.value
 

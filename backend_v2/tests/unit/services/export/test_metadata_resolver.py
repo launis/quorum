@@ -78,7 +78,7 @@ def _create_sample_matrices() -> list[MatrixScorecardRowDTO]:
         visual_intent=VisualIntent.NEUTRAL,
     )
     matrix = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Matrix Axis 1",
         label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
         score=4.0,
@@ -108,7 +108,7 @@ def _create_sample_prompt_blocks() -> dict[str, AnyPromptBlock]:
         claims=[claim],
     )
     block = MatrixPromptBlock(
-        id="blk_0123456789abcdef",
+        id="blk_0195f3a0000070008123456789abcdef",
         slug="matrix_1",
         label=I18nText(translations={"fi": "Matriisi 1", "en": "Matrix 1"}),
         description=I18nText(translations={"fi": "Kuvaus 1", "en": "Description 1"}),
@@ -169,7 +169,7 @@ def test_resolve_matrix_label_existing_parity() -> None:
 
     # 2. From prompt blocks
     lbl_blocks = resolve_matrix_label(
-        atom_matrix_id="blk_0123456789abcdef",
+        atom_matrix_id="blk_0195f3a0000070008123456789abcdef",
         tda_id="tda_0123456789abcdef0123456789abcdef",
         parent_m=None,
         matrix_title_lookup={},
@@ -198,7 +198,7 @@ def test_resolve_context_target_existing_parity() -> None:
     assert ExportService._resolve_context_target(None, "fi") == ""
 
     m1 = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Axis 1",
         label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
         score=4.0,
@@ -212,7 +212,7 @@ def test_resolve_context_target_existing_parity() -> None:
     assert resolve_context_target(m1, "en") == "Target desc"
 
     m2 = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Axis 1",
         label_i18n=I18nText(translations={"fi": "Akseli 1", "en": "Axis 1"}),
         score=4.0,
@@ -257,9 +257,9 @@ def test_extract_causal_result_existing_parity() -> None:
 
     # 1. From trace event
     exec_trace = ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=ExecutionStatus.PASSED,
         execution_trace=[
@@ -277,9 +277,9 @@ def test_extract_causal_result_existing_parity() -> None:
 
     # 2. From trace event with graph
     exec_graph = ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=ExecutionStatus.PASSED,
         execution_trace=[
@@ -362,9 +362,9 @@ def test_extract_causal_result_none_input_returns_none() -> None:
     assert extract_causal_result(None) is None
 
     empty_exec = ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=ExecutionStatus.PASSED,
     )
@@ -375,7 +375,7 @@ def test_resolve_matrix_label_additional_branches() -> None:
     """Verify resolve_matrix_label fallback paths for parent name, atom scale meta, and missing atom_matrix_id."""
     # 1. parent_m.name fallback when label_i18n has no translation
     parent_no_i18n = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Authoritative Fallback Name",
         label_i18n=I18nText(translations={"en": "Authoritative Fallback Name", "sv": "Svenska"}),
         score=3.0,
@@ -410,7 +410,7 @@ def test_resolve_matrix_label_additional_branches() -> None:
     blocks_by_id = _create_sample_prompt_blocks()
     atom_scale_meta = {
         "tda_scaled": AtomScaleMetadataDTO(
-            matrix_id="blk_0123456789abcdef",
+            matrix_id="blk_0195f3a0000070008123456789abcdef",
             level=5,
             level_name="Level 5",
             criterion="Criterion",
@@ -446,7 +446,7 @@ def test_resolve_matrix_label_additional_branches() -> None:
 def test_resolve_context_target_empty_target() -> None:
     """Verify resolve_context_target returns empty string when target is unset."""
     parent_m = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Axis 1",
         label_i18n=I18nText(translations={"en": "Axis 1", "fi": "Akseli 1"}),
         score=3.0,
@@ -491,9 +491,9 @@ def test_extract_causal_result_dict_and_step_states() -> None:
 
     # 1. Trace event with typed fusion DTO
     exec_trace_fusion = ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=ExecutionStatus.PASSED,
         execution_trace=[
@@ -508,9 +508,9 @@ def test_extract_causal_result_dict_and_step_states() -> None:
 
     # 2. Trace event with typed graph DTO
     exec_trace_graph = ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=ExecutionStatus.PASSED,
         execution_trace=[
@@ -528,9 +528,9 @@ def test_extract_causal_result_dict_and_step_states() -> None:
 
     # 4. Step states with StepOutputDTO
     exec_step_output = ExecutionRecord.model_construct(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=ExecutionStatus.PASSED,
         execution_trace=[],
@@ -547,9 +547,9 @@ def test_extract_causal_result_dict_and_step_states() -> None:
 
     # 4. Step states with StepOutputDTO non-causal payload
     exec_step_non_causal = ExecutionRecord.model_construct(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=ExecutionStatus.PASSED,
         execution_trace=[],
@@ -566,9 +566,9 @@ def test_extract_causal_result_dict_and_step_states() -> None:
 
     # 5. Step states with direct causal DTO
     exec_step_direct = ExecutionRecord.model_construct(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=ExecutionStatus.PASSED,
         execution_trace=[],

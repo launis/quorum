@@ -13,6 +13,7 @@ from backend_v2.tests.unit.services.orchestrator.test_causal_cohesion_scoring im
     test_causal_cohesion_cognitive_atom_validation,
     test_causal_cohesion_cumulative_guttman_invariant,
     test_causal_cohesion_cyclic_defect_grounding,
+    test_causal_cohesion_dyad_fragmentation_and_node_cardinality_boundaries,
     test_causal_cohesion_dynamic_matrix_id_binding,
     test_causal_cohesion_idempotency_set_guard,
     test_causal_cohesion_level_2_discontinuous_cohesion,
@@ -24,6 +25,7 @@ from backend_v2.tests.unit.services.orchestrator.test_causal_cohesion_scoring im
     test_causal_cohesion_monotonic_inheritance_invariant,
     test_causal_cohesion_subgraph_cumulative_guttman_invariant,
     test_causal_cohesion_zero_node_grounding,
+    test_simulate_counterfactual_retraction_conjunctive_disjunctive_and_negative,
 )
 
 __all__ = [
@@ -34,6 +36,7 @@ __all__ = [
     "test_causal_cohesion_cognitive_atom_validation",
     "test_causal_cohesion_cumulative_guttman_invariant",
     "test_causal_cohesion_cyclic_defect_grounding",
+    "test_causal_cohesion_dyad_fragmentation_and_node_cardinality_boundaries",
     "test_causal_cohesion_dynamic_matrix_id_binding",
     "test_causal_cohesion_idempotency_set_guard",
     "test_causal_cohesion_level_2_discontinuous_cohesion",
@@ -45,4 +48,5 @@ __all__ = [
     "test_causal_cohesion_monotonic_inheritance_invariant",
     "test_causal_cohesion_subgraph_cumulative_guttman_invariant",
     "test_causal_cohesion_zero_node_grounding",
+    "test_simulate_counterfactual_retraction_conjunctive_disjunctive_and_negative",
 ]

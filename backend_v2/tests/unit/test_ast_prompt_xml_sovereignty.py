@@ -442,23 +442,23 @@ def sample_builder(locale: str, include_mandate: bool = True):
 # ---------------------------------------------------------------------------
 
 REDUNDANT_GLOBAL_MANDATE_BLOCK_IDS = {
-    "blk_bd7c5a9f27504a2c",  # block_headermandates
-    "blk_9d68ceff695b4196",  # block_mandate2
-    "blk_23ca73cf267d4078",  # block_mandate3
-    "blk_2cbe96bffde04571",  # block_mandate5
-    "blk_f2cb51b5d074419a",  # block_headerrules
-    "blk_665b2e223f214564",  # block_rule1
-    "blk_78d110eb0bad4541",  # block_rule2
-    "blk_cc852aa44a1a464e",  # block_rule3
-    "blk_04544fa8b5ca408f",  # block_rule4
-    "blk_c1cc56f65f6a47e1",  # block_rule5
-    "blk_e71bcbeb90244b37",  # block_rule6
-    "blk_080a729c8b974492",  # block_oprule1
-    "blk_5b5f6faf0144401f",  # block_oprule2
-    "blk_6a02268ad79542de",  # block_oprule3
-    "blk_71b84ce7c6554639",  # block_instructionnohallucination
-    "blk_a5ce16009a514628",  # block_instructionlanguage_dynamic
-    "blk_091db241c5154336",  # block_headerinstructions
+    "blk_0195f3a00000700b8d7c5a9f27504a2c",  # block_headermandates
+    "blk_0195f3a0000070098d68ceff695b4196",  # block_mandate2
+    "blk_0195f3a00000700283ca73cf267d4078",  # block_mandate3
+    "blk_0195f3a0000070028cbe96bffde04571",  # block_mandate5
+    "blk_0195f3a00000700f82cb51b5d074419a",  # block_headerrules
+    "blk_0195f3a000007006865b2e223f214564",  # block_rule1
+    "blk_0195f3a00000700788d110eb0bad4541",  # block_rule2
+    "blk_0195f3a00000700c8c852aa44a1a464e",  # block_rule3
+    "blk_0195f3a00000700084544fa8b5ca408f",  # block_rule4
+    "blk_0195f3a00000700c81cc56f65f6a47e1",  # block_rule5
+    "blk_0195f3a00000700e871bcbeb90244b37",  # block_rule6
+    "blk_0195f3a000007000880a729c8b974492",  # block_oprule1
+    "blk_0195f3a0000070058b5f6faf0144401f",  # block_oprule2
+    "blk_0195f3a0000070068a02268ad79542de",  # block_oprule3
+    "blk_0195f3a00000700781b84ce7c6554639",  # block_instructionnohallucination
+    "blk_0195f3a00000700a85ce16009a514628",  # block_instructionlanguage_dynamic
+    "blk_0195f3a000007000891db241c5154336",  # block_headerinstructions
 }
 
 
@@ -522,7 +522,7 @@ def test_seed_guardrail_catches_redundant_criteria_in_step_negative() -> None:
     mock_steps: Sequence[Mapping[str, JsonValue]] = [
         {
             "id": "mock_step_01",
-            "criteria_block_ids": ["blk_valid_01", "blk_bd7c5a9f27504a2c"],
+            "criteria_block_ids": ["blk_valid_01", "blk_0195f3a00000700b8d7c5a9f27504a2c"],
         },
         {
             "id": "mock_step_02",
@@ -531,7 +531,7 @@ def test_seed_guardrail_catches_redundant_criteria_in_step_negative() -> None:
     ]
     violations = find_redundant_criteria_in_steps(mock_steps)
     assert len(violations) == 1
-    assert violations[0] == ("mock_step_01", "blk_bd7c5a9f27504a2c")
+    assert violations[0] == ("mock_step_01", "blk_0195f3a00000700b8d7c5a9f27504a2c")
 
 
 def test_seed_guardrail_catches_escaped_html_entity_in_prompt_block_negative() -> None:

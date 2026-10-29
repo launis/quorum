@@ -52,7 +52,11 @@ client = TestClient(app)
 
 def mock_get_current_user() -> TokenData:
     """Return a root TokenData fixture for router authentication."""
-    return TokenData(id="usr_1234567890abcdef", role=UserRole.ROOT, organization_id="org_1234567890abcdef")
+    return TokenData(
+        id="usr_0195f3a0000070018234567890abcdef",
+        role=UserRole.ROOT,
+        organization_id="org_0195f3a0000070018234567890abcdef",
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -77,7 +81,7 @@ def mock_studio_services() -> tuple[AsyncMock, AsyncMock]:
 def sample_block() -> PromptBlock:
     """Provide a valid SystemRulePromptBlock instance."""
     return SystemRulePromptBlock(
-        id="blk_1234567890abcdef",
+        id="blk_0195f3a0000070018234567890abcdef",
         slug="test_block",
         label=I18nText(translations={"fi": "Testi", "en": "Test"}),
         description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
@@ -91,7 +95,7 @@ def sample_block() -> PromptBlock:
 def sample_empty_matrix_block() -> MatrixPromptBlock:
     """Provide a MatrixPromptBlock whose scale has zero claims/assertions for boundary testing."""
     return MatrixPromptBlock(
-        id="blk_abcdef1234567890",
+        id="blk_0195f3a00000700a8bcdef1234567890",
         slug="test_matrix_block",
         label=I18nText(translations={"fi": "Matriisi", "en": "Matrix"}),
         description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
@@ -123,7 +127,7 @@ async def test_get_prompt_blocks(mock_studio_services: tuple[AsyncMock, AsyncMoc
     response = client.get("/prompt-blocks/")
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert response.json()[0]["id"] == "blk_1234567890abcdef"
+    assert response.json()[0]["id"] == "blk_0195f3a0000070018234567890abcdef"
     mock_prompt_block.list_prompt_blocks.assert_awaited_once_with(mock_get_current_user())
 
 
@@ -137,7 +141,7 @@ async def test_create_prompt_block(
 
     response = client.post("/prompt-blocks/")
     assert response.status_code == 200
-    assert response.json()["id"] == "blk_1234567890abcdef"
+    assert response.json()["id"] == "blk_0195f3a0000070018234567890abcdef"
     mock_prompt_block.create_prompt_block_draft.assert_awaited_once_with(mock_get_current_user())
 
 
@@ -147,10 +151,12 @@ async def test_get_prompt_block(mock_studio_services: tuple[AsyncMock, AsyncMock
     mock_prompt_block, _ = mock_studio_services
     mock_prompt_block.get_prompt_block.return_value = sample_block
 
-    response = client.get("/prompt-blocks/blk_1234567890abcdef")
+    response = client.get("/prompt-blocks/blk_0195f3a0000070018234567890abcdef")
     assert response.status_code == 200
-    assert response.json()["id"] == "blk_1234567890abcdef"
-    mock_prompt_block.get_prompt_block.assert_awaited_once_with(mock_get_current_user(), "blk_1234567890abcdef")
+    assert response.json()["id"] == "blk_0195f3a0000070018234567890abcdef"
+    mock_prompt_block.get_prompt_block.assert_awaited_once_with(
+        mock_get_current_user(), "blk_0195f3a0000070018234567890abcdef"
+    )
 
 
 @pytest.mark.asyncio
@@ -159,10 +165,12 @@ async def test_clone_prompt_block(mock_studio_services: tuple[AsyncMock, AsyncMo
     mock_prompt_block, _ = mock_studio_services
     mock_prompt_block.clone_prompt_block.return_value = sample_block
 
-    response = client.post("/prompt-blocks/blk_1234567890abcdef/clone")
+    response = client.post("/prompt-blocks/blk_0195f3a0000070018234567890abcdef/clone")
     assert response.status_code == 200
-    assert response.json()["id"] == "blk_1234567890abcdef"
-    mock_prompt_block.clone_prompt_block.assert_awaited_once_with(mock_get_current_user(), "blk_1234567890abcdef")
+    assert response.json()["id"] == "blk_0195f3a0000070018234567890abcdef"
+    mock_prompt_block.clone_prompt_block.assert_awaited_once_with(
+        mock_get_current_user(), "blk_0195f3a0000070018234567890abcdef"
+    )
 
 
 @pytest.mark.asyncio
@@ -171,11 +179,13 @@ async def test_save_prompt_block(mock_studio_services: tuple[AsyncMock, AsyncMoc
     mock_prompt_block, _ = mock_studio_services
     mock_prompt_block.save_prompt_block.return_value = sample_block
 
-    response = client.put("/prompt-blocks/blk_1234567890abcdef", json=sample_block.model_dump(mode="json"))
+    response = client.put(
+        "/prompt-blocks/blk_0195f3a0000070018234567890abcdef", json=sample_block.model_dump(mode="json")
+    )
     assert response.status_code == 200
-    assert response.json()["id"] == "blk_1234567890abcdef"
+    assert response.json()["id"] == "blk_0195f3a0000070018234567890abcdef"
     mock_prompt_block.save_prompt_block.assert_awaited_once_with(
-        mock_get_current_user(), "blk_1234567890abcdef", sample_block
+        mock_get_current_user(), "blk_0195f3a0000070018234567890abcdef", sample_block
     )
 
 
@@ -185,11 +195,11 @@ async def test_delete_prompt_block(mock_studio_services: tuple[AsyncMock, AsyncM
     mock_prompt_block, _ = mock_studio_services
     mock_prompt_block.delete_prompt_block.return_value = None
 
-    response = client.delete("/prompt-blocks/blk_1234567890abcdef?force_delete=true")
+    response = client.delete("/prompt-blocks/blk_0195f3a0000070018234567890abcdef?force_delete=true")
     assert response.status_code == 200
-    assert response.json() == {"status": "success", "deleted_id": "blk_1234567890abcdef"}
+    assert response.json() == {"status": "success", "deleted_id": "blk_0195f3a0000070018234567890abcdef"}
     mock_prompt_block.delete_prompt_block.assert_awaited_once_with(
-        mock_get_current_user(), "blk_1234567890abcdef", force_delete=True
+        mock_get_current_user(), "blk_0195f3a0000070018234567890abcdef", force_delete=True
     )
 
 
@@ -298,18 +308,18 @@ async def test_get_prompt_block_not_found_error(
     """Negative test: GET /prompt-blocks/{id} raises ResourceNotFoundError and maps to HTTP 404."""
     mock_prompt_block, _ = mock_studio_services
     mock_prompt_block.get_prompt_block.side_effect = ResourceNotFoundError(
-        resource_type="prompt_block", resource_id="blk_0000000000000000"
+        resource_type="prompt_block", resource_id="blk_0195f3a0000070008000000000000000"
     )
 
     with pytest.raises(ResourceNotFoundError) as exc_info:
         await get_prompt_block(
-            id="blk_0000000000000000",
+            id="blk_0195f3a0000070008000000000000000",
             current_user=mock_get_current_user(),
             prompt_block_service=mock_prompt_block,
         )
     assert exc_info.value.status_code == 404
 
-    response = client.get("/prompt-blocks/blk_0000000000000000")
+    response = client.get("/prompt-blocks/blk_0195f3a0000070008000000000000000")
     assert response.status_code == 404
     assert response.json()["extensions"]["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
@@ -321,19 +331,19 @@ async def test_delete_prompt_block_permission_denied_error(
     """Negative test: DELETE /prompt-blocks/{id} raises PermissionDeniedError and maps to HTTP 403."""
     mock_prompt_block, _ = mock_studio_services
     mock_prompt_block.delete_prompt_block.side_effect = PermissionDeniedError(
-        message="Permission denied: delete prompt_block blk_1234567890abcdef"
+        message="Permission denied: delete prompt_block blk_0195f3a0000070018234567890abcdef"
     )
 
     with pytest.raises(PermissionDeniedError) as exc_info:
         await delete_prompt_block(
-            id="blk_1234567890abcdef",
+            id="blk_0195f3a0000070018234567890abcdef",
             current_user=mock_get_current_user(),
             prompt_block_service=mock_prompt_block,
             force_delete=False,
         )
     assert exc_info.value.status_code == 403
 
-    response = client.delete("/prompt-blocks/blk_1234567890abcdef")
+    response = client.delete("/prompt-blocks/blk_0195f3a0000070018234567890abcdef")
     assert response.status_code == 403
     assert response.json()["extensions"]["error_code"] == ErrorCodes.PERMISSION_DENIED.value
 

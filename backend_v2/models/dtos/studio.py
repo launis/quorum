@@ -132,9 +132,10 @@ class WorkflowCreateDTO(V2CoreBase):
     status: Annotated[str, Field(default="draft", description="Workflow lifecycle status")] = "draft"
     version: Annotated[int, Field(default=1, description="Workflow schema version")] = 1
     is_public: Annotated[bool, Field(default=False, description="Public visibility flag")] = False
-    mcp_gateway_id: Annotated[str | None, Field(default="sys_8172bda70c8641c5", description="MCP gateway ID")] = (
-        "sys_8172bda70c8641c5"
-    )
+    mcp_gateway_id: Annotated[
+        str | None,
+        Field(default="sys_0195f3a00000700080008172bda70c86", description="MCP gateway ID"),
+    ] = "sys_0195f3a00000700080008172bda70c86"
     model_registry_id: Annotated[str | None, Field(default=None, description="Model registry system config ID")] = None
     default_strictness_level: Annotated[int, Field(default=50, ge=0, le=100, description="Strictness level")] = 50
     default_lexical_strictness_level: Annotated[

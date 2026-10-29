@@ -10,7 +10,7 @@ from backend_v2.services.export.summary_builder import build_summary_dtos
 
 def _create_sample_summary_matrix() -> MatrixScorecardRowDTO:
     return MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Fallback Matrix Name",
         label_i18n=I18nText(translations={"fi": "Testi Matriisi", "en": "Test Matrix"}),
         score=4.0,
@@ -22,7 +22,7 @@ def _create_sample_summary_matrix() -> MatrixScorecardRowDTO:
         level_breakdown={"Level 1": "1", "Level 2": "3"},
         row_explanation="Solid reasoning and deduction throughout.",
         cited_source_title="Document A",
-        cited_source_id="src_0123456789abcdef",
+        cited_source_id="src_0195f3a0000070008123456789abcdef",
         is_evaluative=True,
     )
 
@@ -30,7 +30,7 @@ def _create_sample_summary_matrix() -> MatrixScorecardRowDTO:
 def test_build_summary_dtos_existing_parity() -> None:
     """Verify 13-column summary DTO generation matches original scorecard metrics and parity with ExportService."""
     matrix = _create_sample_summary_matrix()
-    target_id = "exe_0123456789abcdef"
+    target_id = "exe_0195f3a0000070008123456789abcdef"
 
     direct_dtos = build_summary_dtos(
         effective_matrices=[matrix],
@@ -72,14 +72,14 @@ def test_summary_builder_direct_import() -> None:
     )
 
     assert callable(direct_func)
-    dtos = direct_func(effective_matrices=[], locale="en", target_id="exe_0123456789abcdef")
+    dtos = direct_func(effective_matrices=[], locale="en", target_id="exe_0195f3a0000070008123456789abcdef")
     assert dtos == []
 
 
 def test_build_summary_dtos_fallback_label_and_score() -> None:
     """Verify fallback to score when raw_score is None and zero-default behaviors."""
     matrix = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Raw Name Fallback",
         label_i18n=I18nText(translations={"fi": "Matriisi FI", "en": "Fallback EN"}),
         score=3.5,
@@ -98,7 +98,7 @@ def test_build_summary_dtos_fallback_label_and_score() -> None:
     dtos = build_summary_dtos(
         effective_matrices=[matrix],
         locale="fi",
-        target_id="exe_0123456789abcdef",
+        target_id="exe_0195f3a0000070008123456789abcdef",
     )
     assert len(dtos) == 1
     dto = dtos[0]
@@ -117,7 +117,7 @@ def test_build_summary_dtos_fallback_label_and_score() -> None:
 def test_build_summary_dtos_no_sources() -> None:
     """Verify source field is empty when neither title nor id is present."""
     matrix = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="No Source Matrix",
         label_i18n=I18nText(translations={"fi": "Ei Lähdettä", "en": "No Source"}),
         score=0.0,
@@ -136,7 +136,7 @@ def test_build_summary_dtos_no_sources() -> None:
     dtos = build_summary_dtos(
         effective_matrices=[matrix],
         locale="en",
-        target_id="exe_0123456789abcdef",
+        target_id="exe_0195f3a0000070008123456789abcdef",
     )
     assert len(dtos) == 1
     assert dtos[0].source == ""
@@ -147,7 +147,7 @@ def test_build_summary_dtos_no_sources() -> None:
 def test_build_summary_dtos_locale_resolution_english_fallback() -> None:
     """Verify that when requested locale is missing, I18nText falls back to English."""
     matrix = MatrixScorecardRowDTO(
-        block_id="blk_0123456789abcdef",
+        block_id="blk_0195f3a0000070008123456789abcdef",
         name="Authoritative Fallback Name",
         label_i18n=I18nText(translations={"en": "English Authoritative Label"}),
         score=2.0,
@@ -166,7 +166,7 @@ def test_build_summary_dtos_locale_resolution_english_fallback() -> None:
     dtos = build_summary_dtos(
         effective_matrices=[matrix],
         locale="fi",
-        target_id="exe_0123456789abcdef",
+        target_id="exe_0195f3a0000070008123456789abcdef",
     )
     assert len(dtos) == 1
     assert dtos[0].label == "English Authoritative Label"

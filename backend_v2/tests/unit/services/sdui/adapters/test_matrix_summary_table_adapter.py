@@ -23,7 +23,7 @@ from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import (
 
 def test_matrix_summary_table_adapter_empty_parsed_matrices() -> None:
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
@@ -47,7 +47,7 @@ def test_matrix_summary_table_adapter_empty_parsed_matrices() -> None:
 
 def test_matrix_summary_table_adapter_success() -> None:
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
@@ -112,7 +112,7 @@ def test_matrix_summary_table_adapter_success() -> None:
 
 def test_matrix_summary_table_adapter_starved() -> None:
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
@@ -151,7 +151,7 @@ def test_matrix_summary_table_adapter_starved() -> None:
 def test_output_profile_rejects_unsupported_matrix_columns_fail_fast() -> None:
     with pytest.raises(ValidationError) as exc_info:
         OutputProfile(
-            id="prf_1234567890abcdef",
+            id="prf_0195f3a0000070018234567890abcdef",
             slug="test",
             workflow_id="wf_123",
             name=I18nText(translations={"en": "test"}),
@@ -169,7 +169,7 @@ def test_output_profile_rejects_unsupported_matrix_columns_fail_fast() -> None:
 
 def test_matrix_summary_table_adapter_straightforward_visible_columns() -> None:
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
@@ -221,7 +221,7 @@ def test_matrix_summary_rules_and_columns() -> None:
 def test_matrix_summary_table_adapter_empty_visible_columns_preserved() -> None:
     """Positive: empty matrix_visible_columns is preserved without falling back to STANDARD_COLUMNS."""
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
@@ -263,7 +263,7 @@ def test_matrix_summary_table_adapter_unmapped_column_fails_fast(
 ) -> None:
     """Negative: unmapped column in matrix_visible_columns triggers Fail-Fast AppException with VALIDATION_FAILED."""
     profile = OutputProfile.model_construct(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),
@@ -303,7 +303,7 @@ def test_matrix_summary_table_adapter_unmapped_column_fails_fast(
 def test_matrix_summary_table_adapter_empty_column_boundary_fails_fast() -> None:
     """Negative (Boundary): empty string column identifier in matrix_visible_columns raises AppException."""
     profile = OutputProfile.model_construct(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="test_empty_col",
         workflow_id="wf_123",
         name=I18nText(translations={"en": "test"}),

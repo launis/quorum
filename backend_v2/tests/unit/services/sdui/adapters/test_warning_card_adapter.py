@@ -23,9 +23,9 @@ from backend_v2.services.sdui.adapters.warning_card_adapter import (
 def base_output_profile() -> OutputProfile:
     """Fixture for an output profile."""
     return OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="test-profile",
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         name=I18nText(translations={"en": "Test Profile"}),
         target_block_order=[],
     )

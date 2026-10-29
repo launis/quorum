@@ -23,7 +23,7 @@ def mock_driver() -> AsyncMock:
     driver = AsyncMock(spec=StorageDriver)
     driver.query.return_value = []
     driver.get.return_value = None
-    driver.upsert.return_value = "wf_1234567890abcdef"
+    driver.upsert.return_value = "wf_0195f3a0000070018234567890abcdef"
     driver.update.return_value = True
     driver.delete.return_value = True
     driver.count.return_value = 1
@@ -40,15 +40,15 @@ def repo(mock_driver: AsyncMock) -> WorkflowRepositoryImpl:
 def valid_workflow_doc() -> dict:
     """Valid workflow document fixture."""
     return {
-        "id": "wf_1234567890abcdef",
+        "id": "wf_0195f3a0000070018234567890abcdef",
         "slug": "wf_exec",
         "name": {"translations": {"en": "Workflow", "fi": "Työnkulku"}},
         "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
         "status": "published",
         "version": 1,
-        "default_profile_id": "prf_1234567890abcdef",
+        "default_profile_id": "prf_0195f3a0000070018234567890abcdef",
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "steps": [],
     }
 
@@ -57,12 +57,12 @@ def valid_workflow_doc() -> dict:
 def valid_step_doc() -> dict:
     """Valid step document fixture."""
     return {
-        "id": "stp_1234567890abcdef",
+        "id": "stp_0195f3a0000070018234567890abcdef",
         "slug": "step_one",
         "name": {"translations": {"en": "Step 1", "fi": "Vaihe 1"}},
         "cognitive_tier": "fast",
-        "criteria_block_ids": ["blk_1234567890abcdef"],
-        "extraction_protocol_block_id": "blk_1234567890abcdef",
+        "criteria_block_ids": ["blk_0195f3a0000070018234567890abcdef"],
+        "extraction_protocol_block_id": "blk_0195f3a0000070018234567890abcdef",
     }
 
 
@@ -72,11 +72,11 @@ async def test_get_workflow_by_id_and_definition(
 ) -> None:
     """Positive: retrieves valid Workflow domain model via get_workflow_by_id and get_workflow."""
     mock_driver.get.return_value = valid_workflow_doc
-    wf = await repo.get_workflow_by_id("wf_1234567890abcdef")
+    wf = await repo.get_workflow_by_id("wf_0195f3a0000070018234567890abcdef")
     assert wf is not None
-    assert wf.id == "wf_1234567890abcdef"
+    assert wf.id == "wf_0195f3a0000070018234567890abcdef"
 
-    wf_def = await repo.get_workflow("wf_1234567890abcdef")
+    wf_def = await repo.get_workflow("wf_0195f3a0000070018234567890abcdef")
     assert wf_def is not None
     assert wf_def.slug == "wf_exec"
 
@@ -97,7 +97,7 @@ async def test_get_all_workflows_filters(
     mock_driver.query.return_value = [valid_workflow_doc]
     workflows = await repo.get_all_workflows(organization_id="org_123", role="MEMBER")
     assert len(workflows) == 1
-    assert workflows[0].id == "wf_1234567890abcdef"
+    assert workflows[0].id == "wf_0195f3a0000070018234567890abcdef"
 
     # With ROOT role
     root_workflows = await repo.get_all_workflows(role="ROOT")
@@ -118,29 +118,31 @@ async def test_workflow_lifecycle_and_versioning(
     repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_workflow_doc: dict
 ) -> None:
     """Positive: tests create, versioned update, definition update, count, and delete."""
-    mock_driver.upsert.return_value = "wf_1234567890abcdef"
+    mock_driver.upsert.return_value = "wf_0195f3a0000070018234567890abcdef"
     wf_dto = WorkflowCreateDTO(
         slug=valid_workflow_doc["slug"],
         name=I18nText(translations=valid_workflow_doc["name"]["translations"]),
         description=I18nText(translations=valid_workflow_doc["description"]["translations"]),
         default_profile_id=valid_workflow_doc["default_profile_id"],
         historical_context_mode=valid_workflow_doc["historical_context_mode"],
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         steps=[],
     )
-    assert await repo.create_workflow(wf_dto) == "wf_1234567890abcdef"
+    assert await repo.create_workflow(wf_dto) == "wf_0195f3a0000070018234567890abcdef"
 
     mock_driver.get.return_value = valid_workflow_doc
     new_id = await repo.update_workflow(
-        "wf_1234567890abcdef", WorkflowUpdateDTO(name=I18nText(translations={"en": "Updated"}))
+        "wf_0195f3a0000070018234567890abcdef", WorkflowUpdateDTO(name=I18nText(translations={"en": "Updated"}))
     )
-    assert new_id == "wf_1234567890abcdef"
+    assert new_id == "wf_0195f3a0000070018234567890abcdef"
 
-    def_id = await repo.update_workflow_definition("wf_1234567890abcdef", WorkflowUpdateDTO(slug="new_slug"))
-    assert def_id == "wf_1234567890abcdef"
+    def_id = await repo.update_workflow_definition(
+        "wf_0195f3a0000070018234567890abcdef", WorkflowUpdateDTO(slug="new_slug")
+    )
+    assert def_id == "wf_0195f3a0000070018234567890abcdef"
 
     assert await repo.count_workflows() == 1
-    assert await repo.delete_workflow("wf_1234567890abcdef") is True
+    assert await repo.delete_workflow("wf_0195f3a0000070018234567890abcdef") is True
 
 
 @pytest.mark.asyncio
@@ -178,17 +180,17 @@ async def test_step_crud_and_query(repo: WorkflowRepositoryImpl, mock_driver: As
     mock_driver.get.return_value = valid_step_doc
     mock_driver.query.return_value = [valid_step_doc]
 
-    step = await repo.get_step_by_id("stp_1234567890abcdef")
+    step = await repo.get_step_by_id("stp_0195f3a0000070018234567890abcdef")
     assert step is not None
-    assert step.id == "stp_1234567890abcdef"
+    assert step.id == "stp_0195f3a0000070018234567890abcdef"
 
-    step_alias = await repo.get_step("stp_1234567890abcdef")
+    step_alias = await repo.get_step("stp_0195f3a0000070018234567890abcdef")
     assert step_alias is not None
 
     all_steps = await repo.get_all_steps()
     assert len(all_steps) == 1
 
-    mock_driver.upsert.return_value = "stp_1234567890abcdef"
+    mock_driver.upsert.return_value = "stp_0195f3a0000070018234567890abcdef"
     step_dto = StepCreateDTO(
         slug=valid_step_doc["slug"],
         name=I18nText(translations=valid_step_doc["name"]["translations"]),
@@ -196,9 +198,12 @@ async def test_step_crud_and_query(repo: WorkflowRepositoryImpl, mock_driver: As
         criteria_block_ids=valid_step_doc["criteria_block_ids"],
         extraction_protocol_block_id=valid_step_doc["extraction_protocol_block_id"],
     )
-    assert await repo.create_step(step_dto) == "stp_1234567890abcdef"
-    assert await repo.update_step("stp_1234567890abcdef", StepUpdateDTO(slug="updated")) == "stp_1234567890abcdef"
-    assert await repo.delete_step("stp_1234567890abcdef", force_delete=True) is True
+    assert await repo.create_step(step_dto) == "stp_0195f3a0000070018234567890abcdef"
+    assert (
+        await repo.update_step("stp_0195f3a0000070018234567890abcdef", StepUpdateDTO(slug="updated"))
+        == "stp_0195f3a0000070018234567890abcdef"
+    )
+    assert await repo.delete_step("stp_0195f3a0000070018234567890abcdef", force_delete=True) is True
 
 
 @pytest.mark.asyncio
@@ -216,13 +221,13 @@ async def test_delete_step_blocked_by_usage(
 ) -> None:
     """Negative: step deletion blocked when used by an active workflow without force_delete."""
     workflow_using_step = dict(valid_workflow_doc)
-    workflow_using_step["steps"] = [{"task_blueprint": "stp_1234567890abcdef"}]
+    workflow_using_step["steps"] = [{"task_blueprint": "stp_0195f3a0000070018234567890abcdef"}]
 
     mock_driver.get.return_value = valid_step_doc
     mock_driver.query.return_value = [workflow_using_step]
 
     with pytest.raises(AppException) as exc_info:
-        await repo.delete_step("stp_1234567890abcdef", force_delete=False)
+        await repo.delete_step("stp_0195f3a0000070018234567890abcdef", force_delete=False)
     assert exc_info.value.status_code == 400
 
 
@@ -241,7 +246,7 @@ async def test_get_workflow_definition_from_disk_success(
     import json
     from pathlib import Path
 
-    wf_id = "wf_1234567890abcdef"
+    wf_id = "wf_0195f3a0000070018234567890abcdef"
     disk_file = Path(f"data/workflows/{wf_id}.json")
     disk_file.parent.mkdir(parents=True, exist_ok=True)
     file_doc = dict(valid_workflow_doc)
@@ -264,7 +269,7 @@ async def test_get_workflow_definition_from_disk_corruption(
     """Negative: corrupted disk workflow file raises AppException with STORAGE_ACCESS_FAILED."""
     from pathlib import Path
 
-    wf_id = "wf_abcdef1234567890"
+    wf_id = "wf_0195f3a00000700a8bcdef1234567890"
     disk_file = Path(f"data/workflows/{wf_id}.json")
     disk_file.parent.mkdir(parents=True, exist_ok=True)
     disk_file.write_text("{not valid json", encoding="utf-8")

@@ -45,12 +45,12 @@ def sample_step() -> Step:
         Validated Step domain model.
     """
     return Step(
-        id="stp_1234567890abcdef",
+        id="stp_0195f3a0000070018234567890abcdef",
         slug="step_guard",
         name=I18nText(translations={"en": "Guard Step", "fi": "Suojavaihe"}),
         cognitive_tier=CognitiveTier.FAST,
-        criteria_block_ids=["blk_1234567890abcdef"],
-        extraction_protocol_block_id="blk_1234567890abcdef",
+        criteria_block_ids=["blk_0195f3a0000070018234567890abcdef"],
+        extraction_protocol_block_id="blk_0195f3a0000070018234567890abcdef",
         mcp_tool_params={},
     )
 
@@ -83,7 +83,7 @@ async def test_update_task_blueprint(
     await repo.create_task_blueprint(sample_step)
 
     res = await repo.update_task_blueprint(
-        "stp_1234567890abcdef", StepUpdateDTO(name=I18nText(translations={"en": "updated"}))
+        "stp_0195f3a0000070018234567890abcdef", StepUpdateDTO(name=I18nText(translations={"en": "updated"}))
     )
     assert res is True
 
@@ -99,19 +99,23 @@ async def test_update_task_blueprint(
 @pytest.mark.asyncio
 async def test_task_blueprint_parsing_failures(repo: TaskBlueprintRepositoryImpl, driver: StorageDriver) -> None:
     """Negative: corrupted Step blueprint data raises AppException with VALIDATION_FAILED."""
-    await driver.upsert("task_blueprints", {"id": "stp_1111111111111111", "invalid": "data"}, "stp_1111111111111111")
+    await driver.upsert(
+        "task_blueprints",
+        {"id": "stp_0195f3a0000070018111111111111111", "invalid": "data"},
+        "stp_0195f3a0000070018111111111111111",
+    )
 
     with pytest.raises(AppException) as exc_info_by_id:
-        await repo.get_task_blueprint_by_id("stp_1111111111111111")
+        await repo.get_task_blueprint_by_id("stp_0195f3a0000070018111111111111111")
     assert exc_info_by_id.value.status_code == 500
     assert exc_info_by_id.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "stp_1111111111111111" in exc_info_by_id.value.message
+    assert "stp_0195f3a0000070018111111111111111" in exc_info_by_id.value.message
 
     with pytest.raises(AppException) as exc_info_all:
         await repo.get_all_task_blueprints()
     assert exc_info_all.value.status_code == 500
     assert exc_info_all.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "stp_1111111111111111" in exc_info_all.value.message
+    assert "stp_0195f3a0000070018111111111111111" in exc_info_all.value.message
 
 
 @pytest.mark.asyncio
@@ -138,11 +142,11 @@ async def test_get_all_task_blueprints_corrupted_without_id_raises_app_exception
 @pytest.mark.asyncio
 async def test_task_blueprint_not_found(repo: TaskBlueprintRepositoryImpl) -> None:
     """Negative boundary: tests not found branches for get, update, and delete."""
-    assert await repo.get_task_blueprint_by_id("stp_0000000000000000") is None
+    assert await repo.get_task_blueprint_by_id("stp_0195f3a0000070008000000000000000") is None
     assert (
         await repo.update_task_blueprint(
-            "stp_0000000000000000", StepUpdateDTO(name=I18nText(translations={"en": "missing"}))
+            "stp_0195f3a0000070008000000000000000", StepUpdateDTO(name=I18nText(translations={"en": "missing"}))
         )
         is False
     )
-    assert await repo.delete_task_blueprint("stp_0000000000000000") is False
+    assert await repo.delete_task_blueprint("stp_0195f3a0000070008000000000000000") is False

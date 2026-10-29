@@ -135,20 +135,20 @@ def test_ast_dag_executor_zero_sys_render_injection() -> None:
 async def test_execution_worker_zero_report_side_effects() -> None:
     """Verify execute_workflow_job does NOT create report records or enqueue report jobs."""
     mock_workflow = Workflow(
-        id="wor_0123456789abcdef",
+        id="wor_0195f3a0000070008123456789abcdef",
         slug="test-workflow",
         name="Test Workflow",
         description="Test Description",
         status="active",
         version=1,
         default_strictness_level=50,
-        model_registry_id="sys_e26807f3bfa3454d",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],
     )
     mock_record = ExecutionRecord(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.PENDING,
         target_locale="fi",
         progress=None,
@@ -176,9 +176,9 @@ async def test_execution_worker_zero_report_side_effects() -> None:
 
     result = await execute_workflow_job(
         ctx=ctx,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         inputs={},
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
     )
 
     assert result.status == "COMPLETED"
@@ -186,7 +186,7 @@ async def test_execution_worker_zero_report_side_effects() -> None:
     if "enqueue_job" in dir(mock_redis):
         assert not mock_redis.enqueue_job.called
     # Invariant: execution was updated with status=PASSED
-    saved_exec = await fake_repo.get_execution("exe_0123456789abcdef")
+    saved_exec = await fake_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert saved_exec is not None
     assert saved_exec.status == ExecutionStatus.PASSED
 
@@ -195,12 +195,12 @@ async def test_execution_worker_zero_report_side_effects() -> None:
 # Test 3 & 4: REST-Only Entrypoint & Precondition Gate
 # ---------------------------------------------------------------------------
 
-MOCK_USER_ID = "usr_0123456789abcdef"
-MOCK_ORG_ID = "org_0123456789abcdef"
-MOCK_EXE_ID = "exe_0123456789abcdef"
-MOCK_WOR_ID = "wor_0123456789abcdef"
-MOCK_PRF_ID = "prf_0123456789abcdef"
-MOCK_REP_ID = "rep_0123456789abcdef"
+MOCK_USER_ID = "usr_0195f3a0000070008123456789abcdef"
+MOCK_ORG_ID = "org_0195f3a0000070008123456789abcdef"
+MOCK_EXE_ID = "exe_0195f3a0000070008123456789abcdef"
+MOCK_WOR_ID = "wor_0195f3a0000070008123456789abcdef"
+MOCK_PRF_ID = "prf_0195f3a0000070008123456789abcdef"
+MOCK_REP_ID = "rep_0195f3a0000070008123456789abcdef"
 
 mock_user = TokenData(id=MOCK_USER_ID, role=UserRole.ROOT, organization_id=MOCK_ORG_ID)
 

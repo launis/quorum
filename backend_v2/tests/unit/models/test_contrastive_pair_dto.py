@@ -117,7 +117,7 @@ def test_flattened_atom_rejects_raw_string_contrastive_example() -> None:
     with pytest.raises(ValidationError):
         FlattenedAtom.model_validate(
             {
-                "atom_id": "tda_1234567890abcdef",
+                "atom_id": "tda_0195f3a0000070018234567890abcdef",
                 "question": "Valid test question",
                 "contrastive_example": "Legacy string should fail",
             }

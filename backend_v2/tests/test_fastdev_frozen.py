@@ -14,7 +14,7 @@ async def test_fastdev_frozen_instance_override() -> None:
     """Verify that development environment overrides frozen ModelProfile instances safely."""
     mock_repo = InMemorySystemRepository()
     registry_data = {
-        "id": "sys_1234567890123456",
+        "id": "sys_0195f3a0000070018234567890123456",
         "slug": "model-registry-mock",
         "type": "model_registry",
         "name": "model-registry-mock",

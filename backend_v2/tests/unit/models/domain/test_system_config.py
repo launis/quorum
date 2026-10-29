@@ -192,14 +192,14 @@ def test_mcp_audit_trace_provenance_fields() -> None:
     """Verify MCPAuditTrace accepts optional gateway provenance fields and enforces frozen=True."""
     trace = MCPAuditTrace(
         tool_id="mcp_tavily_search",
-        step_name="stp_1234567890abcdef",
-        gateway_id="sys_8172bda70c8641c5",
+        step_name="stp_0195f3a0000070018234567890abcdef",
+        gateway_id="sys_0195f3a00000700080008172bda70c86",
         gateway_slug="default_mcp_gateway",
         namespaced_alias="default_mcp_gateway__mcp_tavily_search",
         query="test query",
         duration_ms=120,
     )
-    assert trace.gateway_id == "sys_8172bda70c8641c5"
+    assert trace.gateway_id == "sys_0195f3a00000700080008172bda70c86"
     assert trace.gateway_slug == "default_mcp_gateway"
     assert trace.namespaced_alias == "default_mcp_gateway__mcp_tavily_search"
     assert trace.source_urls == []
@@ -210,7 +210,7 @@ def test_mcp_audit_trace_provenance_fields() -> None:
     with pytest.raises(ValidationError):
         MCPAuditTrace(
             tool_id="mcp_tavily_search",
-            step_name="stp_1234567890abcdef",
+            step_name="stp_0195f3a0000070018234567890abcdef",
             gateway_id="invalid_gateway_id",
             query="test query",
         )
@@ -219,7 +219,7 @@ def test_mcp_audit_trace_provenance_fields() -> None:
 def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
     """Verify SystemConfigMCPGateways validates single-underscore slug and timeout bounds."""
     gw_min = SystemConfigMCPGateways(
-        id="sys_8172bda70c8641c5",
+        id="sys_0195f3a00000700080008172bda70c86",
         slug="tavily_mcp_gateway",
         endpoint_url="https://mcp.tavily.com/mcp",
         transport_type=MCPTransportType.STREAMABLE_HTTP,
@@ -234,7 +234,7 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
     assert gw_min.timeout_seconds == 1
 
     gw_max = SystemConfigMCPGateways(
-        id="sys_8172bda70c8641c5",
+        id="sys_0195f3a00000700080008172bda70c86",
         slug="valid_slug",
         timeout_seconds=300,
         tools=[],
@@ -243,14 +243,14 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
 
     with pytest.raises(ValidationError):
         SystemConfigMCPGateways(
-            id="sys_8172bda70c8641c5",
+            id="sys_0195f3a00000700080008172bda70c86",
             slug="bad__double_underscore",
             tools=[],
         )
 
     with pytest.raises(ValidationError):
         SystemConfigMCPGateways(
-            id="sys_8172bda70c8641c5",
+            id="sys_0195f3a00000700080008172bda70c86",
             slug="valid_slug",
             timeout_seconds=0,
             tools=[],
@@ -258,7 +258,7 @@ def test_system_config_mcp_gateways_slug_and_timeout_validation() -> None:
 
     with pytest.raises(ValidationError):
         SystemConfigMCPGateways(
-            id="sys_8172bda70c8641c5",
+            id="sys_0195f3a00000700080008172bda70c86",
             slug="valid_slug",
             timeout_seconds=301,
             tools=[],
@@ -274,12 +274,12 @@ def test_system_config_model_registry_valid_all_tiers() -> None:
         CognitiveTier.REASONING: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
     }
     registry = SystemConfigModelRegistry(
-        id="sys_1234567890abcdef",
+        id="sys_0195f3a0000070018234567890abcdef",
         name="Complete Registry",
         default_provider=LLMProvider.AI_STUDIO,
         tier_definitions=complete_tiers,
     )
-    assert registry.id == "sys_1234567890abcdef"
+    assert registry.id == "sys_0195f3a0000070018234567890abcdef"
     assert len(registry.tier_definitions) == 4
 
 
@@ -290,7 +290,7 @@ def test_system_config_model_registry_missing_tier_raises_value_error() -> None:
     }
     with pytest.raises(ValidationError) as exc_info:
         SystemConfigModelRegistry(
-            id="sys_1234567890abcdef",
+            id="sys_0195f3a0000070018234567890abcdef",
             name="Incomplete Registry",
             tier_definitions=incomplete_tiers,
         )

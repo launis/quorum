@@ -427,7 +427,7 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert await kn_repo.delete_banned_phrase("banned")
     assert await kn_repo.get_prompt_template("t1") is None
     c_id = await kn_repo.add_concept(ConceptCreateDTO(name="C1"))
-    assert c_id.startswith("c_")
+    assert c_id.startswith("con_")
     r_id = await kn_repo.add_reference(ReferenceCreateDTO(name="R1"))
     assert r_id.startswith("ref_")
     cl_id = await kn_repo.add_claim(ClaimCreateDTO(name="CL1"))
@@ -662,7 +662,7 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert await unified.delete_banned_phrase("phrase_u")
     assert await unified.get_prompt_template("t_u") is None
     c_u = await unified.add_concept(ConceptCreateDTO(name="CU"))
-    assert c_u.startswith("c_")
+    assert c_u.startswith("con_")
     r_u = await unified.add_reference(ReferenceCreateDTO(name="RU"))
     assert r_u.startswith("ref_")
     cl_u = await unified.add_claim(ClaimCreateDTO(name="CLU"))
@@ -767,8 +767,10 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     )
     assert await unified.delete_report_artifact("rep_1234567890abcdef1234567890abcdef")
 
-    gw = SystemConfigMCPGateways(id="cfg_8172bda70c8641c5", slug="mcp_gateways", type="mcp_gateways", tools=[])
+    gw = SystemConfigMCPGateways(
+        id="cfg_0195f3a0000070088172bda70c8641c5", slug="mcp_gateways", type="mcp_gateways", tools=[]
+    )
     await unified.update_mcp_gateways(gw)
     all_gws = await unified.get_all_mcp_gateways()
     assert len(all_gws) >= 1
-    assert any(g.id == "cfg_8172bda70c8641c5" for g in all_gws)
+    assert any(g.id == "cfg_0195f3a0000070088172bda70c8641c5" for g in all_gws)

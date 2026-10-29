@@ -17,7 +17,7 @@ from backend_v2.models.enums import CognitiveTier, LLMProvider
 def sample_model_registry() -> SystemConfigModelRegistry:
     """Provides a sample SystemConfigModelRegistry model."""
     return SystemConfigModelRegistry(
-        id="sys_1234567890abcdef",
+        id="sys_0195f3a0000070018234567890abcdef",
         name="Sample Model Registry",
         slug="model_registry",
         type="model_registry",
@@ -35,7 +35,7 @@ def sample_model_registry() -> SystemConfigModelRegistry:
 def sample_mcp_gateways() -> SystemConfigMCPGateways:
     """Provides a sample SystemConfigMCPGateways model."""
     return SystemConfigMCPGateways(
-        id="cfg_8172bda70c8641c5",
+        id="cfg_0195f3a0000070088172bda70c8641c5",
         slug="mcp_gateways",
         type="mcp_gateways",
         tools=[],
@@ -104,14 +104,14 @@ async def test_get_mcp_gateways_with_id_success(sample_mcp_gateways: SystemConfi
     mock_driver.query.return_value = [sample_mcp_gateways.model_dump(mode="json")]
 
     repo = SystemRepositoryImpl(driver=mock_driver)
-    res = await repo.get_mcp_gateways(id="cfg_8172bda70c8641c5")
+    res = await repo.get_mcp_gateways(id="cfg_0195f3a0000070088172bda70c8641c5")
 
-    assert res.id == "cfg_8172bda70c8641c5"
+    assert res.id == "cfg_0195f3a0000070088172bda70c8641c5"
     mock_driver.query.assert_called_once()
     filters = mock_driver.query.call_args[0][1]
     assert len(filters) == 1
     assert filters[0].field == "id"
-    assert filters[0].value == "cfg_8172bda70c8641c5"
+    assert filters[0].value == "cfg_0195f3a0000070088172bda70c8641c5"
 
 
 @pytest.mark.asyncio
@@ -123,7 +123,7 @@ async def test_get_mcp_gateways_default_type_success(sample_mcp_gateways: System
     repo = SystemRepositoryImpl(driver=mock_driver)
     res = await repo.get_mcp_gateways()
 
-    assert res.id == "cfg_8172bda70c8641c5"
+    assert res.id == "cfg_0195f3a0000070088172bda70c8641c5"
     mock_driver.query.assert_called_once()
     filters = mock_driver.query.call_args[0][1]
     assert len(filters) == 1
@@ -253,23 +253,23 @@ async def test_get_system_config(sample_model_registry: SystemConfigModelRegistr
     mock_driver.get.return_value = sample_model_registry.model_dump(mode="json")
 
     repo = SystemRepositoryImpl(driver=mock_driver)
-    res = await repo.get_system_config("cfg_1234567890abcdef")
+    res = await repo.get_system_config("cfg_0195f3a0000070018234567890abcdef")
 
     assert res is not None
     assert isinstance(res, SystemConfigModelRegistry)
-    mock_driver.get.assert_called_once_with("system_config", "cfg_1234567890abcdef")
+    mock_driver.get.assert_called_once_with("system_config", "cfg_0195f3a0000070018234567890abcdef")
 
 
 @pytest.mark.asyncio
 async def test_create_system_config(sample_model_registry: SystemConfigModelRegistry) -> None:
     """Positive: creates system config document."""
     mock_driver = AsyncMock()
-    mock_driver.upsert.return_value = "cfg_1234567890abcdef"
+    mock_driver.upsert.return_value = "cfg_0195f3a0000070018234567890abcdef"
 
     repo = SystemRepositoryImpl(driver=mock_driver)
     res = await repo.create_system_config(SystemConfigCreateDTO(type="model_registry", content=sample_model_registry))
 
-    assert res == "cfg_1234567890abcdef"
+    assert res == "cfg_0195f3a0000070018234567890abcdef"
     mock_driver.upsert.assert_called_once()
 
 

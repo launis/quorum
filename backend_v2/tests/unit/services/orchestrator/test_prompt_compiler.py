@@ -16,7 +16,7 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
 
     # Mocking the JSON structure we confirmed in Phase 1
     mock_matrix_block = {
-        "id": "blk_1234567890abcdef",
+        "id": "blk_0195f3a0000070018234567890abcdef",
         "slug": "test_matrix",
         "category_id": "matrix",
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -112,12 +112,12 @@ def test_prompt_compiler_deep_matrix_schema() -> None:
 
     # Get the field description which contains the compiled BARS matrix
     matrix_model = DynamicSchema.model_fields["global_matrices"].annotation
-    field_info = matrix_model.model_fields["blk_1234567890abcdef"]
+    field_info = matrix_model.model_fields["blk_0195f3a0000070018234567890abcdef"]
     compiled_desc = field_info.description
 
     # Target Snapshot format
     expected_snapshot = (
-        "Global matrix evaluation for 'blk_1234567890abcdef' (Critical Distance Score). "
+        "Global matrix evaluation for 'blk_0195f3a0000070018234567890abcdef' (Critical Distance Score). "
         "Objective: ROLE: ADVERSARIAL AUDITOR... Evaluate the user's intellectual effort..."
     )
 
@@ -133,7 +133,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     compiler = PromptCompiler()
 
     mock_matrix = {
-        "id": "blk_2234567890abcdef",
+        "id": "blk_0195f3a0000070028234567890abcdef",
         "slug": "extract_test",
         "category_id": "matrix",
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -174,7 +174,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
         "reasoning_trace": "Let's think...",
         "evaluation_notes": "User was bad",
         "global_matrices": {
-            "blk_2234567890abcdef": {
+            "blk_0195f3a0000070028234567890abcdef": {
                 "semantic_reasoning": "Valid reasoning",
                 "remediation_steps": "Do better",
                 "confidence": 0.95,
@@ -183,7 +183,7 @@ def test_prompt_compiler_dynamic_extraction_resilience() -> None:
     }
 
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert parsed.global_matrices.blk_2234567890abcdef.semantic_reasoning == "Valid reasoning"
+    assert parsed.global_matrices.blk_0195f3a0000070028234567890abcdef.semantic_reasoning == "Valid reasoning"
     assert parsed.reasoning_trace == "Let's think..."
 
 
@@ -279,7 +279,7 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
 
     extreme_desc = "X" * 1000  # 1000 merkin pituinen ohjeistus
     mock_block = {
-        "id": "blk_1234567890abcdef",
+        "id": "blk_0195f3a0000070018234567890abcdef",
         "slug": "extreme_test",
         "category_id": "matrix",
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -315,7 +315,7 @@ def test_prompt_compiler_extreme_description_truncation() -> None:
     )
 
     matrix_model = DynamicSchema.model_fields["global_matrices"].annotation
-    field_info = matrix_model.model_fields["blk_1234567890abcdef"]
+    field_info = matrix_model.model_fields["blk_0195f3a0000070018234567890abcdef"]
     compiled_desc = field_info.description
     assert compiled_desc is not None
 
@@ -329,7 +329,7 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
     from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 
     mock_block = {
-        "id": "blk_599645bd5baf44e2",
+        "id": "blk_0195f3a000007005899645bd5baf44e2",
         "slug": "custom_instruction",
         "category_id": "system_rule",
         "type": "instruction",
@@ -347,17 +347,17 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
     )
 
     # The field type must be a simple string (str), NOT a nested Pydantic model class
-    field_info = DynamicSchema.model_fields["blk_599645bd5baf44e2"]
+    field_info = DynamicSchema.model_fields["blk_0195f3a000007005899645bd5baf44e2"]
     assert field_info.annotation is str
 
     # The schema must parse valid string payloads perfectly
     llm_payload = {
         "reasoning_trace": "Some reasoning trace.",
         "evaluation_notes": "Qualitative evaluation notes.",
-        "blk_599645bd5baf44e2": "Verification completed successfully.",
+        "blk_0195f3a000007005899645bd5baf44e2": "Verification completed successfully.",
     }
     parsed = DynamicSchema.model_validate(llm_payload)
-    assert parsed.blk_599645bd5baf44e2 == "Verification completed successfully."
+    assert parsed.blk_0195f3a000007005899645bd5baf44e2 == "Verification completed successfully."
 
 
 def test_build_xml_context() -> None:
@@ -788,7 +788,7 @@ def test_compile_static_and_dynamic_instructions() -> None:
 
     compiler = PromptCompiler()
     block = SystemRulePromptBlock(
-        id="blk_1111222233334444",
+        id="blk_0195f3a0000070018111222233334444",
         slug="static_inst",
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
@@ -797,7 +797,7 @@ def test_compile_static_and_dynamic_instructions() -> None:
         instruction_text="Static instruction directive",
     )
     dynamic_block = SystemRulePromptBlock(
-        id="blk_2222333344445555",
+        id="blk_0195f3a0000070028222333344445555",
         slug="dyn_inst",
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,

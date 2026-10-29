@@ -416,7 +416,7 @@ def test_sdui_semantic_parity_invalid_token_dto_rejected_negative() -> None:
 
     with pytest.raises(ValidationError):
         MCPAuditTrace.model_validate_json(
-            '{"step_id": "stp_1234567890abcdef", "tool_id": "mcp_tavily_search", '
+            '{"step_id": "stp_0195f3a0000070018234567890abcdef", "tool_id": "mcp_tavily_search", '
             '"query": "q", "raw_result_summary": "r", "timestamp_utc": "2026-10-25T12:00:00Z", '
             '"extra_field": "forbidden"}'
         )

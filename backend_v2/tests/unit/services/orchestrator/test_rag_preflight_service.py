@@ -67,13 +67,13 @@ def make_valid_step_def(cognitive_tier: str | None = "fast") -> Step:
     """Helper to create a valid Step object for testing."""
     return Step.model_validate(
         {
-            "id": "stp_1234567890abcdef",
+            "id": "stp_0195f3a0000070018234567890abcdef",
             "slug": "test_step",
             "name": {"translations": {"en": "Test Step"}},
             "description": {"translations": {"en": "Test Description"}},
             "cognitive_tier": cognitive_tier or "fast",
-            "criteria_block_ids": ["blk_1234567890abcdef"],
-            "extraction_protocol_block_id": "blk_1234567890abcdef",
+            "criteria_block_ids": ["blk_0195f3a0000070018234567890abcdef"],
+            "extraction_protocol_block_id": "blk_0195f3a0000070018234567890abcdef",
             "type": "llm",
         }
     )
@@ -83,13 +83,13 @@ def make_valid_step_def(cognitive_tier: str | None = "fast") -> Step:
 async def test_rag_preflight_missing_task_blueprint_crashes(preflight_service: RAGPreflightService) -> None:
     """Tests that missing task_blueprint raises CONFIGURATION_ERROR AppException."""
     step_rule = StepRule.model_construct(
-        id="stp_1234567890abcdef", task_blueprint=None, input_mappings={}, depends_on=[]
+        id="stp_0195f3a0000070018234567890abcdef", task_blueprint=None, input_mappings={}, depends_on=[]
     )
     step_def = make_valid_step_def()
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"text": "A" * 100}),
         target_locale="en",
         metadata=ExecutionMetadata(),
@@ -111,10 +111,13 @@ async def test_rag_preflight_missing_task_blueprint_crashes(preflight_service: R
 async def test_rag_preflight_missing_cognitive_tier_crashes(preflight_service: RAGPreflightService) -> None:
     """Tests that missing cognitive_tier raises CONFIGURATION_ERROR AppException."""
     step_rule = StepRule(
-        id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[]
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
+        input_mappings={},
+        depends_on=[],
     )
     step_def = Step.model_construct(
-        id="stp_1234567890abcdef",
+        id="stp_0195f3a0000070018234567890abcdef",
         slug="test_step",
         name=I18nText(translations={"en": "Test Step"}),
         description=I18nText(translations={"en": "Test Description"}),
@@ -122,9 +125,9 @@ async def test_rag_preflight_missing_cognitive_tier_crashes(preflight_service: R
         type="llm",
     )
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"text": "A" * 100}),
         target_locale="en",
         metadata=ExecutionMetadata(),
@@ -149,13 +152,16 @@ async def test_rag_preflight_input_below_character_threshold_skips(
 ) -> None:
     """Tests that inputs below rag_preflight_min_input_chars (50 chars) skip atomization."""
     step_rule = StepRule(
-        id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[]
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
+        input_mappings={},
+        depends_on=[],
     )
     step_def = make_valid_step_def()
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"short_doc": "Only 20 chars here.", "non_str": 123}),
         target_locale="en",
         metadata=ExecutionMetadata(),
@@ -182,16 +188,19 @@ async def test_rag_preflight_happy_path_with_progress_callbacks(
 ) -> None:
     """Tests full happy-path RAG preflight with multi-paragraph text and progress callbacks."""
     step_rule = StepRule(
-        id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[]
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
+        input_mappings={},
+        depends_on=[],
     )
     step_def = make_valid_step_def()
     text_content = (
         "Paragraph one is substantive and provides context.\n\nParagraph two provides additional insights and evidence."
     )
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc_1": text_content, "skipped_key": "too short"}),
         target_locale="en",
         metadata=ExecutionMetadata(),
@@ -200,7 +209,7 @@ async def test_rag_preflight_happy_path_with_progress_callbacks(
     emit_mock = AsyncMock()
 
     atom = DraftExtractedAtom(
-        draft_id="atm_1234567890abcdef",
+        draft_id="atm_0195f3a0000070018234567890abcdef",
         reasoning="Test reasoning",
         resolved_claim="Test claim",
         is_logical_deduction=False,
@@ -257,21 +266,24 @@ async def test_rag_preflight_atom_ceiling_exceeded_crashes(
 ) -> None:
     """Tests that exceeding max_extracted_atoms_per_document raises VALIDATION_FAILED AppException."""
     step_rule = StepRule(
-        id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[]
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
+        input_mappings={},
+        depends_on=[],
     )
     step_def = make_valid_step_def()
     text_content = "Valid long input text with more than fifty characters for analysis."
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc_1": text_content}),
         target_locale="en",
         metadata=ExecutionMetadata(),
     )
 
     atom = DraftExtractedAtom(
-        draft_id="atm_1234567890abcdef",
+        draft_id="atm_0195f3a0000070018234567890abcdef",
         reasoning="Test",
         resolved_claim="Test",
         is_logical_deduction=False,
@@ -320,16 +332,19 @@ async def test_rag_preflight_excludes_metadata_keys_from_count_and_atomization(
 ) -> None:
     """Tests that excluded metadata keys (e.g. document_date) are ignored in count and atomization."""
     step_rule = StepRule(
-        id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[]
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
+        input_mappings={},
+        depends_on=[],
     )
     step_def = make_valid_step_def()
     long_metadata = "2026-07-22T04:43:36+00:00" * 10  # 250 chars
     sparse_doc = "Sparse doc with only 30 chars."
 
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         raw_inputs=WorkflowInputs(
             dynamic_inputs={
                 "document_date": long_metadata,
@@ -361,7 +376,10 @@ async def test_rag_preflight_chat_log_with_large_ai_text_sparse_user_text_skips(
 ) -> None:
     """Tests that large AI text with sparse user payload (<100 user chars) skips preflight."""
     step_rule = StepRule(
-        id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[]
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
+        input_mappings={},
+        depends_on=[],
     )
     step_def = make_valid_step_def()
     large_ai_chat_log = (
@@ -370,9 +388,9 @@ async def test_rag_preflight_chat_log_with_large_ai_text_sparse_user_text_skips(
     )
 
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         raw_inputs=WorkflowInputs(
             dynamic_inputs={
                 "chat_log": large_ai_chat_log,
@@ -402,7 +420,10 @@ async def test_rag_preflight_chat_log_with_substantial_user_text_proceeds(
 ) -> None:
     """Tests that chat log with substantial user payload (>100 user chars) proceeds with atomization."""
     step_rule = StepRule(
-        id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[]
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
+        input_mappings={},
+        depends_on=[],
     )
     step_def = make_valid_step_def()
     substantial_user_chat_log = (
@@ -414,9 +435,9 @@ async def test_rag_preflight_chat_log_with_substantial_user_text_proceeds(
     )
 
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         raw_inputs=WorkflowInputs(
             dynamic_inputs={
                 "chat_log": substantial_user_chat_log,
@@ -429,7 +450,7 @@ async def test_rag_preflight_chat_log_with_substantial_user_text_proceeds(
 
     emit_mock = AsyncMock()
     atom = DraftExtractedAtom(
-        draft_id="atm_1234567890abcdef",
+        draft_id="atm_0195f3a0000070018234567890abcdef",
         reasoning="Test reasoning",
         resolved_claim="Test claim",
         is_logical_deduction=False,
@@ -473,7 +494,10 @@ async def test_rag_preflight_extracts_inputs_from_trace_and_ignores_auxiliary_ke
 ) -> None:
     """Tests that preflight extracts inputs from execution_trace and ignores _user_only/_ai_only keys."""
     step_rule = StepRule(
-        id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[]
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
+        input_mappings={},
+        depends_on=[],
     )
     step_def = make_valid_step_def()
 
@@ -503,9 +527,9 @@ async def test_rag_preflight_extracts_inputs_from_trace_and_ignores_auxiliary_ke
     )
 
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         raw_inputs=WorkflowInputs(
             dynamic_inputs={
                 "product_text": "lopputuote",
@@ -545,9 +569,9 @@ def test_extract_inputs_from_record_variations() -> None:
         content=ExecutionInputsDTO(dynamic_inputs={"file_a": "content from dto"}),
     )
     rec_dto = ExecutionRecord(
-        id="exe_0000000000000001",
-        workflow_id="wf_0000000000000001",
-        output_profile_id="prof_0000000000000001",
+        id="exe_0195f3a0000070008000000000000001",
+        workflow_id="wf_0195f3a0000070008000000000000001",
+        output_profile_id="prof_0195f3a0000070008000000000000001",
         raw_inputs=WorkflowInputs(dynamic_inputs={"raw": "fallback"}),
         target_locale="en",
         metadata=ExecutionMetadata(),
@@ -563,9 +587,9 @@ def test_extract_inputs_from_record_variations() -> None:
         content={"dynamic_inputs": {"file_b": "content from dict"}},
     )
     rec_dict = ExecutionRecord(
-        id="exe_0000000000000002",
-        workflow_id="wf_0000000000000002",
-        output_profile_id="prof_0000000000000002",
+        id="exe_0195f3a0000070008000000000000002",
+        workflow_id="wf_0195f3a0000070008000000000000002",
+        output_profile_id="prof_0195f3a0000070008000000000000002",
         raw_inputs=WorkflowInputs(dynamic_inputs={"raw": "fallback"}),
         target_locale="en",
         metadata=ExecutionMetadata(),
@@ -585,7 +609,10 @@ async def test_rag_preflight_duplicate_paragraphs_monotonic_block_ids(
     from backend_v2.tests.unit.services.orchestrator.test_rag_preflight_service import make_valid_step_def
 
     step_rule = StepRule(
-        id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[]
+        id="stp_0195f3a0000070018234567890abcdef",
+        task_blueprint="blp_0195f3a0000070018234567890abcdef",
+        input_mappings={},
+        depends_on=[],
     )
     step_def = make_valid_step_def()
     text_content = (
@@ -595,9 +622,9 @@ async def test_rag_preflight_duplicate_paragraphs_monotonic_block_ids(
         "Duplicate header line for testing."
     )
     exec_record = ExecutionRecord(
-        id="exe_1234567890abcdef",
-        workflow_id="wf_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc_1": text_content}),
         target_locale="en",
         metadata=ExecutionMetadata(),
@@ -606,7 +633,7 @@ async def test_rag_preflight_duplicate_paragraphs_monotonic_block_ids(
     captured_hydrated_text: list[str] = []
 
     atom = DraftExtractedAtom(
-        draft_id="atm_1234567890abcdef",
+        draft_id="atm_0195f3a0000070018234567890abcdef",
         reasoning="Test",
         resolved_claim="Test",
         is_logical_deduction=False,

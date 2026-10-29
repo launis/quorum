@@ -72,7 +72,7 @@ async def test_simulate_workflow_success(simulation_service: StudioSimulationSer
         version=1,
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         expected_inputs=[
             ExpectedInput(
                 input_key="document_text",
@@ -123,7 +123,7 @@ async def test_simulate_workflow_missing_input(
         version=1,
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         expected_inputs=[
             ExpectedInput(
                 input_key="doc",
@@ -163,7 +163,7 @@ async def test_simulate_workflow_undeclared_dependency(
         version=1,
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         expected_inputs=[],
         steps=[
             StepRule(
@@ -842,7 +842,7 @@ async def test_studio_simulation_returns_strict_dtos(
         version=1,
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         expected_inputs=[],
         steps=[],
     )

@@ -15,7 +15,7 @@ def test_reproduce_tier4_schema_bug() -> None:
     # The error says field `blk_599645bd5baf44e2` was expected to be a string.
     block = PromptBlockAdapter.validate_python(
         {
-            "id": "blk_599645bd5baf44e2",
+            "id": "blk_0195f3a000007005899645bd5baf44e2",
             "type": "string",
             "category_id": PromptBlockCategory.SYSTEM_RULE,
             "label": {"translations": {"en": "Matrix"}},
@@ -38,7 +38,7 @@ def test_reproduce_tier4_schema_bug() -> None:
     llm_output = {
         "reasoning_trace": "test",
         "evaluation_notes": "test",
-        "blk_599645bd5baf44e2": [
+        "blk_0195f3a000007005899645bd5baf44e2": [
             {"atom_id": "blk_599645bd5baf44e2_1", "semantic_reasoning": "...", "exact_quotes": ["..."]}
         ],
     }

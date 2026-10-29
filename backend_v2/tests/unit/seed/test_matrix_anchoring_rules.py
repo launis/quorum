@@ -32,11 +32,11 @@ TARGET_ATOM_IDS: list[str] = [
 ]
 
 TARGET_BLOCK_IDS: list[str] = [
-    "blk_440a5fef9331451b",
-    "blk_53f32679aa514fcb",
-    "blk_ff72c2d79edb4ebf",
-    "blk_f921c7c0989b47e8",
-    "blk_109dab5b6b3f403a",
+    "blk_0195f3a000007004840a5fef9331451b",
+    "blk_0195f3a00000700583f32679aa514fcb",
+    "blk_0195f3a00000700f8f72c2d79edb4ebf",
+    "blk_0195f3a00000700f8921c7c0989b47e8",
+    "blk_0195f3a000007001809dab5b6b3f403a",
 ]
 
 

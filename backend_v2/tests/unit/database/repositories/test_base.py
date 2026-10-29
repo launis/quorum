@@ -25,9 +25,9 @@ def test_append_only_repository_increment_version_unversioned() -> None:
     mock_driver = AsyncMock(spec=StorageDriver)
     repo = AppendOnlyRepositoryBase(mock_driver)
 
-    result = repo._increment_version("wor_1122334455667788")
-    assert result.base_id == "wor_1122334455667788"
-    assert result.new_id == "wor_1122334455667788_v2"
+    result = repo._increment_version("wor_0195f3a0000070018122334455667788")
+    assert result.base_id == "wor_0195f3a0000070018122334455667788"
+    assert result.new_id == "wor_0195f3a0000070018122334455667788_v2"
     assert result.version == 2
 
 
@@ -36,14 +36,14 @@ def test_append_only_repository_increment_version_existing_numeric() -> None:
     mock_driver = AsyncMock(spec=StorageDriver)
     repo = AppendOnlyRepositoryBase(mock_driver)
 
-    result = repo._increment_version("wor_1122334455667788_v2")
-    assert result.base_id == "wor_1122334455667788"
-    assert result.new_id == "wor_1122334455667788_v3"
+    result = repo._increment_version("wor_0195f3a0000070018122334455667788_v2")
+    assert result.base_id == "wor_0195f3a0000070018122334455667788"
+    assert result.new_id == "wor_0195f3a0000070018122334455667788_v3"
     assert result.version == 3
 
-    result_high = repo._increment_version("wor_1122334455667788_v99")
-    assert result_high.base_id == "wor_1122334455667788"
-    assert result_high.new_id == "wor_1122334455667788_v100"
+    result_high = repo._increment_version("wor_0195f3a0000070018122334455667788_v99")
+    assert result_high.base_id == "wor_0195f3a0000070018122334455667788"
+    assert result_high.new_id == "wor_0195f3a0000070018122334455667788_v100"
     assert result_high.version == 100
 
 
@@ -52,14 +52,14 @@ def test_append_only_repository_increment_version_non_digit_suffix() -> None:
     mock_driver = AsyncMock(spec=StorageDriver)
     repo = AppendOnlyRepositoryBase(mock_driver)
 
-    result_alpha = repo._increment_version("wor_1122334455667788_v_draft")
-    assert result_alpha.base_id == "wor_1122334455667788"
-    assert result_alpha.new_id == "wor_1122334455667788_v2"
+    result_alpha = repo._increment_version("wor_0195f3a0000070018122334455667788_v_draft")
+    assert result_alpha.base_id == "wor_0195f3a0000070018122334455667788"
+    assert result_alpha.new_id == "wor_0195f3a0000070018122334455667788_v2"
     assert result_alpha.version == 2
 
-    result_trailing = repo._increment_version("wor_1122334455667788_v")
-    assert result_trailing.base_id == "wor_1122334455667788"
-    assert result_trailing.new_id == "wor_1122334455667788_v2"
+    result_trailing = repo._increment_version("wor_0195f3a0000070018122334455667788_v")
+    assert result_trailing.base_id == "wor_0195f3a0000070018122334455667788"
+    assert result_trailing.new_id == "wor_0195f3a0000070018122334455667788_v2"
     assert result_trailing.version == 2
 
 

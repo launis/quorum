@@ -29,7 +29,7 @@ def repo(driver: StorageDriver) -> PromptBlockRepositoryImpl:
 def sample_system_rule() -> SystemRulePromptBlock:
     """Provides a valid SystemRulePromptBlock instance."""
     return SystemRulePromptBlock(
-        id="blk_1234567890abcdef",
+        id="blk_0195f3a0000070018234567890abcdef",
         slug="rule_clean",
         label=I18nText(translations={"en": "Rule", "fi": "Sääntö"}),
         description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
@@ -118,7 +118,7 @@ async def test_delete_prompt_block_success(
 async def test_get_prompt_blocks_by_ids_success(repo: PromptBlockRepositoryImpl) -> None:
     """Test batch resolution of prompt blocks successfully returning hydrated models."""
     blk_1 = SystemRulePromptBlock(
-        id="blk_1111111111111111",
+        id="blk_0195f3a0000070018111111111111111",
         slug="block_1",
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.INSTRUCTION,
@@ -127,7 +127,7 @@ async def test_get_prompt_blocks_by_ids_success(repo: PromptBlockRepositoryImpl)
         instruction_text="Rule 1 text",
     )
     blk_2 = SystemRulePromptBlock(
-        id="blk_2222222222222222",
+        id="blk_0195f3a0000070028222222222222222",
         slug="block_2",
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.INSTRUCTION,
@@ -138,10 +138,12 @@ async def test_get_prompt_blocks_by_ids_success(repo: PromptBlockRepositoryImpl)
     await repo.create_prompt_block(blk_1)
     await repo.create_prompt_block(blk_2)
 
-    results = await repo.get_prompt_blocks_by_ids(["blk_1111111111111111", "blk_2222222222222222"])
+    results = await repo.get_prompt_blocks_by_ids(
+        ["blk_0195f3a0000070018111111111111111", "blk_0195f3a0000070028222222222222222"]
+    )
     assert len(results) == 2
-    assert results[0].id == "blk_1111111111111111"
-    assert results[1].id == "blk_2222222222222222"
+    assert results[0].id == "blk_0195f3a0000070018111111111111111"
+    assert results[1].id == "blk_0195f3a0000070028222222222222222"
 
 
 @pytest.mark.asyncio
@@ -206,11 +208,13 @@ async def test_get_prompt_blocks_by_ids_malformed_raises_app_exception(
 ) -> None:
     """Test get_prompt_blocks_by_ids raises AppException(500) if document fails Pydantic parsing."""
     await driver.upsert(
-        "prompt_blocks", {"id": "blk_1111111111111111", "category_id": "invalid_category"}, "blk_1111111111111111"
+        "prompt_blocks",
+        {"id": "blk_0195f3a0000070018111111111111111", "category_id": "invalid_category"},
+        "blk_0195f3a0000070018111111111111111",
     )
 
     with pytest.raises(AppException) as exc_info:
-        await repo.get_prompt_blocks_by_ids(["blk_1111111111111111"])
+        await repo.get_prompt_blocks_by_ids(["blk_0195f3a0000070018111111111111111"])
 
     assert exc_info.value.status_code == 500
     assert "Failed to parse PromptBlock" in exc_info.value.message

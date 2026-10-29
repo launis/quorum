@@ -183,7 +183,7 @@ def test_workflow_model_validation_rules() -> None:
         version=1,
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_e26807f3bfa3454d",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         expected_inputs=[
             ExpectedInput(
                 input_key="doc",
@@ -219,7 +219,7 @@ def test_workflow_model_validation_rules() -> None:
             version=1,
             default_profile_id="pro_1234567890abcdef1234567890abcdef",
             historical_context_mode=HistoricalContextMode.DISABLED,
-            model_registry_id="sys_e26807f3bfa3454d",
+            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
             expected_inputs=[],
             steps=[
                 StepRule(
@@ -241,7 +241,7 @@ def test_workflow_model_validation_rules() -> None:
             version=1,
             default_profile_id="pro_1234567890abcdef1234567890abcdef",
             historical_context_mode=HistoricalContextMode.DISABLED,
-            model_registry_id="sys_e26807f3bfa3454d",
+            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
             expected_inputs=[],
             steps=[
                 StepRule(
@@ -366,8 +366,8 @@ def test_execution_record_flat_finops_and_steps() -> None:
         cost_usd=0.001,
     )
     record = ExecutionRecord(
-        id="exe_1111111111111111",
-        workflow_id="wor_1111111111111111",
+        id="exe_0195f3a0000070018111111111111111",
+        workflow_id="wor_0195f3a0000070018111111111111111",
         workflow_version=2,
         output_profile_id="prof_default",
         target_locale="fi",
@@ -377,7 +377,7 @@ def test_execution_record_flat_finops_and_steps() -> None:
         dag_cost_usd=0.001,
         models_used={"fast": 140},
     )
-    assert record.id == "exe_1111111111111111"
+    assert record.id == "exe_0195f3a0000070018111111111111111"
     assert record.workflow_version == 2
     assert len(record.steps) == 1
     assert record.steps[0].id == "stp_11111111111111111111111111111111"
@@ -391,8 +391,8 @@ def test_execution_record_extra_forbidden() -> None:
     with pytest.raises(ValidationError):
         ExecutionRecord.model_validate(
             obj={
-                "id": "exe_1111111111111111",
-                "workflow_id": "wor_1111111111111111",
+                "id": "exe_0195f3a0000070018111111111111111",
+                "workflow_id": "wor_0195f3a0000070018111111111111111",
                 "output_profile_id": "prof_default",
                 "target_locale": "fi",
                 "unknown_legacy_field": "illegal",
@@ -664,12 +664,12 @@ def test_output_profile_synthesis_properties_and_custom_scale_validation() -> No
     from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
     from backend_v2.models.enums import DisplayScale
 
-    role_blk_id = "blk_1234567890abcdef"
+    role_blk_id = "blk_0195f3a0000070018234567890abcdef"
 
     profile = OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="slug",
-        workflow_id="wf_1234567890123456",
+        workflow_id="wf_0195f3a0000070018234567890123456",
         name=I18nText(translations={"en": "Prof"}),
         matrix_visible_columns=["row_explanation"],
         target_block_order=["executive_summary_block", "matrix_graphs_block"],
@@ -688,9 +688,9 @@ def test_output_profile_synthesis_properties_and_custom_scale_validation() -> No
     # Custom scale validation: missing min/max
     with pytest.raises(ValueError, match="custom_scale_min and custom_scale_max are required"):
         OutputProfile(
-            id="prf_1234567890abcdef",
+            id="prf_0195f3a0000070018234567890abcdef",
             slug="slug",
-            workflow_id="wf_1234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
             name=I18nText(translations={"en": "Prof"}),
             target_block_order=["executive_summary_block"],
             display_scale=DisplayScale.CUSTOM,
@@ -699,9 +699,9 @@ def test_output_profile_synthesis_properties_and_custom_scale_validation() -> No
     # Custom scale validation: max <= min
     with pytest.raises(ValueError, match="must be strictly greater than custom_scale_min"):
         OutputProfile(
-            id="prf_1234567890abcdef",
+            id="prf_0195f3a0000070018234567890abcdef",
             slug="slug",
-            workflow_id="wf_1234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
             name=I18nText(translations={"en": "Prof"}),
             target_block_order=["executive_summary_block"],
             display_scale=DisplayScale.CUSTOM,
@@ -740,7 +740,7 @@ def test_execution_create_resolve_matrix_sampling_strategy() -> None:
 
     ec = ExecutionCreate.model_validate(
         obj={
-            "workflow_id": "wor_1234567890abcdef",
+            "workflow_id": "wor_0195f3a0000070018234567890abcdef",
             "target_locale": "fi",
             "matrix_sampling_strategy": None,
         }
@@ -943,7 +943,7 @@ def test_system_config_model_registry_option_a_completeness() -> None:
 
     # Valid Option A 4-tier stack
     registry = SystemConfigModelRegistry(
-        id="sys_e26807f3bfa3454d",
+        id="sys_0195f3a00000700e826807f3bfa3454d",
         name="Google Gemini Sovereign Stack",
         tier_definitions={
             CognitiveTier.FAST: dummy_profile,
@@ -959,7 +959,7 @@ def test_system_config_model_registry_option_a_completeness() -> None:
     # Missing tier raises ValidationError
     with pytest.raises(ValidationError, match="missing required cognitive tiers"):
         SystemConfigModelRegistry(
-            id="sys_e26807f3bfa3454d",
+            id="sys_0195f3a00000700e826807f3bfa3454d",
             name="Incomplete Stack",
             tier_definitions={
                 CognitiveTier.FAST: dummy_profile,
@@ -977,40 +977,40 @@ def test_workflow_model_registry_id_binding() -> None:
     # Missing model_registry_id fails validation (required field)
     with pytest.raises(ValidationError, match="Field required"):
         Workflow(
-            id="wor_1234567890abcdef",
+            id="wor_0195f3a0000070018234567890abcdef",
             slug="test-workflow",
             name="Test Workflow",
             description="Description",
             status="active",
             version=1,
-            default_profile_id="prf_1234567890abcdef",
+            default_profile_id="prf_0195f3a0000070018234567890abcdef",
             historical_context_mode=HistoricalContextMode.DISABLED,
         )
 
     # Custom valid model_registry_id
     wf_custom = Workflow(
-        id="wor_1234567890abcdef",
+        id="wor_0195f3a0000070018234567890abcdef",
         slug="test-workflow",
         name="Test Workflow",
         description="Description",
         status="active",
         version=1,
-        default_profile_id="prf_1234567890abcdef",
+        default_profile_id="prf_0195f3a0000070018234567890abcdef",
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_6f8b1c4a2e0d49f1",
+        model_registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
     )
-    assert wf_custom.model_registry_id == "sys_6f8b1c4a2e0d49f1"
+    assert wf_custom.model_registry_id == "sys_0195f3a0000070068f8b1c4a2e0d49f1"
 
     # Invalid pattern fails validation
     with pytest.raises(ValidationError, match="String should match pattern"):
         Workflow(
-            id="wor_1234567890abcdef",
+            id="wor_0195f3a0000070018234567890abcdef",
             slug="test-workflow",
             name="Test Workflow",
             description="Description",
             status="active",
             version=1,
-            default_profile_id="prf_1234567890abcdef",
+            default_profile_id="prf_0195f3a0000070018234567890abcdef",
             historical_context_mode=HistoricalContextMode.DISABLED,
             model_registry_id="invalid_id_format",
         )
@@ -1023,14 +1023,14 @@ def test_execution_create_and_dtos_model_registry_id() -> None:
 
     # ExecutionCreate with optional model_registry_id
     ec = ExecutionCreate(
-        workflow_id="wor_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
-        model_registry_id="sys_6f8b1c4a2e0d49f1",
+        model_registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
     )
-    assert ec.model_registry_id == "sys_6f8b1c4a2e0d49f1"
+    assert ec.model_registry_id == "sys_0195f3a0000070068f8b1c4a2e0d49f1"
 
     ec_default = ExecutionCreate(
-        workflow_id="wor_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
         target_locale="fi",
     )
     assert ec_default.model_registry_id is None
@@ -1039,10 +1039,10 @@ def test_execution_create_and_dtos_model_registry_id() -> None:
     wfc = WorkflowCreateDTO(
         slug="new-flow",
         name="New Flow",
-        model_registry_id="sys_6f8b1c4a2e0d49f1",
+        model_registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
     )
-    assert wfc.model_registry_id == "sys_6f8b1c4a2e0d49f1"
+    assert wfc.model_registry_id == "sys_0195f3a0000070068f8b1c4a2e0d49f1"
 
     # WorkflowUpdateDTO
-    wfu = WorkflowUpdateDTO(model_registry_id="sys_6f8b1c4a2e0d49f1")
-    assert wfu.model_registry_id == "sys_6f8b1c4a2e0d49f1"
+    wfu = WorkflowUpdateDTO(model_registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1")
+    assert wfu.model_registry_id == "sys_0195f3a0000070068f8b1c4a2e0d49f1"

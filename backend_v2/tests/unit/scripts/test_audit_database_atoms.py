@@ -60,7 +60,7 @@ def test_audit_dto_structure() -> None:
 
 
 def _create_clean_matrix_block(
-    block_id: str = "blk_0123456789abcdef",
+    block_id: str = "blk_0195f3a0000070008123456789abcdef",
     tda_id: str = "tda_0123456789abcdef0123456789abcdef",
 ):
     """Helper to generate a structurally clean matrix prompt block."""
@@ -342,16 +342,16 @@ def test_audit_steps_referential_integrity() -> None:
 
 def test_audit_workflows_input_mappings() -> None:
     """Test detection of unresolved $inputs.key or $steps.key in workflow mappings."""
-    known_step_blueprints = {"stp_0123456789abcdef"}
+    known_step_blueprints = {"stp_0195f3a0000070008123456789abcdef"}
 
     workflow = {
-        "id": "wor_0123456789abcdef",
+        "id": "wor_0195f3a0000070008123456789abcdef",
         "slug": "clean-workflow",
         "name": {"translations": {"en": "Clean Workflow"}},
         "description": {"translations": {"en": "Description"}},
         "status": "ACTIVE",
         "version": 1,
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "historical_context_mode": "DISABLED",
         "expected_inputs": [
             {
@@ -365,8 +365,8 @@ def test_audit_workflows_input_mappings() -> None:
         ],
         "steps": [
             {
-                "id": "sr_0123456789abcdef",
-                "task_blueprint": "stp_0123456789abcdef",
+                "id": "sr_0195f3a0000070008123456789abcdef",
+                "task_blueprint": "stp_0195f3a0000070008123456789abcdef",
                 "input_mappings": {
                     "context": "$inputs.unknown_document_key",
                     "history": "$steps.sr_unknown.output",
@@ -382,11 +382,11 @@ def test_audit_workflows_input_mappings() -> None:
 
 def test_audit_output_profiles_directives() -> None:
     """Test detection of raw XML in synthesis directives and orphan target_blocks in output_profiles."""
-    known_block_ids = {"blk_0123456789abcdef"}
+    known_block_ids = {"blk_0195f3a0000070008123456789abcdef"}
 
     profile = {
-        "id": "prf_0123456789abcdef",
-        "workflow_id": "wor_0123456789abcdef",
+        "id": "prf_0195f3a0000070008123456789abcdef",
+        "workflow_id": "wor_0195f3a0000070008123456789abcdef",
         "name": {"translations": {"en": "Profile 1"}},
         "slug": "profile-1",
         "description": {"translations": {"en": "Description"}},
@@ -397,7 +397,7 @@ def test_audit_output_profiles_directives() -> None:
         "matrix_1d_synthesis_directive": "<directive>1D Directive</directive>",
         "matrix_synthesis_groups": [
             {
-                "id": "grp_0123456789abcdef",
+                "id": "grp_0195f3a0000070008123456789abcdef",
                 "title": {"translations": {"en": "Group 1"}},
                 "target_blocks": ["blk_unknown_target"],
             }
@@ -608,13 +608,13 @@ def test_audit_workflow_validation_error_and_orphan_blueprint() -> None:
 
     # 2. Raw XML in input description & orphan step blueprint
     wf2 = {
-        "id": "wor_0123456789abcdef",
+        "id": "wor_0195f3a0000070008123456789abcdef",
         "slug": "clean-workflow-2",
         "name": {"translations": {"en": "Workflow 2"}},
         "description": {"translations": {"en": "Description"}},
         "status": "ACTIVE",
         "version": 1,
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "historical_context_mode": "DISABLED",
         "expected_inputs": [
             {
@@ -628,8 +628,8 @@ def test_audit_workflow_validation_error_and_orphan_blueprint() -> None:
         ],
         "steps": [
             {
-                "id": "sr_0123456789abcdef",
-                "task_blueprint": "stp_0123456789abcdef",
+                "id": "sr_0195f3a0000070008123456789abcdef",
+                "task_blueprint": "stp_0195f3a0000070008123456789abcdef",
                 "input_mappings": {},
             }
         ],
@@ -651,17 +651,17 @@ def test_audit_output_profiles_validation_error_and_xml_directive() -> None:
 
     # 2. Raw XML in executive_summary_directive
     prof2 = {
-        "id": "prf_0123456789abcdef",
-        "workflow_id": "wor_0123456789abcdef",
+        "id": "prf_0195f3a0000070008123456789abcdef",
+        "workflow_id": "wor_0195f3a0000070008123456789abcdef",
         "name": {"translations": {"en": "Profile XML"}},
         "slug": "profile-xml",
         "description": {"translations": {"en": "Description"}},
         "executive_summary_directive": "<directive>Executive directive with XML</directive>",
         "matrix_synthesis_groups": [
             {
-                "id": "grp_0123456789abcdef",
+                "id": "grp_0195f3a0000070008123456789abcdef",
                 "title": {"translations": {"en": "Group 1"}},
-                "target_blocks": ["blk_0123456789abcdef"],
+                "target_blocks": ["blk_0195f3a0000070008123456789abcdef"],
             }
         ],
     }

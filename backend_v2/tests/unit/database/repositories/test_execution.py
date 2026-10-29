@@ -21,7 +21,7 @@ def mock_driver() -> AsyncMock:
     driver = AsyncMock(spec=StorageDriver)
     driver.query.return_value = []
     driver.get.return_value = None
-    driver.upsert.return_value = "exec_1234567890abcdef"
+    driver.upsert.return_value = "exec_0195f3a0000070018234567890abcdef"
     driver.update.return_value = True
     driver.delete.return_value = True
     driver.count.return_value = 3
@@ -38,9 +38,9 @@ def repo(mock_driver: AsyncMock) -> ExecutionRepositoryImpl:
 def valid_execution_doc() -> dict:
     """Valid execution document fixture."""
     return {
-        "id": "exe_1234567890abcdef",
-        "workflow_id": "wf_1234567890abcdef",
-        "output_profile_id": "prof_1234567890abcdef",
+        "id": "exe_0195f3a0000070018234567890abcdef",
+        "workflow_id": "wf_0195f3a0000070018234567890abcdef",
+        "output_profile_id": "prof_0195f3a0000070018234567890abcdef",
         "target_locale": "fi",
         "status": "PASSED",
         "metadata": {},
@@ -50,8 +50,8 @@ def valid_execution_doc() -> dict:
 @pytest.mark.asyncio
 async def test_get_execution_status(repo: ExecutionRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: retrieves execution status."""
-    mock_driver.get.return_value = {"id": "exe_1234567890abcdef", "status": "PASSED"}
-    status = await repo.get_execution_status("exe_1234567890abcdef")
+    mock_driver.get.return_value = {"id": "exe_0195f3a0000070018234567890abcdef", "status": "PASSED"}
+    status = await repo.get_execution_status("exe_0195f3a0000070018234567890abcdef")
     assert status == "PASSED"
 
 
@@ -61,9 +61,9 @@ async def test_get_execution_success(
 ) -> None:
     """Positive: retrieves and hydrates valid ExecutionRecord."""
     mock_driver.get.return_value = valid_execution_doc
-    record = await repo.get_execution("exe_1234567890abcdef")
+    record = await repo.get_execution("exe_0195f3a0000070018234567890abcdef")
     assert record is not None
-    assert record.id == "exe_1234567890abcdef"
+    assert record.id == "exe_0195f3a0000070018234567890abcdef"
     assert record.status == "PASSED"
 
 
@@ -75,10 +75,10 @@ async def test_repository_reconstitutes_typed_domain_models(
     from backend_v2.models.domain.execution import ExecutionRecord
 
     mock_driver.get.return_value = valid_execution_doc
-    record = await repo.get_execution("exe_1234567890abcdef")
+    record = await repo.get_execution("exe_0195f3a0000070018234567890abcdef")
     assert record is not None
     assert isinstance(record, ExecutionRecord)
-    assert record.id == "exe_1234567890abcdef"
+    assert record.id == "exe_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio
@@ -107,7 +107,7 @@ async def test_get_all_executions_and_recent(
 
     all_execs = await repo.get_all_executions(organization_id="org_123", user_id="usr_123")
     assert len(all_execs) == 1
-    assert all_execs[0].id == "exe_1234567890abcdef"
+    assert all_execs[0].id == "exe_0195f3a0000070018234567890abcdef"
 
     recent = await repo.get_recent_completed_executions(limit=5)
     assert len(recent) == 1
@@ -127,21 +127,24 @@ async def test_get_all_executions_and_recent(
 async def test_crud_and_query_operations(repo: ExecutionRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: tests create, update, append_trace_event, delete, and count operations."""
     create_dto = ExecutionCreateDTO(
-        workflow_id="wf_1234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
         output_profile_id="prof_1",
         target_locale="fi",
         active_profile_id="prof_1",
         organization_id="org_1",
         created_by="usr_1",
     )
-    assert await repo.create_execution(create_dto) == "exec_1234567890abcdef"
-    assert await repo.update_execution("exe_1234567890abcdef", ExecutionUpdateDTO(status="RUNNING")) is True
-    mock_driver.get.return_value = {"id": "exe_1234567890abcdef"}
+    assert await repo.create_execution(create_dto) == "exec_0195f3a0000070018234567890abcdef"
+    assert (
+        await repo.update_execution("exe_0195f3a0000070018234567890abcdef", ExecutionUpdateDTO(status="RUNNING"))
+        is True
+    )
+    mock_driver.get.return_value = {"id": "exe_0195f3a0000070018234567890abcdef"}
     event = TraceEvent(step_name="stp_1", event_type="output", content={"type": "log"})
-    assert await repo.append_trace_event("exe_1234567890abcdef", event) is True
-    assert await repo.delete_execution("exe_1234567890abcdef") is True
+    assert await repo.append_trace_event("exe_0195f3a0000070018234567890abcdef", event) is True
+    assert await repo.delete_execution("exe_0195f3a0000070018234567890abcdef") is True
 
-    count = await repo.count_executions_by_matrix("mat_1234567890abcdef")
+    count = await repo.count_executions_by_matrix("mat_0195f3a0000070018234567890abcdef")
     assert count == 3
 
 
@@ -344,12 +347,12 @@ async def test_get_all_executions_handles_offloaded_null_frozen_context(
     """Regression: get_all_executions must successfully parse records with offloaded (null) frozen_context."""
     offloaded_doc = dict(valid_execution_doc)
     offloaded_doc["frozen_context"] = None
-    offloaded_doc["frozen_context_storage_path"] = "executions/exe_1234567890abcdef/frozen_context.json"
+    offloaded_doc["frozen_context_storage_path"] = "executions/exe_0195f3a0000070018234567890abcdef/frozen_context.json"
     mock_driver.query.return_value = [offloaded_doc]
 
     results = await repo.get_all_executions()
     assert len(results) == 1
-    assert results[0].id == "exe_1234567890abcdef"
+    assert results[0].id == "exe_0195f3a0000070018234567890abcdef"
     assert results[0].frozen_context is None
 
 
@@ -359,19 +362,19 @@ async def test_get_execution_missing_offload_blob_data_corruption(
 ) -> None:
     """Regression: Missing offloaded blob file on disk raises AppException with DATA_CORRUPTION code."""
     doc = dict(valid_execution_doc)
-    doc["execution_trace_storage_path"] = "executions/exe_1234567890abcdef/execution_trace.json"
+    doc["execution_trace_storage_path"] = "executions/exe_0195f3a0000070018234567890abcdef/execution_trace.json"
     mock_driver.get.return_value = doc
 
     mock_storage = AsyncMock(spec=FileDriver)
     mock_storage.read.side_effect = AppException(
-        message="File not found: executions/exe_1234567890abcdef/execution_trace.json",
+        message="File not found: executions/exe_0195f3a0000070018234567890abcdef/execution_trace.json",
         status_code=404,
         details={"error_code": "FILE_NOT_FOUND"},
     )
 
     with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage):
         with pytest.raises(AppException) as exc_info:
-            await repo.get_execution("exe_1234567890abcdef")
+            await repo.get_execution("exe_0195f3a0000070018234567890abcdef")
 
         assert exc_info.value.status_code == 500
         assert exc_info.value.details["error_code"] == "DATA_CORRUPTION"

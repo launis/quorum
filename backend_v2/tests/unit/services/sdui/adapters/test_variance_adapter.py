@@ -37,7 +37,7 @@ def _create_profile(extensions: list[XaiExtensionType] | None = None) -> OutputP
         content_blocks=[],
         target_block_order=[],
         visible_workflow_extensions=extensions if extensions is not None else [XaiExtensionType.VARIANCE_VALIDATION],
-        variance_target_block="blk_0123456789abcdef",
+        variance_target_block="blk_0195f3a0000070008123456789abcdef",
     )
 
 
@@ -56,7 +56,7 @@ def _create_execution(
 
 
 def _create_matrix_row(
-    block_id: str = "blk_0123456789abcdef",
+    block_id: str = "blk_0195f3a0000070008123456789abcdef",
     score: float = 2.8,
     scale_min: float = 1.0,
     scale_max: float = 3.0,
@@ -218,7 +218,9 @@ def test_build_aligned_success() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=2.8, scale_min=1.0, scale_max=3.0)},
+        parsed_matrices={
+            "blk_0195f3a0000070008123456789abcdef": _create_matrix_row(score=2.8, scale_min=1.0, scale_max=3.0)
+        },
     )
 
     blocks = VarianceAdapter.build(context)
@@ -284,7 +286,9 @@ def test_build_misaligned_sycophancy_with_detected_phrases() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=1.14, scale_min=1.0, scale_max=3.0)},
+        parsed_matrices={
+            "blk_0195f3a0000070008123456789abcdef": _create_matrix_row(score=1.14, scale_min=1.0, scale_max=3.0)
+        },
     )
 
     blocks = VarianceAdapter.build(context)
@@ -352,7 +356,9 @@ def test_build_with_jargon_density_calibrates_y_axis_and_grid() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=1.14, scale_min=1.0, scale_max=3.0)},
+        parsed_matrices={
+            "blk_0195f3a0000070008123456789abcdef": _create_matrix_row(score=1.14, scale_min=1.0, scale_max=3.0)
+        },
     )
 
     blocks = VarianceAdapter.build(context)
@@ -389,7 +395,9 @@ def test_build_dynamic_scale_hacm_5_scale() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=4.5, scale_min=1.0, scale_max=5.0)},
+        parsed_matrices={
+            "blk_0195f3a0000070008123456789abcdef": _create_matrix_row(score=4.5, scale_min=1.0, scale_max=5.0)
+        },
     )
 
     blocks = VarianceAdapter.build(context)
@@ -428,7 +436,9 @@ def test_build_dynamic_scale_bloom_6_scale() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=5.5, scale_min=1.0, scale_max=6.0)},
+        parsed_matrices={
+            "blk_0195f3a0000070008123456789abcdef": _create_matrix_row(score=5.5, scale_min=1.0, scale_max=6.0)
+        },
     )
 
     blocks = VarianceAdapter.build(context)
@@ -512,7 +522,7 @@ def test_variance_adapter_target_block_unset_raises_configuration_error() -> Non
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row()},
+        parsed_matrices={"blk_0195f3a0000070008123456789abcdef": _create_matrix_row()},
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -546,7 +556,7 @@ def test_variance_adapter_invalid_scale_extrema_raises_configuration_error() -> 
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(scale_min=3.0, scale_max=1.0)},
+        parsed_matrices={"blk_0195f3a0000070008123456789abcdef": _create_matrix_row(scale_min=3.0, scale_max=1.0)},
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -579,7 +589,9 @@ def test_build_unmapped_verdict_raises_configuration_error(monkeypatch: pytest.M
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=1.5, scale_min=1.0, scale_max=3.0)},
+        parsed_matrices={
+            "blk_0195f3a0000070008123456789abcdef": _create_matrix_row(score=1.5, scale_min=1.0, scale_max=3.0)
+        },
     )
 
     # Empty VARIANCE_RULES to force a KeyError lookup failure
@@ -614,7 +626,9 @@ def test_build_malformed_linguistics_raises_internal_server_error() -> None:
         profile_cache=cache,
         user_name=None,
         org_name=None,
-        parsed_matrices={"blk_0123456789abcdef": _create_matrix_row(score=2.5, scale_min=1.0, scale_max=3.0)},
+        parsed_matrices={
+            "blk_0195f3a0000070008123456789abcdef": _create_matrix_row(score=2.5, scale_min=1.0, scale_max=3.0)
+        },
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -627,7 +641,7 @@ def test_build_malformed_linguistics_raises_internal_server_error() -> None:
 
 def test_variance_adapter_resolves_target_block_with_composite_matrix_key() -> None:
     """Regression test: VarianceAdapter must resolve target block when parsed_matrices has composite keys (step_id_block_id)."""
-    target_block_id = "blk_0123456789abcdef"
+    target_block_id = "blk_0195f3a0000070008123456789abcdef"
     composite_key = f"sr_a8f1d71000000003_{target_block_id}"
     profile = _create_profile()
     execution = _create_execution()
@@ -651,7 +665,7 @@ def test_variance_adapter_resolves_target_block_with_composite_matrix_key() -> N
         org_name=None,
         parsed_matrices={
             "sr_a8f1d71000000002_blk_c0a1e50000000001": _create_matrix_row(
-                block_id="blk_c0a1e50000000001", score=1.5, scale_min=1.0, scale_max=3.0
+                block_id="blk_0195f3a00000700c80a1e50000000001", score=1.5, scale_min=1.0, scale_max=3.0
             ),
             composite_key: _create_matrix_row(block_id=target_block_id, score=2.8, scale_min=1.0, scale_max=3.0),
         },

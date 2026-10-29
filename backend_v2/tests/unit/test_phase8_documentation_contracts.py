@@ -202,7 +202,7 @@ def _make_workflow(
 ) -> Workflow:
     """Helper to generate a valid Workflow domain model with configurable strictness."""
     return Workflow(
-        id="wf_1234567890abcdef12345678",
+        id="wf_0195f3a00000700980abcdef12345678",
         slug="test-workflow",
         name="Test Workflow",
         description="Test Workflow Description",
@@ -211,8 +211,8 @@ def _make_workflow(
         is_public=False,
         organization_id=None,
         default_profile_id=None,
-        mcp_gateway_id="sys_8172bda70c8641c5",
-        model_registry_id="cfg_model_registry_01",
+        mcp_gateway_id="sys_0195f3a00000700080008172bda70c86",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         steps=[],
         expected_inputs=[],
         historical_context_mode=HistoricalContextMode.DISABLED,

@@ -181,7 +181,7 @@ def test_reduce_matrix_from_execution_trace_runtime_parity() -> None:
     )
 
     record = MagicMock()
-    record.id = "exe_c8df6e711ca54b6900000000000000"
+    record.id = "exe_0195f3a0000070068900000000000000"
     record.duration_ms = 250
     # In real DAG execution, step_states has empty scorecard_atoms
     empty_state = MagicMock()

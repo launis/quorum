@@ -14,16 +14,16 @@ from backend_v2.models.dtos.report_artifact import ReportMetadataDTO, ReportStat
 def test_report_artifact_valid_instantiation() -> None:
     """Positive test: ReportArtifact instantiates cleanly with valid parameters."""
     artifact = ReportArtifact(
-        id="rep_1234567890abcdef",
-        execution_id="exe_1234567890abcdef",
-        workflow_id="wor_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        id="rep_0195f3a0000070018234567890abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         locale="en",
         title="Executive Summary",
         status=ReportStatus.READY,
     )
-    assert artifact.id == "rep_1234567890abcdef"
-    assert artifact.execution_id == "exe_1234567890abcdef"
+    assert artifact.id == "rep_0195f3a0000070018234567890abcdef"
+    assert artifact.execution_id == "exe_0195f3a0000070018234567890abcdef"
     assert artifact.status == ReportStatus.READY
     assert isinstance(artifact.storage_paths, ReportStoragePathsDTO)
     assert isinstance(artifact.metadata, ReportMetadataDTO)
@@ -38,9 +38,9 @@ def test_report_artifact_rejects_invalid_id_pattern() -> None:
     with pytest.raises(ValidationError) as exc_info:
         ReportArtifact(
             id="invalid_id",
-            execution_id="exe_1234567890abcdef",
-            workflow_id="wor_1234567890abcdef",
-            profile_id="prf_1234567890abcdef",
+            execution_id="exe_0195f3a0000070018234567890abcdef",
+            workflow_id="wor_0195f3a0000070018234567890abcdef",
+            profile_id="prf_0195f3a0000070018234567890abcdef",
             locale="fi",
             title="Raportti",
             status=ReportStatus.PENDING,
@@ -52,10 +52,10 @@ def test_report_artifact_rejects_extra_fields() -> None:
     """Negative test: ReportArtifact enforces extra='forbid'."""
     with pytest.raises(ValidationError):
         ReportArtifact(
-            id="rep_1234567890abcdef",
-            execution_id="exe_1234567890abcdef",
-            workflow_id="wor_1234567890abcdef",
-            profile_id="prf_1234567890abcdef",
+            id="rep_0195f3a0000070018234567890abcdef",
+            execution_id="exe_0195f3a0000070018234567890abcdef",
+            workflow_id="wor_0195f3a0000070018234567890abcdef",
+            profile_id="prf_0195f3a0000070018234567890abcdef",
             locale="fi",
             title="Raportti",
             status=ReportStatus.PENDING,
@@ -67,10 +67,10 @@ def test_report_artifact_custom_preface_and_error() -> None:
     """Positive test: ReportArtifact supports custom preface and error message."""
     now = datetime.now(UTC)
     artifact = ReportArtifact(
-        id="rep_abcdef1234567890",
-        execution_id="exe_abcdef1234567890",
-        workflow_id="wor_abcdef1234567890",
-        profile_id="prf_abcdef1234567890",
+        id="rep_0195f3a00000700a8bcdef1234567890",
+        execution_id="exe_0195f3a00000700a8bcdef1234567890",
+        workflow_id="wor_0195f3a00000700a8bcdef1234567890",
+        profile_id="prf_0195f3a00000700a8bcdef1234567890",
         locale="fi",
         title="Virheraportti",
         status=ReportStatus.FAILED,
@@ -90,10 +90,10 @@ def test_report_artifact_strict_type_enforcement() -> None:
     """Negative test: ReportArtifact rejects non-string types for strict fields."""
     with pytest.raises(ValidationError):
         ReportArtifact(
-            id="rep_1234567890abcdef",
+            id="rep_0195f3a0000070018234567890abcdef",
             execution_id=12345,
-            workflow_id="wor_1234567890abcdef",
-            profile_id="prf_1234567890abcdef",
+            workflow_id="wor_0195f3a0000070018234567890abcdef",
+            profile_id="prf_0195f3a0000070018234567890abcdef",
             locale="en",
             title="Report",
             status=ReportStatus.READY,

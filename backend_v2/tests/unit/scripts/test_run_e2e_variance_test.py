@@ -466,10 +466,10 @@ class TestWorkflowMatrixTelemetry:
 
         telemetry = resolve_workflow_matrix_telemetry(
             Path("backend_v2/seed/seed_data.json"),
-            workflow_id="wf_9d68c573802341db",
+            workflow_id="wf_0195f3a0000070098d68c573802341db",
         )
         assert telemetry is not None
-        assert telemetry.workflow_id == "wf_9d68c573802341db"
+        assert telemetry.workflow_id == "wf_0195f3a0000070098d68c573802341db"
         assert telemetry.strictness_level == 0
         assert abs(telemetry.strictness_exponent - 1.0) < 0.001
         assert telemetry.enable_contextual_overrides is True
@@ -477,21 +477,21 @@ class TestWorkflowMatrixTelemetry:
         assert telemetry.post_hoc_penalty == 0.0
         assert telemetry.passivity_penalty == 0.0
 
-        assert telemetry.total_matrices == 10
-        assert telemetry.total_scales == 46
-        assert telemetry.total_atoms == 237
-        assert telemetry.total_high_entropy_atoms == 237
+        assert telemetry.total_matrices == 11
+        assert telemetry.total_scales == 51
+        assert telemetry.total_atoms == 242
+        assert telemetry.total_high_entropy_atoms == 242
 
         steps = {s.step_rule_id: s for s in telemetry.steps}
         assert len(steps) == 14
 
         # Step 2: Analyst (Kahneman)
-        analyst = steps["sr_5a8ae009eee44fe2"]
+        analyst = steps["sr_0195f3a0000070058a8ae009eee44fe2"]
         assert analyst.cognitive_tier == "deep"
         assert analyst.model_strategy == "deep"
         assert len(analyst.matrices) == 1
         kahneman = analyst.matrices[0]
-        assert kahneman.block_id == "blk_109dab5b6b3f403a"
+        assert kahneman.block_id == "blk_0195f3a000007001809dab5b6b3f403a"
         assert kahneman.computed_min == 1
         assert kahneman.computed_max == 3
         assert len(kahneman.scales) == 3
@@ -499,7 +499,7 @@ class TestWorkflowMatrixTelemetry:
         assert kahneman.high_entropy_atoms == 15
 
         # Step 13: Scoring Engine (Logic hook)
-        scoring = steps["sr_2fa56dc36614469a"]
+        scoring = steps["sr_0195f3a0000070028fa56dc36614469a"]
         assert scoring.type == "logic"
         assert len(scoring.matrices) == 0
 
@@ -513,9 +513,9 @@ class TestWorkflowMatrixTelemetry:
         all_wfs = resolve_all_workflows_matrix_telemetry(Path("backend_v2/seed/seed_data.json"))
         assert len(all_wfs) == 3
         wf_ids = {w.workflow_id for w in all_wfs}
-        assert "wf_9d68c573802341db" in wf_ids
-        assert "wf_a8f1d71000000001" in wf_ids
-        assert "wf_b9e2d71000000002" in wf_ids
+        assert "wf_0195f3a0000070098d68c573802341db" in wf_ids
+        assert "wf_0195f3a00000700a88f1d71000000001" in wf_ids
+        assert "wf_0195f3a00000700b89e2d71000000002" in wf_ids
 
         # Untargeted resolution on multi-workflow DB returns None (no domain guessing)
         assert resolve_workflow_matrix_telemetry(Path("backend_v2/seed/seed_data.json")) is None
@@ -530,18 +530,18 @@ class TestWorkflowMatrixTelemetry:
 
         telemetry_by_id = resolve_workflow_matrix_telemetry(
             Path("backend_v2/seed/seed_data.json"),
-            workflow_id="wf_a8f1d71000000001",
+            workflow_id="wf_0195f3a00000700a88f1d71000000001",
         )
         assert telemetry_by_id is not None
-        assert telemetry_by_id.workflow_id == "wf_a8f1d71000000001"
-        assert telemetry_by_id.total_matrices == 4
+        assert telemetry_by_id.workflow_id == "wf_0195f3a00000700a88f1d71000000001"
+        assert telemetry_by_id.total_matrices == 5
 
         telemetry_by_slug = resolve_workflow_matrix_telemetry(
             Path("backend_v2/seed/seed_data.json"),
             workflow_id="kokonaisvaltainen_auditointi",
         )
         assert telemetry_by_slug is not None
-        assert telemetry_by_slug.workflow_id == "wf_9d68c573802341db"
+        assert telemetry_by_slug.workflow_id == "wf_0195f3a0000070098d68c573802341db"
 
     def test_print_workflow_matrix_telemetry_smoke(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Verify print_workflow_matrix_telemetry outputs formatted telemetry cleanly."""
@@ -574,9 +574,9 @@ class TestModelRegistryComparison:
         from scripts.run_e2e_variance_test import resolve_comparison_registries
 
         reg_a, reg_b = resolve_comparison_registries(Path("backend_v2/seed/seed_data.json"))
-        assert reg_a["id"] == "sys_e26807f3bfa3454d"
+        assert reg_a["id"] == "sys_0195f3a00000700e826807f3bfa3454d"
         assert reg_b["id"] != reg_a["id"]
-        assert reg_b["id"] in ("sys_b1c2d3e4f5a60718", "sys_6f8b1c4a2e0d49f1")
+        assert reg_b["id"] in ("sys_0195f3a00000700b81c2d3e4f5a60718", "sys_0195f3a0000070068f8b1c4a2e0d49f1")
 
     def test_resolve_comparison_registries_explicit_args(self) -> None:
         """Verify resolve_comparison_registries supports explicit provider and name matches."""
@@ -610,7 +610,7 @@ class TestModelRegistryComparison:
         with pytest.raises(ValueError, match="Cannot compare model registry"):
             resolve_comparison_registries(
                 Path("backend_v2/seed/seed_data.json"),
-                compare_args=["google", "sys_e26807f3bfa3454d"],
+                compare_args=["google", "sys_0195f3a00000700e826807f3bfa3454d"],
             )
 
     def test_resolve_model_telemetry_targeted_registry(self) -> None:
@@ -668,14 +668,14 @@ class TestModelRegistryComparison:
         run_e2e_variance_test.main(
             [
                 "--model-registry",
-                "sys_6f8b1c4a2e0d49f1",
+                "sys_0195f3a0000070068f8b1c4a2e0d49f1",
                 "--compare-registries",
                 "google",
                 "openai",
             ]
         )
 
-        assert recorded_kwargs["model_registry"] == "sys_6f8b1c4a2e0d49f1"
+        assert recorded_kwargs["model_registry"] == "sys_0195f3a0000070068f8b1c4a2e0d49f1"
         assert recorded_kwargs["compare_registries"] == ["google", "openai"]
 
 

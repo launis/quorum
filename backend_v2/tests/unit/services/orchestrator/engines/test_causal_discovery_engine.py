@@ -64,14 +64,14 @@ def create_engine_request(
 ) -> EngineExecutionRequest:
     """Helper creating typed EngineExecutionRequest with zero raw dictionaries."""
     step = StepRule(
-        id="stp_1111111111111111",
-        task_blueprint="bp_1111111111111111",
+        id="stp_0195f3a0000070018111111111111111",
+        task_blueprint="bp_0195f3a0000070018111111111111111",
     )
     inputs_list = expected_inputs if expected_inputs is not None else []
     context = StrategyContext(
-        execution_id="exe_1111111111111111",
-        workflow_id="wf_1111111111111111",
-        output_profile_id="prof_1111111111111111",
+        execution_id="exe_0195f3a0000070018111111111111111",
+        workflow_id="wf_0195f3a0000070018111111111111111",
+        output_profile_id="prof_0195f3a0000070018111111111111111",
         target_locale="en",
         metadata=ExecutionMetadata(),
         expected_inputs=inputs_list,

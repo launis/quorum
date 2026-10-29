@@ -130,4 +130,3 @@ def test_inject_step_metadata_default_system_initiator(mock_deps: HookDependenci
     assert result.state_delta is not None
     assert isinstance(result.state_delta.delta, MetadataHookResultDTO)
     assert result.state_delta.delta.step_metadata.initiator_id == "system"
-

@@ -21,7 +21,7 @@ async def test_report_client_error_logs_standard_error(monkeypatch: pytest.Monke
     monkeypatch.setattr(telemetry_module.logger, "critical", mock_critical)
 
     payload = ClientErrorPayload(
-        session_id="ses_1234567890abcdef",
+        session_id="ses_0195f3a0000070018234567890abcdef",
         app_version="2.1.0",
         platform="windows",
         error_message="Widget overflow error",

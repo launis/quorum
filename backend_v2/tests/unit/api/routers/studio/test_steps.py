@@ -58,7 +58,7 @@ def mock_studio_services() -> tuple[AsyncMock, AsyncMock]:
 @pytest.fixture
 def sample_step() -> Step:
     return Step(
-        id="sp_1234567890abcdef",
+        id="sp_0195f3a0000070018234567890abcdef",
         slug="test_step",
         name=I18nText(translations={"fi": "Testi", "en": "Test"}),
         description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
@@ -83,7 +83,7 @@ async def test_get_steps(mock_studio_services: tuple[AsyncMock, AsyncMock], samp
     response = client.get("/steps/")
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert response.json()[0]["id"] == "sp_1234567890abcdef"
+    assert response.json()[0]["id"] == "sp_0195f3a0000070018234567890abcdef"
     mock_workflow.list_steps.assert_called_once()
     assert mock_workflow.list_steps.call_args.kwargs.get("scope") == StepFilterScope.SPECIALISTS
 
@@ -148,7 +148,7 @@ async def test_create_step(mock_studio_services: tuple[AsyncMock, AsyncMock], sa
 
     response = client.post("/steps/")
     assert response.status_code == 200
-    assert response.json()["id"] == "sp_1234567890abcdef"
+    assert response.json()["id"] == "sp_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio
@@ -157,9 +157,9 @@ async def test_get_step(mock_studio_services: tuple[AsyncMock, AsyncMock], sampl
     mock_workflow, _ = mock_studio_services
     mock_workflow.get_step.return_value = sample_step
 
-    response = client.get("/steps/sp_1234567890abcdef")
+    response = client.get("/steps/sp_0195f3a0000070018234567890abcdef")
     assert response.status_code == 200
-    assert response.json()["id"] == "sp_1234567890abcdef"
+    assert response.json()["id"] == "sp_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio
@@ -168,9 +168,9 @@ async def test_save_step(mock_studio_services: tuple[AsyncMock, AsyncMock], samp
     mock_workflow, _ = mock_studio_services
     mock_workflow.save_step.return_value = sample_step
 
-    response = client.put("/steps/sp_1234567890abcdef", json=sample_step.model_dump(mode="json"))
+    response = client.put("/steps/sp_0195f3a0000070018234567890abcdef", json=sample_step.model_dump(mode="json"))
     assert response.status_code == 200
-    assert response.json()["id"] == "sp_1234567890abcdef"
+    assert response.json()["id"] == "sp_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio
@@ -179,9 +179,9 @@ async def test_delete_step(mock_studio_services: tuple[AsyncMock, AsyncMock]) ->
     mock_workflow, _ = mock_studio_services
     mock_workflow.delete_step.return_value = None
 
-    response = client.delete("/steps/sp_1234567890abcdef")
+    response = client.delete("/steps/sp_0195f3a0000070018234567890abcdef")
     assert response.status_code == 200
-    assert response.json() == {"status": "success", "deleted_id": "sp_1234567890abcdef"}
+    assert response.json() == {"status": "success", "deleted_id": "sp_0195f3a0000070018234567890abcdef"}
 
 
 @pytest.mark.asyncio
@@ -190,9 +190,9 @@ async def test_clone_step(mock_studio_services: tuple[AsyncMock, AsyncMock], sam
     mock_workflow, _ = mock_studio_services
     mock_workflow.clone_step.return_value = sample_step
 
-    response = client.post("/steps/sp_1234567890abcdef/clone")
+    response = client.post("/steps/sp_0195f3a0000070018234567890abcdef/clone")
     assert response.status_code == 200
-    assert response.json()["id"] == "sp_1234567890abcdef"
+    assert response.json()["id"] == "sp_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio
@@ -270,12 +270,12 @@ async def test_delete_system_core_step_failure(mock_studio_services: tuple[Async
     """Test DELETE /steps/{id} returns 403 when attempting to delete system core step."""
     mock_workflow, _ = mock_studio_services
     mock_workflow.delete_step.side_effect = AppException(
-        message="Cannot delete protected system core step sp_c4a5a1d15c00438a",
+        message="Cannot delete protected system core step sp_0195f3a00000700c84a5a1d15c00438a",
         status_code=403,
         details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
     )
 
-    response = client.delete("/steps/sp_c4a5a1d15c00438a")
+    response = client.delete("/steps/sp_0195f3a00000700c84a5a1d15c00438a")
     assert response.status_code == 403
     assert response.json()["extensions"]["error_code"] == ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value
 

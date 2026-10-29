@@ -24,8 +24,8 @@ async def test_worker_preserves_models_used() -> None:
 
     ctx = {"engine": mock_engine, "repository": mock_repository, "redis": mock_redis}
 
-    workflow_id = "wor_a1b2c3d4e5f678901234"
-    execution_id = "exe_a1b2c3d4e5f678901234"
+    workflow_id = "wor_0195f3a00000700c83d4e5f678901234"
+    execution_id = "exe_0195f3a00000700c83d4e5f678901234"
     inputs: dict[str, JsonValue] = {}
 
     # Seed typed Workflow
@@ -36,9 +36,9 @@ async def test_worker_preserves_models_used() -> None:
         version=1,
         slug="test-wf",
         description="Test WF",
-        default_profile_id="prf_a1b2c3d4e5f67890",
+        default_profile_id="prf_0195f3a00000700a81b2c3d4e5f67890",
         default_strictness_level=1,
-        model_registry_id="sys_1111222233334444",
+        model_registry_id="sys_0195f3a0000070018111222233334444",
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],
     )
@@ -49,13 +49,13 @@ async def test_worker_preserves_models_used() -> None:
         id=execution_id,
         workflow_id=workflow_id,
         status=ExecutionStatus.RUNNING,
-        output_profile_id="prf_a1b2c3d4e5f67890",
+        output_profile_id="prf_0195f3a00000700a81b2c3d4e5f67890",
         target_locale="fi",
         metadata=ExecutionMetadata(),
         models_used={},
         created_at=datetime(2026, 6, 16, 12, 0, 0, tzinfo=timezone.utc),
-        created_by="usr_a1b2c3d4e5f678901234",
-        organization_id="org_a1b2c3d4e5f678901234",
+        created_by="usr_0195f3a00000700c83d4e5f678901234",
+        organization_id="org_0195f3a00000700c83d4e5f678901234",
     )
     await mock_repository.save_execution(mock_initial_record)
 
@@ -68,8 +68,8 @@ async def test_worker_preserves_models_used() -> None:
         output_profile_id="prf_test",
         models_used={"gemini-2.5-flash": 1500},
         created_at=datetime.now(timezone.utc),
-        created_by="usr_a1b2c3d4e5f678901234",
-        organization_id="org_a1b2c3d4e5f678901234",
+        created_by="usr_0195f3a00000700c83d4e5f678901234",
+        organization_id="org_0195f3a00000700c83d4e5f678901234",
     )
     mock_engine.execute_workflow.return_value = mock_updated_record
 

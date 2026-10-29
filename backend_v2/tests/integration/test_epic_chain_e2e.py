@@ -26,10 +26,10 @@ async def test_epic_93_e2e_golden_master() -> None:
     repo = InMemoryUnifiedWorkflowRepository()
 
     # Create dummy ExecutionRecord
-    execution_id = "exe_1234abcd1234abcd"
-    wf_id = "wf_1234abcd1234abcd"
-    profile_id = "prf_1234abcd1234abcd"
-    block_id = "blk_1234abcd1234abcd"
+    execution_id = "exe_0195f3a0000070018234abcd1234abcd"
+    wf_id = "wf_0195f3a0000070018234abcd1234abcd"
+    profile_id = "prf_0195f3a0000070018234abcd1234abcd"
+    block_id = "blk_0195f3a0000070018234abcd1234abcd"
 
     frozen = FrozenContext(ui_hints_snapshot={})
 
@@ -86,7 +86,7 @@ async def test_epic_93_e2e_golden_master() -> None:
         "description": {"translations": {"en": "desc"}},
         "status": "published",
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "version": 1,
         "organization_id": "root",
         "default_profile_id": profile_id,
@@ -285,7 +285,7 @@ async def test_epic_chain_e2e_invalid_profile_raises_app_exception() -> None:
         "description": {"translations": {"en": "desc"}},
         "status": "published",
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "version": 1,
         "organization_id": "root",
         "default_profile_id": "prf_11111111111111111111111111111111",
@@ -342,7 +342,7 @@ async def test_epic_chain_e2e_missing_locale_raises_app_exception() -> None:
         "description": {"translations": {"en": "desc"}},
         "status": "published",
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "version": 1,
         "organization_id": "root",
         "default_profile_id": "prf_22222222222222222222222222222222",
@@ -407,7 +407,7 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
         "description": {"translations": {"en": "desc"}},
         "status": "published",
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "version": 1,
         "organization_id": "root",
         "default_profile_id": profile_id,

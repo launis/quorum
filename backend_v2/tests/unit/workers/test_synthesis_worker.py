@@ -70,14 +70,14 @@ def _make_base_profile(prof_id: str, wf_id: str) -> OutputProfile:
         matrix_1d_synthesis_directive="Synthesize 1D.",
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_0123456789abcdef01",
+                id="grp_0195f3a00000700283456789abcdef01",
                 title=I18nText(translations={"en": "Group 1"}),
                 view_type=PresetView.METRICS_1D,
-                target_blocks=["blk_0123456789abcdef01"],
+                target_blocks=["blk_0195f3a00000700283456789abcdef01"],
             )
         ],
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
-        variance_target_block="blk_0123456789abcdef01",
+        variance_target_block="blk_0195f3a00000700283456789abcdef01",
         max_extension_items=5,
         xai_synthesis_directive="Synthesize highlights.",
         row_explanation_directive="Explain rows.",
@@ -94,7 +94,7 @@ def _make_base_workflow(wf_id: str, prof_id: str) -> Workflow:
         version=1,
         steps=[],
         default_profile_id=prof_id,
-        model_registry_id="sys_1111222233334444",
+        model_registry_id="sys_0195f3a0000070018111222233334444",
         historical_context_mode=LaxHistoricalContextMode.DISABLED,
     )
 
@@ -131,11 +131,11 @@ async def test_synthesis_worker_missing_execution_returns() -> None:
 @pytest.mark.asyncio
 async def test_synthesis_worker_already_synthesized_enqueues_pdf() -> None:
     """Test generate_profile_synthesis_and_pdf_task short-circuits to report artifact generation if already synthesized."""
-    prof_id = "pro_0123456789abcdef01"
+    prof_id = "pro_0195f3a00000700283456789abcdef01"
     cache = RenderedSynthesisCache()
     rec = ExecutionRecord(
-        id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         output_profile_id=prof_id,
         status=ExecutionStatus.PASSED,
         target_locale="en",
@@ -146,7 +146,7 @@ async def test_synthesis_worker_already_synthesized_enqueues_pdf() -> None:
     await mock_repo.save_execution(rec)
     mock_redis = AsyncMock()
     mock_artifact = MagicMock()
-    mock_artifact.id = "rep_0123456789abcdef01"
+    mock_artifact.id = "rep_0195f3a00000700283456789abcdef01"
 
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
@@ -155,18 +155,18 @@ async def test_synthesis_worker_already_synthesized_enqueues_pdf() -> None:
                 mock_svc.get_or_create_default_artifact = AsyncMock(return_value=mock_artifact)
                 mock_svc.compile_and_persist_artifact = AsyncMock()
                 await generate_profile_synthesis_and_pdf_task(
-                    execution_id="exe_0123456789abcdef01",
+                    execution_id="exe_0195f3a00000700283456789abcdef01",
                     accept_language="en",
                     profile_id=prof_id,
                     redis=mock_redis,
                 )
                 mock_svc.get_or_create_default_artifact.assert_awaited_once_with(
-                    execution_id="exe_0123456789abcdef01",
+                    execution_id="exe_0195f3a00000700283456789abcdef01",
                     profile_id=prof_id,
                     locale="en",
                 )
                 mock_svc.compile_and_persist_artifact.assert_awaited_once_with(
-                    "rep_0123456789abcdef01",
+                    "rep_0195f3a00000700283456789abcdef01",
                     mock_redis,
                 )
 
@@ -174,10 +174,10 @@ async def test_synthesis_worker_already_synthesized_enqueues_pdf() -> None:
 @pytest.mark.asyncio
 async def test_synthesis_worker_profile_not_found_raises() -> None:
     """Test generate_profile_synthesis_and_pdf_task raises ResourceNotFoundError if profile missing."""
-    prof_id = "pro_0123456789abcdef01"
+    prof_id = "pro_0195f3a00000700283456789abcdef01"
     rec = ExecutionRecord(
-        id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         output_profile_id=prof_id,
         status=ExecutionStatus.PASSED,
         target_locale="en",
@@ -190,7 +190,7 @@ async def test_synthesis_worker_profile_not_found_raises() -> None:
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             with pytest.raises(ResourceNotFoundError):
                 await generate_profile_synthesis_and_pdf_task(
-                    execution_id="exe_0123456789abcdef01",
+                    execution_id="exe_0195f3a00000700283456789abcdef01",
                     accept_language="en",
                     profile_id=prof_id,
                 )
@@ -199,10 +199,10 @@ async def test_synthesis_worker_profile_not_found_raises() -> None:
 @pytest.mark.asyncio
 async def test_synthesis_worker_workflow_not_found_raises() -> None:
     """Test generate_profile_synthesis_and_pdf_task raises AppException if workflow missing."""
-    prof_id = "pro_0123456789abcdef01"
+    prof_id = "pro_0195f3a00000700283456789abcdef01"
     rec = ExecutionRecord(
-        id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         output_profile_id=prof_id,
         status=ExecutionStatus.PASSED,
         target_locale="en",
@@ -211,7 +211,7 @@ async def test_synthesis_worker_workflow_not_found_raises() -> None:
     prof = OutputProfile(
         id=prof_id,
         slug="prof_test",
-        workflow_id="wor_0123456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         name=I18nText(translations={"en": "Test Profile"}),
         target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
     )
@@ -223,7 +223,7 @@ async def test_synthesis_worker_workflow_not_found_raises() -> None:
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             with pytest.raises(AppException) as exc_info:
                 await generate_profile_synthesis_and_pdf_task(
-                    execution_id="exe_0123456789abcdef01",
+                    execution_id="exe_0195f3a00000700283456789abcdef01",
                     accept_language="en",
                     profile_id=prof_id,
                 )
@@ -233,9 +233,9 @@ async def test_synthesis_worker_workflow_not_found_raises() -> None:
 @pytest.mark.asyncio
 async def test_synthesis_worker_full_pipeline_happy_path_with_causal_fusion() -> None:
     """Test full synthesis pipeline including CausalTdaFusionResultDTO parsing and execution update."""
-    prof_id = "pro_0123456789abcdef01"
-    wf_id = "wor_0123456789abcdef01"
-    exec_id = "exe_0123456789abcdef01"
+    prof_id = "pro_0195f3a00000700283456789abcdef01"
+    wf_id = "wor_0195f3a00000700283456789abcdef01"
+    exec_id = "exe_0195f3a00000700283456789abcdef01"
 
     fusion_result = CausalTdaFusionResultDTO(
         graph=CausalGraphPayloadDTO(
@@ -337,7 +337,7 @@ async def test_synthesis_worker_full_pipeline_happy_path_with_causal_fusion() ->
         title_map={"blk_1": "Block 1 Title"},
         matrices_to_explain=[
             MatrixExplanationContextDTO(
-                real_matrix_id="blk_0123456789abcdef01",
+                real_matrix_id="blk_0195f3a00000700283456789abcdef01",
                 matrix_id="mat_1",
                 matrix_label="Matrix 1",
                 score=1.0,
@@ -358,12 +358,12 @@ async def test_synthesis_worker_full_pipeline_happy_path_with_causal_fusion() ->
     )
     matrix_sections_res = [
         (
-            "grp_0123456789abcdef01",
+            "grp_0195f3a00000700283456789abcdef01",
             (
                 MatrixSectionSynthesesResult(
                     sections=[
                         SynthesisSectionDTO(
-                            layout_id="grp_0123456789abcdef01",
+                            layout_id="grp_0195f3a00000700283456789abcdef01",
                             content_blocks=[ParagraphBlock(text="Group 1 Title", exact_quotes=[], citations=[])],
                         )
                     ]
@@ -458,9 +458,9 @@ async def test_synthesis_worker_full_pipeline_happy_path_with_causal_fusion() ->
 @pytest.mark.asyncio
 async def test_synthesis_worker_with_causal_graph_payload_in_step_states() -> None:
     """Test causal diagnosis extraction from execution.step_states containing CausalGraphPayloadDTO."""
-    prof_id = "pro_0123456789abcdef01"
-    wf_id = "wor_0123456789abcdef01"
-    exec_id = "exe_0123456789abcdef01"
+    prof_id = "pro_0195f3a00000700283456789abcdef01"
+    wf_id = "wor_0195f3a00000700283456789abcdef01"
+    exec_id = "exe_0195f3a00000700283456789abcdef01"
 
     graph_payload = CausalGraphPayloadDTO(
         nodes=[
@@ -486,8 +486,8 @@ async def test_synthesis_worker_with_causal_graph_payload_in_step_states() -> No
         metadata=ExecutionMetadata(),
         step_states={
             "causal_step": StepOutputDTO(
-                step_id="stp_0123456789abcdef01",
-                block_id="blk_0123456789abcdef01",
+                step_id="stp_0195f3a00000700283456789abcdef01",
+                block_id="blk_0195f3a00000700283456789abcdef01",
                 data_type="causal",
                 payload=graph_payload,
             )
@@ -579,9 +579,9 @@ async def test_synthesis_worker_with_causal_graph_payload_in_step_states() -> No
 @pytest.mark.asyncio
 async def test_synthesis_worker_data_starvation_short_circuits() -> None:
     """Test generate_profile_synthesis_and_pdf_task short-circuits when DataStarvationEvent is detected."""
-    prof_id = "pro_0123456789abcdef01"
-    wf_id = "wor_0123456789abcdef01"
-    exec_id = "exe_0123456789abcdef01"
+    prof_id = "pro_0195f3a00000700283456789abcdef01"
+    wf_id = "wor_0195f3a00000700283456789abcdef01"
+    exec_id = "exe_0195f3a00000700283456789abcdef01"
 
     rec = ExecutionRecord(
         id=exec_id,
@@ -628,9 +628,9 @@ async def test_synthesis_worker_data_starvation_short_circuits() -> None:
 @pytest.mark.asyncio
 async def test_synthesis_worker_distiller_hook_missing_delta_raises() -> None:
     """Test generate_profile_synthesis_and_pdf_task raises AppException when hook_result.state_delta is None."""
-    prof_id = "pro_0123456789abcdef01"
-    wf_id = "wor_0123456789abcdef01"
-    exec_id = "exe_0123456789abcdef01"
+    prof_id = "pro_0195f3a00000700283456789abcdef01"
+    wf_id = "wor_0195f3a00000700283456789abcdef01"
+    exec_id = "exe_0195f3a00000700283456789abcdef01"
 
     rec = ExecutionRecord(
         id=exec_id,
@@ -669,9 +669,9 @@ async def test_synthesis_worker_distiller_hook_missing_delta_raises() -> None:
 @pytest.mark.asyncio
 async def test_synthesis_worker_distiller_hook_invalid_delta_raises() -> None:
     """Test generate_profile_synthesis_and_pdf_task raises AppException when state_delta is invalid."""
-    prof_id = "pro_0123456789abcdef01"
-    wf_id = "wor_0123456789abcdef01"
-    exec_id = "exe_0123456789abcdef01"
+    prof_id = "pro_0195f3a00000700283456789abcdef01"
+    wf_id = "wor_0195f3a00000700283456789abcdef01"
+    exec_id = "exe_0195f3a00000700283456789abcdef01"
 
     rec = ExecutionRecord(
         id=exec_id,
@@ -713,9 +713,9 @@ async def test_synthesis_worker_distiller_hook_invalid_delta_raises() -> None:
 @pytest.mark.asyncio
 async def test_synthesis_worker_validation_error_in_taskgroup_handled() -> None:
     """Test generate_profile_synthesis_and_pdf_task handles ValidationError converting to AppException."""
-    prof_id = "pro_0123456789abcdef01"
-    wf_id = "wor_0123456789abcdef01"
-    exec_id = "exe_0123456789abcdef01"
+    prof_id = "pro_0195f3a00000700283456789abcdef01"
+    wf_id = "wor_0195f3a00000700283456789abcdef01"
+    exec_id = "exe_0195f3a00000700283456789abcdef01"
 
     rec = ExecutionRecord(
         id=exec_id,

@@ -43,7 +43,7 @@ def sample_role() -> Role:
         Validated Role domain model.
     """
     return Role(
-        id="rol_1234567890abcdef",
+        id="rol_0195f3a0000070018234567890abcdef",
         name=I18nText(translations={"en": "Executive Coach", "fi": "Johdon Valmentaja"}),
         model_role="analyst_model",
         type="role",
@@ -91,10 +91,10 @@ async def test_update_role_not_found(
 ) -> None:
     """Negative: update_role raises ResourceNotFoundError if role does not exist."""
     with pytest.raises(ResourceNotFoundError) as exc_info:
-        await repo.update_role("rol_0000000000000000", sample_role)
+        await repo.update_role("rol_0195f3a0000070008000000000000000", sample_role)
 
     assert exc_info.value.details["resource_type"] == "Role"
-    assert exc_info.value.details["resource_id"] == "rol_0000000000000000"
+    assert exc_info.value.details["resource_id"] == "rol_0195f3a0000070008000000000000000"
 
 
 @pytest.mark.asyncio
@@ -102,7 +102,7 @@ async def test_delete_role_not_found(
     repo: RoleRepositoryImpl,
 ) -> None:
     """Negative boundary: delete_role returns False when role does not exist."""
-    assert await repo.delete_role("rol_0000000000000000") is False
+    assert await repo.delete_role("rol_0195f3a0000070008000000000000000") is False
 
 
 @pytest.mark.asyncio
@@ -113,16 +113,16 @@ async def test_get_role_by_id_corrupted_raises_app_exception(
     """Negative: get_role_by_id raises AppException(500) on corrupted record."""
     await driver.upsert(
         "components",
-        {"id": "rol_1111111111111111", "type": "role"},
-        "rol_1111111111111111",
+        {"id": "rol_0195f3a0000070018111111111111111", "type": "role"},
+        "rol_0195f3a0000070018111111111111111",
     )
 
     with pytest.raises(AppException) as exc_info:
-        await repo.get_role_by_id("rol_1111111111111111")
+        await repo.get_role_by_id("rol_0195f3a0000070018111111111111111")
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "rol_1111111111111111" in exc_info.value.message
+    assert "rol_0195f3a0000070018111111111111111" in exc_info.value.message
 
 
 @pytest.mark.asyncio
@@ -133,8 +133,8 @@ async def test_get_all_roles_corrupted_with_id_raises_app_exception(
     """Negative: get_all_roles raises AppException(500) when stored record with ID is invalid."""
     await driver.upsert(
         "components",
-        {"id": "rol_2222222222222222", "type": "role"},
-        "rol_2222222222222222",
+        {"id": "rol_0195f3a0000070028222222222222222", "type": "role"},
+        "rol_0195f3a0000070028222222222222222",
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -142,7 +142,7 @@ async def test_get_all_roles_corrupted_with_id_raises_app_exception(
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "rol_2222222222222222" in exc_info.value.message
+    assert "rol_0195f3a0000070028222222222222222" in exc_info.value.message
 
 
 @pytest.mark.asyncio
@@ -153,9 +153,7 @@ async def test_get_all_roles_corrupted_without_id_raises_app_exception(
 ) -> None:
     """Negative boundary: get_all_roles logs 'unknown' when corrupted record lacks id."""
 
-    async def _query_corrupted(
-        collection: str, *args: object, **kwargs: object
-    ) -> list[dict[str, str]]:
+    async def _query_corrupted(collection: str, *args: object, **kwargs: object) -> list[dict[str, str]]:
         return [{"type": "role"}]
 
     monkeypatch.setattr(driver, "query", _query_corrupted)

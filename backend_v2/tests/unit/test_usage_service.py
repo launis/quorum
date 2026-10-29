@@ -31,8 +31,8 @@ def usage_service(fake_repo: InMemoryUnifiedWorkflowRepository) -> UsageService:
 async def test_track_usage(usage_service: UsageService, fake_repo: InMemoryUnifiedWorkflowRepository) -> None:
     """Verify track_usage persists a UsageRecord and updates all 6 cumulative aggregates."""
     record = await usage_service.track_usage(
-        org_id="org_1234abcd5678ef90",
-        user_id="usr_1234abcd5678ef90",
+        org_id="org_0195f3a0000070018234abcd5678ef90",
+        user_id="usr_0195f3a0000070018234abcd5678ef90",
         model="test-model",
         input_tokens=10,
         output_tokens=20,
@@ -54,8 +54,8 @@ async def test_track_usage_prompt_caching_drift_alert(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Verify rolling 5-call prompt caching drift check logs an error when hit rate drops below 70%."""
-    user_id = "usr_1234abcd5678ef90"
-    org_id = "org_1234abcd5678ef90"
+    user_id = "usr_0195f3a0000070018234abcd5678ef90"
+    org_id = "org_0195f3a0000070018234abcd5678ef90"
     for idx in range(4):
         await fake_repo.log_usage(
             UsageRecord(
@@ -101,8 +101,8 @@ async def test_track_usage_failure_raises_app_exception(
     async with fake_repo._audit.fault_context("log_usage", RuntimeError("storage write failure")):
         with pytest.raises(AppException) as exc_info:
             await usage_service.track_usage(
-                org_id="org_1234abcd5678ef90",
-                user_id="usr_1234abcd5678ef90",
+                org_id="org_0195f3a0000070018234abcd5678ef90",
+                user_id="usr_0195f3a0000070018234abcd5678ef90",
                 model="test-model",
                 input_tokens=10,
                 output_tokens=20,
@@ -127,7 +127,7 @@ async def test_check_quota_system_root(
 async def test_check_quota_pass(usage_service: UsageService, fake_repo: InMemoryUnifiedWorkflowRepository) -> None:
     """Verify check_quota returns True when monthly usage is below organization quota_limit."""
     org = Organization(
-        id="org_1234abcd5678ef90",
+        id="org_0195f3a0000070018234abcd5678ef90",
         name="Test Org",
         is_active=True,
         tier="basic",
@@ -137,9 +137,9 @@ async def test_check_quota_pass(usage_service: UsageService, fake_repo: InMemory
         rpm_limit=10,
     )
     await fake_repo.create_organization(org)
-    fake_repo.set_org_usage_total("org_1234abcd5678ef90", 5.0)
+    fake_repo.set_org_usage_total("org_0195f3a0000070018234abcd5678ef90", 5.0)
 
-    res = await usage_service.check_quota("org_1234abcd5678ef90")
+    res = await usage_service.check_quota("org_0195f3a0000070018234abcd5678ef90")
     assert res is True
     assert fake_repo.get_call_count("get_organization") > 0
 
@@ -148,7 +148,7 @@ async def test_check_quota_pass(usage_service: UsageService, fake_repo: InMemory
 async def test_check_quota_exceed(usage_service: UsageService, fake_repo: InMemoryUnifiedWorkflowRepository) -> None:
     """Verify check_quota returns False when monthly usage equals or exceeds organization quota_limit."""
     org = Organization(
-        id="org_1234abcd5678ef90",
+        id="org_0195f3a0000070018234abcd5678ef90",
         name="Test Org",
         is_active=True,
         tier="basic",
@@ -158,9 +158,9 @@ async def test_check_quota_exceed(usage_service: UsageService, fake_repo: InMemo
         rpm_limit=10,
     )
     await fake_repo.create_organization(org)
-    fake_repo.set_org_usage_total("org_1234abcd5678ef90", 15.0)
+    fake_repo.set_org_usage_total("org_0195f3a0000070018234abcd5678ef90", 15.0)
 
-    res = await usage_service.check_quota("org_1234abcd5678ef90")
+    res = await usage_service.check_quota("org_0195f3a0000070018234abcd5678ef90")
     assert res is False
 
 
@@ -194,7 +194,7 @@ async def test_check_quota_repository_failure_raises_app_exception(
     """Verify unexpected repository error during check_quota raises 500 AppException with QUOTA_CHECK_FAILED."""
     async with fake_repo._identities.fault_context("get_organization", RuntimeError("connection timeout")):
         with pytest.raises(AppException) as excinfo:
-            await usage_service.check_quota("org_1234abcd5678ef90")
+            await usage_service.check_quota("org_0195f3a0000070018234abcd5678ef90")
 
     assert excinfo.value.status_code == 500
     assert excinfo.value.details == {"error_code": ErrorCodes.QUOTA_CHECK_FAILED.value}
@@ -206,7 +206,7 @@ async def test_get_usage_report_with_aggregate(
 ) -> None:
     """Verify get_usage_report uses pre-aggregated statistics and computes percentage_used."""
     agg = UsageAggregateDTO(
-        organization_id="org_1234abcd5678ef90",
+        organization_id="org_0195f3a0000070018234abcd5678ef90",
         period="all-time",
         total_input_tokens=100,
         total_output_tokens=200,
@@ -214,10 +214,10 @@ async def test_get_usage_report_with_aggregate(
         total_cost_usd=0.5,
         execution_count=5,
     )
-    fake_repo.set_usage_aggregate("organization", "org_1234abcd5678ef90", "all-time", agg)
+    fake_repo.set_usage_aggregate("organization", "org_0195f3a0000070018234abcd5678ef90", "all-time", agg)
 
     org = Organization(
-        id="org_1234abcd5678ef90",
+        id="org_0195f3a0000070018234abcd5678ef90",
         name="Test Org",
         is_active=True,
         tier="basic",
@@ -228,7 +228,7 @@ async def test_get_usage_report_with_aggregate(
     )
     await fake_repo.create_organization(org)
 
-    report = await usage_service.get_usage_report(scope="org", entity_id="org_1234abcd5678ef90")
+    report = await usage_service.get_usage_report(scope="org", entity_id="org_0195f3a0000070018234abcd5678ef90")
 
     assert report.usage.total_tokens == 300
     assert report.percentage_used == 5.0  # 0.5 / 10.0 * 100
@@ -243,13 +243,13 @@ async def test_get_usage_report_from_records_with_since(
     """Verify get_usage_report computes usage from raw records when no aggregate exists for custom period."""
     now = datetime.now(UTC)
     start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
-    org_id = "org_1234abcd5678ef90"
+    org_id = "org_0195f3a0000070018234abcd5678ef90"
 
     await fake_repo.log_usage(
         UsageRecord(
-            id="usg_1111222233334444",
+            id="usg_0195f3a0000070018111222233334444",
             org_id=org_id,
-            user_id="usr_1234abcd5678ef90",
+            user_id="usr_0195f3a0000070018234abcd5678ef90",
             model="test-model",
             input_tokens=40,
             output_tokens=60,
@@ -279,7 +279,7 @@ async def test_get_usage_report_failure_raises_app_exception(
     """Verify repository error during get_usage_report raises 500 AppException with USAGE_TRACKING_FAILED."""
     async with fake_repo._audit.fault_context("get_usage_aggregate", RuntimeError("read error")):
         with pytest.raises(AppException) as excinfo:
-            await usage_service.get_usage_report(scope="org", entity_id="org_1234abcd5678ef90")
+            await usage_service.get_usage_report(scope="org", entity_id="org_0195f3a0000070018234abcd5678ef90")
 
     assert excinfo.value.status_code == 500
     assert excinfo.value.details == {"error_code": ErrorCodes.USAGE_TRACKING_FAILED.value}

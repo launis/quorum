@@ -66,7 +66,7 @@ def _upgrade_or_generate_opaque_id(raw_id: object, expected_prefix: EntityPrefix
         return generate_uuid7_opaque_id(expected_prefix)
 
     cleaned = raw_id.strip()
-    if cleaned in ("sys_8172bda70c8641c5", SystemConfigID.MCP_GATEWAYS.value):
+    if cleaned == SystemConfigID.MCP_GATEWAYS.value:
         return SystemConfigID.MCP_GATEWAYS.value
     if expected_prefix == EntityPrefix.ORGANIZATION and cleaned in (
         "org_system000000",
@@ -77,6 +77,8 @@ def _upgrade_or_generate_opaque_id(raw_id: object, expected_prefix: EntityPrefix
 
     if "_" in cleaned:
         _, hex_part = cleaned.split("_", 1)
+        if expected_prefix == EntityPrefix.SYSTEM_CONFIG and hex_part.lower() == "8172bda70c8641c5":
+            return SystemConfigID.MCP_GATEWAYS.value
         if re.fullmatch(r"[0-9a-fA-F]{32}", hex_part):
             h32 = hex_part.lower()
             if expected_prefix == EntityPrefix.TDA or uuid.UUID(hex=h32).version == 7:

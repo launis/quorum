@@ -10,9 +10,9 @@ from backend_v2.models.enums import DisplayScale, TargetBlockType, XaiExtensionT
 
 def _make_base_profile(**kwargs: object) -> OutputProfile:
     data = {
-        "id": "pro_1234567890abcdef",
+        "id": "pro_0195f3a0000070018234567890abcdef",
         "slug": "exec_profile",
-        "workflow_id": "wor_1234567890abcdef",
+        "workflow_id": "wor_0195f3a0000070018234567890abcdef",
         "name": {"translations": {"en": "Executive Profile"}},
         "target_block_order": [TargetBlockType.METADATA_BLOCK.value],
     }
@@ -22,9 +22,9 @@ def _make_base_profile(**kwargs: object) -> OutputProfile:
 
 def _make_base_profile_data(**kwargs: object):
     data = {
-        "id": "pro_1234567890abcdef",
+        "id": "pro_0195f3a0000070018234567890abcdef",
         "slug": "exec_profile",
-        "workflow_id": "wor_1234567890abcdef",
+        "workflow_id": "wor_0195f3a0000070018234567890abcdef",
         "name": {"translations": {"en": "Executive Profile"}},
         "target_block_order": [TargetBlockType.METADATA_BLOCK.value],
     }
@@ -34,7 +34,7 @@ def _make_base_profile_data(**kwargs: object):
 
 def test_output_profile_minimal_valid() -> None:
     profile = _make_base_profile()
-    assert profile.id == "pro_1234567890abcdef"
+    assert profile.id == "pro_0195f3a0000070018234567890abcdef"
     assert profile.slug == "exec_profile"
     assert profile.requires_executive_synthesis is False
     assert profile.requires_group_synthesis is False
@@ -62,9 +62,9 @@ def test_output_profile_variance_validation_requires_target_block() -> None:
     # Sized variance_target_block succeeds
     profile = _make_base_profile(
         target_block_order=[TargetBlockType.VARIANCE_VALIDATION_BLOCK.value],
-        variance_target_block="blk_0123456789abcdef",
+        variance_target_block="blk_0195f3a0000070008123456789abcdef",
     )
-    assert profile.variance_target_block == "blk_0123456789abcdef"
+    assert profile.variance_target_block == "blk_0195f3a0000070008123456789abcdef"
 
 
 def test_output_profile_matrix_graphs_coherence() -> None:
@@ -76,9 +76,9 @@ def test_output_profile_matrix_graphs_coherence() -> None:
         OutputProfile.model_validate(data)
 
     grp = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef",
+        id="grp_0195f3a0000070008123456789abcdef",
         title=I18nText(translations={"en": "Group 1"}),
-        target_blocks=["blk_1234567890abcdef"],
+        target_blocks=["blk_0195f3a0000070018234567890abcdef"],
     )
     profile = _make_base_profile(
         target_block_order=[TargetBlockType.MATRIX_GRAPHS_BLOCK.value],
@@ -119,14 +119,14 @@ def test_output_profile_custom_scale_bounds() -> None:
 
 def test_output_profile_matrix_group_ids_unique() -> None:
     grp1 = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef",
+        id="grp_0195f3a0000070008123456789abcdef",
         title=I18nText(translations={"en": "Group 1"}),
-        target_blocks=["blk_1234567890abcdef"],
+        target_blocks=["blk_0195f3a0000070018234567890abcdef"],
     )
     grp2 = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef",
+        id="grp_0195f3a0000070008123456789abcdef",
         title=I18nText(translations={"en": "Group 2"}),
-        target_blocks=["blk_1234567890abcdef"],
+        target_blocks=["blk_0195f3a0000070018234567890abcdef"],
     )
     data = _make_base_profile_data(
         target_block_order=[TargetBlockType.MATRIX_GRAPHS_BLOCK.value],

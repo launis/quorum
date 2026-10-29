@@ -20,16 +20,16 @@ class TestAliasEngineCore:
     def test_generate_alias_registers_mapping(self) -> None:
         """Verify register creates correct alias and registers in map."""
         engine = AliasEngine()
-        alias = engine.register("tda_0123456789abcdef", prefix="a")
+        alias = engine.register("tda_0195f3a0000070008123456789abcdef", prefix="a")
 
         assert alias == "a0"
-        assert engine.alias_map["a0"] == "tda_0123456789abcdef"
+        assert engine.alias_map["a0"] == "tda_0195f3a0000070008123456789abcdef"
 
     def test_register_idempotent_reverse_lookup(self) -> None:
         """Verify registering the same real_id twice returns the existing alias."""
         engine = AliasEngine()
-        first = engine.register("tda_0123456789abcdef", prefix="a")
-        second = engine.register("tda_0123456789abcdef", prefix="a")
+        first = engine.register("tda_0195f3a0000070008123456789abcdef", prefix="a")
+        second = engine.register("tda_0195f3a0000070008123456789abcdef", prefix="a")
 
         assert first == "a0"
         assert second == "a0"
@@ -38,7 +38,7 @@ class TestAliasEngineCore:
     def test_register_inferred_prefix(self) -> None:
         """Verify register infers the prefix correctly from the real ID."""
         engine = AliasEngine()
-        alias1 = engine.register("tda_0123456789abcdef")
+        alias1 = engine.register("tda_0195f3a0000070008123456789abcdef")
         alias2 = engine.register("doc_xyz")
         alias3 = engine.register("MX-123")
         alias4 = engine.register("plainid")
@@ -48,7 +48,7 @@ class TestAliasEngineCore:
         assert alias3 == "MX-0"
         assert alias4 == "item0"
 
-        assert engine.alias_map["tda0"] == "tda_0123456789abcdef"
+        assert engine.alias_map["tda0"] == "tda_0195f3a0000070008123456789abcdef"
         assert engine.alias_map["doc0"] == "doc_xyz"
         assert engine.alias_map["MX-0"] == "MX-123"
         assert engine.alias_map["item0"] == "plainid"
@@ -56,29 +56,29 @@ class TestAliasEngineCore:
     def test_generate_alias_multiple_prefixes_no_collision(self) -> None:
         """Verify different prefixes coexist in the same alias_map without collision."""
         engine = AliasEngine()
-        engine.register("tda_0123456789abcdef", prefix="a")
-        engine.register("tda_fedcba9876543210", prefix="a")
+        engine.register("tda_0195f3a0000070008123456789abcdef", prefix="a")
+        engine.register("tda_0195f3a00000700f8edcba9876543210", prefix="a")
         engine.register("doc_xyz", prefix="src_")
         engine.register("doc_uvw", prefix="src_")
 
         assert len(engine.alias_map) == 4
-        assert engine.alias_map["a0"] == "tda_0123456789abcdef"
-        assert engine.alias_map["a1"] == "tda_fedcba9876543210"
+        assert engine.alias_map["a0"] == "tda_0195f3a0000070008123456789abcdef"
+        assert engine.alias_map["a1"] == "tda_0195f3a00000700f8edcba9876543210"
         assert engine.alias_map["src_0"] == "doc_xyz"
         assert engine.alias_map["src_1"] == "doc_uvw"
 
     def test_resolve_alias_returns_real_id_and_empty_passthrough(self) -> None:
         """Verify resolve_alias returns the real ID, empty string, or unknown non-prefix string."""
         engine = AliasEngine()
-        engine.register("tda_0123456789abcdef", prefix="a")
-        assert engine.resolve_alias("a0") == "tda_0123456789abcdef"
+        engine.register("tda_0195f3a0000070008123456789abcdef", prefix="a")
+        assert engine.resolve_alias("a0") == "tda_0195f3a0000070008123456789abcdef"
         assert engine.resolve_alias("") == ""
         assert engine.resolve_alias("nonexistent") == "nonexistent"
 
     def test_resolve_alias_negative_hallucinated_atom_prefix_raises(self) -> None:
         """Verify resolve_alias raises AppException(422) on hallucinated atom alias matching active prefix."""
         engine = AliasEngine()
-        engine.register("tda_0123456789abcdef", prefix="a")
+        engine.register("tda_0195f3a0000070008123456789abcdef", prefix="a")
 
         with pytest.raises(AppException) as exc_info:
             engine.resolve_alias("a99")
@@ -87,7 +87,7 @@ class TestAliasEngineCore:
 
     def test_resolve_alias_negative_hallucinated_delimited_prefix_raises(self) -> None:
         """Verify resolve_alias raises AppException(422) on hallucinated delimited prefix alias (e.g. DOC-1)."""
-        engine = AliasEngine(alias_map={"DOC-0": "doc_0123456789abcdef", "custom_key": "val"})
+        engine = AliasEngine(alias_map={"DOC-0": "doc_0195f3a0000070008123456789abcdef", "custom_key": "val"})
 
         with pytest.raises(AppException) as exc_info:
             engine.resolve_alias("DOC-1")
@@ -157,14 +157,14 @@ class TestAliasManifest:
         manifest = upstream.to_manifest()
 
         downstream = AliasEngine.from_manifest(manifest)
-        downstream.register("tda_0123456789abcdef", prefix="a")
-        downstream.register("tda_fedcba9876543210", prefix="a")
+        downstream.register("tda_0195f3a0000070008123456789abcdef", prefix="a")
+        downstream.register("tda_0195f3a00000700f8edcba9876543210", prefix="a")
 
         assert len(downstream.alias_map) == 4
         assert downstream.alias_map["doc0"] == "doc_xyz"
         assert downstream.alias_map["doc1"] == "doc_uvw"
-        assert downstream.alias_map["a0"] == "tda_0123456789abcdef"
-        assert downstream.alias_map["a1"] == "tda_fedcba9876543210"
+        assert downstream.alias_map["a0"] == "tda_0195f3a0000070008123456789abcdef"
+        assert downstream.alias_map["a1"] == "tda_0195f3a00000700f8edcba9876543210"
 
     def test_manifest_serialization_json(self) -> None:
         """Verify manifest serializes cleanly to JSON for step_metadata transport."""
@@ -246,17 +246,17 @@ class TestAliasManifestEdgeCases:
     def test_hydrate_reasoning_text(self) -> None:
         """Test hydrate_reasoning_text with matching and non-matching aliases."""
         engine = AliasEngine()
-        engine.register("tda_0123456789abcdef", prefix="a")
-        engine.register("tda_fedcba9876543210", prefix="a")
+        engine.register("tda_0195f3a0000070008123456789abcdef", prefix="a")
+        engine.register("tda_0195f3a00000700f8edcba9876543210", prefix="a")
         text = "See atom 'a0' and \"a0\" and `a0` and standalone a0 here."
         hydrated = engine.hydrate_reasoning_text(text)
-        assert "tda_0123456789abcdef" in hydrated
+        assert "tda_0195f3a0000070008123456789abcdef" in hydrated
         assert engine.hydrate_reasoning_text("") == ""
 
     def test_hydrate_and_filter_aliases(self) -> None:
         """Test hydrate_and_filter_aliases in-place mutations including DEFAULT_ALIAS_LITERALS."""
         engine = AliasEngine()
-        engine.register("tda_0123456789abcdef", prefix="a")
+        engine.register("tda_0195f3a0000070008123456789abcdef", prefix="a")
         default_lit = next(iter(DEFAULT_ALIAS_LITERALS))
 
         data = {
@@ -275,12 +275,12 @@ class TestAliasManifestEdgeCases:
         }
 
         engine.hydrate_and_filter_aliases(data, {"atom_id", "default_scalar", "source_id", "sources"})
-        assert data["atom_id"] == "tda_0123456789abcdef"
+        assert data["atom_id"] == "tda_0195f3a0000070008123456789abcdef"
         assert data["default_scalar"] == default_lit
         assert data["source_id"] is None
-        assert data["sources"] == ["tda_0123456789abcdef", default_lit, 123]
-        assert data["nested"]["atom_id"] == "tda_0123456789abcdef"
-        assert data["list_of_dicts"][0]["atom_id"] == "tda_0123456789abcdef"
+        assert data["sources"] == ["tda_0195f3a0000070008123456789abcdef", default_lit, 123]
+        assert data["nested"]["atom_id"] == "tda_0195f3a0000070008123456789abcdef"
+        assert data["list_of_dicts"][0]["atom_id"] == "tda_0195f3a0000070008123456789abcdef"
         assert data["list_of_dicts"][1]["atom_id"] is None
 
     def test_is_valid_source_id(self) -> None:

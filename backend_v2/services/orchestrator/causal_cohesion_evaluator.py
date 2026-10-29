@@ -7,11 +7,14 @@ a deterministic BARS 1-5 scale and unified competence score.
 
 from __future__ import annotations
 
+import logging
+from collections import deque
 from typing import Annotated
 
 from pydantic import ConfigDict, Field
 
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import V2CoreBase, generate_opaque_id
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.causal_discovery import (
@@ -19,35 +22,20 @@ from backend_v2.models.dtos.causal_discovery import (
     CausalEdgeDTO,
     CausalGraphPayloadDTO,
     CausalRootCauseDiagnosisDTO,
+    CounterfactualSimulationResultDTO,
 )
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, ScoringResultDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
-from backend_v2.models.enums import CausalRootCauseType, ExecutionStatus, SDUIComponentType
+from backend_v2.models.enums import CausalRootCauseType, EntityPrefix, ExecutionStatus, SDUIComponentType
 from backend_v2.settings import get_settings
 from backend_v2.utils.scoring.unified_engine import UnifiedScoringEngine
 
+logger = logging.getLogger(__name__)
+
 __all__ = [
-    "CAUSAL_COHESION_CLAIMS",
-    "CAUSAL_COHESION_TDA_IDS",
     "CausalCohesionEvaluationDTO",
     "CausalCohesionEvaluator",
 ]
-
-CAUSAL_COHESION_TDA_IDS: tuple[str, ...] = (
-    "tda_c0a1e500000000000000000000000001",
-    "tda_c0a1e500000000000000000000000002",
-    "tda_c0a1e500000000000000000000000003",
-    "tda_c0a1e500000000000000000000000004",
-    "tda_c0a1e500000000000000000000000005",
-)
-
-CAUSAL_COHESION_CLAIMS: tuple[str, ...] = (
-    "Circular reasoning or under 40% logical cohesion",
-    "Cohesion 40–59%, multiple orphan premise chains",
-    "Cohesion 60–79%, core premises linked to conclusions, limited isolated nodes",
-    "Cohesion 80–89%, deep and consistent argument structure",
-    "Cohesion >= 90%, 0 cycles, under 5% isolated claims, extensive interconnectedness",
-)
 
 
 class CausalCohesionEvaluationDTO(V2CoreBase):
@@ -195,36 +183,49 @@ class CausalCohesionEvaluator:
                 for c in sc.claims
                 for a in c.tda_assertions
             }
-        tda_ids = tuple(resolved_claims.keys()) if resolved_claims else CAUSAL_COHESION_TDA_IDS
-        claims = tuple(resolved_claims.values()) if resolved_claims else CAUSAL_COHESION_CLAIMS
+        if resolved_claims and len(resolved_claims) >= 5:
+            tda_ids = tuple(resolved_claims.keys())[:5]
+            claims = tuple(resolved_claims.values())[:5]
+        else:
+            tda_ids = tuple(generate_opaque_id(EntityPrefix.TDA) for _ in range(5))
+            claims = tuple(f"Causal cohesion BARS level {lvl}" for lvl in range(1, 6))
 
         if total_nodes > 0:
             isolated_ratio = audit.isolated_concept_count / total_nodes
         else:
             isolated_ratio = 1.0
 
-        # Cumulative Guttman Invariant: L1 subset L2 subset L3 subset L4 subset L5
-        l1_passed = True  # Novice floor is unconditional
+        # Phase 5, Step 5: Enforce Equation (13) Cumulative Guttman Invariant (L1 subset L2 subset L3 subset L4 subset L5)
+        l1_passed = total_nodes >= 1
         l2_passed = (
             l1_passed
-            and total_nodes > 0
+            and total_nodes >= settings.causal_cohesion_l2_min_nodes
             and not audit.cycle_detected
             and audit.logical_cohesion_score >= settings.causal_cohesion_l2_threshold
+            and isolated_ratio <= (1.0 - settings.causal_cohesion_l2_threshold)
+            and audit.largest_component_ratio >= settings.causal_cohesion_l2_lcc_min
         )
         l3_passed = (
             l2_passed
+            and total_nodes >= settings.causal_cohesion_l3_min_nodes
             and audit.logical_cohesion_score >= settings.causal_cohesion_l3_threshold
             and isolated_ratio <= settings.causal_cohesion_l3_isolation_max
+            and audit.largest_component_ratio >= settings.causal_cohesion_l3_lcc_min
         )
         l4_passed = (
             l3_passed
+            and total_nodes >= settings.causal_cohesion_l4_min_nodes
             and audit.logical_cohesion_score >= settings.causal_cohesion_l4_threshold
             and isolated_ratio <= settings.causal_cohesion_l4_isolation_max
+            and audit.largest_component_ratio >= settings.causal_cohesion_l4_lcc_min
+            and audit.branch_convergence_ratio >= settings.causal_cohesion_l4_convergence_min
         )
         l5_passed = (
             l4_passed
+            and total_nodes >= settings.causal_cohesion_l5_min_nodes
             and audit.logical_cohesion_score >= settings.causal_cohesion_l5_threshold
             and isolated_ratio <= settings.causal_cohesion_l5_isolation_max
+            and audit.largest_component_ratio >= settings.causal_cohesion_l5_lcc_min
         )
 
         passed_flags = (l1_passed, l2_passed, l3_passed, l4_passed, l5_passed)
@@ -314,4 +315,104 @@ class CausalCohesionEvaluator:
             score_result=score_result,
             hydrated_references=hydrated_references,
             matrix_output=matrix_output,
+        )
+
+    def simulate_counterfactual_retraction(
+        self,
+        graph: CausalGraphPayloadDTO,
+        retracted_node_id: str,
+        conjunctive: bool = True,
+    ) -> CounterfactualSimulationResultDTO:
+        """Simulate discrete ATMS counterfactual premise retraction over a compiled causal graph (Algorithm 1).
+
+        Clamps retracted_node_id to BLOCKED and propagates reachability cascades forward in O(|V| + |E|)
+        deterministic linear time under either conjunctive (all antecedents required) or disjunctive
+        (corroborative warrant redundancy) gate semantics.
+
+        Args:
+            graph: Compiled CausalGraphPayloadDTO instance.
+            retracted_node_id: Identifier of the proposition node to retract.
+            conjunctive: True for conjunctive deductive gating; False for disjunctive corroborative gating.
+
+        Returns:
+            CounterfactualSimulationResultDTO detailing collapsed nodes, surviving nodes, ratio, and depth.
+
+        Raises:
+            AppException: If retracted_node_id does not exist in graph.nodes (VALIDATION_FAILED).
+        """
+        # Phase 5, Step 5: Implement Algorithm 1 discrete ATMS counterfactual retraction simulation
+        node_map = {n.node_id: n for n in graph.nodes}
+        if retracted_node_id not in node_map:
+            logger.error(
+                "Fail-Fast: Counterfactual retraction target does not exist in causal graph.",
+                extra={
+                    "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                    "retracted_node_id": retracted_node_id,
+                },
+            )
+            raise AppException(
+                message=f"Retracted node '{retracted_node_id}' does not exist in causal graph.",
+                status_code=422,
+                details={
+                    "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                    "retracted_node_id": retracted_node_id,
+                },
+            )
+
+        state_map: dict[str, ExecutionStatus] = {n.node_id: n.status for n in graph.nodes}
+        state_map[retracted_node_id] = ExecutionStatus.BLOCKED
+
+        children_by_parent: dict[str, list[str]] = {n.node_id: [] for n in graph.nodes}
+        parents_by_child: dict[str, list[str]] = {n.node_id: [] for n in graph.nodes}
+        edge_failures = set(graph.edge_root_causes)
+
+        for edge in graph.edges:
+            if edge.source_id != edge.target_id:
+                children_by_parent[edge.source_id].append(edge.target_id)
+                parents_by_child[edge.target_id].append(edge.source_id)
+
+        queue: deque[tuple[str, int]] = deque([(retracted_node_id, 0)])
+        visited: set[str] = {retracted_node_id}
+        collapsed_node_ids: list[str] = []
+        max_cascade_depth = 0
+
+        while queue:
+            curr_id, curr_depth = queue.popleft()
+            for child_id in children_by_parent[curr_id]:
+                if child_id in visited:
+                    continue
+                parents = parents_by_child[child_id]
+                if conjunctive:
+                    survives_gate = all(
+                        state_map[p_id] == ExecutionStatus.PASSED and f"{p_id}->{child_id}" not in edge_failures
+                        for p_id in parents
+                    )
+                else:
+                    survives_gate = any(
+                        state_map[p_id] == ExecutionStatus.PASSED and f"{p_id}->{child_id}" not in edge_failures
+                        for p_id in parents
+                    )
+                if not survives_gate:
+                    state_map[child_id] = ExecutionStatus.BLOCKED
+                    visited.add(child_id)
+                    collapsed_node_ids.append(child_id)
+                    next_depth = curr_depth + 1
+                    if next_depth > max_cascade_depth:
+                        max_cascade_depth = next_depth
+                    queue.append((child_id, next_depth))
+
+        invalidated_ids = set(collapsed_node_ids) | {retracted_node_id}
+        surviving_node_ids = [
+            n.node_id
+            for n in graph.nodes
+            if n.node_id not in invalidated_ids and state_map[n.node_id] == ExecutionStatus.PASSED
+        ]
+        collapse_ratio = round(len(invalidated_ids) / len(graph.nodes), 4)
+
+        return CounterfactualSimulationResultDTO(
+            retracted_root_id=retracted_node_id,
+            collapsed_node_ids=collapsed_node_ids,
+            surviving_node_ids=surviving_node_ids,
+            collapse_ratio=collapse_ratio,
+            max_cascade_depth=max_cascade_depth,
         )

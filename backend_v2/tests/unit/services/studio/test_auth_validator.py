@@ -199,4 +199,3 @@ def test_is_resource_accessible_scenarios(root_token: TokenData, admin_token: To
 
     # Foreign organization denied
     assert is_resource_accessible(admin_token, ORG_BETA_ID) is False
-

@@ -39,7 +39,9 @@ def base_engine_request(mock_compiler: MagicMock) -> EngineExecutionRequest:
         compiled_schema=None,
         hydrated_messages=None,
         system_prompt="Test System Prompt",
-        step=StepRule(id="step_a1b2c3d4e5f6a7b8", task_blueprint="task_123", depends_on=[], input_mappings={}),
+        step=StepRule(
+            id="stp_0195f3a00000700a81b2c3d4e5f6a7b8", task_blueprint="task_123", depends_on=[], input_mappings={}
+        ),
         context=StrategyContext(
             execution_id="exe_abc12345",
             workflow_id="wor_xyz12345",

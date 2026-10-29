@@ -4,6 +4,35 @@
 
 SET default_toast_compression = 'lz4';
 
+-- Automatic One-Way Cutover: If legacy TEXT primary key schema exists on organizations,
+-- drop the 12 tables so they are recreated with native 16-byte UUIDv7 primary keys.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'organizations'
+          AND column_name = 'id'
+          AND data_type = 'text'
+    ) THEN
+        DROP TABLE IF EXISTS
+            dependency_edges,
+            proposition_nodes,
+            report_binaries,
+            report_artifacts,
+            executions,
+            output_profiles,
+            workflows,
+            steps,
+            prompt_blocks,
+            system_configs,
+            users,
+            organizations
+        CASCADE;
+    END IF;
+END $$;
+
 -- 1. Organizations (Tenant & Billing Root)
 CREATE TABLE IF NOT EXISTS organizations (
     id UUID PRIMARY KEY DEFAULT uuidv7(),

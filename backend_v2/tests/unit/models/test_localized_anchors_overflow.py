@@ -1,7 +1,7 @@
 """TDD RED: Reproduce localized_anchors_found overflow crash.
 
 Production crash: exe_51311c08e1fe4e299a3529dc49560363
-Step sr_5a8ae009eee44fe2 (Analyst) failed because LLM returned 7
+Step sr_0195f3a0000070058a8ae009eee44fe2 (Analyst) failed because LLM returned 7
 localized_anchors_found items from Finnish Sitra data, but Pydantic
 schema enforced max_length=5.
 

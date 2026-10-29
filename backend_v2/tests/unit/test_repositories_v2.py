@@ -52,7 +52,7 @@ async def test_execution_repo(driver: StorageDriver) -> None:
     assert status is None
 
     execution_dto = ExecutionCreateDTO(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         status="PENDING",
         organization_id="org1",
         target_locale="fi",
@@ -79,15 +79,15 @@ async def test_workflow_repo(driver: StorageDriver) -> None:
     assert res == []
 
     wf = Workflow(
-        id="wor_0123456789abcdef",
+        id="wor_0195f3a0000070008123456789abcdef",
         slug="test_wf",
         name=I18nText(translations={"en": "Test Workflow"}),
         description=I18nText(translations={"en": "Test Description"}),
         status="active",
         version=1,
-        organization_id="org1",
-        default_profile_id="prf_default",
-        model_registry_id="cfg_model_registry_01",
+        organization_id="org_0195f3a0000070008123456789abcdef",
+        default_profile_id="prf_0195f3a0000070008123456789abcdef",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],
     )
@@ -97,7 +97,7 @@ async def test_workflow_repo(driver: StorageDriver) -> None:
     assert persisted.id == wf.id
 
     assert await repo.count_workflows() == 1
-    workflows = await repo.get_all_workflows(organization_id="org1")
+    workflows = await repo.get_all_workflows(organization_id="org_0195f3a0000070008123456789abcdef")
     assert len(workflows) == 1
 
     step_dto = StepCreateDTO(
@@ -136,7 +136,7 @@ async def test_identity_repo(driver: StorageDriver) -> None:
     assert res == []
 
     org = Organization(
-        id="org_0123456789abcdef",
+        id="org_0195f3a0000070008123456789abcdef",
         name="Test Org",
         is_active=True,
         tier="enterprise",
@@ -168,7 +168,7 @@ async def test_component_repo(driver: StorageDriver) -> None:
     assert res == []
 
     block = SystemRulePromptBlock(
-        id="blk_0000000000000001",
+        id="blk_0195f3a0000070008000000000000001",
         slug="comp2",
         label=I18nText(translations={"en": "Component 2"}),
         description=I18nText(translations={"en": "Description"}),
@@ -251,7 +251,7 @@ async def test_audit_repo(driver: StorageDriver) -> None:
     assert any("action" in r and r["action"] == "test" for r in raw_logs)
 
     record = UsageRecord(
-        id="usg_0123456789abcdef",
+        id="usg_0195f3a0000070008123456789abcdef",
         org_id="org1",
         user_id="user1",
         model="gpt-4o",

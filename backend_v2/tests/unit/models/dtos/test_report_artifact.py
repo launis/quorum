@@ -75,9 +75,9 @@ def test_report_metadata_dto_rejects_extra() -> None:
 def test_report_row_item_dto_validation() -> None:
     """Verify ReportRowItemDTO validation and strict string requirements."""
     row = ReportRowItemDTO(
-        execution_id="exe_0000000000000001",
-        report_id="rep_0000000000000001",
-        metric_key="blk_0000000000000001",
+        execution_id="exe_0195f3a0000070008000000000000001",
+        report_id="rep_0195f3a0000070008000000000000001",
+        metric_key="blk_0195f3a0000070008000000000000001",
         metric_label="Governance Metric",
         score=4.5,
         max_scale=5.0,

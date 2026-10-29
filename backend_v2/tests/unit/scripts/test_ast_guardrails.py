@@ -2468,12 +2468,22 @@ legacy = (StorageBackend.LOCAL, StorageBackend.FIRESTORE)
 
 
 def test_qgr030_valid_hexadecimal_ids_and_snake_case_identifiers_allowed() -> None:
-    """QGR030: Negative boundary test verifying canonical hexadecimal IDs, snake_case identifiers, and short strings pass."""
+    """QGR030: Negative boundary test verifying canonical 32-hex IDs, snake_case identifiers, and short strings pass."""
     code = """
-valid_exe = "exe_1111222233334444"
-valid_wf = "wf_abcdef0123456789abcdef0123456789"
+valid_exe = "exe_0195f3a0000070008000111122223333"
+valid_wf = "wf_0195f3a0000070008000abcdef012345"
 snake_case = "wf_custom_step_identifier_123"
 short_negative = "wf_invalid1"
 """
     violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
     assert [v for v in violations if v.rule_code == "QGR030"] == []
+
+
+def test_qgr030_non_32_hex_entity_id_in_strict_scope_raises_fatal() -> None:
+    """QGR030: Positive violation test detecting legacy 16-hex entity ID in strict domain scope."""
+    code = 'legacy_id = "wf_a8f1d71000000001"\n'
+    violations = _scan_snippet(code, filepath="backend_v2/services/sample.py")
+    qgr030 = [v for v in violations if v.rule_code == "QGR030"]
+    assert len(qgr030) == 1
+    assert qgr030[0].severity == GuardrailSeverity.FATAL
+    assert "Banned non-32-hex entity ID literal" in qgr030[0].message

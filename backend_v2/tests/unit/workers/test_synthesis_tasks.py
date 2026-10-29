@@ -62,12 +62,14 @@ def _make_profile(
         blocks.append(TargetBlockType.GROUPED_EXTENSIONS_BLOCK)
 
     variance_target = (
-        "blk_0123456789abcdef01" if (extensions and XaiExtensionType.VARIANCE_VALIDATION in extensions) else None
+        "blk_0195f3a00000700283456789abcdef01"
+        if (extensions and XaiExtensionType.VARIANCE_VALIDATION in extensions)
+        else None
     )
     return OutputProfile(
-        id="pro_0123456789abcdef01",
+        id="pro_0195f3a00000700283456789abcdef01",
         slug="prof_test",
-        workflow_id="wor_0123456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         name=I18nText(translations={"en": "Test Profile"}),
         target_block_order=blocks or [TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
         executive_summary_directive=exec_directive,
@@ -90,9 +92,9 @@ def _make_profile(
 
 def _make_execution() -> ExecutionRecord:
     return ExecutionRecord(
-        id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
-        output_profile_id="pro_0123456789abcdef01",
+        id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
+        output_profile_id="pro_0195f3a00000700283456789abcdef01",
         status=ExecutionStatus.PASSED,
         target_locale="en",
         metadata=ExecutionMetadata(),
@@ -177,25 +179,25 @@ async def test_create_matrix_sections_tasks_skips_when_no_groups() -> None:
 async def test_create_matrix_sections_tasks_executes_each_group() -> None:
     """Test create_matrix_sections_tasks generates LLM task for each valid matrix synthesis group."""
     grp1 = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef01",
+        id="grp_0195f3a00000700283456789abcdef01",
         title=I18nText(translations={"en": "1D Metrics"}),
         view_type=PresetView.METRICS_1D,
         target_blocks=["blk_1"],
     )
     grp2 = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef02",
+        id="grp_0195f3a00000700283456789abcdef02",
         title=I18nText(translations={"en": "2D Compare"}),
         view_type=PresetView.COMPARE_2D,
         target_blocks=["blk_2", "blk_3"],
     )
     grp3 = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef03",
+        id="grp_0195f3a00000700283456789abcdef03",
         title=I18nText(translations={"en": "3D Matrix"}),
         view_type=PresetView.MATRIX_3D,
         target_blocks=["blk_1", "blk_2", "blk_3"],
     )
     grp4 = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef04",
+        id="grp_0195f3a00000700283456789abcdef04",
         title=I18nText(translations={"en": "Text Only"}),
         view_type=PresetView.TEXT_ONLY,
         target_blocks=["blk_1"],
@@ -224,10 +226,10 @@ async def test_create_matrix_sections_tasks_executes_each_group() -> None:
         mock_client, "sys", ["<part>"], "distilled", "matrix", prof, distilled, dummy_sem
     )
     assert len(results) == 4
-    assert results[0][0] == "grp_0123456789abcdef01"
-    assert results[1][0] == "grp_0123456789abcdef02"
-    assert results[2][0] == "grp_0123456789abcdef03"
-    assert results[3][0] == "grp_0123456789abcdef04"
+    assert results[0][0] == "grp_0195f3a00000700283456789abcdef01"
+    assert results[1][0] == "grp_0195f3a00000700283456789abcdef02"
+    assert results[2][0] == "grp_0195f3a00000700283456789abcdef03"
+    assert results[3][0] == "grp_0195f3a00000700283456789abcdef04"
     assert mock_client.run_structured_task.call_count == 4
 
 
@@ -235,7 +237,7 @@ async def test_create_matrix_sections_tasks_executes_each_group() -> None:
 async def test_create_matrix_sections_tasks_skips_missing_directive() -> None:
     """Test create_matrix_sections_tasks skips groups with missing directive."""
     grp1 = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef01",
+        id="grp_0195f3a00000700283456789abcdef01",
         title=I18nText(translations={"en": "1D Metrics"}),
         view_type=PresetView.METRICS_1D,
         target_blocks=["blk_1"],
@@ -272,7 +274,7 @@ async def test_create_xai_highlights_task_skips_when_no_extensions() -> None:
 async def test_create_xai_highlights_task_missing_max_items_raises() -> None:
     """Test create_xai_highlights_task raises AppException if max_extension_items is None."""
     prof = OutputProfile.model_construct(
-        id="pro_0123456789abcdef01",
+        id="pro_0195f3a00000700283456789abcdef01",
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
         max_extension_items=None,
     )
@@ -290,7 +292,7 @@ async def test_create_xai_highlights_task_missing_max_items_raises() -> None:
 async def test_create_xai_highlights_task_out_of_bounds_max_items_raises(invalid_max_items: int) -> None:
     """Test create_xai_highlights_task raises AppException on ISTQB boundary violations (0 and -1)."""
     prof = OutputProfile.model_construct(
-        id="pro_0123456789abcdef01",
+        id="pro_0195f3a00000700283456789abcdef01",
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
         max_extension_items=invalid_max_items,
         xai_synthesis_directive="Synthesize highlights.",
@@ -434,10 +436,10 @@ async def test_create_executive_summary_task_none_profile_returns_none() -> None
 async def test_create_matrix_sections_tasks_unknown_view_type_skips() -> None:
     """Test create_matrix_sections_tasks skips groups with unrecognized view_type."""
     grp = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef",
+        id="grp_0195f3a0000070008123456789abcdef",
         title=I18nText(translations={"en": "Unknown Group"}),
         view_type=PresetView.METRICS_1D,
-        target_blocks=["blk_0123456789abcdef01"],
+        target_blocks=["blk_0195f3a00000700283456789abcdef01"],
     )
     grp_unknown = grp.model_copy(update={"view_type": "invalid_custom_type"})
     prof = _make_profile(requires_groups=True, groups=[grp_unknown])

@@ -32,7 +32,7 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 
 def _create_dummy_execution(
-    execution_id: str = "exe_1234567890abcdef",
+    execution_id: str = "exe_0195f3a0000070018234567890abcdef",
     status: ExecutionStatus = ExecutionStatus.PASSED,
 ) -> ExecutionRecord:
     reasoning = ReasoningStepDTO(
@@ -42,7 +42,7 @@ def _create_dummy_execution(
         step_4_final_conclusion="Logic evaluated successfully.",
     )
     atom = ScorecardAtomDTO(
-        atom_id="atm_0123456789abcdef",
+        atom_id="atm_0195f3a0000070008123456789abcdef",
         level=3,
         level_name="Operational",
         claim_label="Strategic Claim",
@@ -60,35 +60,35 @@ def _create_dummy_execution(
         id="stp_1",
         label="Step 1",
         status=ExecutionStatus.PASSED,
-        scorecard_atoms={"atm_0123456789abcdef": atom},
+        scorecard_atoms={"atm_0195f3a0000070008123456789abcdef": atom},
     )
     return ExecutionRecord(
         id=execution_id,
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         target_locale="fi",
         status=status,
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
         step_states={"stp_1": step},
-        profile_syntheses={"prf_1234567890abcdef": RenderedSynthesisCache()},
+        profile_syntheses={"prf_0195f3a0000070018234567890abcdef": RenderedSynthesisCache()},
         metadata=ExecutionMetadata(
             provider_override=LLMProvider.VERTEX_AI,
-            model_registry_id="cfg_model_registry_01",
+            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         ),
     )
 
 
 def _create_dummy_report(
-    report_id: str = "rep_1234567890abcdef",
+    report_id: str = "rep_0195f3a0000070018234567890abcdef",
     status: ReportStatus = ReportStatus.PENDING,
 ) -> ReportArtifact:
     now = datetime.now(UTC)
     return ReportArtifact(
         id=report_id,
-        execution_id="exe_1234567890abcdef",
-        workflow_id="wor_0123456789abcdef",
-        profile_id="prf_1234567890abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
         locale="fi",
         title="Johdon raportti",
         status=status,
@@ -170,9 +170,9 @@ async def test_compile_and_persist_artifact_success(monkeypatch: pytest.MonkeyPa
     pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
 
     dummy_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
     )
     monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
 
@@ -195,7 +195,7 @@ async def test_compile_and_persist_artifact_success(monkeypatch: pytest.MonkeyPa
     assert completed_rep is not None
     assert completed_rep.status == ReportStatus.READY
     assert completed_rep.metadata.provider == LLMProvider.VERTEX_AI.value
-    assert completed_rep.metadata.model_registry_id == "cfg_model_registry_01"
+    assert completed_rep.metadata.model_registry_id == "sys_0195f3a00000700e826807f3bfa3454d"
 
 
 @pytest.mark.asyncio
@@ -221,7 +221,7 @@ async def test_compile_and_persist_artifact_not_found() -> None:
     arq_pool = AsyncMock()
 
     with pytest.raises(ResourceNotFoundError):
-        await service.compile_and_persist_artifact("rep_0000000000000000", arq_pool)
+        await service.compile_and_persist_artifact("rep_0195f3a0000070008000000000000000", arq_pool)
 
 
 @pytest.mark.asyncio
@@ -251,9 +251,9 @@ async def test_process_artifact_compilation_success(monkeypatch: pytest.MonkeyPa
     pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
 
     dummy_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
     )
     monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
 
@@ -312,9 +312,9 @@ async def test_process_artifact_compilation_syncs_execution_record(monkeypatch: 
     pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
 
     dummy_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
     )
     monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
 
@@ -392,9 +392,9 @@ async def test_process_artifact_compilation_force_resynthesis_false_retains_cach
     pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
 
     dummy_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
     )
     monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
     synthesis_runner = AsyncMock()
@@ -443,9 +443,9 @@ async def test_process_artifact_compilation_force_resynthesis_true_invalidates_c
     pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
 
     dummy_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
     )
     monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
 
@@ -512,9 +512,9 @@ async def test_process_artifact_compilation_force_resynthesis_bypasses_ready_ide
     pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
 
     dummy_dto = ReportDataDTO(
-        workflow_id="wor_0123456789abcdef",
-        execution_id="exe_1234567890abcdef",
-        profile_id="prf_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="prf_0195f3a0000070018234567890abcdef",
     )
     monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
 
@@ -547,7 +547,9 @@ async def test_process_artifact_compilation_missing_runner_dispatches_dlq() -> N
     repo = InMemoryUnifiedWorkflowRepository()
     exec_no_synth = _create_dummy_execution().model_copy(update={"profile_syntheses": {}})
     await repo.save_execution(exec_no_synth)
-    report_no_runner = _create_dummy_report(report_id="rep_0000000000000003", status=ReportStatus.PENDING)
+    report_no_runner = _create_dummy_report(
+        report_id="rep_0195f3a0000070008000000000000003", status=ReportStatus.PENDING
+    )
     await repo.create_report_artifact(report_no_runner)
 
     service = ReportCompilationService(repo=repo, storage_driver=AsyncMock())

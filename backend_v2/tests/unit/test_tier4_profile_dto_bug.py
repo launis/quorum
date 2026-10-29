@@ -10,9 +10,9 @@ from backend_v2.models.dtos.output_profile import (
 def test_output_profile_dtos_accept_content_blocks() -> None:
     """Tier 4 Bug: Ensure DTOs do not crash when given content_blocks from SDUI schema."""
     data = {
-        "id": "prf_1234abcd1234abcd",
+        "id": "prf_0195f3a0000070018234abcd1234abcd",
         "slug": "test_slug",
-        "workflow_id": "wf_1234abcd1234abcd",
+        "workflow_id": "wf_0195f3a0000070018234abcd1234abcd",
         "name": {"translations": {"en": "Title", "fi": "Title"}},
         "content_blocks": [{"id": "blk_123", "block_type": "markdown", "text": "test"}],
     }

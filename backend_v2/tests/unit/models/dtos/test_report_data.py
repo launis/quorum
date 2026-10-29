@@ -9,13 +9,13 @@ from backend_v2.models.enums import ExecutionStatus
 
 def test_report_data_dto_instantiation() -> None:
     dto = ReportDataDTO(
-        workflow_id="wor_1234567890abcdef",
-        execution_id="exe_1234567890abcdef",
-        profile_id="pro_1234567890abcdef",
+        workflow_id="wor_0195f3a0000070018234567890abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
+        profile_id="pro_0195f3a0000070018234567890abcdef",
     )
-    assert dto.execution_id == "exe_1234567890abcdef"
-    assert dto.workflow_id == "wor_1234567890abcdef"
-    assert dto.profile_id == "pro_1234567890abcdef"
+    assert dto.execution_id == "exe_0195f3a0000070018234567890abcdef"
+    assert dto.workflow_id == "wor_0195f3a0000070018234567890abcdef"
+    assert dto.profile_id == "pro_0195f3a0000070018234567890abcdef"
     assert dto.inner_sdui_blocks == []
     assert dto.results == []
 
@@ -23,9 +23,9 @@ def test_report_data_dto_instantiation() -> None:
 def test_report_data_dto_extra_forbidden() -> None:
     with pytest.raises(ValidationError):
         ReportDataDTO(
-            workflow_id="wor_1234567890abcdef",
-            execution_id="exe_1234567890abcdef",
-            profile_id="pro_1234567890abcdef",
+            workflow_id="wor_0195f3a0000070018234567890abcdef",
+            execution_id="exe_0195f3a0000070018234567890abcdef",
+            profile_id="pro_0195f3a0000070018234567890abcdef",
             extra_field="disallowed",
         )
 

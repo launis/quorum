@@ -28,8 +28,8 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 async def test_blueprint_variance_validation_success() -> None:
     repo = InMemoryUnifiedWorkflowRepository()
 
-    variance_target_id = "blk_fb15f8dcf23f4865"
-    step_rule_id = "sr_1234567812345678"
+    variance_target_id = "blk_0195f3a00000700f8b15f8dcf23f4865"
+    step_rule_id = "sr_0195f3a0000070018234567812345678"
 
     pb = MatrixPromptBlock(
         id=variance_target_id,
@@ -47,9 +47,9 @@ async def test_blueprint_variance_validation_success() -> None:
     repo.set_prompt_blocks([pb])
 
     profile = OutputProfile(
-        id="prf_1234567812345678",
+        id="prf_0195f3a0000070018234567812345678",
         slug="test",
-        workflow_id="wf_1234567812345678",
+        workflow_id="wf_0195f3a0000070018234567812345678",
         name=I18nText(translations={"en": "test"}),
         display_scale=DisplayScale.ORIGINAL,
         target_block_order=[TargetBlockType.VARIANCE_VALIDATION_BLOCK],
@@ -59,24 +59,24 @@ async def test_blueprint_variance_validation_success() -> None:
     await repo._output_profiles.create_output_profile(profile)
 
     workflow = Workflow(
-        id="wf_1234567812345678",
+        id="wf_0195f3a0000070018234567812345678",
         slug="test",
         name=I18nText(translations={"en": "test"}),
         description=I18nText(translations={"en": "test"}),
         status="draft",
         version=1,
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         default_strictness_level=85,
-        default_profile_id="prf_1234567812345678",
+        default_profile_id="prf_0195f3a0000070018234567812345678",
         steps=[StepRule(id=step_rule_id, task_blueprint="step_1234567812345678")],
     )
     await repo.save_workflow(workflow)
 
     record = ExecutionRecord(
-        id="exec_1234567812345678",
-        workflow_id="wf_1234567812345678",
-        output_profile_id="prf_1234567812345678",
+        id="exec_0195f3a0000070018234567812345678",
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        output_profile_id="prf_0195f3a0000070018234567812345678",
         status=ExecutionStatus.PASSED,
         context_variables={"step_detector": MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json")},
         execution_trace=[
@@ -92,7 +92,7 @@ async def test_blueprint_variance_validation_success() -> None:
             )
         ],
         profile_syntheses={
-            "prf_1234567812345678": RenderedSynthesisCache(
+            "prf_0195f3a0000070018234567812345678": RenderedSynthesisCache(
                 row_explanations={variance_target_id: "Cognitive depth explanation."},
                 extension_metrics=ExtensionMetricsDTO(
                     authenticity_score=2.5,
@@ -117,6 +117,8 @@ async def test_blueprint_variance_validation_success() -> None:
         system_repo=repo,
     )
 
-    report = await transformer.build_report_dto("exec_1234567812345678", "prf_1234567812345678", "en")
+    report = await transformer.build_report_dto(
+        "exec_0195f3a0000070018234567812345678", "prf_0195f3a0000070018234567812345678", "en"
+    )
     assert report is not None
     assert len(report.inner_sdui_blocks) >= 1

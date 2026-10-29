@@ -27,7 +27,7 @@ def test_compile_static_instructions_supported_locales() -> None:
     compiler = LocalizationCompiler()
     mock_criteria = [
         {
-            "id": "blk_5234567890abcdef",
+            "id": "blk_0195f3a0000070058234567890abcdef",
             "slug": "test_static",
             "category_id": "system_rule",
             "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -56,7 +56,7 @@ def test_compile_static_instructions_unsupported_locale_raises_app_exception() -
     compiler = LocalizationCompiler()
     mock_criteria = [
         {
-            "id": "blk_5234567890abcdef",
+            "id": "blk_0195f3a0000070058234567890abcdef",
             "slug": "test_static",
             "category_id": "system_rule",
             "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -80,7 +80,7 @@ def test_compile_dynamic_instructions_supported_locales() -> None:
     compiler = LocalizationCompiler()
     mock_criteria = [
         {
-            "id": "blk_6234567890abcdef",
+            "id": "blk_0195f3a0000070068234567890abcdef",
             "slug": "test_dynamic",
             "category_id": "runtime_variables",
             "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -144,7 +144,7 @@ def test_compile_dynamic_instructions_execution_time_types() -> None:
     compiler = LocalizationCompiler()
     mock_criteria = [
         {
-            "id": "blk_7234567890abcdef",
+            "id": "blk_0195f3a0000070078234567890abcdef",
             "slug": "test_dyn_time",
             "category_id": "runtime_variables",
             "description": {"translations": {"en": "Desc", "fi": "Desc"}},
@@ -188,7 +188,7 @@ def test_compile_static_instructions_polymorphic_subtypes() -> None:
     compiler = LocalizationCompiler()
 
     persona = PersonaPromptBlock(
-        id="blk_1111111111111111",
+        id="blk_0195f3a0000070018111111111111111",
         slug="persona_block",
         label=I18nText(translations={"en": "Persona"}),
         description=I18nText(translations={"en": "Desc"}),
@@ -197,7 +197,7 @@ def test_compile_static_instructions_polymorphic_subtypes() -> None:
         role_enforcement="Act as senior analyst in {TARGET_LANGUAGE}",
     )
     protocol = ProtocolPromptBlock(
-        id="blk_2222222222222222",
+        id="blk_0195f3a0000070028222222222222222",
         slug="protocol_block",
         label=I18nText(translations={"en": "Protocol"}),
         description=I18nText(translations={"en": "Desc"}),
@@ -206,7 +206,7 @@ def test_compile_static_instructions_polymorphic_subtypes() -> None:
         protocol_instructions="Extract exact quotes for {TARGET_LANGUAGE}",
     )
     system_rule = SystemRulePromptBlock(
-        id="blk_3333333333333333",
+        id="blk_0195f3a0000070038333333333333333",
         slug="system_rule_block",
         label=I18nText(translations={"en": "SystemRule"}),
         description=I18nText(translations={"en": "Desc"}),
@@ -255,7 +255,7 @@ def test_compile_dynamic_instructions_polymorphic_system_rule() -> None:
 
     compiler = LocalizationCompiler()
     block = SystemRulePromptBlock(
-        id="blk_1111222233334444",
+        id="blk_0195f3a0000070018111222233334444",
         slug="dyn_sys",
         label=I18nText(translations={"en": "DynSys"}),
         description=I18nText(translations={"en": "Desc"}),

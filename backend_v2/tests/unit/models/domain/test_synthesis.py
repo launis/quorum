@@ -144,7 +144,7 @@ def test_matrix_synthesis_group_cardinality() -> None:
 
     # 1D with 1 block: ok
     g1 = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef",
+        id="grp_0195f3a0000070008123456789abcdef",
         title=title,
         target_blocks=["blk_1"],
         view_type=PresetView.METRICS_1D,
@@ -154,7 +154,7 @@ def test_matrix_synthesis_group_cardinality() -> None:
     # 1D with 2 blocks: raises
     with pytest.raises(ValueError, match="requires exactly 1 target block"):
         MatrixSynthesisGroup(
-            id="grp_0123456789abcdef",
+            id="grp_0195f3a0000070008123456789abcdef",
             title=title,
             target_blocks=["blk_1", "blk_2"],
             view_type=PresetView.METRICS_1D,
@@ -162,7 +162,7 @@ def test_matrix_synthesis_group_cardinality() -> None:
 
     # 2D with 2 blocks: ok; with 1 block: raises
     g2 = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef",
+        id="grp_0195f3a0000070008123456789abcdef",
         title=title,
         target_blocks=["blk_1", "blk_2"],
         view_type=PresetView.COMPARE_2D,
@@ -171,7 +171,7 @@ def test_matrix_synthesis_group_cardinality() -> None:
 
     with pytest.raises(ValueError, match="requires exactly 2 target blocks"):
         MatrixSynthesisGroup(
-            id="grp_0123456789abcdef",
+            id="grp_0195f3a0000070008123456789abcdef",
             title=title,
             target_blocks=["blk_1"],
             view_type=PresetView.COMPARE_2D,
@@ -179,7 +179,7 @@ def test_matrix_synthesis_group_cardinality() -> None:
 
     # 3D with >= 3 blocks: ok; with 2 blocks: raises
     g3 = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef",
+        id="grp_0195f3a0000070008123456789abcdef",
         title=title,
         target_blocks=["blk_1", "blk_2", "blk_3"],
         view_type=PresetView.MATRIX_3D,
@@ -187,7 +187,7 @@ def test_matrix_synthesis_group_cardinality() -> None:
     assert len(g3.target_blocks) == 3
 
     g4 = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef",
+        id="grp_0195f3a0000070008123456789abcdef",
         title=title,
         target_blocks=["blk_1", "blk_2", "blk_3", "blk_4"],
         view_type=PresetView.MATRIX_3D,
@@ -196,7 +196,7 @@ def test_matrix_synthesis_group_cardinality() -> None:
 
     with pytest.raises(ValueError, match="requires at least 3 target blocks"):
         MatrixSynthesisGroup(
-            id="grp_0123456789abcdef",
+            id="grp_0195f3a0000070008123456789abcdef",
             title=title,
             target_blocks=["blk_1"],
             view_type=PresetView.MATRIX_3D,
@@ -204,7 +204,7 @@ def test_matrix_synthesis_group_cardinality() -> None:
 
     # TEXT_ONLY with >= 1 blocks: ok
     gt = MatrixSynthesisGroup(
-        id="grp_0123456789abcdef",
+        id="grp_0195f3a0000070008123456789abcdef",
         title=title,
         target_blocks=["blk_1"],
         view_type=PresetView.TEXT_ONLY,
@@ -264,7 +264,7 @@ def test_synthesis_metadata_dto_typed_execution_summary_and_step_metrics() -> No
 
     summary = ExecutionSummarySnapshot(strictness_level=80, is_ensemble_run=False, is_degraded=False)
     metrics = {
-        "stp_1234567890abcdef": StepTelemetryEntryDTO(
+        "stp_0195f3a0000070018234567890abcdef": StepTelemetryEntryDTO(
             model_strategy="fast",
             prompt_tokens=100,
             completion_tokens=20,
@@ -279,7 +279,7 @@ def test_synthesis_metadata_dto_typed_execution_summary_and_step_metrics() -> No
     assert model.execution_summary is not None
     assert model.execution_summary.strictness_level == 80
     assert model.step_metrics is not None
-    assert model.step_metrics["stp_1234567890abcdef"].cost_usd == 0.001
+    assert model.step_metrics["stp_0195f3a0000070018234567890abcdef"].cost_usd == 0.001
 
     # Negative boundary: untyped invalid payload raises ValidationError
     with pytest.raises(ValidationError):

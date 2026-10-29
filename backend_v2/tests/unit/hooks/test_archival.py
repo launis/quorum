@@ -57,9 +57,9 @@ async def test_retrieve_precedent_hook_missing_updated_at_integrity_error() -> N
     )
     now = datetime.now(timezone.utc)
     mock_record = ExecutionRecord.model_construct(
-        id="exe_1234567890abcdef12",
-        workflow_id="wor_1234567890abcdef12",
-        organization_id="org_1234567890abcdef12",
+        id="exe_0195f3a00000700384567890abcdef12",
+        workflow_id="wor_0195f3a00000700384567890abcdef12",
+        organization_id="org_0195f3a00000700384567890abcdef12",
         output_profile_id="prof_123",
         status="PASSED",
         target_locale="en",
@@ -92,9 +92,9 @@ async def test_retrieve_precedent_hook_success() -> None:
     )
     now = datetime.now(timezone.utc)
     mock_record = ExecutionRecord(
-        id="exe_1234567890abcdef12",
-        workflow_id="wor_1234567890abcdef12",
-        organization_id="org_1234567890abcdef12",
+        id="exe_0195f3a00000700384567890abcdef12",
+        workflow_id="wor_0195f3a00000700384567890abcdef12",
+        organization_id="org_0195f3a00000700384567890abcdef12",
         output_profile_id="prof_123",
         status="PASSED",
         target_locale="en",
@@ -112,7 +112,7 @@ async def test_retrieve_precedent_hook_success() -> None:
                     "thought_process": "Clear evaluation reasoning.",
                     "conclusion": "Accurate output.",
                     "confidence_score": 0.95,
-                    "matrix_id": "mat_1234567890abcdef12",
+                    "matrix_id": "mat_0195f3a00000700384567890abcdef12",
                     "scale_min": 1.0,
                     "scale_max": 5.0,
                     "score_card": {
@@ -147,7 +147,7 @@ async def test_retrieve_precedent_hook_success() -> None:
     assert isinstance(result.state_delta.delta, ArchivistPrecedentsResultDTO)
     precedents = result.state_delta.delta.archivist_precedents
     assert len(precedents) == 1
-    assert precedents[0].id == "exe_1234567890abcdef12"
+    assert precedents[0].id == "exe_0195f3a00000700384567890abcdef12"
 
 
 @pytest.mark.asyncio
@@ -161,9 +161,9 @@ async def test_retrieve_precedent_hook_disk_fallback(monkeypatch: pytest.MonkeyP
     )
     now = datetime.now(timezone.utc)
     mock_record = ExecutionRecord(
-        id="exe_1234567890abcdef12",
-        workflow_id="wor_1234567890abcdef12",
-        organization_id="org_1234567890abcdef12",
+        id="exe_0195f3a00000700384567890abcdef12",
+        workflow_id="wor_0195f3a00000700384567890abcdef12",
+        organization_id="org_0195f3a00000700384567890abcdef12",
         output_profile_id="prof_123",
         status="PASSED",
         target_locale="en",
@@ -215,9 +215,9 @@ async def test_retrieve_precedent_hook_invalid_judge_output_raises() -> None:
     )
     now = datetime.now(timezone.utc)
     mock_record = ExecutionRecord(
-        id="exe_1234567890abcdef12",
-        workflow_id="wor_1234567890abcdef12",
-        organization_id="org_1234567890abcdef12",
+        id="exe_0195f3a00000700384567890abcdef12",
+        workflow_id="wor_0195f3a00000700384567890abcdef12",
+        organization_id="org_0195f3a00000700384567890abcdef12",
         output_profile_id="prof_123",
         status="PASSED",
         target_locale="en",
@@ -259,9 +259,9 @@ async def test_retrieve_precedent_hook_disk_file_not_found(monkeypatch: pytest.M
     )
     now = datetime.now(timezone.utc)
     mock_record = ExecutionRecord(
-        id="exe_1234567890abcdef12",
-        workflow_id="wor_1234567890abcdef12",
-        organization_id="org_1234567890abcdef12",
+        id="exe_0195f3a00000700384567890abcdef12",
+        workflow_id="wor_0195f3a00000700384567890abcdef12",
+        organization_id="org_0195f3a00000700384567890abcdef12",
         output_profile_id="prof_123",
         status="PASSED",
         target_locale="en",
@@ -302,9 +302,9 @@ async def test_retrieve_precedent_hook_disk_read_error(monkeypatch: pytest.Monke
     )
     now = datetime.now(timezone.utc)
     mock_record = ExecutionRecord(
-        id="exe_1234567890abcdef12",
-        workflow_id="wor_1234567890abcdef12",
-        organization_id="org_1234567890abcdef12",
+        id="exe_0195f3a00000700384567890abcdef12",
+        workflow_id="wor_0195f3a00000700384567890abcdef12",
+        organization_id="org_0195f3a00000700384567890abcdef12",
         output_profile_id="prof_123",
         status="PASSED",
         target_locale="en",

@@ -13,11 +13,11 @@ from backend_v2.models.prompts.common import DESC_EXACT_QUOTE_TEXT
 def test_source_document_context_creation() -> None:
     """Test SourceDocumentContext creation and fields."""
     doc = SourceDocumentContext(
-        opaque_id="doc_1234567890abcdef",
+        opaque_id="doc_0195f3a0000070018234567890abcdef",
         text_content="Sample text content.",
         display_name="Sample Document",
     )
-    assert doc.opaque_id == "doc_1234567890abcdef"
+    assert doc.opaque_id == "doc_0195f3a0000070018234567890abcdef"
     assert doc.text_content == "Sample text content."
     assert doc.display_name == "Sample Document"
 

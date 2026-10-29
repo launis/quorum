@@ -135,8 +135,12 @@ def _build_state(
 async def test_execute_topological_waves_stage_runs_parallel_wave_steps() -> None:
     """Contract: execute_topological_waves_stage dispatches independent wave steps concurrently inside TaskGroup."""
     repo = InMemoryUnifiedWorkflowRepository()
-    step_a = StepRule(id="stp_0195f3a0000070008000111111111111", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[])
-    step_b = StepRule(id="stp_0195f3a0000070008000222222222222", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[])
+    step_a = StepRule(
+        id="stp_0195f3a0000070008000111111111111", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[]
+    )
+    step_b = StepRule(
+        id="stp_0195f3a0000070008000222222222222", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[]
+    )
     step_c = StepRule(
         id="stp_0195f3a0000070008000333333333333",
         task_blueprint="stp_0195f3a0000070008000111111111111",
@@ -172,8 +176,12 @@ async def test_execute_topological_waves_stage_runs_parallel_wave_steps() -> Non
 async def test_execute_topological_waves_stage_marks_downstream_steps_blocked_on_failure() -> None:
     """Contract: execute_topological_waves_stage traps step exceptions, marks downstream steps BLOCKED, and re-raises."""
     repo = InMemoryUnifiedWorkflowRepository()
-    step_fail = StepRule(id="stp_0195f3a0000070008000111111111111", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[])
-    step_sibling = StepRule(id="stp_0195f3a0000070008000222222222222", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[])
+    step_fail = StepRule(
+        id="stp_0195f3a0000070008000111111111111", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[]
+    )
+    step_sibling = StepRule(
+        id="stp_0195f3a0000070008000222222222222", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[]
+    )
     step_downstream = StepRule(
         id="stp_0195f3a0000070008000333333333333",
         task_blueprint="stp_0195f3a0000070008000111111111111",
@@ -240,7 +248,7 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
                         label=I18nText(translations={"en": f"Claim L{lvl}"}),
                         tda_assertions=[
                             TDAAssertion(
-                                tda_id=f"tda_0195f3a000007000800000000000000{lvl}",
+                                tda_id=f"tda_0195f3a000007000880000000000000{lvl}",
                                 inverse_evidence=False,
                                 aggregation_mode="EXISTS",
                                 concept_description=f"Causal cohesion assertion for level {lvl}",
@@ -301,7 +309,7 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
         short_circuit_reason_tda_ids=[],
     )
     mcp_trace = MCPAuditTrace(
-        id="tr_1111222233334444",
+        id="tr_0195f3a0000070018111222233334444",
         tool_id="mcp_search",
         step_name=tda_step.id,
         query="search query",
@@ -415,7 +423,9 @@ async def test_execute_topological_waves_stage_traps_direct_runtime_error_and_ap
     from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
     repo = InMemoryUnifiedWorkflowRepository()
-    step_a = StepRule(id="stp_0195f3a0000070008000111122223333", task_blueprint="stp_0195f3a0000070008000111122223333", depends_on=[])
+    step_a = StepRule(
+        id="stp_0195f3a0000070008000111122223333", task_blueprint="stp_0195f3a0000070008000111122223333", depends_on=[]
+    )
     state_app_exc = _build_state(steps=[step_a])
     repo.set_execution(state_app_exc.exec_record)
     committer = ExecutionCommitter(exec_repo=repo, execution_id=state_app_exc.execution_id)

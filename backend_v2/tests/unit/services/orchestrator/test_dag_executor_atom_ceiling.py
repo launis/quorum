@@ -56,18 +56,18 @@ async def test_dag_executor_atom_ceiling(
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
-        model_registry_id="sys_e26807f3bfa3454d",
-        id="wf_1234567890abcdef",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
         status="draft",
         version=1,
-        default_profile_id="prof_1234567890abcdef",
+        default_profile_id="prof_0195f3a0000070018234567890abcdef",
         name=I18nText(translations={"en": "test"}),
         description=I18nText(translations={"en": "test"}),
         steps=[
             StepRule(
-                id="stp_1234567890abcdef",
-                task_blueprint="blp_1234567890abcdef",
+                id="stp_0195f3a0000070018234567890abcdef",
+                task_blueprint="blp_0195f3a0000070018234567890abcdef",
                 input_mappings={},
                 depends_on=[],
             )
@@ -75,7 +75,7 @@ async def test_dag_executor_atom_ceiling(
     )
 
     model_registry = SystemConfigModelRegistry(
-        id="sys_e26807f3bfa3454d",
+        id="sys_0195f3a00000700e826807f3bfa3454d",
         type="model_registry",
         slug="models",
         name="Test Stack",
@@ -97,17 +97,17 @@ async def test_dag_executor_atom_ceiling(
     mock_repo._system.set_model_registry(model_registry)
 
     step_def = Step(
-        id="blp_1234567890abcdef",
+        id="blp_0195f3a0000070018234567890abcdef",
         slug="test_step",
         organization_id="org_1",
         name=I18nText(translations={"en": "test"}),
         description=I18nText(translations={"en": "test"}),
         type="llm",
-        criteria_block_ids=["blk_1234567890abcdef"],
-        extraction_protocol_block_id="blk_1234567890abcdef",
+        criteria_block_ids=["blk_0195f3a0000070018234567890abcdef"],
+        extraction_protocol_block_id="blk_0195f3a0000070018234567890abcdef",
         pre_hooks=["synthesis_distiller_hook"],
     )
-    mock_repo.seed_raw_step("blp_1234567890abcdef", step_def)
+    mock_repo.seed_raw_step("blp_0195f3a0000070018234567890abcdef", step_def)
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -158,7 +158,7 @@ async def test_dag_executor_atom_ceiling(
 
         with pytest.raises(WorkflowExecutionError) as exc_info:
             await executor.execute_workflow(
-                execution_id="exe_1234567890abcdef",
+                execution_id="exe_0195f3a0000070018234567890abcdef",
                 workflow=workflow,
                 raw_inputs=WorkflowInputs(
                     dynamic_inputs={

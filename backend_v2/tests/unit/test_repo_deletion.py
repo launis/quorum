@@ -18,8 +18,8 @@ async def test_delete_prompt_block_blocks_orphan_data(driver: PostgresStorageDri
     """Positive: tests Fail-Fast deletion boundary when prompt block is used by a Step."""
     repo = PromptBlockRepositoryImpl(driver=driver)
 
-    block_id = "blk_0000000000000001"
-    step_id = "stp_0000000000000001"
+    block_id = "blk_0195f3a0000070008000000000000001"
+    step_id = "stp_0195f3a0000070008000000000000001"
 
     # Seed block and referencing step in storage
     await driver.upsert("prompt_blocks", {"id": block_id, "name": "block1"}, block_id)

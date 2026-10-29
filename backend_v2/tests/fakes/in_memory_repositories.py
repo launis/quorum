@@ -46,6 +46,7 @@ from backend_v2.models.auth import (
     UserCreate,
     UserUpdate,
 )
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.base import (
     AuditLogCreateDTO,
     AuditLogEntry,
@@ -80,7 +81,6 @@ from backend_v2.models.dtos.system import (
     SystemSettingsDTO,
 )
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
-from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.enums import CognitiveTier, EntityPrefix, LLMProvider
 from backend_v2.models.state import TraceEvent
 
@@ -880,7 +880,7 @@ class InMemoryKnowledgeRepository(BaseInMemoryRepository[Concept], IKnowledgeRep
 
     async def add_banned_phrase(self, phrase: str, language: str = "en") -> None:
         self._check_fault("add_banned_phrase")
-        bp_id = f"bp_{uuid.uuid4().hex[:16]}"
+        bp_id = f"bp_{uuid.uuid4().hex}"
         self._banned_phrases[phrase] = BannedPhrase(id=bp_id, phrase=phrase, language=language)
 
     async def delete_banned_phrase(self, phrase: str) -> bool:
@@ -909,7 +909,7 @@ class InMemoryKnowledgeRepository(BaseInMemoryRepository[Concept], IKnowledgeRep
 
     async def add_concept(self, item: ConceptCreateDTO) -> str:
         self._check_fault("add_concept")
-        c_id = f"c_{uuid.uuid4().hex[:16]}"
+        c_id = f"con_{uuid.uuid4().hex}"
         data_dict = item.model_dump(mode="python")
         data_dict["id"] = c_id
         model = Concept.model_validate(data_dict)
@@ -918,7 +918,7 @@ class InMemoryKnowledgeRepository(BaseInMemoryRepository[Concept], IKnowledgeRep
 
     async def add_reference(self, item: ReferenceCreateDTO) -> str:
         self._check_fault("add_reference")
-        r_id = f"ref_{uuid.uuid4().hex[:16]}"
+        r_id = f"ref_{uuid.uuid4().hex}"
         data_dict = item.model_dump(mode="python")
         data_dict["id"] = r_id
         model = Reference.model_validate(data_dict)
@@ -927,7 +927,7 @@ class InMemoryKnowledgeRepository(BaseInMemoryRepository[Concept], IKnowledgeRep
 
     async def add_claim(self, item: ClaimCreateDTO) -> str:
         self._check_fault("add_claim")
-        cl_id = f"cl_{uuid.uuid4().hex[:16]}"
+        cl_id = f"cl_{uuid.uuid4().hex}"
         data_dict = item.model_dump(mode="python")
         data_dict["id"] = cl_id
         model = Claim.model_validate(data_dict)
@@ -966,6 +966,9 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         self._model_registries: dict[str, SystemConfigModelRegistry] = {
             default_reg.id: default_reg,
             "sys_0195f3a0000070008000e26807f3bfa3": default_reg,
+            "sys_0195f3a00000700e826807f3bfa3454d": default_reg,
+            "sys_0195f3a00000700b81c2d3e4f5a60718": default_reg,
+            "sys_0195f3a0000070068f8b1c4a2e0d49f1": default_reg,
         }
         self._mcp_gateways = SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[])
         self._mcp_gateways_map: dict[str, SystemConfigMCPGateways] = {

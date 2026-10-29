@@ -421,12 +421,12 @@ def test_compress_synthesis_payload_with_hydrated_atom_dto_dict() -> None:
         source_quotes=("Verbatim quote",),
     )
     payload: dict[str, HydratedAtomDTO] = {
-        "tda_01b1d71000000001": atom_dto,
+        "tda_0195f3a00000700081b1d71000000001": atom_dto,
     }
     res_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     res_dict = json.loads(res_str)
-    assert "tda_01b1d71000000001" in res_dict
-    assert res_dict["tda_01b1d71000000001"]["resolved_claim"] == "Claim text for atom 1"
+    assert "tda_0195f3a00000700081b1d71000000001" in res_dict
+    assert res_dict["tda_0195f3a00000700081b1d71000000001"]["resolved_claim"] == "Claim text for atom 1"
 
 
 def test_compress_payload_matrix_payload_dto_with_empty_results_fails_fast() -> None:

@@ -97,10 +97,10 @@ def _create_matrix_block(block_id: str, output_extensions: list[str] | None = No
     )
 
 
-def _create_default_profile(workflow_id: str = "wf_0123456789abcdef") -> OutputProfile:
+def _create_default_profile(workflow_id: str = "wf_0195f3a0000070008123456789abcdef") -> OutputProfile:
     """Create a valid default OutputProfile for Stage 2 testing."""
     return OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="default-prf",
         workflow_id=workflow_id,
         name=I18nText(translations={"en": "Default"}),
@@ -110,9 +110,9 @@ def _create_default_profile(workflow_id: str = "wf_0123456789abcdef") -> OutputP
 
 def _create_ctx(
     *,
-    execution_id: str = "exe_0123456789abcdef",
-    workflow_id: str = "wf_0123456789abcdef",
-    output_profile_id: str = "prf_0123456789abcdef",
+    execution_id: str = "exe_0195f3a0000070008123456789abcdef",
+    workflow_id: str = "wf_0195f3a0000070008123456789abcdef",
+    output_profile_id: str = "prf_0195f3a0000070008123456789abcdef",
     expected_inputs: list[ExpectedInput] | None = None,
 ) -> StrategyContext:
     """Create a valid StrategyContext for Stage 2 testing."""
@@ -141,7 +141,7 @@ def _build_stage1_result(
 ) -> BlueprintStageResult:
     """Build a deterministic BlueprintStageResult for Stage 2 unit testing."""
     proto_blk = ProtocolPromptBlock(
-        id="blk_a000000000000002",
+        id="blk_0195f3a00000700a8000000000000002",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol", "fi": "Protokolla"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -149,7 +149,7 @@ def _build_stage1_result(
         protocol_instructions="Extract exact quotes.",
     )
     step_obj = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a0000070008123456789abcdef",
         slug="test-step",
         name=I18nText(translations={"en": "Test Step", "fi": "Testivaihe"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -207,9 +207,9 @@ def in_memory_repo() -> InMemoryUnifiedWorkflowRepository:
     repo = InMemoryUnifiedWorkflowRepository()
     repo.set_execution(
         ExecutionRecord(
-            id="exe_0123456789abcdef",
-            workflow_id="wf_0123456789abcdef",
-            output_profile_id="prf_0123456789abcdef",
+            id="exe_0195f3a0000070008123456789abcdef",
+            workflow_id="wf_0195f3a0000070008123456789abcdef",
+            output_profile_id="prf_0195f3a0000070008123456789abcdef",
             target_locale="en",
             status=ExecutionStatus.RUNNING,
             metadata=ExecutionMetadata(),
@@ -241,32 +241,32 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
     strategy_deps: StrategyDependencies,
 ) -> None:
     """Verify execute_prompt_and_schema_stage appends execution_parameters to user_payload with static system_prompt."""
-    rule_block = _create_rule_block("blk_0123456789abcdef")
+    rule_block = _create_rule_block("blk_0195f3a0000070008123456789abcdef")
     profile_1 = OutputProfile(
-        id="prf_0123456789abcde1",
+        id="prf_0195f3a0000070008123456789abcde1",
         slug="formal-coaching",
-        workflow_id="wf_0123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
         name=I18nText(translations={"en": "Formal Coaching"}),
         tone_instruction="Formal coaching tone, rigorous and objective.",
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_1111222233334444",
+                id="grp_0195f3a0000070018111222233334444",
                 title=I18nText(translations={"en": "Group 1"}),
                 target_blocks=["*"],
             )
         ],
     )
     profile_2 = OutputProfile(
-        id="prf_0123456789abcde2",
+        id="prf_0195f3a0000070008123456789abcde2",
         slug="executive-summary",
-        workflow_id="wf_0123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
         name=I18nText(translations={"en": "Executive Summary"}),
         tone_instruction="Concise executive summary for CEO.",
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_2222333344445555",
+                id="grp_0195f3a0000070028222333344445555",
                 title=I18nText(translations={"en": "Group 2"}),
                 target_blocks=["*"],
             )
@@ -274,15 +274,19 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
     )
 
     hook_state = HookState(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wf_0123456789abcdef",
-        step_id="sr_0123456789abcdef",
-        task_blueprint="stp_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
+        step_id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"doc": "Primary source document text."}),
     )
-    step = StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef", input_mappings={})
+    step = StepRule(
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
+        input_mappings={},
+    )
 
     stage1_a = _build_stage1_result(
         repo=in_memory_repo,
@@ -310,10 +314,10 @@ async def test_output_profile_directives_relocated_to_user_payload_and_system_pr
     assert "<tone_instruction>" not in res_1.prompt_payload.base_system_prompt
     assert "<execution_parameters>" in res_1.user_payload
     assert "<tone_instruction>Formal coaching tone, rigorous and objective.</tone_instruction>" in res_1.user_payload
-    assert "grp_1111222233334444" in res_1.user_payload
-    assert "grp_2222333344445555" not in res_1.user_payload
+    assert "grp_0195f3a0000070018111222233334444" in res_1.user_payload
+    assert "grp_0195f3a0000070028222333344445555" not in res_1.user_payload
     assert "<tone_instruction>Concise executive summary for CEO.</tone_instruction>" in res_2.user_payload
-    assert "grp_2222333344445555" in res_2.user_payload
+    assert "grp_0195f3a0000070028222333344445555" in res_2.user_payload
 
 
 @pytest.mark.asyncio
@@ -322,10 +326,10 @@ async def test_matrix_step_succeeds_when_shuffled_atoms_only_in_dynamic_inputs(
     strategy_deps: StrategyDependencies,
 ) -> None:
     """Verify execute_prompt_and_schema_stage resolves shuffled_atoms and chunks matrix atoms via ChunkingService."""
-    matrix_blk = _create_matrix_block("blk_5555555555555555")
+    matrix_blk = _create_matrix_block("blk_0195f3a0000070058555555555555555")
     sample_atoms = [
         FlattenedAtom(
-            atom_id="atm_1111111111111111",
+            atom_id="atm_0195f3a0000070018111111111111111",
             question="Question 1",
             depends_on=(),
             acceptance_criteria=(),
@@ -333,7 +337,7 @@ async def test_matrix_step_succeeds_when_shuffled_atoms_only_in_dynamic_inputs(
             syntactic_anchors=(),
         ),
         FlattenedAtom(
-            atom_id="atm_2222222222222222",
+            atom_id="atm_0195f3a0000070028222222222222222",
             question="Question 2",
             depends_on=(),
             acceptance_criteria=(),
@@ -343,10 +347,10 @@ async def test_matrix_step_succeeds_when_shuffled_atoms_only_in_dynamic_inputs(
     ]
     profile = _create_default_profile()
     hook_state = HookState(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wf_0123456789abcdef",
-        step_id="sr_0123456789abcdef",
-        task_blueprint="stp_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
+        step_id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(shuffled_atoms=sample_atoms),
         inputs=ExecutionInputsDTO(raw_inputs={"doc": "Primary source document text."}),
@@ -357,7 +361,11 @@ async def test_matrix_step_succeeds_when_shuffled_atoms_only_in_dynamic_inputs(
         output_profile=profile,
         hook_state=hook_state,
     )
-    step = StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef", input_mappings={})
+    step = StepRule(
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
+        input_mappings={},
+    )
     ctx = _create_ctx(output_profile_id=profile.id)
 
     res = await execute_prompt_and_schema_stage(stage1=stage1, step=step, context=ctx, deps=strategy_deps)
@@ -377,13 +385,13 @@ async def test_llm_strategy_missing_atoms_crash(
     strategy_deps: StrategyDependencies,
 ) -> None:
     """Verify execute_prompt_and_schema_stage raises AppException when a matrix step lacks shuffled_atoms."""
-    matrix_blk = _create_matrix_block("blk_5555555555555555")
+    matrix_blk = _create_matrix_block("blk_0195f3a0000070058555555555555555")
     profile = _create_default_profile()
     hook_state_missing = HookState(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wf_0123456789abcdef",
-        step_id="sr_0123456789abcdef",
-        task_blueprint="stp_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
+        step_id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(shuffled_atoms=None),
         inputs=ExecutionInputsDTO(),
@@ -394,7 +402,11 @@ async def test_llm_strategy_missing_atoms_crash(
         output_profile=profile,
         hook_state=hook_state_missing,
     )
-    step = StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef", input_mappings={})
+    step = StepRule(
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
+        input_mappings={},
+    )
     ctx = _create_ctx(output_profile_id=profile.id)
 
     with pytest.raises(AppException, match="Matrix step missing 'shuffled_atoms' in global_context_vars") as exc_info:
@@ -422,7 +434,7 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
 ) -> None:
     """Verify workflow schema_map resolution, mapping global_context_vars, and frozen_ctx schema compilation."""
     role_blk = PersonaPromptBlock(
-        id="blk_1111111111111111",
+        id="blk_0195f3a0000070018111111111111111",
         slug="role-blk",
         label=I18nText(translations={"en": "Role"}),
         description=I18nText(translations={"en": "Role"}),
@@ -430,7 +442,7 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
         role_enforcement="Act as auditor.",
     )
     proto_blk = ProtocolPromptBlock(
-        id="blk_2222222222222222",
+        id="blk_0195f3a0000070028222222222222222",
         slug="proto-blk",
         label=I18nText(translations={"en": "Protocol"}),
         description=I18nText(translations={"en": "Protocol"}),
@@ -438,18 +450,18 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
         protocol_instructions="Extract quotes.",
     )
     pers_blk = PersonaPromptBlock(
-        id="blk_3333333333333333",
+        id="blk_0195f3a0000070038333333333333333",
         slug="pers-blk",
         label=I18nText(translations={"en": "Persona"}),
         description=I18nText(translations={"en": "Persona"}),
         category_id=PromptBlockCategory.EXECUTION_PERSONA,
         role_enforcement="Strict persona.",
     )
-    matrix_blk = _create_matrix_block("blk_4444444444444444", output_extensions=["ext_matrix_1"])
-    text_blk = _create_rule_block("blk_5555555555555555", output_extensions=["ext_text_1"])
+    matrix_blk = _create_matrix_block("blk_0195f3a0000070048444444444444444", output_extensions=["ext_matrix_1"])
+    text_blk = _create_rule_block("blk_0195f3a0000070058555555555555555", output_extensions=["ext_text_1"])
 
     bp_matrix = Step(
-        id="stp_1111111111111111",
+        id="stp_0195f3a0000070018111111111111111",
         slug="bp-matrix",
         name=I18nText(translations={"en": "Matrix Blueprint"}),
         description=I18nText(translations={"en": "Matrix Blueprint"}),
@@ -464,7 +476,7 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
         mcp_tool_params={},
     )
     bp_text = Step(
-        id="stp_2222222222222222",
+        id="stp_0195f3a0000070028222222222222222",
         slug="bp-text",
         name=I18nText(translations={"en": "Text Blueprint"}),
         description=I18nText(translations={"en": "Text Blueprint"}),
@@ -480,24 +492,24 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
     in_memory_repo.seed_raw_step(bp_text.id, bp_text)
 
     wf = Workflow(
-        id="wf_0123456789abcdef",
+        id="wf_0195f3a0000070008123456789abcdef",
         slug="wf-schema",
         name=I18nText(translations={"en": "Workflow"}),
         description=I18nText(translations={"en": "Workflow"}),
         status="published",
         version=1,
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         steps=[
-            StepRule(id="sr_1111111111111111", task_blueprint=bp_matrix.id),
-            StepRule(id="sr_2222222222222222", task_blueprint=bp_text.id),
+            StepRule(id="sr_0195f3a0000070018111111111111111", task_blueprint=bp_matrix.id),
+            StepRule(id="sr_0195f3a0000070028222222222222222", task_blueprint=bp_text.id),
         ],
     )
     profile = _create_default_profile(workflow_id=wf.id)
     hook_state = HookState(
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
         workflow_id=wf.id,
-        step_id="sr_2222222222222222",
+        step_id="sr_0195f3a0000070028222222222222222",
         task_blueprint=bp_text.id,
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(language="en"),
@@ -518,7 +530,7 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
         },
     )
     step = StepRule(
-        id="sr_2222222222222222",
+        id="sr_0195f3a0000070028222222222222222",
         task_blueprint=bp_text.id,
         input_mappings={"doc": "$inputs.doc"},
     )
@@ -548,12 +560,12 @@ async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_wi
 
     assert res.is_synthesis_step is True
     assert res.dynamic_schema is not None
-    assert res.schema_map["sr_1111111111111111"] == _SCHEMA_BLOCK_MATRIX
-    assert res.schema_map["sr_2222222222222222"] == _SCHEMA_BLOCK_TEXT
+    assert res.schema_map["sr_0195f3a0000070018111111111111111"] == _SCHEMA_BLOCK_MATRIX
+    assert res.schema_map["sr_0195f3a0000070028222222222222222"] == _SCHEMA_BLOCK_TEXT
     assert res.schema_map["ext_matrix_1"] == _SCHEMA_BLOCK_EXTENSION
     assert res.schema_map["_step_metadata"] == _SCHEMA_BLOCK_SYSTEM
-    assert res.blueprint_labels["sr_1111111111111111"] == "Matrix Blueprint"
-    assert res.blueprint_labels["sr_2222222222222222"] == "Text Blueprint"
+    assert res.blueprint_labels["sr_0195f3a0000070018111111111111111"] == "Matrix Blueprint"
+    assert res.blueprint_labels["sr_0195f3a0000070028222222222222222"] == "Text Blueprint"
     assert len(res.source_doc_ctx) == 1
     assert res.source_doc_ctx[0].text_content == "Nested source text."
 
@@ -566,26 +578,26 @@ async def test_prompt_and_schema_stage_execution_record_and_serialization_errors
 ) -> None:
     """Verify negative error paths for ExecutionRecord lookup, hydration, and group serialization."""
     test_logger = logging.getLogger("backend_v2.services.orchestrator.strategies.llm_strategy")
-    rule_block = _create_rule_block("blk_0123456789abcdef")
+    rule_block = _create_rule_block("blk_0195f3a0000070008123456789abcdef")
     profile = OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="default-prf",
-        workflow_id="wf_0123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
         name=I18nText(translations={"en": "Default"}),
         target_block_order=[],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_0123456789abcdef",
+                id="grp_0195f3a0000070008123456789abcdef",
                 title=I18nText(translations={"en": "Group"}),
                 target_blocks=["*"],
             )
         ],
     )
     hook_state = HookState(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wf_0123456789abcdef",
-        step_id="sr_0123456789abcdef",
-        task_blueprint="stp_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
+        step_id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"doc": "Primary source document text."}),
@@ -596,7 +608,11 @@ async def test_prompt_and_schema_stage_execution_record_and_serialization_errors
         output_profile=profile,
         hook_state=hook_state,
     )
-    step = StepRule(id="sr_0123456789abcdef", task_blueprint="stp_0123456789abcdef", input_mappings={})
+    step = StepRule(
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
+        input_mappings={},
+    )
     ctx = _create_ctx(output_profile_id=profile.id)
 
     # 1. Serialization failure in json.dumps -> VALIDATION_FAILED
@@ -644,7 +660,9 @@ async def test_prompt_and_schema_stage_execution_record_and_serialization_errors
     # 3. Repository get_execution fault -> RESOURCE_NOT_FOUND
     in_memory_repo.inject_fault("get_execution", RuntimeError("DB offline"))
     try:
-        with pytest.raises(AppException, match="Execution record 'exe_0123456789abcdef' not found") as exc_info:
+        with pytest.raises(
+            AppException, match="Execution record 'exe_0195f3a0000070008123456789abcdef' not found"
+        ) as exc_info:
             await execute_prompt_and_schema_stage(
                 stage1=stage1,
                 step=step,

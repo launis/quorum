@@ -46,7 +46,7 @@ def sample_protocol() -> ProtocolPromptBlock:
         Validated ProtocolPromptBlock domain model.
     """
     return ProtocolPromptBlock(
-        id="blk_1234567890abcdef",
+        id="blk_0195f3a0000070018234567890abcdef",
         slug="ext_123",
         label=I18nText(translations={"en": "Standard Protocol", "fi": "Vakioprotokolla"}),
         description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
@@ -99,10 +99,10 @@ async def test_update_extraction_protocol_not_found(
 ) -> None:
     """Negative: update_extraction_protocol raises ResourceNotFoundError if protocol does not exist."""
     with pytest.raises(ResourceNotFoundError) as exc_info:
-        await repo.update_extraction_protocol("blk_0000000000000000", sample_protocol)
+        await repo.update_extraction_protocol("blk_0195f3a0000070008000000000000000", sample_protocol)
 
     assert exc_info.value.details["resource_type"] == "ExtractionProtocol"
-    assert exc_info.value.details["resource_id"] == "blk_0000000000000000"
+    assert exc_info.value.details["resource_id"] == "blk_0195f3a0000070008000000000000000"
 
 
 @pytest.mark.asyncio
@@ -110,7 +110,7 @@ async def test_delete_extraction_protocol_not_found(
     repo: ExtractionProtocolRepositoryImpl,
 ) -> None:
     """Negative boundary: delete_extraction_protocol returns False when protocol does not exist."""
-    assert await repo.delete_extraction_protocol("blk_0000000000000000") is False
+    assert await repo.delete_extraction_protocol("blk_0195f3a0000070008000000000000000") is False
 
 
 @pytest.mark.asyncio
@@ -121,16 +121,16 @@ async def test_get_extraction_protocol_by_id_corrupted_raises_app_exception(
     """Negative: get_extraction_protocol_by_id raises AppException(500) on corrupted record."""
     await driver.upsert(
         "components",
-        {"id": "blk_1111111111111111", "category_id": "invalid_category"},
-        "blk_1111111111111111",
+        {"id": "blk_0195f3a0000070018111111111111111", "category_id": "invalid_category"},
+        "blk_0195f3a0000070018111111111111111",
     )
 
     with pytest.raises(AppException) as exc_info:
-        await repo.get_extraction_protocol_by_id("blk_1111111111111111")
+        await repo.get_extraction_protocol_by_id("blk_0195f3a0000070018111111111111111")
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "blk_1111111111111111" in exc_info.value.message
+    assert "blk_0195f3a0000070018111111111111111" in exc_info.value.message
 
 
 @pytest.mark.asyncio
@@ -142,11 +142,11 @@ async def test_get_all_extraction_protocols_corrupted_with_id_raises_app_excepti
     await driver.upsert(
         "components",
         {
-            "id": "blk_2222222222222222",
+            "id": "blk_0195f3a0000070028222222222222222",
             "category_id": PromptBlockCategory.PROTOCOL.value,
             "type": "invalid_type",
         },
-        "blk_2222222222222222",
+        "blk_0195f3a0000070028222222222222222",
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -154,7 +154,7 @@ async def test_get_all_extraction_protocols_corrupted_with_id_raises_app_excepti
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "blk_2222222222222222" in exc_info.value.message
+    assert "blk_0195f3a0000070028222222222222222" in exc_info.value.message
 
 
 @pytest.mark.asyncio

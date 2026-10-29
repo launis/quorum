@@ -41,8 +41,8 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 
 def _make_test_record(
-    execution_id: str = "exe_0123456789abcdef",
-    workflow_id: str = "wor_0123456789abcdef",
+    execution_id: str = "exe_0195f3a0000070008123456789abcdef",
+    workflow_id: str = "wor_0195f3a0000070008123456789abcdef",
     organization_id: str = "org_1",
     created_by: str = "u1",
     status: ExecutionStatus = ExecutionStatus.PASSED,
@@ -70,8 +70,8 @@ def _make_test_record(
 
 
 def _make_test_profile(
-    profile_id: str = "prf_0123456789abcdef",
-    workflow_id: str = "wor_0123456789abcdef",
+    profile_id: str = "prf_0195f3a0000070008123456789abcdef",
+    workflow_id: str = "wor_0195f3a0000070008123456789abcdef",
     organization_id: str = "org_1",
     **kwargs: Any,
 ) -> OutputProfile:
@@ -88,10 +88,10 @@ def _make_test_profile(
 
 
 def _make_test_workflow(
-    workflow_id: str = "wor_0123456789abcdef",
+    workflow_id: str = "wor_0195f3a0000070008123456789abcdef",
     organization_id: str = "org_1",
-    default_profile_id: str | None = "prf_0123456789abcdef",
-    model_registry_id: str | None = "sys_e26807f3bfa3454d",
+    default_profile_id: str | None = "prf_0195f3a0000070008123456789abcdef",
+    model_registry_id: str | None = "sys_0195f3a00000700e826807f3bfa3454d",
     **kwargs: Any,
 ) -> Workflow:
     data = {
@@ -141,7 +141,7 @@ def test_create_execution_record_factory_success() -> None:
     raw_inputs = WorkflowInputs()
 
     record = create_execution_record(
-        execution_id="exe_1234567890abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wf_1",
         raw_inputs=raw_inputs,
         frozen_context=frozen_context,
@@ -149,7 +149,7 @@ def test_create_execution_record_factory_success() -> None:
         output_profile_id="prof_1",
     )
 
-    assert record.id == "exe_1234567890abcdef"
+    assert record.id == "exe_0195f3a0000070018234567890abcdef"
     assert record.workflow_id == "wf_1"
     assert record.status == ExecutionStatus.PENDING
     assert record.output_profile_id == "prof_1"
@@ -181,13 +181,15 @@ async def test_resume_execution_fails_fast_on_invalid_state() -> None:
     arq_pool = AsyncMock()
     service, repo = _create_test_service(executor=executor_mock)
 
-    rec = _make_test_record(id="exe_0123456789abcdef", status=ExecutionStatus.PENDING)
+    rec = _make_test_record(id="exe_0195f3a0000070008123456789abcdef", status=ExecutionStatus.PENDING)
     repo.set_execution(rec)
 
     initiator = TokenData(id="u1", role=UserRole.ROOT)
 
     with pytest.raises(AppException) as exc_info:
-        await service.resume_execution(initiator=initiator, execution_id="exe_0123456789abcdef", arq_pool=arq_pool)
+        await service.resume_execution(
+            initiator=initiator, execution_id="exe_0195f3a0000070008123456789abcdef", arq_pool=arq_pool
+        )
 
     assert "cannot be resumed due to unresumable state" in exc_info.value.message
     assert exc_info.value.details["error_code"] == "UNRESUMABLE_STATE_ERROR"
@@ -198,8 +200,12 @@ async def test_list_executions_admin_sees_all() -> None:
     executor_mock = Mock()
     service, repo = _create_test_service(executor=executor_mock)
 
-    rec1 = _make_test_record(id="exe_0123456789abcde1", organization_id="org_1", status=ExecutionStatus.PASSED)
-    rec2 = _make_test_record(id="exe_0123456789abcde2", organization_id="org_2", status=ExecutionStatus.PASSED)
+    rec1 = _make_test_record(
+        id="exe_0195f3a0000070008123456789abcde1", organization_id="org_1", status=ExecutionStatus.PASSED
+    )
+    rec2 = _make_test_record(
+        id="exe_0195f3a0000070008123456789abcde2", organization_id="org_2", status=ExecutionStatus.PASSED
+    )
     repo.set_execution(rec1)
     repo.set_execution(rec2)
 
@@ -217,10 +223,16 @@ async def test_list_executions_tenant_sees_own() -> None:
     service, repo = _create_test_service(executor=executor_mock)
 
     rec1 = _make_test_record(
-        id="exe_0123456789abcde1", organization_id="org_1", created_by="u2", status=ExecutionStatus.PASSED
+        id="exe_0195f3a0000070008123456789abcde1",
+        organization_id="org_1",
+        created_by="u2",
+        status=ExecutionStatus.PASSED,
     )
     rec2 = _make_test_record(
-        id="exe_0123456789abcde2", organization_id="org_2", created_by="u3", status=ExecutionStatus.PASSED
+        id="exe_0195f3a0000070008123456789abcde2",
+        organization_id="org_2",
+        created_by="u3",
+        status=ExecutionStatus.PASSED,
     )
     repo.set_execution(rec1)
     repo.set_execution(rec2)
@@ -239,13 +251,15 @@ async def test_get_execution_admin_sees_any() -> None:
     executor_mock = Mock()
     service, repo = _create_test_service(executor=executor_mock)
 
-    rec = _make_test_record(id="exe_0123456789abcdef", organization_id="org_other", status=ExecutionStatus.PASSED)
+    rec = _make_test_record(
+        id="exe_0195f3a0000070008123456789abcdef", organization_id="org_other", status=ExecutionStatus.PASSED
+    )
     repo.set_execution(rec)
 
     initiator = TokenData(id="u1", role=UserRole.ROOT)
 
     with patch.object(service, "check_resumability", return_value=False):
-        result = await service.get_execution(initiator=initiator, execution_id="exe_0123456789abcdef")
+        result = await service.get_execution(initiator=initiator, execution_id="exe_0195f3a0000070008123456789abcdef")
 
     assert result.organization_id == "org_other"
 
@@ -256,14 +270,17 @@ async def test_get_execution_tenant_sees_own() -> None:
     service, repo = _create_test_service(executor=executor_mock)
 
     rec = _make_test_record(
-        id="exe_0123456789abcdef", organization_id="org_1", created_by="u2", status=ExecutionStatus.PASSED
+        id="exe_0195f3a0000070008123456789abcdef",
+        organization_id="org_1",
+        created_by="u2",
+        status=ExecutionStatus.PASSED,
     )
     repo.set_execution(rec)
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
 
     with patch.object(service, "check_resumability", return_value=False):
-        result = await service.get_execution(initiator=initiator, execution_id="exe_0123456789abcdef")
+        result = await service.get_execution(initiator=initiator, execution_id="exe_0195f3a0000070008123456789abcdef")
 
     assert result.organization_id == "org_1"
 
@@ -273,14 +290,14 @@ async def test_delete_execution_tenant_deletes_own() -> None:
     executor_mock = Mock()
     service, repo = _create_test_service(executor=executor_mock)
 
-    rec = _make_test_record(id="exe_0123456789abcdef", organization_id="org_1", created_by="u2")
+    rec = _make_test_record(id="exe_0195f3a0000070008123456789abcdef", organization_id="org_1", created_by="u2")
     repo.set_execution(rec)
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
-    result = await service.delete_execution(initiator=initiator, execution_id="exe_0123456789abcdef")
+    result = await service.delete_execution(initiator=initiator, execution_id="exe_0195f3a0000070008123456789abcdef")
 
     assert result is True
-    assert await repo.get_execution("exe_0123456789abcdef") is None
+    assert await repo.get_execution("exe_0195f3a0000070008123456789abcdef") is None
 
 
 @pytest.mark.asyncio
@@ -292,7 +309,7 @@ async def test_start_execution_success() -> None:
     valid_profile = OutputProfile(
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         name=I18nText(translations={"en": "Test Profile"}),
         target_block_order=[],
     )
@@ -303,7 +320,7 @@ async def test_start_execution_success() -> None:
     repo.set_workflow(wf)
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
         profile_id=valid_profile.id,
@@ -314,10 +331,10 @@ async def test_start_execution_success() -> None:
 
     result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=arq_pool)
 
-    assert result.workflow_id == "wor_0123456789abcdef"
+    assert result.workflow_id == "wor_0195f3a0000070008123456789abcdef"
     assert result.status == ExecutionStatus.PENDING
     assert result.metadata is not None
-    assert result.metadata.model_registry_id == "sys_e26807f3bfa3454d"
+    assert result.metadata.model_registry_id == "sys_0195f3a00000700e826807f3bfa3454d"
     arq_pool.enqueue_job.assert_called_once()
 
 
@@ -331,14 +348,14 @@ async def test_start_execution_model_registry_override() -> None:
     valid_profile = OutputProfile(
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         name=I18nText(translations={"en": "Test Profile"}),
         target_block_order=[],
     )
     repo.set_output_profiles([valid_profile])
 
     override_reg = SystemConfigModelRegistry(
-        id="sys_6f8b1c4a2e0d49f1",
+        id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
         name="Override Model Registry",
         type="model_registry",
         default_provider=LLMProvider.AI_STUDIO,
@@ -356,12 +373,12 @@ async def test_start_execution_model_registry_override() -> None:
     service.usage_service.check_quota.return_value = True
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
         profile_id=valid_profile.id,
         matrix_sampling_strategy=10,
-        model_registry_id="sys_6f8b1c4a2e0d49f1",
+        model_registry_id="sys_0195f3a0000070068f8b1c4a2e0d49f1",
     )
 
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
@@ -369,7 +386,7 @@ async def test_start_execution_model_registry_override() -> None:
     result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=arq_pool)
 
     assert result.metadata is not None
-    assert result.metadata.model_registry_id == "sys_6f8b1c4a2e0d49f1"
+    assert result.metadata.model_registry_id == "sys_0195f3a0000070068f8b1c4a2e0d49f1"
 
 
 @pytest.mark.asyncio
@@ -381,10 +398,10 @@ async def test_start_execution_permission_denied() -> None:
     service.usage_service.check_quota.return_value = True
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
-        profile_id="prf_0123456789abcdef",
+        profile_id="prf_0195f3a0000070008123456789abcdef",
         matrix_sampling_strategy=10,
     )
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_my")
@@ -400,7 +417,7 @@ async def test_override_atom_success() -> None:
     service, repo = _create_test_service(executor=executor_mock)
 
     record = create_execution_record(
-        execution_id="exe_1234567890abcdef",
+        execution_id="exe_0195f3a0000070018234567890abcdef",
         workflow_id="wf_1",
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
@@ -452,7 +469,7 @@ async def test_override_atom_success() -> None:
         mock_recalc.return_value = {}
         await service.override_atom(
             initiator=initiator,
-            execution_id="exe_1234567890abcdef",
+            execution_id="exe_0195f3a0000070018234567890abcdef",
             atom_id="tda_1",
             payload=payload,
         )
@@ -482,16 +499,16 @@ async def test_phase_1_5_negative_invalid_human_override_crashes() -> None:
 def test_execution_create_dto_preserves_output_profile_id() -> None:
     """Regression: ExecutionCreateDTO must support and persist output_profile_id."""
     dto = ExecutionCreateDTO(
-        workflow_id="wf_1234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
         target_locale="fi",
-        active_profile_id="prof_1234567890abcdef",
-        output_profile_id="prof_1234567890abcdef",
+        active_profile_id="prof_0195f3a0000070018234567890abcdef",
+        output_profile_id="prof_0195f3a0000070018234567890abcdef",
         metadata=ExecutionMetadata(),
     )
     raw_dict = dto.model_dump(mode="json", exclude_unset=True)
-    raw_dict["id"] = "exe_1234567890abcdef"
+    raw_dict["id"] = "exe_0195f3a0000070018234567890abcdef"
     record = ExecutionRecord.model_validate(raw_dict, strict=False)
-    assert record.output_profile_id == "prof_1234567890abcdef"
+    assert record.output_profile_id == "prof_0195f3a0000070018234567890abcdef"
 
 
 @pytest.mark.asyncio
@@ -504,7 +521,7 @@ async def test_start_execution_succeeds_without_profile() -> None:
     repo.set_workflow(wf)
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
         profile_id=None,
@@ -514,7 +531,7 @@ async def test_start_execution_succeeds_without_profile() -> None:
 
     result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
 
-    assert result.workflow_id == "wor_0123456789abcdef"
+    assert result.workflow_id == "wor_0195f3a0000070008123456789abcdef"
     assert result.output_profile_id is None
     assert result.status == ExecutionStatus.PENDING
 
@@ -526,14 +543,14 @@ async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
     repo.set_output_profiles([])
     service.usage_service.check_quota.return_value = True
 
-    wf = _make_test_workflow(default_profile_id="prf_0123456789abcdef")
+    wf = _make_test_workflow(default_profile_id="prf_0195f3a0000070008123456789abcdef")
     repo.set_workflow(wf)
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
-        profile_id="prf_0123456789abcdef",
+        profile_id="prf_0195f3a0000070008123456789abcdef",
         matrix_sampling_strategy=10,
     )
     initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
@@ -551,15 +568,16 @@ async def test_start_execution_fails_fast_when_model_registry_not_found() -> Non
     """ISTQB Negative: start_execution raises 404 RESOURCE_NOT_FOUND when model registry is not found in database."""
     service, repo = _create_test_service()
     repo.inject_fault(
-        "get_model_registry", ResourceNotFoundError(resource_type="system_config", resource_id="sys_0000000000000000")
+        "get_model_registry",
+        ResourceNotFoundError(resource_type="system_config", resource_id="sys_0195f3a0000070008000000000000000"),
     )
     service.usage_service.check_quota.return_value = True
 
-    wf = _make_test_workflow(default_profile_id=None, model_registry_id="sys_0000000000000000")
+    wf = _make_test_workflow(default_profile_id=None, model_registry_id="sys_0195f3a0000070008000000000000000")
     repo.set_workflow(wf)
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
         profile_id=None,
@@ -645,11 +663,13 @@ async def test_start_execution_fails_fast_on_input_collision() -> None:
         input_modes=["file", "paste"],
         description=I18nText(translations={"en": "Chat", "fi": "Keskustelu"}),
     )
-    wf = _make_test_workflow(default_profile_id="prf_0123456789abcdef", expected_inputs=[expected_input])
+    wf = _make_test_workflow(
+        default_profile_id="prf_0195f3a0000070008123456789abcdef", expected_inputs=[expected_input]
+    )
     repo.set_workflow(wf)
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputsIngress(
             dynamic_inputs={
                 "keskusteluhistoria": {"filename": "keskusteluhistoria.pdf", "content_base64": "SGVsbG8="},
@@ -660,7 +680,7 @@ async def test_start_execution_fails_fast_on_input_collision() -> None:
             }
         ),
         target_locale="fi",
-        profile_id="prf_0123456789abcdef",
+        profile_id="prf_0195f3a0000070008123456789abcdef",
         matrix_sampling_strategy=10,
     )
     initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
@@ -688,14 +708,16 @@ async def test_start_execution_fails_fast_on_missing_required_input() -> None:
         input_modes=["file", "paste"],
         description=I18nText(translations={"en": "Chat", "fi": "Keskustelu"}),
     )
-    wf = _make_test_workflow(default_profile_id="prf_0123456789abcdef", expected_inputs=[expected_input])
+    wf = _make_test_workflow(
+        default_profile_id="prf_0195f3a0000070008123456789abcdef", expected_inputs=[expected_input]
+    )
     repo.set_workflow(wf)
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"product_text": "Delivered material"}),
         target_locale="fi",
-        profile_id="prf_0123456789abcdef",
+        profile_id="prf_0195f3a0000070008123456789abcdef",
         matrix_sampling_strategy=10,
     )
     initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
@@ -710,12 +732,12 @@ async def test_start_execution_fails_fast_on_missing_required_input() -> None:
 
 def test_create_execution_record_dict_metadata() -> None:
     rec = create_execution_record(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(),
         frozen_context=FrozenContext(),
         source_identity_manifest={},
-        output_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
         metadata={"workflow_version": 1},
     )
     assert rec.metadata.workflow_version == 1
@@ -724,7 +746,11 @@ def test_create_execution_record_dict_metadata() -> None:
 @pytest.mark.asyncio
 async def test_create_execution_metadata_and_list_pagination() -> None:
     service, repo = _create_test_service()
-    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ADMIN, organization_id="org_0123456789abcdef")
+    initiator = TokenData(
+        id="usr_0195f3a0000070008123456789abcdef",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008123456789abcdef",
+    )
 
     res = await service.list_executions(initiator=initiator)
     assert res == []
@@ -734,16 +760,18 @@ async def test_create_execution_metadata_and_list_pagination() -> None:
 async def test_get_and_delete_execution_not_found_and_permission_denied() -> None:
     service, repo = _create_test_service()
 
-    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.MEMBER, organization_id="org_tenant_a")
+    initiator = TokenData(
+        id="usr_0195f3a0000070008123456789abcdef", role=UserRole.MEMBER, organization_id="org_tenant_a"
+    )
 
     with pytest.raises(ResourceNotFoundError):
-        await service.get_execution(initiator=initiator, execution_id="exe_0123456789abcdef")
+        await service.get_execution(initiator=initiator, execution_id="exe_0195f3a0000070008123456789abcdef")
 
     with pytest.raises(ResourceNotFoundError):
-        await service.delete_execution(initiator=initiator, execution_id="exe_0123456789abcdef")
+        await service.delete_execution(initiator=initiator, execution_id="exe_0195f3a0000070008123456789abcdef")
 
     alien_record = _make_test_record(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_tenant_b",
         created_by="usr_alien000000000",
         is_public=False,
@@ -752,10 +780,10 @@ async def test_get_and_delete_execution_not_found_and_permission_denied() -> Non
     repo.set_execution(alien_record)
 
     with pytest.raises(PermissionDeniedError):
-        await service.get_execution(initiator=initiator, execution_id="exe_0123456789abcdef")
+        await service.get_execution(initiator=initiator, execution_id="exe_0195f3a0000070008123456789abcdef")
 
     with pytest.raises(PermissionDeniedError):
-        await service.delete_execution(initiator=initiator, execution_id="exe_0123456789abcdef")
+        await service.delete_execution(initiator=initiator, execution_id="exe_0195f3a0000070008123456789abcdef")
 
 
 @pytest.mark.asyncio
@@ -764,7 +792,7 @@ async def test_start_execution_with_steps_and_blocks() -> None:
     service.usage_service.check_quota.return_value = True
 
     matrix_block = MatrixPromptBlock(
-        id="blk_0123456789abcdef",
+        id="blk_0195f3a0000070008123456789abcdef",
         slug="matrix-block",
         label=I18nText(translations={"en": "Matrix Label"}),
         description=I18nText(translations={"en": "Matrix Description"}),
@@ -778,31 +806,31 @@ async def test_start_execution_with_steps_and_blocks() -> None:
     repo.set_prompt_blocks([matrix_block])
 
     step_obj = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a0000070008123456789abcdef",
         slug="step-1",
         name=I18nText(translations={"en": "Step 1"}),
         role_block_id=None,
-        extraction_protocol_block_id="blk_0123456789abcdef",
-        criteria_block_ids=["blk_0123456789abcdef"],
+        extraction_protocol_block_id="blk_0195f3a0000070008123456789abcdef",
+        criteria_block_ids=["blk_0195f3a0000070008123456789abcdef"],
     )
     repo.seed_raw_step(step_obj.id, step_obj)
 
     wf = Workflow(
-        id="wor_0123456789abcdef",
+        id="wor_0195f3a0000070008123456789abcdef",
         slug="workflow-test",
         name=I18nText(translations={"en": "Workflow"}),
         description=I18nText(translations={"en": "Description"}),
         status="active",
         version=1,
-        organization_id="org_0123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
         is_public=False,
-        default_profile_id="prf_0123456789abcdef",
-        model_registry_id="sys_e26807f3bfa3454d",
+        default_profile_id="prf_0195f3a0000070008123456789abcdef",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         expected_inputs=[],
         steps=[
             StepRule(
-                id="stp_0123456789abcdef",
-                task_blueprint="stp_0123456789abcdef",
+                id="stp_0195f3a0000070008123456789abcdef",
+                task_blueprint="stp_0195f3a0000070008123456789abcdef",
             )
         ],
         historical_context_mode="DISABLED",
@@ -811,9 +839,9 @@ async def test_start_execution_with_steps_and_blocks() -> None:
     repo.set_output_profiles(
         [
             {
-                "id": "prf_0123456789abcdef",
+                "id": "prf_0195f3a0000070008123456789abcdef",
                 "slug": "profile-test",
-                "workflow_id": "wor_0123456789abcdef",
+                "workflow_id": "wor_0195f3a0000070008123456789abcdef",
                 "name": {"translations": {"en": "Output Profile"}},
                 "target_block_order": ["executive_summary_block"],
             }
@@ -821,12 +849,16 @@ async def test_start_execution_with_steps_and_blocks() -> None:
     )
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(),
         target_locale="en",
-        profile_id="prf_0123456789abcdef",
+        profile_id="prf_0195f3a0000070008123456789abcdef",
     )
-    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ADMIN, organization_id="org_0123456789abcdef")
+    initiator = TokenData(
+        id="usr_0195f3a0000070008123456789abcdef",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008123456789abcdef",
+    )
     arq_pool = AsyncMock()
     doc_service = AsyncMock()
     doc_service.process_ingress_payload.return_value = payload.raw_inputs
@@ -843,10 +875,10 @@ async def test_start_execution_with_steps_and_blocks() -> None:
 @pytest.mark.asyncio
 async def test_get_frozen_context_bytes() -> None:
     service, repo = _create_test_service()
-    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ADMIN, organization_id="org_1")
+    initiator = TokenData(id="usr_0195f3a0000070008123456789abcdef", role=UserRole.ADMIN, organization_id="org_1")
 
     rec1 = _make_test_record(
-        id="exe_0123456789abcde1",
+        id="exe_0195f3a0000070008123456789abcde1",
         organization_id="org_1",
         is_public=False,
         status=ExecutionStatus.PASSED,
@@ -855,12 +887,12 @@ async def test_get_frozen_context_bytes() -> None:
     )
     repo.set_execution(rec1)
 
-    b1, name1 = await service.get_frozen_context_bytes(initiator, "exe_0123456789abcde1")
+    b1, name1 = await service.get_frozen_context_bytes(initiator, "exe_0195f3a0000070008123456789abcde1")
     assert b1 is not None
-    assert name1 == "frozen_context_exe_0123456789abcde1.json"
+    assert name1 == "frozen_context_exe_0195f3a0000070008123456789abcde1.json"
 
     rec2 = _make_test_record(
-        id="exe_0123456789abcde2",
+        id="exe_0195f3a0000070008123456789abcde2",
         organization_id="org_1",
         is_public=False,
         status=ExecutionStatus.PASSED,
@@ -874,12 +906,12 @@ async def test_get_frozen_context_bytes() -> None:
         mock_driver.read.return_value = FrozenContext().model_dump_json().encode("utf-8")
         mock_storage_driver.return_value = mock_driver
 
-        b2, name2 = await service.get_frozen_context_bytes(initiator, "exe_0123456789abcde2")
+        b2, name2 = await service.get_frozen_context_bytes(initiator, "exe_0195f3a0000070008123456789abcde2")
         assert b2 is not None
 
         mock_driver.read.side_effect = Exception("Storage failed")
         with pytest.raises(AppException):
-            await service.get_frozen_context_bytes(initiator, "exe_0123456789abcde2")
+            await service.get_frozen_context_bytes(initiator, "exe_0195f3a0000070008123456789abcde2")
 
 
 @pytest.mark.asyncio
@@ -888,8 +920,8 @@ async def test_clear_profile_synthesis() -> None:
     initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_1")
 
     rec = _make_test_record(
-        id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         organization_id="org_1",
         is_public=False,
         status=ExecutionStatus.PASSED,
@@ -903,12 +935,12 @@ async def test_clear_profile_synthesis() -> None:
 
     driver = AsyncMock()
     service._override.storage = driver
-    await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prof_1")
+    await service.clear_profile_synthesis(initiator, "exe_0195f3a0000070008123456789abcdef", "prof_1")
     driver.delete.assert_called_once_with("reports/report.pdf")
 
     repo.set_workflow(None)
     with pytest.raises(ResourceNotFoundError):
-        await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prof_1")
+        await service.clear_profile_synthesis(initiator, "exe_0195f3a0000070008123456789abcdef", "prof_1")
 
 
 @pytest.mark.asyncio
@@ -917,7 +949,7 @@ async def test_stream_status_sse_events() -> None:
     initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_1")
 
     rec = _make_test_record(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_1",
         is_public=False,
         status=ExecutionStatus.PASSED,
@@ -925,7 +957,7 @@ async def test_stream_status_sse_events() -> None:
     repo.set_execution(rec)
 
     events = []
-    async for event in service.stream_status(initiator, "exe_0123456789abcdef"):
+    async for event in service.stream_status(initiator, "exe_0195f3a0000070008123456789abcdef"):
         events.append(event)
 
     assert len(events) >= 1
@@ -939,9 +971,9 @@ async def test_resume_execution_success() -> None:
     service.usage_service.check_quota.return_value = True
 
     rec = _make_test_record(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_1",
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.RUNNING,
     )
     repo.set_execution(rec)
@@ -949,8 +981,8 @@ async def test_resume_execution_success() -> None:
     with patch.object(service, "check_resumability", return_value=True):
         arq_pool = AsyncMock()
         initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_1")
-        res = await service.resume_execution(initiator, "exe_0123456789abcdef", arq_pool)
-        assert res.id == "exe_0123456789abcdef"
+        res = await service.resume_execution(initiator, "exe_0195f3a0000070008123456789abcdef", arq_pool)
+        assert res.id == "exe_0195f3a0000070008123456789abcdef"
         arq_pool.enqueue_job.assert_called_once()
 
 
@@ -959,11 +991,11 @@ async def test_get_workflow_ui_schema_success_and_not_found() -> None:
     service, repo = _create_test_service()
 
     with pytest.raises(ResourceNotFoundError):
-        await service.get_workflow_ui_schema("wor_0123456789abcdef")
+        await service.get_workflow_ui_schema("wor_0195f3a0000070008123456789abcdef")
 
     wf = _make_test_workflow()
     repo.set_workflow(wf)
-    res = await service.get_workflow_ui_schema("wor_0123456789abcdef")
+    res = await service.get_workflow_ui_schema("wor_0195f3a0000070008123456789abcdef")
     assert isinstance(res, WorkflowSchemaResponseDTO)
     assert res.expected_inputs == []
 
@@ -972,7 +1004,7 @@ async def test_get_workflow_ui_schema_success_and_not_found() -> None:
 async def test_reject_evidence_quote_branches() -> None:
     service, repo = _create_test_service()
     rec = _make_test_record(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_target",
         created_by="usr_owner",
         status=ExecutionStatus.PASSED,
@@ -981,10 +1013,12 @@ async def test_reject_evidence_quote_branches() -> None:
 
     initiator_other = TokenData(id="usr_other", role=UserRole.MEMBER, organization_id="org_other")
     with pytest.raises(PermissionDeniedError):
-        await service.reject_evidence_quote(initiator_other, "exe_0123456789abcdef", "evq_1", "Wrong quote")
+        await service.reject_evidence_quote(
+            initiator_other, "exe_0195f3a0000070008123456789abcdef", "evq_1", "Wrong quote"
+        )
 
     initiator_root = TokenData(id="usr_root", role=UserRole.ROOT, organization_id="org_other")
-    await service.reject_evidence_quote(initiator_root, "exe_0123456789abcdef", "evq_1", "Wrong quote")
+    await service.reject_evidence_quote(initiator_root, "exe_0195f3a0000070008123456789abcdef", "evq_1", "Wrong quote")
     assert repo.get_call_count("append_trace_event") >= 1
 
 
@@ -994,7 +1028,7 @@ async def test_delete_execution_storage_cleanup_error_branches() -> None:
     service, repo = _create_test_service(storage_driver=storage_mock)
 
     rec = _make_test_record(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_1",
         created_by="usr_owner",
         status=ExecutionStatus.PASSED,
@@ -1003,31 +1037,31 @@ async def test_delete_execution_storage_cleanup_error_branches() -> None:
 
     initiator_other = TokenData(id="usr_other", role=UserRole.MEMBER, organization_id="org_other")
     with pytest.raises(PermissionDeniedError):
-        await service.delete_execution(initiator_other, "exe_0123456789abcdef")
+        await service.delete_execution(initiator_other, "exe_0195f3a0000070008123456789abcdef")
 
     initiator = TokenData(id="usr_owner", role=UserRole.MEMBER, organization_id="org_1")
 
     storage_mock.delete_directory.side_effect = AppException("Not found", status_code=404)
-    deleted = await service.delete_execution(initiator, "exe_0123456789abcdef")
+    deleted = await service.delete_execution(initiator, "exe_0195f3a0000070008123456789abcdef")
     assert deleted is True
 
     repo.set_execution(rec)
     storage_mock.delete_directory.side_effect = AppException("Storage error", status_code=500)
     with pytest.raises(AppException) as exc_info:
-        await service.delete_execution(initiator, "exe_0123456789abcdef")
+        await service.delete_execution(initiator, "exe_0195f3a0000070008123456789abcdef")
     assert exc_info.value.status_code == 500
 
     repo.set_execution(rec)
     storage_mock.delete_directory.side_effect = Exception("Generic disk crash")
     with pytest.raises(AppException) as exc_info:
-        await service.delete_execution(initiator, "exe_0123456789abcdef")
+        await service.delete_execution(initiator, "exe_0195f3a0000070008123456789abcdef")
     assert exc_info.value.status_code == 500
 
     repo.set_execution(rec)
     storage_mock.delete_directory.side_effect = None
     repo.inject_fault("delete_execution", Exception("DB crash"))
     with pytest.raises(AppException) as exc_info:
-        await service.delete_execution(initiator, "exe_0123456789abcdef")
+        await service.delete_execution(initiator, "exe_0195f3a0000070008123456789abcdef")
     assert exc_info.value.status_code == 500
 
 
@@ -1035,11 +1069,11 @@ async def test_delete_execution_storage_cleanup_error_branches() -> None:
 async def test_clear_profile_synthesis_storage_delete_branches() -> None:
     service, repo = _create_test_service()
     rec = _make_test_record(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_1",
         status=ExecutionStatus.PASSED,
-        workflow_id="wor_0123456789abcdef",
-        pdf_report_path="executions/exe_0123456789abcdef/report.pdf",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        pdf_report_path="executions/exe_0195f3a0000070008123456789abcdef/report.pdf",
         profile_syntheses={"prf_default": {}},
     )
     repo.set_execution(rec)
@@ -1053,28 +1087,28 @@ async def test_clear_profile_synthesis_storage_delete_branches() -> None:
 
     storage_mock.delete.side_effect = AppException("Not found", status_code=404)
     with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
-        await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prf_default")
+        await service.clear_profile_synthesis(initiator, "exe_0195f3a0000070008123456789abcdef", "prf_default")
         assert repo.get_call_count("update_execution") >= 1
 
     repo.set_execution(rec)
     storage_mock.delete.side_effect = AppException("Conflict", status_code=409)
     with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
         with pytest.raises(AppException) as exc_info:
-            await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prf_default")
+            await service.clear_profile_synthesis(initiator, "exe_0195f3a0000070008123456789abcdef", "prf_default")
         assert exc_info.value.status_code == 409
 
     repo.set_execution(rec)
     storage_mock.delete.side_effect = AppException("Server Error", status_code=500)
     with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
         with pytest.raises(AppException) as exc_info:
-            await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prf_default")
+            await service.clear_profile_synthesis(initiator, "exe_0195f3a0000070008123456789abcdef", "prf_default")
         assert exc_info.value.status_code == 500
 
     repo.set_execution(rec)
     storage_mock.delete.side_effect = Exception("Unexpected")
     with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
         with pytest.raises(AppException) as exc_info:
-            await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prf_default")
+            await service.clear_profile_synthesis(initiator, "exe_0195f3a0000070008123456789abcdef", "prf_default")
         assert exc_info.value.status_code == 500
 
 
@@ -1082,7 +1116,7 @@ async def test_clear_profile_synthesis_storage_delete_branches() -> None:
 async def test_override_atom_branches() -> None:
     service, repo = _create_test_service()
     rec = _make_test_record(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_1",
         created_by="usr_owner",
         status=ExecutionStatus.PASSED,
@@ -1093,11 +1127,11 @@ async def test_override_atom_branches() -> None:
     initiator_other = TokenData(id="usr_other", role=UserRole.MEMBER, organization_id="org_other")
     req = HumanOverrideRequest(new_status=ExecutionStatus.PASSED, reason="Valid evidence found")
     with pytest.raises(PermissionDeniedError):
-        await service.override_atom(initiator_other, "exe_0123456789abcdef", "atm_1", req)
+        await service.override_atom(initiator_other, "exe_0195f3a0000070008123456789abcdef", "atm_1", req)
 
     initiator = TokenData(id="usr_owner", role=UserRole.MEMBER, organization_id="org_1")
     with pytest.raises(AppException) as exc_info:
-        await service.override_atom(initiator, "exe_0123456789abcdef", "atm_1", req)
+        await service.override_atom(initiator, "exe_0195f3a0000070008123456789abcdef", "atm_1", req)
     assert exc_info.value.status_code == 404
 
     atom_obj = ScorecardAtomDTO(
@@ -1126,7 +1160,7 @@ async def test_override_atom_branches() -> None:
         scorecard_atoms={"atm_1": atom_obj},
     )
     rec_with_atoms = _make_test_record(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         organization_id="org_1",
         created_by="usr_owner",
         status=ExecutionStatus.PASSED,
@@ -1144,7 +1178,7 @@ async def test_override_atom_branches() -> None:
     repo.set_execution(rec_with_atoms)
 
     with patch("backend_v2.hooks.scoring.recalculate", return_value=rec_with_atoms.context_variables):
-        await service.override_atom(initiator, "exe_0123456789abcdef", "atm_1", req)
+        await service.override_atom(initiator, "exe_0195f3a0000070008123456789abcdef", "atm_1", req)
         assert repo.get_call_count("update_execution") >= 1
         assert repo.get_call_count("append_trace_event") >= 1
 
@@ -1152,55 +1186,59 @@ async def test_override_atom_branches() -> None:
 @pytest.mark.asyncio
 async def test_start_execution_additional_error_branches() -> None:
     service, repo = _create_test_service()
-    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ROOT, organization_id="org_0123456789abcdef")
+    initiator = TokenData(
+        id="usr_0195f3a0000070008123456789abcdef",
+        role=UserRole.ROOT,
+        organization_id="org_0195f3a0000070008123456789abcdef",
+    )
 
     wf = Workflow(
-        id="wor_0123456789abcdef",
+        id="wor_0195f3a0000070008123456789abcdef",
         slug="test-wf",
         version=1,
         status="ACTIVE",
-        default_profile_id="prf_0123456789abcdef",
-        model_registry_id="sys_e26807f3bfa3454d",
+        default_profile_id="prf_0195f3a0000070008123456789abcdef",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[
             StepRule(
-                id="stp_0123456789abcdef",
-                task_blueprint="stp_0123456789abcdef",
+                id="stp_0195f3a0000070008123456789abcdef",
+                task_blueprint="stp_0195f3a0000070008123456789abcdef",
             )
         ],
         historical_context_mode="DISABLED",
     )
     repo.set_workflow(wf)
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(),
         target_locale="en",
-        profile_id="prf_0123456789abcdef",
+        profile_id="prf_0195f3a0000070008123456789abcdef",
     )
 
     with pytest.raises(ConfigurationError):
         await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
 
-    repo.seed_raw_step("stp_0123456789abcdef", {"invalid": "step"})
+    repo.seed_raw_step("stp_0195f3a0000070008123456789abcdef", {"invalid": "step"})
     with pytest.raises(AppException) as exc_info:
         await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
     assert exc_info.value.status_code == 400
 
     valid_step = Step(
-        id="stp_0123456789abcdef",
+        id="stp_0195f3a0000070008123456789abcdef",
         slug="step-slug",
         name=I18nText(translations={"en": "Step 1"}),
         description=I18nText(translations={"en": "Step Desc"}),
-        role_block_id="blk_0123456789abcdef",
-        criteria_block_ids=["blk_0123456789abcdef"],
-        extraction_protocol_block_id="blk_0123456789abcdef",
+        role_block_id="blk_0195f3a0000070008123456789abcdef",
+        criteria_block_ids=["blk_0195f3a0000070008123456789abcdef"],
+        extraction_protocol_block_id="blk_0195f3a0000070008123456789abcdef",
     )
-    repo.seed_raw_step("stp_0123456789abcdef", valid_step)
+    repo.seed_raw_step("stp_0195f3a0000070008123456789abcdef", valid_step)
     with pytest.raises(ConfigurationError):
         await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
 
-    repo.seed_raw_prompt_block("blk_0123456789abcdef", {"invalid": "block"})
+    repo.seed_raw_prompt_block("blk_0195f3a0000070008123456789abcdef", {"invalid": "block"})
     with pytest.raises(AppException) as exc_info:
         await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
     assert exc_info.value.status_code == 500
@@ -1221,7 +1259,7 @@ async def test_resume_execution_quota_exceeded() -> None:
     service, repo = _create_test_service()
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_overquota")
     rec = _make_test_record(
-        id="exe_0123456789abcdef",
+        id="exe_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.FAILED,
         organization_id="org_overquota",
         created_by="usr_1",
@@ -1232,7 +1270,7 @@ async def test_resume_execution_quota_exceeded() -> None:
         service.usage_service.check_quota.return_value = False
         with pytest.raises(AppException) as exc_info:
             await service.resume_execution(
-                initiator=initiator, execution_id="exe_0123456789abcdef", arq_pool=AsyncMock()
+                initiator=initiator, execution_id="exe_0195f3a0000070008123456789abcdef", arq_pool=AsyncMock()
             )
         assert exc_info.value.status_code == 402
         assert "exceeded its execution quota" in exc_info.value.message
@@ -1249,7 +1287,9 @@ async def test_check_resumability_string_version() -> None:
 
     wf = _make_test_workflow(
         version=2,
-        steps=[StepRule(id="stp_0123456789abcdef", task_blueprint="stp_0123456789abcdef")],
+        steps=[
+            StepRule(id="stp_0195f3a0000070008123456789abcdef", task_blueprint="stp_0195f3a0000070008123456789abcdef")
+        ],
     )
     repo.set_workflow(wf)
     res = await service.check_resumability(rec)
@@ -1265,7 +1305,7 @@ async def test_start_execution_circuit_breaker_quota_exceeded() -> None:
     service.usage_service.check_quota.return_value = False
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(),
         target_locale="fi",
     )
@@ -1285,7 +1325,7 @@ async def test_start_execution_fails_fast_when_profile_workflow_mismatch() -> No
     repo.set_workflow(wf)
 
     mismatch_profile = OutputProfile(
-        id="prf_0123456789abcdef",
+        id="prf_0195f3a0000070008123456789abcdef",
         slug="other-profile",
         workflow_id="wor_other_workflow",
         name=I18nText(translations={"en": "Other Profile"}),
@@ -1295,10 +1335,10 @@ async def test_start_execution_fails_fast_when_profile_workflow_mismatch() -> No
     repo.set_output_profiles([mismatch_profile])
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(),
         target_locale="en",
-        profile_id="prf_0123456789abcdef",
+        profile_id="prf_0195f3a0000070008123456789abcdef",
     )
     initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
 
@@ -1316,17 +1356,17 @@ async def test_start_execution_fails_fast_when_no_registry_id() -> None:
     service, repo = _create_test_service()
     service.usage_service.check_quota.return_value = True
 
-    repo.seed_raw_workflow("wor_0123456789abcdef", {"id": "wor_0123456789abcdef"})
+    repo.seed_raw_workflow("wor_0195f3a0000070008123456789abcdef", {"id": "wor_0195f3a0000070008123456789abcdef"})
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(),
         target_locale="en",
     )
     initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
 
     mock_wf = Workflow.model_construct(
-        id="wor_0123456789abcdef",
+        id="wor_0195f3a0000070008123456789abcdef",
         version=1,
         status="ACTIVE",
         default_profile_id=None,
@@ -1351,12 +1391,12 @@ async def test_start_execution_fails_fast_when_registry_obj_is_none() -> None:
     service, repo = _create_test_service()
     service.usage_service.check_quota.return_value = True
 
-    wf = _make_test_workflow(default_profile_id=None, model_registry_id="sys_e26807f3bfa3454d")
+    wf = _make_test_workflow(default_profile_id=None, model_registry_id="sys_0195f3a00000700e826807f3bfa3454d")
     repo.set_workflow(wf)
     repo.set_model_registry(None)
 
     payload = ExecutionCreate(
-        workflow_id="wor_0123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
         raw_inputs=WorkflowInputs(),
         target_locale="en",
     )
@@ -1398,7 +1438,7 @@ async def test_override_atom_and_reject_evidence_permission_denied() -> None:
     """ISTQB Negative: override_atom and reject_evidence_quote raise PermissionDeniedError for non-owner non-root."""
     service, repo = _create_test_service()
     rec = _make_test_record(
-        id="exe_1234567890abcdef",
+        id="exe_0195f3a0000070018234567890abcdef",
         organization_id="org_other",
         created_by="usr_other",
     )
@@ -1407,10 +1447,10 @@ async def test_override_atom_and_reject_evidence_permission_denied() -> None:
     initiator = TokenData(id="usr_stranger", role=UserRole.MEMBER, organization_id="org_mine")
 
     with pytest.raises(PermissionDeniedError):
-        await service.override_atom(initiator, "exe_1234567890abcdef", "atom_1", Mock())
+        await service.override_atom(initiator, "exe_0195f3a0000070018234567890abcdef", "atom_1", Mock())
 
     with pytest.raises(PermissionDeniedError):
-        await service.reject_evidence_quote(initiator, "exe_1234567890abcdef", "evq_1", "invalid quote")
+        await service.reject_evidence_quote(initiator, "exe_0195f3a0000070018234567890abcdef", "evq_1", "invalid quote")
 
 
 @pytest.mark.asyncio
@@ -1418,7 +1458,7 @@ async def test_stream_status_handles_app_exception_interrupted() -> None:
     """Test stream_status handles AppException/OSError during polling by yielding error event."""
     service, repo = _create_test_service()
     rec = _make_test_record(
-        id="exe_0000000000000000",
+        id="exe_0195f3a0000070008000000000000000",
         organization_id="org_test",
         created_by="usr_owner",
     )
@@ -1426,7 +1466,7 @@ async def test_stream_status_handles_app_exception_interrupted() -> None:
     service.get_execution = AsyncMock(side_effect=[rec, OSError("Connection dropped")])
 
     initiator = TokenData(id="usr_owner", role=UserRole.ADMIN, organization_id="org_test")
-    events = [event async for event in service.stream_status(initiator, "exe_0000000000000000")]
+    events = [event async for event in service.stream_status(initiator, "exe_0195f3a0000070008000000000000000")]
     assert len(events) == 1
     assert "event: error" in events[0]
     assert "SSE_STREAM_INTERRUPTED" in events[0]
@@ -1441,33 +1481,35 @@ async def test_resumption_service_full_branches_and_rbac() -> None:
     resumption = ExecutionResumptionService(exec_repo=repo, workflow_repo=repo, usage_service=usage_mock)
 
     initiator_member = TokenData(
-        id="usr_0123456789abcdef", role=UserRole.MEMBER, organization_id="org_0123456789abcdef"
+        id="usr_0195f3a0000070008123456789abcdef",
+        role=UserRole.MEMBER,
+        organization_id="org_0195f3a0000070008123456789abcdef",
     )
     with pytest.raises(ResourceNotFoundError):
-        await resumption.resume_execution(initiator_member, "exe_0123456789abcdef", AsyncMock())
+        await resumption.resume_execution(initiator_member, "exe_0195f3a0000070008123456789abcdef", AsyncMock())
 
     alien_rec = _make_test_record(
-        execution_id="exe_0123456789abcdef",
-        organization_id="org_fedcba9876543210",
-        created_by="usr_fedcba9876543210",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a00000700f8edcba9876543210",
+        created_by="usr_0195f3a00000700f8edcba9876543210",
         status=ExecutionStatus.FAILED,
     )
     repo.set_execution(alien_rec)
     with pytest.raises(PermissionDeniedError):
-        await resumption.resume_execution(initiator_member, "exe_0123456789abcdef", AsyncMock())
+        await resumption.resume_execution(initiator_member, "exe_0195f3a0000070008123456789abcdef", AsyncMock())
 
     # Workflow missing branch
     assert await resumption.check_resumability(alien_rec) is False
 
-    wf = _make_test_workflow(workflow_id="wor_0123456789abcdef", version=2, default_profile_id=None)
+    wf = _make_test_workflow(workflow_id="wor_0195f3a0000070008123456789abcdef", version=2, default_profile_id=None)
     repo.set_workflow(wf)
 
     # metadata is None version fallback branch (drifted version 1 != 2)
     rec_no_meta_drift = _make_test_record(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
-        created_by="usr_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
+        created_by="usr_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.FAILED,
         metadata=None,
         workflow_version=1,
@@ -1476,10 +1518,10 @@ async def test_resumption_service_full_branches_and_rbac() -> None:
 
     # Quota exceeded branch in check_resumability
     rec_valid_version = _make_test_record(
-        execution_id="exe_0123456789abcdef",
-        workflow_id="wor_0123456789abcdef",
-        organization_id="org_0123456789abcdef",
-        created_by="usr_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        organization_id="org_0195f3a0000070008123456789abcdef",
+        created_by="usr_0195f3a0000070008123456789abcdef",
         status=ExecutionStatus.FAILED,
         metadata=ExecutionMetadata(workflow_version=2),
         workflow_version=2,
@@ -1493,9 +1535,9 @@ async def test_resumption_service_full_branches_and_rbac() -> None:
 
     repo.set_execution(rec_valid_version)
     arq_pool = AsyncMock()
-    resumed = await resumption.resume_execution(initiator_member, "exe_0123456789abcdef", arq_pool)
+    resumed = await resumption.resume_execution(initiator_member, "exe_0195f3a0000070008123456789abcdef", arq_pool)
     assert resumed.status == ExecutionStatus.RUNNING
-    persisted = await repo.get_execution("exe_0123456789abcdef")
+    persisted = await repo.get_execution("exe_0195f3a0000070008123456789abcdef")
     assert persisted is not None
     assert persisted.status == ExecutionStatus.RUNNING
     arq_pool.enqueue_job.assert_called_once()

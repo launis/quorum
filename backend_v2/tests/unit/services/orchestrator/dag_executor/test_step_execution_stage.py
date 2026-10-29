@@ -74,15 +74,15 @@ def _build_state(
     trace: list[TraceEvent] | None = None,
 ) -> WorkflowExecutionState:
     wf = Workflow(
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_step_exec",
         name=I18nText(translations={"en": "Step Exec WF", "fi": "Step Exec WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
         status="active",
         version=1,
         historical_context_mode=HistoricalContextMode.DISABLED,
-        default_profile_id="prf_1111222233334444",
-        model_registry_id="sys_1111222233334444",
+        default_profile_id="prf_0195f3a0000070018111222233334444",
+        model_registry_id="sys_0195f3a0000070018111222233334444",
         steps=steps,
     )
     statuses = step_statuses or {}
@@ -95,7 +95,7 @@ def _build_state(
         for s in steps
     ]
     rec = ExecutionRecord(
-        id="exe_1111222233334444",
+        id="exe_0195f3a0000070018111222233334444",
         workflow_id=wf.id,
         target_locale="en",
         raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "input"}),
@@ -107,7 +107,7 @@ def _build_state(
         execution_trace=list(trace) if trace else [],
         metadata=ExecutionMetadata(
             workflow_version=1,
-            model_registry_id="sys_1111222233334444",
+            model_registry_id="sys_0195f3a0000070018111222233334444",
             global_context_vars=GlobalContextVarsDTO(language="en", target_locale="en"),
         ),
     )
@@ -131,7 +131,7 @@ async def test_execute_dag_step_wrapper_reduces_matrix_and_commits_trace() -> No
     """Contract: execute_dag_step_wrapper prepares context, reduces matrix, runs NodeExecutor, and commits trace."""
     repo = InMemoryUnifiedWorkflowRepository()
     bp = Step(
-        id="stp_1111222233334444",
+        id="stp_0195f3a0000070018111222233334444",
         slug="synth_step",
         name=I18nText(translations={"en": "Synth", "fi": "Synteesi"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -142,7 +142,7 @@ async def test_execute_dag_step_wrapper_reduces_matrix_and_commits_trace() -> No
         mcp_tool_params={},
     )
     step_rule = StepRule(
-        id="stp_aaaa1111bbbb2222",
+        id="stp_0195f3a00000700a8aaa1111bbbb2222",
         task_blueprint=bp.id,
         depends_on=[],
         input_mappings={},
@@ -239,17 +239,19 @@ async def test_execute_dag_step_wrapper_reduces_matrix_and_commits_trace() -> No
 @pytest.mark.asyncio
 async def test_prepare_step_strategy_context_upstream_causal_graph_and_failure_branches() -> None:
     """Verify prepare_step_strategy_context extracts causal graphs from trace/snapshot and enforces fail-fast gates."""
-    causal_step = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444")
+    causal_step = StepRule(
+        id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444"
+    )
     tda_step = StepRule(
-        id="stp_5555666677778888",
-        task_blueprint="stp_5555666677778888",
+        id="stp_0195f3a0000070058555666677778888",
+        task_blueprint="stp_0195f3a0000070058555666677778888",
         depends_on=[causal_step.id],
         causal_source_step_id=causal_step.id,
     )
     graph = CausalGraphPayloadDTO(
         nodes=[
             CausalNodeDTO(
-                node_id="tda_1111222233334444",
+                node_id="tda_0195f3a0000070018111222233334444",
                 claim="Claim A",
                 source_quotes=("Quote A",),
                 paragraph_ref="P1",
@@ -338,7 +340,7 @@ async def test_prepare_step_strategy_context_upstream_causal_graph_and_failure_b
 
     # 6. MatrixReducer failure raises WorkflowExecutionError
     bp = Step(
-        id="stp_5555666677778888",
+        id="stp_0195f3a0000070058555666677778888",
         slug="synth_fail",
         name=I18nText(translations={"en": "Synth", "fi": "Synteesi"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
@@ -348,7 +350,7 @@ async def test_prepare_step_strategy_context_upstream_causal_graph_and_failure_b
         pre_hooks=["atom_flattening_hook"],
         mcp_tool_params={},
     )
-    synth_rule = StepRule(id="stp_aaaa1111bbbb2222", task_blueprint=bp.id)
+    synth_rule = StepRule(id="stp_0195f3a00000700a8aaa1111bbbb2222", task_blueprint=bp.id)
     state_red_fail = _build_state(steps=[synth_rule], step_definitions={bp.id: bp})
     with (
         patch(
@@ -364,10 +366,12 @@ async def test_prepare_step_strategy_context_upstream_causal_graph_and_failure_b
 async def test_execute_dag_step_wrapper_resumption_skip_blocked_dependency_and_error_recording() -> None:
     """Verify execute_dag_step_wrapper skips PASSED steps, blocks on failed dependencies, and records step errors."""
     repo = InMemoryUnifiedWorkflowRepository()
-    dep_step = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444")
+    dep_step = StepRule(
+        id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444"
+    )
     child_step = StepRule(
-        id="stp_5555666677778888",
-        task_blueprint="stp_1111222233334444",
+        id="stp_0195f3a0000070058555666677778888",
+        task_blueprint="stp_0195f3a0000070018111222233334444",
         depends_on=[dep_step.id],
     )
 
@@ -464,17 +468,19 @@ async def test_execute_dag_step_wrapper_resumption_skip_blocked_dependency_and_e
     assert _extract_app_exception_error_code(app_exc_str) == "CUSTOM_STR_CODE"
 
     # Verify _parse_causal_graph_candidate direct CausalGraphPayloadDTO branch and snapshot dict branch
-    causal_step_snap = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444")
+    causal_step_snap = StepRule(
+        id="stp_0195f3a0000070018111222233334444", task_blueprint="stp_0195f3a0000070018111222233334444"
+    )
     tda_step_snap = StepRule(
-        id="stp_5555666677778888",
-        task_blueprint="stp_5555666677778888",
+        id="stp_0195f3a0000070058555666677778888",
+        task_blueprint="stp_0195f3a0000070058555666677778888",
         depends_on=[causal_step_snap.id],
         causal_source_step_id=causal_step_snap.id,
     )
     graph_dto = CausalGraphPayloadDTO(
         nodes=[
             CausalNodeDTO(
-                node_id="tda_1111222233334444",
+                node_id="tda_0195f3a0000070018111222233334444",
                 claim="Claim A",
                 source_quotes=("Quote A",),
                 paragraph_ref="P1",

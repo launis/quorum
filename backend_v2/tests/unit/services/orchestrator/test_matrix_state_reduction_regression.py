@@ -31,7 +31,7 @@ from backend_v2.tests.unit.hooks.test_scoring import (
 def _build_test_hook_state(step_id: str = "st_matrix") -> HookState:
     """Build a standard HookState for matrix testing."""
     return HookState(
-        execution_id="exec_0000000000000001",
+        execution_id="exec_0195f3a0000070008000000000000001",
         workflow_id="wf_1",
         step_id=step_id,
         task_blueprint=step_id,
@@ -92,7 +92,7 @@ async def test_apply_scoring_logic_hook_reads_evaluative_matrices_from_global_co
     """
     eval_matrices = {"blk_1": 80.0, "blk_2": 90.0}
     state = HookState(
-        execution_id="exec_0000000000000001",
+        execution_id="exec_0195f3a0000070008000000000000001",
         workflow_id="wf_1",
         step_id="step_final",
         task_blueprint="step_final",

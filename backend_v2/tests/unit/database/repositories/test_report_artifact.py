@@ -29,10 +29,10 @@ from backend_v2.tests.factories.model_factories import ReportArtifactFactory
 
 
 def _build_test_report_artifact(
-    report_id: str = "rep_a1b2c3d4e5f60718",
-    execution_id: str = "exe_1234567890abcdef",
-    workflow_id: str = "wf_abcdef1234567890",
-    profile_id: str = "prf_fedcba0987654321",
+    report_id: str = "rep_0195f3a00000700a81b2c3d4e5f60718",
+    execution_id: str = "exe_0195f3a0000070018234567890abcdef",
+    workflow_id: str = "wf_0195f3a00000700a8bcdef1234567890",
+    profile_id: str = "prf_0195f3a00000700f8edcba0987654321",
     locale: str = "fi",
     title: str = "Test Forensic Report",
     status: ReportStatus = ReportStatus.PENDING,
@@ -166,7 +166,7 @@ async def test_get_report_artifact_validation_failure() -> None:
 async def test_list_report_artifacts_by_execution_found(sample_report: ReportArtifact) -> None:
     """Positive: retrieves all report artifacts matching execution_id."""
     second_report = _build_test_report_artifact(
-        report_id="rep_b2c3d4e5f6071829",
+        report_id="rep_0195f3a00000700b82c3d4e5f6071829",
         profile_id="prf_second00000000",
         title="Second Report",
         status=ReportStatus.READY,
@@ -206,7 +206,7 @@ async def test_list_report_artifacts_by_execution_validation_failure() -> None:
 
     repo = ReportArtifactRepositoryImpl(driver=mock_driver)
     with pytest.raises(AppException) as exc_info:
-        await repo.list_report_artifacts_by_execution("exe_1234567890abcdef")
+        await repo.list_report_artifacts_by_execution("exe_0195f3a0000070018234567890abcdef")
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -314,10 +314,10 @@ async def test_delete_report_artifact_success() -> None:
     mock_driver.delete.return_value = True
 
     repo = ReportArtifactRepositoryImpl(driver=mock_driver)
-    result = await repo.delete_report_artifact("rep_a1b2c3d4e5f60718")
+    result = await repo.delete_report_artifact("rep_0195f3a00000700a81b2c3d4e5f60718")
 
     assert result is True
-    mock_driver.delete.assert_awaited_once_with(_COLLECTION_NAME, "rep_a1b2c3d4e5f60718")
+    mock_driver.delete.assert_awaited_once_with(_COLLECTION_NAME, "rep_0195f3a00000700a81b2c3d4e5f60718")
 
 
 @pytest.mark.asyncio

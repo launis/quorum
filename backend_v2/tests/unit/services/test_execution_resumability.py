@@ -18,7 +18,7 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 
 def _create_workflow(
-    workflow_id: str = "wor_1234567890abcdef",
+    workflow_id: str = "wor_0195f3a0000070018234567890abcdef",
     version: int = 1,
     steps: list[StepRule] | None = None,
 ) -> Workflow:
@@ -31,15 +31,15 @@ def _create_workflow(
         version=version,
         organization_id="org_1",
         default_strictness_level=50,
-        model_registry_id="sys_e26807f3bfa3454d",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=steps or [],
     )
 
 
 def _create_record(
-    execution_id: str = "exe_1234567890abcdef",
-    workflow_id: str = "wor_1234567890abcdef",
+    execution_id: str = "exe_0195f3a0000070018234567890abcdef",
+    workflow_id: str = "wor_0195f3a0000070018234567890abcdef",
     status: ExecutionStatus = ExecutionStatus.FAILED,
     workflow_version: int = 1,
     step_states: dict[str, ExecutionStepState] | None = None,
@@ -55,11 +55,11 @@ def _create_record(
         organization_id=organization_id,
         created_by=created_by,
         workflow_version=workflow_version,
-        output_profile_id="prf_0123456789abcdef",
-        active_profile_id="prf_0123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
+        active_profile_id="prf_0195f3a0000070008123456789abcdef",
         step_states=step_states or {},
         execution_trace=execution_trace or [],
-        profile_syntheses={"prf_0123456789abcdef": RenderedSynthesisCache()},
+        profile_syntheses={"prf_0195f3a0000070008123456789abcdef": RenderedSynthesisCache()},
         context_variables=ContextVariablesDTO(),
     )
 
@@ -227,7 +227,7 @@ async def test_resume_execution_firewall_denied() -> None:
     service, repo = _create_test_service()
 
     record = _create_record(
-        execution_id="exe_1111111111111111",
+        execution_id="exe_0195f3a0000070018111111111111111",
         status=ExecutionStatus.PASSED,
         organization_id="org_1",
         created_by="u2",
@@ -238,7 +238,9 @@ async def test_resume_execution_firewall_denied() -> None:
     arq_pool = AsyncMock()
 
     with pytest.raises(AppException) as exc_info:
-        await service.resume_execution(initiator=initiator, execution_id="exe_1111111111111111", arq_pool=arq_pool)
+        await service.resume_execution(
+            initiator=initiator, execution_id="exe_0195f3a0000070018111111111111111", arq_pool=arq_pool
+        )
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.error_code == "UNRESUMABLE_STATE_ERROR"

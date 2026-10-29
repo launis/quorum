@@ -44,9 +44,9 @@ def sample_output_profile() -> OutputProfile:
         Validated OutputProfile domain model.
     """
     return OutputProfile(
-        id="prf_1234567890abcdef",
+        id="prf_0195f3a0000070018234567890abcdef",
         slug="exec-summary",
-        workflow_id="wf_1234567890abcdef",
+        workflow_id="wf_0195f3a0000070018234567890abcdef",
         name=I18nText(translations={"fi": "Tiivistelmä", "en": "Summary"}),
         target_block_order=[
             TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
@@ -77,9 +77,7 @@ async def test_output_profile_crud_roundtrip(
     assert len(all_models_alias) == 1
     assert all_models_alias[0].id == sample_output_profile.id
 
-    updated_profile = sample_output_profile.model_copy(
-        update={"tone_instruction": "Concise executive style."}
-    )
+    updated_profile = sample_output_profile.model_copy(update={"tone_instruction": "Concise executive style."})
     updated_ok = await repo.update_output_profile(sample_output_profile.id, updated_profile)
     assert updated_ok is True
 
@@ -96,7 +94,7 @@ async def test_output_profile_crud_roundtrip(
 @pytest.mark.asyncio
 async def test_get_output_profile_by_id_not_found(repo: OutputProfileRepositoryImpl) -> None:
     """Negative boundary: get_output_profile_by_id returns None when profile does not exist."""
-    assert await repo.get_output_profile_by_id("prf_0000000000000000") is None
+    assert await repo.get_output_profile_by_id("prf_0195f3a0000070008000000000000000") is None
 
 
 @pytest.mark.asyncio
@@ -105,13 +103,13 @@ async def test_update_output_profile_not_found(
     sample_output_profile: OutputProfile,
 ) -> None:
     """Negative boundary: update_output_profile returns False when profile does not exist."""
-    assert await repo.update_output_profile("prf_0000000000000000", sample_output_profile) is False
+    assert await repo.update_output_profile("prf_0195f3a0000070008000000000000000", sample_output_profile) is False
 
 
 @pytest.mark.asyncio
 async def test_delete_output_profile_not_found(repo: OutputProfileRepositoryImpl) -> None:
     """Negative boundary: delete_output_profile returns False when profile does not exist."""
-    assert await repo.delete_output_profile("prf_0000000000000000") is False
+    assert await repo.delete_output_profile("prf_0195f3a0000070008000000000000000") is False
 
 
 @pytest.mark.asyncio
@@ -122,16 +120,16 @@ async def test_get_output_profile_by_id_corrupted_raises_app_exception(
     """Negative: get_output_profile_by_id raises AppException(500) on corrupted record."""
     await driver.upsert(
         "output_profiles",
-        {"id": "prf_1111111111111111", "invalid_field": "corrupted"},
-        "prf_1111111111111111",
+        {"id": "prf_0195f3a0000070018111111111111111", "invalid_field": "corrupted"},
+        "prf_0195f3a0000070018111111111111111",
     )
 
     with pytest.raises(AppException) as exc_info:
-        await repo.get_output_profile_by_id("prf_1111111111111111")
+        await repo.get_output_profile_by_id("prf_0195f3a0000070018111111111111111")
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "prf_1111111111111111" in exc_info.value.message
+    assert "prf_0195f3a0000070018111111111111111" in exc_info.value.message
 
 
 @pytest.mark.asyncio
@@ -142,8 +140,8 @@ async def test_get_all_output_profiles_corrupted_with_id_raises_app_exception(
     """Negative: get_all_output_profiles raises AppException(500) when stored record with ID is invalid."""
     await driver.upsert(
         "output_profiles",
-        {"id": "prf_2222222222222222", "invalid_field": "corrupted"},
-        "prf_2222222222222222",
+        {"id": "prf_0195f3a0000070028222222222222222", "invalid_field": "corrupted"},
+        "prf_0195f3a0000070028222222222222222",
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -151,7 +149,7 @@ async def test_get_all_output_profiles_corrupted_with_id_raises_app_exception(
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "prf_2222222222222222" in exc_info.value.message
+    assert "prf_0195f3a0000070028222222222222222" in exc_info.value.message
 
 
 @pytest.mark.asyncio

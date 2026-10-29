@@ -35,9 +35,9 @@ def mock_get_current_user_member() -> TokenData:
     """Provide a standard MEMBER role user token for RBAC and router tests."""
     return TokenData(
         email="member@test.com",
-        id="usr_1234567890abcdef",
+        id="usr_0195f3a0000070018234567890abcdef",
         role=UserRole.MEMBER,
-        organization_id="org_1234567890abcdef",
+        organization_id="org_0195f3a0000070018234567890abcdef",
     )
 
 
@@ -45,9 +45,9 @@ def mock_get_current_user_root() -> TokenData:
     """Provide a ROOT superuser token for administrative test scenarios."""
     return TokenData(
         email="root@test.com",
-        id="usr_abcdef1234567890",
+        id="usr_0195f3a00000700a8bcdef1234567890",
         role=UserRole.ROOT,
-        organization_id="org_1234567890abcdef",
+        organization_id="org_0195f3a0000070018234567890abcdef",
     )
 
 
@@ -86,7 +86,7 @@ def test_execution_workflows_router_metadata() -> None:
 
 def test_workflow_rbac_save_member_forbidden(client_member: TestClient) -> None:
     """Negative RBAC test: MEMBER role cannot save or mutate studio workflows."""
-    workflow = WorkflowFactory.build(organization_id="org_1234567890abcdef")
+    workflow = WorkflowFactory.build(organization_id="org_0195f3a0000070018234567890abcdef")
     payload = workflow.model_dump(mode="json")
     response = client_member.put(f"/api/v2/studio/workflows/{workflow.id}", json=payload)
 
@@ -99,7 +99,7 @@ def test_workflow_rbac_delete_member_forbidden(
     fake_workflow_repo: InMemoryWorkflowRepository,
 ) -> None:
     """Negative RBAC test: MEMBER role cannot delete studio workflows."""
-    workflow = WorkflowFactory.build(organization_id="org_1234567890abcdef")
+    workflow = WorkflowFactory.build(organization_id="org_0195f3a0000070018234567890abcdef")
     fake_workflow_repo._save_isolated(workflow.id, workflow)
 
     response = client_member.delete(f"/api/v2/studio/workflows/{workflow.id}")
@@ -119,7 +119,7 @@ def test_get_workflow_ui_schema_success(
         required=True,
     )
     workflow = WorkflowFactory.build(
-        organization_id="org_1234567890abcdef",
+        organization_id="org_0195f3a0000070018234567890abcdef",
         expected_inputs=[expected_input],
     )
     fake_workflow_repo._save_isolated(workflow.id, workflow)
@@ -137,7 +137,7 @@ async def test_get_workflow_ui_schema_not_found_raises_app_exception(
     execution_service: ExecutionService,
 ) -> None:
     """Negative test: Missing workflow ID raises ResourceNotFoundError (AppException) with RESOURCE_NOT_FOUND."""
-    missing_id = "wor_0000000000000000"
+    missing_id = "wor_0195f3a0000070008000000000000000"
     with pytest.raises(AppException) as exc_info:
         await get_workflow_ui_schema(
             workflow_id=missing_id,
@@ -176,7 +176,7 @@ async def test_get_workflow_ui_schema_repository_fault_raises_app_exception(
     execution_service: ExecutionService,
 ) -> None:
     """Negative fault test: Repository failure propagates AppException cleanly with fault cleanup."""
-    workflow = WorkflowFactory.build(organization_id="org_1234567890abcdef")
+    workflow = WorkflowFactory.build(organization_id="org_0195f3a0000070018234567890abcdef")
     fake_workflow_repo._save_isolated(workflow.id, workflow)
     fake_workflow_repo.inject_fault(
         "get_workflow_by_id",

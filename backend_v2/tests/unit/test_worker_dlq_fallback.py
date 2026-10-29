@@ -13,7 +13,7 @@ async def test_generate_report_artifact_job_catches_service_unavailable_error() 
     instead of bubbling the exception up and crashing the Arq worker.
     """
     ctx = {"redis": AsyncMock()}
-    report_id = "rep_1234567890abcdef"
+    report_id = "rep_0195f3a0000070018234567890abcdef"
 
     mock_service = MagicMock()
     mock_service.process_artifact_compilation = AsyncMock(

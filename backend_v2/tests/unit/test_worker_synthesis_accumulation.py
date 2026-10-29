@@ -25,24 +25,26 @@ async def _setup_mock_repo(fake_repo: InMemoryUnifiedWorkflowRepository, executi
     await fake_repo.save_execution(execution)
 
     wf_dict = {
-        "id": "wf_1234567812345678",
+        "id": "wf_0195f3a0000070018234567812345678",
         "slug": "test_workflow",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "historical_context_mode": "DISABLED",
         "version": 1,
-        "default_profile_id": "prof_1111111111111111",
-        "model_registry_id": "sys_1111222233334444",
+        "default_profile_id": "prof_0195f3a0000070018111111111111111",
+        "model_registry_id": "sys_0195f3a0000070018111222233334444",
         "expected_inputs": [],
-        "steps": [{"id": "sr_1234567812345678", "task_blueprint": "sp_1234567812345678"}],
+        "steps": [
+            {"id": "sr_0195f3a0000070018234567812345678", "task_blueprint": "sp_0195f3a0000070018234567812345678"}
+        ],
     }
     await fake_repo.save_workflow(Workflow.model_validate(wf_dict, strict=False))
 
     fake_repo.seed_raw_step(
-        "sp_1234567812345678",
+        "sp_0195f3a0000070018234567812345678",
         {
-            "id": "sp_1234567812345678",
+            "id": "sp_0195f3a0000070018234567812345678",
             "slug": "synthesis_step",
             "name": {"translations": {"en": "Synth"}},
             "type": "logic",
@@ -60,7 +62,7 @@ async def _setup_mock_repo(fake_repo: InMemoryUnifiedWorkflowRepository, executi
         "rpm_limit": 1000,
     }
     model_reg = {
-        "id": "sys_1111222233334444",
+        "id": "sys_0195f3a0000070018111222233334444",
         "name": "Default Test Registry",
         "type": "model_registry",
         "slug": "model_registry",
@@ -72,10 +74,12 @@ async def _setup_mock_repo(fake_repo: InMemoryUnifiedWorkflowRepository, executi
             "reasoning": profile,
         },
     }
-    fake_repo.set_model_registry(SystemConfigModelRegistry.model_validate(model_reg), "sys_1111222233334444")
+    fake_repo.set_model_registry(
+        SystemConfigModelRegistry.model_validate(model_reg), "sys_0195f3a0000070018111222233334444"
+    )
 
     pb_1 = {
-        "id": "pb_1111111111111111",
+        "id": "pb_0195f3a0000070018111111111111111",
         "slug": "system_prompt",
         "type": "instruction",
         "label": {"translations": {"en": "System"}},
@@ -83,7 +87,7 @@ async def _setup_mock_repo(fake_repo: InMemoryUnifiedWorkflowRepository, executi
         "category_id": "system_rule",
     }
     pb_2 = {
-        "id": "pb_2222222222222222",
+        "id": "pb_0195f3a0000070028222222222222222",
         "slug": "synthesis_prompt",
         "type": "instruction",
         "label": {"translations": {"en": "Synth System"}},
@@ -95,16 +99,16 @@ async def _setup_mock_repo(fake_repo: InMemoryUnifiedWorkflowRepository, executi
 
     output_prof = {
         "slug": "test_slug",
-        "workflow_id": "wf_1234567812345678",
+        "workflow_id": "wf_0195f3a0000070018234567812345678",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "id": "prof_1111111111111111",
+        "id": "prof_0195f3a0000070018111111111111111",
         "max_extension_items": 3,
         "synthesis_length_constraint": 1000,
         "tone_instruction": "Professional",
         "matrix_1d_synthesis_directive": "1D directive",
         "matrix_synthesis_groups": [
             {
-                "id": "grp_1111111111111111",
+                "id": "grp_0195f3a0000070018111111111111111",
                 "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
                 "target_blocks": ["blk_1"],
             }
@@ -126,9 +130,9 @@ async def test_worker_synthesis_accumulates_costs_monotonically(
     fake_repo = InMemoryUnifiedWorkflowRepository()
 
     mock_record_initial = ExecutionRecord(
-        id="exe_1234567812345678",
-        workflow_id="wf_1234567812345678",
-        output_profile_id="prof_1111111111111111",
+        id="exe_0195f3a0000070018234567812345678",
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        output_profile_id="prof_0195f3a0000070018111111111111111",
         status=ExecutionStatus.PASSED,
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -143,7 +147,7 @@ async def test_worker_synthesis_accumulates_costs_monotonically(
                 v=1,
                 timestamp=datetime.now(timezone.utc),
                 event_type="output",
-                step_name="sr_1234567812345678",
+                step_name="sr_0195f3a0000070018234567812345678",
                 content={"blk_synth12345678": {"synthesized_markdown": "Test MD"}},
             )
         ],
@@ -154,13 +158,13 @@ async def test_worker_synthesis_accumulates_costs_monotonically(
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=fake_repo):
         # --- Run 1: First Synthesis Execution ---
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exe_1234567812345678",
+            execution_id="exe_0195f3a0000070018234567812345678",
             accept_language="fi",
-            profile_id="prof_1111111111111111",
+            profile_id="prof_0195f3a0000070018111111111111111",
             redis=None,
         )
 
-        rec1 = await fake_repo.get_execution("exe_1234567812345678")
+        rec1 = await fake_repo.get_execution("exe_0195f3a0000070018234567812345678")
         assert rec1 is not None
         run1_tokens = rec1.cumulative_synthesis_tokens
         run1_cost = rec1.cumulative_synthesis_cost
@@ -173,13 +177,13 @@ async def test_worker_synthesis_accumulates_costs_monotonically(
 
         # --- Run 2: Second Synthesis Execution (Accumulation) ---
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exe_1234567812345678",
+            execution_id="exe_0195f3a0000070018234567812345678",
             accept_language="fi",
-            profile_id="prof_1111111111111111",
+            profile_id="prof_0195f3a0000070018111111111111111",
             redis=None,
         )
 
-        rec2 = await fake_repo.get_execution("exe_1234567812345678")
+        rec2 = await fake_repo.get_execution("exe_0195f3a0000070018234567812345678")
         assert rec2 is not None
         run2_tokens = rec2.cumulative_synthesis_tokens
         run2_cost = rec2.cumulative_synthesis_cost

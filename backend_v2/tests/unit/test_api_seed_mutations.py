@@ -49,19 +49,23 @@ def get_seed_data() -> Any:
 
 def get_audit_workflow() -> Any:
     return {
-        "id": "wf_1111111111111111",
+        "id": "wf_0195f3a0000070018111111111111111",
         "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_mmmm1111mmmm1111",
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
         "slug": "valid_wf",
         "expected_inputs": [],
         "steps": [
-            {"id": "blk_aaaa111111111111", "task_blueprint": "bp_1", "depends_on": []},
-            {"id": "blk_cccc333333333333", "task_blueprint": "bp_3", "depends_on": ["blk_aaaa111111111111"]},
+            {"id": "blk_0195f3a00000700a8aaa111111111111", "task_blueprint": "bp_1", "depends_on": []},
+            {
+                "id": "blk_0195f3a00000700c8ccc333333333333",
+                "task_blueprint": "bp_3",
+                "depends_on": ["blk_0195f3a00000700a8aaa111111111111"],
+            },
         ],
     }
 
@@ -87,7 +91,7 @@ def get_seed_step() -> Any:
         "name": {"translations": {"en": "Step", "fi": "Step"}},
         "execution_logic": "prompt",
         "role_block_id": None,
-        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "extraction_protocol_block_id": "blk_0195f3a000007005873802341db9d68c",
         "criteria_block_ids": ["blk_test1234567"],
         "model_strategy": "fast",
     }

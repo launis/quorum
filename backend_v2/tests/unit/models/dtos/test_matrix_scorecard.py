@@ -113,13 +113,13 @@ def test_tda_scorecard_atom_warning_intent_on_override() -> None:
 
 def test_matrix_scorecard_row_dto() -> None:
     row = MatrixScorecardRowDTO(
-        block_id="blk_1234567890123456",
+        block_id="blk_0195f3a0000070018234567890123456",
         name="Row Name",
         label_i18n=I18nText(translations={"en": "English", "fi": "Suomi"}),
         row_explanation="Explanation of the row",
         is_evaluative=True,
     )
-    assert row.block_id == "blk_1234567890123456"
+    assert row.block_id == "blk_0195f3a0000070018234567890123456"
     assert row.name == "Row Name"
     assert row.label_i18n.resolve("fi") == "Suomi"
     assert row.is_evaluative is True

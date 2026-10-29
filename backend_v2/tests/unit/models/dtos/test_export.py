@@ -87,7 +87,7 @@ def test_export_forensic_atom_dto_frozen() -> None:
 def test_export_matrix_summary_row_dto_valid() -> None:
     """Test valid instantiation and field serialization for ExportMatrixSummaryRowDTO."""
     row = ExportMatrixSummaryRowDTO(
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
         label="Operational Excellence",
         context_target="Internal Processes",
         distribution="3 / 2 / 1",
@@ -101,7 +101,7 @@ def test_export_matrix_summary_row_dto_valid() -> None:
         criteria="6/8",
         source="doc_engineering_handbook",
     )
-    assert row.execution_id == "exe_0123456789abcdef"
+    assert row.execution_id == "exe_0195f3a0000070008123456789abcdef"
     assert row.label == "Operational Excellence"
     assert row.context_target == "Internal Processes"
     assert row.distribution == "3 / 2 / 1"
@@ -163,7 +163,7 @@ def test_export_matrix_summary_row_dto_frozen() -> None:
 def test_export_denormalized_flat_row_dto_valid() -> None:
     """Test valid instantiation and field serialization for ExportDenormalizedFlatRowDTO."""
     row = ExportDenormalizedFlatRowDTO(
-        execution_id="exe_0123456789abcdef",
+        execution_id="exe_0195f3a0000070008123456789abcdef",
         matrix_label="Operational Excellence",
         context_target="Internal Processes",
         distribution="3 / 2 / 1",
@@ -183,7 +183,7 @@ def test_export_denormalized_flat_row_dto_valid() -> None:
         is_inverse=0,
         points_awarded=1.0,
     )
-    assert row.execution_id == "exe_0123456789abcdef"
+    assert row.execution_id == "exe_0195f3a0000070008123456789abcdef"
     assert row.matrix_label == "Operational Excellence"
     assert row.context_target == "Internal Processes"
     assert row.distribution == "3 / 2 / 1"

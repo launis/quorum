@@ -32,13 +32,13 @@ async def test_successful_evaluation() -> None:
     evaluator = TopologicalEvaluator()
 
     nodes = [
-        LinkedAtomGraph(atom=create_atom("tda_1111111111111111")),
+        LinkedAtomGraph(atom=create_atom("tda_0195f3a0000070018111111111111111")),
         LinkedAtomGraph(
-            atom=create_atom("tda_2222222222222222"),
+            atom=create_atom("tda_0195f3a0000070028222222222222222"),
             depends_on=[
                 CausalEdge(
                     edge_reasoning="reason",
-                    tda_id="tda_1111111111111111",
+                    tda_id="tda_0195f3a0000070018111111111111111",
                     source_id="src",
                     expected_status=ExecutionStatus.PASSED,
                 )
@@ -62,8 +62,8 @@ async def test_successful_evaluation() -> None:
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)
 
-    assert states["tda_1111111111111111"].status == ExecutionStatus.PASSED
-    assert states["tda_2222222222222222"].status == ExecutionStatus.PASSED
+    assert states["tda_0195f3a0000070018111111111111111"].status == ExecutionStatus.PASSED
+    assert states["tda_0195f3a0000070028222222222222222"].status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -73,11 +73,11 @@ async def test_phantom_edge_isolation() -> None:
 
     nodes = [
         LinkedAtomGraph(
-            atom=create_atom("tda_1111111111111111"),
+            atom=create_atom("tda_0195f3a0000070018111111111111111"),
             depends_on=[
                 CausalEdge(
                     edge_reasoning="reason",
-                    tda_id="tda_9999999999999999",  # Does not exist
+                    tda_id="tda_0195f3a0000070098999999999999999",  # Does not exist
                     source_id="src",
                     expected_status=ExecutionStatus.PASSED,
                 )
@@ -101,8 +101,8 @@ async def test_phantom_edge_isolation() -> None:
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)
 
-    assert states["tda_1111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
-    assert states["tda_1111111111111111"].evaluation_reasoning == "UNRESOLVED_DEPENDENCY"
+    assert states["tda_0195f3a0000070018111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
+    assert states["tda_0195f3a0000070018111111111111111"].evaluation_reasoning == "UNRESOLVED_DEPENDENCY"
 
 
 @pytest.mark.asyncio
@@ -112,28 +112,28 @@ async def test_cyclic_dependency_detected() -> None:
 
     nodes = [
         LinkedAtomGraph(
-            atom=create_atom("tda_1111111111111111"),
+            atom=create_atom("tda_0195f3a0000070018111111111111111"),
             depends_on=[
                 CausalEdge(
                     edge_reasoning="reason",
-                    tda_id="tda_2222222222222222",
+                    tda_id="tda_0195f3a0000070028222222222222222",
                     source_id="src",
                     expected_status=ExecutionStatus.PASSED,
                 )
             ],
         ),
         LinkedAtomGraph(
-            atom=create_atom("tda_2222222222222222"),
+            atom=create_atom("tda_0195f3a0000070028222222222222222"),
             depends_on=[
                 CausalEdge(
                     edge_reasoning="reason",
-                    tda_id="tda_1111111111111111",
+                    tda_id="tda_0195f3a0000070018111111111111111",
                     source_id="src",
                     expected_status=ExecutionStatus.PASSED,
                 )
             ],
         ),
-        LinkedAtomGraph(atom=create_atom("tda_3333333333333333")),  # Unrelated
+        LinkedAtomGraph(atom=create_atom("tda_0195f3a0000070038333333333333333")),  # Unrelated
     ]
 
     async def mock_callback(
@@ -152,13 +152,13 @@ async def test_cyclic_dependency_detected() -> None:
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)
 
-    assert states["tda_1111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
-    assert states["tda_1111111111111111"].evaluation_reasoning == "CYCLIC_DEPENDENCY_DETECTED"
+    assert states["tda_0195f3a0000070018111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
+    assert states["tda_0195f3a0000070018111111111111111"].evaluation_reasoning == "CYCLIC_DEPENDENCY_DETECTED"
 
-    assert states["tda_2222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
-    assert states["tda_2222222222222222"].evaluation_reasoning == "CYCLIC_DEPENDENCY_DETECTED"
+    assert states["tda_0195f3a0000070028222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
+    assert states["tda_0195f3a0000070028222222222222222"].evaluation_reasoning == "CYCLIC_DEPENDENCY_DETECTED"
 
-    assert states["tda_3333333333333333"].status == ExecutionStatus.PASSED
+    assert states["tda_0195f3a0000070038333333333333333"].status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -168,22 +168,22 @@ async def test_blocked_cascade() -> None:
 
     nodes = [
         LinkedAtomGraph(
-            atom=create_atom("tda_1111111111111111"),
+            atom=create_atom("tda_0195f3a0000070018111111111111111"),
             depends_on=[
                 CausalEdge(
                     edge_reasoning="reason",
-                    tda_id="tda_9999999999999999",  # Phantom -> SYSTEM_ERROR
+                    tda_id="tda_0195f3a0000070098999999999999999",  # Phantom -> SYSTEM_ERROR
                     source_id="src",
                     expected_status=ExecutionStatus.PASSED,
                 )
             ],
         ),
         LinkedAtomGraph(
-            atom=create_atom("tda_2222222222222222"),
+            atom=create_atom("tda_0195f3a0000070028222222222222222"),
             depends_on=[
                 CausalEdge(
                     edge_reasoning="reason",
-                    tda_id="tda_1111111111111111",
+                    tda_id="tda_0195f3a0000070018111111111111111",
                     source_id="src",
                     expected_status=ExecutionStatus.PASSED,
                 )
@@ -207,8 +207,8 @@ async def test_blocked_cascade() -> None:
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)
 
-    assert states["tda_1111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
-    assert states["tda_2222222222222222"].status == ExecutionStatus.BLOCKED
+    assert states["tda_0195f3a0000070018111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
+    assert states["tda_0195f3a0000070028222222222222222"].status == ExecutionStatus.BLOCKED
 
 
 @pytest.mark.asyncio
@@ -217,24 +217,24 @@ async def test_na_short_circuit_cascade() -> None:
     evaluator = TopologicalEvaluator()
 
     nodes = [
-        LinkedAtomGraph(atom=create_atom("tda_1111111111111111")),
+        LinkedAtomGraph(atom=create_atom("tda_0195f3a0000070018111111111111111")),
         LinkedAtomGraph(
-            atom=create_atom("tda_2222222222222222"),
+            atom=create_atom("tda_0195f3a0000070028222222222222222"),
             depends_on=[
                 CausalEdge(
                     edge_reasoning="reason",
-                    tda_id="tda_1111111111111111",
+                    tda_id="tda_0195f3a0000070018111111111111111",
                     source_id="src",
                     expected_status=ExecutionStatus.PASSED,
                 )
             ],
         ),
         LinkedAtomGraph(
-            atom=create_atom("tda_3333333333333333"),
+            atom=create_atom("tda_0195f3a0000070038333333333333333"),
             depends_on=[
                 CausalEdge(
                     edge_reasoning="reason",
-                    tda_id="tda_2222222222222222",
+                    tda_id="tda_0195f3a0000070028222222222222222",
                     source_id="src",
                     expected_status=ExecutionStatus.PASSED,
                 )
@@ -252,7 +252,7 @@ async def test_na_short_circuit_cascade() -> None:
         for node in batch_nodes:
             dispatched_atom_ids.append(node.atom.tda_id)
             # Parent fails, so child should short-circuit to N_A
-            if node.atom.tda_id == "tda_1111111111111111":
+            if node.atom.tda_id == "tda_0195f3a0000070018111111111111111":
                 results[node.atom.tda_id] = AtomEvaluationResultDTO(
                     status=ExecutionStatus.FAILED,
                     reasoning="failed",
@@ -270,20 +270,26 @@ async def test_na_short_circuit_cascade() -> None:
 
     states = await evaluator.evaluate_graph(nodes, mock_callback)
 
-    assert states["tda_1111111111111111"].status == ExecutionStatus.FAILED
+    assert states["tda_0195f3a0000070018111111111111111"].status == ExecutionStatus.FAILED
 
     # First child short-circuits because it expected PASSED but got FAILED
-    assert states["tda_2222222222222222"].status == ExecutionStatus.N_A
-    assert "tda_1111111111111111" in states["tda_2222222222222222"].short_circuit_reason_tda_ids
+    assert states["tda_0195f3a0000070028222222222222222"].status == ExecutionStatus.N_A
+    assert (
+        "tda_0195f3a0000070018111111111111111"
+        in states["tda_0195f3a0000070028222222222222222"].short_circuit_reason_tda_ids
+    )
 
     # Second child short-circuits because it expected PASSED but got N_A
-    assert states["tda_3333333333333333"].status == ExecutionStatus.N_A
-    assert "tda_2222222222222222" in states["tda_3333333333333333"].short_circuit_reason_tda_ids
+    assert states["tda_0195f3a0000070038333333333333333"].status == ExecutionStatus.N_A
+    assert (
+        "tda_0195f3a0000070028222222222222222"
+        in states["tda_0195f3a0000070038333333333333333"].short_circuit_reason_tda_ids
+    )
 
     # Causal Markov Gating Assertion: Short-circuited nodes must NEVER be dispatched to batch callback
-    assert dispatched_atom_ids == ["tda_1111111111111111"]
-    assert "tda_2222222222222222" not in dispatched_atom_ids
-    assert "tda_3333333333333333" not in dispatched_atom_ids
+    assert dispatched_atom_ids == ["tda_0195f3a0000070018111111111111111"]
+    assert "tda_0195f3a0000070028222222222222222" not in dispatched_atom_ids
+    assert "tda_0195f3a0000070038333333333333333" not in dispatched_atom_ids
 
 
 @pytest.mark.asyncio
@@ -291,8 +297,8 @@ async def test_dlq_marking_on_app_exception() -> None:
     """Tests that when batch_evaluation_callback raises AppException, nodes are marked with SYSTEM_ERROR."""
     evaluator = TopologicalEvaluator()
     nodes = [
-        LinkedAtomGraph(atom=create_atom("tda_1111111111111111")),
-        LinkedAtomGraph(atom=create_atom("tda_2222222222222222")),
+        LinkedAtomGraph(atom=create_atom("tda_0195f3a0000070018111111111111111")),
+        LinkedAtomGraph(atom=create_atom("tda_0195f3a0000070028222222222222222")),
     ]
 
     async def failing_callback(
@@ -306,10 +312,16 @@ async def test_dlq_marking_on_app_exception() -> None:
 
     states = await evaluator.evaluate_graph(nodes, failing_callback)
 
-    assert states["tda_1111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
-    assert "EVALUATION_CRASH: Simulated callback failure" in states["tda_1111111111111111"].evaluation_reasoning
-    assert states["tda_2222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
-    assert "EVALUATION_CRASH: Simulated callback failure" in states["tda_2222222222222222"].evaluation_reasoning
+    assert states["tda_0195f3a0000070018111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
+    assert (
+        "EVALUATION_CRASH: Simulated callback failure"
+        in states["tda_0195f3a0000070018111111111111111"].evaluation_reasoning
+    )
+    assert states["tda_0195f3a0000070028222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
+    assert (
+        "EVALUATION_CRASH: Simulated callback failure"
+        in states["tda_0195f3a0000070028222222222222222"].evaluation_reasoning
+    )
 
 
 @pytest.mark.asyncio
@@ -317,8 +329,8 @@ async def test_missing_node_from_batch_response() -> None:
     """Tests that nodes omitted from callback results dict are isolated with SYSTEM_ERROR."""
     evaluator = TopologicalEvaluator()
     nodes = [
-        LinkedAtomGraph(atom=create_atom("tda_1111111111111111")),
-        LinkedAtomGraph(atom=create_atom("tda_2222222222222222")),
+        LinkedAtomGraph(atom=create_atom("tda_0195f3a0000070018111111111111111")),
+        LinkedAtomGraph(atom=create_atom("tda_0195f3a0000070028222222222222222")),
     ]
 
     async def partial_callback(
@@ -327,7 +339,7 @@ async def test_missing_node_from_batch_response() -> None:
     ) -> dict[str, AtomEvaluationResultDTO]:
         # Only return result for the first node; omit the second
         return {
-            "tda_1111111111111111": AtomEvaluationResultDTO(
+            "tda_0195f3a0000070018111111111111111": AtomEvaluationResultDTO(
                 status=ExecutionStatus.PASSED,
                 reasoning="OK",
                 source_quotes=("quote",),
@@ -337,22 +349,22 @@ async def test_missing_node_from_batch_response() -> None:
 
     states = await evaluator.evaluate_graph(nodes, partial_callback)
 
-    assert states["tda_1111111111111111"].status == ExecutionStatus.PASSED
-    assert states["tda_2222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
-    assert states["tda_2222222222222222"].evaluation_reasoning == "Missing from batch response"
+    assert states["tda_0195f3a0000070018111111111111111"].status == ExecutionStatus.PASSED
+    assert states["tda_0195f3a0000070028222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
+    assert states["tda_0195f3a0000070028222222222222222"].evaluation_reasoning == "Missing from batch response"
 
 
 @pytest.mark.asyncio
 async def test_dlq_marking_on_unexpected_runtime_error_and_downstream_blocked() -> None:
     """Verify Scenario NEG-06: RuntimeError in callback transitions wave nodes to SYSTEM_ERROR and children to BLOCKED."""
     evaluator = TopologicalEvaluator()
-    node1 = LinkedAtomGraph(atom=create_atom("tda_1111111111111111"))
+    node1 = LinkedAtomGraph(atom=create_atom("tda_0195f3a0000070018111111111111111"))
     node2 = LinkedAtomGraph(
-        atom=create_atom("tda_2222222222222222"),
+        atom=create_atom("tda_0195f3a0000070028222222222222222"),
         depends_on=[
             CausalEdge(
                 edge_reasoning="reason",
-                tda_id="tda_1111111111111111",
+                tda_id="tda_0195f3a0000070018111111111111111",
                 source_id="src",
                 expected_status=ExecutionStatus.PASSED,
             )
@@ -369,11 +381,14 @@ async def test_dlq_marking_on_unexpected_runtime_error_and_downstream_blocked() 
     states = await evaluator.evaluate_graph(nodes, crashing_callback)
 
     # Wave 0 node must be SYSTEM_ERROR
-    assert states["tda_1111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
-    assert "EVALUATION_CRASH: Unexpected LLM cluster crash" in states["tda_1111111111111111"].evaluation_reasoning
+    assert states["tda_0195f3a0000070018111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
+    assert (
+        "EVALUATION_CRASH: Unexpected LLM cluster crash"
+        in states["tda_0195f3a0000070018111111111111111"].evaluation_reasoning
+    )
 
     # Downstream child must be BLOCKED
-    assert states["tda_2222222222222222"].status == ExecutionStatus.BLOCKED
+    assert states["tda_0195f3a0000070028222222222222222"].status == ExecutionStatus.BLOCKED
 
     # Zero nodes may remain PENDING
     for tda_id, state in states.items():
@@ -385,8 +400,8 @@ async def test_dlq_marking_on_exception_group() -> None:
     """Tests that ExceptionGroup in callback transitions nodes to SYSTEM_ERROR."""
     evaluator = TopologicalEvaluator()
     nodes = [
-        LinkedAtomGraph(atom=create_atom("tda_1111111111111111")),
-        LinkedAtomGraph(atom=create_atom("tda_2222222222222222")),
+        LinkedAtomGraph(atom=create_atom("tda_0195f3a0000070018111111111111111")),
+        LinkedAtomGraph(atom=create_atom("tda_0195f3a0000070028222222222222222")),
     ]
 
     async def eg_callback(
@@ -397,7 +412,13 @@ async def test_dlq_marking_on_exception_group() -> None:
 
     states = await evaluator.evaluate_graph(nodes, eg_callback)
 
-    assert states["tda_1111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
-    assert "EVALUATION_CRASH: Batch evaluation errors" in states["tda_1111111111111111"].evaluation_reasoning
-    assert states["tda_2222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
-    assert "EVALUATION_CRASH: Batch evaluation errors" in states["tda_2222222222222222"].evaluation_reasoning
+    assert states["tda_0195f3a0000070018111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
+    assert (
+        "EVALUATION_CRASH: Batch evaluation errors"
+        in states["tda_0195f3a0000070018111111111111111"].evaluation_reasoning
+    )
+    assert states["tda_0195f3a0000070028222222222222222"].status == ExecutionStatus.SYSTEM_ERROR
+    assert (
+        "EVALUATION_CRASH: Batch evaluation errors"
+        in states["tda_0195f3a0000070028222222222222222"].evaluation_reasoning
+    )

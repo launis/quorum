@@ -25,20 +25,20 @@ from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 SEED_DATA_PATH = Path("backend_v2/seed/seed_data.json")
 
 EXPECTED_WORKFLOW_IDS = [
-    "wf_9d68c573802341db",  # Monolithic baseline (preservation mandate)
-    "wf_a8f1d71000000001",  # Targeted AI Steering & Argumentation Audit
-    "wf_b9e2d71000000002",  # AI Steering & Cognitive Core Audit
+    "wf_0195f3a0000070098d68c573802341db",  # Monolithic baseline (preservation mandate)
+    "wf_0195f3a00000700a88f1d71000000001",  # Targeted AI Steering & Argumentation Audit
+    "wf_0195f3a00000700b89e2d71000000002",  # AI Steering & Cognitive Core Audit
 ]
 
 COMPETENCY_WORKFLOW_IDS = [
-    "wf_a8f1d71000000001",
-    "wf_b9e2d71000000002",
+    "wf_0195f3a00000700a88f1d71000000001",
+    "wf_0195f3a00000700b89e2d71000000002",
 ]
 
 EXPECTED_PROFILE_IDS = [
-    "prf_5d6e7f8091a2b3c4",  # Monolithic baseline profile
-    "prf_a8f1d71000000001",  # Targeted AI Steering profile
-    "prf_b9e2d71000000002",  # AI Steering Cognitive Core profile
+    "prf_0195f3a0000070058d6e7f8091a2b3c4",  # Monolithic baseline profile
+    "prf_0195f3a00000700a88f1d71000000001",  # Targeted AI Steering profile
+    "prf_0195f3a00000700b89e2d71000000002",  # AI Steering Cognitive Core profile
 ]
 
 
@@ -60,22 +60,26 @@ def load_seed_data() -> Any:
 def test_baseline_monolithic_workflow_preserved() -> None:
     """Verify that the baseline monolithic workflow and profile conform to the 12-step 3-zone architecture.
 
-    Ensures mathematical topology and output profile group invariants for wf_9d68c573802341db
-    and prf_5d6e7f8091a2b3c4.
+    Ensures mathematical topology and output profile group invariants for wf_0195f3a0000070098d68c573802341db
+    and prf_0195f3a0000070058d6e7f8091a2b3c4.
     """
     seed_data = load_seed_data()
     workflows = {w["id"]: w for w in seed_data["workflows"]}
     profiles = {p["id"]: p for p in seed_data["output_profiles"]}
 
-    assert "wf_9d68c573802341db" in workflows, "Baseline monolithic workflow wf_9d68c573802341db missing"
-    assert "prf_5d6e7f8091a2b3c4" in profiles, "Baseline monolithic profile prf_5d6e7f8091a2b3c4 missing"
+    assert "wf_0195f3a0000070098d68c573802341db" in workflows, (
+        "Baseline monolithic workflow wf_0195f3a0000070098d68c573802341db missing"
+    )
+    assert "prf_0195f3a0000070058d6e7f8091a2b3c4" in profiles, (
+        "Baseline monolithic profile prf_0195f3a0000070058d6e7f8091a2b3c4 missing"
+    )
 
-    mono_wf = Workflow.model_validate(workflows["wf_9d68c573802341db"])
-    mono_prf = OutputProfile.model_validate(profiles["prf_5d6e7f8091a2b3c4"])
+    mono_wf = Workflow.model_validate(workflows["wf_0195f3a0000070098d68c573802341db"])
+    mono_prf = OutputProfile.model_validate(profiles["prf_0195f3a0000070058d6e7f8091a2b3c4"])
 
     assert mono_wf.slug == "kokonaisvaltainen_auditointi"
-    assert mono_wf.default_profile_id == "prf_5d6e7f8091a2b3c4"
-    assert mono_prf.workflow_id == "wf_9d68c573802341db"
+    assert mono_wf.default_profile_id == "prf_0195f3a0000070058d6e7f8091a2b3c4"
+    assert mono_prf.workflow_id == "wf_0195f3a0000070098d68c573802341db"
 
     # 1. Exact 14-step topology and 7 matrix groups
     assert len(mono_wf.steps) == 14, f"Expected exactly 14 steps in monolith workflow, got {len(mono_wf.steps)}"
@@ -89,35 +93,35 @@ def test_baseline_monolithic_workflow_preserved() -> None:
 
     # 2. Assert pruned step IDs are absent
     pruned_step_ids = {
-        "sr_0f7947ec7007498c",  # OWASP LLM Guard
-        "sr_99ca8c82a5aa48cd",  # Pearl & Mackenzie Profiler
-        "sr_1d7e6d26b02b457b",  # ARMA Performativity Detector
-        "sr_ba028623acab447a",  # Deming Judge
+        "sr_0195f3a0000070008f7947ec7007498c",  # OWASP LLM Guard
+        "sr_0195f3a00000700989ca8c82a5aa48cd",  # Pearl & Mackenzie Profiler
+        "sr_0195f3a0000070018d7e6d26b02b457b",  # ARMA Performativity Detector
+        "sr_0195f3a00000700b8a028623acab447a",  # Deming Judge
     }
     step_ids = {s.id for s in mono_wf.steps}
     for pruned_id in pruned_step_ids:
         assert pruned_id not in step_ids, f"Pruned step {pruned_id} must be absent from monolith workflow"
 
     # 3. Assert Zone B specialist dependencies and input mappings
-    ingress_id = "sr_f0a26d17cc9b48a7"
+    ingress_id = "sr_0195f3a00000700f80a26d17cc9b48a7"
     zone_b_step_ids = {
-        "sr_5a8ae009eee44fe2",  # Analyst (Kahneman)
-        "sr_87f408aeee64462f",  # Logician (Toulmin)
-        "sr_d56fb84fbe13463a",  # Falsifier (Popper)
-        "sr_4d2272d8b4864847",  # Causal Analyst (Pearl)
-        "sr_02b7cc1e7c2a4a62",  # Fact-Checker (Tetlock)
-        "sr_566e3209a60444d3",  # Evaluator (Bloom)
-        "sr_0228db320e8f41bb",  # Coach (Goodhart)
-        "sr_b4c328df1c4141c6",  # Critic (Lipton)
-        "sr_f1c1d71000000002",  # AI Steering Evaluator
+        "sr_0195f3a0000070058a8ae009eee44fe2",  # Analyst (Kahneman)
+        "sr_0195f3a00000700887f408aeee64462f",  # Logician (Toulmin)
+        "sr_0195f3a00000700d856fb84fbe13463a",  # Falsifier (Popper)
+        "sr_0195f3a0000070048d2272d8b4864847",  # Causal Analyst (Pearl)
+        "sr_0195f3a00000700082b7cc1e7c2a4a62",  # Fact-Checker (Tetlock)
+        "sr_0195f3a000007005866e3209a60444d3",  # Evaluator (Bloom)
+        "sr_0195f3a0000070008228db320e8f41bb",  # Coach (Goodhart)
+        "sr_0195f3a00000700b84c328df1c4141c6",  # Critic (Lipton)
+        "sr_0195f3a00000700f81c1d71000000002",  # AI Steering Evaluator
     }
     assert zone_b_step_ids.issubset(step_ids), f"Missing Zone B steps: {zone_b_step_ids - step_ids}"
 
     for step in mono_wf.steps:
         if step.id in zone_b_step_ids:
             expected_deps = (
-                [ingress_id, "sr_c4a5a1d15c00438a"]
-                if step.id in ("sr_4d2272d8b4864847", "sr_f1c1d71000000002")
+                [ingress_id, "sr_0195f3a00000700c84a5a1d15c00438a"]
+                if step.id in ("sr_0195f3a0000070048d2272d8b4864847", "sr_0195f3a00000700f81c1d71000000002")
                 else [ingress_id]
             )
             assert step.depends_on == expected_deps, (
@@ -126,9 +130,9 @@ def test_baseline_monolithic_workflow_preserved() -> None:
             assert "prior_analysis" not in step.input_mappings, f"Zone B step {step.id} must not map prior_analysis"
 
     # 4. Assert Zone C XAI reporter depends on all 9 Zone B steps
-    xai_step = next(s for s in mono_wf.steps if s.id == "sr_5f3dd7712a7f4bb3")
+    xai_step = next(s for s in mono_wf.steps if s.id == "sr_0195f3a0000070058f3dd7712a7f4bb3")
     assert set(xai_step.depends_on) == zone_b_step_ids, (
-        "XAI reporter sr_5f3dd7712a7f4bb3 must depend on all 9 Zone B specialists"
+        "XAI reporter sr_0195f3a0000070058f3dd7712a7f4bb3 must depend on all 9 Zone B specialists"
     )
 
     # 5. Assert all 7 matrix synthesis groups have valid grp_ IDs and exact cardinalities
@@ -140,9 +144,9 @@ def test_baseline_monolithic_workflow_preserved() -> None:
         PresetView.COMPARE_2D.value: 2,
         PresetView.MATRIX_3D.value: 3,
     }
-    grp_id_pattern = re.compile(r"^grp_[a-f0-9]{16}$")
+    grp_id_pattern = re.compile(r"^grp_[a-f0-9]{32}$")
     for grp in mono_prf.matrix_synthesis_groups:
-        assert grp_id_pattern.match(grp.id), f"Group ID {grp.id} does not match ^grp_[a-f0-9]{{16}}$"
+        assert grp_id_pattern.match(grp.id), f"Group ID {grp.id} does not match ^grp_[a-f0-9]{{32}}$"
         expected_count = expected_group_cardinalities[grp.view_type]
         assert len(grp.target_blocks) == expected_count, (
             f"Group {grp.id} ({grp.view_type}) requires {expected_count} target_blocks, got {len(grp.target_blocks)}"
@@ -280,9 +284,9 @@ def test_default_seed_profiles_baseline_uniformity() -> None:
     seed_data = load_seed_data()
     profiles = {p["id"]: p for p in seed_data["output_profiles"]}
 
-    baseline_prf = OutputProfile.model_validate(profiles["prf_5d6e7f8091a2b3c4"])
+    baseline_prf = OutputProfile.model_validate(profiles["prf_0195f3a0000070058d6e7f8091a2b3c4"])
 
-    for prf_id in ["prf_a8f1d71000000001", "prf_b9e2d71000000002"]:
+    for prf_id in ["prf_0195f3a00000700a88f1d71000000001", "prf_0195f3a00000700b89e2d71000000002"]:
         prf = OutputProfile.model_validate(profiles[prf_id])
         assert prf.visible_metadata == baseline_prf.visible_metadata
         assert prf.visible_block_extensions == baseline_prf.visible_block_extensions
@@ -297,8 +301,8 @@ def test_default_seed_profiles_baseline_uniformity() -> None:
         assert prf.matrix_graph_length_constraint == 400
         assert prf.show_sources_summary_box is False
         assert prf.sources_display_mode == "verified_evidence"
-        assert prf.user_role_target_block == "blk_7d8e9f0a1b2c3d4e"
-        assert prf.variance_target_block == "blk_7d8e9f0a1b2c3d4e"
+        assert prf.user_role_target_block == "blk_0195f3a0000070078d8e9f0a1b2c3d4e"
+        assert prf.variance_target_block == "blk_0195f3a0000070078d8e9f0a1b2c3d4e"
         assert prf.tone_instruction == baseline_prf.tone_instruction
         assert prf.executive_summary_directive == baseline_prf.executive_summary_directive
         assert prf.matrix_1d_synthesis_directive == baseline_prf.matrix_1d_synthesis_directive
@@ -316,9 +320,9 @@ def test_dynamic_profile_configurability_invariant() -> None:
     Custom profiles may include 'criteria' and custom block orders without code-level restriction.
     """
     custom_profile_payload = {
-        "id": "prf_c1d2e3f400000001",
+        "id": "prf_0195f3a00000700c81d2e3f400000001",
         "slug": "custom_evaluation_profile",
-        "workflow_id": "wf_9d68c573802341db",
+        "workflow_id": "wf_0195f3a0000070098d68c573802341db",
         "name": {"translations": {"fi": "Mukautettu profiili", "en": "Custom Profile"}},
         "matrix_visible_columns": ["label", "criteria", "distribution", "normalized_score"],
         "target_block_order": ["matrix_summary_table_block"],
@@ -330,10 +334,10 @@ def test_dynamic_profile_configurability_invariant() -> None:
 
 
 def test_baseline_profile_custom_preface_not_truncated() -> None:
-    """Verify baseline profile prf_5d6e7f8091a2b3c4 English preface is complete without ellipsis."""
+    """Verify baseline profile prf_0195f3a0000070058d6e7f8091a2b3c4 English preface is complete without ellipsis."""
     seed_data = load_seed_data()
     profiles = {p["id"]: p for p in seed_data["output_profiles"]}
-    prf = OutputProfile.model_validate(profiles["prf_5d6e7f8091a2b3c4"])
+    prf = OutputProfile.model_validate(profiles["prf_0195f3a0000070058d6e7f8091a2b3c4"])
     assert prf.custom_preface is not None
     en_preface = prf.custom_preface.translations["en"]
     assert not en_preface.strip().endswith("..."), "English preface must not be truncated with ellipsis"
@@ -347,7 +351,7 @@ def test_negative_profile_missing_custom_preface_en_rejected() -> None:
     """ISTQB Negative Test 1: OutputProfile with custom_preface missing 'en' key raises AppException."""
     seed_data = load_seed_data()
     profiles = {p["id"]: p for p in seed_data["output_profiles"]}
-    raw_prf = dict(profiles["prf_5d6e7f8091a2b3c4"])
+    raw_prf = dict(profiles["prf_0195f3a0000070058d6e7f8091a2b3c4"])
     raw_prf["custom_preface"] = {"translations": {"fi": "Pelkkä suomi"}}
 
     with pytest.raises((pydantic.ValidationError, AppException)) as exc_info:
@@ -384,14 +388,14 @@ def test_output_profiles_scoring_configuration() -> None:
         assert wf_model.default_strictness_level is not None
         assert wf_model.default_strictness_level in (0, 50, 70)
 
-    assert workflows["wf_9d68c573802341db"]["default_strictness_level"] == 0
+    assert workflows["wf_0195f3a0000070098d68c573802341db"]["default_strictness_level"] == 0
 
 
 def test_negative_profile_missing_scoring_config_detected() -> None:
     """ISTQB Negative Test: OutputProfile extra='forbid' rejects strictness_level injection."""
     seed_data = load_seed_data()
     profiles = {p["id"]: p for p in seed_data["output_profiles"]}
-    raw_prf = dict(profiles["prf_5d6e7f8091a2b3c4"])
+    raw_prf = dict(profiles["prf_0195f3a0000070058d6e7f8091a2b3c4"])
 
     # Test that injecting strictness_level triggers ValidationError (extra forbidden)
     corrupt_prf = dict(raw_prf)
@@ -407,8 +411,8 @@ def test_negative_invalid_unmapped_inputs_reference_fails_dag() -> None:
     """ISTQB Negative Test 1: Step mapping referencing un-declared input key triggers DAG compilation error."""
     seed_data = load_seed_data()
     workflows = {w["id"]: w for w in seed_data["workflows"]}
-    assert "wf_a8f1d71000000001" in workflows, "Workflow wf_a8f1d71000000001 missing"
-    raw_wf = dict(workflows["wf_a8f1d71000000001"])
+    assert "wf_0195f3a00000700a88f1d71000000001" in workflows, "Workflow wf_0195f3a00000700a88f1d71000000001 missing"
+    raw_wf = dict(workflows["wf_0195f3a00000700a88f1d71000000001"])
 
     # Corrupt step input_mappings to reference non-existent input key $inputs.non_existent_key
     steps_copy = [dict(s) for s in raw_wf["steps"]]
@@ -427,8 +431,8 @@ def test_negative_circular_step_dependency_fails_dag() -> None:
     """ISTQB Negative Test 2: Circular dependency in workflow steps triggers DAG cycle error."""
     seed_data = load_seed_data()
     workflows = {w["id"]: w for w in seed_data["workflows"]}
-    assert "wf_a8f1d71000000001" in workflows, "Workflow wf_a8f1d71000000001 missing"
-    raw_wf = dict(workflows["wf_a8f1d71000000001"])
+    assert "wf_0195f3a00000700a88f1d71000000001" in workflows, "Workflow wf_0195f3a00000700a88f1d71000000001 missing"
+    raw_wf = dict(workflows["wf_0195f3a00000700a88f1d71000000001"])
 
     steps_copy = [dict(s) for s in raw_wf["steps"]]
     # Introduce circular dependency: step 0 depends on step 1, step 1 depends on step 0
@@ -450,8 +454,8 @@ def test_negative_raw_xml_in_ai_description_rejected() -> None:
     """ISTQB Negative Test 3: Raw XML tags in ai_description fail validation rule assertion."""
     seed_data = load_seed_data()
     workflows = {w["id"]: w for w in seed_data["workflows"]}
-    assert "wf_a8f1d71000000001" in workflows, "Workflow wf_a8f1d71000000001 missing"
-    raw_wf = dict(workflows["wf_a8f1d71000000001"])
+    assert "wf_0195f3a00000700a88f1d71000000001" in workflows, "Workflow wf_0195f3a00000700a88f1d71000000001 missing"
+    raw_wf = dict(workflows["wf_0195f3a00000700a88f1d71000000001"])
 
     # Corrupt expected_inputs with raw XML tag
     inputs_copy = [dict(i) for i in raw_wf["expected_inputs"]]
@@ -483,7 +487,7 @@ def test_negative_missing_required_inputs_fails_dag() -> None:
     """ISTQB Negative Test 5: Workflow with all optional inputs fails DAGCompilerService validation."""
     seed_data = load_seed_data()
     workflows = {w["id"]: w for w in seed_data["workflows"]}
-    baseline_raw = dict(workflows["wf_9d68c573802341db"])
+    baseline_raw = dict(workflows["wf_0195f3a0000070098d68c573802341db"])
     # Set all inputs to required=False
     inputs_copy = [dict(i) for i in baseline_raw["expected_inputs"]]
     for inp in inputs_copy:
@@ -501,7 +505,7 @@ def test_negative_orphan_step_dependency_fails_dag() -> None:
     """ISTQB Negative Test 6: Step depending on non-existent step ID fails Workflow model validation."""
     seed_data = load_seed_data()
     workflows = {w["id"]: w for w in seed_data["workflows"]}
-    baseline_raw = dict(workflows["wf_9d68c573802341db"])
+    baseline_raw = dict(workflows["wf_0195f3a0000070098d68c573802341db"])
     steps_copy = [dict(s) for s in baseline_raw["steps"]]
     steps_copy[1]["depends_on"] = ["sr_non_existent_step_id"]
     baseline_raw["steps"] = steps_copy
@@ -515,10 +519,10 @@ def test_negative_matrix_group_dimensional_cardinality_mismatch() -> None:
     with pytest.raises(pydantic.ValidationError, match=r"requires exactly 1 target block"):
         MatrixSynthesisGroup.model_validate(
             obj={
-                "id": "grp_01e1d71000000001",
+                "id": "grp_0195f3a00000700081e1d71000000001",
                 "title": {"translations": {"fi": "Testi", "en": "Test"}},
                 "view_type": PresetView.METRICS_1D,
-                "target_blocks": ["blk_53f32679aa514fcb", "blk_440a5fef9331451b"],
+                "target_blocks": ["blk_0195f3a00000700583f32679aa514fcb", "blk_0195f3a000007004840a5fef9331451b"],
             }
         )
 
@@ -527,7 +531,7 @@ def test_negative_matrix_group_ids_duplicate_fails_validation() -> None:
     """ISTQB Negative Test 8: OutputProfile with duplicate matrix synthesis group IDs fails validation."""
     seed_data = load_seed_data()
     profiles = {p["id"]: p for p in seed_data["output_profiles"]}
-    baseline_profile = dict(profiles["prf_5d6e7f8091a2b3c4"])
+    baseline_profile = dict(profiles["prf_0195f3a0000070058d6e7f8091a2b3c4"])
 
     # Duplicate first group ID in matrix_synthesis_groups
     groups_copy = [dict(g) for g in baseline_profile["matrix_synthesis_groups"]]
@@ -551,9 +555,9 @@ def test_tavily_search_selective_routing_governance() -> None:
     steps = {s["id"]: s for s in seed_data["steps"]}
 
     # Workflows requiring empirical research & falsification
-    research_wf_ids = ["wf_9d68c573802341db"]
+    research_wf_ids = ["wf_0195f3a0000070098d68c573802341db"]
     # Workflows evaluating internal prompt dialogues, cognitive depth, or static compliance
-    internal_wf_ids = ["wf_a8f1d71000000001", "wf_b9e2d71000000002"]
+    internal_wf_ids = ["wf_0195f3a00000700a88f1d71000000001", "wf_0195f3a00000700b89e2d71000000002"]
 
     for wf_id in research_wf_ids:
         assert wf_id in workflows, f"Workflow {wf_id} missing from seed_data.json"
@@ -591,7 +595,7 @@ def test_negative_tavily_in_non_research_workflow_rejected() -> None:
     workflows = {w["id"]: w for w in seed_data["workflows"]}
     steps = {s["id"]: s for s in seed_data["steps"]}
 
-    internal_wf_ids = ["wf_a8f1d71000000001", "wf_b9e2d71000000002"]
+    internal_wf_ids = ["wf_0195f3a00000700a88f1d71000000001", "wf_0195f3a00000700b89e2d71000000002"]
     for wf_id in internal_wf_ids:
         assert wf_id in workflows, f"Workflow {wf_id} missing from seed_data.json"
         wf_model = Workflow.model_validate(workflows[wf_id])

@@ -44,7 +44,7 @@ def mock_deps() -> HookDependencies:
     """Mock dependencies fixture for HookDependencies with an active search gateway."""
     repo = InMemoryUnifiedWorkflowRepository()
     gateway = SystemConfigMCPGateways(
-        id="sys_a1b2c3d4e5f60718",
+        id="sys_0195f3a00000700a81b2c3d4e5f60718",
         slug="default_mcp_gateway",
         endpoint_url="https://mcp.example.com/v1",
         transport_type=MCPTransportType.STREAMABLE_HTTP,
@@ -99,8 +99,8 @@ def test_source_verification_hook_registered_in_hook_registry() -> None:
 async def test_source_verification_hook_empty_inputs(mock_deps: HookDependencies) -> None:
     """TC-HOOK-01: Empty inputs returns complete empty envelope without triggering service."""
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={}),
@@ -118,8 +118,8 @@ async def test_source_verification_hook_empty_inputs(mock_deps: HookDependencies
 async def test_source_verification_hook_empty_prior_analysis(mock_deps: HookDependencies) -> None:
     """TC-HOOK-01B: Prior analysis with empty string returns zero claims envelope."""
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"prior_analysis": ""}),
@@ -139,8 +139,8 @@ async def test_source_verification_hook_whitespace_prior_analysis_returns_zero_c
 ) -> None:
     """TC-HOOK-01C: Whitespace-only prior analysis returns zero claims envelope."""
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"prior_analysis": "   \n\t  "}),
@@ -158,8 +158,8 @@ async def test_source_verification_hook_whitespace_prior_analysis_returns_zero_c
 async def test_source_verification_hook_short_text_short_circuit(mock_deps: HookDependencies) -> None:
     """TC-HOOK-02: Short document text (< 15 chars) returns complete empty envelope."""
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"document_text": "too short"}),
@@ -220,8 +220,8 @@ async def test_source_verification_hook_success(
     mock_instance.run_full_verification.return_value = mock_result_dto
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(
@@ -264,8 +264,8 @@ async def test_source_verification_hook_missing_system_repo_raises() -> None:
     )
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(
@@ -283,8 +283,8 @@ async def test_source_verification_hook_missing_system_repo_raises() -> None:
 async def test_source_verification_hook_invalid_input_type(mock_deps: HookDependencies) -> None:
     """TC-HOOK-04: Non-string and non-dict inputs raise validation AppException."""
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"document_text": 12345}),
@@ -318,8 +318,8 @@ async def test_source_verification_hook_multi_key_string_inputs(
     )
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(
@@ -357,8 +357,8 @@ async def test_source_verification_hook_dto_inputs_handled_safely(
     )
 
     state = HookState.model_construct(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=SourceVerificationInputsDTO(prior_analysis="Valid analytical text discussing scientific findings."),
@@ -385,8 +385,8 @@ async def test_source_verification_hook_service_error_propagates(
     mock_instance.run_full_verification.side_effect = AppException(message="Fatal verification error", status_code=502)
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(raw_inputs={"document_text": "This is valid text that encounters service failure."}),
@@ -420,8 +420,8 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
     )
 
     state_str = HookState.model_construct(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs="A direct string input for source checking.",
@@ -432,8 +432,8 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
     mock_instance.run_full_verification.assert_called_with("A direct string input for source checking.")
 
     state_list = HookState.model_construct(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=["Line one of content.", "Line two of content."],
@@ -471,8 +471,8 @@ async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
     )
 
     state_bm = HookState.model_construct(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=CustomDataModel(text="Generic base model text for verification."),
@@ -503,8 +503,8 @@ async def test_source_verification_hook_bypasses_when_no_search_tools_configured
         system_repo=repo,
     )
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(
@@ -535,8 +535,8 @@ async def test_source_verification_hook_extra_none_and_invalid_type() -> None:
         system_repo=repo,
     )
     state_none = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(
@@ -547,8 +547,8 @@ async def test_source_verification_hook_extra_none_and_invalid_type() -> None:
     assert result.success is True
 
     state_invalid = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
         inputs=ExecutionInputsDTO(
@@ -582,9 +582,9 @@ async def test_source_verification_hook_with_payload_dto_and_registry_override(
     )
 
     state = HookState(
-        execution_id="exe_1111222233334444",
-        workflow_id="wor_1111222233334444",
-        metadata=ExecutionMetadata(model_registry_id="sys_e26807f3bfa3454d"),
+        execution_id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wor_0195f3a0000070018111222233334444",
+        metadata=ExecutionMetadata(model_registry_id="sys_0195f3a00000700e826807f3bfa3454d"),
         global_context_vars=GlobalContextVarsDTO(language="fi"),
         inputs=ExecutionInputsDTO(
             raw_inputs={

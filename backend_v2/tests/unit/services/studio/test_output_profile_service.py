@@ -232,9 +232,7 @@ async def test_create_and_clone_output_profile(
             "blk_0195f3a0000070008000000000000001",
         }
     )
-    workflow.get_allowed_prompt_block_targets = Mock(
-        return_value={"blk_0195f3a0000070008000000000000001"}
-    )
+    workflow.get_allowed_prompt_block_targets = Mock(return_value={"blk_0195f3a0000070008000000000000001"})
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
     mock_workflow_service.list_workflows.return_value = [workflow]
@@ -304,9 +302,7 @@ async def test_save_output_profile_invalid_target_component_raises_app_exception
     workflow = AsyncMock()
     workflow.id = "wf_0195f3a00000700080001234567890ab"
     workflow.steps = []
-    workflow.get_allowed_layout_targets = Mock(
-        return_value={"blk_0195f3a0000070008000000000000001"}
-    )
+    workflow.get_allowed_layout_targets = Mock(return_value={"blk_0195f3a0000070008000000000000001"})
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
 

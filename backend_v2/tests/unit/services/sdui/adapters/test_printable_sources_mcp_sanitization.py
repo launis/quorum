@@ -41,7 +41,7 @@ def test_printable_sources_sanitizes_tavily_cdata_json(base_sources_profile: Out
         '"content":"Työterveyslaitoksen ja Stanfordin tutkimus vahvistaa etätyön lisäävän työn hallinnan tunnetta."}]}\n]]>'
     )
     trace = MCPAuditTrace(
-        id="aud_1111222233334444",
+        id="aud_0195f3a0000070018111222233334444",
         tool_id="tavily_search",
         gateway_slug="search",
         namespaced_alias="search__tavily_search",
@@ -82,7 +82,7 @@ def test_printable_sources_sanitizes_plain_text_cdata(base_sources_profile: Outp
     """Positive: verify plain text in CDATA envelope is stripped cleanly in SDUI MarkdownBlock."""
     raw_text = "<![CDATA[Faktalähde: Työterveyslaitos on suomalainen tutkimuslaitos.]]>"
     trace = MCPAuditTrace(
-        id="aud_2222333344445555",
+        id="aud_0195f3a0000070028222333344445555",
         tool_id="wikipedia_search",
         gateway_slug="encyclopedia",
         namespaced_alias="encyclopedia__wikipedia_search",
@@ -119,7 +119,7 @@ def test_printable_sources_sanitizes_plain_text_cdata(base_sources_profile: Outp
 def test_printable_sources_omits_empty_or_whitespace_summary(base_sources_profile: OutputProfile) -> None:
     """Negative: verify empty or whitespace CDATA does not render empty mcp_result_label bullet."""
     trace = MCPAuditTrace(
-        id="aud_3333444455556666",
+        id="aud_0195f3a0000070038333444455556666",
         tool_id="tavily_search",
         gateway_slug="search",
         namespaced_alias="search__tavily_search",

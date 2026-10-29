@@ -149,8 +149,8 @@ def test_dag_executor_initialization_and_dlq_static_methods() -> None:
 
     fallback_excs = DAGExecutor._dlq_fallback_step_exceptions()
     assert AppException in fallback_excs
-    DAGExecutor._dlq_record_step_failure("stp_1111222233334444", "STEP_FAILED", RuntimeError("boom"))
-    DAGExecutor._dlq_handle_progress_commit_error("stp_1111222233334444", RuntimeError("commit err"))
+    DAGExecutor._dlq_record_step_failure("stp_0195f3a0000070018111222233334444", "STEP_FAILED", RuntimeError("boom"))
+    DAGExecutor._dlq_handle_progress_commit_error("stp_0195f3a0000070018111222233334444", RuntimeError("commit err"))
 
 
 @pytest.mark.asyncio
@@ -159,7 +159,7 @@ async def test_dag_executor_execute_workflow_end_to_end_and_missing_blueprint_fa
     repo = InMemoryUnifiedWorkflowRepository()
     executor = _build_dag_executor(repo)
 
-    step_id = "stp_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
     step_def = Step(
         id=step_id,
         slug="step_facade_test",
@@ -173,28 +173,28 @@ async def test_dag_executor_execute_workflow_end_to_end_and_missing_blueprint_fa
     repo.set_step(step_def)
 
     workflow = Workflow(
-        id="wf_1111222233334444",
+        id="wf_0195f3a0000070018111222233334444",
         slug="wf_facade_test",
         name=I18nText(translations={"en": "Facade WF", "fi": "Julkisivu WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
         status="active",
         version=1,
         historical_context_mode=HistoricalContextMode.DISABLED,
-        default_profile_id="prf_1111222233334444",
-        model_registry_id="sys_1111222233334444",
+        default_profile_id="prf_0195f3a0000070018111222233334444",
+        model_registry_id="sys_0195f3a0000070018111222233334444",
         steps=[StepRule(id=step_id, task_blueprint=step_id, depends_on=[])],
     )
     repo.set_workflow(workflow)
 
-    exec_id = "exe_1111222233334444"
+    exec_id = "exe_0195f3a0000070018111222233334444"
     repo.set_execution(
         ExecutionRecord(
             id=exec_id,
             workflow_id=workflow.id,
-            output_profile_id="prf_1111222233334444",
+            output_profile_id="prf_0195f3a0000070018111222233334444",
             target_locale="en",
             raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "Facade test document"}),
-            metadata=ExecutionMetadata(workflow_version=1, model_registry_id="sys_1111222233334444"),
+            metadata=ExecutionMetadata(workflow_version=1, model_registry_id="sys_0195f3a0000070018111222233334444"),
         )
     )
 
@@ -231,13 +231,19 @@ async def test_dag_executor_execute_workflow_end_to_end_and_missing_blueprint_fa
     empty_executor = _build_dag_executor(InMemoryUnifiedWorkflowRepository())
     missing_wf = workflow.model_copy(
         update={
-            "id": "wf_5555666677778888",
-            "steps": [StepRule(id="stp_9999888877776666", task_blueprint="stp_9999888877776666", depends_on=[])],
+            "id": "wf_0195f3a0000070058555666677778888",
+            "steps": [
+                StepRule(
+                    id="stp_0195f3a0000070098999888877776666",
+                    task_blueprint="stp_0195f3a0000070098999888877776666",
+                    depends_on=[],
+                )
+            ],
         }
     )
     with pytest.raises(ExceptionGroup) as exc_info:
         await empty_executor.execute_workflow(
-            execution_id="exe_5555666677778888",
+            execution_id="exe_0195f3a0000070058555666677778888",
             workflow=missing_wf,
             raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "Facade test document"}),
         )
@@ -253,7 +259,7 @@ async def test_dag_executor_execute_workflow_fails_fast_on_prehydration_and_wave
     repo = InMemoryUnifiedWorkflowRepository()
     executor = _build_dag_executor(repo)
 
-    step_id = "stp_2222333344445555"
+    step_id = "stp_0195f3a0000070028222333344445555"
     repo.set_step(
         Step(
             id=step_id,
@@ -267,15 +273,15 @@ async def test_dag_executor_execute_workflow_fails_fast_on_prehydration_and_wave
         )
     )
     workflow = Workflow(
-        id="wf_2222333344445555",
+        id="wf_0195f3a0000070028222333344445555",
         slug="wf_neg_facade",
         name=I18nText(translations={"en": "Neg WF", "fi": "Neg WF"}),
         description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
         status="active",
         version=1,
         historical_context_mode=HistoricalContextMode.DISABLED,
-        default_profile_id="prf_1111222233334444",
-        model_registry_id="sys_1111222233334444",
+        default_profile_id="prf_0195f3a0000070018111222233334444",
+        model_registry_id="sys_0195f3a0000070018111222233334444",
         steps=[StepRule(id=step_id, task_blueprint=step_id, depends_on=[])],
     )
     repo.set_workflow(workflow)
@@ -289,7 +295,7 @@ async def test_dag_executor_execute_workflow_fails_fast_on_prehydration_and_wave
         pytest.raises(AppException) as val_exc,
     ):
         await executor.execute_workflow(
-            execution_id="exe_2222333344445555",
+            execution_id="exe_0195f3a0000070028222333344445555",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "Bad input"}),
         )
@@ -323,7 +329,7 @@ async def test_dag_executor_execute_workflow_fails_fast_on_prehydration_and_wave
         pytest.raises(AppException) as wf_exc,
     ):
         await executor.execute_workflow(
-            execution_id="exe_3333444455556666",
+            execution_id="exe_0195f3a0000070038333444455556666",
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={"doc": "Valid input"}),
         )

@@ -196,7 +196,7 @@ def test_domain_input_value_accepts_reduced_atoms() -> None:
     from backend_v2.models.enums import LaxExecutionStatus
 
     atom = ReducedAtomDTO(
-        tda_id="tda_1234567890abcdef",
+        tda_id="tda_0195f3a0000070018234567890abcdef",
         status=LaxExecutionStatus.PASSED,
         reasoning="Compact reasoning.",
         source_quotes="Quote text.",

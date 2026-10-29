@@ -112,7 +112,7 @@ def _build_test_step(step_id: str, block_id: str) -> Step:
             "type": "logic",
             "hook": "matrix_scoring_hook",
             "role_block_id": None,
-            "extraction_protocol_block_id": "blk_5555666677778888",
+            "extraction_protocol_block_id": "blk_0195f3a0000070058555666677778888",
             "criteria_block_ids": [block_id],
         }
     )
@@ -131,7 +131,7 @@ def _build_test_workflow(workflow_id: str, profile_id: str) -> Workflow:
             "default_profile_id": profile_id,
             "default_strictness_level": 70,
             "enable_contextual_overrides": True,
-            "model_registry_id": "cfg_model_registry_01",
+            "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
             "historical_context_mode": "DISABLED",
         }
     )
@@ -144,8 +144,8 @@ def _build_test_execution(execution_id: str, workflow_id: str, profile_id: str) 
         {
             "id": execution_id,
             "workflow_id": workflow_id,
-            "organization_id": "org_1111222233334444",
-            "created_by": "usr_1111222233334444",
+            "organization_id": "org_0195f3a0000070018111222233334444",
+            "created_by": "usr_0195f3a0000070018111222233334444",
             "output_profile_id": profile_id,
             "status": "RUNNING",
             "target_locale": "en",
@@ -165,7 +165,7 @@ def _build_test_output_profile(profile_id: str, workflow_id: str, block_id: str)
             "name": {"translations": {"en": "Standard Executive", "fi": "Vakiojohto"}},
             "matrix_synthesis_groups": [
                 {
-                    "id": "grp_1111222233334444",
+                    "id": "grp_0195f3a0000070018111222233334444",
                     "title": {"translations": {"en": "Leadership", "fi": "Johtajuus"}},
                     "target_blocks": [block_id],
                 }
@@ -178,12 +178,12 @@ def _build_test_output_profile(profile_id: str, workflow_id: str, block_id: str)
 @pytest.fixture
 def matrix_setup() -> MatrixSetupDTO:
     """Standard fixtures and dependencies for matrix hook tests."""
-    pb_id = "blk_1111222233334444"
+    pb_id = "blk_0195f3a0000070018111222233334444"
     tda_id = "tda_11112222333344441111222233334444"
-    step_id = "stp_1111222233334444"
-    workflow_id = "wf_1111222233334444"
-    profile_id = "prof_1111222233334444"
-    execution_id = "exe_1111222233334444"
+    step_id = "stp_0195f3a0000070018111222233334444"
+    workflow_id = "wf_0195f3a0000070018111222233334444"
+    profile_id = "prof_0195f3a0000070018111222233334444"
+    execution_id = "exe_0195f3a0000070018111222233334444"
 
     pb = _build_test_matrix_block(pb_id, tda_id)
     step = _build_test_step(step_id, pb_id)
@@ -336,7 +336,7 @@ async def test_matrix_scoring_hook_step_not_found_raises(matrix_setup: MatrixSet
     state = HookState(
         execution_id=matrix_setup.execution_id,
         workflow_id=matrix_setup.workflow_id,
-        step_id="stp_0000000000000000",
+        step_id="stp_0195f3a0000070008000000000000000",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": []}),
         global_context_vars=GlobalContextVarsDTO(),
@@ -529,7 +529,7 @@ async def test_matrix_scoring_hook_execution_not_found_raises(matrix_setup: Matr
     deps = matrix_setup.deps
 
     state = HookState(
-        execution_id="exe_0000000000000000",
+        execution_id="exe_0195f3a0000070008000000000000000",
         workflow_id=matrix_setup.workflow_id,
         step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
@@ -552,7 +552,7 @@ async def test_matrix_scoring_hook_workflow_not_found_raises(matrix_setup: Matri
 
     state = HookState(
         execution_id=matrix_setup.execution_id,
-        workflow_id="wf_0000000000000000",
+        workflow_id="wf_0195f3a0000070008000000000000000",
         step_id=matrix_setup.step_id,
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"results": []}),

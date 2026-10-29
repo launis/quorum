@@ -38,7 +38,7 @@ async def test_audit_storage_and_database_sync_when_synced(
     driver, storage_dir = temp_driver_and_storage
     logger = MagicMock(spec=logging.Logger)
 
-    exe_id = "exe_1234567890abcdef"
+    exe_id = "exe_0195f3a0000070018234567890abcdef"
     exe_dir = storage_dir / exe_id
     exe_dir.mkdir(parents=True, exist_ok=True)
     trace_file = exe_dir / "execution_trace.json"

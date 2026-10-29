@@ -211,6 +211,9 @@ _AntiFluffAuditDto _$AntiFluffAuditDtoFromJson(Map<String, dynamic> json) =>
             'cycle_detected',
             'unsupported_claims_count',
             'logical_cohesion_score',
+            'largest_component_ratio',
+            'branch_convergence_ratio',
+            'steering_coupling_ratio',
             'detected_hollow_terms',
           ],
         );
@@ -228,6 +231,18 @@ _AntiFluffAuditDto _$AntiFluffAuditDtoFromJson(Map<String, dynamic> json) =>
             'logical_cohesion_score',
             (v) => (v as num).toDouble(),
           ),
+          largestComponentRatio: $checkedConvert(
+            'largest_component_ratio',
+            (v) => (v as num?)?.toDouble() ?? 1.0,
+          ),
+          branchConvergenceRatio: $checkedConvert(
+            'branch_convergence_ratio',
+            (v) => (v as num?)?.toDouble() ?? 0.0,
+          ),
+          steeringCouplingRatio: $checkedConvert(
+            'steering_coupling_ratio',
+            (v) => (v as num?)?.toDouble() ?? 0.0,
+          ),
           detectedHollowTerms: $checkedConvert(
             'detected_hollow_terms',
             (v) =>
@@ -242,6 +257,9 @@ _AntiFluffAuditDto _$AntiFluffAuditDtoFromJson(Map<String, dynamic> json) =>
         'cycleDetected': 'cycle_detected',
         'unsupportedClaimsCount': 'unsupported_claims_count',
         'logicalCohesionScore': 'logical_cohesion_score',
+        'largestComponentRatio': 'largest_component_ratio',
+        'branchConvergenceRatio': 'branch_convergence_ratio',
+        'steeringCouplingRatio': 'steering_coupling_ratio',
         'detectedHollowTerms': 'detected_hollow_terms',
       },
     );
@@ -252,6 +270,9 @@ Map<String, dynamic> _$AntiFluffAuditDtoToJson(_AntiFluffAuditDto instance) =>
       'cycle_detected': instance.cycleDetected,
       'unsupported_claims_count': instance.unsupportedClaimsCount,
       'logical_cohesion_score': instance.logicalCohesionScore,
+      'largest_component_ratio': instance.largestComponentRatio,
+      'branch_convergence_ratio': instance.branchConvergenceRatio,
+      'steering_coupling_ratio': instance.steeringCouplingRatio,
       'detected_hollow_terms': instance.detectedHollowTerms,
     };
 
@@ -359,4 +380,62 @@ Map<String, dynamic> _$FairScoringBreakdownDtoToJson(
   'raw_penalty_points': instance.rawPenaltyPoints,
   'deduplicated_penalty_points': instance.deduplicatedPenaltyPoints,
   'dampened_savings_points': instance.dampenedSavingsPoints,
+};
+
+_CounterfactualSimulationResultDto _$CounterfactualSimulationResultDtoFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate(
+  '_CounterfactualSimulationResultDto',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'retracted_root_id',
+        'collapsed_node_ids',
+        'surviving_node_ids',
+        'collapse_ratio',
+        'max_cascade_depth',
+      ],
+    );
+    final val = _CounterfactualSimulationResultDto(
+      retractedRootId: $checkedConvert('retracted_root_id', (v) => v as String),
+      collapsedNodeIds: $checkedConvert(
+        'collapsed_node_ids',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      survivingNodeIds: $checkedConvert(
+        'surviving_node_ids',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      collapseRatio: $checkedConvert(
+        'collapse_ratio',
+        (v) => (v as num?)?.toDouble() ?? 0.0,
+      ),
+      maxCascadeDepth: $checkedConvert(
+        'max_cascade_depth',
+        (v) => (v as num?)?.toInt() ?? 0,
+      ),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'retractedRootId': 'retracted_root_id',
+    'collapsedNodeIds': 'collapsed_node_ids',
+    'survivingNodeIds': 'surviving_node_ids',
+    'collapseRatio': 'collapse_ratio',
+    'maxCascadeDepth': 'max_cascade_depth',
+  },
+);
+
+Map<String, dynamic> _$CounterfactualSimulationResultDtoToJson(
+  _CounterfactualSimulationResultDto instance,
+) => <String, dynamic>{
+  'retracted_root_id': instance.retractedRootId,
+  'collapsed_node_ids': instance.collapsedNodeIds,
+  'surviving_node_ids': instance.survivingNodeIds,
+  'collapse_ratio': instance.collapseRatio,
+  'max_cascade_depth': instance.maxCascadeDepth,
 };

@@ -31,7 +31,7 @@ def _build_test_execution_record(execution_id: str, step_count: int) -> Executio
     step_states: dict[str, ExecutionStep] = {s.id: s for s in steps}
     return ExecutionRecord(
         id=execution_id,
-        workflow_id="wf_0123456789abcdef",
+        workflow_id="wf_0195f3a0000070008123456789abcdef",
         target_locale="en",
         status=ExecutionStatus.RUNNING,
         steps=steps,
@@ -43,7 +43,7 @@ def _build_test_execution_record(execution_id: str, step_count: int) -> Executio
 async def test_concurrency_stress_50_atoms_no_deadlock() -> None:
     """Boundary: 50 concurrent simulated atom tasks complete in TaskGroup with zero deadlocks."""
     step_count = 50
-    exec_record = _build_test_execution_record("exe_0000000000000001", step_count)
+    exec_record = _build_test_execution_record("exe_0195f3a0000070008000000000000001", step_count)
     update_lock = asyncio.Lock()
     completed_steps: list[str] = []
 
@@ -92,7 +92,7 @@ async def test_concurrency_stress_50_atoms_no_deadlock() -> None:
 async def test_concurrency_stress_100_atoms_high_frequency_lock() -> None:
     """Stress: 100+ concurrent atom tasks execute multi-phase state transitions under heavy contention."""
     step_count = 100
-    exec_record = _build_test_execution_record("exe_0000000000000002", step_count)
+    exec_record = _build_test_execution_record("exe_0195f3a0000070008000000000000002", step_count)
     update_lock = asyncio.Lock()
     transition_counter = 0
 
@@ -143,7 +143,7 @@ async def test_concurrency_stress_fault_injection_cancels_cleanly() -> None:
     """Error path: fault injected at high concurrency triggers clean TaskGroup cancellation without zombies."""
     step_count = 50
     fault_index = 25
-    exec_record = _build_test_execution_record("exe_0000000000000003", step_count)
+    exec_record = _build_test_execution_record("exe_0195f3a0000070008000000000000003", step_count)
     update_lock = asyncio.Lock()
     started_tasks: set[int] = set()
     cleaned_up_tasks: set[int] = set()
@@ -191,7 +191,7 @@ async def test_concurrency_stress_fault_injection_cancels_cleanly() -> None:
 async def test_concurrency_stress_fake_repo_fault_injection() -> None:
     """Error path: in-memory repository fault injection during concurrent saves triggers ExceptionGroup."""
     repo = InMemoryExecutionRepository()
-    record = _build_test_execution_record("exe_0000000000000004", 10)
+    record = _build_test_execution_record("exe_0195f3a0000070008000000000000004", 10)
     await repo.save_execution(record)
 
     # Configure deterministic fault injection on save_execution
@@ -227,7 +227,7 @@ async def test_concurrency_stress_fake_repo_fault_injection() -> None:
 async def test_concurrency_stress_snapshot_isolation_under_concurrency() -> None:
     """Positive: concurrent reads and writes maintain snapshot isolation without torn states."""
     repo = InMemoryExecutionRepository()
-    record = _build_test_execution_record("exe_0000000000000005", 20)
+    record = _build_test_execution_record("exe_0195f3a0000070008000000000000005", 20)
     await repo.save_execution(record)
 
     read_snapshots: list[ExecutionRecord] = []

@@ -423,9 +423,54 @@ class Settings(BaseSettings):
     causal_secondary_fault_dampening: Annotated[
         float, Field(default=0.25, description="Penalty dampening factor for cascading secondary faults")
     ] = 0.25
-    causal_cohesion_matrix_block_id: Annotated[
-        str, Field(default="blk_c0a1e50000000001", description="Default PromptBlock ID for causal cohesion BARS matrix")
-    ] = "blk_c0a1e50000000001"
+    # Phase 5, Step 5: Configure Equation (13) Guttman tier thresholds and delete causal_cohesion_matrix_block_id
+    causal_cohesion_l2_min_nodes: Annotated[
+        int, Field(default=2, description="Minimum causal graph nodes required for Level 2 BARS threshold")
+    ] = 2
+    causal_cohesion_l3_min_nodes: Annotated[
+        int, Field(default=5, description="Minimum causal graph nodes required for Level 3 BARS threshold")
+    ] = 5
+    causal_cohesion_l4_min_nodes: Annotated[
+        int, Field(default=10, description="Minimum causal graph nodes required for Level 4 BARS threshold")
+    ] = 10
+    causal_cohesion_l5_min_nodes: Annotated[
+        int, Field(default=15, description="Minimum causal graph nodes required for Level 5 BARS threshold")
+    ] = 15
+    causal_cohesion_l2_lcc_min: Annotated[
+        float,
+        Field(
+            default=0.35,
+            description="Minimum largest weakly connected component ratio for Level 2 BARS threshold",
+        ),
+    ] = 0.35
+    causal_cohesion_l3_lcc_min: Annotated[
+        float,
+        Field(
+            default=0.50,
+            description="Minimum largest weakly connected component ratio for Level 3 BARS threshold",
+        ),
+    ] = 0.50
+    causal_cohesion_l4_lcc_min: Annotated[
+        float,
+        Field(
+            default=0.70,
+            description="Minimum largest weakly connected component ratio for Level 4 BARS threshold",
+        ),
+    ] = 0.70
+    causal_cohesion_l5_lcc_min: Annotated[
+        float,
+        Field(
+            default=0.85,
+            description="Minimum largest weakly connected component ratio for Level 5 BARS threshold",
+        ),
+    ] = 0.85
+    causal_cohesion_l4_convergence_min: Annotated[
+        float,
+        Field(
+            default=0.05,
+            description="Minimum branch convergence ratio for Level 4 BARS threshold",
+        ),
+    ] = 0.05
     causal_cohesion_l2_threshold: Annotated[
         float, Field(default=0.40, description="Minimum logical cohesion score for Level 2 BARS threshold")
     ] = 0.40
@@ -1023,27 +1068,27 @@ class Settings(BaseSettings):
     mock_admin_user_id: Annotated[
         str,
         Field(
-            default="usr_18a0d5f6151349a5",
+            default="usr_0195f3a000007000800018a0d5f61513",
             validation_alias=AliasChoices("mock_admin_user_id", "MOCK_ADMIN_USER_ID"),
             description="Mock Admin User ID",
         ),
-    ] = "usr_18a0d5f6151349a5"
+    ] = "usr_0195f3a000007000800018a0d5f61513"
     mock_root_user_id: Annotated[
         str,
         Field(
-            default="usr_a3fd6b3d77c748f4",
+            default="usr_0195f3a0000070008000a3fd6b3d77c7",
             validation_alias=AliasChoices("mock_root_user_id", "MOCK_ROOT_USER_ID"),
             description="Mock Root User ID",
         ),
-    ] = "usr_a3fd6b3d77c748f4"
+    ] = "usr_0195f3a0000070008000a3fd6b3d77c7"
     mock_analyst_user_id: Annotated[
         str,
         Field(
-            default="usr_8a9234f9a0c242a1",
+            default="usr_0195f3a00000700080008a9234f9a0c2",
             validation_alias=AliasChoices("mock_analyst_user_id", "MOCK_ANALYST_USER_ID"),
             description="Mock Analyst User ID",
         ),
-    ] = "usr_8a9234f9a0c242a1"
+    ] = "usr_0195f3a00000700080008a9234f9a0c2"
 
     @model_validator(mode="after")
     def validate_linker_axiom_budgets(self) -> Self:

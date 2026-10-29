@@ -70,7 +70,7 @@ def _make_gateway(
         Configured SystemConfigMCPGateways model.
     """
     return SystemConfigMCPGateways(
-        id="sys_8172bda70c8641c5",
+        id="sys_0195f3a00000700080008172bda70c86",
         slug="remote_search",
         endpoint_url="https://mcp.example.com/v1/mcp",
         transport_type=transport_type,

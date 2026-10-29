@@ -61,7 +61,7 @@ def root_token() -> TokenData:
 
 
 def _make_dummy_registry(
-    reg_id: str = "sys_0123456789abcdef",
+    reg_id: str = "sys_0195f3a0000070008123456789abcdef",
     name: str = "Test Registry",
 ) -> SystemConfigModelRegistry:
     """Helper to build a valid Option A SystemConfigModelRegistry."""
@@ -191,7 +191,7 @@ async def test_get_system_config_success(
 async def test_get_system_config_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
     """Assert member role raises PermissionDeniedError."""
     with pytest.raises(PermissionDeniedError):
-        await service.get_system_config(member_token, "sys_0123456789abcdef")
+        await service.get_system_config(member_token, "sys_0195f3a0000070008123456789abcdef")
 
 
 @pytest.mark.asyncio
@@ -210,13 +210,13 @@ async def test_save_system_config_success(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
     """Save model registry and verify true stateful roundtrip persistence."""
-    reg = _make_dummy_registry("sys_0123456789abcdef")
-    res = await service.save_system_config(root_token, "sys_0123456789abcdef", reg)
-    assert res.id == "sys_0123456789abcdef"
+    reg = _make_dummy_registry("sys_0195f3a0000070008123456789abcdef")
+    res = await service.save_system_config(root_token, "sys_0195f3a0000070008123456789abcdef", reg)
+    assert res.id == "sys_0195f3a0000070008123456789abcdef"
 
     # Stateful Roundtrip Verification via repository
-    persisted = await system_repo.get_model_registry("sys_0123456789abcdef")
-    assert persisted.id == "sys_0123456789abcdef"
+    persisted = await system_repo.get_model_registry("sys_0195f3a0000070008123456789abcdef")
+    assert persisted.id == "sys_0195f3a0000070008123456789abcdef"
     assert persisted.type == "model_registry"
 
 
@@ -225,9 +225,9 @@ async def test_save_system_config_permission_denied(
     service: StudioSystemConfigService, member_token: TokenData
 ) -> None:
     """Assert non-root user cannot save model registry."""
-    reg = _make_dummy_registry("sys_0123456789abcdef")
+    reg = _make_dummy_registry("sys_0195f3a0000070008123456789abcdef")
     with pytest.raises(PermissionDeniedError):
-        await service.save_system_config(member_token, "sys_0123456789abcdef", reg)
+        await service.save_system_config(member_token, "sys_0195f3a0000070008123456789abcdef", reg)
 
 
 def test_save_system_config_corrupted_id_fails_fast() -> None:
@@ -286,13 +286,13 @@ async def test_save_system_config_not_found_after_save(
     system_repo: InMemorySystemRepository,
 ) -> None:
     """Assert ResourceNotFoundError if registry not found after save."""
-    reg = _make_dummy_registry("sys_0123456789abcdef")
+    reg = _make_dummy_registry("sys_0195f3a0000070008123456789abcdef")
     system_repo.inject_fault(
         "get_model_registry",
-        ResourceNotFoundError(resource_type="system_config", resource_id="sys_0123456789abcdef"),
+        ResourceNotFoundError(resource_type="system_config", resource_id="sys_0195f3a0000070008123456789abcdef"),
     )
     with pytest.raises(ResourceNotFoundError):
-        await service.save_system_config(root_token, "sys_0123456789abcdef", reg)
+        await service.save_system_config(root_token, "sys_0195f3a0000070008123456789abcdef", reg)
 
 
 @pytest.mark.asyncio
@@ -310,7 +310,7 @@ async def test_delete_system_config_permission_denied(
 ) -> None:
     """Assert non-ROOT user raises PermissionDeniedError on delete."""
     with pytest.raises(PermissionDeniedError):
-        await service.delete_system_config(member_token, "sys_0123456789abcdef")
+        await service.delete_system_config(member_token, "sys_0195f3a0000070008123456789abcdef")
 
 
 @pytest.mark.asyncio
@@ -381,14 +381,14 @@ async def test_get_mcp_gateways_success_and_cache_hit(
 async def test_get_mcp_gateways_not_found(service: StudioSystemConfigService, root_token: TokenData) -> None:
     """Assert retrieving non-existent MCP gateway raises ResourceNotFoundError."""
     with pytest.raises(ResourceNotFoundError):
-        await service.get_mcp_gateways(root_token, "sys_9999999999999999")
+        await service.get_mcp_gateways(root_token, "sys_0195f3a0000070098999999999999999")
 
 
 @pytest.mark.asyncio
 async def test_get_mcp_gateways_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
     """Assert non-ROOT user raises PermissionDeniedError."""
     with pytest.raises(PermissionDeniedError):
-        await service.get_mcp_gateways(member_token, "sys_8172bda70c8641c5")
+        await service.get_mcp_gateways(member_token, "sys_0195f3a00000700080008172bda70c86")
 
 
 @pytest.mark.asyncio
@@ -397,7 +397,7 @@ async def test_save_mcp_gateways_success(
 ) -> None:
     """Save MCP gateways and verify true stateful roundtrip."""
     gw = SystemConfigMCPGateways(
-        id="sys_8172bda70c8641c5",
+        id="sys_0195f3a00000700080008172bda70c86",
         slug="tavily_gateway",
         type="mcp_gateways",
         tools=[
@@ -409,15 +409,15 @@ async def test_save_mcp_gateways_success(
             )
         ],
     )
-    res = await service.save_mcp_gateways(root_token, "sys_8172bda70c8641c5", gw)
-    assert res.id == "sys_8172bda70c8641c5"
+    res = await service.save_mcp_gateways(root_token, "sys_0195f3a00000700080008172bda70c86", gw)
+    assert res.id == "sys_0195f3a00000700080008172bda70c86"
     assert res.slug == "tavily_gateway"
     assert len(res.tools) == 1
     assert res.tools[0].tool_id == "mcp_tavily_search"
 
     # Stateful Roundtrip Verification via repository
-    persisted = await system_repo.get_mcp_gateways(id="sys_8172bda70c8641c5")
-    assert persisted.id == "sys_8172bda70c8641c5"
+    persisted = await system_repo.get_mcp_gateways(id="sys_0195f3a00000700080008172bda70c86")
+    assert persisted.id == "sys_0195f3a00000700080008172bda70c86"
     assert len(persisted.tools) == 1
     assert persisted.tools[0].tool_id == "mcp_tavily_search"
 
@@ -428,13 +428,13 @@ async def test_save_mcp_gateways_duplicate_slug_raises_validation_error(
 ) -> None:
     """Assert saving a gateway with a slug already in use by another gateway raises AppException."""
     gw = SystemConfigMCPGateways(
-        id="sys_8172bda70c8641c5",
+        id="sys_0195f3a00000700080008172bda70c86",
         slug="default_mcp_gateway",
         type="mcp_gateways",
         tools=[],
     )
     with pytest.raises(AppException) as exc_info:
-        await service.save_mcp_gateways(root_token, "sys_8172bda70c8641c5", gw)
+        await service.save_mcp_gateways(root_token, "sys_0195f3a00000700080008172bda70c86", gw)
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
@@ -444,13 +444,13 @@ async def test_save_mcp_gateways_invalid_slug_format_raises_validation_error(
 ) -> None:
     """Assert saving a gateway with malformed double-underscore slug raises AppException."""
     malformed = SystemConfigMCPGateways.model_construct(
-        id="sys_8172bda70c8641c5",
+        id="sys_0195f3a00000700080008172bda70c86",
         slug="bad__slug",
         type="mcp_gateways",
         tools=[],
     )
     with pytest.raises(AppException) as exc_info:
-        await service.save_mcp_gateways(root_token, "sys_8172bda70c8641c5", malformed)
+        await service.save_mcp_gateways(root_token, "sys_0195f3a00000700080008172bda70c86", malformed)
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
@@ -458,13 +458,13 @@ async def test_save_mcp_gateways_invalid_slug_format_raises_validation_error(
 async def test_save_mcp_gateways_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
     """Assert non-ROOT user raises PermissionDeniedError on save."""
     gw = SystemConfigMCPGateways(
-        id="sys_8172bda70c8641c5",
+        id="sys_0195f3a00000700080008172bda70c86",
         slug="tavily_gateway",
         type="mcp_gateways",
         tools=[],
     )
     with pytest.raises(PermissionDeniedError):
-        await service.save_mcp_gateways(member_token, "sys_8172bda70c8641c5", gw)
+        await service.save_mcp_gateways(member_token, "sys_0195f3a00000700080008172bda70c86", gw)
 
 
 @pytest.mark.asyncio
@@ -508,7 +508,7 @@ async def test_clone_mcp_gateways_success_and_repeated_suffix(
 async def test_clone_mcp_gateways_not_found(service: StudioSystemConfigService, root_token: TokenData) -> None:
     """Assert cloning non-existent MCP gateway raises ResourceNotFoundError."""
     with pytest.raises(ResourceNotFoundError):
-        await service.clone_mcp_gateways(root_token, "sys_9999999999999999")
+        await service.clone_mcp_gateways(root_token, "sys_0195f3a0000070098999999999999999")
 
 
 @pytest.mark.asyncio
@@ -517,7 +517,7 @@ async def test_clone_mcp_gateways_permission_denied(
 ) -> None:
     """Assert non-ROOT user raises PermissionDeniedError on clone."""
     with pytest.raises(PermissionDeniedError):
-        await service.clone_mcp_gateways(member_token, "sys_8172bda70c8641c5")
+        await service.clone_mcp_gateways(member_token, "sys_0195f3a00000700080008172bda70c86")
 
 
 @pytest.mark.asyncio
@@ -538,7 +538,7 @@ async def test_delete_mcp_gateways_success_and_cache_invalidation(
 async def test_delete_mcp_gateways_not_found(service: StudioSystemConfigService, root_token: TokenData) -> None:
     """Assert deleting non-existent MCP gateway raises ResourceNotFoundError."""
     with pytest.raises(ResourceNotFoundError):
-        await service.delete_mcp_gateways(root_token, "sys_9999999999999999")
+        await service.delete_mcp_gateways(root_token, "sys_0195f3a0000070098999999999999999")
 
 
 @pytest.mark.asyncio
@@ -547,7 +547,7 @@ async def test_delete_mcp_gateways_permission_denied(
 ) -> None:
     """Assert non-ROOT user raises PermissionDeniedError on delete_mcp_gateways."""
     with pytest.raises(PermissionDeniedError):
-        await service.delete_mcp_gateways(member_token, "sys_8172bda70c8641c5")
+        await service.delete_mcp_gateways(member_token, "sys_0195f3a00000700080008172bda70c86")
 
 
 @pytest.mark.asyncio
@@ -609,7 +609,7 @@ async def test_discover_mcp_gateway_tools_preserves_existing_settings(
     svc = StudioSystemConfigService(system_repo=system_repo, mcp_client=mcp_client, gateway_cache=gw_cache)
 
     gw = SystemConfigMCPGateways(
-        id="sys_8172bda70c8641c5",
+        id="sys_0195f3a00000700080008172bda70c86",
         slug="tavily_gateway",
         type="mcp_gateways",
         endpoint_url="https://mcp.tavily.example.com/mcp",
@@ -650,10 +650,10 @@ async def test_discover_mcp_gateway_tools_negative_permissions_and_not_found(
 ) -> None:
     """Assert discover_mcp_gateway_tools enforces RBAC and ResourceNotFoundError."""
     with pytest.raises(PermissionDeniedError):
-        await service.discover_mcp_gateway_tools(member_token, "sys_8172bda70c8641c5")
+        await service.discover_mcp_gateway_tools(member_token, "sys_0195f3a00000700080008172bda70c86")
 
     with pytest.raises(ResourceNotFoundError):
-        await service.discover_mcp_gateway_tools(root_token, "sys_9999999999999999")
+        await service.discover_mcp_gateway_tools(root_token, "sys_0195f3a0000070098999999999999999")
 
 
 @pytest.mark.asyncio
@@ -662,7 +662,7 @@ async def test_clone_system_config_permission_denied(
 ) -> None:
     """Assert non-ROOT user raises PermissionDeniedError on cloning system config."""
     with pytest.raises(PermissionDeniedError):
-        await service.clone_system_config(member_token, "sys_0123456789abcdef")
+        await service.clone_system_config(member_token, "sys_0195f3a0000070008123456789abcdef")
 
 
 @pytest.mark.asyncio
@@ -670,8 +670,8 @@ async def test_save_system_config_id_mismatch_updates_id(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
     """Assert saving with mismatched ID updates ID to target ID parameter."""
-    reg = _make_dummy_registry("sys_0123456789abcdef")
-    target_id = "sys_fedcba9876543210"
+    reg = _make_dummy_registry("sys_0195f3a0000070008123456789abcdef")
+    target_id = "sys_0195f3a00000700f8edcba9876543210"
     res = await service.save_system_config(root_token, target_id, reg)
     assert res.id == target_id
 
@@ -682,11 +682,11 @@ async def test_save_mcp_gateways_id_mismatch_updates_id(
 ) -> None:
     """Assert saving MCP gateways with mismatched ID updates to target ID parameter."""
     gw = SystemConfigMCPGateways(
-        id="sys_8172bda70c8641c5",
+        id="sys_0195f3a00000700080008172bda70c86",
         slug="tavily_gateway",
         type="mcp_gateways",
         tools=[],
     )
-    target_id = "sys_1122334455667788"
+    target_id = "sys_0195f3a0000070018122334455667788"
     res = await service.save_mcp_gateways(root_token, target_id, gw)
     assert res.id == target_id

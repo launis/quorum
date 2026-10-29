@@ -29,7 +29,7 @@ def repo(driver: StorageDriver) -> AgentRepositoryImpl:
 def sample_agent() -> PersonaPromptBlock:
     """Provides a valid PersonaPromptBlock instance."""
     return PersonaPromptBlock(
-        id="blk_1234567890abcdef",
+        id="blk_0195f3a0000070018234567890abcdef",
         slug="agent_1",
         label=I18nText(translations={"en": "Test Agent", "fi": "Testiagentti"}),
         description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
@@ -82,16 +82,16 @@ async def test_get_agent_by_id_malformed_raises_app_exception(repo: AgentReposit
     """Test get_agent_by_id raises AppException(500) when stored document fails validation."""
     await driver.upsert(
         "agents",
-        {"id": "blk_1111111111111111", "category_id": "invalid_category"},
-        "blk_1111111111111111",
+        {"id": "blk_0195f3a0000070018111111111111111", "category_id": "invalid_category"},
+        "blk_0195f3a0000070018111111111111111",
     )
 
     with pytest.raises(AppException) as exc_info:
-        await repo.get_agent_by_id("blk_1111111111111111")
+        await repo.get_agent_by_id("blk_0195f3a0000070018111111111111111")
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "blk_1111111111111111" in exc_info.value.message
+    assert "blk_0195f3a0000070018111111111111111" in exc_info.value.message
 
 
 @pytest.mark.asyncio
@@ -101,8 +101,8 @@ async def test_get_all_agents_malformed_with_id_raises_app_exception(
     """Test get_all_agents raises AppException(500) when a document with ID fails validation."""
     await driver.upsert(
         "agents",
-        {"id": "blk_2222222222222222", "category_id": "invalid_category"},
-        "blk_2222222222222222",
+        {"id": "blk_0195f3a0000070028222222222222222", "category_id": "invalid_category"},
+        "blk_0195f3a0000070028222222222222222",
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -110,7 +110,7 @@ async def test_get_all_agents_malformed_with_id_raises_app_exception(
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "blk_2222222222222222" in exc_info.value.message
+    assert "blk_0195f3a0000070028222222222222222" in exc_info.value.message
 
 
 @pytest.mark.asyncio
@@ -139,12 +139,12 @@ async def test_update_agent_not_found_returns_false(
     repo: AgentRepositoryImpl, sample_agent: PersonaPromptBlock
 ) -> None:
     """Test update_agent returns False when target agent ID does not exist."""
-    res = await repo.update_agent("blk_0000000000000000", sample_agent)
+    res = await repo.update_agent("blk_0195f3a0000070008000000000000000", sample_agent)
     assert res is False
 
 
 @pytest.mark.asyncio
 async def test_delete_agent_not_found_returns_false(repo: AgentRepositoryImpl) -> None:
     """Test delete_agent returns False when target agent ID does not exist."""
-    res = await repo.delete_agent("blk_0000000000000000")
+    res = await repo.delete_agent("blk_0195f3a0000070008000000000000000")
     assert res is False

@@ -516,7 +516,9 @@ async def test_save_step_success(
 async def test_save_step_protected_system_core_slug_mutation_fails_fast(
     workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
 ) -> None:
-    existing = _valid_step("stp_0195f3a00000700080000123456789ab", slug="orig_slug", is_system_core=True, org_id="org_123")
+    existing = _valid_step(
+        "stp_0195f3a00000700080000123456789ab", slug="orig_slug", is_system_core=True, org_id="org_123"
+    )
     await mock_workflow_repo.save_step(existing)
 
     modified = existing.model_copy(update={"slug": "mutated_slug"})

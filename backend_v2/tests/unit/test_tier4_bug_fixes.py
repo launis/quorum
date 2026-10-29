@@ -6,13 +6,13 @@ def test_bug_metric_mappings_silent_override() -> None:
     """Ensures matrix_synthesis_groups is retained across API read/write cycles."""
     # 1. Simulate the OutputProfile in the Database
     db_profile = OutputProfile(
-        id="prof_1234abcd1234abcd",
+        id="prof_0195f3a0000070018234abcd1234abcd",
         slug="test",
         workflow_id="wf_1234",
         name={"translations": {"en": "Name"}},
         matrix_synthesis_groups=[
             {
-                "id": "grp_1234567890123456",
+                "id": "grp_0195f3a0000070018234567890123456",
                 "title": {"translations": {"en": "Group"}},
                 "target_blocks": ["*"],
             }
@@ -43,4 +43,4 @@ def test_bug_metric_mappings_silent_override() -> None:
 
     # Validation: The saved profile should NOT have lost matrix_synthesis_groups
     assert len(saved_profile.matrix_synthesis_groups) == 1
-    assert saved_profile.matrix_synthesis_groups[0].id == "grp_1234567890123456"
+    assert saved_profile.matrix_synthesis_groups[0].id == "grp_0195f3a0000070018234567890123456"

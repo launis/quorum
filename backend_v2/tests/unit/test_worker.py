@@ -76,7 +76,7 @@ def _get_base_model_registry() -> SystemConfigModelRegistry:
     }
     return SystemConfigModelRegistry.model_validate(
         {
-            "id": "sys_1111222233334444",
+            "id": "sys_0195f3a0000070018111222233334444",
             "name": "Default Test Registry",
             "type": "model_registry",
             "slug": "model_registry",
@@ -94,7 +94,7 @@ def _get_base_model_registry() -> SystemConfigModelRegistry:
 def _get_base_workflow() -> Workflow:
     return Workflow.model_validate(
         {
-            "id": "wf_1234567890123456",
+            "id": "wf_0195f3a0000070018234567890123456",
             "name": "Test WF",
             "slug": "test-wf",
             "description": "desc",
@@ -102,8 +102,8 @@ def _get_base_workflow() -> Workflow:
             "version": 1,
             "steps": [],
             "historical_context_mode": "DISABLED",
-            "default_profile_id": "prof_1111222233334444",
-            "model_registry_id": "sys_1111222233334444",
+            "default_profile_id": "prof_0195f3a0000070018111222233334444",
+            "model_registry_id": "sys_0195f3a0000070018111222233334444",
             "default_strictness_level": 50,
         },
         strict=False,
@@ -113,9 +113,9 @@ def _get_base_workflow() -> Workflow:
 def _get_base_profile() -> OutputProfile:
     return OutputProfile.model_validate(
         {
-            "id": "prof_1111222233334444",
+            "id": "prof_0195f3a0000070018111222233334444",
             "slug": "prof-1",
-            "workflow_id": "wf_1234567890123456",
+            "workflow_id": "wf_0195f3a0000070018234567890123456",
             "name": {"translations": {"en": "Profile"}},
             "synthesis_length_constraint": 500,
             "tone_instruction": "Direct tone",
@@ -126,14 +126,14 @@ def _get_base_profile() -> OutputProfile:
             "variance_synthesis_directive": "Synthesize cognitive variance.",
             "matrix_synthesis_groups": [
                 {
-                    "id": "grp_1111111111111111",
+                    "id": "grp_0195f3a0000070018111111111111111",
                     "title": {"translations": {"en": "Matrix Section", "fi": "Matriisiosio"}},
-                    "target_blocks": ["blk_1111222233334444"],
+                    "target_blocks": ["blk_0195f3a0000070018111222233334444"],
                 }
             ],
             "target_block_order": ["matrix_graphs_block"],
             "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
-            "variance_target_block": "blk_1111222233334444",
+            "variance_target_block": "blk_0195f3a0000070018111222233334444",
             "max_extension_items": 3,
         }
     )
@@ -143,7 +143,7 @@ def _get_base_profile() -> OutputProfile:
 def mock_worker_report_service() -> Generator[MagicMock]:
     """Mock ReportService for background worker synthesis tasks."""
     mock_artifact = MagicMock()
-    mock_artifact.id = "rep_1234567890123456"
+    mock_artifact.id = "rep_0195f3a0000070018234567890123456"
     mock_svc = MagicMock()
     mock_svc.get_or_create_default_artifact = AsyncMock(return_value=mock_artifact)
     mock_svc.compile_and_persist_artifact = AsyncMock()
@@ -221,15 +221,15 @@ async def test_execute_workflow_job_execution_missing_in_db() -> None:
     await mock_repo.save_workflow(
         Workflow.model_validate(
             {
-                "id": "wf_1234567890123456",
+                "id": "wf_0195f3a0000070018234567890123456",
                 "name": "Test WF",
                 "slug": "test-wf",
                 "description": "desc",
                 "status": "draft",
                 "version": 1,
                 "steps": [],
-                "default_profile_id": "prof_1111222233334444",
-                "model_registry_id": "sys_1111222233334444",
+                "default_profile_id": "prof_0195f3a0000070018111222233334444",
+                "model_registry_id": "sys_0195f3a0000070018111222233334444",
                 "historical_context_mode": "DISABLED",
                 "default_strictness_level": 50,
             },
@@ -238,7 +238,7 @@ async def test_execute_workflow_job_execution_missing_in_db() -> None:
     )
 
     ctx = {"repository": mock_repo, "engine": AsyncMock()}
-    res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_missing")
+    res = await execute_workflow_job(ctx, "wf_0195f3a0000070018234567890123456", {}, execution_id="exe_missing")
     assert res.status == "FAILED/DLQ"
 
 
@@ -247,7 +247,7 @@ async def test_execute_workflow_job_missing_strictness_level() -> None:
     """Negative test: verify missing strictness level triggers Fail-Fast AppException."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
     wf = Workflow.model_construct(
-        id="wf_1234567890123456",
+        id="wf_0195f3a0000070018234567890123456",
         name="Test WF",
         slug="test-wf",
         description="desc",
@@ -255,15 +255,15 @@ async def test_execute_workflow_job_missing_strictness_level() -> None:
         version=1,
         steps=[],
         default_profile_id=None,
-        model_registry_id="sys_1111222233334444",
+        model_registry_id="sys_0195f3a0000070018111222233334444",
         historical_context_mode="DISABLED",
         default_strictness_level=None,
     )
     await mock_repo.save_workflow(wf)
     await mock_repo.save_execution(
         ExecutionRecord(
-            id="exe_1234567890123456",
-            workflow_id="wf_1234567890123456",
+            id="exe_0195f3a0000070018234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
             status=ExecutionStatus.PENDING,
             target_locale="en",
             metadata=ExecutionMetadata(),
@@ -273,7 +273,9 @@ async def test_execute_workflow_job_missing_strictness_level() -> None:
     )
 
     ctx = {"repository": mock_repo, "engine": AsyncMock()}
-    res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
+    res = await execute_workflow_job(
+        ctx, "wf_0195f3a0000070018234567890123456", {}, execution_id="exe_0195f3a0000070018234567890123456"
+    )
     assert res.status == "FAILED/DLQ"
 
 
@@ -284,15 +286,15 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
     await mock_repo.save_workflow(
         Workflow.model_validate(
             {
-                "id": "wf_1234567890123456",
+                "id": "wf_0195f3a0000070018234567890123456",
                 "slug": "wf-1",
                 "name": {"translations": {"en": "Workflow 1"}},
                 "description": "desc",
                 "status": "draft",
                 "version": 1,
                 "steps": [],
-                "default_profile_id": "prof_1111222233334444",
-                "model_registry_id": "sys_1111222233334444",
+                "default_profile_id": "prof_0195f3a0000070018111222233334444",
+                "model_registry_id": "sys_0195f3a0000070018111222233334444",
                 "historical_context_mode": "DISABLED",
                 "default_strictness_level": 85,
             },
@@ -303,9 +305,9 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
         [
             OutputProfile.model_validate(
                 {
-                    "id": "prof_1111222233334444",
+                    "id": "prof_0195f3a0000070018111222233334444",
                     "slug": "prof-1",
-                    "workflow_id": "wf_1234567890123456",
+                    "workflow_id": "wf_0195f3a0000070018234567890123456",
                     "name": {"translations": {"en": "Profile 1"}},
                     "display_scale": "original",
                     "matrix_synthesis_groups": [],
@@ -315,8 +317,8 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
         ]
     )
     rec = ExecutionRecord.model_construct(
-        id="exe_1234567890123456",
-        workflow_id="wf_1234567890123456",
+        id="exe_0195f3a0000070018234567890123456",
+        workflow_id="wf_0195f3a0000070018234567890123456",
         status=ExecutionStatus.PENDING,
         step_states={},
         target_locale="",  # Empty target_locale triggers fail-fast
@@ -325,7 +327,9 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
     await mock_repo.save_execution(rec)
     ctx = {"repository": mock_repo, "engine": AsyncMock(), "redis": None}
 
-    res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
+    res = await execute_workflow_job(
+        ctx, "wf_0195f3a0000070018234567890123456", {}, execution_id="exe_0195f3a0000070018234567890123456"
+    )
     assert res.status == "FAILED/DLQ"
 
 
@@ -336,7 +340,9 @@ async def test_execute_workflow_job_cancelled() -> None:
     mock_repo.inject_fault("get_workflow", asyncio.CancelledError())
 
     ctx = {"repository": mock_repo, "engine": AsyncMock()}
-    res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
+    res = await execute_workflow_job(
+        ctx, "wf_0195f3a0000070018234567890123456", {}, execution_id="exe_0195f3a0000070018234567890123456"
+    )
     assert res.status == "FAILED/DLQ"
 
 
@@ -348,7 +354,9 @@ async def test_execute_workflow_job_failure_update_error() -> None:
     mock_repo.inject_fault("update_execution", RuntimeError("DB write crash"))
 
     ctx = {"repository": mock_repo, "engine": AsyncMock()}
-    res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
+    res = await execute_workflow_job(
+        ctx, "wf_0195f3a0000070018234567890123456", {}, execution_id="exe_0195f3a0000070018234567890123456"
+    )
     assert res.status == "FAILED/DLQ"
 
 
@@ -360,7 +368,9 @@ async def test_execute_workflow_job_cancelled_update_error() -> None:
     mock_repo.inject_fault("update_execution", RuntimeError("DB write crash"))
 
     ctx = {"repository": mock_repo, "engine": AsyncMock()}
-    res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
+    res = await execute_workflow_job(
+        ctx, "wf_0195f3a0000070018234567890123456", {}, execution_id="exe_0195f3a0000070018234567890123456"
+    )
     assert res.status == "FAILED/DLQ"
 
 
@@ -371,15 +381,15 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
     await mock_repo.save_workflow(
         Workflow.model_validate(
             {
-                "id": "wf_1234567890123456",
+                "id": "wf_0195f3a0000070018234567890123456",
                 "name": "Test WF",
                 "slug": "test-wf",
                 "description": "desc",
                 "status": "draft",
                 "version": 1,
                 "steps": [],
-                "default_profile_id": "prof_1111222233334444",
-                "model_registry_id": "sys_1111222233334444",
+                "default_profile_id": "prof_0195f3a0000070018111222233334444",
+                "model_registry_id": "sys_0195f3a0000070018111222233334444",
                 "historical_context_mode": "DISABLED",
                 "default_strictness_level": 50,
             },
@@ -390,9 +400,9 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         [
             OutputProfile.model_validate(
                 {
-                    "id": "prof_1111222233334444",
+                    "id": "prof_0195f3a0000070018111222233334444",
                     "slug": "prof-1",
-                    "workflow_id": "wf_1234567890123456",
+                    "workflow_id": "wf_0195f3a0000070018234567890123456",
                     "name": {"translations": {"en": "Profile 1"}},
                     "display_scale": "original",
                     "matrix_synthesis_groups": [],
@@ -403,9 +413,9 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
     )
     await mock_repo.save_execution(
         ExecutionRecord(
-            id="exe_1234567890123456",
-            workflow_id="wf_1234567890123456",
-            output_profile_id="prof_1111222233334444",
+            id="exe_0195f3a0000070018234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
+            output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.PENDING,
             target_locale="fi",
             step_states={},
@@ -459,9 +469,9 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
     ]
 
     mock_exec_record = ExecutionRecord(
-        id="exe_1234567890123456",
-        workflow_id="wf_1234567890123456",
-        output_profile_id="prof_1111222233334444",
+        id="exe_0195f3a0000070018234567890123456",
+        workflow_id="wf_0195f3a0000070018234567890123456",
+        output_profile_id="prof_0195f3a0000070018111222233334444",
         status=ExecutionStatus.PENDING,
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -476,15 +486,15 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
 
     res = await execute_workflow_job(
         ctx,
-        workflow_id="wf_1234567890123456",
+        workflow_id="wf_0195f3a0000070018234567890123456",
         inputs={},
-        execution_id="exe_1234567890123456",
+        execution_id="exe_0195f3a0000070018234567890123456",
     )
 
     assert res.status == "COMPLETED"
-    assert res.execution_id == "exe_1234567890123456"
+    assert res.execution_id == "exe_0195f3a0000070018234567890123456"
     assert mock_repo.get_call_count("update_execution") >= 1
-    updated_rec = await mock_repo.get_execution("exe_1234567890123456")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070018234567890123456")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.PASSED
 
@@ -495,15 +505,15 @@ async def test_generate_profile_synthesis_and_pdf_task_not_found() -> None:
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         mock_repo = InMemoryUnifiedWorkflowRepository()
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
-            await generate_profile_synthesis_and_pdf_task("exe_1234567890123456", "en")
-            assert (await mock_repo.get_execution("exe_1234567890123456")) is None
+            await generate_profile_synthesis_and_pdf_task("exe_0195f3a0000070018234567890123456", "en")
+            assert (await mock_repo.get_execution("exe_0195f3a0000070018234567890123456")) is None
 
 
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_and_pdf_task_missing_language() -> None:
     """Negative test: verify missing accept_language raises AppException(VALIDATION_FAILED)."""
     with pytest.raises(AppException) as exc_info:
-        await generate_profile_synthesis_and_pdf_task("exe_1234567890123456", None)
+        await generate_profile_synthesis_and_pdf_task("exe_0195f3a0000070018234567890123456", None)
 
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert "accept_language" in exc_info.value.message
@@ -520,15 +530,15 @@ async def test_generate_profile_synthesis_and_pdf_task_already_cached(
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
                 ExecutionRecord(
-                    id="exe_1234567890123456",
-                    workflow_id="wf_1234567890123456",
-                    output_profile_id="prof_1111222233334444",
+                    id="exe_0195f3a0000070018234567890123456",
+                    workflow_id="wf_0195f3a0000070018234567890123456",
+                    output_profile_id="prof_0195f3a0000070018111222233334444",
                     status=ExecutionStatus.RUNNING,
                     target_locale="fi",
                     metadata=ExecutionMetadata(),
                     step_states={},
                     profile_syntheses={
-                        "prof_1111222233334444": RenderedSynthesisCache(
+                        "prof_0195f3a0000070018111222233334444": RenderedSynthesisCache(
                             section_syntheses={},
                             row_explanations={},
                             cited_sources=[],
@@ -539,10 +549,13 @@ async def test_generate_profile_synthesis_and_pdf_task_already_cached(
             )
 
             await generate_profile_synthesis_and_pdf_task(
-                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
+                "exe_0195f3a0000070018234567890123456",
+                accept_language="fi",
+                profile_id="prof_0195f3a0000070018111222233334444",
+                redis=mock_redis,
             )
             mock_worker_report_service.compile_and_persist_artifact.assert_called_once_with(
-                "rep_1234567890123456",
+                "rep_0195f3a0000070018234567890123456",
                 mock_redis,
             )
 
@@ -559,9 +572,9 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
                 ExecutionRecord(
-                    id="exe_1234567890123456",
-                    workflow_id="wf_1234567890123456",
-                    output_profile_id="prof_1111222233334444",
+                    id="exe_0195f3a0000070018234567890123456",
+                    workflow_id="wf_0195f3a0000070018234567890123456",
+                    output_profile_id="prof_0195f3a0000070018111222233334444",
                     status=ExecutionStatus.RUNNING,
                     target_locale="fi",
                     metadata=ExecutionMetadata(),
@@ -573,9 +586,9 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 [
                     OutputProfile.model_validate(
                         {
-                            "id": "prof_1111222233334444",
+                            "id": "prof_0195f3a0000070018111222233334444",
                             "slug": "prof-1",
-                            "workflow_id": "wf_1234567890123456",
+                            "workflow_id": "wf_0195f3a0000070018234567890123456",
                             "name": {"translations": {"en": "Profile"}},
                             "synthesis_length_constraint": 500,
                             "matrix_synthesis_groups": [],
@@ -587,7 +600,7 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
             await mock_repo.save_workflow(
                 Workflow.model_validate(
                     {
-                        "id": "wf_1234567890123456",
+                        "id": "wf_0195f3a0000070018234567890123456",
                         "name": "Test WF",
                         "slug": "test-wf",
                         "description": "desc",
@@ -595,8 +608,8 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                         "version": 1,
                         "steps": [],
                         "historical_context_mode": "DISABLED",
-                        "default_profile_id": "prof_1111222233334444",
-                        "model_registry_id": "sys_1111222233334444",
+                        "default_profile_id": "prof_0195f3a0000070018111222233334444",
+                        "model_registry_id": "sys_0195f3a0000070018111222233334444",
                     },
                     strict=False,
                 )
@@ -611,12 +624,15 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                     success=True, state_delta=HookDeltaDTO(delta={"distilled_inputs": "Data"})
                 )
                 await generate_profile_synthesis_and_pdf_task(
-                    "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
+                    "exe_0195f3a0000070018234567890123456",
+                    accept_language="fi",
+                    profile_id="prof_0195f3a0000070018111222233334444",
+                    redis=mock_redis,
                 )
 
                 assert mock_repo.get_call_count("update_execution") >= 1
                 mock_worker_report_service.compile_and_persist_artifact.assert_called_once_with(
-                    "rep_1234567890123456",
+                    "rep_0195f3a0000070018234567890123456",
                     mock_redis,
                 )
 
@@ -629,9 +645,9 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
                 ExecutionRecord(
-                    id="exe_1234567890123456",
-                    workflow_id="wf_1234567890123456",
-                    output_profile_id="prof_1111222233334444",
+                    id="exe_0195f3a0000070018234567890123456",
+                    workflow_id="wf_0195f3a0000070018234567890123456",
+                    output_profile_id="prof_0195f3a0000070018111222233334444",
                     status=ExecutionStatus.RUNNING,
                     target_locale="fi",
                     metadata=ExecutionMetadata(),
@@ -642,9 +658,9 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
             mock_repo.set_output_profiles(
                 [
                     OutputProfile.model_construct(
-                        id="prof_1111222233334444",
+                        id="prof_0195f3a0000070018111222233334444",
                         slug="prof-1",
-                        workflow_id="wf_1234567890123456",
+                        workflow_id="wf_0195f3a0000070018234567890123456",
                         name={"translations": {"en": "Profile"}},
                         visible_workflow_extensions=["authenticity_evaluation"],
                         max_extension_items=None,
@@ -656,7 +672,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
             mock_repo.set_prompt_blocks(
                 [
                     {
-                        "id": "blk_1111222233334444",
+                        "id": "blk_0195f3a0000070018111222233334444",
                         "slug": "synth",
                         "type": "instruction",
                         "label": {"translations": {"en": "Synth"}},
@@ -669,7 +685,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
             await mock_repo.save_workflow(
                 Workflow.model_validate(
                     {
-                        "id": "wf_1234567890123456",
+                        "id": "wf_0195f3a0000070018234567890123456",
                         "name": "Test WF",
                         "slug": "test-wf",
                         "description": "desc",
@@ -677,8 +693,8 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                         "version": 1,
                         "steps": [],
                         "historical_context_mode": "DISABLED",
-                        "default_profile_id": "prof_1111222233334444",
-                        "model_registry_id": "sys_1111222233334444",
+                        "default_profile_id": "prof_0195f3a0000070018111222233334444",
+                        "model_registry_id": "sys_0195f3a0000070018111222233334444",
                     },
                     strict=False,
                 )
@@ -693,7 +709,9 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                 )
                 with pytest.raises(AppException):
                     await generate_profile_synthesis_and_pdf_task(
-                        "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444"
+                        "exe_0195f3a0000070018234567890123456",
+                        accept_language="fi",
+                        profile_id="prof_0195f3a0000070018111222233334444",
                     )
 
 
@@ -713,9 +731,9 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
                 ExecutionRecord(
-                    id="exe_1234567890123456",
-                    workflow_id="wf_1234567890123456",
-                    output_profile_id="prof_1111222233334444",
+                    id="exe_0195f3a0000070018234567890123456",
+                    workflow_id="wf_0195f3a0000070018234567890123456",
+                    output_profile_id="prof_0195f3a0000070018111222233334444",
                     status=ExecutionStatus.RUNNING,
                     target_locale="fi",
                     metadata=ExecutionMetadata(),
@@ -738,7 +756,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
                             step_name="step_perf",
                             content={
                                 "_step_metadata": {"task_blueprint": "step_perf"},
-                                "blk_1111222233334444": {
+                                "blk_0195f3a0000070018111222233334444": {
                                     "raw_score": 85.0,
                                     "normalized_score": 85.0,
                                     "level_breakdown": {"1.0": {"hits": 1, "total": 1}},
@@ -753,9 +771,9 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
                 [
                     OutputProfile.model_validate(
                         {
-                            "id": "prof_1111222233334444",
+                            "id": "prof_0195f3a0000070018111222233334444",
                             "slug": "prof-1",
-                            "workflow_id": "wf_1234567890123456",
+                            "workflow_id": "wf_0195f3a0000070018234567890123456",
                             "name": {"translations": {"en": "Profile"}},
                             "synthesis_length_constraint": 500,
                             "tone_instruction": "Direct tone",
@@ -766,16 +784,16 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
                             "variance_synthesis_directive": "Synthesize cognitive variance.",
                             "matrix_synthesis_groups": [
                                 {
-                                    "id": "grp_1111111111111111",
+                                    "id": "grp_0195f3a0000070018111111111111111",
                                     "title": {
                                         "translations": {"en": "Matrix Section", "fi": "Matriisiosio"},
                                     },
-                                    "target_blocks": ["blk_1111222233334444"],
+                                    "target_blocks": ["blk_0195f3a0000070018111222233334444"],
                                 }
                             ],
                             "target_block_order": ["matrix_graphs_block"],
                             "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
-                            "variance_target_block": "blk_1111222233334444",
+                            "variance_target_block": "blk_0195f3a0000070018111222233334444",
                             "max_extension_items": 3,
                         }
                     )
@@ -786,7 +804,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
                 [
                     MatrixPromptBlock.model_validate(
                         {
-                            "id": "blk_1111222233334444",
+                            "id": "blk_0195f3a0000070018111222233334444",
                             "slug": "target_1",
                             "type": "float",
                             "label": {"translations": {"en": "Target Matrix"}},
@@ -810,7 +828,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
             await mock_repo.save_workflow(
                 Workflow.model_validate(
                     {
-                        "id": "wf_1234567890123456",
+                        "id": "wf_0195f3a0000070018234567890123456",
                         "name": "Test WF",
                         "slug": "test-wf",
                         "description": "desc",
@@ -818,8 +836,8 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
                         "version": 1,
                         "steps": [],
                         "historical_context_mode": "DISABLED",
-                        "default_profile_id": "prof_1111222233334444",
-                        "model_registry_id": "sys_1111222233334444",
+                        "default_profile_id": "prof_0195f3a0000070018111222233334444",
+                        "model_registry_id": "sys_0195f3a0000070018111222233334444",
                         "default_strictness_level": 50,
                     },
                     strict=False,
@@ -836,7 +854,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
                             "distilled_inputs": "Sample analytical summary data.",
                             "matrices_to_explain": [
                                 {
-                                    "real_matrix_id": "blk_1111222233334444",
+                                    "real_matrix_id": "blk_0195f3a0000070018111222233334444",
                                     "matrix_id": "m0",
                                     "matrix_label": "Target Matrix",
                                     "score": 85.0,
@@ -844,18 +862,21 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
                                 }
                             ],
                             "target_locale": "fi",
-                            "title_map": {"blk_1111222233334444": "Kohdematriisi"},
+                            "title_map": {"blk_0195f3a0000070018111222233334444": "Kohdematriisi"},
                         }
                     ),
                 )
 
                 await generate_profile_synthesis_and_pdf_task(
-                    "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
+                    "exe_0195f3a0000070018234567890123456",
+                    accept_language="fi",
+                    profile_id="prof_0195f3a0000070018111222233334444",
+                    redis=mock_redis,
                 )
 
                 assert mock_repo.get_call_count("update_execution") >= 1
                 mock_worker_report_service.compile_and_persist_artifact.assert_called_once_with(
-                    "rep_1234567890123456",
+                    "rep_0195f3a0000070018234567890123456",
                     mock_redis,
                 )
 
@@ -867,15 +888,15 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
     await mock_repo.save_workflow(
         Workflow.model_validate(
             {
-                "id": "wf_1234567890123456",
+                "id": "wf_0195f3a0000070018234567890123456",
                 "name": "Test WF",
                 "slug": "test-wf",
                 "description": "desc",
                 "status": "draft",
                 "version": 1,
                 "steps": [],
-                "default_profile_id": "prof_1111222233334444",
-                "model_registry_id": "sys_1111222233334444",
+                "default_profile_id": "prof_0195f3a0000070018111222233334444",
+                "model_registry_id": "sys_0195f3a0000070018111222233334444",
                 "historical_context_mode": "DISABLED",
                 "default_strictness_level": 85,
             },
@@ -886,9 +907,9 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         [
             OutputProfile.model_validate(
                 {
-                    "id": "prof_1111222233334444",
+                    "id": "prof_0195f3a0000070018111222233334444",
                     "slug": "prof-1",
-                    "workflow_id": "wf_1234567890123456",
+                    "workflow_id": "wf_0195f3a0000070018234567890123456",
                     "name": {"translations": {"en": "Profile 1"}},
                     "display_scale": "original",
                     "matrix_synthesis_groups": [],
@@ -899,9 +920,9 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
     )
     await mock_repo.save_execution(
         ExecutionRecord(
-            id="exe_1234567890123456",
-            workflow_id="wf_1234567890123456",
-            output_profile_id="prof_1111222233334444",
+            id="exe_0195f3a0000070018234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
+            output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.PENDING,
             target_locale="fi",
             step_states={},
@@ -910,13 +931,13 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
     )
 
     mock_exec_record = ExecutionRecord(
-        id="exe_1234567890123456",
-        workflow_id="wf_1234567890123456",
+        id="exe_0195f3a0000070018234567890123456",
+        workflow_id="wf_0195f3a0000070018234567890123456",
         status=ExecutionStatus.PENDING,
         target_locale="fi",
         metadata=ExecutionMetadata(),
         step_states={},
-        output_profile_id="prof_1111222233334444",
+        output_profile_id="prof_0195f3a0000070018111222233334444",
     )
     mock_engine = AsyncMock()
     mock_engine.execute_workflow.return_value = mock_exec_record
@@ -926,15 +947,15 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
 
     res = await execute_workflow_job(
         ctx,
-        workflow_id="wf_1234567890123456",
+        workflow_id="wf_0195f3a0000070018234567890123456",
         inputs={},
-        execution_id="exe_1234567890123456",
+        execution_id="exe_0195f3a0000070018234567890123456",
     )
 
     assert res.status == "COMPLETED"
     mock_redis.enqueue_job.assert_not_called()
     assert mock_repo.get_call_count("update_execution") >= 1
-    updated_rec = await mock_repo.get_execution("exe_1234567890123456")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070018234567890123456")
     assert updated_rec is not None
     assert updated_rec.status == ExecutionStatus.PASSED
 
@@ -950,9 +971,9 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
                 ExecutionRecord(
-                    id="exe_1234567890123456",
-                    workflow_id="wf_1234567890123456",
-                    output_profile_id="prof_1111222233334444",
+                    id="exe_0195f3a0000070018234567890123456",
+                    workflow_id="wf_0195f3a0000070018234567890123456",
+                    output_profile_id="prof_0195f3a0000070018111222233334444",
                     status=ExecutionStatus.RUNNING,
                     target_locale="fi",
                     metadata=ExecutionMetadata(),
@@ -966,7 +987,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                             event_type="output",
                             step_name="sr_matrix_step",
                             content={
-                                "blk_1111222233334444": {
+                                "blk_0195f3a0000070018111222233334444": {
                                     "raw_score": 3.0,
                                     "normalized_score": 50.0,
                                     "level_breakdown": {"1.0": {"hits": 1, "total": 2}, "5.0": {"hits": 1, "total": 2}},
@@ -982,9 +1003,9 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 [
                     OutputProfile.model_validate(
                         {
-                            "id": "prof_1111222233334444",
+                            "id": "prof_0195f3a0000070018111222233334444",
                             "slug": "prof-1",
-                            "workflow_id": "wf_1234567890123456",
+                            "workflow_id": "wf_0195f3a0000070018234567890123456",
                             "name": {"translations": {"en": "Profile"}},
                             "display_scale": "original",
                             "matrix_synthesis_groups": [],
@@ -997,7 +1018,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
             await mock_repo.save_workflow(
                 Workflow.model_validate(
                     {
-                        "id": "wf_1234567890123456",
+                        "id": "wf_0195f3a0000070018234567890123456",
                         "name": "Test WF",
                         "slug": "test-wf",
                         "description": "desc",
@@ -1005,8 +1026,8 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                         "version": 1,
                         "steps": [],
                         "historical_context_mode": "DISABLED",
-                        "default_profile_id": "prof_1111222233334444",
-                        "model_registry_id": "sys_1111222233334444",
+                        "default_profile_id": "prof_0195f3a0000070018111222233334444",
+                        "model_registry_id": "sys_0195f3a0000070018111222233334444",
                         "default_strictness_level": 85,
                     },
                     strict=False,
@@ -1016,7 +1037,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
             mock_repo.set_prompt_blocks(
                 [
                     {
-                        "id": "blk_1111222233334444",
+                        "id": "blk_0195f3a0000070018111222233334444",
                         "slug": "matrix_block",
                         "type": "float",
                         "label": {"translations": {"en": "Matrix"}},
@@ -1079,7 +1100,10 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 )
 
                 await generate_profile_synthesis_and_pdf_task(
-                    "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
+                    "exe_0195f3a0000070018234567890123456",
+                    accept_language="fi",
+                    profile_id="prof_0195f3a0000070018111222233334444",
+                    redis=mock_redis,
                 )
 
                 assert mock_repo.get_call_count("update_execution") >= 1
@@ -1094,7 +1118,9 @@ async def test_generate_profile_synthesis_and_pdf_task_database_failure_raises()
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             with pytest.raises(RuntimeError):
                 await generate_profile_synthesis_and_pdf_task(
-                    "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444"
+                    "exe_0195f3a0000070018234567890123456",
+                    accept_language="fi",
+                    profile_id="prof_0195f3a0000070018111222233334444",
                 )
 
 
@@ -1106,9 +1132,9 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_workflow_raises_a
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
                 ExecutionRecord(
-                    id="exe_1234567890123456",
+                    id="exe_0195f3a0000070018234567890123456",
                     workflow_id="wf_nonexistent_1234",
-                    output_profile_id="prof_1111222233334444",
+                    output_profile_id="prof_0195f3a0000070018111222233334444",
                     status=ExecutionStatus.RUNNING,
                     target_locale="fi",
                     metadata=ExecutionMetadata(),
@@ -1119,7 +1145,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_workflow_raises_a
                 [
                     OutputProfile.model_validate(
                         {
-                            "id": "prof_1111222233334444",
+                            "id": "prof_0195f3a0000070018111222233334444",
                             "slug": "prof-1",
                             "workflow_id": "wf_nonexistent_1234",
                             "name": {"translations": {"en": "Profile 1"}},
@@ -1133,7 +1159,9 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_workflow_raises_a
 
             with pytest.raises(AppException) as exc_info:
                 await generate_profile_synthesis_and_pdf_task(
-                    "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444"
+                    "exe_0195f3a0000070018234567890123456",
+                    accept_language="fi",
+                    profile_id="prof_0195f3a0000070018111222233334444",
                 )
             assert exc_info.value.status_code == 400
             assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -1149,9 +1177,9 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
             await mock_repo.save_execution(
                 ExecutionRecord(
-                    id="exe_1234567890123456",
-                    workflow_id="wf_1234567890123456",
-                    output_profile_id="prof_1111222233334444",
+                    id="exe_0195f3a0000070018234567890123456",
+                    workflow_id="wf_0195f3a0000070018234567890123456",
+                    output_profile_id="prof_0195f3a0000070018111222233334444",
                     status=ExecutionStatus.RUNNING,
                     target_locale="en",
                     execution_trace=[
@@ -1176,19 +1204,22 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
 
             mock_redis = AsyncMock()
             await generate_profile_synthesis_and_pdf_task(
-                "exe_1234567890123456", accept_language="en", profile_id="prof_1111222233334444", redis=mock_redis
+                "exe_0195f3a0000070018234567890123456",
+                accept_language="en",
+                profile_id="prof_0195f3a0000070018111222233334444",
+                redis=mock_redis,
             )
 
             assert mock_repo.get_call_count("update_execution") >= 1
-            updated_exec = await mock_repo.get_execution("exe_1234567890123456")
+            updated_exec = await mock_repo.get_execution("exe_0195f3a0000070018234567890123456")
             assert updated_exec is not None
             assert updated_exec.profile_syntheses is not None
-            saved_cache = updated_exec.profile_syntheses["prof_1111222233334444"]
+            saved_cache = updated_exec.profile_syntheses["prof_0195f3a0000070018111222233334444"]
             assert saved_cache.data_starvation is not None
             assert saved_cache.data_starvation.event_type == "starvation"
             assert saved_cache.data_starvation.total_atoms == 0
             mock_worker_report_service.compile_and_persist_artifact.assert_called_once_with(
-                "rep_1234567890123456",
+                "rep_0195f3a0000070018234567890123456",
                 mock_redis,
             )
 
@@ -1200,15 +1231,15 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
     await mock_repo.save_workflow(
         Workflow.model_validate(
             {
-                "id": "wf_1234567890123456",
+                "id": "wf_0195f3a0000070018234567890123456",
                 "name": "Test WF",
                 "slug": "test-wf",
                 "description": "desc",
                 "status": "draft",
                 "version": 1,
                 "steps": [],
-                "default_profile_id": "prof_1111222233334444",
-                "model_registry_id": "sys_1111222233334444",
+                "default_profile_id": "prof_0195f3a0000070018111222233334444",
+                "model_registry_id": "sys_0195f3a0000070018111222233334444",
                 "historical_context_mode": "DISABLED",
                 "default_strictness_level": 50,
             },
@@ -1219,9 +1250,9 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
         [
             OutputProfile.model_validate(
                 {
-                    "id": "prof_1111222233334444",
+                    "id": "prof_0195f3a0000070018111222233334444",
                     "slug": "prof-1",
-                    "workflow_id": "wf_1234567890123456",
+                    "workflow_id": "wf_0195f3a0000070018234567890123456",
                     "name": {"translations": {"en": "Profile 1"}},
                     "display_scale": "original",
                     "matrix_synthesis_groups": [],
@@ -1232,9 +1263,9 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
     )
     await mock_repo.save_execution(
         ExecutionRecord(
-            id="exe_1234567890123456",
-            workflow_id="wf_1234567890123456",
-            output_profile_id="prof_1111222233334444",
+            id="exe_0195f3a0000070018234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
+            output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.PENDING,
             target_locale="fi",
             step_states={},
@@ -1253,9 +1284,9 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
     ]
 
     mock_exec_record = ExecutionRecord(
-        id="exe_1234567890123456",
-        workflow_id="wf_1234567890123456",
-        output_profile_id="prof_1111222233334444",
+        id="exe_0195f3a0000070018234567890123456",
+        workflow_id="wf_0195f3a0000070018234567890123456",
+        output_profile_id="prof_0195f3a0000070018111222233334444",
         status=ExecutionStatus.PENDING,
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -1274,7 +1305,7 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
             }
         ],
         execution_trace=in_memory_trace,
-        execution_trace_storage_path="executions/exe_1234567890123456/execution_trace.json",
+        execution_trace_storage_path="executions/exe_0195f3a0000070018234567890123456/execution_trace.json",
     )
     mock_engine = AsyncMock()
     mock_engine.execute_workflow.return_value = mock_exec_record
@@ -1294,18 +1325,18 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
         ctx = {"repository": mock_repo, "engine": mock_engine, "redis": None}
         res = await execute_workflow_job(
             ctx,
-            workflow_id="wf_1234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
             inputs={},
-            execution_id="exe_1234567890123456",
+            execution_id="exe_0195f3a0000070018234567890123456",
             organization_id="org_test",
             user_id="usr_test",
         )
 
     assert res.status == "COMPLETED"
-    mock_storage.read.assert_called_once_with("executions/exe_1234567890123456/execution_trace.json")
+    mock_storage.read.assert_called_once_with("executions/exe_0195f3a0000070018234567890123456/execution_trace.json")
 
     assert mock_repo.get_call_count("update_execution") >= 1
-    updated_rec = await mock_repo.get_execution("exe_1234567890123456")
+    updated_rec = await mock_repo.get_execution("exe_0195f3a0000070018234567890123456")
     assert updated_rec is not None
     assert updated_rec.dag_cost_usd == 0.05
     assert updated_rec.prompt_tokens == 500
@@ -1327,15 +1358,15 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
     await mock_repo.save_workflow(
         Workflow.model_validate(
             {
-                "id": "wf_1234567890123456",
+                "id": "wf_0195f3a0000070018234567890123456",
                 "name": "Test WF",
                 "slug": "test-wf",
                 "description": "desc",
                 "status": "draft",
                 "version": 1,
                 "steps": [],
-                "default_profile_id": "prof_1111222233334444",
-                "model_registry_id": "sys_1111222233334444",
+                "default_profile_id": "prof_0195f3a0000070018111222233334444",
+                "model_registry_id": "sys_0195f3a0000070018111222233334444",
                 "historical_context_mode": "DISABLED",
                 "default_strictness_level": 50,
             },
@@ -1346,9 +1377,9 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
         [
             OutputProfile.model_validate(
                 {
-                    "id": "prof_1111222233334444",
+                    "id": "prof_0195f3a0000070018111222233334444",
                     "slug": "prof-1",
-                    "workflow_id": "wf_1234567890123456",
+                    "workflow_id": "wf_0195f3a0000070018234567890123456",
                     "name": {"translations": {"en": "Profile 1"}},
                     "display_scale": "original",
                     "matrix_synthesis_groups": [],
@@ -1361,9 +1392,9 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
     mock_repo.set_model_registry(_get_base_model_registry())
     await mock_repo.save_execution(
         ExecutionRecord(
-            id="exe_1234567890123456",
-            workflow_id="wf_1234567890123456",
-            output_profile_id="prof_1111222233334444",
+            id="exe_0195f3a0000070018234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
+            output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.RUNNING,
             target_locale="en",
             dag_cost_usd=0.0,
@@ -1373,7 +1404,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
             cumulative_synthesis_cost=0.0,
             cumulative_synthesis_tokens=0,
             execution_trace=[],
-            execution_trace_storage_path="executions/exe_1234567890123456/execution_trace.json",
+            execution_trace_storage_path="executions/exe_0195f3a0000070018234567890123456/execution_trace.json",
             step_states={
                 "sys_render_prof_1": {
                     "id": "sys_render_prof_1",
@@ -1409,12 +1440,15 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
     ):
         mock_redis = AsyncMock()
         await generate_profile_synthesis_and_pdf_task(
-            "exe_1234567890123456", accept_language="en", profile_id="prof_1111222233334444", redis=mock_redis
+            "exe_0195f3a0000070018234567890123456",
+            accept_language="en",
+            profile_id="prof_0195f3a0000070018111222233334444",
+            redis=mock_redis,
         )
 
     assert mock_storage.read.called
     assert mock_repo.get_call_count("update_execution") >= 1
-    updated_exec = await mock_repo.get_execution("exe_1234567890123456")
+    updated_exec = await mock_repo.get_execution("exe_0195f3a0000070018234567890123456")
     assert updated_exec is not None
     assert updated_exec.dag_cost_usd == 0.15
     assert updated_exec.prompt_tokens == 800
@@ -1432,7 +1466,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
     await mock_repo.save_workflow(
         Workflow.model_validate(
             {
-                "id": "wf_1234567890123456",
+                "id": "wf_0195f3a0000070018234567890123456",
                 "name": "Test WF",
                 "slug": "test-wf",
                 "description": "desc",
@@ -1440,8 +1474,8 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
                 "version": 1,
                 "steps": [],
                 "historical_context_mode": "DISABLED",
-                "default_profile_id": "prof_1111222233334444",
-                "model_registry_id": "sys_1111222233334444",
+                "default_profile_id": "prof_0195f3a0000070018111222233334444",
+                "model_registry_id": "sys_0195f3a0000070018111222233334444",
                 "default_strictness_level": 50,
             },
             strict=False,
@@ -1451,9 +1485,9 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
         [
             OutputProfile.model_validate(
                 {
-                    "id": "prof_1111222233334444",
+                    "id": "prof_0195f3a0000070018111222233334444",
                     "slug": "prof-1",
-                    "workflow_id": "wf_1234567890123456",
+                    "workflow_id": "wf_0195f3a0000070018234567890123456",
                     "name": {"translations": {"en": "Profile 1"}},
                     "display_scale": "original",
                     "matrix_synthesis_groups": [],
@@ -1466,9 +1500,9 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
     mock_repo.set_model_registry(_get_base_model_registry())
     await mock_repo.save_execution(
         ExecutionRecord(
-            id="exe_1234567890123456",
-            workflow_id="wf_1234567890123456",
-            output_profile_id="prof_1111222233334444",
+            id="exe_0195f3a0000070018234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
+            output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.RUNNING,
             target_locale="en",
             dag_cost_usd=0.0,
@@ -1496,11 +1530,14 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
     ):
         mock_redis = AsyncMock()
         await generate_profile_synthesis_and_pdf_task(
-            "exe_1234567890123456", accept_language="en", profile_id="prof_1111222233334444", redis=mock_redis
+            "exe_0195f3a0000070018234567890123456",
+            accept_language="en",
+            profile_id="prof_0195f3a0000070018111222233334444",
+            redis=mock_redis,
         )
 
     assert mock_repo.get_call_count("update_execution") >= 1
-    updated_exec = await mock_repo.get_execution("exe_1234567890123456")
+    updated_exec = await mock_repo.get_execution("exe_0195f3a0000070018234567890123456")
     assert updated_exec is not None
     assert updated_exec.dag_cost_usd == 1.0
     assert updated_exec.cost_estimate >= 1.0
@@ -1512,9 +1549,9 @@ async def test_generate_profile_synthesis_missing_matrix_directive_skips_group()
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_execution(
         ExecutionRecord(
-            id="exe_1234567890123456",
-            workflow_id="wf_1234567890123456",
-            output_profile_id="prof_1111222233334444",
+            id="exe_0195f3a0000070018234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
+            output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.RUNNING,
             target_locale="fi",
             execution_trace=[],
@@ -1541,7 +1578,7 @@ async def test_generate_profile_synthesis_missing_matrix_directive_skips_group()
                             "distilled_inputs": "Sample analytical summary data.",
                             "matrices_to_explain": [
                                 {
-                                    "real_matrix_id": "blk_1111222233334444",
+                                    "real_matrix_id": "blk_0195f3a0000070018111222233334444",
                                     "matrix_id": "m0",
                                     "matrix_label": "Target Matrix",
                                     "score": 85.0,
@@ -1557,7 +1594,10 @@ async def test_generate_profile_synthesis_missing_matrix_directive_skips_group()
         ),
     ):
         await generate_profile_synthesis_and_pdf_task(
-            "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+            "exe_0195f3a0000070018234567890123456",
+            accept_language="fi",
+            profile_id="prof_0195f3a0000070018111222233334444",
+            redis=AsyncMock(),
         )
 
 
@@ -1567,9 +1607,9 @@ async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> N
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_execution(
         ExecutionRecord(
-            id="exe_1234567890123456",
-            workflow_id="wf_1234567890123456",
-            output_profile_id="prof_1111222233334444",
+            id="exe_0195f3a0000070018234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
+            output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.RUNNING,
             target_locale="fi",
             execution_trace=[],
@@ -1596,7 +1636,7 @@ async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> N
                             "distilled_inputs": "Sample analytical summary data.",
                             "matrices_to_explain": [
                                 {
-                                    "real_matrix_id": "blk_1111222233334444",
+                                    "real_matrix_id": "blk_0195f3a0000070018111222233334444",
                                     "matrix_id": "m0",
                                     "matrix_label": "Target Matrix",
                                     "score": 85.0,
@@ -1612,7 +1652,10 @@ async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> N
         ),
     ):
         await generate_profile_synthesis_and_pdf_task(
-            "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+            "exe_0195f3a0000070018234567890123456",
+            accept_language="fi",
+            profile_id="prof_0195f3a0000070018111222233334444",
+            redis=AsyncMock(),
         )
 
 
@@ -1622,9 +1665,9 @@ async def test_generate_profile_synthesis_missing_row_explanation_directive_skip
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_execution(
         ExecutionRecord(
-            id="exe_1234567890123456",
-            workflow_id="wf_1234567890123456",
-            output_profile_id="prof_1111222233334444",
+            id="exe_0195f3a0000070018234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
+            output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.RUNNING,
             target_locale="fi",
             execution_trace=[],
@@ -1656,7 +1699,7 @@ async def test_generate_profile_synthesis_missing_row_explanation_directive_skip
                             "distilled_inputs": "Sample analytical summary data.",
                             "matrices_to_explain": [
                                 {
-                                    "real_matrix_id": "blk_1111222233334444",
+                                    "real_matrix_id": "blk_0195f3a0000070018111222233334444",
                                     "matrix_id": "m0",
                                     "matrix_label": "Target Matrix",
                                     "score": 85.0,
@@ -1672,7 +1715,10 @@ async def test_generate_profile_synthesis_missing_row_explanation_directive_skip
         ),
     ):
         await generate_profile_synthesis_and_pdf_task(
-            "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+            "exe_0195f3a0000070018234567890123456",
+            accept_language="fi",
+            profile_id="prof_0195f3a0000070018111222233334444",
+            redis=AsyncMock(),
         )
 
 
@@ -1682,9 +1728,9 @@ async def test_generate_profile_synthesis_missing_state_delta_raises_app_excepti
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_execution(
         ExecutionRecord(
-            id="exe_1234567890123456",
-            workflow_id="wf_1234567890123456",
-            output_profile_id="prof_1111222233334444",
+            id="exe_0195f3a0000070018234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
+            output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.RUNNING,
             target_locale="fi",
             execution_trace=[],
@@ -1706,7 +1752,10 @@ async def test_generate_profile_synthesis_missing_state_delta_raises_app_excepti
     ):
         with pytest.raises(AppException) as exc_info:
             await generate_profile_synthesis_and_pdf_task(
-                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+                "exe_0195f3a0000070018234567890123456",
+                accept_language="fi",
+                profile_id="prof_0195f3a0000070018111222233334444",
+                redis=AsyncMock(),
             )
         assert "hook_result.state_delta cannot be None" in str(exc_info.value)
 
@@ -1717,9 +1766,9 @@ async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_ex
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_execution(
         ExecutionRecord(
-            id="exe_1234567890123456",
-            workflow_id="wf_1234567890123456",
-            output_profile_id="prof_1111222233334444",
+            id="exe_0195f3a0000070018234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
+            output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.RUNNING,
             target_locale="fi",
             execution_trace=[],
@@ -1741,7 +1790,10 @@ async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_ex
     ):
         with pytest.raises(AppException) as exc_info:
             await generate_profile_synthesis_and_pdf_task(
-                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+                "exe_0195f3a0000070018234567890123456",
+                accept_language="fi",
+                profile_id="prof_0195f3a0000070018111222233334444",
+                redis=AsyncMock(),
             )
         assert "distilled_inputs missing from state_delta" in str(exc_info.value)
 
@@ -1752,9 +1804,9 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
     mock_repo = InMemoryUnifiedWorkflowRepository()
     await mock_repo.save_execution(
         ExecutionRecord(
-            id="exe_1234567890123456",
-            workflow_id="wf_1234567890123456",
-            output_profile_id="prof_1111222233334444",
+            id="exe_0195f3a0000070018234567890123456",
+            workflow_id="wf_0195f3a0000070018234567890123456",
+            output_profile_id="prof_0195f3a0000070018111222233334444",
             status=ExecutionStatus.RUNNING,
             target_locale="fi",
             execution_trace=[],
@@ -1779,7 +1831,7 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
                             "distilled_inputs": "Sample analytical summary data.",
                             "matrices_to_explain": [
                                 {
-                                    "real_matrix_id": "blk_1111222233334444",
+                                    "real_matrix_id": "blk_0195f3a0000070018111222233334444",
                                     "matrix_id": "m0",
                                     "matrix_label": "Target Matrix",
                                     "score": 85.0,
@@ -1796,5 +1848,8 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
     ):
         with pytest.raises(ResourceNotFoundError):
             await generate_profile_synthesis_and_pdf_task(
-                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+                "exe_0195f3a0000070018234567890123456",
+                accept_language="fi",
+                profile_id="prof_0195f3a0000070018111222233334444",
+                redis=AsyncMock(),
             )

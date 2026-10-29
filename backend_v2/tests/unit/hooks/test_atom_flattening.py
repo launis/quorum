@@ -97,7 +97,7 @@ def mock_step() -> Step:
         name=I18nText(translations={"en": "Test Step", "fi": "Test Step"}),
         slug="test-step",
         role_block_id=None,
-        extraction_protocol_block_id="blk_573802341db9d68c",
+        extraction_protocol_block_id="blk_0195f3a000007005873802341db9d68c",
         criteria_block_ids=["blk_0123456789abcdef0123456789abcdef", "blk_1123456789abcdef0123456789abcdef"],
         cognitive_tier=CognitiveTier.FAST,
     )
@@ -368,7 +368,7 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
     # Put all 3 atoms in scale 1 with 7 filler atoms (10 total)
     fillers = [
         TDAAssertion(
-            tda_id=f"tda_0000000000000001{i:016x}",
+            tda_id=f"tda_0195f3a000007001{i:016x}",
             concept_description=f"Filler Atom {i}",
             inverse_evidence=False,
             aggregation_mode="EXISTS",

@@ -59,7 +59,9 @@ def engine_request(mock_compiler: MagicMock, base_shuffled_atoms: list[Flattened
         compiled_schema=None,
         hydrated_messages=None,
         system_prompt="Test System Prompt",
-        step=StepRule(id="step_a1b2c3d4e5f6a7b8", task_blueprint="task_123", depends_on=[], input_mappings={}),
+        step=StepRule(
+            id="stp_0195f3a00000700a81b2c3d4e5f6a7b8", task_blueprint="task_123", depends_on=[], input_mappings={}
+        ),
         context=StrategyContext(
             execution_id="exe_abc12345",
             workflow_id="wor_xyz12345",
@@ -437,8 +439,8 @@ async def test_execute_propagates_is_inverse_to_extracted_atom_positive(
     mock_dag_executor_instance.execute_graph = AsyncMock(
         return_value=(
             {
-                "tda_1111222233334444": AtomExecutionState(
-                    tda_id="tda_1111222233334444",
+                "tda_0195f3a0000070018111222233334444": AtomExecutionState(
+                    tda_id="tda_0195f3a0000070018111222233334444",
                     status=ExecutionStatus.PASSED,
                     evaluation_reasoning="Inverse claim verified clean.",
                     short_circuit_reason_tda_ids=[],
@@ -450,7 +452,7 @@ async def test_execute_propagates_is_inverse_to_extracted_atom_positive(
     )
 
     inv_atom = FlattenedAtom(
-        atom_id="tda_1111222233334444",
+        atom_id="tda_0195f3a0000070018111222233334444",
         question="Should not perform ungrounded actions",
         is_inverse=True,
     )
@@ -462,7 +464,7 @@ async def test_execute_propagates_is_inverse_to_extracted_atom_positive(
     assert isinstance(result, EngineExecutionResult)
     assert len(result.results) == 1
     dto = result.results[0]
-    assert dto.tda_id == "tda_1111222233334444"
+    assert dto.tda_id == "tda_0195f3a0000070018111222233334444"
     assert dto.is_inverse_evidence is True
     assert dto.contextual_override is False
 
@@ -488,8 +490,8 @@ async def test_execute_propagates_is_inverse_false_to_extracted_atom_boundary(
     mock_dag_executor_instance.execute_graph = AsyncMock(
         return_value=(
             {
-                "tda_5555666677778888": AtomExecutionState(
-                    tda_id="tda_5555666677778888",
+                "tda_0195f3a0000070058555666677778888": AtomExecutionState(
+                    tda_id="tda_0195f3a0000070058555666677778888",
                     status=ExecutionStatus.PASSED,
                     evaluation_reasoning="Standard claim verified without quote.",
                     short_circuit_reason_tda_ids=[],
@@ -501,7 +503,7 @@ async def test_execute_propagates_is_inverse_false_to_extracted_atom_boundary(
     )
 
     std_atom = FlattenedAtom(
-        atom_id="tda_5555666677778888",
+        atom_id="tda_0195f3a0000070058555666677778888",
         question="Standard positive ability",
         is_inverse=False,
     )
@@ -513,7 +515,7 @@ async def test_execute_propagates_is_inverse_false_to_extracted_atom_boundary(
     assert isinstance(result, EngineExecutionResult)
     assert len(result.results) == 1
     dto = result.results[0]
-    assert dto.tda_id == "tda_5555666677778888"
+    assert dto.tda_id == "tda_0195f3a0000070058555666677778888"
     assert dto.is_inverse_evidence is False
 
 
@@ -527,8 +529,12 @@ async def test_execute_starvation_propagates_is_inverse_flag_error_path(
     mock_compiler: MagicMock,
 ) -> None:
     """Test Contract 3: Verify data starvation preserves is_inverse on ExtractedAtom across mixed atoms."""
-    atom_inv = FlattenedAtom(atom_id="tda_1111222233334444", question="Inverse assertion", is_inverse=True)
-    atom_std = FlattenedAtom(atom_id="tda_5555666677778888", question="Standard assertion", is_inverse=False)
+    atom_inv = FlattenedAtom(
+        atom_id="tda_0195f3a0000070018111222233334444", question="Inverse assertion", is_inverse=True
+    )
+    atom_std = FlattenedAtom(
+        atom_id="tda_0195f3a0000070058555666677778888", question="Standard assertion", is_inverse=False
+    )
 
     req = engine_request.model_copy(
         update={
@@ -555,9 +561,9 @@ async def test_execute_starvation_propagates_is_inverse_flag_error_path(
     mock_projector.project.assert_called_once()
     nodes_arg, _ = mock_projector.project.call_args[0][:2]
     assert len(nodes_arg) == 2
-    assert nodes_arg[0].atom.tda_id == "tda_1111222233334444"
+    assert nodes_arg[0].atom.tda_id == "tda_0195f3a0000070018111222233334444"
     assert nodes_arg[0].atom.is_inverse is True
-    assert nodes_arg[1].atom.tda_id == "tda_5555666677778888"
+    assert nodes_arg[1].atom.tda_id == "tda_0195f3a0000070058555666677778888"
     assert nodes_arg[1].atom.is_inverse is False
 
 

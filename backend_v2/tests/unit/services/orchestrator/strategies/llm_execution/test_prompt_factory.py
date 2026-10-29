@@ -264,7 +264,7 @@ def test_prompt_factory_polymorphic_blocks_resolution(
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
 
     persona = PersonaPromptBlock(
-        id="blk_1111111111111111",
+        id="blk_0195f3a0000070018111111111111111",
         slug="persona_test",
         label=I18nText(translations={"en": "Persona"}),
         description=I18nText(translations={"en": "Desc"}),
@@ -273,7 +273,7 @@ def test_prompt_factory_polymorphic_blocks_resolution(
         role_enforcement="Act as an expert evaluator.",
     )
     role = PersonaPromptBlock(
-        id="blk_2222222222222222",
+        id="blk_0195f3a0000070028222222222222222",
         slug="role_test",
         label=I18nText(translations={"en": "Role"}),
         description=I18nText(translations={"en": "Desc"}),
@@ -282,7 +282,7 @@ def test_prompt_factory_polymorphic_blocks_resolution(
         role_enforcement="You are a strict prosecutor.",
     )
     protocol = ProtocolPromptBlock(
-        id="blk_3333333333333333",
+        id="blk_0195f3a0000070038333333333333333",
         slug="protocol_test",
         label=I18nText(translations={"en": "Protocol"}),
         description=I18nText(translations={"en": "Desc"}),
@@ -323,7 +323,7 @@ def test_prompt_factory_system_rule_and_default_branches(
 
     # 1. SystemRulePromptBlock with instruction_text for persona, role, protocol
     persona_sys = SystemRulePromptBlock(
-        id="blk_4444444444444444",
+        id="blk_0195f3a0000070048444444444444444",
         slug="persona_sys",
         label=I18nText(translations={"en": "Persona"}),
         description=I18nText(translations={"en": "Desc"}),
@@ -332,7 +332,7 @@ def test_prompt_factory_system_rule_and_default_branches(
         instruction_text="Persona via instruction text.",
     )
     role_sys = SystemRulePromptBlock(
-        id="blk_5555555555555555",
+        id="blk_0195f3a0000070058555555555555555",
         slug="role_sys",
         label=I18nText(translations={"en": "Role"}),
         description=I18nText(translations={"en": "Desc"}),
@@ -341,7 +341,7 @@ def test_prompt_factory_system_rule_and_default_branches(
         instruction_text="Role via instruction text.",
     )
     proto_sys = SystemRulePromptBlock(
-        id="blk_6666666666666666",
+        id="blk_0195f3a0000070068666666666666666",
         slug="proto_sys",
         label=I18nText(translations={"en": "Protocol"}),
         description=I18nText(translations={"en": "Desc"}),

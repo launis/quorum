@@ -99,7 +99,9 @@ def test_workflow_rbac_delete_member_forbidden(
 
 def test_workflow_save_malformed_json_triggers_422(client_member: TestClient) -> None:
     """Negative test: Verifies that invalid/malformed JSON body fails with 422 Unprocessable Entity."""
-    response = client_member.put("/api/v2/studio/workflows/wf_1234567890abcdef", json={"invalid": "payload"})
+    response = client_member.put(
+        "/api/v2/studio/workflows/wf_0195f3a0000070018234567890abcdef", json={"invalid": "payload"}
+    )
     assert response.status_code == 422
 
 

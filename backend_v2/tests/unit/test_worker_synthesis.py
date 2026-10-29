@@ -34,7 +34,7 @@ from backend_v2.workers import VarianceExplanationResult, generate_profile_synth
 
 
 async def _get_profile_syntheses(
-    repo: InMemoryUnifiedWorkflowRepository, exec_id: str = "exec_1234567812345678"
+    repo: InMemoryUnifiedWorkflowRepository, exec_id: str = "exec_0195f3a0000070018234567812345678"
 ) -> dict[str, RenderedSynthesisCache] | None:
     rec = await repo.get_execution(exec_id)
     if rec and rec.profile_syntheses:
@@ -54,7 +54,7 @@ def _get_base_model_registry() -> SystemConfigModelRegistry:
     }
     return SystemConfigModelRegistry.model_validate(
         {
-            "id": "sys_1111222233334444",
+            "id": "sys_0195f3a0000070018111222233334444",
             "name": "Default Test Registry",
             "type": "model_registry",
             "slug": "model_registry",
@@ -78,9 +78,9 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
     mock_repo = InMemoryUnifiedWorkflowRepository()
 
     mock_execution = ExecutionRecord(
-        id="exec_1234567812345678",
-        workflow_id="wf_1234567812345678",
-        output_profile_id="prof_1111111111111111",
+        id="exec_0195f3a0000070018234567812345678",
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        output_profile_id="prof_0195f3a0000070018111111111111111",
         status=ExecutionStatus.PASSED,
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -91,7 +91,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
                 v=1,
                 timestamp=datetime.now(timezone.utc),
                 event_type="output",
-                step_name="sr_1234567812345678",
+                step_name="sr_0195f3a0000070018234567812345678",
                 content={"blk_synth12345678": {"synthesized_markdown": "Test MD"}},
             )
         ],
@@ -99,24 +99,26 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
     await mock_repo.save_execution(mock_execution)
 
     wf_dict = {
-        "id": "wf_1234567812345678",
+        "id": "wf_0195f3a0000070018234567812345678",
         "slug": "test_workflow",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "historical_context_mode": "DISABLED",
         "version": 1,
-        "default_profile_id": "prof_1111111111111111",
-        "model_registry_id": "sys_1111222233334444",
+        "default_profile_id": "prof_0195f3a0000070018111111111111111",
+        "model_registry_id": "sys_0195f3a0000070018111222233334444",
         "expected_inputs": [],
-        "steps": [{"id": "sr_1234567812345678", "task_blueprint": "sp_1234567812345678"}],
+        "steps": [
+            {"id": "sr_0195f3a0000070018234567812345678", "task_blueprint": "sp_0195f3a0000070018234567812345678"}
+        ],
     }
     await mock_repo.save_workflow(Workflow.model_validate(wf_dict, strict=False))
 
     mock_repo.seed_raw_step(
-        "sp_1234567812345678",
+        "sp_0195f3a0000070018234567812345678",
         {
-            "id": "sp_1234567812345678",
+            "id": "sp_0195f3a0000070018234567812345678",
             "slug": "synthesis_step",
             "name": {"translations": {"en": "Synth"}},
             "cognitive_tier": "fast",
@@ -125,10 +127,10 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
         },
     )
 
-    mock_repo.set_model_registry(_get_base_model_registry(), "sys_1111222233334444")
+    mock_repo.set_model_registry(_get_base_model_registry(), "sys_0195f3a0000070018111222233334444")
 
     pb_1 = {
-        "id": "pb_1111111111111111",
+        "id": "pb_0195f3a0000070018111111111111111",
         "slug": "system_prompt",
         "type": "instruction",
         "label": {"translations": {"en": "System"}},
@@ -136,7 +138,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
         "category_id": "system_rule",
     }
     pb_2 = {
-        "id": "pb_2222222222222222",
+        "id": "pb_0195f3a0000070028222222222222222",
         "slug": "synthesis_prompt",
         "type": "instruction",
         "label": {"translations": {"en": "Synth System"}},
@@ -148,16 +150,16 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
 
     output_prof = {
         "slug": "test_slug",
-        "workflow_id": "wf_1234567812345678",
+        "workflow_id": "wf_0195f3a0000070018234567812345678",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "id": "prof_1111111111111111",
+        "id": "prof_0195f3a0000070018111111111111111",
         "max_extension_items": 3,
         "synthesis_length_constraint": 1000,
         "tone_instruction": "Professional",
         "matrix_1d_synthesis_directive": "1D DIRECTIVE",
         "matrix_synthesis_groups": [
             {
-                "id": "grp_1111111111111111",
+                "id": "grp_0195f3a0000070018111111111111111",
                 "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
                 "target_blocks": ["blk_1"],
                 "view_type": "1d_metrics",
@@ -170,12 +172,15 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock) -> 
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+            execution_id="exec_0195f3a0000070018234567812345678",
+            accept_language="en",
+            profile_id="prof_0195f3a0000070018111111111111111",
+            redis=None,
         )
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None, "Execution record was not updated with profile_syntheses"
-    assert type(prof_synth["prof_1111111111111111"].section_syntheses) is dict
+    assert type(prof_synth["prof_0195f3a0000070018111111111111111"].section_syntheses) is dict
 
 
 async def _setup_mock_repo_for_metrics(
@@ -206,9 +211,9 @@ async def _setup_mock_repo_for_metrics(
         )
 
     mock_execution = ExecutionRecord(
-        id="exec_1234567812345678",
-        workflow_id="wf_1234567812345678",
-        output_profile_id="prof_1111111111111111",
+        id="exec_0195f3a0000070018234567812345678",
+        workflow_id="wf_0195f3a0000070018234567812345678",
+        output_profile_id="prof_0195f3a0000070018111111111111111",
         status=ExecutionStatus.PASSED,
         target_locale="fi",
         metadata=ExecutionMetadata(),
@@ -220,24 +225,24 @@ async def _setup_mock_repo_for_metrics(
     await mock_repo.save_execution(mock_execution)
 
     wf_dict = {
-        "id": "wf_1234567812345678",
+        "id": "wf_0195f3a0000070018234567812345678",
         "slug": "test_workflow",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
         "historical_context_mode": "DISABLED",
         "version": 1,
-        "default_profile_id": "prof_1111111111111111",
-        "model_registry_id": "sys_1111222233334444",
+        "default_profile_id": "prof_0195f3a0000070018111111111111111",
+        "model_registry_id": "sys_0195f3a0000070018111222233334444",
         "expected_inputs": [],
         "steps": [],
     }
     await mock_repo.save_workflow(Workflow.model_validate(wf_dict, strict=False))
 
-    mock_repo.set_model_registry(_get_base_model_registry(), "sys_1111222233334444")
+    mock_repo.set_model_registry(_get_base_model_registry(), "sys_0195f3a0000070018111222233334444")
 
     pb_synth = {
-        "id": "pb_2222222222222222",
+        "id": "pb_0195f3a0000070028222222222222222",
         "slug": "synthesis_prompt",
         "type": "instruction",
         "label": {"translations": {"en": "Synth System"}},
@@ -246,7 +251,7 @@ async def _setup_mock_repo_for_metrics(
         "category_id": "system_rule",
     }
     pb_target = {
-        "id": "blk_53f32679aa514fcb",
+        "id": "blk_0195f3a00000700583f32679aa514fcb",
         "slug": "matrix_goodhart",
         "type": "float",
         "label": {"translations": {"en": "Target Matrix"}},
@@ -271,17 +276,17 @@ async def _setup_mock_repo_for_metrics(
     )
 
     default_prof = {
-        "id": "prof_1111111111111111",
+        "id": "prof_0195f3a0000070018111111111111111",
         "slug": "prof",
         "name": {"translations": {"en": "test"}},
-        "workflow_id": "wf_1234567812345678",
+        "workflow_id": "wf_0195f3a0000070018234567812345678",
         "display_scale": "original",
         "tone_instruction": "Professional",
         "xai_synthesis_directive": "XAI DIRECTIVE",
         "variance_synthesis_directive": "VARIANCE DIRECTIVE",
         "max_extension_items": 3,
         "visible_workflow_extensions": ["variance_validation"],
-        "variance_target_block": "blk_53f32679aa514fcb",
+        "variance_target_block": "blk_0195f3a00000700583f32679aa514fcb",
         "matrix_synthesis_groups": [],
         "target_block_order": [],
     }
@@ -307,14 +312,14 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
             "total_word_count": 100,
         },
         trace_content_det={
-            "blk_53f32679aa514fcb": {
+            "blk_0195f3a00000700583f32679aa514fcb": {
                 "raw_score": 2.5,
                 "justification": "Authenticity evaluation",
                 "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
             },
             "_step_metadata": {
-                "execution_id": "exec_1234567812345678",
-                "workflow_id": "wf_1234567812345678",
+                "execution_id": "exec_0195f3a0000070018234567812345678",
+                "workflow_id": "wf_0195f3a0000070018234567812345678",
                 "step_id": "sr_det_step12345678",
                 "initiator_id": "system",
                 "timestamp_isot": "2026-08-06T00:00:00Z",
@@ -327,12 +332,15 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+            execution_id="exec_0195f3a0000070018234567812345678",
+            accept_language="en",
+            profile_id="prof_0195f3a0000070018111111111111111",
+            redis=None,
         )
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    cache = prof_synth["prof_1111111111111111"]
+    cache = prof_synth["prof_0195f3a0000070018111111111111111"]
     assert cache.extension_metrics is not None
     metrics = cache.extension_metrics
     assert metrics.authenticity_score == 2.5
@@ -359,32 +367,35 @@ async def test_worker_synthesis_extracts_metrics_for_coach_goodhart_step(
             "total_word_count": 200,
         },
         trace_content_det={
-            "blk_53f32679aa514fcb": {
+            "blk_0195f3a00000700583f32679aa514fcb": {
                 "raw_score": 1.5,
                 "justification": "Coach Goodhart evaluation",
                 "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
             },
             "_step_metadata": {
-                "execution_id": "exec_1234567812345678",
-                "workflow_id": "wf_9d68c573802341db",
-                "step_id": "sr_0228db320e8f41bb",
+                "execution_id": "exec_0195f3a0000070018234567812345678",
+                "workflow_id": "wf_0195f3a0000070098d68c573802341db",
+                "step_id": "sr_0195f3a0000070008228db320e8f41bb",
                 "initiator_id": "system",
                 "timestamp_isot": "2026-08-06T00:00:00Z",
                 "unix_time": 1700000000,
                 "v2_engine": True,
-                "task_blueprint": "sp_25664f44773a4354",
+                "task_blueprint": "sp_0195f3a00000700285664f44773a4354",
             },
         },
     )
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+            execution_id="exec_0195f3a0000070018234567812345678",
+            accept_language="en",
+            profile_id="prof_0195f3a0000070018111111111111111",
+            redis=None,
         )
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    cache = prof_synth["prof_1111111111111111"]
+    cache = prof_synth["prof_0195f3a0000070018111111111111111"]
     assert cache.extension_metrics is not None
     metrics = cache.extension_metrics
     assert metrics.authenticity_score == 1.5
@@ -405,12 +416,15 @@ async def test_worker_synthesis_missing_metrics_remains_none(
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+            execution_id="exec_0195f3a0000070018234567812345678",
+            accept_language="en",
+            profile_id="prof_0195f3a0000070018111111111111111",
+            redis=None,
         )
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    assert prof_synth["prof_1111111111111111"].extension_metrics is None
+    assert prof_synth["prof_0195f3a0000070018111111111111111"].extension_metrics is None
 
 
 @pytest.mark.asyncio
@@ -433,8 +447,8 @@ async def test_worker_synthesis_malformed_metrics_remains_none(
                 "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
             },
             "_step_metadata": {
-                "execution_id": "exec_1234567812345678",
-                "workflow_id": "wf_1234567812345678",
+                "execution_id": "exec_0195f3a0000070018234567812345678",
+                "workflow_id": "wf_0195f3a0000070018234567812345678",
                 "step_id": "sr_det_step12345678",
                 "initiator_id": "system",
                 "timestamp_isot": "2026-08-06T00:00:00Z",
@@ -447,12 +461,15 @@ async def test_worker_synthesis_malformed_metrics_remains_none(
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+            execution_id="exec_0195f3a0000070018234567812345678",
+            accept_language="en",
+            profile_id="prof_0195f3a0000070018111111111111111",
+            redis=None,
         )
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    assert prof_synth["prof_1111111111111111"].extension_metrics is None
+    assert prof_synth["prof_0195f3a0000070018111111111111111"].extension_metrics is None
 
 
 @pytest.mark.asyncio
@@ -477,12 +494,15 @@ async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+            execution_id="exec_0195f3a0000070018234567812345678",
+            accept_language="en",
+            profile_id="prof_0195f3a0000070018111111111111111",
+            redis=None,
         )
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    assert prof_synth["prof_1111111111111111"].extension_metrics is None
+    assert prof_synth["prof_0195f3a0000070018111111111111111"].extension_metrics is None
 
 
 @pytest.mark.asyncio
@@ -505,8 +525,8 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
                 "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
             },
             "_step_metadata": {
-                "execution_id": "exec_1234567812345678",
-                "workflow_id": "wf_1234567812345678",
+                "execution_id": "exec_0195f3a0000070018234567812345678",
+                "workflow_id": "wf_0195f3a0000070018234567812345678",
                 "step_id": "sr_det_step12345678",
                 "initiator_id": "system",
                 "timestamp_isot": "2026-08-06T00:00:00Z",
@@ -518,12 +538,15 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+            execution_id="exec_0195f3a0000070018234567812345678",
+            accept_language="en",
+            profile_id="prof_0195f3a0000070018111111111111111",
+            redis=None,
         )
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    assert prof_synth["prof_1111111111111111"].extension_metrics is None
+    assert prof_synth["prof_0195f3a0000070018111111111111111"].extension_metrics is None
 
 
 @pytest.mark.asyncio
@@ -592,16 +615,16 @@ async def test_worker_synthesis_matrix_layout_directives(
         "text_only": ["blk_1"],
     }
     prof_dict: dict[str, JsonValue] = {
-        "id": "prof_1111111111111111",
+        "id": "prof_0195f3a0000070018111111111111111",
         "slug": "prof_test",
         "name": {"translations": {"en": "Test Profile"}},
-        "workflow_id": "wf_1234567812345678",
+        "workflow_id": "wf_0195f3a0000070018234567812345678",
         "display_scale": "original",
         "synthesis_length_constraint": 1000,
         "tone_instruction": "Professional",
         "matrix_synthesis_groups": [
             {
-                "id": "grp_1234567890123456",
+                "id": "grp_0195f3a0000070018234567890123456",
                 "title": {"translations": {"fi": "Matriisinäkymä", "en": "Matrix View"}},
                 "target_blocks": target_blocks_map[view_type] if view_type in target_blocks_map else ["blk_1"],
                 "view_type": view_type,
@@ -634,7 +657,7 @@ async def test_worker_synthesis_matrix_layout_directives(
                 MatrixSectionSynthesesResult(
                     sections=[
                         SynthesisSectionDTO(
-                            layout_id="grp_1234567890123456",
+                            layout_id="grp_0195f3a0000070018234567890123456",
                             content_blocks=[ParagraphBlock(text="Section Content", exact_quotes=[], citations=[])],
                         )
                     ]
@@ -656,9 +679,9 @@ async def test_worker_synthesis_matrix_layout_directives(
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         if not should_execute_group:
             await generate_profile_synthesis_and_pdf_task(
-                execution_id="exec_1234567812345678",
+                execution_id="exec_0195f3a0000070018234567812345678",
                 accept_language="fi",
-                profile_id="prof_1111111111111111",
+                profile_id="prof_0195f3a0000070018111111111111111",
                 redis=None,
             )
             group_calls = [
@@ -670,7 +693,10 @@ async def test_worker_synthesis_matrix_layout_directives(
             return
 
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+            execution_id="exec_0195f3a0000070018234567812345678",
+            accept_language="fi",
+            profile_id="prof_0195f3a0000070018111111111111111",
+            redis=None,
         )
 
     all_user_content = ""
@@ -704,10 +730,10 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     mock_repo.set_output_profiles(
         [
             {
-                "id": "prof_1111111111111111",
+                "id": "prof_0195f3a0000070018111111111111111",
                 "slug": "prof_disabled",
                 "name": {"translations": {"en": "Disabled Profile"}},
-                "workflow_id": "wf_1234567812345678",
+                "workflow_id": "wf_0195f3a0000070018234567812345678",
                 "display_scale": "original",
                 "synthesis_length_constraint": 1000,
                 "tone_instruction": "Professional",
@@ -744,7 +770,10 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+            execution_id="exec_0195f3a0000070018234567812345678",
+            accept_language="fi",
+            profile_id="prof_0195f3a0000070018111111111111111",
+            redis=None,
         )
 
     assert mock_client.run_structured_task.called
@@ -779,10 +808,10 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
     mock_repo.set_output_profiles(
         [
             {
-                "id": "prof_1111111111111111",
+                "id": "prof_0195f3a0000070018111111111111111",
                 "slug": "prof_exec_summary",
                 "name": {"translations": {"en": "Exec Profile"}},
-                "workflow_id": "wf_1234567812345678",
+                "workflow_id": "wf_0195f3a0000070018234567812345678",
                 "display_scale": "original",
                 "synthesis_length_constraint": 1000,
                 "tone_instruction": "Professional",
@@ -821,7 +850,10 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+            execution_id="exec_0195f3a0000070018234567812345678",
+            accept_language="fi",
+            profile_id="prof_0195f3a0000070018111111111111111",
+            redis=None,
         )
 
     assert mock_client.run_structured_task.called
@@ -842,7 +874,7 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    sec_synth = prof_synth["prof_1111111111111111"].section_syntheses
+    sec_synth = prof_synth["prof_0195f3a0000070018111111111111111"].section_syntheses
     assert "executive_summary_block" in sec_synth
     assert len(sec_synth["executive_summary_block"]) == 1
     block = sec_synth["executive_summary_block"][0]
@@ -866,17 +898,17 @@ async def test_worker_synthesis_multi_section_aggregation(
     mock_repo.set_output_profiles(
         [
             {
-                "id": "prof_1111111111111111",
+                "id": "prof_0195f3a0000070018111111111111111",
                 "slug": "prof_multi_sec",
                 "name": {"translations": {"en": "Multi Section Profile"}},
-                "workflow_id": "wf_1234567812345678",
+                "workflow_id": "wf_0195f3a0000070018234567812345678",
                 "display_scale": "original",
                 "synthesis_length_constraint": 1000,
                 "tone_instruction": "Professional",
                 "matrix_1d_synthesis_directive": "CUSTOM CAUSALITY DIRECTIVE",
                 "matrix_synthesis_groups": [
                     {
-                        "id": "grp_c5804a9143c34cb1",
+                        "id": "grp_0195f3a00000700c85804a9143c34cb1",
                         "title": {"translations": {"fi": "Kausaalisuus", "en": "Causality"}},
                         "target_blocks": ["blk_1"],
                         "view_type": "1d_metrics",
@@ -927,16 +959,19 @@ async def test_worker_synthesis_multi_section_aggregation(
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+            execution_id="exec_0195f3a0000070018234567812345678",
+            accept_language="fi",
+            profile_id="prof_0195f3a0000070018111111111111111",
+            redis=None,
         )
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    sec_synth = prof_synth["prof_1111111111111111"].section_syntheses
-    assert "grp_c5804a9143c34cb1" in sec_synth
-    assert len(sec_synth["grp_c5804a9143c34cb1"]) == 2
-    b1 = sec_synth["grp_c5804a9143c34cb1"][0]
-    b2 = sec_synth["grp_c5804a9143c34cb1"][1]
+    sec_synth = prof_synth["prof_0195f3a0000070018111111111111111"].section_syntheses
+    assert "grp_0195f3a00000700c85804a9143c34cb1" in sec_synth
+    assert len(sec_synth["grp_0195f3a00000700c85804a9143c34cb1"]) == 2
+    b1 = sec_synth["grp_0195f3a00000700c85804a9143c34cb1"][0]
+    b2 = sec_synth["grp_0195f3a00000700c85804a9143c34cb1"][1]
     assert isinstance(b1, ParagraphBlock)
     assert isinstance(b2, ParagraphBlock)
     assert b1.text == "Paragraph 1 text"
@@ -959,17 +994,17 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
     mock_repo.set_output_profiles(
         [
             {
-                "id": "prof_1111111111111111",
+                "id": "prof_0195f3a0000070018111111111111111",
                 "slug": "prof_empty_sec",
                 "name": {"translations": {"en": "Empty Section Profile"}},
-                "workflow_id": "wf_1234567812345678",
+                "workflow_id": "wf_0195f3a0000070018234567812345678",
                 "display_scale": "original",
                 "synthesis_length_constraint": 1000,
                 "tone_instruction": "Professional",
                 "matrix_1d_synthesis_directive": "1D DIRECTIVE",
                 "matrix_synthesis_groups": [
                     {
-                        "id": "grp_0000000000000000",
+                        "id": "grp_0195f3a0000070008000000000000000",
                         "title": {"translations": {"fi": "Kausaalisuus", "en": "Causality"}},
                         "target_blocks": ["blk_1"],
                     }
@@ -1008,13 +1043,16 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+            execution_id="exec_0195f3a0000070018234567812345678",
+            accept_language="fi",
+            profile_id="prof_0195f3a0000070018111111111111111",
+            redis=None,
         )
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    sec_synth = prof_synth["prof_1111111111111111"].section_syntheses
-    assert "grp_0000000000000000" not in sec_synth
+    sec_synth = prof_synth["prof_0195f3a0000070018111111111111111"].section_syntheses
+    assert "grp_0195f3a0000070008000000000000000" not in sec_synth
 
 
 @pytest.mark.asyncio
@@ -1037,14 +1075,14 @@ async def test_worker_synthesis_custom_directives_resolution(
             "performative_patterns": [{"pattern_id": "1", "detected_phrase": "test phrase", "category": "cat"}]
         },
         trace_content_det={
-            "blk_53f32679aa514fcb": {
+            "blk_0195f3a00000700583f32679aa514fcb": {
                 "raw_score": 3.0,
                 "justification": "Authenticity evaluation",
                 "level_breakdown": {},
             },
             "_step_metadata": {
-                "execution_id": "exec_1234567812345678",
-                "workflow_id": "wf_1234567812345678",
+                "execution_id": "exec_0195f3a0000070018234567812345678",
+                "workflow_id": "wf_0195f3a0000070018234567812345678",
                 "step_id": "sr_det_step12345678",
                 "initiator_id": "system",
                 "timestamp_isot": "2026-08-06T00:00:00Z",
@@ -1058,10 +1096,10 @@ async def test_worker_synthesis_custom_directives_resolution(
     mock_repo.set_output_profiles(
         [
             {
-                "id": "prof_1111111111111111",
+                "id": "prof_0195f3a0000070018111111111111111",
                 "slug": "prof_custom_directives",
                 "name": {"translations": {"en": "Custom Directives Profile"}},
-                "workflow_id": "wf_1234567812345678",
+                "workflow_id": "wf_0195f3a0000070018234567812345678",
                 "display_scale": "original",
                 "synthesis_length_constraint": 1000,
                 "tone_instruction": "Professional",
@@ -1069,7 +1107,7 @@ async def test_worker_synthesis_custom_directives_resolution(
                 "xai_synthesis_directive": "CUSTOM XAI SYNTHESIS DIRECTIVE",
                 "variance_synthesis_directive": "CUSTOM VARIANCE DIRECTIVE",
                 "visible_workflow_extensions": ["variance_validation"],
-                "variance_target_block": "blk_53f32679aa514fcb",
+                "variance_target_block": "blk_0195f3a00000700583f32679aa514fcb",
                 "matrix_visible_columns": ["label", "row_explanation"],
                 "matrix_synthesis_groups": [],
                 "target_block_order": ["variance_validation_block", "matrix_summary_table_block"],
@@ -1107,7 +1145,10 @@ async def test_worker_synthesis_custom_directives_resolution(
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
+            execution_id="exec_0195f3a0000070018234567812345678",
+            accept_language="fi",
+            profile_id="prof_0195f3a0000070018111111111111111",
+            redis=None,
         )
 
     all_user_content = ""
@@ -1137,17 +1178,17 @@ async def test_worker_synthesis_missing_variance_target_block_raises_configurati
     await _setup_mock_repo_for_metrics(
         mock_repo,
         trace_content_ling={"performative_patterns": [], "total_word_count": 100},
-        trace_content_det={"blk_53f32679aa514fcb": {"raw_score": 2.5, "justification": "test"}},
+        trace_content_det={"blk_0195f3a00000700583f32679aa514fcb": {"raw_score": 2.5, "justification": "test"}},
     )
 
     # Override profile without variance_target_block
     mock_repo.set_output_profiles(
         [
             OutputProfile.model_construct(
-                id="prof_1111111111111111",
+                id="prof_0195f3a0000070018111111111111111",
                 slug="prof_missing_target",
                 name={"translations": {"en": "Missing Target"}},
-                workflow_id="wf_1234567812345678",
+                workflow_id="wf_0195f3a0000070018234567812345678",
                 display_scale="original",
                 visible_workflow_extensions=["variance_validation"],
                 variance_target_block=None,
@@ -1160,9 +1201,9 @@ async def test_worker_synthesis_missing_variance_target_block_raises_configurati
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         with pytest.raises(AppException) as exc_info:
             await generate_profile_synthesis_and_pdf_task(
-                execution_id="exec_1234567812345678",
+                execution_id="exec_0195f3a0000070018234567812345678",
                 accept_language="en",
-                profile_id="prof_1111111111111111",
+                profile_id="prof_0195f3a0000070018111111111111111",
                 redis=None,
             )
 
@@ -1196,16 +1237,16 @@ async def test_worker_synthesis_unevaluated_target_block_handled_gracefully(
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678",
+            execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="en",
-            profile_id="prof_1111111111111111",
+            profile_id="prof_0195f3a0000070018111111111111111",
             redis=None,
         )
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
     # Since blk_53f32679aa514fcb was never evaluated, extension_metrics should be None
-    assert prof_synth["prof_1111111111111111"].extension_metrics is None
+    assert prof_synth["prof_0195f3a0000070018111111111111111"].extension_metrics is None
 
 
 @pytest.mark.asyncio
@@ -1221,7 +1262,7 @@ async def test_worker_synthesis_extracts_user_role_from_target_block_determinist
         mock_repo,
         trace_content_ling={"performative_patterns": [], "total_word_count": 100},
         trace_content_det={
-            "blk_53f32679aa514fcb": {
+            "blk_0195f3a00000700583f32679aa514fcb": {
                 "raw_score": 4.0,
                 "justification": "Evaluated Goodhart Driver Score",
             }
@@ -1231,14 +1272,14 @@ async def test_worker_synthesis_extracts_user_role_from_target_block_determinist
     mock_repo.set_output_profiles(
         [
             {
-                "id": "prof_1111111111111111",
+                "id": "prof_0195f3a0000070018111111111111111",
                 "slug": "prof_role_target",
                 "name": {"translations": {"en": "Role Target Profile"}},
-                "workflow_id": "wf_1234567812345678",
+                "workflow_id": "wf_0195f3a0000070018234567812345678",
                 "display_scale": "original",
                 "visible_workflow_extensions": ["variance_validation"],
-                "variance_target_block": "blk_53f32679aa514fcb",
-                "user_role_target_block": "blk_53f32679aa514fcb",
+                "variance_target_block": "blk_0195f3a00000700583f32679aa514fcb",
+                "user_role_target_block": "blk_0195f3a00000700583f32679aa514fcb",
                 "target_block_order": ["variance_validation_block"],
                 "matrix_synthesis_groups": [],
             }
@@ -1247,15 +1288,15 @@ async def test_worker_synthesis_extracts_user_role_from_target_block_determinist
 
     with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
         await generate_profile_synthesis_and_pdf_task(
-            execution_id="exec_1234567812345678",
+            execution_id="exec_0195f3a0000070018234567812345678",
             accept_language="en",
-            profile_id="prof_1111111111111111",
+            profile_id="prof_0195f3a0000070018111111111111111",
             redis=None,
         )
 
     prof_synth = await _get_profile_syntheses(mock_repo)
     assert prof_synth is not None
-    cache_item = prof_synth["prof_1111111111111111"]
+    cache_item = prof_synth["prof_0195f3a0000070018111111111111111"]
     assert cache_item.user_role == RoleClassification.DRIVER.value
-    assert "blk_53f32679aa514fcb" in str(cache_item.user_role_justification)
+    assert "blk_0195f3a00000700583f32679aa514fcb" in str(cache_item.user_role_justification)
     assert "score 4.0" in str(cache_item.user_role_justification)

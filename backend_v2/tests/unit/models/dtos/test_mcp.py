@@ -107,7 +107,7 @@ def test_parsed_mcp_tool_alias_and_invocation_dtos() -> None:
     assert alias.tool_id == "search"
 
     descriptor = MCPToolDescriptorDTO(
-        gateway_id="sys_8172bda70c8641c5",
+        gateway_id="sys_0195f3a00000700080008172bda70c86",
         gateway_slug="tavily_gw",
         namespaced_alias="tavily_gw__search",
         tool_id="search",
@@ -120,7 +120,7 @@ def test_parsed_mcp_tool_alias_and_invocation_dtos() -> None:
     assert descriptor.enabled is True
 
     invocation = MCPToolInvocationDTO(
-        gateway_id="sys_8172bda70c8641c5",
+        gateway_id="sys_0195f3a00000700080008172bda70c86",
         gateway_slug="tavily_gw",
         tool_id="search",
         namespaced_alias="tavily_gw__search",
@@ -249,7 +249,7 @@ def test_mcp_tool_invocation_dto_negative_invalid_gateway_id() -> None:
 def test_mcp_validation_context_dto_positive_and_negative() -> None:
     """Test MCPValidationContextDTO positive hydration and negative strict/extra boundaries."""
     doc = SourceDocumentContext(
-        opaque_id="doc_8172bda70c8641c5",
+        opaque_id="doc_0195f3a0000070088172bda70c8641c5",
         text_content="Evidence body text.",
         display_name="Source A",
     )
@@ -258,13 +258,13 @@ def test_mcp_validation_context_dto_positive_and_negative() -> None:
         query_guidance="Use exact search keywords.",
         mcp_source_texts={"mcp_0": "Fetched web text."},
         source_documents=[doc],
-        alias_registry={"src_0": "doc_8172bda70c8641c5"},
+        alias_registry={"src_0": "doc_0195f3a0000070088172bda70c8641c5"},
     )
     assert ctx.strictness_level == 85.5
     assert ctx.query_guidance == "Use exact search keywords."
     assert ctx.mcp_source_texts["mcp_0"] == "Fetched web text."
     assert len(ctx.source_documents) == 1
-    assert ctx.alias_registry["src_0"] == "doc_8172bda70c8641c5"
+    assert ctx.alias_registry["src_0"] == "doc_0195f3a0000070088172bda70c8641c5"
 
     with pytest.raises(ValidationError):
         MCPValidationContextDTO.model_validate({"strictness_level": "not_a_number"})

@@ -105,10 +105,10 @@ def test_litellm_provider_init_validates_limits_and_caches_router_and_semaphores
     low_rpm_provider = LiteLLMProvider(
         model_name="openai/gpt-4o-mini",
         api_key="test-env-injected-key",
-        organization_id="org_1234567890abcdef",
+        organization_id="org_0195f3a0000070018234567890abcdef",
         limits={"tpm": 50000, "rpm": 30},
     )
-    assert low_rpm_provider.organization_id == "org_1234567890abcdef"
+    assert low_rpm_provider.organization_id == "org_0195f3a0000070018234567890abcdef"
     assert LiteLLMProvider._semaphores[low_rpm_provider.cache_key]._value == 2
 
     # Second instantiation hits _router_cache and _semaphores cache
@@ -139,7 +139,7 @@ async def test_lite_llm_provider_strips_internal_keys_and_normalizes_mcp_tools(
     monkeypatch.setenv("TEST_REGION_VAR", "europe-west1")
 
     cfg = LLMProviderConfig(
-        id="cfg_1234567890abcdef",
+        id="cfg_0195f3a0000070018234567890abcdef",
         provider="openai",
         model_name="openai/gpt-4o",
         rpm_limit=120,
@@ -286,7 +286,7 @@ async def test_litellm_provider_generate_retries_httpx_shield_and_fail_fast_guar
     monkeypatch.setattr(litellm, "completion_cost", lambda **_: 0.001)
 
     cfg = LLMProviderConfig(
-        id="cfg_abcdef1234567890",
+        id="cfg_0195f3a00000700a8bcdef1234567890",
         provider="openai",
         model_name="openai/gpt-4o",
         rpm_limit=100,
@@ -392,7 +392,7 @@ async def test_litellm_provider_negative_boundaries_and_rfc7807_logging(
     monkeypatch.setattr(LLMCacheAdapterFactory, "get_adapter", _raise_adapter_err)
 
     cfg = LLMProviderConfig(
-        id="cfg_abcdef1234567891",
+        id="cfg_0195f3a00000700a8bcdef1234567891",
         provider="openai",
         model_name="openai/gpt-4o",
         rpm_limit=100,

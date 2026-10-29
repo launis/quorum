@@ -45,21 +45,21 @@ def mock_pacing_lock(monkeypatch: pytest.MonkeyPatch) -> None:
 def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo = InMemoryUnifiedWorkflowRepository()
     step = Step(
-        id="stp_1234567890abcdef",
+        id="stp_0195f3a0000070018234567890abcdef",
         type="llm",
         cognitive_tier=CognitiveTier.FAST,
         slug="mock",
-        criteria_block_ids=["blk_1234567890abcdef"],
-        extraction_protocol_block_id="blk_1234567890abcdef",
+        criteria_block_ids=["blk_0195f3a0000070018234567890abcdef"],
+        extraction_protocol_block_id="blk_0195f3a0000070018234567890abcdef",
         name=I18nText(translations={"en": "mock"}),
         description=I18nText(translations={"en": "mock"}),
     )
-    repo._workflows._steps["stp_1234567890abcdef"] = step
+    repo._workflows._steps["stp_0195f3a0000070018234567890abcdef"] = step
 
     record = ExecutionRecord(
-        id="exe_1111222233334444",
-        workflow_id="wf_0000000000000000",
-        output_profile_id="prof_0000000000000000",
+        id="exe_0195f3a0000070018111222233334444",
+        workflow_id="wf_0195f3a0000070008000000000000000",
+        output_profile_id="prof_0195f3a0000070008000000000000000",
         status=ExecutionStatus.PENDING,
         target_locale="en",
         raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
@@ -70,7 +70,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo._executions._save_isolated(record.id, record)
 
     raw_prompt_block = {
-        "id": "blk_1234567890abcdef",
+        "id": "blk_0195f3a0000070018234567890abcdef",
         "slug": "zero_trust_extraction_protocol",
         "label": {"translations": {"fi": "Testi", "en": "Test"}},
         "description": {"translations": {"fi": "Kuvaus", "en": "Desc"}},
@@ -85,15 +85,15 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
 
     profile = OutputProfile.model_validate(
         {
-            "id": "prof_0000000000000000",
+            "id": "prof_0195f3a0000070008000000000000000",
             "slug": "test_profile",
-            "workflow_id": "wf_0000000000000000",
+            "workflow_id": "wf_0195f3a0000070008000000000000000",
             "name": {"translations": {"en": "Test Profile"}},
             "visible_block_extensions": [],
             "visible_workflow_extensions": [],
             "matrix_synthesis_groups": [
                 {
-                    "id": "grp_0000000000000001",
+                    "id": "grp_0195f3a0000070008000000000000001",
                     "title": {"translations": {"en": "Default"}},
                     "target_blocks": ["*"],
                 }
@@ -106,7 +106,7 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
     repo._workflows._save_isolated(wf.id, wf)
 
     model_reg = SystemConfigModelRegistry(
-        id="sys_e26807f3bfa3454d",
+        id="sys_0195f3a00000700e826807f3bfa3454d",
         type="model_registry",
         name="Default Model Registry",
         slug="default",
@@ -144,15 +144,20 @@ def mock_compiler() -> MagicMock:
 def _create_workflow() -> Workflow:
     return Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="sys_e26807f3bfa3454d",
-        id="wf_0000000000000000",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        id="wf_0195f3a0000070008000000000000000",
         slug="wf_ctx_bounds",
         status="draft",
         version=1,
-        default_profile_id="prof_0000000000000000",
+        default_profile_id="prof_0195f3a0000070008000000000000000",
         name=I18nText(translations={"en": "Bounds"}),
         description=I18nText(translations={"en": "Bounds"}),
-        steps=[StepRule(id="step_0000000000000000", task_blueprint="stp_1234567890abcdef")],
+        steps=[
+            StepRule(
+                id="stp_0195f3a0000070008000000000000000",
+                task_blueprint="stp_0195f3a0000070018234567890abcdef",
+            )
+        ],
     )
 
 
@@ -195,14 +200,14 @@ async def test_context_window_exceeded_error_maps_critical(
 
             with pytest.raises(AppException) as exc_info:
                 await executor.execute_workflow(
-                    execution_id="exe_1111222233334444",
+                    execution_id="exe_0195f3a0000070018111222233334444",
                     workflow=_create_workflow(),
                     raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
                 )
 
             assert "AGENT_EXECUTION_CRITICAL" in str(exc_info.value)
 
-            updated_record = await mock_repo.get_execution("exe_1111222233334444")
+            updated_record = await mock_repo.get_execution("exe_0195f3a0000070018111222233334444")
             assert updated_record is not None
             trace_list = updated_record.execution_trace
             error_trace = next(
@@ -254,12 +259,12 @@ async def test_non_context_400_error_maps_malformed(
 
             with pytest.raises(AppException):
                 await executor.execute_workflow(
-                    execution_id="exe_1111222233334444",
+                    execution_id="exe_0195f3a0000070018111222233334444",
                     workflow=_create_workflow(),
                     raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
                 )
 
-            updated_record = await mock_repo.get_execution("exe_1111222233334444")
+            updated_record = await mock_repo.get_execution("exe_0195f3a0000070018111222233334444")
             assert updated_record is not None
             trace_list = updated_record.execution_trace
             error_trace = next(
@@ -318,7 +323,7 @@ async def test_transient_503_error_triggers_resilience_loop(
 
             with pytest.raises(AppException) as exc_info:
                 await executor.execute_workflow(
-                    execution_id="exe_1111222233334444",
+                    execution_id="exe_0195f3a0000070018111222233334444",
                     workflow=_create_workflow(),
                     raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
                 )

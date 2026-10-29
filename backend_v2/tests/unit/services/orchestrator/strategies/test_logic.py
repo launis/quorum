@@ -74,7 +74,7 @@ async def test_execute_passes_global_context_vars(logic_strategy: LogicNodeStrat
     from backend_v2.models.enums import StepType
 
     step_def = {
-        "id": "stp_1234567890abcdef",
+        "id": "stp_0195f3a0000070018234567890abcdef",
         "slug": "test_slug",
         "name": {"translations": {"en": "Test"}},
         "hook": "test_hook",
@@ -114,7 +114,7 @@ async def test_logic_strategy_execute_without_concurrency(logic_strategy: LogicN
     from backend_v2.models.enums import StepType
 
     step_def = {
-        "id": "stp_1234567890abcdef",
+        "id": "stp_0195f3a0000070018234567890abcdef",
         "slug": "test_slug",
         "name": {"translations": {"en": "Test"}},
         "hook": "test_hook",
@@ -158,7 +158,7 @@ async def test_execute_hook_failure_raises_app_exception(logic_strategy: LogicNo
     from backend_v2.models.enums import StepType
 
     step_def = {
-        "id": "stp_1234567890abcdef",
+        "id": "stp_0195f3a0000070018234567890abcdef",
         "slug": "test_slug",
         "name": {"translations": {"en": "Test"}},
         "hook": "test_hook",
@@ -194,12 +194,12 @@ async def test_execute_missing_hook_raises_app_exception(logic_strategy: LogicNo
     from backend_v2.models.enums import StepType
 
     step_def = {
-        "id": "stp_1234567890abcdef",
+        "id": "stp_0195f3a0000070018234567890abcdef",
         "slug": "test_slug",
         "name": {"translations": {"en": "Test"}},
         "hook": None,
-        "criteria_block_ids": ["blk_0123456789abcdef"],
-        "extraction_protocol_block_id": "blk_0123456789abcdef",
+        "criteria_block_ids": ["blk_0195f3a0000070008123456789abcdef"],
+        "extraction_protocol_block_id": "blk_0195f3a0000070008123456789abcdef",
         "description": {"translations": {"en": "Test Desc"}},
         "type": StepType.LLM,
     }
@@ -227,7 +227,7 @@ async def test_execute_with_base_model_delta(logic_strategy: LogicNodeStrategy) 
     )
 
     step_def = {
-        "id": "stp_1234567890abcdef",
+        "id": "stp_0195f3a0000070018234567890abcdef",
         "slug": "test_slug",
         "name": {"translations": {"en": "Test"}},
         "hook": "test_hook",
@@ -264,7 +264,7 @@ async def test_execute_with_trace_scoring_payload_dto(logic_strategy: LogicNodeS
     )
 
     step_def = {
-        "id": "stp_0123456789abcdef",
+        "id": "stp_0195f3a0000070008123456789abcdef",
         "slug": "scoring_slug",
         "name": {"translations": {"en": "Scoring"}},
         "hook": "apply_scoring_logic",
@@ -345,7 +345,7 @@ async def test_execute_succeeds_with_projector_raw_inputs_event(logic_strategy: 
     )
 
     step_def = {
-        "id": "stp_0123456789abcdef",
+        "id": "stp_0195f3a0000070008123456789abcdef",
         "slug": "scoring_engine",
         "name": {"translations": {"en": "Scoring Engine"}},
         "hook": "apply_scoring_logic",

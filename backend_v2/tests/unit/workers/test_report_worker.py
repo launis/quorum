@@ -22,10 +22,12 @@ async def test_generate_report_artifact_job_delegates_to_service() -> None:
     ):
         _ = await generate_report_artifact_job(
             ctx={},
-            report_id="rep_0123456789abcdef",
+            report_id="rep_0195f3a0000070008123456789abcdef",
         )
 
-    mock_service.process_artifact_compilation.assert_awaited_once_with("rep_0123456789abcdef", force_resynthesis=False)
+    mock_service.process_artifact_compilation.assert_awaited_once_with(
+        "rep_0195f3a0000070008123456789abcdef", force_resynthesis=False
+    )
 
 
 @pytest.mark.asyncio
@@ -40,11 +42,13 @@ async def test_generate_report_artifact_job_forwards_force_resynthesis() -> None
     ):
         await generate_report_artifact_job(
             ctx={},
-            report_id="rep_0123456789abcdef",
+            report_id="rep_0195f3a0000070008123456789abcdef",
             force_resynthesis=True,
         )
 
-    mock_service.process_artifact_compilation.assert_awaited_once_with("rep_0123456789abcdef", force_resynthesis=True)
+    mock_service.process_artifact_compilation.assert_awaited_once_with(
+        "rep_0195f3a0000070008123456789abcdef", force_resynthesis=True
+    )
 
 
 @pytest.mark.asyncio
@@ -68,11 +72,11 @@ async def test_generate_report_artifact_job_failure_containment() -> None:
     ):
         await generate_report_artifact_job(
             ctx={},
-            report_id="rep_0123456789abcdef",
+            report_id="rep_0195f3a0000070008123456789abcdef",
         )
 
     # Invariant: Failure in Phase 2/3 does NOT alter execution record status to FAILED
-    assert (await mock_repo.get_execution("exe_0123456789abcdef")) is None
+    assert (await mock_repo.get_execution("exe_0195f3a0000070008123456789abcdef")) is None
 
 
 @pytest.mark.asyncio
@@ -82,5 +86,5 @@ async def test_generate_report_artifact_job_cancelled() -> None:
         "backend_v2.workers.report_worker.UnifiedWorkflowRepository",
         side_effect=asyncio.CancelledError,
     ):
-        res = await generate_report_artifact_job(ctx={}, report_id="rep_0123456789abcdef")
+        res = await generate_report_artifact_job(ctx={}, report_id="rep_0195f3a0000070008123456789abcdef")
     assert res == {"_dlq_status": "FAILED/DLQ"}

@@ -31,7 +31,7 @@ def test_build_dynamic_schema_omits_zero_evidence_matrix() -> None:
         claims=[claim],
     )
     matrix = MatrixPromptBlock(
-        id="blk_0123456789abcdef",
+        id="blk_0195f3a0000070008123456789abcdef",
         slug="test-matrix-1",
         description=I18nText(translations={"en": "test matrix block"}),
         category_id=PromptBlockCategory.MATRIX,
@@ -45,7 +45,9 @@ def test_build_dynamic_schema_omits_zero_evidence_matrix() -> None:
         "TestSchemaNoDag", criteria=[matrix], strictness_level=50, expected_sdui_type="grid"
     )
     assert "global_matrices" in schema_no_dag.model_fields
-    assert "blk_0123456789abcdef" in schema_no_dag.model_fields["global_matrices"].annotation.model_fields
+    assert (
+        "blk_0195f3a0000070008123456789abcdef" in schema_no_dag.model_fields["global_matrices"].annotation.model_fields
+    )
 
     # 2. dag_results with PASSED -> Matrix is included
     dag_passed = {
@@ -60,7 +62,9 @@ def test_build_dynamic_schema_omits_zero_evidence_matrix() -> None:
         "TestSchemaPassed", criteria=[matrix], strictness_level=50, dag_results=dag_passed, expected_sdui_type="grid"
     )
     assert "global_matrices" in schema_passed.model_fields
-    assert "blk_0123456789abcdef" in schema_passed.model_fields["global_matrices"].annotation.model_fields
+    assert (
+        "blk_0195f3a0000070008123456789abcdef" in schema_passed.model_fields["global_matrices"].annotation.model_fields
+    )
 
     # 4. dag_results with FAILED -> Matrix is OMITTED
     dag_failed = {

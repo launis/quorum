@@ -29,7 +29,7 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
 
     # Empty layout (should not invoke chart rendering)
     dto = ReportDataDTO(
-        execution_id="exe_aaaaaaaabbbbbbbb",
+        execution_id="exe_0195f3a00000700a8aaaaaaabbbbbbbb",
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
@@ -37,7 +37,9 @@ async def test_pdf_generator_chart_injection_failure_safe() -> None:
         inner_sdui_blocks=[SduiMetrics1DBlock(axes=[])],
     )
 
-    pdf_bytes = await svc.generate_execution_pdf(execution_id="exe_aaaaaaaabbbbbbbb", report_dto=dto, locale="en")
+    pdf_bytes = await svc.generate_execution_pdf(
+        execution_id="exe_0195f3a00000700a8aaaaaaabbbbbbbb", report_dto=dto, locale="en"
+    )
     assert pdf_bytes is not None
     assert isinstance(pdf_bytes, bytes)
 
@@ -48,7 +50,7 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
 
     # Empty layout (should not invoke chart rendering)
     dto = ReportDataDTO(
-        execution_id="exe_aaaaaaaabbbbbbbb",
+        execution_id="exe_0195f3a00000700a8aaaaaaabbbbbbbb",
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
@@ -56,7 +58,9 @@ async def test_html_generator_chart_injection_failure_safe() -> None:
         inner_sdui_blocks=[SduiMetrics1DBlock(axes=[])],
     )
 
-    html_string = await svc.generate_execution_html(execution_id="exe_aaaaaaaabbbbbbbb", report_dto=dto, locale="en")
+    html_string = await svc.generate_execution_html(
+        execution_id="exe_0195f3a00000700a8aaaaaaabbbbbbbb", report_dto=dto, locale="en"
+    )
     assert html_string is not None
     assert isinstance(html_string, str)
     assert html_string.strip().startswith("<!DOCTYPE html>")
@@ -67,7 +71,7 @@ async def test_pdf_generator_empty_radar_chart_crashes() -> None:
     svc = PdfReportService()
 
     dto = ReportDataDTO(
-        execution_id="exe_1111111111111111",
+        execution_id="exe_0195f3a0000070018111111111111111",
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
@@ -77,7 +81,9 @@ async def test_pdf_generator_empty_radar_chart_crashes() -> None:
 
     with patch("backend_v2.services.pdf_generator.generate_radar_chart", return_value=""):
         with pytest.raises(ConfigurationError) as exc_info:
-            await svc.generate_execution_pdf(execution_id="exe_1111111111111111", report_dto=dto, locale="en")
+            await svc.generate_execution_pdf(
+                execution_id="exe_0195f3a0000070018111111111111111", report_dto=dto, locale="en"
+            )
         assert "returned empty data for block" in str(exc_info.value)
 
 
@@ -216,7 +222,7 @@ async def test_pdf_generator_unknown_block_type_skipped() -> None:
     svc = PdfReportService()
 
     dto = ReportDataDTO(
-        execution_id="exe_2222222222222222",
+        execution_id="exe_0195f3a0000070028222222222222222",
         strictness_level=85,
         workflow_id="test_wf",
         profile_id="prf_test",
@@ -224,7 +230,9 @@ async def test_pdf_generator_unknown_block_type_skipped() -> None:
         inner_sdui_blocks=[ParagraphBlock(text="Hello", exact_quotes=[], citations=[])],
     )
 
-    pdf_bytes = await svc.generate_execution_pdf(execution_id="exe_2222222222222222", report_dto=dto, locale="en")
+    pdf_bytes = await svc.generate_execution_pdf(
+        execution_id="exe_0195f3a0000070028222222222222222", report_dto=dto, locale="en"
+    )
     assert pdf_bytes is not None
     assert isinstance(pdf_bytes, bytes)
 

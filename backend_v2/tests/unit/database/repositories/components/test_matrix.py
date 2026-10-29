@@ -45,7 +45,7 @@ def sample_matrix() -> MatrixPromptBlock:
         Validated MatrixPromptBlock domain model.
     """
     return MatrixPromptBlock(
-        id="blk_1234567890abcdef",
+        id="blk_0195f3a0000070018234567890abcdef",
         slug="mat_123",
         label=I18nText(translations={"en": "Test Matrix", "fi": "Testimatriisi"}),
         description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
@@ -94,9 +94,7 @@ async def test_matrix_crud_and_dimension_lookup_roundtrip(
     assert await repo.get_matrices_using_dimension("dim_ai_desc") == [sample_matrix.id]
     assert await repo.get_matrices_using_dimension("non_existent_dim") == []
 
-    updated_matrix = sample_matrix.model_copy(
-        update={"ai_description": "Updated cognitive instructions."}
-    )
+    updated_matrix = sample_matrix.model_copy(update={"ai_description": "Updated cognitive instructions."})
     updated_id = await repo.update_matrix(sample_matrix.id, updated_matrix)
     assert updated_id == sample_matrix.id
 
@@ -118,10 +116,10 @@ async def test_update_matrix_not_found(
 ) -> None:
     """Negative: update_matrix raises ResourceNotFoundError if matrix does not exist."""
     with pytest.raises(ResourceNotFoundError) as exc_info:
-        await repo.update_matrix("blk_0000000000000000", sample_matrix)
+        await repo.update_matrix("blk_0195f3a0000070008000000000000000", sample_matrix)
 
     assert exc_info.value.details["resource_type"] == "Matrix"
-    assert exc_info.value.details["resource_id"] == "blk_0000000000000000"
+    assert exc_info.value.details["resource_id"] == "blk_0195f3a0000070008000000000000000"
 
 
 @pytest.mark.asyncio
@@ -129,7 +127,7 @@ async def test_delete_matrix_not_found(
     repo: MatrixRepositoryImpl,
 ) -> None:
     """Negative boundary: delete_matrix returns False when matrix does not exist."""
-    assert await repo.delete_matrix("blk_0000000000000000") is False
+    assert await repo.delete_matrix("blk_0195f3a0000070008000000000000000") is False
 
 
 @pytest.mark.asyncio
@@ -140,16 +138,16 @@ async def test_get_matrix_by_id_corrupted_raises_app_exception(
     """Negative: get_matrix_by_id raises AppException(500) on corrupted record."""
     await driver.upsert(
         "components",
-        {"id": "blk_1111111111111111", "category_id": "invalid_category"},
-        "blk_1111111111111111",
+        {"id": "blk_0195f3a0000070018111111111111111", "category_id": "invalid_category"},
+        "blk_0195f3a0000070018111111111111111",
     )
 
     with pytest.raises(AppException) as exc_info:
-        await repo.get_matrix_by_id("blk_1111111111111111")
+        await repo.get_matrix_by_id("blk_0195f3a0000070018111111111111111")
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "blk_1111111111111111" in exc_info.value.message
+    assert "blk_0195f3a0000070018111111111111111" in exc_info.value.message
 
 
 @pytest.mark.asyncio
@@ -161,11 +159,11 @@ async def test_get_all_matrices_corrupted_with_id_raises_app_exception(
     await driver.upsert(
         "components",
         {
-            "id": "blk_2222222222222222",
+            "id": "blk_0195f3a0000070028222222222222222",
             "category_id": PromptBlockCategory.MATRIX.value,
             "type": "invalid_type",
         },
-        "blk_2222222222222222",
+        "blk_0195f3a0000070028222222222222222",
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -173,7 +171,7 @@ async def test_get_all_matrices_corrupted_with_id_raises_app_exception(
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-    assert "blk_2222222222222222" in exc_info.value.message
+    assert "blk_0195f3a0000070028222222222222222" in exc_info.value.message
 
 
 @pytest.mark.asyncio

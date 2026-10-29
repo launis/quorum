@@ -42,7 +42,7 @@ def test_workflow_create_dto_accepts_valid_payload() -> None:
         "name": {"translations": {"en": "Custom Workflow", "fi": "Mukautettu työnkulku"}},
         "description": {"translations": {"en": "Description", "fi": "Kuvaus"}},
         "historical_context_mode": "DISABLED",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_0195f3a00000700e826807f3bfa3454d",
     }
     dto = WorkflowCreateDTO.model_validate(payload)
     assert dto.slug == "custom-workflow"
@@ -129,7 +129,7 @@ def test_matrix_synthesis_group_default_factory_generates_valid_opaque_id() -> N
     """TC-ID-08: MatrixSynthesisGroup generated without explicit id receives a randomized grp_<16hex> Opaque ID."""
     group = MatrixSynthesisGroup(
         title=I18nText(translations={"en": "Synthesis Group 1", "fi": "Synteesiryhmä 1"}),
-        target_blocks=["blk_1234567890abcdef"],
+        target_blocks=["blk_0195f3a0000070018234567890abcdef"],
     )
     assert group.id is not None
     assert re.match(r"^grp_[a-fA-F0-9]{16,32}$", group.id), f"Unexpected ID format: {group.id}"

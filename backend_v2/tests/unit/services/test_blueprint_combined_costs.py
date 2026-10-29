@@ -29,7 +29,7 @@ from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflo
 
 _WORKFLOW_ID = "wf_0123456789abcdef0123456789abcdef"
 _PROFILE_ID = "prf_0123456789abcdef0123456789abcdef"
-_USER_ID = "usr_0123456789abcdef"
+_USER_ID = "usr_0195f3a0000070008123456789abcdef"
 
 
 @pytest.fixture
@@ -46,7 +46,7 @@ def mock_blueprint_repos() -> InMemoryUnifiedWorkflowRepository:
         target_block_order=[TargetBlockType.METADATA_BLOCK],
         matrix_synthesis_groups=[
             MatrixSynthesisGroup(
-                id="grp_0000000000000001",
+                id="grp_0195f3a0000070008000000000000001",
                 title=I18nText(translations={"en": "Default", "fi": "Oletus"}),
                 target_blocks=["*"],
             )
@@ -64,7 +64,7 @@ def mock_blueprint_repos() -> InMemoryUnifiedWorkflowRepository:
         name=I18nText(translations={"en": "Test Workflow", "fi": "Testi työnkulku"}),
         default_profile_id=_PROFILE_ID,
         historical_context_mode=HistoricalContextMode.DISABLED,
-        model_registry_id="cfg_model_registry_01",
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         default_strictness_level=85,
         steps=[],
     )

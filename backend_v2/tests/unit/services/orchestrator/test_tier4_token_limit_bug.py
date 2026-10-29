@@ -20,7 +20,7 @@ async def test_tier4_reasoning_trace_truncation_bug() -> None:
     factory = SchemaFactory(resolve_i18n_fn=lambda data, locale: data.resolve(locale))
     criteria = [
         SystemRulePromptBlock(
-            id="blk_0000000000000000",
+            id="blk_0195f3a0000070008000000000000000",
             slug="test_slug",
             category_id=PromptBlockCategory.SYSTEM_RULE,
             type=BlockDataType.INSTRUCTION,

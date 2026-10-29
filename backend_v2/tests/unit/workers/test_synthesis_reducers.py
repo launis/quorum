@@ -42,9 +42,9 @@ from backend_v2.workers.synthesis_reducers import (
 
 def _make_execution(trace_events: list[TraceEvent] | None = None) -> ExecutionRecord:
     return ExecutionRecord(
-        id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
-        output_profile_id="pro_0123456789abcdef01",
+        id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
+        output_profile_id="pro_0195f3a00000700283456789abcdef01",
         status=ExecutionStatus.PASSED,
         target_locale="en",
         metadata=ExecutionMetadata(),
@@ -143,9 +143,9 @@ def test_process_executive_summary_result_with_budget() -> None:
     )
     usage = TokenUsage(total_tokens=30, prompt_tokens=10, completion_tokens=20, cost_usd=0.005)
     prof = OutputProfile(
-        id="pro_0123456789abcdef01",
+        id="pro_0195f3a00000700283456789abcdef01",
         slug="prof_test",
-        workflow_id="wor_0123456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         name=I18nText(translations={"en": "Test Profile"}),
         synthesis_length_constraint=100,
         target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
@@ -185,9 +185,9 @@ def test_process_xai_highlights_result() -> None:
     xai_res = XaiHighlightsResult(xai_highlights=[highlight])
     usage = TokenUsage(total_tokens=20, prompt_tokens=10, completion_tokens=10, cost_usd=0.001)
     prof = OutputProfile(
-        id="pro_0123456789abcdef01",
+        id="pro_0195f3a00000700283456789abcdef01",
         slug="prof_test",
-        workflow_id="wor_0123456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         name=I18nText(translations={"en": "Test Profile"}),
         xai_length_constraint=50,
         target_block_order=[TargetBlockType.GROUPED_EXTENSIONS_BLOCK],
@@ -219,9 +219,9 @@ def test_process_row_explanations_result() -> None:
         justification="Justification",
     )
     prof = OutputProfile(
-        id="pro_0123456789abcdef01",
+        id="pro_0195f3a00000700283456789abcdef01",
         slug="prof_test",
-        workflow_id="wor_0123456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         name=I18nText(translations={"en": "Test Profile"}),
         row_explanation_length_constraint=50,
         target_block_order=[TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK],
@@ -252,7 +252,7 @@ async def test_handle_starvation_if_detected_true() -> None:
     mock_redis = AsyncMock()
     mock_render_fn = AsyncMock()
     mock_artifact = MagicMock()
-    mock_artifact.id = "rep_0123456789abcdef01"
+    mock_artifact.id = "rep_0195f3a00000700283456789abcdef01"
 
     with patch("backend_v2.workers.synthesis_reducers.ReportService") as mock_report_service_cls:
         mock_svc = mock_report_service_cls.return_value
@@ -260,7 +260,7 @@ async def test_handle_starvation_if_detected_true() -> None:
         mock_svc.compile_and_persist_artifact = AsyncMock()
         detected = await handle_starvation_if_detected(
             exec_rec,
-            "pro_0123456789abcdef01",
+            "pro_0195f3a00000700283456789abcdef01",
             "en",
             mock_repo,
             mock_redis,
@@ -270,15 +270,15 @@ async def test_handle_starvation_if_detected_true() -> None:
         saved_rec = await mock_repo.get_execution(exec_rec.id)
         assert saved_rec is not None
         assert saved_rec.profile_syntheses is not None
-        assert "pro_0123456789abcdef01" in saved_rec.profile_syntheses
+        assert "pro_0195f3a00000700283456789abcdef01" in saved_rec.profile_syntheses
         mock_render_fn.assert_called_once()
         mock_svc.get_or_create_default_artifact.assert_awaited_once_with(
             execution_id=exec_rec.id,
-            profile_id="pro_0123456789abcdef01",
+            profile_id="pro_0195f3a00000700283456789abcdef01",
             locale="en",
         )
         mock_svc.compile_and_persist_artifact.assert_awaited_once_with(
-            "rep_0123456789abcdef01",
+            "rep_0195f3a00000700283456789abcdef01",
             mock_redis,
         )
 
@@ -299,7 +299,7 @@ async def test_handle_starvation_if_detected_dict_event() -> None:
     mock_redis = AsyncMock()
     mock_render_fn = AsyncMock()
     mock_artifact = MagicMock()
-    mock_artifact.id = "rep_0123456789abcdef01"
+    mock_artifact.id = "rep_0195f3a00000700283456789abcdef01"
 
     with patch("backend_v2.workers.synthesis_reducers.ReportService") as mock_report_service_cls:
         mock_svc = mock_report_service_cls.return_value
@@ -307,7 +307,7 @@ async def test_handle_starvation_if_detected_dict_event() -> None:
         mock_svc.compile_and_persist_artifact = AsyncMock()
         detected = await handle_starvation_if_detected(
             exec_rec,
-            "pro_0123456789abcdef01",
+            "pro_0195f3a00000700283456789abcdef01",
             "en",
             mock_repo,
             mock_redis,
@@ -317,14 +317,14 @@ async def test_handle_starvation_if_detected_dict_event() -> None:
         saved_rec = await mock_repo.get_execution(exec_rec.id)
         assert saved_rec is not None
         assert saved_rec.profile_syntheses is not None
-        assert "pro_0123456789abcdef01" in saved_rec.profile_syntheses
+        assert "pro_0195f3a00000700283456789abcdef01" in saved_rec.profile_syntheses
         mock_svc.get_or_create_default_artifact.assert_awaited_once_with(
             execution_id=exec_rec.id,
-            profile_id="pro_0123456789abcdef01",
+            profile_id="pro_0195f3a00000700283456789abcdef01",
             locale="en",
         )
         mock_svc.compile_and_persist_artifact.assert_awaited_once_with(
-            "rep_0123456789abcdef01",
+            "rep_0195f3a00000700283456789abcdef01",
             mock_redis,
         )
 
@@ -343,7 +343,7 @@ async def test_handle_starvation_if_detected_corrupted_dict_raises() -> None:
     with pytest.raises(AppException) as exc_info:
         await handle_starvation_if_detected(
             exec_rec,
-            "pro_0123456789abcdef01",
+            "pro_0195f3a00000700283456789abcdef01",
             "en",
             AsyncMock(),
             None,
@@ -358,7 +358,7 @@ async def test_handle_starvation_if_detected_false() -> None:
     exec_rec = _make_execution([])
     detected = await handle_starvation_if_detected(
         exec_rec,
-        "pro_0123456789abcdef01",
+        "pro_0195f3a00000700283456789abcdef01",
         "en",
         AsyncMock(),
         None,
@@ -429,8 +429,8 @@ async def test_handle_synthesis_failure_state() -> None:
     """Test handle_synthesis_failure_state updates virtual step state."""
     mock_repo = InMemoryUnifiedWorkflowRepository()
     mock_record = ExecutionRecord(
-        id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         target_locale="en",
         metadata=ExecutionMetadata(),
         step_states={},
@@ -439,11 +439,11 @@ async def test_handle_synthesis_failure_state() -> None:
     with patch("backend_v2.workers.synthesis_reducers.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_reducers.UnifiedWorkflowRepository", return_value=mock_repo):
             await handle_synthesis_failure_state(
-                "exe_0123456789abcdef01",
-                "pro_0123456789abcdef01",
+                "exe_0195f3a00000700283456789abcdef01",
+                "pro_0195f3a00000700283456789abcdef01",
                 ValueError("Synthesis error"),
             )
-            saved_rec = await mock_repo.get_execution("exe_0123456789abcdef01")
+            saved_rec = await mock_repo.get_execution("exe_0195f3a00000700283456789abcdef01")
             assert saved_rec is not None
 
 
@@ -525,7 +525,7 @@ async def test_recover_trace_telemetry_corrupted_envelope_raises() -> None:
 @pytest.mark.asyncio
 async def test_handle_synthesis_failure_state_none_profile() -> None:
     """Test handle_synthesis_failure_state returns immediately when profile_id is None."""
-    await handle_synthesis_failure_state("exe_0123456789abcdef01", None, ValueError("error"))
+    await handle_synthesis_failure_state("exe_0195f3a00000700283456789abcdef01", None, ValueError("error"))
 
 
 @pytest.mark.asyncio
@@ -533,13 +533,13 @@ async def test_handle_synthesis_failure_state_with_virtual_step() -> None:
     """Test handle_synthesis_failure_state updates virtual step and execution record."""
     from backend_v2.models.domain.execution import ExecutionStep
 
-    prof_id = "pro_0123456789abcdef01"
+    prof_id = "pro_0195f3a00000700283456789abcdef01"
     v_step_id = f"sys_render_{prof_id}"
     v_step = ExecutionStep(id=v_step_id, label="Render", status=ExecutionStatus.PENDING)
     mock_repo = InMemoryUnifiedWorkflowRepository()
     mock_record = ExecutionRecord(
-        id="exe_0123456789abcdef01",
-        workflow_id="wor_0123456789abcdef01",
+        id="exe_0195f3a00000700283456789abcdef01",
+        workflow_id="wor_0195f3a00000700283456789abcdef01",
         target_locale="en",
         metadata=ExecutionMetadata(),
         step_states={v_step_id: v_step},
@@ -549,11 +549,11 @@ async def test_handle_synthesis_failure_state_with_virtual_step() -> None:
     with patch("backend_v2.workers.synthesis_reducers.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_reducers.UnifiedWorkflowRepository", return_value=mock_repo):
             await handle_synthesis_failure_state(
-                "exe_0123456789abcdef01",
+                "exe_0195f3a00000700283456789abcdef01",
                 prof_id,
                 ValueError("Synthesis error"),
             )
-            saved_rec = await mock_repo.get_execution("exe_0123456789abcdef01")
+            saved_rec = await mock_repo.get_execution("exe_0195f3a00000700283456789abcdef01")
             assert saved_rec is not None
             assert saved_rec.step_states[v_step_id].status == ExecutionStatus.FAILED
 
@@ -568,8 +568,8 @@ async def test_handle_synthesis_failure_state_db_error_raises() -> None:
             with patch("backend_v2.workers.synthesis_reducers.UnifiedWorkflowRepository", return_value=mock_repo):
                 with pytest.raises(AppException) as exc_info:
                     await handle_synthesis_failure_state(
-                        "exe_0123456789abcdef01",
-                        "pro_0123456789abcdef01",
+                        "exe_0195f3a00000700283456789abcdef01",
+                        "pro_0195f3a00000700283456789abcdef01",
                         ValueError("Synthesis error"),
                     )
                 assert exc_info.value.status_code == 500

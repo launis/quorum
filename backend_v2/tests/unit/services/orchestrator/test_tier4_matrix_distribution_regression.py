@@ -43,7 +43,6 @@ from backend_v2.services.matrix_parser import MatrixDomainParser
 from backend_v2.services.orchestrator.causal_cohesion_evaluator import (
     CausalCohesionEvaluator,
 )
-from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -52,13 +51,14 @@ def test_causal_cohesion_evaluator_emits_integer_level_stats() -> None:
 
     Floats like 1.0 or 0.0 directly leak into SDUI distribution strings as '1.0/1.0'.
     """
-    settings = get_settings()
     evaluator = CausalCohesionEvaluator()
     audit = AntiFluffAuditDTO(
         isolated_concept_count=2,
         cycle_detected=False,
         unsupported_claims_count=0,
         logical_cohesion_score=0.92,
+        largest_component_ratio=0.95,
+        branch_convergence_ratio=0.20,
         detected_hollow_terms=[],
     )
 
@@ -66,7 +66,7 @@ def test_causal_cohesion_evaluator_emits_integer_level_stats() -> None:
         audit=audit,
         total_nodes=50,
         strictness_level=70,
-        matrix_block_id=settings.causal_cohesion_matrix_block_id,
+        matrix_block_id="blk_0195f3a00000700080009f6d2c1b0a5e",
     )
 
     assert result.matrix_output.level_breakdown is not None
@@ -85,7 +85,7 @@ def test_matrix_domain_parser_formats_float_level_stats_as_clean_integers() -> N
     f"{1.0}/{1.0}" evaluates to "1.0/1.0". The parser must format integer-valued
     floats as "1/1" and "0/1" so the Flutter Dumb Painter receives clean strings.
     """
-    pb_id = "blk_c0a1e50000000001"
+    pb_id = "blk_0195f3a00000700080009f6d2c1b0a5e"
     pb = MatrixPromptBlock.model_validate(
         {
             "id": pb_id,
@@ -114,11 +114,11 @@ def test_matrix_domain_parser_formats_float_level_stats_as_clean_integers() -> N
 
     profile = OutputProfile.model_validate(
         {
-            "id": "prof_0123456789abcdef0123456789abcdef",
+            "id": "prf_0195f3a00000700080000123456789ab",
             "slug": "test_profile",
             "name": {"translations": {"en": "Test Profile"}},
-            "workflow_id": "wor_0123456789abcdef0123456789abcdef",
-            "organization_id": "root",
+            "workflow_id": "wf_0195f3a00000700080000123456789ab",
+            "organization_id": "org_0195f3a000007000800073797374656d",
             "matrix_visible_columns": [ReportMatrixColumn.LABEL.value, ReportMatrixColumn.DISTRIBUTION.value],
             "target_block_order": [],
             "matrix_synthesis_groups": [],
@@ -170,9 +170,9 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
     """
     from backend_v2.hooks.scoring.matrix_hook import matrix_scoring_hook
 
-    pb_id = "blk_440a5fef9331451b"
-    tda_ids_lvl1 = [f"tda_11{i:030x}" for i in range(1, 4)]  # 3 assertions
-    tda_ids_lvl2 = [f"tda_22{i:030x}" for i in range(1, 6)]  # 5 assertions
+    pb_id = "blk_0195f3a0000070008000440a5fef9331"
+    tda_ids_lvl1 = [f"tda_0195f3a000007000880000000000010{i}" for i in range(1, 4)]  # 3 assertions
+    tda_ids_lvl2 = [f"tda_0195f3a000007000880000000000020{i}" for i in range(1, 6)]  # 5 assertions
 
     claims_lvl1 = [
         MatrixClaim(
@@ -180,7 +180,7 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
             tda_assertions=[
                 TDAAssertion(
                     tda_id=tid,
-                    concept_description=f"Defect 1.{i}",
+                    concept_description=f"Defect 1.{i} assertion description",
                     inverse_evidence=True,
                     aggregation_mode="EXISTS",
                 )
@@ -195,7 +195,7 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
             tda_assertions=[
                 TDAAssertion(
                     tda_id=tid,
-                    concept_description=f"Defect 2.{i}",
+                    concept_description=f"Defect 2.{i} assertion description",
                     inverse_evidence=True,
                     aggregation_mode="EXISTS",
                 )
@@ -232,10 +232,10 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
         }
     )
 
-    wf_id = "wor_1111222233334444"
-    step_id = "stp_1111222233334444"
-    profile_id = "prof_1111222233334444"
-    execution_id = "exe_1111222233334444"
+    wf_id = "wf_0195f3a0000070008000111122223333"
+    step_id = "stp_0195f3a0000070008000111122223333"
+    profile_id = "prf_0195f3a0000070008000111122223333"
+    execution_id = "exe_0195f3a0000070008000111122223333"
 
     step = Step.model_validate(
         {
@@ -259,7 +259,7 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
             "default_profile_id": profile_id,
             "default_strictness_level": 50,
             "enable_contextual_overrides": True,
-            "model_registry_id": "cfg_model_registry_01",
+            "model_registry_id": "sys_0195f3a0000070008000111122223333",
             "historical_context_mode": "DISABLED",
         }
     )
@@ -269,8 +269,8 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
         {
             "id": execution_id,
             "workflow_id": wf_id,
-            "organization_id": "org_1111222233334444",
-            "created_by": "usr_1111222233334444",
+            "organization_id": "org_0195f3a0000070008000111122223333",
+            "created_by": "usr_0195f3a0000070008000111122223333",
             "output_profile_id": profile_id,
             "status": "RUNNING",
             "target_locale": "fi",
@@ -287,7 +287,7 @@ async def test_track_b_matrix_hook_level_breakdown_non_zero_denominator() -> Non
             "name": {"translations": {"en": "Toulmin Profile", "fi": "Toulmin profiili"}},
             "matrix_synthesis_groups": [
                 {
-                    "id": "grp_1111222233334444",
+                    "id": "grp_0195f3a0000070018111222233334444",
                     "title": {"translations": {"en": "Toulmin Group", "fi": "Toulmin ryhmä"}},
                     "target_blocks": [pb_id],
                 }
@@ -418,7 +418,7 @@ def test_matrix_domain_parser_rejects_invalid_level_key() -> None:
     """Fail-Fast: MatrixDomainParser MUST raise AppException on non-numeric level keys."""
     from backend_v2.exceptions import AppException, ErrorCodes
 
-    pb_id = "blk_c0a1e50000000001"
+    pb_id = "blk_0195f3a00000700c80a1e50000000001"
     pb = MatrixPromptBlock.model_validate(
         {
             "id": pb_id,

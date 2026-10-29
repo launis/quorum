@@ -150,5 +150,3 @@ def test_html_only_or_empty_json_object_returns_none() -> None:
     """TC-SAN-09: Negative equivalence: HTML tags with no text or empty JSON brackets return None."""
     assert McpPresentationSanitizer.sanitize_finding("<div>  <span> </span> </div>") is None
     assert McpPresentationSanitizer.sanitize_finding("{}") is None
-
-

@@ -14,25 +14,25 @@ from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus
 def test_step_output_dto_with_atom_result() -> None:
     """Test StepOutputDTO with AtomResultDTO payload."""
     atom = AtomResultDTO(
-        tda_id="tda_1234567890abcdef",
+        tda_id="tda_0195f3a0000070018234567890abcdef",
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Meets criteria.",
         source_quotes=("Exact quote here.",),
     )
     dto = StepOutputDTO(
-        step_id="stp_1234567890abcdef",
-        block_id="blk_1234567890abcdef",
+        step_id="stp_0195f3a0000070018234567890abcdef",
+        block_id="blk_0195f3a0000070018234567890abcdef",
         data_type="matrix",
         payload=atom,
     )
-    assert dto.step_id == "stp_1234567890abcdef"
+    assert dto.step_id == "stp_0195f3a0000070018234567890abcdef"
     assert dto.payload == atom
 
 
 def test_step_output_dto_with_reduced_atom_dto() -> None:
     """Test StepOutputDTO with ReducedAtomDTO payload."""
     reduced_atom = ReducedAtomDTO(
-        tda_id="tda_1234567890abcdef",
+        tda_id="tda_0195f3a0000070018234567890abcdef",
         status=LaxExecutionStatus.PASSED,
         reasoning="Compact reasoning.",
         source_quotes=("Verbatim quote text.",),
@@ -52,12 +52,12 @@ def test_step_output_dto_with_reduced_atoms_list() -> None:
     """Test StepOutputDTO with list[ReducedAtomDTO] payload."""
     reduced_atoms = [
         ReducedAtomDTO(
-            tda_id="tda_1234567890abcdef",
+            tda_id="tda_0195f3a0000070018234567890abcdef",
             status=LaxExecutionStatus.PASSED,
             reasoning="Passed evaluation.",
         ),
         ReducedAtomDTO(
-            tda_id="tda_abcdef1234567890",
+            tda_id="tda_0195f3a00000700a8bcdef1234567890",
             status=LaxExecutionStatus.FAILED,
             reasoning="Failed criteria.",
         ),
@@ -70,7 +70,7 @@ def test_step_output_dto_with_reduced_atoms_list() -> None:
     )
     assert isinstance(dto.payload, list)
     assert len(dto.payload) == 2
-    assert dto.payload[0].tda_id == "tda_1234567890abcdef"
+    assert dto.payload[0].tda_id == "tda_0195f3a0000070018234567890abcdef"
 
 
 def test_step_output_dto_with_scalar_payloads() -> None:

@@ -128,9 +128,9 @@ def test_source_verification_result_dto_valid_aggregation() -> None:
         tavily_answer="Verified at 1.8%.",
     )
     trace = MCPAuditTrace(
-        id="trc_1234567890abcdef",
+        id="trc_0195f3a0000070018234567890abcdef",
         tool_id="tavily_search",
-        gateway_id="sys_1234567890abcdef",
+        gateway_id="sys_0195f3a0000070018234567890abcdef",
         step_name="source_verification",
         query="Verify this claim: StatFinland 2025 GDP growth was 1.8%",
         response_summary="Verified at 1.8%.",

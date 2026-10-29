@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import BeforeValidator, ConfigDict, Field, model_validator
+from pydantic import BeforeValidator, ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.models.core_base import V2CoreBase, coerce_source_quotes_tuple
 from backend_v2.models.enums import CausalRootCauseType, LaxCausalRootCauseType, LaxExecutionStatus
@@ -20,6 +20,7 @@ __all__ = [
     "CausalNodeDTO",
     "CausalRootCauseDiagnosisDTO",
     "CausalTdaFusionResultDTO",
+    "CounterfactualSimulationResultDTO",
     "FairScoringBreakdownDTO",
     "PrescriptiveRemediationDTO",
 ]
@@ -213,6 +214,9 @@ class AntiFluffAuditDTO(V2CoreBase):
         cycle_detected: Whether causal loops or circular reasoning occurred.
         unsupported_claims_count: Count of claims lacking evidentiary foundation.
         logical_cohesion_score: Overall structural cohesion score (0.0 - 1.0).
+        largest_component_ratio: Fraction of deliverable claims in the largest weakly connected component (0.0 - 1.0).
+        branch_convergence_ratio: Fraction of deliverable claims with in-degree >= 2 (0.0 - 1.0).
+        steering_coupling_ratio: Fraction of deliverable root claims anchored by dialogue directives (0.0 - 1.0).
         detected_hollow_terms: Detected hollow or performative buzzwords.
     """
 
@@ -222,10 +226,54 @@ class AntiFluffAuditDTO(V2CoreBase):
     cycle_detected: Annotated[bool, Field(description="Whether causal loops or circular reasoning occurred.")]
     unsupported_claims_count: Annotated[int, Field(description="Count of claims lacking evidentiary foundation.")]
     logical_cohesion_score: Annotated[float, Field(description="Overall structural cohesion score (0.0 - 1.0).")]
+    largest_component_ratio: Annotated[
+        float,
+        Field(
+            default=1.0,
+            description="Fraction of deliverable claims in the largest weakly connected component (0.0 - 1.0).",
+        ),
+    ] = 1.0
+    branch_convergence_ratio: Annotated[
+        float,
+        Field(
+            default=0.0,
+            description="Fraction of deliverable claims synthesizing multi-premise warrants with in-degree >= 2 (0.0 - 1.0).",
+        ),
+    ] = 0.0
+    steering_coupling_ratio: Annotated[
+        float,
+        Field(
+            default=0.0,
+            description="Fraction of deliverable foundational root claims anchored by upstream dialogue directives (0.0 - 1.0).",
+        ),
+    ] = 0.0
     detected_hollow_terms: Annotated[
         list[str],
         Field(default_factory=list, description="Detected hollow or performative buzzwords."),
     ]
+
+    # Phase 5, Step 5: Enforce topological ratio bounds [0.0, 1.0] via @field_validator per vertex_serving_grammar_fix
+    @field_validator(
+        "largest_component_ratio",
+        "branch_convergence_ratio",
+        "steering_coupling_ratio",
+    )
+    @classmethod
+    def validate_ratio_bounds(cls, value: float) -> float:
+        """Validate that topological ratios reside strictly within [0.0, 1.0].
+
+        Args:
+            value: Candidate ratio float value.
+
+        Returns:
+            Validated ratio float value.
+
+        Raises:
+            ValueError: If value is outside [0.0, 1.0].
+        """
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"Topological ratio must be within [0.0, 1.0], got {value}.")
+        return value
 
 
 class PrescriptiveRemediationDTO(V2CoreBase):
@@ -330,3 +378,67 @@ class CausalTdaFusionResultDTO(V2CoreBase):
     total_deliverable_nodes: Annotated[
         int, Field(ge=0, default=0, description="Total node count in deliverable subgraph.")
     ] = 0
+
+
+# Phase 5, Step 5: Define CounterfactualSimulationResultDTO for Algorithm 1 ATMS surgery
+class CounterfactualSimulationResultDTO(V2CoreBase):
+    """Result contract for Algorithm 1 discrete counterfactual premise retraction simulation.
+
+    Attributes:
+        retracted_root_id: ID of the retracted root proposition node.
+        collapsed_node_ids: Downstream node IDs that collapsed into BLOCKED state during cascade.
+        surviving_node_ids: Node IDs that survived the counterfactual retraction.
+        collapse_ratio: Fraction of graph nodes invalidated by the retraction cascade (0.0 - 1.0).
+        max_cascade_depth: Maximum topological hop depth reached by the collapse cascade.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    retracted_root_id: Annotated[str, Field(description="ID of the retracted root proposition node.")]
+    collapsed_node_ids: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Downstream node IDs that collapsed into BLOCKED state during counterfactual cascade.",
+        ),
+    ]
+    surviving_node_ids: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Node IDs that survived the counterfactual retraction.",
+        ),
+    ]
+    collapse_ratio: Annotated[
+        float,
+        Field(
+            default=0.0,
+            description="Fraction of graph nodes invalidated by the retraction cascade (0.0 - 1.0).",
+        ),
+    ] = 0.0
+    max_cascade_depth: Annotated[
+        int,
+        Field(
+            ge=0,
+            default=0,
+            description="Maximum topological hop depth reached by the counterfactual collapse cascade.",
+        ),
+    ] = 0
+
+    @field_validator("collapse_ratio")
+    @classmethod
+    def validate_collapse_ratio_bounds(cls, value: float) -> float:
+        """Validate that collapse_ratio resides strictly within [0.0, 1.0].
+
+        Args:
+            value: Candidate collapse_ratio float value.
+
+        Returns:
+            Validated collapse_ratio float value.
+
+        Raises:
+            ValueError: If value is outside [0.0, 1.0].
+        """
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"collapse_ratio must be within [0.0, 1.0], got {value}.")
+        return value

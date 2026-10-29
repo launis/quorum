@@ -16,6 +16,7 @@ from backend_v2.models.dtos.causal_discovery import (
     CausalNodeDTO,
     CausalRootCauseDiagnosisDTO,
     CausalTdaFusionResultDTO,
+    CounterfactualSimulationResultDTO,
     FairScoringBreakdownDTO,
     PrescriptiveRemediationDTO,
 )
@@ -167,8 +168,8 @@ def test_step_output_dto_payload_accepts_causal_payload() -> None:
     node = _create_sample_node("n0")
     payload = _create_sample_payload(nodes=[node])
     output = StepOutputDTO(
-        step_id="stp_1111111111111111",
-        block_id="blk_1111111111111111",
+        step_id="stp_0195f3a0000070008000111111111111",
+        block_id="blk_0195f3a0000070008000111111111111",
         data_type="causal",
         payload=payload,
     )
@@ -361,4 +362,65 @@ def test_causal_tda_fusion_result_total_deliverable_nodes() -> None:
             prescriptive_remediations=[],
             fair_scoring=scoring,
             total_deliverable_nodes=-1,
+        )
+
+
+def test_anti_fluff_audit_dto_topological_ratios_and_bounds() -> None:
+    """Verify AntiFluffAuditDTO topological ratio fields and [0.0, 1.0] bounds validation."""
+    audit = AntiFluffAuditDTO(
+        isolated_concept_count=1,
+        cycle_detected=False,
+        unsupported_claims_count=0,
+        logical_cohesion_score=0.90,
+        largest_component_ratio=0.85,
+        branch_convergence_ratio=0.15,
+        steering_coupling_ratio=0.50,
+    )
+    assert audit.largest_component_ratio == 0.85
+    assert audit.branch_convergence_ratio == 0.15
+    assert audit.steering_coupling_ratio == 0.50
+
+    with pytest.raises(ValidationError, match="Topological ratio must be within"):
+        AntiFluffAuditDTO(
+            isolated_concept_count=0,
+            cycle_detected=False,
+            unsupported_claims_count=0,
+            logical_cohesion_score=1.0,
+            largest_component_ratio=1.2,
+        )
+
+    with pytest.raises(ValidationError, match="Topological ratio must be within"):
+        AntiFluffAuditDTO(
+            isolated_concept_count=0,
+            cycle_detected=False,
+            unsupported_claims_count=0,
+            logical_cohesion_score=1.0,
+            branch_convergence_ratio=-0.05,
+        )
+
+
+def test_counterfactual_simulation_result_dto_validation() -> None:
+    """Verify CounterfactualSimulationResultDTO contract and collapse_ratio bounds."""
+    sim = CounterfactualSimulationResultDTO(
+        retracted_root_id="nod_0195f3a0000070008000000000000001",
+        collapsed_node_ids=["nod_0195f3a0000070008000000000000002"],
+        surviving_node_ids=["nod_0195f3a0000070008000000000000003"],
+        collapse_ratio=0.6667,
+        max_cascade_depth=1,
+    )
+    assert sim.retracted_root_id == "nod_0195f3a0000070008000000000000001"
+    assert sim.collapse_ratio == 0.6667
+    assert sim.max_cascade_depth == 1
+
+    with pytest.raises(ValidationError, match="collapse_ratio must be within"):
+        CounterfactualSimulationResultDTO(
+            retracted_root_id="nod_0195f3a0000070008000000000000001",
+            collapse_ratio=1.5,
+        )
+
+    with pytest.raises(ValidationError):
+        CounterfactualSimulationResultDTO(
+            retracted_root_id="nod_0195f3a0000070008000000000000001",
+            collapse_ratio=0.5,
+            max_cascade_depth=-1,
         )

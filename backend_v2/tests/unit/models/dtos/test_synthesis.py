@@ -181,13 +181,13 @@ def test_executive_summary_section_result_requires_executive_summary() -> None:
 def test_matrix_explanation_context_strictness() -> None:
     """Test MatrixExplanationContextDTO and TypeAdapter list validation."""
     dto = MatrixExplanationContextDTO(
-        real_matrix_id="blk_0123456789abcdef01",
+        real_matrix_id="blk_0195f3a00000700283456789abcdef01",
         matrix_id="m0",
         matrix_label="Strategic Alignment",
         score=4.5,
         justification="Strong alignment observed.",
     )
-    assert dto.real_matrix_id == "blk_0123456789abcdef01"
+    assert dto.real_matrix_id == "blk_0195f3a00000700283456789abcdef01"
     assert dto.score == 4.5
 
     # Test TypeAdapter validation
@@ -198,7 +198,7 @@ def test_matrix_explanation_context_strictness() -> None:
     with pytest.raises(ValidationError):
         MatrixExplanationContextDTO.model_validate(
             {
-                "real_matrix_id": "blk_0123456789abcdef01",
+                "real_matrix_id": "blk_0195f3a00000700283456789abcdef01",
                 "matrix_id": "m0",
                 "matrix_label": "Strategic Alignment",
                 "justification": "Justification",
