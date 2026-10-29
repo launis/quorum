@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from typing import ClassVar, Protocol
+from typing import Annotated, ClassVar, Protocol
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 DEFAULT_MIN_COVERAGE: float = 0.80
 MAX_WINDOW_TOKEN_PADDING: int = 15
@@ -28,18 +28,50 @@ SUPPORTED_STEMMER_LANGUAGES: dict[str, str] = {
     "ru": "russian",
 }
 
+__all__ = [
+    "DEFAULT_MIN_COVERAGE",
+    "MAX_WINDOW_TOKEN_PADDING",
+    "MIN_STEMMABLE_WORD_LENGTH",
+    "SUPPORTED_STEMMER_LANGUAGES",
+    "BaseStemmer",
+    "PassthroughStemmer",
+    "SnowballLanguageStemmer",
+    "StemmedMatchResultDTO",
+    "StemmerService",
+]
+
 
 class StemmedMatchResultDTO(BaseModel):
-    """Result of order-preserving stemmed sequence matching."""
+    """Result of order-preserving stemmed sequence matching.
+
+    Attributes:
+        is_match: True if content stem coverage meets or exceeds the minimum threshold.
+        similarity_score: Percentage similarity score scaled to 0.0 - 100.0.
+        matched_content_stems: Ordered list of matched content stems within the best window.
+        total_content_stems: Total number of evaluated content stems in the quote.
+        content_coverage_ratio: Ratio of matched content stems to total content stems (0.0 - 1.0).
+        matched_source_span: Reconstructed substring span from the source text if matched.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    is_match: bool
-    similarity_score: float
-    matched_content_stems: list[str]
-    total_content_stems: int
-    content_coverage_ratio: float
-    matched_source_span: str | None = None
+    is_match: Annotated[bool, Field(description="Whether the stemmed quote subsequence satisfies minimum coverage.")]
+    similarity_score: Annotated[
+        float, Field(description="Percentage coverage score rounded to two decimal places (0.0 - 100.0).")
+    ]
+    matched_content_stems: Annotated[
+        list[str], Field(description="Ordered sequence of quote stems matched monotonically in the source window.")
+    ]
+    total_content_stems: Annotated[
+        int, Field(description="Total count of content word stems extracted from the quote.")
+    ]
+    content_coverage_ratio: Annotated[
+        float, Field(description="Ratio of matched content stems to total quote content stems (0.0 - 1.0).")
+    ]
+    matched_source_span: Annotated[
+        str | None,
+        Field(default=None, description="Matched source span string corresponding to the aligned stem window."),
+    ] = None
 
 
 class BaseStemmer(Protocol):
@@ -119,7 +151,7 @@ class SnowballLanguageStemmer:
         norm_word = word.lower()
         stemmed: str = str(self._stemmer.stemWord(norm_word))
 
-        # Multi-pass stemming for languages with compound suffixes (e.g. Finnish plural nominative -t)
+        # Apply second-pass stemming for Finnish compound suffixes (plural nominative -t and oblique stems)
         if self.lang == "finnish":
             second_pass = str(self._stemmer.stemWord(stemmed))
             if len(second_pass) >= MIN_STEMMABLE_WORD_LENGTH:
@@ -176,7 +208,7 @@ class StemmerService:
         """Resolve the appropriate stemmer for an ISO locale code.
 
         Args:
-            locale: Optional locale string (e.g. 'fi', 'en-US', 'zh').
+            locale: Optional ISO 639-1 or BCP 47 locale string.
 
         Returns:
             A BaseStemmer instance for the locale.
@@ -245,6 +277,187 @@ class StemmerService:
         return re.sub(r"[\W_]+", "", base.lower())
 
     @staticmethod
+    def _find_best_token_window_match(
+        quote_stems: list[str],
+        source_words: list[str],
+        source_stems: list[str],
+        max_window_span: int,
+        min_coverage: float,
+    ) -> StemmedMatchResultDTO:
+        """Scan token windows in source text for best monotonic order-preserving stem alignment.
+
+        Args:
+            quote_stems: Stemmed content tokens from the quote.
+            source_words: Lowercase word tokens from the source text.
+            source_stems: Stemmed word tokens from the source text.
+            max_window_span: Maximum token window length to inspect per candidate anchor.
+            min_coverage: Minimum required content stem coverage ratio (0.0 - 1.0).
+
+        Returns:
+            StemmedMatchResultDTO representing the best token-window match found.
+        """
+        total_content_stems = len(quote_stems)
+        quote_stems_set = set(quote_stems)
+        best_matched_stems: list[str] = []
+        best_coverage: float = 0.0
+        best_span: str | None = None
+
+        for start_idx in range(len(source_stems)):
+            if source_stems[start_idx] not in quote_stems_set:
+                continue
+
+            window_end = min(len(source_stems), start_idx + max_window_span)
+            window_stems = source_stems[start_idx:window_end]
+
+            curr_pos = 0
+            matched_in_window: list[str] = []
+            first_offset = -1
+            last_offset = -1
+
+            for q_stem in quote_stems:
+                if q_stem in window_stems[curr_pos:]:
+                    found_offset = window_stems.index(q_stem, curr_pos)
+                    matched_in_window.append(q_stem)
+                    curr_pos = found_offset + 1
+                    if first_offset == -1:
+                        first_offset = found_offset
+                    last_offset = found_offset
+
+            coverage = len(matched_in_window) / total_content_stems
+            if coverage > best_coverage:
+                best_coverage = coverage
+                best_matched_stems = matched_in_window
+                span_start = start_idx + first_offset
+                span_end = start_idx + last_offset + 1
+                best_span = " ".join(source_words[span_start:span_end])
+                if best_coverage >= 1.0:
+                    break
+
+        return StemmedMatchResultDTO(
+            is_match=best_coverage >= min_coverage,
+            similarity_score=round(best_coverage * 100.0, 2),
+            matched_content_stems=best_matched_stems,
+            total_content_stems=total_content_stems,
+            content_coverage_ratio=best_coverage,
+            matched_source_span=best_span,
+        )
+
+    @staticmethod
+    def _scan_continuous_candidate(
+        norm_source: str,
+        orig_stems: list[str],
+        norm_stems: list[str],
+        start_idx: int,
+        found_pos: int,
+        max_char_span: int,
+        total_content_stems: int,
+        min_coverage: float,
+    ) -> StemmedMatchResultDTO:
+        """Evaluate monotonic stem alignment in continuous normalized text from a starting anchor.
+
+        Args:
+            norm_source: Continuous normalized lowercase ASCII source string.
+            orig_stems: Original stemmed quote tokens with non-empty normalized representations.
+            norm_stems: Normalized continuous representations corresponding 1:1 to orig_stems.
+            start_idx: Starting index in orig_stems and norm_stems.
+            found_pos: Character index in norm_source where norm_stems[start_idx] was found.
+            max_char_span: Maximum allowed character span from first_offset to candidate_end.
+            total_content_stems: Total content stems in the quote.
+            min_coverage: Minimum required content stem coverage ratio (0.0 - 1.0).
+
+        Returns:
+            StemmedMatchResultDTO for the candidate anchor position.
+        """
+        norm_start = norm_stems[start_idx]
+        curr_pos = found_pos + len(norm_start)
+        matched_stems = [orig_stems[start_idx]]
+        first_offset = found_pos
+        last_offset = curr_pos
+
+        for next_idx in range(start_idx + 1, len(orig_stems)):
+            norm_next = norm_stems[next_idx]
+            next_pos = norm_source.find(norm_next, curr_pos)
+            if next_pos != -1:
+                candidate_end = next_pos + len(norm_next)
+                if (candidate_end - first_offset) <= max_char_span:
+                    matched_stems.append(orig_stems[next_idx])
+                    curr_pos = candidate_end
+                    last_offset = candidate_end
+
+        coverage = len(matched_stems) / total_content_stems
+        return StemmedMatchResultDTO(
+            is_match=coverage >= min_coverage,
+            similarity_score=round(coverage * 100.0, 2),
+            matched_content_stems=matched_stems,
+            total_content_stems=total_content_stems,
+            content_coverage_ratio=coverage,
+            matched_source_span=norm_source[first_offset:last_offset],
+        )
+
+    @staticmethod
+    def _find_best_continuous_match(
+        quote_words: list[str],
+        quote_stems: list[str],
+        source_text: str,
+        initial_best: StemmedMatchResultDTO,
+        min_coverage: float,
+    ) -> StemmedMatchResultDTO:
+        """Fallback continuous normalized text matching for whitespace-stripped source strings.
+
+        Args:
+            quote_words: Content word tokens extracted from the quote.
+            quote_stems: Stemmed content tokens from the quote.
+            source_text: The authoritative source text.
+            initial_best: Best StemmedMatchResultDTO from token-window matching.
+            min_coverage: Minimum required content stem coverage ratio (0.0 - 1.0).
+
+        Returns:
+            Updated StemmedMatchResultDTO if continuous matching improves coverage, else initial_best.
+        """
+        best_result = initial_best
+        norm_source = StemmerService.normalize_for_continuous(source_text)
+        if norm_source:
+            orig_stems: list[str] = []
+            norm_stems: list[str] = []
+            for stem in quote_stems:
+                norm_stem = StemmerService.normalize_for_continuous(stem)
+                if norm_stem:
+                    orig_stems.append(stem)
+                    norm_stems.append(norm_stem)
+
+            if orig_stems:
+                quote_char_len = sum(len(w) for w in quote_words)
+                max_char_span = quote_char_len + (MAX_WINDOW_TOKEN_PADDING * 10)
+
+                for start_idx, norm_start in enumerate(norm_stems):
+                    search_pos = 0
+                    candidate_count = 0
+                    while candidate_count < 50:
+                        found_pos = norm_source.find(norm_start, search_pos)
+                        if found_pos == -1:
+                            break
+                        candidate_count += 1
+
+                        candidate = StemmerService._scan_continuous_candidate(
+                            norm_source=norm_source,
+                            orig_stems=orig_stems,
+                            norm_stems=norm_stems,
+                            start_idx=start_idx,
+                            found_pos=found_pos,
+                            max_char_span=max_char_span,
+                            total_content_stems=initial_best.total_content_stems,
+                            min_coverage=min_coverage,
+                        )
+                        if candidate.content_coverage_ratio > best_result.content_coverage_ratio:
+                            best_result = candidate
+                            if best_result.content_coverage_ratio >= 1.0:
+                                break
+
+                        search_pos = found_pos + 1
+
+        return best_result
+
+    @staticmethod
     def match_stemmed_subsequence(
         quote: str,
         source_text: str,
@@ -262,7 +475,6 @@ class StemmerService:
         Returns:
             StemmedMatchResultDTO with match outcome and coverage statistics.
         """
-        # Fail-Fast boundary validation on empty or whitespace inputs
         if not quote or not quote.strip() or not source_text or not source_text.strip():
             return StemmedMatchResultDTO(
                 is_match=False,
@@ -300,101 +512,23 @@ class StemmerService:
             )
 
         source_stems = stemmer.stem_tokens(source_words)
-        quote_stems_set = set(quote_stems)
         max_window_span = len(quote_words) + MAX_WINDOW_TOKEN_PADDING
 
-        best_matched_stems: list[str] = []
-        best_coverage: float = 0.0
-        best_span: str | None = None
-
-        # Candidate Window Discovery: scan source text for window starting at any matching stem
-        for start_idx in range(len(source_stems)):
-            if source_stems[start_idx] not in quote_stems_set:
-                continue
-
-            window_end = min(len(source_stems), start_idx + max_window_span)
-            window_stems = source_stems[start_idx:window_end]
-
-            # Monotonic order-preserving alignment within the contiguous window
-            curr_pos = 0
-            matched_in_window: list[str] = []
-            first_offset = -1
-            last_offset = -1
-
-            for q_stem in quote_stems:
-                if q_stem in window_stems[curr_pos:]:
-                    found_offset = window_stems.index(q_stem, curr_pos)
-                    matched_in_window.append(q_stem)
-                    curr_pos = found_offset + 1
-                    if first_offset == -1:
-                        first_offset = found_offset
-                    last_offset = found_offset
-
-            coverage = len(matched_in_window) / total_content_stems
-            if coverage > best_coverage:
-                best_coverage = coverage
-                best_matched_stems = matched_in_window
-                if first_offset != -1 and last_offset != -1:
-                    span_start = start_idx + first_offset
-                    span_end = start_idx + last_offset + 1
-                    best_span = " ".join(source_words[span_start:span_end])
-                if best_coverage >= 1.0:
-                    break
-
-        # Stage 3.2: Continuous normalized text matching fallback (for whitespace-stripped or normalized text)
-        if best_coverage < min_coverage:
-            norm_source = StemmerService.normalize_for_continuous(source_text)
-            if norm_source:
-                quote_stem_pairs = [
-                    (s, StemmerService.normalize_for_continuous(s))
-                    for s in quote_stems
-                    if StemmerService.normalize_for_continuous(s)
-                ]
-                if quote_stem_pairs:
-                    quote_char_len = sum(len(w) for w in quote_words)
-                    max_char_span = quote_char_len + (MAX_WINDOW_TOKEN_PADDING * 10)
-
-                    for start_idx, (orig_start, norm_start) in enumerate(quote_stem_pairs):
-                        search_pos = 0
-                        candidate_count = 0
-                        while candidate_count < 50:
-                            found_pos = norm_source.find(norm_start, search_pos)
-                            if found_pos == -1:
-                                break
-                            candidate_count += 1
-
-                            curr_pos = found_pos + len(norm_start)
-                            matched_stems = [orig_start]
-                            first_offset = found_pos
-                            last_offset = curr_pos
-
-                            for orig_next, norm_next in quote_stem_pairs[start_idx + 1 :]:
-                                next_pos = norm_source.find(norm_next, curr_pos)
-                                if next_pos != -1:
-                                    candidate_end = next_pos + len(norm_next)
-                                    if (candidate_end - first_offset) <= max_char_span:
-                                        matched_stems.append(orig_next)
-                                        curr_pos = candidate_end
-                                        last_offset = candidate_end
-
-                            c_coverage = len(matched_stems) / total_content_stems
-                            if c_coverage > best_coverage:
-                                best_coverage = c_coverage
-                                best_matched_stems = matched_stems
-                                best_span = norm_source[first_offset:last_offset]
-                                if best_coverage >= 1.0:
-                                    break
-
-                            search_pos = found_pos + 1
-
-        is_match = best_coverage >= min_coverage
-        similarity_score = round(best_coverage * 100.0, 2)
-
-        return StemmedMatchResultDTO(
-            is_match=is_match,
-            similarity_score=similarity_score,
-            matched_content_stems=best_matched_stems,
-            total_content_stems=total_content_stems,
-            content_coverage_ratio=best_coverage,
-            matched_source_span=best_span,
+        best_result = StemmerService._find_best_token_window_match(
+            quote_stems=quote_stems,
+            source_words=source_words,
+            source_stems=source_stems,
+            max_window_span=max_window_span,
+            min_coverage=min_coverage,
         )
+
+        if best_result.content_coverage_ratio < min_coverage:
+            best_result = StemmerService._find_best_continuous_match(
+                quote_words=quote_words,
+                quote_stems=quote_stems,
+                source_text=source_text,
+                initial_best=best_result,
+                min_coverage=min_coverage,
+            )
+
+        return best_result
