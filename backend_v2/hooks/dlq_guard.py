@@ -19,6 +19,8 @@ from backend_v2.models.enums import ExecutionStatus
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["dlq_strict_mode_guard_hook"]
+
 
 @hook_registry.register(name="dlq_strict_mode_guard")
 def dlq_strict_mode_guard_hook(state: HookState, deps: HookDependencies) -> HookResult:
@@ -32,10 +34,11 @@ def dlq_strict_mode_guard_hook(state: HookState, deps: HookDependencies) -> Hook
         deps: Injected system service dependencies.
 
     Returns:
-        HookResult: Successful execution wrapper with immutable state delta.
+        Successful execution wrapper with immutable state delta.
 
     Raises:
-        AppException: If DLQ threshold is breached or data is malformed.
+        AppException: Raised with ErrorCodes.VALIDATION_FAILED if 'evaluations' is not a list,
+            an evaluation atom is malformed, or the DLQ failure ratio exceeds the 10.00% threshold.
     """
     logger.info("[DLQGuard] Inspecting DLQ ratios...")
 
@@ -51,7 +54,7 @@ def dlq_strict_mode_guard_hook(state: HookState, deps: HookDependencies) -> Hook
     evaluations = raw_inputs["evaluations"]
     if not isinstance(evaluations, list):
         msg = "Strict Fail-Fast: 'evaluations' must be a list."
-        logger.error("[DLQGuard] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[DLQGuard] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -75,7 +78,7 @@ def dlq_strict_mode_guard_hook(state: HookState, deps: HookDependencies) -> Hook
                     dlq_count += 1
             except (ValidationError, TypeError, ValueError) as e:
                 msg = f"Strict Fail-Fast: Evaluation atom malformed: {e}"
-                logger.error("[DLQGuard] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                logger.error("[DLQGuard] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
