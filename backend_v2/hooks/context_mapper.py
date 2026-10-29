@@ -14,6 +14,8 @@ from backend_v2.models.domain.workflow import Workflow
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["ContextMapper"]
+
 
 class ContextMapper:
     """Builder for translating Target Data IDs into Universal Ordinal Mapping limits."""
@@ -30,10 +32,11 @@ class ContextMapper:
             all_blocks: Optional full list of PromptBlock objects to cross-reference bounds.
 
         Returns:
-            str: The compiled string instructions for the LLM.
+            The compiled string instructions for the LLM.
 
         Raises:
-            AppException: If blocks provided are not strict PromptBlock Pydantic models.
+            AppException: With ErrorCodes.DATA_CORRUPTION (500) if blocks provided are not
+                strict PromptBlockBase Pydantic models.
         """
         if not target_blocks or "*" in target_blocks:
             return ""
@@ -97,7 +100,7 @@ class ContextMapper:
             execution_id: Identifier of the current execution.
 
         Returns:
-            str: The compiled global mapping instructions string.
+            The compiled global mapping instructions string.
         """
         # MVP: currently step-level IDs are injected at JSON assembly in synthesis.py
         # This will be extended when global cross-matrix blocks are added.
