@@ -28,7 +28,7 @@
   - [x] @[backend_v2/utils/linguistics/stemmer.py]
   - [x] @[backend_v2/services/pii_analyzer.py]
   - [x] @[backend_v2/services/usage_service.py]
-  - [ ] @[backend_v2/services/progress.py]
+  - [x] @[backend_v2/services/progress.py]
   - [ ] @[backend_v2/utils/scoring/base_engine.py]
   - [ ] @[backend_v2/hooks/hydration.py]
   - [ ] @[backend_v2/hooks/metadata.py]
