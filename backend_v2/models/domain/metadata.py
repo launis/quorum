@@ -11,12 +11,22 @@ from backend_v2.models.domain.usage import TokenUsage
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "MetadataHookPayloadDTO",
+    "MetadataHookResultDTO",
+    "StepMetadataDTO",
+]
+
 
 class MetadataHookPayloadDTO(V2CoreBase):
     """Payload to extract initiator safely.
 
     Attributes:
         sys_initiator_id: System initiator ID.
+        organization_id: Optional organization ID.
+        user_id: Optional user ID.
+        simulation_mode: Flag indicating whether execution runs in simulation mode.
+        language: Target ISO language code.
     """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
@@ -54,7 +64,7 @@ class StepMetadataDTO(V2CoreBase):
     initiator_id: Annotated[str, Field(min_length=1)]
     timestamp_isot: Annotated[str, Field(min_length=1)]
     unix_time: Annotated[int, Field(description="Unix timestamp")]
-    v2_engine: bool = True
+    v2_engine: Annotated[bool, Field(default=True, description="Engine flag")] = True
     task_blueprint: Annotated[str | None, Field(default=None)] = None
     model_strategy: Annotated[str | None, Field(default=None)] = None
     cognitive_tier: Annotated[str | None, Field(default=None)] = None
@@ -64,20 +74,25 @@ class StepMetadataDTO(V2CoreBase):
     @field_validator("unix_time")
     @classmethod
     def validate_unix_time(cls, v: int) -> int:
-        """Validate unix_time >= 0.
+        """Validate that unix_time is non-negative.
 
         Args:
-            v: Unix time.
+            v: Unix timestamp in seconds.
 
         Returns:
-            The validated Unix time.
+            The validated non-negative Unix timestamp.
 
         Raises:
-            AppException: If unix_time is less than 0.
+            AppException: With ErrorCodes.VALIDATION_FAILED if unix_time is less than 0.
         """
         if v < 0:
             msg = f"unix_time must be >= 0, got {v}"
-            logger.error("[MetadataModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error(
+                "[MetadataModel] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+            )
             raise AppException(message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return v
 
@@ -92,5 +107,5 @@ class MetadataHookResultDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid", populate_by_name=True)
 
-    step_metadata: StepMetadataDTO
+    step_metadata: Annotated[StepMetadataDTO, Field(description="Step execution metadata")]
     audit_signature: Annotated[str, Field(default="", alias="_audit_signature")] = ""

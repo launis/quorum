@@ -1,3 +1,5 @@
+"""Unit tests for metadata hook and metadata domain DTOs."""
+
 import pytest
 from pydantic import ValidationError
 
@@ -9,7 +11,11 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.metadata import inject_step_metadata
-from backend_v2.models.domain.metadata import MetadataHookResultDTO
+from backend_v2.models.domain.metadata import (
+    MetadataHookPayloadDTO,
+    MetadataHookResultDTO,
+    StepMetadataDTO,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
@@ -40,6 +46,7 @@ def test_inject_step_metadata_empty_state() -> None:
 
 
 def test_inject_step_metadata_missing_execution_id_fails() -> None:
+    """Test missing execution_id raises AppException with VALIDATION_FAILED."""
     state = HookState(
         execution_id="",
         workflow_id="wf_1",
@@ -59,6 +66,7 @@ def test_inject_step_metadata_missing_execution_id_fails() -> None:
 
 
 def test_inject_step_metadata_missing_step_id_fails() -> None:
+    """Test missing step_id raises AppException with VALIDATION_FAILED."""
     state = HookState(
         execution_id="exec_1",
         workflow_id="wf_1",
@@ -78,6 +86,7 @@ def test_inject_step_metadata_missing_step_id_fails() -> None:
 
 
 def test_inject_step_metadata_missing_workflow_id_fails() -> None:
+    """Test missing workflow_id raises AppException with VALIDATION_FAILED."""
     state = HookState(
         execution_id="exec_1",
         workflow_id="",
@@ -97,6 +106,7 @@ def test_inject_step_metadata_missing_workflow_id_fails() -> None:
 
 
 def test_inject_step_metadata_missing_global_context_vars_fails() -> None:
+    """Test missing global_context_vars raises AppException with VALIDATION_FAILED."""
     state = HookState.model_construct(
         execution_id="exec_1",
         workflow_id="wf_1",
@@ -147,3 +157,42 @@ def test_inject_step_metadata_validation_failure() -> None:
     # Since strict=True, passing an integer instead of a string for initiator_id fails at construction
     with pytest.raises(ValidationError):
         GlobalContextVarsDTO(initiator_id=12345)
+
+
+def test_step_metadata_dto_unix_time_boundary_valid() -> None:
+    """Test StepMetadataDTO accepts boundary value unix_time=0."""
+    dto = StepMetadataDTO(
+        execution_id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        step_id="stp_0123456789abcdef",
+        initiator_id="usr_0123456789abcdef",
+        timestamp_isot="2026-10-29T00:00:00Z",
+        unix_time=0,
+    )
+    assert dto.unix_time == 0
+    assert dto.v2_engine is True
+
+
+def test_step_metadata_dto_negative_unix_time_raises_app_exception() -> None:
+    """Test StepMetadataDTO rejects negative unix_time (-1 boundary) with AppException."""
+    with pytest.raises(AppException) as exc_info:
+        StepMetadataDTO(
+            execution_id="exe_0123456789abcdef",
+            workflow_id="wor_0123456789abcdef",
+            step_id="stp_0123456789abcdef",
+            initiator_id="usr_0123456789abcdef",
+            timestamp_isot="2026-10-29T00:00:00Z",
+            unix_time=-1,
+        )
+
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
+    assert "unix_time must be >= 0, got -1" in exc_info.value.message
+
+
+def test_metadata_hook_payload_dto_extra_field_forbidden() -> None:
+    """Test MetadataHookPayloadDTO forbids unknown extra fields and empty initiator."""
+    with pytest.raises(ValidationError):
+        MetadataHookPayloadDTO.model_validate({"_sys_initiator_id": ""})
+
+    with pytest.raises(ValidationError):
+        MetadataHookPayloadDTO.model_validate({"unknown_field": "val"})
