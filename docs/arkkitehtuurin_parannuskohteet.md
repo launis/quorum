@@ -22,51 +22,29 @@ Koko `backend_v2/`-hakemiston (pl. `tests/`) 403 tuotantotiedoston tilannekuva:
 
 ---
 
-### 1.2 Karkaisuaallon 4 Valmistuneet Kohteet (`34/34` SUORITETTU — Commit `1af36b166`)
+### 1.2 Valmistuneet Karkaisuaallot 1–4 (`133/133`) ja Jäljellä Olevat 12 Kohdetiedostoa
 
-*(Karkaisuaallot 1 [36/36], 2 [36/36], 3 [27/27] ja 4 [34/34] sekä jokaisen aallon Final Macro-Audit Completion Gate on suoritettu, auditoitu ja commitoitu.)*
+Kaikki neljä kohdennettua backend-karkaisuaaltoa sekä jokaisen aallon *Final Macro-Audit Completion Gate* on suoritettu, auditoitu ja lukittu:
+* **Aalto 1 (`36/36` valmis):** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md]` — Workers, SDUI Adapters & Shared Utilities.
+* **Aalto 2 (`36/36` valmis):** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md]` — Core, Observability, Deterministic Hooks, LLM Provider Adapters & Studio/Execution Services.
+* **Aalto 3 (`27/27` valmis):** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md]` — Repositories, Orchestrator Services & non-IAM FastAPI Routers.
+* **Aalto 4 (`34/34` valmis, commit `1af36b166`):** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` — Domain Models (`23` tiedostoa) & DTO/Prompt Schemas (`11` tiedostoa).
 
-#### Aalto 4 (34/34 valmis) — `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]`
-* **Paketti 1 — Domain Models (`backend_v2/models/domain/`) (23 tiedostoa):**
-  1. `@[backend_v2/models/domain/base.py]`
-  2. `@[backend_v2/models/domain/metadata.py]`
-  3. `@[backend_v2/models/domain/usage.py]`
-  4. `@[backend_v2/models/domain/references.py]`
-  5. `@[backend_v2/models/domain/retrieval.py]`
-  6. `@[backend_v2/models/domain/hydration.py]`
-  7. `@[backend_v2/models/domain/interaction.py]`
-  8. `@[backend_v2/models/domain/integrity.py]`
-  9. `@[backend_v2/models/domain/archivist.py]`
-  10. `@[backend_v2/models/domain/causal.py]`
-  11. `@[backend_v2/models/domain/coach.py]`
-  12. `@[backend_v2/models/domain/evaluation.py]`
-  13. `@[backend_v2/models/domain/falsifier.py]`
-  14. `@[backend_v2/models/domain/judge.py]`
-  15. `@[backend_v2/models/domain/knowledge.py]`
-  16. `@[backend_v2/models/domain/logician.py]`
-  17. `@[backend_v2/models/domain/overseer.py]`
-  18. `@[backend_v2/models/domain/performativity.py]`
-  19. `@[backend_v2/models/domain/profiler.py]`
-  20. `@[backend_v2/models/domain/scoring.py]`
-  21. `@[backend_v2/models/domain/source_verification.py]`
-  22. `@[backend_v2/models/domain/synthesis.py]`
-  23. `@[backend_v2/models/domain/workflow.py]`
-* **Paketti 2 — DTO Schemas & Prompt Models (`backend_v2/models/dtos/` + `models/prompt.py`) (11 tiedostoa):**
-  1. `@[backend_v2/models/prompt.py]`
-  2. `@[backend_v2/models/dtos/system.py]`
-  3. `@[backend_v2/models/dtos/inputs.py]`
-  4. `@[backend_v2/models/dtos/prompt.py]`
-  5. `@[backend_v2/models/dtos/prompt_context.py]`
-  6. `@[backend_v2/models/dtos/retrieval.py]`
-  7. `@[backend_v2/models/dtos/evaluation_steps.py]`
-  8. `@[backend_v2/models/dtos/schema_manifest.py]`
-  9. `@[backend_v2/models/dtos/state.py]`
-  10. `@[backend_v2/models/dtos/variance.py]`
-  11. `@[backend_v2/models/dtos/workflow_schema.py]`
-* **Suorituskomento:**
-  ```powershell
-  $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md --gate backend --model gemini-4-argon-medium --continue-on-failure
-  ```
+Jäljellä olevat **12 avointa tuotantotiedostoa** (`3,0 %` koko `backend_v2/`-koodikannasta) karkaistaan ja lukitaan osana omia tulevia arkkitehtuurivaiheitaan:
+* **Askel 4 — `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` (9 tiedostoa, nimenomaan ja tyhjentävästi):**
+  1. `@[backend_v2/models/auth.py]`
+  2. `@[backend_v2/services/auth/constants.py]`
+  3. `@[backend_v2/services/auth/repositories.py]`
+  4. `@[backend_v2/services/auth/token_service.py]`
+  5. `@[backend_v2/services/auth/organization_service.py]`
+  6. `@[backend_v2/services/auth/user_service.py]`
+  7. `@[backend_v2/api/routers/iam/auth.py]`
+  8. `@[backend_v2/api/routers/iam/organizations.py]`
+  9. `@[backend_v2/api/routers/iam/users.py]`
+* **Askel 5 — `[NEW]` `@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]` (3 tiedostoa, nimenomaan ja tyhjentävästi):**
+  1. `@[backend_v2/services/file_driver.py]`
+  2. `@[backend_v2/services/drivers/local_file_driver.py]`
+  3. `@[backend_v2/services/storage.py]`
 
 ---
 
@@ -179,10 +157,10 @@ Varsinainen DAG-ajomoottori (`DAGExecutor`, `NodeExecutor`, `TDAEngine`, `Synthe
 * **Ongelma:**
   * Tiedostossa `@[backend_v2/services/studio/workflow_service.py]` metodi `StudioWorkflowService.create_step_draft` (rivi 720) asettaa uuden stepin luonnokselle kovakoodatun 16-heksaisen oletusmatriisin `criteria_block_ids=["blk_440a5fef9331451b"]`, vaikka riveillä 690–695 sama metodi hakee jo kaikki lohkot tietokannasta (`all_blocks = await self.prompt_block_repo.get_all_prompt_blocks()`) etsiessään ensimmäisen `PromptBlockCategory.PROTOCOL`-lohkon.
   * Samassa tiedostossa `StudioWorkflowService.create_workflow_draft` (rivi 386) asettaa `default_profile_id="prf_0000000000000000"`, vaikka uudella tyhjällä työnkulkuluonnoksella (`steps=[]`) ei ole vielä yhtäkään steppiä eikä tulosprofiilia ja `@[backend_v2/models/domain/workflow.py]:Workflow.default_profile_id` sallii arvon `None`.
-  * Lisäksi `@[backend_v2/models/domain/workflow.py]:Workflow.mcp_gateway_id` (rivit 42–46) sisältää kovakoodatun 16-heksaisen oletusarvon `default="sys_8172bda70c8641c5"`.
+  * Lisäksi `@[backend_v2/models/domain/workflow.py]:Workflow.mcp_gateway_id` (rivit 42–46) sisältää kovakoodatun 16-heksaisen oletusarvon `default="sys_8172bda70c8641c5"` ja väljän `pattern=r"^sys_[a-fA-F0-9]{16,32}$"`-säännön, ja `@[backend_v2/models/domain/workflow.py]:Workflow.model_registry_id` (rivit 47–50) sallii legacy-muodon `pattern=r"^(sys_[a-fA-F0-9]{16,32}|cfg_model_registry_\d{2})$"`.
 * **Arkkitehtoninen ratkaisu:**
   1. **`create_step_draft` (`@[backend_v2/services/studio/workflow_service.py]`):** Poimitaan `all_blocks`-silmukassa dynaamisesti sekä ensimmäinen `PromptBlockCategory.PROTOCOL`-lohko (`protocol_block_id`) että ensimmäinen matriisi-/kriteerilohko (`b.category_id in (PromptBlockCategory.MATRIX, PromptBlockCategory.CRITERIA)` -> `default_criteria_id`). Jos kumpikaan ei löydy tietokannasta, nostetaan `AppException(ErrorCodes.STATE_INTEGRITY_ERROR)`. Kovakoodattu `"blk_440a5fef9331451b"` poistetaan.
-  2. **`create_workflow_draft` (`@[backend_v2/services/studio/workflow_service.py]`) & `Workflow.mcp_gateway_id` (`@[backend_v2/models/domain/workflow.py]`):** Asetetaan uudelle työnkulkuluonnokselle `default_profile_id=None`, muutetaan `Workflow.mcp_gateway_id`-kentän skeemaoletukseksi `default=None` ja haetaan aktiivinen MCP-gateway-konfiguraatio dynaamisesti `self.system_repo`-repositoriosta samalla tavalla kuin `chosen_registry_id`.
+  2. **`create_workflow_draft` (`@[backend_v2/services/studio/workflow_service.py]`) & `Workflow.mcp_gateway_id` / `Workflow.model_registry_id` (`@[backend_v2/models/domain/workflow.py]`):** Asetetaan uudelle työnkulkuluonnokselle `default_profile_id=None`, muutetaan `Workflow.mcp_gateway_id`-kentän skeemaoletukseksi `default=None`, kiristetään sekä `mcp_gateway_id`- että `model_registry_id`-kentän säännölliseksi lausekkeeksi `r"^sys_[a-fA-F0-9]{32}$"` ja haetaan aktiivinen MCP-gateway-konfiguraatio dynaamisesti `self.system_repo`-repositoriosta samalla tavalla kuin `chosen_registry_id`.
 
 #### 2. Kausaalisen koheesion matriisi (`settings.causal_cohesion_matrix_block_id` & `CausalCohesionEvaluator`)
 * **Ongelma:**
