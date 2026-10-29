@@ -4,13 +4,28 @@ This module contains the schemas for the Coach Agent,
 including coaching plans and bibliography.
 """
 
-from typing import Annotated, Any
+from __future__ import annotations
+
+from typing import Annotated
 
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.base import ReasoningTrace, ReasoningTraceDTO
+from backend_v2.models.domain.causal import CausalOutput
+from backend_v2.models.domain.falsifier import FalsifierOutput
 from backend_v2.models.domain.judge import JudgeOutput
+from backend_v2.models.domain.logician import LogicianOutput
+from backend_v2.models.domain.profiler import ProfilerOutput
+
+__all__ = [
+    "BibliographyItem",
+    "BibliographyResult",
+    "CoachInput",
+    "CoachingPlan",
+    "CoachingPlanDTO",
+]
 
 
 class CoachInput(V2CoreBase):
@@ -28,7 +43,7 @@ class CoachInput(V2CoreBase):
         step_causal_analyst: Causal Analyst post-hoc and counterfactual data.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     chat_log: Annotated[str, Field(min_length=1, description="Mandatory chatlog.")]
     step_judge: Annotated[
@@ -45,12 +60,12 @@ class CoachInput(V2CoreBase):
     last_reasoning_trace: Annotated[str | None, Field(description="Previous reasoning trace.")] = None
 
     # --- Universal Routing Inputs ---
-    step_analyst: Annotated[Any | None, Field(description="Analyst hypotheses and RAG data.")] = None
-    step_profiler: Annotated[Any | None, Field(description="Profiler cognitive bias data.")] = None
-    step_falsifier: Annotated[Any | None, Field(description="Falsifier critical distance data.")] = None
-    step_logician: Annotated[Any | None, Field(description="Logician Toulmin analysis data.")] = None
+    step_analyst: Annotated[AnalystOutput | None, Field(description="Analyst hypotheses and RAG data.")] = None
+    step_profiler: Annotated[ProfilerOutput | None, Field(description="Profiler cognitive bias data.")] = None
+    step_falsifier: Annotated[FalsifierOutput | None, Field(description="Falsifier critical distance data.")] = None
+    step_logician: Annotated[LogicianOutput | None, Field(description="Logician Toulmin analysis data.")] = None
     step_causal_analyst: Annotated[
-        Any | None, Field(description="Causal Analyst post-hoc and counterfactual data.")
+        CausalOutput | None, Field(description="Causal Analyst post-hoc and counterfactual data.")
     ] = None
 
 
@@ -64,7 +79,7 @@ class BibliographyItem(V2CoreBase):
         snippet: Extracted relevant text segment.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     source_id: Annotated[
         str, Field(min_length=1, description="Unique source ID.", json_schema_extra={"x-ui-label": "Source ID"})
@@ -85,7 +100,7 @@ class BibliographyResult(V2CoreBase):
         references: List of reference objects.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     references: Annotated[
         list[BibliographyItem],
@@ -102,7 +117,7 @@ class CoachingPlanDTO(ReasoningTraceDTO):
         focus_areas: Critical areas highlighted for growth.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     actionable_steps: Annotated[
         list[str],
@@ -141,6 +156,4 @@ class CoachingPlan(CoachingPlanDTO, ReasoningTrace):
         focus_areas: Inherited from CoachingPlanDTO.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    pass
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
