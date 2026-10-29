@@ -22,16 +22,16 @@
   - [x] Step 4: Phase 2C: Purge Deprecated .agents/workflows/ Directory
   - [x] Step 5: Phase 3: Create Domain-Specific Auto-Triggered Quorum Skills
   - [x] Step 6: Phase 4: Optimize Rule Token Budget and Synchronize Root Governance Files
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Antigravity_Skills_Architecture_Migration.md] @[docs/implementationplans/TRACKER_Antigravity_Skills_Architecture_Migration.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Antigravity_Skills_Architecture_Migration.md] @[docs/implementationplans/TRACKER_Antigravity_Skills_Architecture_Migration.md]`
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Antigravity_Skills_Architecture_Migration.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[scripts/audit_skills_architecture.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Antigravity_Skills_Architecture_Migration.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain after deleting all 24 `.agents/workflows/*.md` files.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic and `scripts/audit_skills_architecture.py`.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Antigravity_Skills_Architecture_Migration.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain after deleting all 24 `.agents/workflows/*.md` files.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic and `scripts/audit_skills_architecture.py`.
 
 ### Documentation & Knowledge Item Update
 
@@ -51,7 +51,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Antigravity_Skills_Architecture_Migration.md] @[docs/implementationplans/TRACKER_Antigravity_Skills_Architecture_Migration.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Antigravity_Skills_Architecture_Migration.md] @[docs/implementationplans/TRACKER_Antigravity_Skills_Architecture_Migration.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
 
@@ -106,10 +106,10 @@
 - Two additional legacy workflow files (`tier2-hardening-knowledge.md` and `tier2-hardening-matrix.md`) were present in `.agents/workflows/` and were migrated to `.agents/skills/tier2-hardening-knowledge/SKILL.md` and `.agents/skills/tier2-hardening-matrix/SKILL.md` so all 29 skills pass `audit_skills_architecture.py`.
 
 ## Remaining
-- Execute System 2 Red-Team Plan Audit (`/tier8-audit-plan`) and Post-Implementation Gates.
+- Execute Tier 2 Hardening (Backend) on `@[scripts/audit_skills_architecture.py]` and As-Built Architectural Sync (`/tier7-describe-architecture`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Antigravity_Skills_Architecture_Migration.md] @[docs/implementationplans/TRACKER_Antigravity_Skills_Architecture_Migration.md]
+/tier5-resume --target="@[docs/implementationplans/TRACKER_Antigravity_Skills_Architecture_Migration.md]" --workflow=/tier2-hardening-backend
 ```
 
