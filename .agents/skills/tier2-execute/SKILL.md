@@ -53,6 +53,11 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
       <mandatory_pattern>ALWAYS review the Knowledge Item (KI) summaries injected at the start of the conversation. If you spot a relevant KI, you MUST read the artifact file before proceeding.</mandatory_pattern>
       <catastrophic_reason>Ignoring the Knowledge Base results in reinventing the wheel and breaking established architectural contracts.</catastrophic_reason>
     </rule_block>
+    <rule_block id="ban_manual_hardening_checkbox_forgery">
+      <banned_pattern>Manually editing `Tier 2 Hardening (Backend)` or `Tier 2 Hardening (Frontend)` checkboxes from `- [ ]` to `- [x]` after running only `backend_audit_loop.py` or `flutter_audit_loop.py` without physically executing the ~180-rule AI subagent hardening pipeline (`scripts/auto_hardening_runner.py` with `--agent-cmd` or per-file `/tier2-hardening-backend` / `/tier2-hardening-frontend` execution).</banned_pattern>
+      <mandatory_pattern>The `- [ ] @[file]` items under `Tier 2 Hardening (Backend)` and `Tier 2 Hardening (Frontend)` MUST ONLY be checked off (`- [x]`) by `scripts/auto_hardening_runner.py` (with `--agent-cmd` active) or after a dedicated per-file `/tier2-hardening-backend` / `/tier2-hardening-frontend` AI audit pass (covering ~180 rules and 7 KI invariants) and its atomic hardening commit have physically completed.</mandatory_pattern>
+      <catastrophic_reason>Manually checking off `Tier 2 Hardening` checkboxes without running the AI subagent hardening pass counterfeits audit completion and leaves architectural technical debt uninspected.</catastrophic_reason>
+    </rule_block>
   </context_rules>
   <execution_protocol level="2">
     <step id="1" name="ISOLATION, EXECUTION MODE &amp; PRE-FLIGHT VERIFICATION">

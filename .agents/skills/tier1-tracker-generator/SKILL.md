@@ -30,6 +30,9 @@ description: Tier 1 (Tracker Generator) - Generates or surgically synchronizes a
     <rule_block id="parameterized_tier7_documentation_mandate">
       <mandatory_pattern>A bare `/tier7-describe-architecture` command is STRICTLY FORBIDDEN. Always generate a fully parameterized command (`@[docs/epic/EPIC_XXX_tracker.md] @[docs/epic/EPIC_XXX.md] @[ki_1.md] ...`) followed immediately by `#### Directives for Tier 7 Agent:` (1. Target KIs to Synchronize, 2. Directory Reference Sync, 3. Pillar Documentation Sync).</mandatory_pattern>
     </rule_block>
+    <rule_block id="mandatory_ai_hardening_subagent_gate">
+      <mandatory_pattern>Every `Tier 2 Hardening (Backend)` and `Tier 2 Hardening (Frontend)` header in the generated or updated tracker MUST explicitly invoke `scripts/auto_hardening_runner.py` with `--agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"` (or `/tier2-hardening-frontend @[{target}]`). Passing `--no-agent` or omitting `--agent-cmd` is STRICTLY FORBIDDEN (`TRK008` / `TPR008` FATAL).</mandatory_pattern>
+    </rule_block>
   </context_rules>
   
   <execution_protocol level="1_tracker_generator">
@@ -40,7 +43,7 @@ description: Tier 1 (Tracker Generator) - Generates or surgically synchronizes a
     <step id="2" name="GENERATE OR UPDATE TRACKER">
       <action>Create or surgically update `docs/epic/EPIC_XXX_tracker.md` adhering to [epic_tracker_template.md](./resources/epic_tracker_template.md). Ensure all `uv run` commands include `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline`.</action>
       <constraint name="GRANULAR_FILE_LEVEL_HARDENING_CHECKLIST">
-        Under `### Post-Implementation Gates`, list each surviving `[MODIFY]` and `[NEW]` production `.py` file under `Tier 2 Hardening (Backend)` and each surviving production `.dart` file under `Tier 2 Hardening (Frontend)` (strictly excluding `/tests/`, `test_`, `_test.dart`, `.g.dart`, `.freezed.dart`, `[DELETE]` files, and non-code assets).
+        Under `### Post-Implementation Gates`, list each surviving `[MODIFY]` and `[NEW]` production `.py` file under `Tier 2 Hardening (Backend)` and each surviving production `.dart` file under `Tier 2 Hardening (Frontend)` (strictly excluding `/tests/`, `test_`, `_test.dart`, `.g.dart`, `.freezed.dart`, `[DELETE]` files, and non-code assets). Ensure both `Tier 2 Hardening` header lines include the mandatory `scripts/auto_hardening_runner.py ... --agent-cmd` command without `--no-agent`.
       </constraint>
     </step>
     <step id="3" name="SELF-HEALING TRACKER STRUCTURAL AUDIT">

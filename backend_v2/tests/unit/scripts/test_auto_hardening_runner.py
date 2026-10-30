@@ -111,6 +111,10 @@ def test_successful_backend_audit_marks_tracker_and_commits(tmp_path: Path, monk
         "scripts.auto_hardening_runner.capture_workspace_snapshot",
         lambda *args, **kwargs: WorkspaceSnapshotDTO(modified_files=[], untracked_files=[]),
     )
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.execute_subprocess_with_tree_kill",
+        lambda cmd, *args, **kwargs: subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Agent OK", stderr=""),
+    )
 
     executed_cmds: list[list[str]] = []
 
@@ -147,6 +151,10 @@ def test_failed_audit_triggers_retry_and_circuit_breaker(tmp_path: Path, monkeyp
     monkeypatch.setattr(
         "scripts.auto_hardening_runner.capture_workspace_snapshot",
         lambda *args, **kwargs: WorkspaceSnapshotDTO(modified_files=[], untracked_files=[]),
+    )
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.execute_subprocess_with_tree_kill",
+        lambda cmd, *args, **kwargs: subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Agent OK", stderr=""),
     )
 
     rollback_calls: list[str] = []
@@ -547,17 +555,55 @@ def test_execute_subagent_pass_agent_cmd_failure_and_timeout(tmp_path: Path, mon
 
 
 def test_execute_subagent_pass_frontend_dart_format(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify execute_subagent_pass executes dart format for frontend dart files."""
+    """Verify execute_subagent_pass executes default frontend AI subagent and dart format for frontend dart files."""
     called_cmds: list[list[str]] = []
+    subagent_cmds: list[list[str]] = []
 
     def mock_run(cmd: list[str], *a: object, **k: object) -> subprocess.CompletedProcess[str]:
         called_cmds.append(cmd)
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
 
+    def mock_tree_kill(cmd: list[str], *a: object, **k: object) -> subprocess.CompletedProcess[str]:
+        subagent_cmds.append(cmd)
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Frontend Agent OK", stderr="")
+
     monkeypatch.setattr("subprocess.run", mock_run)
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill)
     args = HardeningRunnerArgsDTO(gate=HardeningGate.FRONTEND, targets=["lib/view.dart"], no_auto_fix=False)
     assert execute_subagent_pass("lib/view.dart", args, repo_root=tmp_path) is True
+    assert len(subagent_cmds) == 1
+    assert any("/tier2-hardening-frontend" in token for token in subagent_cmds[0])
     assert any("dart" in c and "format" in c for c in called_cmds)
+
+
+def test_execute_subagent_pass_enforces_default_agent_across_all_gates(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify execute_subagent_pass always invokes default AI subagent template across BACKEND, FRONTEND, and ALL when no_agent=False."""
+    subagent_cmds: list[list[str]] = []
+
+    def mock_tree_kill(cmd: list[str], *a: object, **k: object) -> subprocess.CompletedProcess[str]:
+        subagent_cmds.append(cmd)
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Agent OK", stderr="")
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill)
+
+    backend_args = HardeningRunnerArgsDTO(gate=HardeningGate.BACKEND, targets=["backend_v2/a.py"], no_auto_fix=True)
+    assert execute_subagent_pass("backend_v2/a.py", backend_args, repo_root=tmp_path) is True
+    assert any("/tier2-hardening-backend" in token for token in subagent_cmds[-1])
+
+    frontend_args = HardeningRunnerArgsDTO(
+        gate=HardeningGate.FRONTEND, targets=["client_app_v2/lib/b.dart"], no_auto_fix=True
+    )
+    assert execute_subagent_pass("client_app_v2/lib/b.dart", frontend_args, repo_root=tmp_path) is True
+    assert any("/tier2-hardening-frontend" in token for token in subagent_cmds[-1])
+
+    no_agent_args = HardeningRunnerArgsDTO(
+        gate=HardeningGate.BACKEND, targets=["backend_v2/a.py"], no_agent=True, no_auto_fix=True
+    )
+    prev_len = len(subagent_cmds)
+    assert execute_subagent_pass("backend_v2/a.py", no_agent_args, repo_root=tmp_path) is True
+    assert len(subagent_cmds) == prev_len
 
 
 def test_execute_circuit_breaker_rollback_untracked_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

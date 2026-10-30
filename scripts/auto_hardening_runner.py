@@ -18,10 +18,11 @@ Architectural Workflow & Lifecycle:
    - Takes a workspace snapshot (`git status --porcelain`) prior to hardening each target.
    - If quality gates fail after exhausting retries, rolls back newly modified and untracked
      files, preventing dirty workspace corruption.
-4. Auto-Fix & Optional Subagent Pass:
-   - Executes automated formatting (`ruff format` / `dart format`).
-   - If `--agent-cmd` is provided, executes an AI subagent command template (e.g. `/tier2-hardening-backend`)
-     to autonomously remediate AST, typing, or linting errors.
+4. Mandatory AI Subagent Hardening & Auto-Fix Pass:
+   - Executes an isolated AI subagent pass (`DEFAULT_BACKEND_AGENT_TEMPLATE` / `/tier2-hardening-backend`
+     for `.py` or `DEFAULT_FRONTEND_AGENT_TEMPLATE` / `/tier2-hardening-frontend` for `.dart`, or a custom
+     `--agent-cmd` template) by default across ALL gates (`backend`, `frontend`, `all`) to audit ~180 rules
+     and 7 KI invariants, followed by automated formatting (`ruff format` / `dart format`).
 5. Universal Quality Gate Audit:
    - Backend: Runs `scripts/backend_audit_loop.py <target> --test --ast-strict`.
    - Frontend: Runs `scripts/flutter_audit_loop.py <target> --build`.
@@ -33,8 +34,8 @@ Architectural Workflow & Lifecycle:
 
 CLI Usage Examples for Autonomous AI Agents:
 --------------------------------------------
-# 1. Standard unattended hardening from an implementation tracker:
-uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --gate backend
+# 1. Standard unattended AI-driven hardening from an implementation tracker:
+uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
 
 # 2. Resume hardening from a saved sandbox state file:
 uv run python scripts/auto_hardening_runner.py --state-file scratch/hardening_state.json --gate backend
@@ -45,8 +46,8 @@ uv run python scripts/auto_hardening_runner.py --targets backend_v2/services/foo
 # 4. Dry-run inspection to preview discovered targets without executing audits or mutations:
 uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --dry-run
 
-# 5. AI-driven autonomous hardening with subagent execution per file:
-uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --agent-cmd "agy --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
+# 5. Frontend AI-driven autonomous hardening with subagent execution per file:
+uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_xxx.md --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"
 """
 
 from __future__ import annotations
@@ -631,9 +632,11 @@ def _is_transient_subagent_startup_error(returncode: int, output: str) -> bool:
 
 
 def execute_subagent_pass(target_file: str, args: HardeningRunnerArgsDTO, repo_root: Path | None = None) -> bool:
-    """Execute optional subagent command or automated pre-audit code formatting passes.
+    """Execute mandatory AI subagent hardening pass and automated pre-audit code formatting passes.
 
-    Retries transient subagent startup errors (such as remote model catalog fetch failures
+    Always invokes the AI subagent (`DEFAULT_BACKEND_AGENT_TEMPLATE` or `DEFAULT_FRONTEND_AGENT_TEMPLATE`
+    when `args.agent_cmd` is omitted) across all gates (`backend`, `frontend`, `all`) unless `args.no_agent`
+    is explicitly set. Retries transient subagent startup errors (such as remote model catalog fetch failures
     or network drops) up to DEFAULT_SUBAGENT_MAX_RETRIES attempts before failing.
 
     Args:
@@ -642,12 +645,12 @@ def execute_subagent_pass(target_file: str, args: HardeningRunnerArgsDTO, repo_r
         repo_root: Root workspace path.
 
     Returns:
-        True if formatting/subagent pass succeeded or was skipped, False on error.
+        True if subagent and formatting passes succeeded or were explicitly skipped, False on error.
     """
     root = repo_root or get_repo_root()
 
     subagent_template = args.agent_cmd
-    if not subagent_template and not args.no_agent and args.gate == HardeningGate.ALL:
+    if not subagent_template and not args.no_agent:
         subagent_template = (
             DEFAULT_FRONTEND_AGENT_TEMPLATE if target_file.endswith(".dart") else DEFAULT_BACKEND_AGENT_TEMPLATE
         )
@@ -1232,7 +1235,10 @@ Key Behavioral Invariants for Autonomous AI Agents:
         "--agent-cmd",
         type=str,
         default=None,
-        help="Subagent command template e.g. 'agy ... /tier2-hardening-backend @[{target}]'.",
+        help=(
+            "Subagent command template (defaults to DEFAULT_BACKEND_AGENT_TEMPLATE / DEFAULT_FRONTEND_AGENT_TEMPLATE "
+            "across all gates unless --no-agent is set)."
+        ),
     )
     parser.add_argument(
         "--no-agent",

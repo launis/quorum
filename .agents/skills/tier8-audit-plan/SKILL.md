@@ -47,6 +47,11 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
     <rule_block id="touched_scope_tech_debt_mandate">
       <mandatory_pattern>Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets <target_paths> --include-one-hop` and inspect TARGET files and 1-hop callers per `@[.agents/skills/tier2-execute/references/modernity_and_tech_debt_checklist.md]`.</mandatory_pattern>
     </rule_block>
+
+    <rule_block id="ban_manual_hardening_checkbox_forgery">
+      <banned_pattern>Manually marking `- [x]` on `Tier 2 Hardening (Backend)` or `Tier 2 Hardening (Frontend)` target files during a Tier 8 audit simply because `backend_audit_loop.py` or `flutter_audit_loop.py` passed.</banned_pattern>
+      <mandatory_pattern>During Step 5 (Completion Gap Analysis), verify via `git log` or `hardening_state.json` whether `scripts/auto_hardening_runner.py` (with `--agent-cmd` invoking `/tier2-hardening-backend` / `/tier2-hardening-frontend`) or dedicated per-file Tier 2 Hardening passes actually executed. NEVER manually check `- [x]` on `Tier 2 Hardening` items if only static quality gate loops ran.</mandatory_pattern>
+    </rule_block>
   </architectural_invariants>
 
   <execution_protocol level="8_audit_plan">

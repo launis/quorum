@@ -142,9 +142,9 @@ def test_tracker_audit_direct_helper_functions(tmp_path: Path) -> None:
     # check_hardening_targets: valid
     valid_hardening = (
         "### Post-Implementation Gates\n"
-        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run hardening\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `scripts/auto_hardening_runner.py --agent-cmd \"agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'\"`\n"
         "  - [ ] @[backend_v2/services/foo.py]\n"
-        "- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run hardening\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `scripts/auto_hardening_runner.py --agent-cmd \"agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'\"`\n"
         "  - [ ] @[client_app_v2/lib/bar.dart]\n"
     )
     assert check_hardening_targets(valid_hardening) == []
@@ -152,7 +152,7 @@ def test_tracker_audit_direct_helper_functions(tmp_path: Path) -> None:
     # check_hardening_targets: deleted file in backend
     deleted_backend_hardening = (
         "### Post-Implementation Gates\n"
-        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run hardening\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `scripts/auto_hardening_runner.py --agent-cmd \"agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'\"`\n"
         "  - [ ] @[backend_v2/services/foo.py]\n"
         "  - [ ] [DELETE] @[backend_v2/services/legacy.py]\n"
     )
@@ -165,7 +165,7 @@ def test_tracker_audit_direct_helper_functions(tmp_path: Path) -> None:
     # check_hardening_targets: deleted file in frontend
     deleted_frontend_hardening = (
         "### Post-Implementation Gates\n"
-        "- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run hardening\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `scripts/auto_hardening_runner.py --agent-cmd \"agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'\"`\n"
         "  - [ ] [DELETE] @[client_app_v2/lib/old_widget.dart]\n"
     )
     fe_del_findings = check_hardening_targets(deleted_frontend_hardening)
@@ -179,10 +179,32 @@ def test_tracker_audit_direct_helper_functions(tmp_path: Path) -> None:
         "### Phase 4: Cutover\n"
         "- [x] [DELETE] @[backend_v2/services/legacy.py]\n"
         "### Post-Implementation Gates\n"
-        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run hardening\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `scripts/auto_hardening_runner.py --agent-cmd \"agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'\"`\n"
         "  - [ ] @[backend_v2/services/foo.py]\n"
     )
     assert check_hardening_targets(deleted_in_phase) == []
+
+    # check_hardening_targets: missing --agent-cmd when child targets exist triggers TRK008
+    missing_agent_cmd = (
+        "### Post-Implementation Gates\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `scripts/auto_hardening_runner.py --gate backend`\n"
+        "  - [ ] @[backend_v2/services/foo.py]\n"
+    )
+    missing_agent_findings = check_hardening_targets(missing_agent_cmd)
+    assert len(missing_agent_findings) == 1
+    assert missing_agent_findings[0].rule_code == "TRK008"
+    assert missing_agent_findings[0].severity == GuardrailSeverity.FATAL
+
+    # check_hardening_targets: --no-agent flag triggers TRK008
+    no_agent_flag = (
+        "### Post-Implementation Gates\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `scripts/auto_hardening_runner.py --no-agent`\n"
+        "  - [ ] @[backend_v2/services/foo.py]\n"
+    )
+    no_agent_findings = check_hardening_targets(no_agent_flag)
+    assert len(no_agent_findings) == 1
+    assert no_agent_findings[0].rule_code == "TRK008"
+    assert "--no-agent" in no_agent_findings[0].message
 
 
 def test_tracker_audit_rejects_deleted_file_in_hardening_checklist(tmp_path: Path) -> None:
@@ -200,7 +222,7 @@ def test_tracker_audit_rejects_deleted_file_in_hardening_checklist(tmp_path: Pat
         "  - [x] Step 1: Implementation\n"
         "- [x] **[OK] Audit:** `/tier8-audit-plan`\n\n"
         "### Post-Implementation Gates\n"
-        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run hardening\n"
+        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `scripts/auto_hardening_runner.py --agent-cmd \"agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'\"`\n"
         "  - [ ] @[backend_v2/services/new_service.py]\n"
         "  - [ ] [DELETE] @[backend_v2/services/old_monolith.py]\n\n"
         "### Final Epic Audit\n"

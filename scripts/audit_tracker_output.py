@@ -46,7 +46,7 @@ class TrackerAuditFinding(BaseModel):
     section: Annotated[str, Field(description="Section where violation occurred")]
     rule_code: Annotated[
         str,
-        Field(pattern=r"^TRK\d{3}$", description="Rule code conforming to TRK001-TRK006"),
+        Field(pattern=r"^TRK\d{3}$", description="Rule code conforming to TRK001-TRK008"),
     ]
     message: Annotated[str, Field(description="Descriptive violation message")]
     severity: Annotated[GuardrailSeverity, Field(description="Severity tier")]
@@ -280,25 +280,33 @@ def check_required_context_rules(content: str) -> list[TrackerAuditFinding]:
 
 
 def check_hardening_targets(content: str) -> list[TrackerAuditFinding]:
-    """Verify that Tier 2 Hardening sections do not contain deleted files or [DELETE] tags.
+    """Verify Tier 2 Hardening sections enforce AI subagent commands (TRK008) and exclude [DELETE] tags (TRK007).
 
     Args:
         content: Raw markdown text of the tracker file.
 
     Returns:
-        List of audit findings identifying deleted files in hardening checklists.
+        List of audit findings identifying deleted files or missing AI subagent commands in hardening checklists.
     """
     findings: list[TrackerAuditFinding] = []
     gate_pattern = re.compile(
-        r"^-\s*\[[ xX]\]\s*.*\bTier\s+2\s+Hardening\s*\((Backend|Frontend)\)",
+        r"^-\s*\[[ xX]\]\s*.*\bTier\s+2\s+Hardening\s*\((Backend|Frontend)\)[^\n]*",
         re.MULTILINE | re.IGNORECASE,
     )
+    child_target_pattern = re.compile(r"^\s+-\s*\[[ xX]\]\s*.*@\[[^\]]+\]")
     for match in gate_pattern.finditer(content):
+        header_line = match.group(0)
         gate_name = match.group(1)
+        expected_skill = "/tier2-hardening-backend" if gate_name.lower() == "backend" else "/tier2-hardening-frontend"
         lines = content[match.end() :].splitlines()
+        has_child_targets = False
         for line in lines:
+            if not line:
+                continue
             if line.startswith("- [") or line.startswith("## ") or line.startswith("### "):
                 break
+            if child_target_pattern.match(line):
+                has_child_targets = True
             if "[DELETE]" in line:
                 findings.append(
                     TrackerAuditFinding(
@@ -309,6 +317,45 @@ def check_hardening_targets(content: str) -> list[TrackerAuditFinding]:
                         remediation="Remove deleted files and `[DELETE]` tags from Tier 2 Hardening checklist. Hardening applies exclusively to surviving production files.",
                     )
                 )
+
+        if "--no-agent" in header_line:
+            findings.append(
+                TrackerAuditFinding(
+                    section=f"Tier 2 Hardening ({gate_name})",
+                    rule_code="TRK008",
+                    message=(
+                        f"Tier 2 Hardening ({gate_name}) header contains forbidden `--no-agent` flag, "
+                        "bypassing the mandatory ~180-rule AI subagent hardening pass."
+                    ),
+                    severity=GuardrailSeverity.FATAL,
+                    remediation=(
+                        f'Remove `--no-agent` and include `--agent-cmd "agy --model {{model}} '
+                        f"--dangerously-skip-permissions --print '{expected_skill} @[{{target}}]\"` "
+                        f"in Tier 2 Hardening ({gate_name})."
+                    ),
+                )
+            )
+        elif has_child_targets and (
+            "scripts/auto_hardening_runner.py" not in header_line
+            or "--agent-cmd" not in header_line
+            or expected_skill not in header_line
+        ):
+            findings.append(
+                TrackerAuditFinding(
+                    section=f"Tier 2 Hardening ({gate_name})",
+                    rule_code="TRK008",
+                    message=(
+                        f"Tier 2 Hardening ({gate_name}) has target files but is missing mandatory "
+                        f"`scripts/auto_hardening_runner.py` with `--agent-cmd` invoking `{expected_skill}`."
+                    ),
+                    severity=GuardrailSeverity.FATAL,
+                    remediation=(
+                        f"Update Tier 2 Hardening ({gate_name}) header to include "
+                        f'`scripts/auto_hardening_runner.py ... --agent-cmd "agy --model {{model}} '
+                        f"--dangerously-skip-permissions --print '{expected_skill} @[{{target}}]\"`."
+                    ),
+                )
+            )
     return findings
 
 

@@ -145,6 +145,14 @@ class TrackerDocumentAST(BaseModel):
     has_final_audit_gate: Annotated[bool, Field(description="Whether Final Plan Audit is present")]
     has_session_handover: Annotated[bool, Field(description="Whether Session Handover Context is present")]
     has_resume_command: Annotated[bool, Field(description="Whether Resume Command is present in handover")]
+    has_backend_hardening_agent_cmd: Annotated[
+        bool,
+        Field(default=False, description="Whether Tier 2 Hardening (Backend) header enforces --agent-cmd"),
+    ] = False
+    has_frontend_hardening_agent_cmd: Annotated[
+        bool,
+        Field(default=False, description="Whether Tier 2 Hardening (Frontend) header enforces --agent-cmd"),
+    ] = False
 
 
 class ParityAuditFindingDTO(BaseModel):
@@ -376,21 +384,37 @@ def parse_tracker_document(content: str, tracker_path: Path) -> TrackerDocumentA
     frontend_hardening_files: list[str] = []
 
     b_pattern = (
-        r"Tier 2 Hardening \(Backend\)[^\n]*\n([\s\S]*?)"
+        r"(Tier 2 Hardening \(Backend\)[^\n]*)\n([\s\S]*?)"
         r"(?=(?:^-\s+\[[ x]\]\s+|^###\s+|\Z))"
     )
     b_match = re.search(b_pattern, content, re.IGNORECASE | re.MULTILINE)
+    has_backend_agent_cmd = False
     if b_match:
-        for f in re.findall(r"@\[([^\]]+)\]", b_match.group(1)):
+        b_header = b_match.group(1)
+        has_backend_agent_cmd = (
+            "scripts/auto_hardening_runner.py" in b_header
+            and "--agent-cmd" in b_header
+            and "/tier2-hardening-backend" in b_header
+            and "--no-agent" not in b_header
+        )
+        for f in re.findall(r"@\[([^\]]+)\]", b_match.group(2)):
             backend_hardening_files.append(_normalize_posix(f))
 
     f_pattern = (
-        r"Tier 2 Hardening \(Frontend\)[^\n]*\n([\s\S]*?)"
+        r"(Tier 2 Hardening \(Frontend\)[^\n]*)\n([\s\S]*?)"
         r"(?=(?:^-\s+\[[ x]\]\s+|^###\s+|\Z))"
     )
     f_match = re.search(f_pattern, content, re.IGNORECASE | re.MULTILINE)
+    has_frontend_agent_cmd = False
     if f_match:
-        for f in re.findall(r"@\[([^\]]+)\]", f_match.group(1)):
+        f_header = f_match.group(1)
+        has_frontend_agent_cmd = (
+            "scripts/auto_hardening_runner.py" in f_header
+            and "--agent-cmd" in f_header
+            and "/tier2-hardening-frontend" in f_header
+            and "--no-agent" not in f_header
+        )
+        for f in re.findall(r"@\[([^\]]+)\]", f_match.group(2)):
             frontend_hardening_files.append(_normalize_posix(f))
 
     hardening = TrackerHardeningChecklistDTO(
@@ -423,6 +447,8 @@ def parse_tracker_document(content: str, tracker_path: Path) -> TrackerDocumentA
         has_final_audit_gate=has_fa,
         has_session_handover=has_sh,
         has_resume_command=has_rc,
+        has_backend_hardening_agent_cmd=has_backend_agent_cmd,
+        has_frontend_hardening_agent_cmd=has_frontend_agent_cmd,
     )
 
 
@@ -637,6 +663,40 @@ def audit_plan_tracker_parity(plan_ast: PlanDocumentAST, tracker_ast: TrackerDoc
         )
 
     # Check TPR008: Mandatory Quality Gates Parity
+    if (backend_prod_targets or tracker_backend_files) and not tracker_ast.has_backend_hardening_agent_cmd:
+        findings.append(
+            ParityAuditFindingDTO(
+                rule_code=ParityRuleCode.TPR008,
+                category="Quality Gates",
+                severity=GuardrailSeverity.FATAL,
+                message=(
+                    "Tier 2 Hardening (Backend) gate is missing mandatory `scripts/auto_hardening_runner.py` "
+                    "with `--agent-cmd` invoking `/tier2-hardening-backend`."
+                ),
+                remediation=(
+                    "Update `Tier 2 Hardening (Backend)` header to run `scripts/auto_hardening_runner.py ... "
+                    '--agent-cmd "agy --model {model} --dangerously-skip-permissions --print '
+                    "'/tier2-hardening-backend @[{target}]'\"` without `--no-agent`."
+                ),
+            )
+        )
+    if (frontend_prod_targets or tracker_frontend_files) and not tracker_ast.has_frontend_hardening_agent_cmd:
+        findings.append(
+            ParityAuditFindingDTO(
+                rule_code=ParityRuleCode.TPR008,
+                category="Quality Gates",
+                severity=GuardrailSeverity.FATAL,
+                message=(
+                    "Tier 2 Hardening (Frontend) gate is missing mandatory `scripts/auto_hardening_runner.py` "
+                    "with `--agent-cmd` invoking `/tier2-hardening-frontend`."
+                ),
+                remediation=(
+                    "Update `Tier 2 Hardening (Frontend)` header to run `scripts/auto_hardening_runner.py ... "
+                    '--agent-cmd "agy --model {model} --dangerously-skip-permissions --print '
+                    "'/tier2-hardening-frontend @[{target}]'\"` without `--no-agent`."
+                ),
+            )
+        )
     if not tracker_ast.has_golden_master_gate:
         findings.append(
             ParityAuditFindingDTO(

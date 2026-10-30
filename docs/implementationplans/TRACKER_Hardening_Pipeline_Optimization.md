@@ -20,7 +20,7 @@
 
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Verify zero skipped or disabled tests across the workspace.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Execute audit loop across modified backend files:
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Hardening_Pipeline_Optimization.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`:
   - [ ] @[scripts/auto_hardening_runner.py]
   - [ ] @[scripts/backend_audit_loop.py]
 - [ ] **[SKIPPED] Tier 2 Hardening (Frontend)**: No production Dart files modified in this plan.

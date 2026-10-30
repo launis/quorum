@@ -228,7 +228,7 @@ def test_non_code_targets_excluded_from_hardening_check(tmp_path: Path) -> None:
 - [ ] **[NOK] Golden Master & Test Restoration Audit**
 - [ ] **[NOK] Pre-Delete Audit**
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**
-- [ ] **[NOK] Tier 2 Hardening (Backend):**
+- [ ] **[NOK] Tier 2 Hardening (Backend):** Run `scripts/auto_hardening_runner.py --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [ ] @[backend_v2/services/code.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend):**
 
@@ -241,7 +241,7 @@ def test_non_code_targets_excluded_from_hardening_check(tmp_path: Path) -> None:
 ## Requirements Traceability Matrix
 | Req | Desc | Plan Step | Status |
 |---|---|---|---|
-| R1 | Desc | Step 1 | [ ] Pending |
+| R1 | Detailed description here | Step 1 | [ ] Pending |
 
 # Session Handover Context
 ## Achieved
@@ -296,11 +296,11 @@ def test_invalid_extension_and_test_file_in_hardening_checklist(tmp_path: Path) 
 - [ ] **[NOK] Golden Master & Test Restoration Audit**
 - [ ] **[NOK] Pre-Delete Audit**
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**
-- [ ] **[NOK] Tier 2 Hardening (Backend):**
+- [ ] **[NOK] Tier 2 Hardening (Backend):** Run `scripts/auto_hardening_runner.py --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [ ] @[backend_v2/services/code.py]
   - [ ] @[backend_v2/seed/seed_data.json]
   - [ ] @[backend_v2/tests/test_code.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend):**
+- [ ] **[NOK] Tier 2 Hardening (Frontend):** Run `scripts/auto_hardening_runner.py --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`
   - [ ] @[client_app_v2/lib/l10n/app_en.arb]
 
 ### Documentation & Knowledge Item Update
@@ -312,7 +312,7 @@ def test_invalid_extension_and_test_file_in_hardening_checklist(tmp_path: Path) 
 ## Requirements Traceability Matrix
 | Req | Desc | Plan Step | Status |
 |---|---|---|---|
-| R1 | Desc | Step 1 | [ ] Pending |
+| R1 | Detailed description here | Step 1 | [ ] Pending |
 
 # Session Handover Context
 ## Achieved
@@ -356,7 +356,7 @@ def test_backend_only_hardening_checklist_without_frontend_gate(tmp_path: Path) 
 
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit**
-- [ ] **[NOK] Tier 2 Hardening (Backend):**
+- [ ] **[NOK] Tier 2 Hardening (Backend):** Run `scripts/auto_hardening_runner.py --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [ ] @[scripts/audit_skills_architecture.py]
 - [ ] **[NOK] Pre-Delete Audit**: Verify `@[scripts/old_tool.py]` is unused.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**
@@ -370,7 +370,7 @@ def test_backend_only_hardening_checklist_without_frontend_gate(tmp_path: Path) 
 ## Requirements Traceability Matrix
 | Req | Desc | Plan Step | Status |
 |---|---|---|---|
-| R1 | Desc | Step 1 | [ ] Pending |
+| R1 | Detailed description here | Step 1 | [ ] Pending |
 
 # Session Handover Context
 ## Achieved
@@ -387,3 +387,85 @@ def test_backend_only_hardening_checklist_without_frontend_gate(tmp_path: Path) 
     tracker_ast = parse_tracker_document(tracker_text, t_file)
     assert tracker_ast.hardening_checklist.backend_files == ["scripts/audit_skills_architecture.py"]
     assert tracker_ast.hardening_checklist.frontend_files == []
+
+
+def test_missing_hardening_agent_cmd_triggers_fatal_tpr008(tmp_path: Path) -> None:
+    """Verify TPR008 FATAL finding when Tier 2 Hardening header lacks --agent-cmd or includes --no-agent."""
+    plan_text = """<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+</required_context_rules>
+# Plan: Hardening Agent Check
+## Target Scope
+- `[MODIFY]` @[backend_v2/services/code.py]
+- `[MODIFY]` @[client_app_v2/lib/main.dart]
+
+```xml
+<execution_protocol>
+  <step id="1" name="STEP ONE">
+    <action>Action</action>
+  </step>
+</execution_protocol>
+```
+"""
+    tracker_text = """<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+</required_context_rules>
+# Tracker: Missing Agent Cmd
+**Plan:** @[plan.md]
+## Step Execution Status
+- [ ] **[NOK] Execution:** `/tier2-execute @[plan.md] @[task.md]`
+  - [ ] Step 1: STEP ONE
+
+### Post-Implementation Gates
+- [ ] **[NOK] Golden Master & Test Restoration Audit**
+- [ ] **[NOK] Pre-Delete Audit**
+- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**
+- [ ] **[NOK] Tier 2 Hardening (Backend):** Run `scripts/auto_hardening_runner.py --gate backend`
+  - [ ] @[backend_v2/services/code.py]
+- [ ] **[NOK] Tier 2 Hardening (Frontend):** Run `scripts/auto_hardening_runner.py --gate frontend --no-agent --agent-cmd "/tier2-hardening-frontend"`
+  - [ ] @[client_app_v2/lib/main.dart]
+
+### Documentation & Knowledge Item Update
+- [ ] **[NOK]** As-Built Architectural Sync: Run:
+
+### Final Plan Audit
+- [ ] **[NOK]** System 2 Red-Team Audit: Run:
+
+## Requirements Traceability Matrix
+| Req | Desc | Plan Step | Status |
+|---|---|---|---|
+| R1 | Detailed description here | Step 1 | [ ] Pending |
+
+# Session Handover Context
+## Achieved
+- Done
+## Learned
+- Notes
+## Remaining
+- Rest
+## Resume Command
+`/tier2-execute`
+"""
+    p_file = tmp_path / "plan.md"
+    p_file.write_text(plan_text, encoding="utf-8")
+    t_file = tmp_path / "tracker.md"
+    t_file.write_text(tracker_text, encoding="utf-8")
+
+    plan_ast = parse_plan_document(plan_text, p_file)
+    tracker_ast = parse_tracker_document(tracker_text, t_file)
+    assert tracker_ast.has_backend_hardening_agent_cmd is False
+    assert tracker_ast.has_frontend_hardening_agent_cmd is False
+
+    report = audit_plan_tracker_parity(plan_ast, tracker_ast)
+    fatal_findings = [f for f in report.findings if f.severity.value == "FATAL"]
+    assert len(fatal_findings) == 2
+    assert all(f.rule_code.value == "TPR008" for f in fatal_findings)
+    messages = " ".join(f.message for f in fatal_findings)
+    assert (
+        "Tier 2 Hardening (Backend) gate is missing mandatory `scripts/auto_hardening_runner.py` with `--agent-cmd`"
+        in messages
+    )
+    assert (
+        "Tier 2 Hardening (Frontend) gate is missing mandatory `scripts/auto_hardening_runner.py` with `--agent-cmd`"
+        in messages
+    )
