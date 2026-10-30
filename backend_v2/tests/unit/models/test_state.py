@@ -261,7 +261,7 @@ def test_step_execution_envelope_strictness() -> None:
 
 
 def test_workflow_state_inherits_execution_core_fields() -> None:
-    """Phase 2: Verify WorkflowState correctly inherits ExecutionCoreFields SSOT."""
+    """Verify WorkflowState correctly inherits ExecutionCoreFields SSOT."""
     assert issubclass(WorkflowState, ExecutionCoreFields), "WorkflowState must inherit from ExecutionCoreFields"
 
     core_field_names = {
@@ -610,6 +610,23 @@ def test_state_projector_apply_delta_atom_results() -> None:
     assert isinstance(results[0].payload, list)
     assert len(results[0].payload) == 2
 
+    # Cover _append_atom_results when existing["results"] contains a dict in list, single AtomResultDTO, or single dict
+    atom_dict = atom_1.model_dump(mode="json")
+    projector._snapshot["stp_existing_list_dict"] = StepOutputContentDTO(data={"results": [atom_dict]})
+    projector.apply_delta(TraceEvent(step_name="stp_existing_list_dict", event_type="output", content=atom_2))
+
+    projector._snapshot["stp_existing_single_dto"] = StepOutputContentDTO(data={"results": atom_1})
+    projector.apply_delta(TraceEvent(step_name="stp_existing_single_dto", event_type="output", content=atom_2))
+
+    projector._snapshot["stp_existing_single_dict"] = StepOutputContentDTO(data={"results": atom_dict})
+    projector.apply_delta(TraceEvent(step_name="stp_existing_single_dict", event_type="output", content=atom_2))
+
+    snap = projector.snapshot
+    for step_id in ("stp_existing_list_dict", "stp_existing_single_dto", "stp_existing_single_dict"):
+        dto = next(s for s in snap if s.step_id == step_id and s.block_id == "results")
+        assert isinstance(dto.payload, list)
+        assert len(dto.payload) == 2
+
 
 def test_state_projector_apply_delta_base_model() -> None:
     """Test apply_delta with generic BaseModel."""
@@ -646,7 +663,7 @@ def test_state_projector_apply_delta_dict_and_content_dto_branches() -> None:
     """Test apply_delta branches for StepOutputContentDTO, graph merge, fusion dict, atom dicts, and results lists."""
     projector = StateProjector()
 
-    # 1. StepOutputContentDTO directly (line 650) and subsequent CausalGraphPayloadDTO merge (lines 675-678)
+    # 1. StepOutputContentDTO directly and subsequent CausalGraphPayloadDTO merge
     content_dto = StepOutputContentDTO(data={"existing_key": "existing_val"})
     projector.apply_delta(TraceEvent(step_name="stp_merge", event_type="output", content=content_dto))
 
@@ -660,7 +677,7 @@ def test_state_projector_apply_delta_dict_and_content_dto_branches() -> None:
     graph = CausalGraphPayloadDTO(nodes=[node], edges=[])
     projector.apply_delta(TraceEvent(step_name="stp_merge", event_type="output", content=graph))
 
-    # 2. Dict with anti_fluff_audit + fair_scoring + graph (line 696)
+    # 2. Dict with anti_fluff_audit + fair_scoring + graph
     audit = AntiFluffAuditDTO(
         isolated_concept_count=0,
         cycle_detected=False,
@@ -680,7 +697,7 @@ def test_state_projector_apply_delta_dict_and_content_dto_branches() -> None:
     )
     projector.apply_delta(TraceEvent(step_name="stp_fusion_dict", event_type="output", content=fusion_dict))
 
-    # 3. Dict with VirtualSystemStepID.SCORING_RESULT.value (line 700)
+    # 3. Dict with VirtualSystemStepID.SCORING_RESULT.value
     projector.apply_delta(
         TraceEvent(
             step_name="stp_score_key",
@@ -689,7 +706,7 @@ def test_state_projector_apply_delta_dict_and_content_dto_branches() -> None:
         )
     )
 
-    # 4. Dict with tda_id and matrix_id (lines 711-712) + results list with hydrated_references merge (lines 714-740)
+    # 4. Dict with tda_id and matrix_id + results list with hydrated_references merge
     atom_dto = AtomResultDTO(
         tda_id="tda_1",
         matrix_id="blk_cohesion",
@@ -726,7 +743,7 @@ def test_state_projector_apply_delta_dict_and_content_dto_branches() -> None:
         )
     )
 
-    # 5. Dict with non-atom results list (lines 741-750) and generic dict merge (lines 752-760)
+    # 5. Dict with non-atom results list and generic dict merge
     projector.apply_delta(
         TraceEvent(step_name="stp_non_atom", event_type="output", content={"results": ["plain_str"]})
     )
@@ -745,4 +762,3 @@ def test_state_projector_apply_delta_dict_and_content_dto_branches() -> None:
     assert any(s.step_id == "stp_fusion_dict" and s.block_id == "fusion" for s in snap)
     assert any(s.step_id == "stp_atom_dict" and s.block_id == "hydrated_references" for s in snap)
     assert any(s.step_id == "stp_generic_dict" and s.block_id == "k2" for s in snap)
-

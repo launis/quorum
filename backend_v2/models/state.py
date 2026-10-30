@@ -27,6 +27,7 @@ from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalTdaFusionResultDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.node_execution import (
     NodeExecutionUpdateDTO,
@@ -159,13 +160,18 @@ class TraceEvent(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    event_id: Annotated[uuid.UUID, "Unique event identifier."] = Field(
-        default_factory=generate_uuid7, description="Unique event identifier."
-    )
+    event_id: Annotated[
+        uuid.UUID,
+        Field(default_factory=generate_uuid7, description="Unique event identifier."),
+    ]
     v: Annotated[int, Field(default=1, description="Schema version for forward compatibility and lazy upcasting.")] = 1
-    timestamp: Annotated[datetime, "Event timestamp."] = Field(
-        default_factory=lambda: datetime.now(timezone.utc), description="Event timestamp."
-    )
+    timestamp: Annotated[
+        datetime,
+        Field(
+            default_factory=lambda: datetime.now(timezone.utc),
+            description="Event timestamp.",
+        ),
+    ]
 
     step_name: Annotated[
         str,
@@ -194,16 +200,18 @@ class TraceEvent(V2CoreBase):
         Field(default=None, description="Typed event payload"),
     ] = None
     reasoning: Annotated[ReasoningTrace | None, Field(default=None, description="Associated reasoning trace.")] = None
-    metadata: Annotated[TraceEventMetadataDTO, "Additional metadata."] = Field(
-        default_factory=TraceEventMetadataDTO, description="Additional metadata."
-    )
-    mcp_audit_traces: Annotated[list[MCPAuditTrace], "Associated MCP tool audit traces."] = Field(
-        default_factory=list, description="Associated MCP tool audit traces."
-    )
+    metadata: Annotated[
+        TraceEventMetadataDTO,
+        Field(default_factory=TraceEventMetadataDTO, description="Additional metadata."),
+    ]
+    mcp_audit_traces: Annotated[
+        list[MCPAuditTrace],
+        Field(default_factory=list, description="Associated MCP tool audit traces."),
+    ]
 
 
 class ErrorTraceEvent(TraceEvent):
-    """Specific event representing a fail-fast error katkos.
+    """Specific event representing a fail-fast error interruption.
 
     Attributes:
         event_type: Constant 'error' event type.
@@ -312,9 +320,10 @@ class WorkflowState(ExecutionCoreFields):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    execution_id: Annotated[uuid.UUID, "Unique execution identifier."] = Field(
-        default_factory=generate_uuid7, description="Unique execution identifier."
-    )
+    execution_id: Annotated[
+        uuid.UUID,
+        Field(default_factory=generate_uuid7, description="Unique execution identifier."),
+    ]
     workflow_id: Annotated[
         str,
         Field(
@@ -325,14 +334,18 @@ class WorkflowState(ExecutionCoreFields):
         ),
     ]
     trace_version: Annotated[int, Field(default=0, description="Optimistic Concurrency Control version.")] = 0
-    # Phase 2: status, execution_trace, execution_trace_storage_path,
-    # context_variables, context_variables_storage_path are inherited
+    # Inherit status, execution_trace, execution_trace_storage_path,
+    # context_variables, and context_variables_storage_path
     # from ExecutionCoreFields (SSOT).
 
     workflow_name: Annotated[str | None, Field(default=None, description="Human-readable name of the workflow.")] = None
-    created_at: Annotated[datetime, "Creation timestamp."] = Field(
-        default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp."
-    )
+    created_at: Annotated[
+        datetime,
+        Field(
+            default_factory=lambda: datetime.now(timezone.utc),
+            description="Creation timestamp.",
+        ),
+    ]
 
     @property
     def start_time(self) -> datetime:
@@ -520,6 +533,9 @@ class StateProjector:
 
         Returns:
             List of StepOutputDTOs.
+
+        Raises:
+            AppException: If an unstructured or invalid trace payload is encountered (VALIDATION_FAILED).
         """
         self._snapshot = {}
         self._schema_version = 0
@@ -564,7 +580,7 @@ class StateProjector:
         output: list[StepOutputDTO] = []
         for step_id, step_output in self._snapshot.items():
             if not isinstance(step_output, StepOutputContentDTO):
-                # Epic 43 Phase 2 Fail-Fast: Legacy unstructured traces are strictly forbidden.
+                # Fail-Fast: Legacy unstructured traces are strictly forbidden.
                 msg = (
                     f"Legacy flat trace detected for step '{step_id}'. "
                     "Zero-Compromise Pledge forbids unstructured data."
@@ -636,6 +652,9 @@ class StateProjector:
 
         Args:
             event: The TraceEvent to apply.
+
+        Raises:
+            AppException: If an unsupported or unstructured event content type is encountered (VALIDATION_FAILED).
         """
         if event.v > self._schema_version:
             self._schema_version = event.v
@@ -643,8 +662,6 @@ class StateProjector:
         self._trace_length += 1
 
         if event.event_type in ["output", "input"]:
-            from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
-
             content = event.content
             if isinstance(content, StepOutputContentDTO):
                 self._snapshot[event.step_name] = content
