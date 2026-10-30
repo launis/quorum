@@ -39,7 +39,7 @@
   - [x] @[backend_v2/models/auth.py]
   - [x] @[backend_v2/models/chunking.py]
   - [x] @[backend_v2/models/core_base.py]
-  - [ ] @[backend_v2/models/domain/base.py]
+  - [x] @[backend_v2/models/domain/base.py]
   - [ ] @[backend_v2/models/domain/matrix.py]
   - [ ] @[backend_v2/models/state.py]
   - [ ] @[backend_v2/services/auth/organization_service.py]
