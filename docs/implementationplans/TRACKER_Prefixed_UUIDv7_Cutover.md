@@ -41,7 +41,7 @@
   - [x] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
   - [x] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
   - [x] @[backend_v2/services/studio/workflow_service.py]
-  - [ ] @[backend_v2/settings.py]
+  - [x] @[backend_v2/settings.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/audit_zero_orm_strictness.py]
   - [ ] @[scripts/sanitize_seed_vault.py]
