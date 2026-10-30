@@ -189,11 +189,22 @@ async def test_bootstrap_workflow_execution_state_prefetches_blueprints_via_task
     assert state.global_context_vars.language == "fi"
     assert len(state.exec_record.execution_trace) == 2
 
-    # Verify _extract_input_delta_dict variants
+    # Verify _extract_input_delta_dict variants and exclude_none=True hygiene
     assert _extract_input_delta_dict(HookDeltaDTO(delta=None)) == {}
-    assert _extract_input_delta_dict(GlobalContextVarsDTO(language="en"))["language"] == "en"
+    gvars_delta = _extract_input_delta_dict(GlobalContextVarsDTO(language="en"))
+    assert gvars_delta["language"] == "en"
+    assert "target_locale" not in gvars_delta
     assert _extract_input_delta_dict("scalar") == {"value": "scalar"}
     assert _extract_input_delta_dict({"k": "v"}) == {"k": "v"}
+    await execute_rag_preflight_stage(
+        state=state,
+        rag_preflight=RAGPreflightService(
+            workflow_repo=repo,
+            system_repo=repo,
+            prompt_compiler=None,
+        ),
+        committer=ExecutionCommitter(exec_repo=repo, execution_id=state.execution_id),
+    )
 
 
 @pytest.mark.asyncio

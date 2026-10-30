@@ -54,7 +54,24 @@ _DAG_EXECUTOR_MODULE = "backend_v2.services.orchestrator.dag_executor"
 
 @dataclasses.dataclass
 class WorkflowExecutionState:
-    """Execution-scoped state and Two-Lock synchronization primitives for a single workflow run."""
+    """Execution-scoped state and Two-Lock synchronization primitives for a single workflow run.
+
+    Attributes:
+        execution_id: Canonical Opaque Stripe ID for the execution record.
+        workflow: Active Workflow domain model being executed.
+        exec_record: Current in-memory ExecutionRecord state snapshot.
+        global_context_vars: Resolved global context variables for hooks.
+        projector: Event-sourcing StateProjector folding trace events.
+        step_definitions: Pre-fetched Step blueprints keyed by blueprint ID.
+        steps_by_id: Workflow StepRule nodes keyed by step rule ID.
+        blocks_by_id: Pre-fetched PromptBlock instances keyed by block ID.
+        strictness_level: Active mathematical scoring strictness level.
+        lexical_strictness_level: Active lexical anchoring strictness level.
+        step_exceptions: Tuple of catchable step exception classes.
+        update_lock: Coroutine lock guarding in-memory state mutations.
+        commit_lock: Coroutine lock serializing persistence commits.
+        evaluated_causal_sources: Set of evaluated causal discovery step IDs.
+    """
 
     execution_id: str
     workflow: Workflow
@@ -78,31 +95,53 @@ class WorkflowExecutionState:
 
 
 def dlq_record_step_failure(step_id: str, err_code: str, exc: BaseException) -> None:
-    """Record dead-letter error log for a failed DAG step execution."""
+    """Record dead-letter error log for a failed DAG step execution.
+
+    Args:
+        step_id: Identifier of the failed workflow step.
+        err_code: Standardized ErrorCodes name describing the failure.
+        exc: Caught exception instance that caused the step failure.
+    """
     logger.error("[DAGExecutor] Step %s failed with error [%s]: %s", step_id, err_code, exc, exc_info=True)
 
 
 def dlq_handle_progress_commit_error(step_id: str, commit_err: Exception) -> None:
-    """Handle non-terminal progress commit error by logging a warning."""
+    """Handle non-terminal progress commit error by logging a warning.
+
+    Args:
+        step_id: Identifier of the step whose progress commit failed.
+        commit_err: Caught non-terminal persistence exception.
+    """
     msg = "[DAGExecutor] %s: Non-terminal progress commit skipped for step %s: %s"
     logger.warning(msg, ErrorCodes.PROGRESS_UPDATE_FAILED.name, step_id, commit_err)
 
 
 def dlq_fallback_step_exceptions() -> tuple[type[BaseException], ...]:
-    """Return fallback step exceptions tuple when litellm is not imported."""
+    """Return fallback step exceptions tuple when litellm is not imported.
+
+    Returns:
+        Tuple of standard exception types caught at the step boundary.
+    """
     t1 = (AppException, ValidationError, RuntimeError, ValueError, TypeError)
     return (*t1, KeyError, OSError, TimeoutError, ConnectionError, ExceptionGroup)
 
 
 def _extract_input_delta_dict(state_delta: Any) -> dict[str, StepOutputContentValue]:
-    """Extract normalized input delta dictionary from HookResult.state_delta."""
+    """Extract normalized input delta dictionary from HookResult.state_delta.
+
+    Args:
+        state_delta: Optional HookDeltaDTO, BaseModel, mapping, or scalar delta.
+
+    Returns:
+        Normalized dictionary mapping input keys to StepOutputContentValue items.
+    """
     payload = state_delta.delta if isinstance(state_delta, HookDeltaDTO) else state_delta
     if payload is None:
         return {}
     if isinstance(payload, ExecutionInputsDTO):
         return {**dict(payload.raw_inputs), **dict(payload.dynamic_inputs)}
     if isinstance(payload, BaseModel):
-        return payload.model_dump(mode="json")
+        return payload.model_dump(mode="json", exclude_none=True)
     return {"value": payload} if isinstance(payload, (str, int, float, bool, list)) else dict(payload)
 
 
@@ -342,7 +381,7 @@ async def execute_rag_preflight_stage(
             break
     if target_step is None or target_step.task_blueprint is None:
         return
-    # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 RAG preflight step ID
+    # Generate canonical 32-hex RFC 9562 UUIDv7 RAG preflight step ID
     vid, _update_lock, run_st = f"sys_rag_{generate_uuid7().hex}", state.update_lock, ExecutionStatus.RUNNING
     async with _update_lock:
         state.exec_record = state.exec_record.transition_step(vid, run_st, 0, "system.rag.preflight", has_warning=False)

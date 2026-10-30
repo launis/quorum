@@ -37,12 +37,12 @@ class Chunk[T](V2CoreBase):
 
     id: Annotated[
         str,
-        Field(
-            default_factory=lambda: f"chk_{generate_uuid7().hex}",
-            pattern=OPAQUE_STRIPE_ID_REGEX,
-            description="Opaque Stripe ID for the chunk",
-        ),
-    ]
+        "Opaque Stripe ID for the chunk",
+    ] = Field(
+        default_factory=lambda: f"chk_{generate_uuid7().hex}",
+        pattern=OPAQUE_STRIPE_ID_REGEX,
+        description="Opaque Stripe ID for the chunk",
+    )
     parent_id: Annotated[
         str | None,
         Field(

@@ -92,11 +92,11 @@ class ReasoningTrace(V2CoreBase):
     model_name: Annotated[str | None, Field(default=None, description="The model used for reasoning.")] = None
     token_usage: Annotated[
         TokenUsage,
-        Field(
-            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-            description="Token usage statistics.",
-        ),
-    ]
+        "Token usage statistics.",
+    ] = Field(
+        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        description="Token usage statistics.",
+    )
 
     @field_validator("confidence_score", mode="after")
     @classmethod
@@ -162,16 +162,16 @@ class TraceEvent(V2CoreBase):
 
     event_id: Annotated[
         uuid.UUID,
-        Field(default_factory=generate_uuid7, description="Unique event identifier."),
-    ]
+        "Unique event identifier.",
+    ] = Field(default_factory=generate_uuid7, description="Unique event identifier.")
     v: Annotated[int, Field(default=1, description="Schema version for forward compatibility and lazy upcasting.")] = 1
     timestamp: Annotated[
         datetime,
-        Field(
-            default_factory=lambda: datetime.now(timezone.utc),
-            description="Event timestamp.",
-        ),
-    ]
+        "Event timestamp.",
+    ] = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Event timestamp.",
+    )
 
     step_name: Annotated[
         str,
@@ -202,12 +202,12 @@ class TraceEvent(V2CoreBase):
     reasoning: Annotated[ReasoningTrace | None, Field(default=None, description="Associated reasoning trace.")] = None
     metadata: Annotated[
         TraceEventMetadataDTO,
-        Field(default_factory=TraceEventMetadataDTO, description="Additional metadata."),
-    ]
+        "Additional metadata.",
+    ] = Field(default_factory=TraceEventMetadataDTO, description="Additional metadata.")
     mcp_audit_traces: Annotated[
         list[MCPAuditTrace],
-        Field(default_factory=list, description="Associated MCP tool audit traces."),
-    ]
+        "Associated MCP tool audit traces.",
+    ] = Field(default_factory=list, description="Associated MCP tool audit traces.")
 
 
 class ErrorTraceEvent(TraceEvent):
@@ -322,8 +322,8 @@ class WorkflowState(ExecutionCoreFields):
 
     execution_id: Annotated[
         uuid.UUID,
-        Field(default_factory=generate_uuid7, description="Unique execution identifier."),
-    ]
+        "Unique execution identifier.",
+    ] = Field(default_factory=generate_uuid7, description="Unique execution identifier.")
     workflow_id: Annotated[
         str,
         Field(
@@ -341,11 +341,11 @@ class WorkflowState(ExecutionCoreFields):
     workflow_name: Annotated[str | None, Field(default=None, description="Human-readable name of the workflow.")] = None
     created_at: Annotated[
         datetime,
-        Field(
-            default_factory=lambda: datetime.now(timezone.utc),
-            description="Creation timestamp.",
-        ),
-    ]
+        "Creation timestamp.",
+    ] = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Creation timestamp.",
+    )
 
     @property
     def start_time(self) -> datetime:
