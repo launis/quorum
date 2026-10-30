@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -10,9 +11,9 @@ import 'package:client_app/utils/json_converters.dart';
 /// LayoutEditorCard for configuring matrix synthesis groups.
 class LayoutEditorCard extends ConsumerWidget {
   final List<MatrixSynthesisGroup> groups;
-  final Function(List<MatrixSynthesisGroup>) onChanged;
+  final ValueChanged<List<MatrixSynthesisGroup>> onChanged;
   final Set<String> allowedBlockIds;
-  final AsyncValue<List<dynamic>> promptBlocksState;
+  final AsyncValue<List<PromptBlock>> promptBlocksState;
 
   const LayoutEditorCard({
     super.key,
@@ -27,7 +28,6 @@ class LayoutEditorCard extends ConsumerWidget {
     final nextIdx = newList.length + 1;
     newList.add(
       MatrixSynthesisGroup(
-        // Phase 1, Step 1: Generate canonical 32-hex grp_ UUIDv7 identifier
         id: generateOpaqueUuid7('grp'),
         title: I18nText(
           translations: {'en': 'Group $nextIdx', 'fi': 'Ryhmä $nextIdx'},
@@ -132,8 +132,7 @@ class _CompactMatrixGroupItem extends StatelessWidget {
       child: ExpansionTile(
         initiallyExpanded: index == 0,
         leading: CircleAvatar(
-          radius: 12,
-          // Phase 1, Step 1: Resolve DGR003 by passing (index + 1).toString()
+          radius: AppSpacing.s12,
           child: Text(
             (index + 1).toString(),
             style: theme.textTheme.labelSmall,
@@ -147,9 +146,11 @@ class _CompactMatrixGroupItem extends StatelessWidget {
           style: theme.textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
         trailing: IconButton(
           icon: Icon(Icons.delete_outline, color: colorScheme.error),
+          tooltip: l10n.deleteButton,
           onPressed: onDelete,
         ),
         childrenPadding: AppSpacing.p12,
