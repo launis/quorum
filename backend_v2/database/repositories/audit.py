@@ -33,7 +33,7 @@ class AuditRepositoryImpl(BaseRepository):
             event_data: AuditLogCreateDTO containing audit event fields.
         """
         payload = event_data.model_dump(mode="json")
-        # Phase 3, Step 3: Generate RFC 9562 UUIDv7 audit event ID
+        # Generate RFC 9562 UUIDv7 audit event ID
         doc_id = str(generate_uuid7())
         payload["id"] = doc_id
         if "timestamp" not in payload or not payload["timestamp"]:
@@ -165,15 +165,34 @@ class AuditRepositoryImpl(BaseRepository):
 
         Returns:
             The UsageAggregateDTO if found, otherwise None.
+
+        Raises:
+            AppException: If the usage aggregate document fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         entity_key = "system"
         if entity_id:
             entity_key = entity_id
         agg_id = f"{scope}_{entity_key}_{period}"
-        doc = await self.driver.get("usage_aggregates", agg_id)
+        driver = self.driver
+        doc = await driver.get("usage_aggregates", agg_id)
         if not doc:
             return None
-        return UsageAggregateDTO.model_validate(doc, strict=False)
+        try:
+            return UsageAggregateDTO.model_validate(doc, strict=False)
+        except Exception as e:
+            logger.error(
+                "[AuditRepository] %s: Corrupted usage aggregate %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                agg_id,
+                e,
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"Corrupted usage aggregate {agg_id}: {e}",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "item_id": agg_id},
+            ) from e
 
     async def upsert_usage_aggregate(
         self, scope: str, entity_id: str | None, period: str, update_data: UsageAggregateUpdateDTO
@@ -185,6 +204,10 @@ class AuditRepositoryImpl(BaseRepository):
             entity_id: Optional entity ID.
             period: Aggregation period.
             update_data: UsageAggregateUpdateDTO of usage increments.
+
+        Raises:
+            AppException: If an existing usage aggregate document fails model validation
+                (ErrorCodes.VALIDATION_FAILED).
         """
         entity_key = "system"
         if entity_id:

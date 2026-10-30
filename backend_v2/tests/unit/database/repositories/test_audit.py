@@ -25,7 +25,7 @@ def mock_driver() -> AsyncMock:
     driver = AsyncMock(spec=StorageDriver)
     driver.query.return_value = []
     driver.get.return_value = None
-    driver.upsert.return_value = "aud_123"
+    driver.upsert.return_value = "aud_0195f3a0000070018234567890abcdef"
     driver.update.return_value = True
     driver.delete.return_value = True
     return driver
@@ -40,17 +40,19 @@ def repo(mock_driver: AsyncMock) -> AuditRepositoryImpl:
 @pytest.mark.asyncio
 async def test_audit_logs_filters_and_corruption(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: tests audit logging with multiple filters and skipping corrupted records."""
+    org_id = "org_0195f3a0000070018234567890abcdef"
+    usr_id = "usr_0195f3a0000070018234567890abcdef"
     valid_audit = AuditLogEntry(
         timestamp=datetime.now(timezone.utc),
         level="INFO",
         message="Workflow started",
-        context={"org_id": "org_123"},
+        context={"org_id": org_id},
     ).model_dump(mode="json")
     mock_driver.query.return_value = [valid_audit]
 
     logs = await repo.get_audit_logs(
-        organization_id="org_123",
-        actor_id="usr_123",
+        organization_id=org_id,
+        actor_id=usr_id,
         action="execute",
         limit=50,
     )
@@ -58,7 +60,7 @@ async def test_audit_logs_filters_and_corruption(repo: AuditRepositoryImpl, mock
     assert logs[0].level == "INFO"
     assert logs[0].message == "Workflow started"
 
-    await repo.log_audit_event(AuditLogCreateDTO(action="create", actor_id="usr_123", organization_id="org_123"))
+    await repo.log_audit_event(AuditLogCreateDTO(action="create", actor_id=usr_id, organization_id=org_id))
     mock_driver.upsert.assert_called()
 
 
@@ -75,9 +77,9 @@ async def test_audit_logs_corruption_fail_fast(repo: AuditRepositoryImpl, mock_d
 async def test_log_usage_model_and_dict(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: tests log_usage with UsageRecord model instance."""
     model_usage = UsageRecord(
-        id="usg_1",
-        org_id="org_123",
-        user_id="usr_123",
+        id="usg_0195f3a0000070018234567890abcdef",
+        org_id="org_0195f3a0000070018234567890abcdef",
+        user_id="usr_0195f3a0000070018234567890abcdef",
         model="gpt-4o",
         input_tokens=10,
         output_tokens=5,
@@ -91,10 +93,12 @@ async def test_log_usage_model_and_dict(repo: AuditRepositoryImpl, mock_driver: 
 @pytest.mark.asyncio
 async def test_get_usage_records_scopes_and_corruption(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: tests get_usage_records across scopes and handles corruption gracefully."""
+    org_id = "org_0195f3a0000070018234567890abcdef"
+    usr_id = "usr_0195f3a0000070018234567890abcdef"
     valid_usage = UsageRecord(
-        id="usg_1",
-        org_id="org_123",
-        user_id="usr_123",
+        id="usg_0195f3a0000070018234567890abcdef",
+        org_id=org_id,
+        user_id=usr_id,
         model="gpt-4o",
         input_tokens=100,
         output_tokens=50,
@@ -103,11 +107,11 @@ async def test_get_usage_records_scopes_and_corruption(repo: AuditRepositoryImpl
     ).model_dump(mode="json")
     mock_driver.query.return_value = [valid_usage]
 
-    org_records = await repo.get_usage_records("organization", "org_123", since="2026-08-01T00:00:00Z")
+    org_records = await repo.get_usage_records("organization", org_id, since="2026-08-01T00:00:00Z")
     assert len(org_records) == 1
     assert org_records[0].input_tokens == 100
 
-    user_records = await repo.get_usage_records("user", "usr_123")
+    user_records = await repo.get_usage_records("user", usr_id)
     assert len(user_records) == 1
 
 
@@ -116,7 +120,16 @@ async def test_usage_records_corruption_fail_fast(repo: AuditRepositoryImpl, moc
     """Negative: tests that corrupted usage record raises AppException."""
     mock_driver.query.return_value = [{"id": "usg_bad", "input_tokens": "not_an_int"}]
     with pytest.raises(AppException) as exc_info:
-        await repo.get_usage_records("organization", "org_123")
+        await repo.get_usage_records("organization", "org_0195f3a0000070018234567890abcdef")
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
+
+
+@pytest.mark.asyncio
+async def test_usage_aggregate_corruption_fail_fast(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
+    """Negative: tests that corrupted usage aggregate document raises AppException."""
+    mock_driver.get.return_value = {"organization_id": "org_0195f3a0000070018234567890abcdef", "total_input_tokens": -10}
+    with pytest.raises(AppException) as exc_info:
+        await repo.get_usage_aggregate("organization", "org_0195f3a0000070018234567890abcdef", "2026-08")
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
@@ -124,13 +137,14 @@ async def test_usage_records_corruption_fail_fast(repo: AuditRepositoryImpl, moc
 async def test_get_detailed_usage_invalid_date_fail_fast(repo: AuditRepositoryImpl) -> None:
     """Negative: tests that invalid date in since parameter raises AppException."""
     with pytest.raises(AppException) as exc_info:
-        await repo.get_detailed_usage("org_123", since="invalid_date_format")
+        await repo.get_detailed_usage("org_0195f3a0000070018234567890abcdef", since="invalid_date_format")
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED
 
 
 @pytest.mark.asyncio
 async def test_usage_aggregates_upsert_and_merge(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: tests usage aggregate initial creation and subsequent merge updates."""
+    org_id = "org_0195f3a0000070018234567890abcdef"
     # 1. Initial creation (not existing)
     mock_driver.get.return_value = None
     update_data = UsageAggregateUpdateDTO(
@@ -140,12 +154,12 @@ async def test_usage_aggregates_upsert_and_merge(repo: AuditRepositoryImpl, mock
         cost_usd=0.02,
         execution_count=5,
     )
-    await repo.upsert_usage_aggregate("organization", "org_123", "2026-08", update_data)
+    await repo.upsert_usage_aggregate("organization", org_id, "2026-08", update_data)
     mock_driver.upsert.assert_called()
 
     # 2. Existing aggregate merge
     existing_agg = UsageAggregateDTO(
-        organization_id="org_123",
+        organization_id=org_id,
         period="2026-08",
         total_input_tokens=500,
         total_output_tokens=200,
@@ -156,7 +170,7 @@ async def test_usage_aggregates_upsert_and_merge(repo: AuditRepositoryImpl, mock
     mock_driver.get.return_value = existing_agg
     await repo.upsert_usage_aggregate(
         "organization",
-        "org_123",
+        org_id,
         "2026-08",
         UsageAggregateUpdateDTO(
             input_tokens=200,
@@ -172,26 +186,28 @@ async def test_usage_aggregates_upsert_and_merge(repo: AuditRepositoryImpl, mock
 @pytest.mark.asyncio
 async def test_get_detailed_usage_calculation(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: tests detailed multi-dimensional usage calculations."""
+    org_id = "org_0195f3a0000070018234567890abcdef"
+    wf_id = "wf_0195f3a0000070018234567890abcdef"
     mock_execs = [
         {
-            "id": "exe_1",
+            "id": "exe_0195f3a0000070018234567890abcdef",
             "cost_estimate": 0.05,
             "duration_ms": 1200,
-            "workflow_id": "wf_1",
+            "workflow_id": wf_id,
             "models_used": {"gpt-4o": 2},
             "completed_at": "2026-08-15T12:00:00Z",
         },
         {
-            "id": "exe_2",
+            "id": "exe_0195f3a0000070028234567890abcdef",
             "cost_estimate": 0.03,
             "duration_ms": 800,
-            "workflow_id": "wf_1",
+            "workflow_id": wf_id,
             "models_used": {"claude-3-5-sonnet": 1},
             "completed_at": "2026-08-16T12:00:00Z",
         },
     ]
     mock_agg = UsageAggregateDTO(
-        organization_id="org_123",
+        organization_id=org_id,
         period="2026-08",
         total_input_tokens=1000,
         total_output_tokens=400,
@@ -205,32 +221,34 @@ async def test_get_detailed_usage_calculation(repo: AuditRepositoryImpl, mock_dr
 
     usage = await repo.get_detailed_usage(
         scope="org",
-        target_id="org_123",
+        target_id=org_id,
         since="2026-08-01T00:00:00Z",
     )
     assert usage.total_cost_usd == pytest.approx(0.08)
     assert usage.total_tokens == 1400
     assert usage.by_model == {"gpt-4o": 2, "claude-3-5-sonnet": 1}
-    assert usage.by_workflow == {"wf_1": 2}
+    assert usage.by_workflow == {wf_id: 2}
 
 
 @pytest.mark.asyncio
 async def test_get_detailed_usage_user_scope(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: tests detailed usage calculation for user scope with accumulating model counts."""
+    usr_id = "usr_0195f3a0000070028234567890abcdef"
+    wf_id = "wf_0195f3a0000070018234567890abcdef"
     mock_execs = [
         {
-            "id": "exe_1",
+            "id": "exe_0195f3a0000070018234567890abcdef",
             "cost_estimate": 0.02,
             "duration_ms": 500,
-            "workflow_id": "wf_1",
+            "workflow_id": wf_id,
             "models_used": {"gpt-4o": 1},
             "completed_at": "2026-08-15T12:00:00Z",
         },
         {
-            "id": "exe_2",
+            "id": "exe_0195f3a0000070028234567890abcdef",
             "cost_estimate": 0.03,
             "duration_ms": 600,
-            "workflow_id": "wf_1",
+            "workflow_id": wf_id,
             "models_used": {"gpt-4o": 2},
             "completed_at": "2026-08-16T12:00:00Z",
         },
@@ -240,10 +258,10 @@ async def test_get_detailed_usage_user_scope(repo: AuditRepositoryImpl, mock_dri
 
     usage = await repo.get_detailed_usage(
         scope="user",
-        target_id="usr_456",
+        target_id=usr_id,
         since="2026-08-01T00:00:00Z",
     )
-    assert usage.organization_id == "usr_456"
+    assert usage.organization_id == usr_id
     assert usage.total_cost_usd == pytest.approx(0.05)
     assert usage.by_model == {"gpt-4o": 3}
-    assert usage.by_workflow == {"wf_1": 2}
+    assert usage.by_workflow == {wf_id: 2}
