@@ -832,38 +832,38 @@ def _sanitize_auxiliary_collections(data: dict[str, JsonValue]) -> None:
         data: Root seed_data.json dictionary.
     """
     if "system_config" in data and isinstance(data["system_config"], list):
+        raw_sys_cfgs: Sequence[Any] = data["system_config"]
         new_sys_cfgs: list[JsonValue] = []
-        for item in data["system_config"]:
-            if isinstance(item, dict):
-                cfg = dict(item)
-                raw_cfg_id = cfg["id"] if "id" in cfg else None
-                cfg["id"] = _upgrade_or_generate_opaque_id(raw_cfg_id, EntityPrefix.SYSTEM_CONFIG)
-                new_sys_cfgs.append(cfg)
+        for item in raw_sys_cfgs:
+            cfg = dict(item)
+            raw_cfg_id = cfg["id"] if "id" in cfg else None
+            cfg["id"] = _upgrade_or_generate_opaque_id(raw_cfg_id, EntityPrefix.SYSTEM_CONFIG)
+            new_sys_cfgs.append(cfg)
         data["system_config"] = new_sys_cfgs
 
     if "organizations" in data and isinstance(data["organizations"], list):
+        raw_orgs: Sequence[Any] = data["organizations"]
         new_orgs: list[JsonValue] = []
-        for item in data["organizations"]:
-            if isinstance(item, dict):
-                org = dict(item)
-                raw_org_id = org["id"] if "id" in org else None
-                if raw_org_id != "org_system000000":
-                    org["id"] = _upgrade_or_generate_opaque_id(raw_org_id, EntityPrefix.ORGANIZATION)
-                new_orgs.append(org)
+        for item in raw_orgs:
+            org = dict(item)
+            raw_org_id = org["id"] if "id" in org else None
+            if raw_org_id != "org_system000000":
+                org["id"] = _upgrade_or_generate_opaque_id(raw_org_id, EntityPrefix.ORGANIZATION)
+            new_orgs.append(org)
         data["organizations"] = new_orgs
 
     if "users" in data and isinstance(data["users"], list):
+        raw_users: Sequence[Any] = data["users"]
         new_users: list[JsonValue] = []
-        for item in data["users"]:
-            if isinstance(item, dict):
-                usr = dict(item)
-                raw_usr_id = usr["id"] if "id" in usr else None
-                usr["id"] = _upgrade_or_generate_opaque_id(raw_usr_id, EntityPrefix.USER)
-                if "organization_id" in usr and usr["organization_id"] not in (None, "org_system000000", "SYSTEM"):
-                    usr["organization_id"] = _upgrade_or_generate_opaque_id(
-                        usr["organization_id"], EntityPrefix.ORGANIZATION
-                    )
-                new_users.append(usr)
+        for item in raw_users:
+            usr = dict(item)
+            raw_usr_id = usr["id"] if "id" in usr else None
+            usr["id"] = _upgrade_or_generate_opaque_id(raw_usr_id, EntityPrefix.USER)
+            if "organization_id" in usr and usr["organization_id"] not in (None, "org_system000000", "SYSTEM"):
+                usr["organization_id"] = _upgrade_or_generate_opaque_id(
+                    usr["organization_id"], EntityPrefix.ORGANIZATION
+                )
+            new_users.append(usr)
         data["users"] = new_users
 
 

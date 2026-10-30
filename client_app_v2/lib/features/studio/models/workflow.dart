@@ -187,9 +187,7 @@ abstract class Workflow with _$Workflow {
     String? organizationId,
     @Default({}) Map<String, OutputProfile> outputProfiles,
     @Default("default") String defaultProfileId,
-    @JsonKey(name: 'mcp_gateway_id')
-    @Default("sys_8172bda70c8641c5")
-    String? mcpGatewayId,
+    @JsonKey(name: 'mcp_gateway_id') String? mcpGatewayId,
     @JsonKey(name: 'model_registry_id') required String modelRegistryId,
     @JsonKey(name: 'default_strictness_level')
     @Default(50)

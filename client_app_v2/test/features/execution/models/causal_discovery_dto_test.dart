@@ -105,22 +105,84 @@ void main() {
   });
 
   group('AntiFluffAuditDto Parity & Validation', () {
-    test('successfully serializes and deserializes anti-fluff DTO', () {
+    test(
+      'successfully serializes and deserializes anti-fluff DTO with topological ratios',
+      () {
+        final json = {
+          'isolated_concept_count': 3,
+          'cycle_detected': false,
+          'unsupported_claims_count': 1,
+          'logical_cohesion_score': 88.5,
+          'largest_component_ratio': 0.85,
+          'branch_convergence_ratio': 0.25,
+          'steering_coupling_ratio': 0.60,
+          'detected_hollow_terms': ['synergy', 'paradigm'],
+        };
+
+        final dto = AntiFluffAuditDto.fromJson(json);
+        expect(dto.isolatedConceptCount, 3);
+        expect(dto.cycleDetected, isFalse);
+        expect(dto.unsupportedClaimsCount, 1);
+        expect(dto.logicalCohesionScore, 88.5);
+        expect(dto.largestComponentRatio, 0.85);
+        expect(dto.branchConvergenceRatio, 0.25);
+        expect(dto.steeringCouplingRatio, 0.60);
+        expect(dto.detectedHollowTerms, ['synergy', 'paradigm']);
+
+        final serialized = dto.toJson();
+        expect(serialized['logical_cohesion_score'], 88.5);
+        expect(serialized['largest_component_ratio'], 0.85);
+        expect(serialized['branch_convergence_ratio'], 0.25);
+        expect(serialized['steering_coupling_ratio'], 0.60);
+      },
+    );
+
+    test('applies topological ratio defaults when omitted in JSON', () {
       final json = {
-        'isolated_concept_count': 3,
+        'isolated_concept_count': 0,
         'cycle_detected': false,
-        'unsupported_claims_count': 1,
-        'logical_cohesion_score': 88.5,
-        'detected_hollow_terms': ['synergy', 'paradigm'],
+        'unsupported_claims_count': 0,
+        'logical_cohesion_score': 100.0,
       };
 
       final dto = AntiFluffAuditDto.fromJson(json);
-      expect(dto.isolatedConceptCount, 3);
-      expect(dto.cycleDetected, isFalse);
-      expect(dto.detectedHollowTerms, ['synergy', 'paradigm']);
+      expect(dto.largestComponentRatio, 1.0);
+      expect(dto.branchConvergenceRatio, 0.0);
+      expect(dto.steeringCouplingRatio, 0.0);
+      expect(dto.detectedHollowTerms, isEmpty);
+    });
 
-      final serialized = dto.toJson();
-      expect(serialized['logical_cohesion_score'], 88.5);
+    test(
+      'rejects unrecognized keys on AntiFluffAuditDto fail-fast (negative)',
+      () {
+        final json = {
+          'isolated_concept_count': 1,
+          'cycle_detected': false,
+          'unsupported_claims_count': 0,
+          'logical_cohesion_score': 90.0,
+          'unexpected_audit_field': true,
+        };
+
+        expect(
+          () => AntiFluffAuditDto.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
+
+    test('rejects non-numeric topological ratio type fail-fast (negative)', () {
+      final json = {
+        'isolated_concept_count': 1,
+        'cycle_detected': false,
+        'unsupported_claims_count': 0,
+        'logical_cohesion_score': 90.0,
+        'largest_component_ratio': 'invalid_ratio',
+      };
+
+      expect(
+        () => AntiFluffAuditDto.fromJson(json),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
     });
   });
 
@@ -162,6 +224,89 @@ void main() {
 
         final serialized = dto.toJson();
         expect(serialized['raw_penalty_points'], 50.0);
+      },
+    );
+  });
+
+  group('CounterfactualSimulationResultDto Parity & Validation', () {
+    test(
+      'successfully serializes and deserializes CounterfactualSimulationResultDto',
+      () {
+        final json = {
+          'retracted_root_id': 'nod_0195f3a0000070008000000000000001',
+          'collapsed_node_ids': [
+            'nod_0195f3a0000070008000000000000001',
+            'nod_0195f3a0000070008000000000000002',
+          ],
+          'surviving_node_ids': ['nod_0195f3a0000070008000000000000003'],
+          'collapse_ratio': 0.6667,
+          'max_cascade_depth': 2,
+        };
+
+        final dto = CounterfactualSimulationResultDto.fromJson(json);
+        expect(dto.retractedRootId, 'nod_0195f3a0000070008000000000000001');
+        expect(dto.collapsedNodeIds, [
+          'nod_0195f3a0000070008000000000000001',
+          'nod_0195f3a0000070008000000000000002',
+        ]);
+        expect(dto.survivingNodeIds, ['nod_0195f3a0000070008000000000000003']);
+        expect(dto.collapseRatio, 0.6667);
+        expect(dto.maxCascadeDepth, 2);
+
+        final serialized = dto.toJson();
+        expect(
+          serialized['retracted_root_id'],
+          'nod_0195f3a0000070008000000000000001',
+        );
+        expect(serialized['collapsed_node_ids'], [
+          'nod_0195f3a0000070008000000000000001',
+          'nod_0195f3a0000070008000000000000002',
+        ]);
+        expect(serialized['surviving_node_ids'], [
+          'nod_0195f3a0000070008000000000000003',
+        ]);
+        expect(serialized['collapse_ratio'], 0.6667);
+        expect(serialized['max_cascade_depth'], 2);
+      },
+    );
+
+    test('applies defaults when optional fields are omitted', () {
+      final json = {
+        'retracted_root_id': 'nod_0195f3a0000070008000000000000001',
+      };
+
+      final dto = CounterfactualSimulationResultDto.fromJson(json);
+      expect(dto.retractedRootId, 'nod_0195f3a0000070008000000000000001');
+      expect(dto.collapsedNodeIds, isEmpty);
+      expect(dto.survivingNodeIds, isEmpty);
+      expect(dto.collapseRatio, 0.0);
+      expect(dto.maxCascadeDepth, 0);
+    });
+
+    test('rejects missing required retracted_root_id fail-fast (negative)', () {
+      final json = <String, dynamic>{
+        'collapse_ratio': 0.5,
+        'max_cascade_depth': 1,
+      };
+
+      expect(
+        () => CounterfactualSimulationResultDto.fromJson(json),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
+
+    test(
+      'rejects unrecognized keys on CounterfactualSimulationResultDto fail-fast (negative)',
+      () {
+        final json = {
+          'retracted_root_id': 'nod_0195f3a0000070008000000000000001',
+          'unknown_simulation_key': 123,
+        };
+
+        expect(
+          () => CounterfactualSimulationResultDto.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
       },
     );
   });
