@@ -21,11 +21,11 @@
   - [x] Step 3: Phase 3: Backend Services, Repositories, Hooks, LLM & Test Doubles UUIDv4 Eradication
   - [x] Step 4: Phase 4: Static AST (QGR030) & Dart (DGR008) Guardrail Enforcement
   - [x] Step 5: Phase 5: Rules, Knowledge Items & Tier 2 Hardening Skills Synchronization
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[backend_v2/database/repositories/audit.py]
   - [ ] @[backend_v2/database/repositories/execution.py]
@@ -59,8 +59,8 @@
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]
   - [ ] @[client_app_v2/lib/utils/json_converters.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
 
@@ -79,7 +79,7 @@
 
 ### Final Plan Audit
 
-- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
 
