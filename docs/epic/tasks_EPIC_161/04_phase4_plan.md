@@ -12,7 +12,7 @@
 
 **Overview:** Execute comprehensive unit, ISTQB Boundary Value Analysis (BVA), Equivalence Partitioning (`heterogeneous_payload_testing_mandate`), AST guardrail verification (`@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]`), Cross-Domain SDUI Semantic Parity (`@[backend_v2/tests/integration/test_sdui_semantic_parity.py]`), Touched-Scope + 1-Hop Technical Debt verification (`scripts/audit_technical_debt.py`), and the mandatory live E2E REST API verification gate (`@[backend_v2/tests/integration/test_integration_real_llm.py]`).
 
-**Source:** @[docs/epic/EPIC_161_topological_synthesis_cohesion.md#L205-L229] Phase 4: Verification & E2E Integration Gate
+**Source:** @[docs/epic/EPIC_161_topological_synthesis_cohesion.md#L206-L229] Phase 4: Verification & E2E Integration Gate
 
 **Target Files:**
 - `[MODIFY] @[backend_v2/tests/integration/test_sdui_semantic_parity.py]`
@@ -24,7 +24,7 @@
 | 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
 | :--- | :--- | :--- | :--- | :--- |
 | **`@[backend_v2/tests/integration/test_sdui_semantic_parity.py]`** | Eradicate untested cross-domain fields between Backend SDUI DTOs (`SduiMatrixSummaryTableBlock`, `SduiCausalGraphBlock`), Jinja2 PDF templates (`report_template.jinja2`), and Flutter Freezed models (`sdui_block_dto.dart`). | Assert 1:1 semantic parity for `short_circuited_by_claims` and `falsified_warrant_claims` across Python SDUI blocks, rendered Jinja2 HTML/PDF output, and Dart Freezed serialization in `@[backend_v2/tests/integration/test_sdui_semantic_parity.py]`. | Reuse the existing tripartite parity test harness in `test_sdui_semantic_parity.py` without building duplicate test runners. | `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`. |
-| **`@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]`** | Eradicate regression risk of raw `if type(content) is dict:` checks returning in `blueprint.py` or bare claim-title deficit flattening returning in `matrix_explanation_service.py`. | Verify AST guardrail enforcement in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]` and zero technical debt across all 24 touched files and 1-hop callers via `scripts/audit_technical_debt.py`. | Rely on the centralized `scripts/_ast_guardrails.py` and `scripts/audit_technical_debt.py` verifiers. | `uv run pytest backend_v2/tests/unit/scripts/test_ast_guardrails.py`. |
+| **`@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]`** | Eradicate regression risk of raw `if type(content) is dict:` checks returning in `blueprint.py`, bare claim-title deficit flattening returning in `matrix_explanation_service.py`, or hardcoded clipper magic numbers returning outside `settings.py`. | Verify AST guardrail enforcement in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]` and zero technical debt across all touched files and 1-hop callers via `scripts/audit_technical_debt.py`. | Rely on the centralized `scripts/_ast_guardrails.py` and `scripts/audit_technical_debt.py` verifiers. | `uv run pytest backend_v2/tests/unit/scripts/test_ast_guardrails.py`. |
 | **`@[backend_v2/tests/integration/test_integration_real_llm.py]`** | Eradicate closing an Epic without verifying live end-to-end topological synthesis cohesion, [NEW] `MatrixFailureDeficitDTO`, and [NEW] `CausalSynthesisBriefDTO` defined in `@[backend_v2/models/dtos/synthesis.py]` under real LLM execution. | Assert full pipeline completion and topological synthesis cohesion in `@[backend_v2/tests/integration/test_integration_real_llm.py]` and execute the global backend and Flutter audit loops. | Execute against the canonical live E2E integration test suite. | `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`. |
 
 ```xml
@@ -79,11 +79,11 @@
     <action>Execute the Touched-Scope + 1-Hop Technical Debt Auditor across all modified subsystems.</action>
     <constraint invariant="ast_guardrail_mandate">Zero QGR or DGR guardrail violations across the entire repository.</constraint>
     <audit_command>uv run pytest backend_v2/tests/unit/scripts/test_ast_guardrails.py</audit_command>
-    <audit_command>$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets backend_v2/services/orchestrator/ backend_v2/services/sdui/ backend_v2/services/blueprint.py backend_v2/workers/ --include-one-hop</audit_command>
+    <audit_command>$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets backend_v2/services/orchestrator/ backend_v2/services/sdui/ backend_v2/services/blueprint.py backend_v2/services/web_fetcher.py backend_v2/hooks/archival.py backend_v2/workers/ --include-one-hop</audit_command>
   </step>
 
   <step id="4.3" name="Mandatory Live E2E REST API Verification Gate">
-    <action>In @[backend_v2/tests/integration/test_integration_real_llm.py], verify end-to-end execution of topological synthesis cohesion ([NEW] `MatrixFailureDeficitDTO` and [NEW] `CausalSynthesisBriefDTO` defined in @[backend_v2/models/dtos/synthesis.py], 1500-char Micro-CoT reasoning retention, and inline SDUI short-circuit lineage) and run the global backend and Flutter completion gates.</action>
+    <action>In @[backend_v2/tests/integration/test_integration_real_llm.py], verify end-to-end execution of topological synthesis cohesion ([NEW] `MatrixFailureDeficitDTO` and [NEW] `CausalSynthesisBriefDTO` defined in @[backend_v2/models/dtos/synthesis.py], zero-loss Micro-CoT reasoning and quote retention, and inline SDUI short-circuit lineage) and run the global backend and Flutter completion gates.</action>
     <constraint invariant="zero_tolerance_audit_loop">Both global quality gates (`backend_audit_loop.py` and `flutter_audit_loop.py`) and the live E2E suite must pass 100% before closing Phase 4.</constraint>
     <audit_command>$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py backend_v2/ --test</audit_command>
     <audit_command>$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/ --build</audit_command>
@@ -105,7 +105,7 @@
     </test>
     <test name="test_integration_real_llm_preserves_topological_deficits_and_causal_brief" category="positive">
       <input>Live E2E workflow execution with topological dependencies and matrix evaluation</input>
-      <expected>Completed report contains synthesized row explanations, XAI highlights, and SDUI blocks reflecting resolved causal chains and frontier S+1 deficits within the 300,000-char budget</expected>
+      <expected>Completed report contains synthesized row explanations, XAI highlights, and SDUI blocks reflecting resolved causal chains and full deficits within the 300,000-char ceiling</expected>
     </test>
   </test_contracts>
 
@@ -116,4 +116,4 @@
     <action>Run Live E2E REST API Verification Gate: `$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`.</action>
   </validation_gate>
 </execution_protocol>
-
+```

@@ -12,7 +12,7 @@
 
 **Overview:** Bind topological short-circuit lineage (`short_circuited_by_claims`) and Toulmin falsification lineage (`falsified_warrant_claims`) directly onto matrix row items and causal graph nodes across `@[backend_v2/models/dtos/report_data.py]`, `@[backend_v2/models/view/sdui.py]`, `@[backend_v2/services/blueprint.py#L127-L698]`, `@[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]`, and `@[backend_v2/services/sdui/adapters/causal_graph_adapter.py#L32-L185]`. Refactor `@[backend_v2/services/sdui/sdui_mapper_service.py#L91-L167]` so short-circuit (`N_A`) lineage is anchored contextually within its parent matrix summary table and causal graph block rather than orphaned at the bottom of the report. Synchronize Jinja2 PDF templates (`@[backend_v2/templates/report_template.jinja2]`), `@[backend_v2/services/pdf_generator.py]`, Flutter Freezed models (`@[client_app_v2/lib/shared/models/sdui_block_dto.dart]` and `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`), and Flutter SDUI widgets (`@[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]` and `@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`) with 100% Tripartite Cross-Domain Parity.
 
-**Source:** @[docs/epic/EPIC_161_topological_synthesis_cohesion.md#L197-L204] Phase 3: Frontend Flutter UI, Jinja PDF & Freezed SDUI DTO Synchronization
+**Source:** @[docs/epic/EPIC_161_topological_synthesis_cohesion.md#L198-L204] Phase 3: Frontend Flutter UI, Jinja PDF & Freezed SDUI DTO Synchronization
 
 **Target Files:**
 - `[MODIFY] @[backend_v2/models/dtos/report_data.py]`
