@@ -1862,3 +1862,73 @@ async def test_direct_user_service_execution(
 
     deleted = await service.delete_user(SYSTEM_ROOT_USER_ID, created.id)
     assert deleted is True
+
+
+@pytest.mark.asyncio
+async def test_user_service_firebase_delete_and_null_repo_returns(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Test Firebase user deletion failure (Fail-Fast), force_org_id, and None repo return branches."""
+    user_repo = UserRepository(mock_repo)
+    org_repo = OrganizationRepository(mock_repo)
+    mock_fb = MagicMock()
+    service = UserService(
+        user_repo=user_repo,
+        org_repo=org_repo,
+        use_firebase=True,
+        firebase_auth=mock_fb,
+    )
+
+    org = Organization(
+        id="org_fbdel00000001",
+        name="FB Del Org",
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        tier="enterprise",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=500.0,
+        tpm_limit=50000,
+        rpm_limit=500,
+    )
+    await mock_repo.create_organization(org)
+
+    root = User(
+        id="usr_rootfbdel0001",
+        email="rootfb@test.com",
+        name="Root FB",
+        role=UserRole.ROOT,
+        organization_id=SystemOrganizations.ROOT_SYSTEM,
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        language=SystemLocale.EN,
+        theme_mode="system",
+    )
+    await mock_repo.create_user(root)
+
+    # 1. _create_user_internal with force_org_id
+    forced_user = await service._create_user_internal(
+        "usr_rootfbdel0001",
+        UserCreate(
+            email="forced@test.com",
+            name="Forced Org User",
+            role=UserRole.MEMBER,
+            is_active=True,
+            language=SystemLocale.EN,
+            theme_mode="system",
+        ),
+        force_org_id="org_fbdel00000001",
+    )
+    assert forced_user.organization_id == "org_fbdel00000001"
+
+    # 2. delete_user with Firebase error raises AppException 500
+    mock_fb.delete_user.side_effect = RuntimeError("Firebase unavailable")
+    with pytest.raises(AppException) as exc_fb_del:
+        await service.delete_user("usr_rootfbdel0001", forced_user.id)
+    assert exc_fb_del.value.status_code == 500
+    assert exc_fb_del.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
+
+    # 3. delete_user with Firebase success
+    mock_fb.delete_user.side_effect = None
+    assert await service.delete_user("usr_rootfbdel0001", forced_user.id) is True
+    mock_fb.delete_user.assert_called_with(forced_user.id)
+

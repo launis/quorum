@@ -89,8 +89,10 @@ class UserService:
             The newly created user.
 
         Raises:
-            AppException: If the creator is not found or target org does not exist.
-            PermissionDeniedError: If hierarchy constraints are violated.
+            AppException: With ErrorCodes.RESOURCE_NOT_FOUND if creator is not found,
+                ErrorCodes.VALIDATION_FAILED if target org does not exist, or
+                ErrorCodes.INTERNAL_SERVER_ERROR if Firebase creation fails.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if hierarchy or org constraints are violated.
         """
         return await self._create_user_internal(creator_id, user_data)
 
@@ -108,12 +110,20 @@ class UserService:
             The newly created user.
 
         Raises:
-            AppException: If creator is not found or Firebase fails.
-            PermissionDeniedError: If hierarchy or org constraints are violated.
+            AppException: With ErrorCodes.RESOURCE_NOT_FOUND if creator is not found,
+                ErrorCodes.VALIDATION_FAILED if target org does not exist, or
+                ErrorCodes.INTERNAL_SERVER_ERROR if Firebase creation fails.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if hierarchy or org constraints are violated.
         """
         creator = await self.repo.get_by_id(creator_id)
 
         if not creator:
+            logger.error(
+                "[UserService] %s: Creator not found (creator_id=%s).",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                creator_id,
+                exc_info=True,
+            )
             raise AppException(
                 message="Creator not found",
                 status_code=404,
@@ -131,27 +141,37 @@ class UserService:
             )
         else:
             if user_data.organization_id and user_data.organization_id != creator.organization_id:
+                logger.error(
+                    "[UserService] %s: Creator %s cannot create users in foreign organization %s.",
+                    ErrorCodes.PERMISSION_DENIED.name,
+                    creator_id,
+                    user_data.organization_id,
+                    exc_info=True,
+                )
                 raise PermissionDeniedError("Cannot create users in other organizations.")
             target_org_id = creator.organization_id
 
         if user_data.role == UserRole.ROOT:
             if target_org_id != SystemOrganizations.ROOT_SYSTEM:
+                logger.error(
+                    "[UserService] %s: Attempted to create ROOT user outside System Organization (org_id=%s).",
+                    ErrorCodes.PERMISSION_DENIED.name,
+                    target_org_id,
+                    exc_info=True,
+                )
                 raise PermissionDeniedError("Root users can only be created within the System Organization.")
-            target_org_id = SystemOrganizations.ROOT_SYSTEM  # Redundant safety, but ensures it matches
+            target_org_id = SystemOrganizations.ROOT_SYSTEM
 
         # RULE: Organization MUST exist
-        if target_org_id:
-            if target_org_id == SystemOrganizations.ROOT_SYSTEM:
-                # System org acts as a special bootstrap case, but usually should exist.
-                pass
-
+        if target_org_id and target_org_id != SystemOrganizations.ROOT_SYSTEM:
             org_exists = await self.org_repo.get_by_id(target_org_id)
 
-            if not org_exists and target_org_id != SystemOrganizations.ROOT_SYSTEM:
+            if not org_exists:
                 logger.error(
                     "[UserService] %s: Target Organization '%s' does not exist.",
                     ErrorCodes.VALIDATION_FAILED.name,
                     target_org_id,
+                    exc_info=True,
                 )
                 raise AppException(
                     message=f"Target Organization '{target_org_id}' does not exist.",
@@ -171,13 +191,13 @@ class UserService:
                     email=user_data.email, password=user_data.password, name=user_data.name
                 )
                 new_id = fb_user.id
-            except Exception as e:
+            except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
                 # Check for existing
                 try:
                     existing = self.firebase_auth.get_user_by_email(user_data.email)
                     new_id = existing.id
-                    logger.info("User %s already in Firebase. Using existing UID.", user_data.email)
-                except Exception:
+                    logger.info("User %s already in Firebase. Using existing UID.", new_id)
+                except AppException, OSError, ValueError, KeyError, RuntimeError, TypeError:
                     logger.error(
                         "[UserService] %s: Failed to create Firebase user: %s",
                         ErrorCodes.INTERNAL_SERVER_ERROR.name,
@@ -190,8 +210,7 @@ class UserService:
                         details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                     ) from e
         else:
-            # Generate a mock UID
-            # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 user ID
+            # Generate canonical 32-hex RFC 9562 UUIDv7 user ID
             new_id = generate_opaque_id(EntityPrefix.USER)
 
         # 2. Create in Local DB
@@ -230,22 +249,39 @@ class UserService:
             target_role: The role being assigned to the new user.
 
         Raises:
-            PermissionDeniedError: If the creator lacks sufficient privileges.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the creator lacks sufficient privileges.
         """
         if creator.role == UserRole.ROOT:
             return
 
         if creator.role == UserRole.ADMIN:
             if target_role == UserRole.ROOT:
+                logger.error(
+                    "[UserService] %s: Admin %s attempted to create ROOT user.",
+                    ErrorCodes.PERMISSION_DENIED.name,
+                    creator.id,
+                    exc_info=True,
+                )
                 raise PermissionDeniedError("Admins cannot create Roots.")
             return
 
         if creator.role == UserRole.MANAGER:
+            logger.error(
+                "[UserService] %s: Manager %s attempted to create user with role %s.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                creator.id,
+                target_role.value,
+                exc_info=True,
+            )
             raise PermissionDeniedError("Managers are Technical Leads and cannot manage users. Ask an Admin.")
 
-        if creator.role == UserRole.MEMBER:
-            raise PermissionDeniedError("This user role cannot create users")
-
+        logger.error(
+            "[UserService] %s: User %s with role %s cannot create users.",
+            ErrorCodes.PERMISSION_DENIED.name,
+            creator.id,
+            creator.role.value,
+            exc_info=True,
+        )
         raise PermissionDeniedError("This user role cannot create users")
 
     async def _count_org_admins(self, org_id: str) -> int:
@@ -257,9 +293,6 @@ class UserService:
         Returns:
             The number of admin users.
         """
-        if not org_id:
-            return 0
-
         all_users = await self.repo.list_all()
         return sum(1 for u in all_users if u.organization_id == org_id and u.role == UserRole.ADMIN)
 
@@ -285,9 +318,10 @@ class UserService:
             True if deletion was successful.
 
         Raises:
-            AppException: If either user is not found.
-            PermissionDeniedError: If permissions are insufficient or target is protected.
-            ConflictError: If deleting the user violates Last Admin Protection.
+            AppException: With ErrorCodes.RESOURCE_NOT_FOUND if either user is not found, or
+                ErrorCodes.INTERNAL_SERVER_ERROR if Firebase deletion fails.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if permissions are insufficient or target is protected.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the user violates Last Admin Protection.
         """
         logger.info("[UserService] delete_user called. Initiator: %s, Target: %s", initiator_id, target_id)
 
@@ -295,6 +329,13 @@ class UserService:
         target = await self.repo.get_by_id(target_id)
 
         if not initiator or not target:
+            logger.error(
+                "[UserService] %s: Initiator %s or target %s not found for delete_user.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                initiator_id,
+                target_id,
+                exc_info=True,
+            )
             raise AppException(
                 message="User not found",
                 status_code=404,
@@ -305,12 +346,35 @@ class UserService:
         if initiator.role != UserRole.ROOT:
             if initiator.role == UserRole.ADMIN:
                 if target.organization_id != initiator.organization_id:
+                    logger.error(
+                        "[UserService] %s: Admin %s attempted to delete user %s from foreign organization %s.",
+                        ErrorCodes.PERMISSION_DENIED.name,
+                        initiator_id,
+                        target_id,
+                        target.organization_id,
+                        exc_info=True,
+                    )
                     raise PermissionDeniedError("Cannot delete users from other organizations")
             else:
+                logger.error(
+                    "[UserService] %s: User %s with role %s lacks permission to delete user %s.",
+                    ErrorCodes.PERMISSION_DENIED.name,
+                    initiator_id,
+                    initiator.role.value,
+                    target_id,
+                    exc_info=True,
+                )
                 raise PermissionDeniedError("Insufficient permissions to delete users")
 
         # ROOT PROTECTION
         if target_id in (LEGACY_ROOT_MASTER_ID, SYSTEM_ROOT_USER_ID, LEGACY_SYSTEM_ROOT_USER_ID):
+            logger.error(
+                "[UserService] %s: Attempted to delete protected Root account %s (initiator=%s).",
+                ErrorCodes.PERMISSION_DENIED.name,
+                target_id,
+                initiator_id,
+                exc_info=True,
+            )
             raise PermissionDeniedError("The primary Root account cannot be deleted.")
 
         # LAST ADMIN PROTECTION
@@ -321,6 +385,7 @@ class UserService:
                 logger.error(
                     "[UserService] %s: Cannot delete the last Administrator of an Organization.",
                     ErrorCodes.CONFLICT_ERROR.name,
+                    exc_info=True,
                 )
                 raise ConflictError(
                     message="LAST_ADMIN_PROTECTION: Cannot delete the last Administrator of an Organization. "
@@ -330,14 +395,23 @@ class UserService:
 
         # Execute
         # 1. Firebase (if enabled)
-        if self.use_firebase:
+        if self.use_firebase and self.firebase_auth is not None:
             try:
                 logger.info("[UserService] Deleting Firebase user %s...", target.id)
                 await asyncio.to_thread(self.firebase_auth.delete_user, target.id)
-            except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
-                if isinstance(e, (KeyboardInterrupt, SystemExit)):
-                    raise
-                logger.warning("Firebase delete failed (might be local user): %s", e)
+            except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as fb_err:
+                logger.error(
+                    "[UserService] %s: Failed to delete user %s in Firebase: %s",
+                    ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                    target.id,
+                    fb_err,
+                    exc_info=True,
+                )
+                raise AppException(
+                    message=f"Failed to delete user {target.id} in Firebase: {fb_err}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                ) from fb_err
 
         # 2. Local DB
         logger.info("[UserService] Deleting Local DB user %s...", target_id)
@@ -369,14 +443,22 @@ class UserService:
             The updated user model.
 
         Raises:
-            AppException: If user not found.
-            PermissionDeniedError: If hierarchy or org constraints are violated.
-            ConflictError: If Last Admin Protection is violated.
+            AppException: With ErrorCodes.RESOURCE_NOT_FOUND if user is not found, or
+                ErrorCodes.INTERNAL_SERVER_ERROR if repository update fails.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if hierarchy or org constraints are violated.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if Last Admin Protection is violated.
         """
         initiator = await self.repo.get_by_id(initiator_id)
         target = await self.repo.get_by_id(target_id)
 
         if not initiator or not target:
+            logger.error(
+                "[UserService] %s: Initiator %s or target %s not found for update_user.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                initiator_id,
+                target_id,
+                exc_info=True,
+            )
             raise AppException(
                 message="User not found",
                 status_code=404,
@@ -389,19 +471,48 @@ class UserService:
             if initiator_id == target_id:
                 # Allowed to update self, but check for Restricted fields (Role)
                 if updates.role is not None and updates.role != initiator.role:
+                    logger.error(
+                        "[UserService] %s: User %s attempted to change their own role.",
+                        ErrorCodes.PERMISSION_DENIED.name,
+                        initiator_id,
+                        exc_info=True,
+                    )
                     raise PermissionDeniedError("Users cannot change their own role.")
 
             # Org Admin Check
             elif initiator.role == UserRole.ADMIN:
                 if target.organization_id != initiator.organization_id:
+                    logger.error(
+                        "[UserService] %s: Admin %s attempted to update user %s in foreign organization %s.",
+                        ErrorCodes.PERMISSION_DENIED.name,
+                        initiator_id,
+                        target_id,
+                        target.organization_id,
+                        exc_info=True,
+                    )
                     raise PermissionDeniedError("Cannot update users from other organizations")
 
             else:
+                logger.error(
+                    "[UserService] %s: User %s with role %s lacks permission to update user %s.",
+                    ErrorCodes.PERMISSION_DENIED.name,
+                    initiator_id,
+                    initiator.role.value,
+                    target_id,
+                    exc_info=True,
+                )
                 raise PermissionDeniedError("Insufficient permissions to update users")
 
         # Organization Change Protection (Only ROOT can move users)
         if updates.organization_id is not None and updates.organization_id != target.organization_id:
             if initiator.role != UserRole.ROOT:
+                logger.error(
+                    "[UserService] %s: Non-ROOT user %s attempted to transfer user %s between organizations.",
+                    ErrorCodes.PERMISSION_DENIED.name,
+                    initiator_id,
+                    target_id,
+                    exc_info=True,
+                )
                 raise PermissionDeniedError("Only ROOT can transfer users between organizations.")
 
         # LAST ADMIN PROTECTION (Role Change)
@@ -415,6 +526,7 @@ class UserService:
                         logger.error(
                             "[UserService] %s: Cannot demote the last Administrator of an Organization.",
                             ErrorCodes.CONFLICT_ERROR.name,
+                            exc_info=True,
                         )
                         raise ConflictError(
                             message="LAST_ADMIN_PROTECTION: Cannot demote the last Administrator of an Organization.",
@@ -427,6 +539,7 @@ class UserService:
             logger.error(
                 "[UserService] %s: User update failed (not found despite check).",
                 ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                exc_info=True,
             )
             raise AppException(
                 message="User update failed (not found despite check).",
@@ -460,14 +573,22 @@ class UserService:
             The updated user model.
 
         Raises:
-            PermissionDeniedError: If hierarchy is violated.
-            AppException: If user not found.
-            ConflictError: If Last Admin Protection is triggered.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if hierarchy is violated.
+            AppException: With ErrorCodes.RESOURCE_NOT_FOUND if user is not found, or
+                ErrorCodes.INTERNAL_SERVER_ERROR if repository update fails.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if Last Admin Protection is triggered.
         """
         initiator = await self.repo.get_by_id(initiator_id)
         target = await self.repo.get_by_id(target_id)
 
         if not initiator or not target:
+            logger.error(
+                "[UserService] %s: Initiator %s or target %s not found for update_user_role.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                initiator_id,
+                target_id,
+                exc_info=True,
+            )
             raise AppException(
                 message="User not found",
                 status_code=404,
@@ -489,14 +610,40 @@ class UserService:
             new_val = role_values[new_role]
 
             if init_val < target_val:
+                logger.error(
+                    "[UserService] %s: User %s (%s) cannot modify user %s (%s) with higher privileges.",
+                    ErrorCodes.PERMISSION_DENIED.name,
+                    initiator_id,
+                    initiator.role.value,
+                    target_id,
+                    target.role.value,
+                    exc_info=True,
+                )
                 raise PermissionDeniedError("Cannot modify users with higher or equal privileges.")
 
             if init_val < new_val:
+                logger.error(
+                    "[UserService] %s: User %s (%s) cannot promote user %s to higher role %s.",
+                    ErrorCodes.PERMISSION_DENIED.name,
+                    initiator_id,
+                    initiator.role.value,
+                    target_id,
+                    new_role.value,
+                    exc_info=True,
+                )
                 raise PermissionDeniedError("Cannot promote user to a role higher than your own.")
 
             # Org Constraint
             if initiator.role == UserRole.ADMIN:
                 if target.organization_id != initiator.organization_id:
+                    logger.error(
+                        "[UserService] %s: Admin %s cannot manage user %s in foreign organization %s.",
+                        ErrorCodes.PERMISSION_DENIED.name,
+                        initiator_id,
+                        target_id,
+                        target.organization_id,
+                        exc_info=True,
+                    )
                     raise PermissionDeniedError("Cannot manage users in other organizations.")
 
         # 2. Last Admin Protection
@@ -508,6 +655,7 @@ class UserService:
                     logger.error(
                         "[UserService] %s: LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.",
                         ErrorCodes.CONFLICT_ERROR.name,
+                        exc_info=True,
                     )
                     raise ConflictError(
                         message="LAST_ADMIN_PROTECTION: Cannot demote the last Administrator.",
@@ -519,7 +667,9 @@ class UserService:
 
         if not updated:
             logger.error(
-                "[UserService] %s: User update failed (user reference lost).", ErrorCodes.INTERNAL_SERVER_ERROR.name
+                "[UserService] %s: User update failed (user reference lost).",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                exc_info=True,
             )
             raise AppException(
                 message="User update failed (user reference lost).",
@@ -567,12 +717,18 @@ class UserService:
             The requested user model.
 
         Raises:
-            ResourceNotFoundError: If the user does not exist.
-            PermissionDeniedError: If the initiator lacks access.
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the user does not exist.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator lacks access.
         """
         user = await self.repo.get_by_id(target_id)
 
         if not user:
+            logger.error(
+                "[UserService] %s: User not found (target_id=%s).",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                target_id,
+                exc_info=True,
+            )
             raise ResourceNotFoundError(resource_type="user", resource_id=target_id)
 
         # Tenant Isolation
@@ -585,6 +741,13 @@ class UserService:
         if initiator.role == UserRole.ADMIN and user.organization_id == initiator.organization_id:
             return user
 
+        logger.error(
+            "[UserService] %s: User %s lacked permission to view user %s.",
+            ErrorCodes.PERMISSION_DENIED.name,
+            initiator.id,
+            target_id,
+            exc_info=True,
+        )
         raise PermissionDeniedError("You do not have permission to view this user.")
 
     async def ensure_root_user(self, email: str = "root@example.com") -> User:
@@ -597,7 +760,8 @@ class UserService:
             The root User object.
 
         Raises:
-            AppException: If the root user is missing from the database.
+            AppException: With ErrorCodes.CONFIGURATION_ERROR if the root user is missing from the database,
+                or ErrorCodes.INTERNAL_SERVER_ERROR if refreshing the root user fails.
         """
         if not await self.org_repo.get_by_id(SystemOrganizations.ROOT_SYSTEM):
             logger.info("[UserService] Creating 'system' Organization.")
@@ -619,11 +783,11 @@ class UserService:
         root = await self.repo.get_by_id(SYSTEM_ROOT_USER_ID)
 
         if not root:
-            logger.critical(
+            logger.error(
                 "[UserService] %s: No Root user found in database! Strict Authority Enforced.",
                 ErrorCodes.CONFIGURATION_ERROR.name,
+                exc_info=True,
             )
-
             raise AppException(
                 message="Root user 'root_master' missing from DB. Run 'python -m backend_v2.seed.run_seed local'.",
                 status_code=500,
@@ -648,7 +812,11 @@ class UserService:
             root = await self.repo.get_by_id(SYSTEM_ROOT_USER_ID)
 
         if not root:
-            logger.error("[UserService] %s: Failed to obtain Root user.", ErrorCodes.INTERNAL_SERVER_ERROR.name)
+            logger.error(
+                "[UserService] %s: Failed to obtain Root user.",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                exc_info=True,
+            )
             raise AppException(
                 message="Failed to obtain Root user.",
                 status_code=500,
