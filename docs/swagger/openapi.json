@@ -5918,7 +5918,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+              "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
               "title": "Profile Id"
             }
           },
@@ -5981,7 +5981,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+              "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
               "title": "Profile Id"
             }
           },
@@ -6054,7 +6054,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+              "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
               "title": "Profile Id"
             }
           },
@@ -6112,7 +6112,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+              "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
               "title": "Profile Id"
             }
           },
@@ -6770,6 +6770,24 @@
             "title": "Logical Cohesion Score",
             "description": "Overall structural cohesion score (0.0 - 1.0)."
           },
+          "largest_component_ratio": {
+            "type": "number",
+            "title": "Largest Component Ratio",
+            "description": "Fraction of deliverable claims in the largest weakly connected component (0.0 - 1.0).",
+            "default": 1.0
+          },
+          "branch_convergence_ratio": {
+            "type": "number",
+            "title": "Branch Convergence Ratio",
+            "description": "Fraction of deliverable claims synthesizing multi-premise warrants with in-degree >= 2 (0.0 - 1.0).",
+            "default": 0.0
+          },
+          "steering_coupling_ratio": {
+            "type": "number",
+            "title": "Steering Coupling Ratio",
+            "description": "Fraction of deliverable foundational root claims anchored by upstream dialogue directives (0.0 - 1.0).",
+            "default": 0.0
+          },
           "detected_hollow_terms": {
             "items": {
               "type": "string"
@@ -6788,7 +6806,7 @@
           "logical_cohesion_score"
         ],
         "title": "AntiFluffAuditDTO",
-        "description": "Audit summary detecting hollow concepts, ungrounded claims, and logical cohesion.\n\nAttributes:\n    isolated_concept_count: Number of isolated unlinked claims.\n    cycle_detected: Whether causal loops or circular reasoning occurred.\n    unsupported_claims_count: Count of claims lacking evidentiary foundation.\n    logical_cohesion_score: Overall structural cohesion score (0.0 - 1.0).\n    detected_hollow_terms: Detected hollow or performative buzzwords."
+        "description": "Audit summary detecting hollow concepts, ungrounded claims, and logical cohesion.\n\nAttributes:\n    isolated_concept_count: Number of isolated unlinked claims.\n    cycle_detected: Whether causal loops or circular reasoning occurred.\n    unsupported_claims_count: Count of claims lacking evidentiary foundation.\n    logical_cohesion_score: Overall structural cohesion score (0.0 - 1.0).\n    largest_component_ratio: Fraction of deliverable claims in the largest weakly connected component (0.0 - 1.0).\n    branch_convergence_ratio: Fraction of deliverable claims with in-degree >= 2 (0.0 - 1.0).\n    steering_coupling_ratio: Fraction of deliverable root claims anchored by dialogue directives (0.0 - 1.0).\n    detected_hollow_terms: Detected hollow or performative buzzwords."
       },
       "AntiPattern": {
         "properties": {
@@ -9366,7 +9384,7 @@
         "properties": {
           "workflow_id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Workflow Id",
             "description": "Target workflow ID to execute."
           },
@@ -9629,7 +9647,7 @@
           },
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "Execution ID, usually a uuid"
           },
@@ -12552,7 +12570,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
@@ -13505,7 +13523,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "Unique identifier for the prompt block. MUST be a valid Stripe Pattern Opaque ID."
           },
@@ -14827,7 +14845,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "Unique Opaque Synthesis Group ID (e.g. grp_440a5fef9331451b)"
           },
@@ -15600,7 +15618,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "Unique Profile ID"
           },
@@ -16068,7 +16086,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
@@ -16081,7 +16099,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
@@ -16534,7 +16552,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
@@ -16799,7 +16817,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "Unique identifier for the prompt block. MUST be a valid Stripe Pattern Opaque ID."
           },
@@ -17295,7 +17313,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "Unique identifier for the prompt block. MUST be a valid Stripe Pattern Opaque ID."
           },
@@ -18382,7 +18400,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "Unique identifier prefixed with 'rep_'. MUST be a valid Stripe Pattern Opaque ID."
           },
@@ -20618,7 +20636,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "Unique UUID for storage optionally"
           },
@@ -20675,7 +20693,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
@@ -20688,7 +20706,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
@@ -20701,7 +20719,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
@@ -21118,7 +21136,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "Unique UUID for storage optionally"
           },
@@ -21175,7 +21193,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
@@ -21188,7 +21206,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
@@ -21201,7 +21219,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
@@ -21310,7 +21328,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "Unique node ID in the workflow (e.g. blk_node_1)."
           },
@@ -21363,7 +21381,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"
+                "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
@@ -21817,7 +21835,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "System config ID"
           },
@@ -21905,7 +21923,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "System config ID"
           },
@@ -21993,7 +22011,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "System config ID"
           },
@@ -22093,7 +22111,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "Unique identifier for the prompt block. MUST be a valid Stripe Pattern Opaque ID."
           },
@@ -24049,7 +24067,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "Unique Workflow ID"
           },
@@ -24119,19 +24137,18 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^sys_[a-fA-F0-9]{16,32}$"
+                "pattern": "^sys_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Mcp Gateway Id",
-            "description": "The system_config ID of the MCP gateways configuration attached to this workflow.",
-            "default": "sys_8172bda70c8641c5"
+            "description": "The system_config ID of the MCP gateways configuration attached to this workflow."
           },
           "model_registry_id": {
             "type": "string",
-            "pattern": "^(sys_[a-fA-F0-9]{16,32}|cfg_model_registry_\\d{2})$",
+            "pattern": "^sys_[a-fA-F0-9]{32}$",
             "title": "Model Registry Id",
             "description": "System config ID of the attached model registry"
           },
@@ -24441,7 +24458,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{16,32}$",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
             "title": "Id",
             "description": "Unique Workflow ID"
           },
@@ -24512,19 +24529,18 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^sys_[a-fA-F0-9]{16,32}$"
+                "pattern": "^sys_[a-fA-F0-9]{32}$"
               },
               {
                 "type": "null"
               }
             ],
             "title": "Mcp Gateway Id",
-            "description": "The system_config ID of the MCP gateways configuration attached to this workflow.",
-            "default": "sys_8172bda70c8641c5"
+            "description": "The system_config ID of the MCP gateways configuration attached to this workflow."
           },
           "model_registry_id": {
             "type": "string",
-            "pattern": "^(sys_[a-fA-F0-9]{16,32}|cfg_model_registry_\\d{2})$",
+            "pattern": "^sys_[a-fA-F0-9]{32}$",
             "title": "Model Registry Id",
             "description": "System config ID of the attached model registry"
           },
