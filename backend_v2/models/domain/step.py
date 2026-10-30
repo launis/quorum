@@ -85,7 +85,7 @@ class Step(V2CoreBase):
     allowed_mcp_tools: list[str] = Field(
         default_factory=list, description="List of allowed MCP tools for this step (e.g. ['mcp_tavily_search'])."
     )
-    # Phase 1, Step 1: Step-level static parameter overrides keyed by namespaced MCP tool alias
+    # Step-level static parameter overrides keyed by namespaced MCP tool alias
     mcp_tool_params: Annotated[
         dict[str, MCPToolParamOverrides],
         Field(
@@ -101,7 +101,7 @@ class Step(V2CoreBase):
         default_factory=list,
         description="List of expected input keys required for this step. Replaces free-text generic routing.",
     )
-    # Phase 1, Step 2: Workflow context governance field
+    # Workflow context governance field
     is_system_core: Annotated[
         bool,
         Field(description="Whether this step blueprint is a protected system foundational component."),
@@ -127,7 +127,7 @@ class Step(V2CoreBase):
         """Strict fail-fast validation to ensure Step is structurally complete.
 
         Raises:
-            AppException: If structure is malformed or internally inconsistent.
+            AppException: With ErrorCodes.VALIDATION_FAILED if structure is malformed or internally inconsistent.
 
         Returns:
             The sanitized Step matching schema expectations.
@@ -166,7 +166,7 @@ class Step(V2CoreBase):
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED},
                 )
-            # Phase 4, Step 4: Require BARS causal cohesion matrix on CAUSAL_DISCOVERY steps
+            # Require BARS causal cohesion matrix on CAUSAL_DISCOVERY steps
             if not self.criteria_block_ids:
                 msg = f"Causal Discovery Step '{self.id}' must define at least one criteria_block_id."
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
@@ -216,7 +216,7 @@ class StepRule(V2CoreBase):
         Literal["markdown", "hero_insight", "grid"] | None,
         Field(description="Declares the expected SDUI output schema for schema compilation."),
     ] = None
-    # Phase 1, Step 2: Synthesis context governance field
+    # Synthesis context governance field
     is_synthesis_source: Annotated[
         bool,
         Field(description="Whether this step's narrative text output is forwarded to the synthesis LLM context."),
@@ -238,7 +238,7 @@ class StepRule(V2CoreBase):
         """Enforces that causal_source_step_id exists in depends_on if specified.
 
         Raises:
-            AppException: If causal_source_step_id is not in depends_on.
+            AppException: With ErrorCodes.VALIDATION_FAILED if causal_source_step_id is not in depends_on.
 
         Returns:
             The validated StepRule instance.
@@ -331,7 +331,7 @@ class ExpectedInput(V2CoreBase):
         """Whether this input is configured with the assignment modality.
 
         Returns:
-            bool: True if 'assignment' is in input_modes.
+            True if 'assignment' is in input_modes.
         """
         return "assignment" in self.input_modes
 
@@ -345,7 +345,7 @@ class ExpectedInput(V2CoreBase):
         Returns:
             The sanitized ExpectedInput matching schema expectations.
         """
-        # Phase 1, Step 1.2: Strict input modes validation with closed set ALLOWED_INPUT_MODES
+        # Enforce strict input modes validation with closed set ALLOWED_INPUT_MODES
         if not self.input_modes:
             msg = f"ExpectedInput '{self.input_key}' must have at least one input_mode."
             logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
