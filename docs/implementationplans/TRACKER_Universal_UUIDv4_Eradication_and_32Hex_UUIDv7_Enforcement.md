@@ -36,7 +36,7 @@
   - [x] @[backend_v2/llm/client.py]
   - [x] @[backend_v2/llm/mock_data.py]
   - [x] @[backend_v2/llm/provider/litellm_response_stage.py]
-  - [ ] @[backend_v2/models/auth.py]
+  - [x] @[backend_v2/models/auth.py]
   - [ ] @[backend_v2/models/chunking.py]
   - [ ] @[backend_v2/models/core_base.py]
   - [ ] @[backend_v2/models/domain/base.py]
