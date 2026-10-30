@@ -9,6 +9,7 @@ part 'prompt_block.freezed.dart';
 part 'prompt_block.g.dart';
 
 /// Data types allowed for PromptBlock extracted values.
+@JsonEnum()
 enum BlockDataType {
   @JsonValue('float')
   floatType('float'),
@@ -92,7 +93,7 @@ abstract class CausalEdgeDTO with _$CausalEdgeDTO {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory CausalEdgeDTO({
     @JsonKey(name: 'edge_reasoning') required String edgeReasoning,
-    @JsonKey(name: 'tda_id') required String tdaId,
+    @StrictOpaqueIdConverter() @JsonKey(name: 'tda_id') required String tdaId,
     @JsonKey(name: 'source_id') required String sourceId,
     @JsonKey(name: 'expected_status')
     @Default(ExecutionStatus.passed)
@@ -123,7 +124,7 @@ abstract class TDAAssertion with _$TDAAssertion {
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory TDAAssertion({
-    @JsonKey(name: 'tda_id') required String tdaId,
+    @StrictOpaqueIdConverter() @JsonKey(name: 'tda_id') required String tdaId,
     @JsonKey(name: 'concept_description') required String conceptDescription,
     @JsonKey(name: 'acceptance_criteria')
     @Default([])
@@ -168,7 +169,7 @@ abstract class TDAAssertion with _$TDAAssertion {
     String? logicalExpression,
     TargetSpeaker targetSpeaker = TargetSpeaker.user,
   }) {
-    // Phase 1, Step 1: Generate canonical 32-hex tda_ UUIDv7 identifier
+    // Enforce 32-hex RFC 9562 UUIDv7 generation to guarantee collision-free TDA identifiers.
     return TDAAssertion(
       tdaId: generateOpaqueUuid7('tda'),
       conceptDescription: conceptDescription,

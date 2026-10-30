@@ -108,7 +108,10 @@ _CausalEdgeDTO _$CausalEdgeDTOFromJson(Map<String, dynamic> json) =>
         );
         final val = _CausalEdgeDTO(
           edgeReasoning: $checkedConvert('edge_reasoning', (v) => v as String),
-          tdaId: $checkedConvert('tda_id', (v) => v as String),
+          tdaId: $checkedConvert(
+            'tda_id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
           sourceId: $checkedConvert('source_id', (v) => v as String),
           expectedStatus: $checkedConvert(
             'expected_status',
@@ -130,7 +133,7 @@ _CausalEdgeDTO _$CausalEdgeDTOFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$CausalEdgeDTOToJson(_CausalEdgeDTO instance) =>
     <String, dynamic>{
       'edge_reasoning': instance.edgeReasoning,
-      'tda_id': instance.tdaId,
+      'tda_id': const StrictOpaqueIdConverter().toJson(instance.tdaId),
       'source_id': instance.sourceId,
       'expected_status': _$ExecutionStatusEnumMap[instance.expectedStatus]!,
     };
@@ -192,7 +195,10 @@ _TDAAssertion _$TDAAssertionFromJson(
       ],
     );
     final val = _TDAAssertion(
-      tdaId: $checkedConvert('tda_id', (v) => v as String),
+      tdaId: $checkedConvert(
+        'tda_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       conceptDescription: $checkedConvert(
         'concept_description',
         (v) => v as String,
@@ -299,7 +305,7 @@ _TDAAssertion _$TDAAssertionFromJson(
 
 Map<String, dynamic> _$TDAAssertionToJson(_TDAAssertion instance) =>
     <String, dynamic>{
-      'tda_id': instance.tdaId,
+      'tda_id': const StrictOpaqueIdConverter().toJson(instance.tdaId),
       'concept_description': instance.conceptDescription,
       'acceptance_criteria': instance.acceptanceCriteria
           .map((e) => e.toJson())
