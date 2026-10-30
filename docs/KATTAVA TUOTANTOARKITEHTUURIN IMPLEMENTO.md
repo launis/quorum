@@ -722,9 +722,9 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
   1. `@[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]`
   2. `@[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`
 * **Seurantadokumentit (SSOT Trackers):**
-  1. `@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]` (`15/15` kohdetta karkaistu, Tier 7 synkronoitu, Tier 8 auditoitu)
-  2. `@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]` (`31/31` kohdetta karkaistu, Tier 7 synkronoitu, Tier 8 auditoitu)
-* **Tila:** 🟢 **100 % SUORITETTU, KARKAISTU, AUDITOITU & LUKITTU**
+  1. `@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]` (Steps 1–5 valmiit, Tier 7 synkronoitu, Tier 8 auditoitu; `Tier 2 Hardening` `0/15` odottaa `auto_hardening_runner.py`-ajoa)
+  2. `@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]` (Steps 1–5 valmiit, Tier 7 synkronoitu, Tier 8 auditoitu; `Tier 2 Hardening` `0/31` odottaa `auto_hardening_runner.py`-ajoa)
+* **Tila:** 🟡 **TOTEUTUS (STEPS 1–5), TIER 7 & TIER 8 SUORITETTU — TIER 2 HARDENING (`0/15` + `0/31` via `auto_hardening_runner.py`) ODOTTAA AJOA**
 * **Miksi sijoitettu tähän kohtaan (heti Karkaisuaaltojen 2–4 jälkeen ja ENNEN Askelta 4 `EPIC 160` IAM):**
   `EPIC 160` (B2B SaaS IAM) perustuu siihen, että `organizations`- ja `users`-taulujen pääavaimet ovat natiiveja 16-tavuisia PostgreSQL 19 `UUIDv7`-arvoja (`usr_<hex32>` ja `org_<hex32>`). Toteuttamalla `@[docs/arkkitehtuurin_parannuskohteet.md]` Luvun 2 (**Malli A**) juuri ennen IAM-vaihetta poistettiin vanha kahtiajako (7 `TEXT`-taulua 16-heksalla vs. 5 `UUID`-taulua 32-heksalla) kerralla kaikista 12 taulusta sekä hävitettiin kaikki jäljellä olleet `uuid.uuid4()`- ja `Uuid().v4()`-generaattorit koko Python- ja Flutter-koodikannasta.
 * **Toteutetut ja lukitut arkkitehtuurimuutokset (Malli A):**

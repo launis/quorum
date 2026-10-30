@@ -26,39 +26,39 @@
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
-- [x] **[OK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`.
-  - [x] @[backend_v2/database/repositories/audit.py]
-  - [x] @[backend_v2/database/repositories/execution.py]
-  - [x] @[backend_v2/database/repositories/knowledge.py]
-  - [x] @[backend_v2/hooks/linguistics.py]
-  - [x] @[backend_v2/hooks/llm.py]
-  - [x] @[backend_v2/hooks/references.py]
-  - [x] @[backend_v2/llm/client.py]
-  - [x] @[backend_v2/llm/mock_data.py]
-  - [x] @[backend_v2/llm/provider/litellm_response_stage.py]
-  - [x] @[backend_v2/models/auth.py]
-  - [x] @[backend_v2/models/chunking.py]
-  - [x] @[backend_v2/models/core_base.py]
-  - [x] @[backend_v2/models/domain/base.py]
-  - [x] @[backend_v2/models/domain/matrix.py]
-  - [x] @[backend_v2/models/state.py]
-  - [x] @[backend_v2/services/auth/organization_service.py]
-  - [x] @[backend_v2/services/auth/user_service.py]
-  - [x] @[backend_v2/services/drivers/local_file_driver.py]
-  - [x] @[backend_v2/services/mcp/dispatcher.py]
-  - [x] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
-  - [x] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
-  - [x] @[backend_v2/services/usage_service.py]
-  - [x] @[scripts/_ast_guardrails.py]
-  - [x] @[scripts/_dart_guardrails.py]
-- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure`.
-  - [x] @[client_app_v2/lib/features/studio/models/prompt_block.dart]
-  - [x] @[client_app_v2/lib/features/studio/utils/workflow_cloner.dart]
-  - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]
-  - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]
-  - [x] @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]
-  - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]
-  - [x] @[client_app_v2/lib/utils/json_converters.dart]
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`.
+  - [ ] @[backend_v2/database/repositories/audit.py]
+  - [ ] @[backend_v2/database/repositories/execution.py]
+  - [ ] @[backend_v2/database/repositories/knowledge.py]
+  - [ ] @[backend_v2/hooks/linguistics.py]
+  - [ ] @[backend_v2/hooks/llm.py]
+  - [ ] @[backend_v2/hooks/references.py]
+  - [ ] @[backend_v2/llm/client.py]
+  - [ ] @[backend_v2/llm/mock_data.py]
+  - [ ] @[backend_v2/llm/provider/litellm_response_stage.py]
+  - [ ] @[backend_v2/models/auth.py]
+  - [ ] @[backend_v2/models/chunking.py]
+  - [ ] @[backend_v2/models/core_base.py]
+  - [ ] @[backend_v2/models/domain/base.py]
+  - [ ] @[backend_v2/models/domain/matrix.py]
+  - [ ] @[backend_v2/models/state.py]
+  - [ ] @[backend_v2/services/auth/organization_service.py]
+  - [ ] @[backend_v2/services/auth/user_service.py]
+  - [ ] @[backend_v2/services/drivers/local_file_driver.py]
+  - [ ] @[backend_v2/services/mcp/dispatcher.py]
+  - [ ] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
+  - [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
+  - [ ] @[backend_v2/services/usage_service.py]
+  - [ ] @[scripts/_ast_guardrails.py]
+  - [ ] @[scripts/_dart_guardrails.py]
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure`.
+  - [ ] @[client_app_v2/lib/features/studio/models/prompt_block.dart]
+  - [ ] @[client_app_v2/lib/features/studio/utils/workflow_cloner.dart]
+  - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]
+  - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]
+  - [ ] @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]
+  - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]
+  - [ ] @[client_app_v2/lib/utils/json_converters.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
@@ -115,9 +115,9 @@
 - Updating `two_pass_atomizer.py` to generate 32-hex `tda_` IDs via `generate_opaque_id(EntityPrefix.TDA)` required updating the length assertion in `@[backend_v2/tests/unit/services/orchestrator/test_two_pass_atomizer.py]` from `12` (`tda_` + 8-hex) to `36` (`tda_` + 32-hex).
 
 ## Remaining
-- None. All execution steps, post-implementation hardening gates (24/24 Backend, 7/7 Frontend), As-Built Architectural Sync (`/tier7-describe-architecture`), and System 2 Red-Team Audit (`/tier8-audit-plan`) are 100% completed and locked.
+- Execute genuine AI-driven Tier 2 Hardening (`scripts/auto_hardening_runner.py` evaluating all ~180 `<rule_block>` requirements + Subsystem KIs per file) across all 24 Backend targets and 7 Frontend targets.
 
 ## Resume Command
 ```powershell
-/tier5-resume @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]
+$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]" --gate all --model gemini-4-argon-medium --continue-on-failure
 ```

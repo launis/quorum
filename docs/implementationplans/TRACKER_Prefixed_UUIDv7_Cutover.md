@@ -30,23 +30,23 @@
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
-- [x] **[OK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`.
-  - [x] @[backend_v2/database/postgres/entity_adapter.py]
-  - [x] @[backend_v2/models/core_base.py]
-  - [x] @[backend_v2/models/domain/step.py]
-  - [x] @[backend_v2/models/domain/workflow.py]
-  - [x] @[backend_v2/models/dtos/causal_discovery.py]
-  - [x] @[backend_v2/models/enums.py]
-  - [x] @[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]
-  - [x] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
-  - [x] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
-  - [x] @[backend_v2/services/studio/workflow_service.py]
-  - [x] @[backend_v2/settings.py]
-  - [x] @[scripts/_ast_guardrails.py]
-  - [x] @[scripts/audit_zero_orm_strictness.py]
-  - [x] @[scripts/sanitize_seed_vault.py]
-- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure`.
-  - [x] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure`.
+  - [ ] @[backend_v2/database/postgres/entity_adapter.py]
+  - [ ] @[backend_v2/models/core_base.py]
+  - [ ] @[backend_v2/models/domain/step.py]
+  - [ ] @[backend_v2/models/domain/workflow.py]
+  - [ ] @[backend_v2/models/dtos/causal_discovery.py]
+  - [ ] @[backend_v2/models/enums.py]
+  - [ ] @[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]
+  - [ ] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
+  - [ ] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
+  - [ ] @[backend_v2/services/studio/workflow_service.py]
+  - [ ] @[backend_v2/settings.py]
+  - [ ] @[scripts/_ast_guardrails.py]
+  - [ ] @[scripts/audit_zero_orm_strictness.py]
+  - [ ] @[scripts/sanitize_seed_vault.py]
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure`.
+  - [ ] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
@@ -111,9 +111,9 @@
 - `CausalCohesionEvaluator` enforces Equation (13) Guttman tier gates ($N_{\min}$, $r_{\text{LCC}}$, $r_{\text{conv}}$, $r_{\text{iso}}$, acyclicity) and executes deterministic $\mathcal{O}(|\mathcal{V}| + |\mathcal{E}|)$ counterfactual retraction via `simulate_counterfactual_retraction`.
 
 ## Remaining
-- None. All execution steps, post-implementation hardening gates (14/14 Backend, 1/1 Frontend), As-Built Architectural Sync (`/tier7-describe-architecture`), and System 2 Red-Team Audit (`/tier8-audit-plan`) are 100% completed and locked.
+- Execute genuine AI-driven Tier 2 Hardening (`scripts/auto_hardening_runner.py` evaluating all ~180 `<rule_block>` requirements + Subsystem KIs per file) across all 14 Backend targets and 1 Frontend target.
 
 ## Resume Command
 ```powershell
-/tier7-describe-architecture @[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md] @[ki_god_code_prevention.md] @[ki_zero_permissive_typing.md] @[ki_python_314_concurrency_strictness.md] @[ki_seed_vault_verification_and_sanitization.md] @[ki_sdui_matrix_synthesis.md]
+$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]" --gate all --model gemini-4-argon-medium --continue-on-failure
 ```
