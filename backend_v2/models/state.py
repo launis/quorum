@@ -20,7 +20,7 @@ from fastapi import status
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import V2CoreBase, generate_uuid7
 from backend_v2.models.domain.inputs import DomainInputValue, WorkflowInputs
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO
@@ -160,7 +160,7 @@ class TraceEvent(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     event_id: Annotated[uuid.UUID, "Unique event identifier."] = Field(
-        default_factory=uuid.uuid4, description="Unique event identifier."
+        default_factory=generate_uuid7, description="Unique event identifier."
     )
     v: Annotated[int, Field(default=1, description="Schema version for forward compatibility and lazy upcasting.")] = 1
     timestamp: Annotated[datetime, "Event timestamp."] = Field(
@@ -313,7 +313,7 @@ class WorkflowState(ExecutionCoreFields):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     execution_id: Annotated[uuid.UUID, "Unique execution identifier."] = Field(
-        default_factory=uuid.uuid4, description="Unique execution identifier."
+        default_factory=generate_uuid7, description="Unique execution identifier."
     )
     workflow_id: Annotated[
         str,

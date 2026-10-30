@@ -5,7 +5,6 @@ organization management, and cryptographic token structures.
 """
 
 import logging
-import uuid
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
@@ -13,9 +12,9 @@ from typing import Annotated, Any, Literal
 from pydantic import ConfigDict, EmailStr, Field, field_validator
 
 from backend_v2.exceptions import ErrorCodes
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import V2CoreBase, generate_opaque_id
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
-from backend_v2.models.enums import LaxSystemLocale
+from backend_v2.models.enums import EntityPrefix, LaxSystemLocale
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +86,7 @@ class Organization(V2CoreBase):
     id: Annotated[
         str,
         Field(
-            default_factory=lambda: f"org_{uuid.uuid4().hex}",
+            default_factory=lambda: generate_opaque_id(EntityPrefix.ORGANIZATION),
             pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             description="Unique Organization ID (e.g. 'org_1234abcd')",
         ),
@@ -232,7 +231,7 @@ class User(UserBase):
     id: Annotated[
         str,
         Field(
-            default_factory=lambda: f"usr_{uuid.uuid4().hex}",
+            default_factory=lambda: generate_opaque_id(EntityPrefix.USER),
             pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
             description="Unique ID (matches Firebase UID if used)",
         ),

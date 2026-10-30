@@ -7,13 +7,12 @@ across the execution lifecycle to stay within rate limits.
 from __future__ import annotations
 
 import logging
-import uuid
 from typing import Annotated
 
 from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import ErrorCodes
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import V2CoreBase, generate_uuid7
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +38,7 @@ class Chunk[T](V2CoreBase):
         str,
         "Opaque Stripe ID for the chunk",
     ] = Field(
-        default_factory=lambda: f"chk_{uuid.uuid4().hex[:12]}",
+        default_factory=lambda: f"chk_{generate_uuid7().hex}",
         pattern=r"^chk_[a-zA-Z0-9]+$",
         description="Opaque Stripe ID for the chunk",
     )

@@ -5,14 +5,13 @@ It includes Metadata, ReasoningTrace, and UsageRecord.
 """
 
 import logging
-import uuid
 from datetime import datetime
 from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field, JsonValue, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.core_base import V2CoreBase, generate_uuid7
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.base import BaseDTO
 from backend_v2.models.llm import ProviderMetadataDTO
@@ -283,7 +282,7 @@ class UsageRecord(V2CoreBase):
     id: Annotated[
         str,
         Field(
-            default_factory=lambda: f"usg_{uuid.uuid4().hex}",
+            default_factory=lambda: f"usg_{generate_uuid7().hex}",
             min_length=1,
             description="Unique ID for the usage event.",
             json_schema_extra={"x-ui-label": "ID"},

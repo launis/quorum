@@ -21,6 +21,7 @@ from backend_v2.models.core_base import (
     coerce_source_quotes_tuple,
     format_prefixed_uuid7,
     generate_opaque_id,
+    generate_uuid7,
     generate_uuid7_opaque_id,
     parse_prefixed_uuid7,
 )
@@ -194,7 +195,11 @@ def test_coerce_source_quotes_tuple_unsupported_types() -> None:
 
 
 def test_uuid7_prefixed_bridge_and_monotonic_generation() -> None:
-    """Verify generate_uuid7_opaque_id, parse_prefixed_uuid7, and format_prefixed_uuid7 roundtrips."""
+    """Verify generate_uuid7, generate_uuid7_opaque_id, parse_prefixed_uuid7, and format_prefixed_uuid7 roundtrips."""
+    raw_u7 = generate_uuid7()
+    assert isinstance(raw_u7, uuid.UUID)
+    assert raw_u7.version == 7
+
     fixed_ts = 1_760_000_000_000
     generated_ids = [generate_uuid7_opaque_id(EntityPrefix.NODE, timestamp_ms=fixed_ts) for _ in range(10)]
     assert generated_ids == sorted(generated_ids)
@@ -271,6 +276,9 @@ def test_uuid7_prefixed_bridge_negative_boundaries() -> None:
         format_prefixed_uuid7("not-a-uuid-string", EntityPrefix.NODE)
 
     # Timestamp boundary violations (< 0 and > 48-bit max)
+    with pytest.raises(AppException):
+        generate_uuid7(timestamp_ms=-1)
+
     with pytest.raises(AppException):
         generate_uuid7_opaque_id(EntityPrefix.NODE, timestamp_ms=-1)
 

@@ -29,6 +29,7 @@ __all__ = [
     "coerce_source_quotes_tuple",
     "format_prefixed_uuid7",
     "generate_opaque_id",
+    "generate_uuid7",
     "generate_uuid7_opaque_id",
     "parse_prefixed_uuid7",
 ]
@@ -326,22 +327,19 @@ def format_prefixed_uuid7(
     return f"{prefix.value}_{uuid_obj.hex}"
 
 
-def generate_uuid7_opaque_id(
-    prefix: EntityPrefix,
-    timestamp_ms: int | None = None,
-) -> str:
-    """Generate a monotonic RFC 9562 UUIDv7 formatted as a canonical Opaque Stripe ID.
+# Phase 2, Step 2: Extract standalone RFC 9562 UUIDv7 primitive
+def generate_uuid7(timestamp_ms: int | None = None) -> uuid.UUID:
+    """Generate a monotonic 16-byte RFC 9562 UUIDv7 instance.
 
     Combines a 48-bit Unix epoch millisecond timestamp, a thread-safe 12-bit monotonic
     sub-millisecond counter (rand_a), the 2-bit RFC 9562 variant (0b10), and 62 bits of
     cryptographic randomness (rand_b).
 
     Args:
-        prefix: Canonical EntityPrefix to prepend to the 32-hex UUIDv7 payload.
         timestamp_ms: Optional explicit Unix epoch millisecond timestamp for deterministic tests.
 
     Returns:
-        Canonical 32-hex Opaque Stripe ID string ('{prefix.value}_{uuid7_hex}').
+        Monotonic 16-byte uuid.UUID instance with RFC 9562 version 7.
 
     Raises:
         AppException: With ErrorCodes.VALIDATION_FAILED if timestamp_ms is negative or exceeds 48 bits.
@@ -379,7 +377,30 @@ def generate_uuid7_opaque_id(
         | (0b10 << 62)
         | (rand_b & 0x3FFFFFFFFFFFFFFF)
     )
-    return format_prefixed_uuid7(uuid.UUID(int=uuid_int), prefix, enforce_v7=True)
+    return uuid.UUID(int=uuid_int)
+
+
+def generate_uuid7_opaque_id(
+    prefix: EntityPrefix,
+    timestamp_ms: int | None = None,
+) -> str:
+    """Generate a monotonic RFC 9562 UUIDv7 formatted as a canonical Opaque Stripe ID.
+
+    Combines a 48-bit Unix epoch millisecond timestamp, a thread-safe 12-bit monotonic
+    sub-millisecond counter (rand_a), the 2-bit RFC 9562 variant (0b10), and 62 bits of
+    cryptographic randomness (rand_b).
+
+    Args:
+        prefix: Canonical EntityPrefix to prepend to the 32-hex UUIDv7 payload.
+        timestamp_ms: Optional explicit Unix epoch millisecond timestamp for deterministic tests.
+
+    Returns:
+        Canonical 32-hex Opaque Stripe ID string ('{prefix.value}_{uuid7_hex}').
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if timestamp_ms is negative or exceeds 48 bits.
+    """
+    return format_prefixed_uuid7(generate_uuid7(timestamp_ms=timestamp_ms), prefix, enforce_v7=True)
 
 
 def coerce_source_quotes_tuple(v: object) -> tuple[str, ...] | None:

@@ -7,7 +7,6 @@ TDAAssertion, MatrixClaim, MatrixRow, and MatrixScale.
 from __future__ import annotations
 
 import logging
-import uuid
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 
 if TYPE_CHECKING:
@@ -16,8 +15,8 @@ if TYPE_CHECKING:
 from pydantic import BeforeValidator, ConfigDict, Field, StringConstraints, model_validator
 
 from backend_v2.exceptions import ErrorCodes
-from backend_v2.models.core_base import I18nText, V2CoreBase
-from backend_v2.models.enums import TargetSpeaker
+from backend_v2.models.core_base import I18nText, V2CoreBase, generate_opaque_id
+from backend_v2.models.enums import EntityPrefix, TargetSpeaker
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +126,7 @@ class TDAAssertion(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     tda_id: str = Field(
-        default_factory=lambda: f"tda_{uuid.uuid4().hex}",
+        default_factory=lambda: generate_opaque_id(EntityPrefix.TDA),
         pattern=r"^tda_[a-f0-9]{32}$",
         description="Opaque Stripe ID for this assertion.",
     )
