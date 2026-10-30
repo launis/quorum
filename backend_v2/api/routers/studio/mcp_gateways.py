@@ -4,10 +4,13 @@ Provides endpoints to manage MCP gateway configurations.
 """
 
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Path, status
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioSystemConfigServiceDep
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 from backend_v2.models.dtos.studio import MCPGatewayDeleteResponse
 
@@ -58,7 +61,7 @@ async def create_mcp_gateways(
 
 @router.get("/{gateway_id}", response_model=SystemConfigMCPGateways)
 async def get_mcp_gateway(
-    gateway_id: str,
+    gateway_id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
     current_user: CurrentUserDep,
     studio_service: StudioSystemConfigServiceDep,
 ) -> SystemConfigMCPGateways:
@@ -81,7 +84,7 @@ async def get_mcp_gateway(
 
 @router.put("/{gateway_id}", response_model=SystemConfigMCPGateways)
 async def save_mcp_gateway(
-    gateway_id: str,
+    gateway_id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
     data: SystemConfigMCPGateways,
     current_user: CurrentUserDep,
     studio_service: StudioSystemConfigServiceDep,
@@ -98,15 +101,34 @@ async def save_mcp_gateway(
         The updated MCP gateway configuration.
 
     Raises:
+        AppException: With ErrorCodes.ID_MISMATCH if path gateway_id does not match payload id.
         ResourceNotFoundError: If the MCP gateway is not found.
         AppException: If updating the MCP gateway fails.
     """
+    if data.id != gateway_id:
+        logger.error(
+            "[MCPGatewaysRouter] %s: Path gateway_id '%s' does not match payload id '%s' (Initiator: %s).",
+            ErrorCodes.ID_MISMATCH.name,
+            gateway_id,
+            data.id,
+            current_user.id,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.ID_MISMATCH.value, "gateway_id": gateway_id},
+        )
+        raise AppException(
+            message=f"Path gateway_id '{gateway_id}' does not match payload id '{data.id}'",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.ID_MISMATCH.value},
+        )
+
     return await studio_service.save_mcp_gateways(current_user, gateway_id, data)
 
 
 @router.delete("/{gateway_id}", response_model=MCPGatewayDeleteResponse)
 async def delete_mcp_gateway(
-    gateway_id: str, current_user: CurrentUserDep, studio_service: StudioSystemConfigServiceDep
+    gateway_id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
+    current_user: CurrentUserDep,
+    studio_service: StudioSystemConfigServiceDep,
 ) -> MCPGatewayDeleteResponse:
     """Delete an MCP Gateway configuration securely via SSOT Service Layer.
 
@@ -130,7 +152,7 @@ async def delete_mcp_gateway(
 
 @router.post("/{gateway_id}/clone", response_model=SystemConfigMCPGateways)
 async def clone_mcp_gateway(
-    gateway_id: str,
+    gateway_id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
     current_user: CurrentUserDep,
     studio_service: StudioSystemConfigServiceDep,
 ) -> SystemConfigMCPGateways:
@@ -153,7 +175,7 @@ async def clone_mcp_gateway(
 
 @router.post("/{gateway_id}/discover", response_model=SystemConfigMCPGateways)
 async def discover_mcp_gateway_tools(
-    gateway_id: str,
+    gateway_id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
     current_user: CurrentUserDep,
     studio_service: StudioSystemConfigServiceDep,
 ) -> SystemConfigMCPGateways:

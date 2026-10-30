@@ -1,13 +1,21 @@
 """Admin Studio Workflows API Router.
 
-Provides endpoints to manage workflow configurations.
+Provides endpoints to manage workflow configurations and retrieve UI rendering schemas.
 """
 
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Path, status
 
-from backend_v2.api.dependencies import CurrentUserDep, StudioSimulationServiceDep, StudioWorkflowServiceDep
+from backend_v2.api.dependencies import (
+    CurrentUserDep,
+    ExecutionServiceDep,
+    StudioSimulationServiceDep,
+    StudioWorkflowServiceDep,
+)
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.studio import (
     WorkflowAvailableExtensionsResponse,
@@ -15,10 +23,11 @@ from backend_v2.models.dtos.studio import (
     WorkflowResponseDTO,
     WorkflowSimulationResponse,
 )
+from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["router"]
+__all__ = ["get_workflow_ui_schema", "router"]
 
 router = APIRouter(prefix="/workflows", tags=["Admin Studio V2 - Workflows"])
 
@@ -65,7 +74,9 @@ async def create_workflow(
 
 @router.get("/{id}", response_model=WorkflowResponseDTO)
 async def get_workflow(
-    id: str, current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
+    current_user: CurrentUserDep,
+    studio_workflow_service: StudioWorkflowServiceDep,
 ) -> WorkflowResponseDTO:
     """Retrieve a specific workflow definition by id securely via SSOT Service Layer.
 
@@ -83,6 +94,30 @@ async def get_workflow(
         AppException: With ErrorCodes.STATE_INTEGRITY_ERROR if fetching the workflow fails.
     """
     return await studio_workflow_service.get_workflow(current_user, id)
+
+
+@router.get("/{id}/ui_schema", response_model=WorkflowSchemaResponseDTO)
+async def get_workflow_ui_schema(
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+) -> WorkflowSchemaResponseDTO:
+    """Retrieve the expected inputs schema for frontend dynamic rendering.
+
+    Args:
+        id: Canonical Opaque Stripe ID of the workflow blueprint.
+        current_user: Authenticated user token claims making the request.
+        execution_service: Execution domain service dependency.
+
+    Returns:
+        Workflow schema response containing the expected input definitions.
+
+    Raises:
+        ResourceNotFoundError: If the target workflow does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
+        PermissionDeniedError: If the authenticated user lacks permission to access the workflow
+            (ErrorCodes.PERMISSION_DENIED).
+    """
+    return await execution_service.get_workflow_ui_schema(id)
 
 
 @router.post("/simulate", response_model=WorkflowSimulationResponse)
@@ -107,7 +142,9 @@ async def simulate_workflow(
 
 @router.get("/{id}/available-extensions", response_model=WorkflowAvailableExtensionsResponse)
 async def get_workflow_available_extensions(
-    id: str, current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
+    current_user: CurrentUserDep,
+    studio_workflow_service: StudioWorkflowServiceDep,
 ) -> WorkflowAvailableExtensionsResponse:
     """Calculate the union of all output_extensions defined across all Target Matrices within a specific DAG.
 
@@ -130,7 +167,9 @@ async def get_workflow_available_extensions(
 
 @router.post("/{id}/clone", response_model=WorkflowResponseDTO)
 async def clone_workflow(
-    id: str, current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
+    current_user: CurrentUserDep,
+    studio_workflow_service: StudioWorkflowServiceDep,
 ) -> WorkflowResponseDTO:
     """Deep clone a workflow block securely via SSOT Service Layer.
 
@@ -152,7 +191,10 @@ async def clone_workflow(
 
 @router.put("/{id}", response_model=WorkflowResponseDTO)
 async def save_workflow(
-    id: str, data: Workflow, current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
+    data: Workflow,
+    current_user: CurrentUserDep,
+    studio_workflow_service: StudioWorkflowServiceDep,
 ) -> WorkflowResponseDTO:
     """Append or update a workflow definition block securely via SSOT Service Layer.
 
@@ -166,16 +208,35 @@ async def save_workflow(
         The updated workflow definition.
 
     Raises:
+        AppException: With ErrorCodes.ID_MISMATCH if path id does not match payload id.
         ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the workflow is not found after save.
         PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if modification rights are denied.
         AppException: With ErrorCodes.WORKFLOW_COMPILATION_ERROR or ErrorCodes.STATE_INTEGRITY_ERROR if updating the workflow fails.
     """
+    if data.id != id:
+        logger.error(
+            "[WorkflowsRouter] %s: Path id '%s' does not match payload id '%s' (Initiator: %s).",
+            ErrorCodes.ID_MISMATCH.name,
+            id,
+            data.id,
+            current_user.id,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.ID_MISMATCH.value, "workflow_id": id},
+        )
+        raise AppException(
+            message=f"Path id '{id}' does not match payload id '{data.id}'",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.ID_MISMATCH.value},
+        )
+
     return await studio_workflow_service.save_workflow(current_user, id, data)
 
 
 @router.delete("/{id}", response_model=WorkflowDeleteResponse)
 async def delete_workflow(
-    id: str, current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
+    current_user: CurrentUserDep,
+    studio_workflow_service: StudioWorkflowServiceDep,
 ) -> WorkflowDeleteResponse:
     """Delete a workflow definition block securely via SSOT Service Layer.
 

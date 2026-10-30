@@ -8,6 +8,7 @@ from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
+from backend_v2.models.domain.step import Step
 
 logger = logging.getLogger(__name__)
 
@@ -234,25 +235,30 @@ class PromptBlockRepositoryImpl(AppendOnlyRepositoryBase):
             return False
 
         if not force_delete:
-            steps = await self.driver.query("steps")
-            for s in steps:
-                if "prompt_blocks" in s and isinstance(s["prompt_blocks"], list) and block_id in s["prompt_blocks"]:
-                    step_ref = "unknown"
-                    if "id" in s:
-                        step_ref = str(s["id"])
+            steps_data = await self.driver.query("steps")
+            for s in steps_data:
+                step = Step.model_validate(s, strict=False)
+                referenced_ids = {
+                    step.role_block_id,
+                    step.extraction_protocol_block_id,
+                    step.execution_persona_block_id,
+                    *step.criteria_block_ids,
+                }
+                if block_id in referenced_ids:
                     logger.error(
                         "[PromptBlockRepository] %s: PromptBlock %s delete blocked by step %s usage.",
                         ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
                         block_id,
-                        step_ref,
+                        step.id,
                         exc_info=True,
+                        extra={"error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value, "step_id": step.id},
                     )
                     raise AppException(
-                        message="PromptBlock delete blocked by step usage.",
+                        message=f"PromptBlock delete blocked by step '{step.id}' usage.",
                         details={
                             "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
                             "prompt_block_id": block_id,
-                            "step_id": step_ref,
+                            "step_id": step.id,
                         },
                         status_code=400,
                     )

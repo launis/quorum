@@ -6,9 +6,11 @@ Provides endpoints to manage global model registry configurations.
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Path, Query, status
 
 from backend_v2.api.dependencies import CurrentUserDep, LLMHandlerDep, StudioSystemConfigServiceDep
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.dtos.studio import GCPLocationDTO, LLMPlatformDTO, ModelRegistryDeleteResponse
 from backend_v2.models.enums import LLMPlatformType
@@ -131,7 +133,7 @@ async def create_model_registry(
 
 @router.get("/{registry_id}", response_model=SystemConfigModelRegistry)
 async def get_model_registry(
-    registry_id: str,
+    registry_id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
     current_user: CurrentUserDep,
     studio_service: StudioSystemConfigServiceDep,
 ) -> SystemConfigModelRegistry:
@@ -154,7 +156,7 @@ async def get_model_registry(
 
 @router.put("/{registry_id}", response_model=SystemConfigModelRegistry)
 async def save_model_registry(
-    registry_id: str,
+    registry_id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
     data: SystemConfigModelRegistry,
     current_user: CurrentUserDep,
     studio_service: StudioSystemConfigServiceDep,
@@ -171,15 +173,34 @@ async def save_model_registry(
         The updated model registry configuration.
 
     Raises:
+        AppException: With ErrorCodes.ID_MISMATCH if path registry_id does not match payload id.
         PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks ROOT role.
         ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the model registry is not found after save.
     """
+    if data.id != registry_id:
+        logger.error(
+            "[ModelRegistryRouter] %s: Path registry_id '%s' does not match payload id '%s' (Initiator: %s).",
+            ErrorCodes.ID_MISMATCH.name,
+            registry_id,
+            data.id,
+            current_user.id,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.ID_MISMATCH.value, "registry_id": registry_id},
+        )
+        raise AppException(
+            message=f"Path registry_id '{registry_id}' does not match payload id '{data.id}'",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.ID_MISMATCH.value},
+        )
+
     return await studio_service.save_system_config(current_user, registry_id, data)
 
 
 @router.delete("/{registry_id}", response_model=ModelRegistryDeleteResponse)
 async def delete_model_registry(
-    registry_id: str, current_user: CurrentUserDep, studio_service: StudioSystemConfigServiceDep
+    registry_id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
+    current_user: CurrentUserDep,
+    studio_service: StudioSystemConfigServiceDep,
 ) -> ModelRegistryDeleteResponse:
     """Delete a model registry configuration securely via SSOT Service Layer.
 
@@ -201,7 +222,7 @@ async def delete_model_registry(
 
 @router.post("/{registry_id}/clone", response_model=SystemConfigModelRegistry)
 async def clone_model_registry(
-    registry_id: str,
+    registry_id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
     current_user: CurrentUserDep,
     studio_service: StudioSystemConfigServiceDep,
 ) -> SystemConfigModelRegistry:

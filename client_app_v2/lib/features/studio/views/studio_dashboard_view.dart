@@ -307,7 +307,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               try {
                 final draft = await ref
                     .read(promptBlocksControllerProvider.notifier)
-                    .createPromptBlockDraft();
+                    .createPromptBlockDraft(categoryId: 'matrix');
                 if (context.mounted) {
                   PromptBlockEditRoute(
                     id: draft.id,

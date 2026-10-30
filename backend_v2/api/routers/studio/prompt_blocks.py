@@ -4,14 +4,17 @@ Provides endpoints to manage prompt blocks configurations.
 """
 
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Path, Query, status
 
 from backend_v2.api.dependencies import (
     CurrentUserDep,
     StudioPromptBlockServiceDep,
     StudioSimulationServiceDep,
 )
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.studio import (
     PromptBlockDeleteResponse,
@@ -19,6 +22,7 @@ from backend_v2.models.dtos.studio import (
     PromptBlockSimulationRequest,
     PromptBlockSimulationResponse,
 )
+from backend_v2.models.enums import PromptBlockCategory
 
 logger = logging.getLogger(__name__)
 
@@ -71,13 +75,19 @@ async def get_prompt_blocks(
 
 @router.post("/", response_model=PromptBlockResponseDTO)
 async def create_prompt_block(
-    current_user: CurrentUserDep, prompt_block_service: StudioPromptBlockServiceDep
+    current_user: CurrentUserDep,
+    prompt_block_service: StudioPromptBlockServiceDep,
+    category_id: Annotated[
+        PromptBlockCategory,
+        Query(description="Prompt block category for the new draft (system_rule, matrix, etc.)."),
+    ] = PromptBlockCategory.SYSTEM_RULE,
 ) -> PromptBlock:
     """Create a new PromptBlock draft securely via SSOT.
 
     Args:
         current_user: The authenticated user making the request.
         prompt_block_service: The prompt block service dependency.
+        category_id: Category of the prompt block draft to mint.
 
     Returns:
         The newly created prompt block draft.
@@ -87,12 +97,14 @@ async def create_prompt_block(
         PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant modification rights are violated.
         AppException: With ErrorCodes.AGENT_EXECUTION_CRITICAL if prompt block atomization fails prior to save.
     """
-    return await prompt_block_service.create_prompt_block_draft(current_user)
+    return await prompt_block_service.create_prompt_block_draft(current_user, category_id=category_id)
 
 
 @router.get("/{id}", response_model=PromptBlockResponseDTO)
 async def get_prompt_block(
-    id: str, current_user: CurrentUserDep, prompt_block_service: StudioPromptBlockServiceDep
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
+    current_user: CurrentUserDep,
+    prompt_block_service: StudioPromptBlockServiceDep,
 ) -> PromptBlock:
     """Retrieve a specific prompt block by id securely via SSOT Service Layer.
 
@@ -113,7 +125,7 @@ async def get_prompt_block(
 
 @router.post("/{id}/clone", response_model=PromptBlockResponseDTO)
 async def clone_prompt_block(
-    id: str,
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
     current_user: CurrentUserDep,
     prompt_block_service: StudioPromptBlockServiceDep,
 ) -> PromptBlock:
@@ -137,7 +149,7 @@ async def clone_prompt_block(
 
 @router.put("/{id}", response_model=PromptBlockResponseDTO)
 async def save_prompt_block(
-    id: str,
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
     data: PromptBlock,
     current_user: CurrentUserDep,
     prompt_block_service: StudioPromptBlockServiceDep,
@@ -154,16 +166,33 @@ async def save_prompt_block(
         The updated prompt block.
 
     Raises:
+        AppException: With ErrorCodes.ID_MISMATCH if path id does not match payload id.
         ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the prompt block is not found after save.
         PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if tenant modification rights are violated.
         AppException: With ErrorCodes.AGENT_EXECUTION_CRITICAL if prompt block atomization fails prior to save.
     """
+    if data.id != id:
+        logger.error(
+            "[PromptBlocksRouter] %s: Path id '%s' does not match payload id '%s' (Initiator: %s).",
+            ErrorCodes.ID_MISMATCH.name,
+            id,
+            data.id,
+            current_user.id,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.ID_MISMATCH.value, "prompt_block_id": id},
+        )
+        raise AppException(
+            message=f"Path id '{id}' does not match payload id '{data.id}'",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.ID_MISMATCH.value},
+        )
+
     return await prompt_block_service.save_prompt_block(current_user, id, data)
 
 
 @router.delete("/{id}", response_model=PromptBlockDeleteResponse)
 async def delete_prompt_block(
-    id: str,
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
     current_user: CurrentUserDep,
     prompt_block_service: StudioPromptBlockServiceDep,
     force_delete: bool = False,

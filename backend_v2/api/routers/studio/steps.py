@@ -6,9 +6,11 @@ Provides endpoints to manage step configurations.
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Path, Query, status
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioSimulationServiceDep, StudioWorkflowServiceDep
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
 from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.studio import (
@@ -97,7 +99,11 @@ async def create_step(current_user: CurrentUserDep, studio_workflow_service: Stu
 
 
 @router.get("/{id}", response_model=StepResponseDTO)
-async def get_step(id: str, current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep) -> Step:
+async def get_step(
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
+    current_user: CurrentUserDep,
+    studio_workflow_service: StudioWorkflowServiceDep,
+) -> Step:
     """Retrieve a specific Step securely via SSOT Service Layer.
 
     Args:
@@ -117,7 +123,10 @@ async def get_step(id: str, current_user: CurrentUserDep, studio_workflow_servic
 
 @router.put("/{id}", response_model=StepResponseDTO)
 async def save_step(
-    id: str, data: Step, current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
+    data: Step,
+    current_user: CurrentUserDep,
+    studio_workflow_service: StudioWorkflowServiceDep,
 ) -> Step:
     """Append or update a Step securely via SSOT Service Layer.
 
@@ -131,15 +140,35 @@ async def save_step(
         The updated step.
 
     Raises:
+        AppException: With ErrorCodes.ID_MISMATCH if path id does not match payload id.
         ResourceNotFoundError: If the step is not found.
         AppException: If updating the step fails.
     """
+    if data.id != id:
+        logger.error(
+            "[StepsRouter] %s: Path id '%s' does not match payload id '%s' (Initiator: %s).",
+            ErrorCodes.ID_MISMATCH.name,
+            id,
+            data.id,
+            current_user.id,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.ID_MISMATCH.value, "step_id": id},
+        )
+        raise AppException(
+            message=f"Path id '{id}' does not match payload id '{data.id}'",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.ID_MISMATCH.value},
+        )
+
     return await studio_workflow_service.save_step(current_user, id, data)
 
 
 @router.delete("/{id}", response_model=StepDeleteResponse)
 async def delete_step(
-    id: str, current_user: CurrentUserDep, studio_workflow_service: StudioWorkflowServiceDep, force_delete: bool = False
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
+    current_user: CurrentUserDep,
+    studio_workflow_service: StudioWorkflowServiceDep,
+    force_delete: bool = False,
 ) -> StepDeleteResponse:
     """Delete a Step securely via SSOT Service Layer.
 
@@ -162,7 +191,7 @@ async def delete_step(
 
 @router.post("/{id}/clone", response_model=StepResponseDTO)
 async def clone_step(
-    id: str,
+    id: Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)],
     current_user: CurrentUserDep,
     studio_workflow_service: StudioWorkflowServiceDep,
 ) -> Step:

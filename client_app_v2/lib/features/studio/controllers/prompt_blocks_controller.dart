@@ -161,11 +161,13 @@ class PromptBlocksController extends _$PromptBlocksController {
   }
 
   /// Creates a draft Prompt Block via the SSoT backend.
-  Future<PromptBlock> createPromptBlockDraft() async {
+  Future<PromptBlock> createPromptBlockDraft({String? categoryId}) async {
     final previousState = state;
     try {
       final client = ref.read(studioClientProvider);
-      final draftBlock = await client.createPromptBlockDraft();
+      final draftBlock = await client.createPromptBlockDraft(
+        categoryId: categoryId,
+      );
 
       if (state.hasValue && state.value != null) {
         final currentList = List<PromptBlock>.from(state.value!);

@@ -8,7 +8,9 @@ from backend_v2.database.interfaces import IPromptBlockRepository, ISystemReposi
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.core_base import I18nText, generate_opaque_id
+from backend_v2.models.domain.matrix import MatrixScale
 from backend_v2.models.domain.prompt_blocks import (
+    MatrixPromptBlock,
     PromptBlock,
     SystemRulePromptBlock,
 )
@@ -155,6 +157,7 @@ class StudioPromptBlockService:
         Raises:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            AppException (ErrorCodes.SYSTEM_PROTECTED_RESOURCE): If attempting to delete a protocol block without force.
         """
         block = await self.prompt_block_repo.get_prompt_block_by_id(id)
         if not block:
@@ -167,13 +170,30 @@ class StudioPromptBlockService:
             raise ResourceNotFoundError(resource_type="prompt_block", resource_id=id)
 
         enforce_modification_rights(initiator, block.organization_id)
+
+        if not force_delete and block.category_id == PromptBlockCategory.PROTOCOL:
+            logger.error(
+                "[StudioPromptBlockService] %s: Cannot delete protocol prompt block %s without force_delete (Initiator: %s).",
+                ErrorCodes.SYSTEM_PROTECTED_RESOURCE.name,
+                id,
+                initiator.id,
+            )
+            raise AppException(
+                message=f"Cannot delete protocol prompt block '{id}' without force_delete.",
+                status_code=403,
+                details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE},
+            )
+
         await self.prompt_block_repo.delete_prompt_block(id, force_delete=force_delete)
 
-    async def create_prompt_block_draft(self, initiator: TokenData) -> PromptBlock:
+    async def create_prompt_block_draft(
+        self, initiator: TokenData, category_id: PromptBlockCategory = PromptBlockCategory.SYSTEM_RULE
+    ) -> PromptBlock:
         """Create prompt block draft.
 
         Args:
             initiator: The authenticated user.
+            category_id: The category of prompt block to draft.
 
         Returns:
             The drafted PromptBlock.
@@ -186,17 +206,40 @@ class StudioPromptBlockService:
         new_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
         target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
 
-        draft = SystemRulePromptBlock(
-            id=new_id,
-            slug=new_id,
-            label=I18nText(translations={"en": "New Block", "fi": "Uusi lohko"}),
-            description=I18nText(translations={"en": "Draft block", "fi": "Luonnos"}),
-            instruction_text="Initial AI logic draft.",
-            category_id=PromptBlockCategory.SYSTEM_RULE,
-            type=BlockDataType.INSTRUCTION,
-            output_extensions=[],
-            organization_id=target_org,
-        )
+        draft: PromptBlock
+        if category_id == PromptBlockCategory.MATRIX:
+            draft = MatrixPromptBlock(
+                id=new_id,
+                slug=new_id,
+                label=I18nText(translations={"en": "New Matrix", "fi": "Uusi matriisi"}),
+                description=I18nText(translations={"en": "Draft matrix", "fi": "Matriisiluonnos"}),
+                category_id=PromptBlockCategory.MATRIX,
+                type=BlockDataType.FLOAT,
+                is_evaluative=True,
+                allow_decimals=False,
+                output_extensions=[],
+                organization_id=target_org,
+                scales=[
+                    MatrixScale(
+                        score=1,
+                        name=I18nText(translations={"en": "Level 1", "fi": "Taso 1"}),
+                        ai_label="LEVEL_1",
+                        claims=[],
+                    )
+                ],
+            )
+        else:
+            draft = SystemRulePromptBlock(
+                id=new_id,
+                slug=new_id,
+                label=I18nText(translations={"en": "New Block", "fi": "Uusi lohko"}),
+                description=I18nText(translations={"en": "Draft block", "fi": "Luonnos"}),
+                instruction_text="Initial AI logic draft.",
+                category_id=PromptBlockCategory.SYSTEM_RULE,
+                type=BlockDataType.INSTRUCTION,
+                output_extensions=[],
+                organization_id=target_org,
+            )
         return await self.save_prompt_block(initiator, new_id, draft)
 
     async def clone_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:

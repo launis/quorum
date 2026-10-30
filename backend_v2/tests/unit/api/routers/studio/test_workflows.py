@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from backend_v2.api.dependencies import (
     get_current_user_from_header,
+    get_execution_service,
     get_studio_simulation_service,
     get_studio_workflow_service,
 )
@@ -22,12 +23,14 @@ from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedErro
 from backend_v2.main import app_exception_handler
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.studio import (
     StepSimulationTraceDTO,
     WorkflowResponseDTO,
     WorkflowSimulationResponse,
 )
+from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
 from backend_v2.models.enums import HistoricalContextMode
 
 app = FastAPI()
@@ -63,6 +66,14 @@ def mock_studio_services() -> tuple[AsyncMock, AsyncMock]:
     app.dependency_overrides[get_studio_workflow_service] = lambda: mock_workflow
     app.dependency_overrides[get_studio_simulation_service] = lambda: mock_simulation
     return mock_workflow, mock_simulation
+
+
+@pytest.fixture
+def mock_execution_service() -> AsyncMock:
+    """Provide mocked execution service dependency."""
+    mock_execution = AsyncMock()
+    app.dependency_overrides[get_execution_service] = lambda: mock_execution
+    return mock_execution
 
 
 @pytest.fixture
@@ -211,20 +222,21 @@ async def test_get_workflow_not_found_raises_app_exception(
 ) -> None:
     """Negative test: get_workflow propagates ResourceNotFoundError (AppException) on missing ID."""
     mock_workflow, _ = mock_studio_services
+    missing_id = "wor_0195f3a0000070018000000000000000"
     mock_workflow.get_workflow.side_effect = ResourceNotFoundError(
-        resource_type="workflow", resource_id="wor_missing000000000"
+        resource_type="workflow", resource_id=missing_id
     )
 
     with pytest.raises(AppException) as exc_info:
         await get_workflow(
-            id="wor_missing000000000",
+            id=missing_id,
             current_user=mock_get_current_user(),
             studio_workflow_service=mock_workflow,
         )
     assert exc_info.value.status_code == 404
     assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
-    response = client.get("/workflows/wor_missing000000000")
+    response = client.get(f"/workflows/{missing_id}")
     assert response.status_code == 404
     assert response.json()["extensions"]["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
@@ -260,3 +272,47 @@ async def test_simulate_workflow_invalid_payload_boundary(
     """Negative boundary test: POST /workflows/simulate rejects empty or malformed workflow payload with 422."""
     response = client.post("/workflows/simulate", json={})
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_get_workflow_ui_schema(
+    mock_execution_service: AsyncMock,
+) -> None:
+    """Test GET /workflows/{id}/ui_schema returns WorkflowSchemaResponseDTO."""
+    schema_dto = WorkflowSchemaResponseDTO(
+        expected_inputs=[
+            ExpectedInput(
+                input_key="chat_log",
+                label=I18nText(translations={"en": "Chat Log", "fi": "Keskusteluloki"}),
+                description=I18nText(translations={"en": "Chat Log description", "fi": "Keskusteluloki kuvaus"}),
+                input_modes=["text"],
+                required=True,
+            )
+        ],
+    )
+    mock_execution_service.get_workflow_ui_schema.return_value = schema_dto
+
+    response = client.get("/workflows/wor_0195f3a0000070018234567890abcdef/ui_schema")
+    assert response.status_code == 200
+    assert len(response.json()["expected_inputs"]) == 1
+    assert response.json()["expected_inputs"][0]["input_key"] == "chat_log"
+
+
+def test_get_workflow_invalid_id_returns_422() -> None:
+    """Negative test: GET /workflows/{id} with non-opaque ID returns 422."""
+    response = client.get("/workflows/invalid-id")
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_save_workflow_id_mismatch_returns_400(
+    mock_studio_services: tuple[AsyncMock, AsyncMock],
+    sample_workflow: Workflow,
+) -> None:
+    """Negative test: PUT /workflows/{id} with mismatched payload ID returns 400 ID_MISMATCH."""
+    response = client.put(
+        "/workflows/wor_0195f3a0000070018000000000000099",
+        json=sample_workflow.model_dump(mode="json"),
+    )
+    assert response.status_code == 400
+    assert response.json()["extensions"]["error_code"] == ErrorCodes.ID_MISMATCH.value

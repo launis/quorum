@@ -299,9 +299,32 @@ async def test_save_system_config_not_found_after_save(
 async def test_delete_system_config_success(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Assert ROOT user deletes system config successfully."""
-    reg = (await system_repo.get_all_model_registries())[0]
-    await service.delete_system_config(root_token, reg.id)
+    """Assert ROOT user deletes system config successfully when multiple exist."""
+    registries = await system_repo.get_all_model_registries()
+    assert len(registries) >= 1
+    second_reg = registries[0].model_copy(
+        update={
+            "id": "sys_0195f3a0000070008000000000000099",
+            "slug": "model_registry_second",
+        }
+    )
+    await service.save_system_config(root_token, second_reg.id, second_reg)
+    await service.delete_system_config(root_token, second_reg.id)
+    remaining = await system_repo.get_all_model_registries()
+    assert not any(r.id == second_reg.id for r in remaining)
+
+
+@pytest.mark.asyncio
+async def test_delete_last_system_config_raises_protected_resource(
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
+) -> None:
+    """Assert attempting to delete the last remaining model registry raises ErrorCodes.SYSTEM_PROTECTED_RESOURCE."""
+    registries = await system_repo.get_all_model_registries()
+    assert len(registries) == 1
+    with pytest.raises(AppException) as exc_info:
+        await service.delete_system_config(root_token, registries[0].id)
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.details["error_code"] == ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value
 
 
 @pytest.mark.asyncio

@@ -164,6 +164,7 @@ class StudioOutputProfileService:
         Raises:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            AppException (ErrorCodes.DELETE_BLOCKED_BY_USAGE): If output profile is configured as default on a workflow.
         """
         profile = await self.output_profile_repo.get_output_profile_by_id(id)
         if not profile:
@@ -178,6 +179,31 @@ class StudioOutputProfileService:
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=id)
 
         enforce_modification_rights(initiator, profile.organization_id)
+
+        workflows = await self.workflow_service.list_workflows(initiator)
+        for wf in workflows:
+            if wf.default_profile_id == id:
+                logger.error(
+                    "[StudioOutputProfileService] %s: Cannot delete output profile %s because it is default_profile_id on workflow %s.",
+                    ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                    id,
+                    wf.id,
+                    extra={
+                        "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                        "profile_id": id,
+                        "workflow_id": wf.id,
+                    },
+                )
+                raise AppException(
+                    message=f"Cannot delete output profile {id} because it is configured as default on workflow {wf.id}.",
+                    status_code=400,
+                    details={
+                        "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                        "profile_id": id,
+                        "workflow_id": wf.id,
+                    },
+                )
+
         await self.output_profile_repo.delete_output_profile(id)
 
     async def create_output_profile_draft(self, initiator: TokenData) -> OutputProfile:

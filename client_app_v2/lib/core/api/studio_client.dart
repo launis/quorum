@@ -82,8 +82,11 @@ class StudioClient {
   }
 
   /// Creates a draft prompt block securely via SSOT Service Layer.
-  Future<PromptBlock> createPromptBlockDraft() async {
-    final response = await _dio.post('studio/prompt-blocks/');
+  Future<PromptBlock> createPromptBlockDraft({String? categoryId}) async {
+    final response = await _dio.post(
+      'studio/prompt-blocks/',
+      queryParameters: categoryId != null ? {'category_id': categoryId} : null,
+    );
     return PromptBlock.fromJson(response.data);
   }
 

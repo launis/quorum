@@ -649,6 +649,7 @@ class StudioWorkflowService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are denied.
             AppException (ErrorCodes.SYSTEM_PROTECTED_RESOURCE): If attempting to delete a system core step.
+            AppException (ErrorCodes.DELETE_BLOCKED_BY_USAGE): If the step is referenced by a workflow.
         """
         step = await self.workflow_repo.get_step_by_id(id)
         if not step:
@@ -677,6 +678,31 @@ class StudioWorkflowService:
                 status_code=403,
                 details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
             )
+
+        if not force_delete:
+            all_workflows = await self.workflow_repo.get_all_workflows()
+            for wf in all_workflows:
+                if any(rule.task_blueprint == id for rule in wf.steps):
+                    logger.error(
+                        "[StudioService] %s: Cannot delete step %s because it is used in workflow %s.",
+                        ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
+                        id,
+                        wf.id,
+                        extra={
+                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                            "step_id": id,
+                            "workflow_id": wf.id,
+                        },
+                    )
+                    raise AppException(
+                        message=f"Cannot delete step {id} because it is referenced in workflow {wf.id}.",
+                        status_code=400,
+                        details={
+                            "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
+                            "step_id": id,
+                            "workflow_id": wf.id,
+                        },
+                    )
 
         await self.workflow_repo.delete_step(id, force_delete=force_delete)
 
@@ -788,6 +814,7 @@ class StudioWorkflowService:
                 "id": new_id,
                 "organization_id": target_org,
                 "name": cloned_name,
+                "is_system_core": False,
             }
         )
         return await self.save_step(initiator, new_id, cloned_obj)

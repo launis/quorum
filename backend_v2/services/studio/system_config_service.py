@@ -384,6 +384,21 @@ class StudioSystemConfigService:
                 initiator.id,
             )
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+
+        all_registries = await self.system_repo.get_all_model_registries()
+        if len(all_registries) <= 1:
+            logger.error(
+                "[StudioSystemConfigService] %s: Cannot delete the last remaining model registry %s.",
+                ErrorCodes.SYSTEM_PROTECTED_RESOURCE.name,
+                id,
+                extra={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value, "registry_id": id},
+            )
+            raise AppException(
+                message=f"Cannot delete the last remaining model registry '{id}'.",
+                status_code=403,
+                details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
+            )
+
         await self.system_repo.delete_system_config(id)
 
     async def list_mcp_gateways(self, initiator: TokenData) -> list[SystemConfigMCPGateways]:
@@ -518,7 +533,7 @@ class StudioSystemConfigService:
         Raises:
             PermissionDeniedError: If modification rights are denied.
         """
-        enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
+        enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=False)
 
         new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
         draft_slug = f"gateway_{new_id.removeprefix('sys_')[:8]}"
@@ -577,7 +592,7 @@ class StudioSystemConfigService:
             PermissionDeniedError: If non-ROOT user attempts deletion.
             ResourceNotFoundError: If the MCP gateway is missing.
         """
-        enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
+        enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=False)
         all_gateways = await self.system_repo.get_all_mcp_gateways()
         target = next((gw for gw in all_gateways if gw.id == id), None)
         if target is None:
@@ -614,7 +629,7 @@ class StudioSystemConfigService:
             ResourceNotFoundError: If gateway_id does not exist.
             AppException: On SSRF violation, auth error, or MCP protocol failure.
         """
-        enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
+        enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=False)
         gateway = await self.get_mcp_gateways(initiator, gateway_id)
         settings = get_settings()
         await asyncio.to_thread(

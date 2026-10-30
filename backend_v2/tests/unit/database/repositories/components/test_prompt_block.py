@@ -10,7 +10,8 @@ from backend_v2.database.repositories.components.prompt_block import PromptBlock
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.domain.step import Step
+from backend_v2.models.enums import BlockDataType, CognitiveTier, PromptBlockCategory, StepType
 
 
 @pytest.fixture
@@ -95,7 +96,16 @@ async def test_delete_prompt_block_blocked_by_usage(
     """Test delete prompt block when blocked by step usage."""
     await repo.create_prompt_block(sample_system_rule)
     # Seed a step referencing this prompt block
-    await driver.upsert("steps", {"id": "step1", "prompt_blocks": [sample_system_rule.id]}, "step1")
+    valid_step = Step(
+        id="stp_0195f3a0000070008000000000000001",
+        slug="test_step_usage",
+        name=I18nText(translations={"en": "Test Step", "fi": "Testiaskel"}),
+        type=StepType.LLM,
+        cognitive_tier=CognitiveTier.FAST,
+        extraction_protocol_block_id="blk_0195f3a0000070008000000000000002",
+        criteria_block_ids=[sample_system_rule.id],
+    )
+    await driver.upsert("steps", valid_step.model_dump(mode="json"), valid_step.id)
 
     with pytest.raises(AppException) as exc:
         await repo.delete_prompt_block(sample_system_rule.id, force_delete=False)

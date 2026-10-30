@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/views/widgets/profile/layout_editor_card.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
@@ -68,7 +69,7 @@ class ProfileEditorView extends HookConsumerWidget {
     AppLocalizations l10n,
     AsyncValue<Workflow> formState,
     Workflow payload,
-    AsyncValue<List<dynamic>> promptBlocksState,
+    AsyncValue<List<PromptBlock>> promptBlocksState,
     AsyncValue<List<dynamic>> stepsState,
     AsyncValue<List<String>> availableExtensionsState,
   ) {
@@ -276,7 +277,7 @@ class ProfileEditorView extends HookConsumerWidget {
     String profileId,
     OutputProfile profileDef,
     Set<String> allowedBlockIds,
-    AsyncValue<List<dynamic>> promptBlocksState,
+    AsyncValue<List<PromptBlock>> promptBlocksState,
     AsyncValue<List<String>> availableExtensionsState,
   ) {
     final groups = List<MatrixSynthesisGroup>.from(

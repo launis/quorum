@@ -19,7 +19,7 @@ class WorkflowClient {
 
   /// Fetches the dynamically required inputs UI schema for a specific workflow.
   Future<WorkflowUiSchema> getWorkflowUiSchema(String workflowId) async {
-    final response = await _dio.get('/api/v2/workflows/$workflowId/ui_schema');
+    final response = await _dio.get('studio/workflows/$workflowId/ui_schema');
     return WorkflowUiSchema.fromJson(response.data);
   }
 }

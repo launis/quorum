@@ -94,7 +94,7 @@ class _MatricesMasterViewState extends ConsumerState<MatricesMasterView> {
                     try {
                       final draft = await ref
                           .read(promptBlocksControllerProvider.notifier)
-                          .createPromptBlockDraft();
+                          .createPromptBlockDraft(categoryId: 'matrix');
                       if (context.mounted) {
                         PromptBlockEditRoute(
                           id: draft.id,

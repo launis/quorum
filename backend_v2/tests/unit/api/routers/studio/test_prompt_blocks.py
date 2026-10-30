@@ -142,7 +142,9 @@ async def test_create_prompt_block(
     response = client.post("/prompt-blocks/")
     assert response.status_code == 200
     assert response.json()["id"] == "blk_0195f3a0000070018234567890abcdef"
-    mock_prompt_block.create_prompt_block_draft.assert_awaited_once_with(mock_get_current_user())
+    mock_prompt_block.create_prompt_block_draft.assert_awaited_once_with(
+        mock_get_current_user(), category_id=PromptBlockCategory.SYSTEM_RULE
+    )
 
 
 @pytest.mark.asyncio
@@ -353,3 +355,57 @@ async def test_simulate_prompt_block_invalid_payload_error() -> None:
     """Negative boundary test: POST /prompt-blocks/simulate returns 422 on malformed request payload."""
     response = client.post("/prompt-blocks/simulate", json={})
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_create_prompt_block_matrix_category(
+    mock_studio_services: tuple[AsyncMock, AsyncMock],
+    sample_empty_matrix_block: MatrixPromptBlock,
+) -> None:
+    """Test POST /prompt-blocks/?category_id=matrix creates a MatrixPromptBlock."""
+    mock_prompt_block, _ = mock_studio_services
+    mock_prompt_block.create_prompt_block_draft.return_value = sample_empty_matrix_block
+
+    response = client.post("/prompt-blocks/?category_id=matrix")
+    assert response.status_code == 200
+    assert response.json()["category_id"] == "matrix"
+    mock_prompt_block.create_prompt_block_draft.assert_awaited_once_with(
+        mock_get_current_user(), category_id=PromptBlockCategory.MATRIX
+    )
+
+
+def test_get_prompt_block_invalid_id_returns_422() -> None:
+    """Negative test: GET /prompt-blocks/{id} with non-opaque ID returns 422."""
+    response = client.get("/prompt-blocks/invalid-id")
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_save_prompt_block_id_mismatch_returns_400(
+    mock_studio_services: tuple[AsyncMock, AsyncMock],
+    sample_block: PromptBlock,
+) -> None:
+    """Negative test: PUT /prompt-blocks/{id} with mismatched payload ID returns 400 ID_MISMATCH."""
+    response = client.put(
+        "/prompt-blocks/blk_0195f3a0000070008000000000000099",
+        json=sample_block.model_dump(mode="json"),
+    )
+    assert response.status_code == 400
+    assert response.json()["extensions"]["error_code"] == ErrorCodes.ID_MISMATCH.value
+
+
+@pytest.mark.asyncio
+async def test_delete_protocol_prompt_block_raises_403(
+    mock_studio_services: tuple[AsyncMock, AsyncMock],
+) -> None:
+    """Negative test: DELETE /prompt-blocks/{id} raises 403 SYSTEM_PROTECTED_RESOURCE for PROTOCOL blocks."""
+    mock_prompt_block, _ = mock_studio_services
+    mock_prompt_block.delete_prompt_block.side_effect = AppException(
+        message="Cannot delete protocol prompt block without force_delete.",
+        status_code=403,
+        details={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value},
+    )
+
+    response = client.delete("/prompt-blocks/blk_0195f3a0000070018234567890abcdef")
+    assert response.status_code == 403
+    assert response.json()["extensions"]["error_code"] == ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value

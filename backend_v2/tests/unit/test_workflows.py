@@ -15,7 +15,7 @@ from backend_v2.api.dependencies import (
     get_studio_simulation_service,
     get_studio_workflow_service,
 )
-from backend_v2.api.routers.execution.workflows import get_workflow_ui_schema, router
+from backend_v2.api.routers.studio.workflows import get_workflow_ui_schema, router
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
@@ -81,7 +81,7 @@ def client_member(
 def test_execution_workflows_router_metadata() -> None:
     """Verify router prefix and tags configuration."""
     assert router.prefix == "/workflows"
-    assert "Workflows" in router.tags
+    assert "Admin Studio V2 - Workflows" in router.tags
 
 
 def test_workflow_rbac_save_member_forbidden(client_member: TestClient) -> None:
@@ -124,7 +124,7 @@ def test_get_workflow_ui_schema_success(
     )
     fake_workflow_repo._save_isolated(workflow.id, workflow)
 
-    response = client_member.get(f"/api/v2/execution/workflows/{workflow.id}/ui_schema")
+    response = client_member.get(f"/api/v2/studio/workflows/{workflow.id}/ui_schema")
     assert response.status_code == 200
     body = response.json()
     assert len(body["expected_inputs"]) == 1
@@ -140,7 +140,7 @@ async def test_get_workflow_ui_schema_not_found_raises_app_exception(
     missing_id = "wor_0195f3a0000070008000000000000000"
     with pytest.raises(AppException) as exc_info:
         await get_workflow_ui_schema(
-            workflow_id=missing_id,
+            id=missing_id,
             current_user=mock_get_current_user_member(),
             execution_service=execution_service,
         )
@@ -149,7 +149,7 @@ async def test_get_workflow_ui_schema_not_found_raises_app_exception(
     assert exc_info.value.status_code == 404
     assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
-    response = client_member.get(f"/api/v2/execution/workflows/{missing_id}/ui_schema")
+    response = client_member.get(f"/api/v2/studio/workflows/{missing_id}/ui_schema")
     assert response.status_code == 404
     assert response.json()["extensions"]["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
@@ -161,7 +161,7 @@ async def test_get_workflow_ui_schema_whitespace_boundary_raises_app_exception(
     """Negative boundary test: Whitespace/malformed workflow ID raises AppException (404 RESOURCE_NOT_FOUND)."""
     with pytest.raises(AppException) as exc_info:
         await get_workflow_ui_schema(
-            workflow_id="   ",
+            id="   ",
             current_user=mock_get_current_user_member(),
             execution_service=execution_service,
         )
@@ -189,7 +189,7 @@ async def test_get_workflow_ui_schema_repository_fault_raises_app_exception(
     try:
         with pytest.raises(AppException) as exc_info:
             await get_workflow_ui_schema(
-                workflow_id=workflow.id,
+                id=workflow.id,
                 current_user=mock_get_current_user_member(),
                 execution_service=execution_service,
             )
