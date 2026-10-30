@@ -1,4 +1,6 @@
 import 'package:client_app/core/api/workflow_client.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/models/workflow_ui_schema.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,26 +9,31 @@ import 'package:mocktail/mocktail.dart';
 
 class MockDio extends Mock implements Dio {}
 
+class MockLoggerService extends Mock implements LoggerService {}
+
 void main() {
   late WorkflowClient client;
   late MockDio mockDio;
+  late MockLoggerService mockLogger;
 
   setUp(() {
     mockDio = MockDio();
-    client = WorkflowClient(mockDio);
+    mockLogger = MockLoggerService();
+    client = WorkflowClient(mockDio, mockLogger);
   });
 
   group('WorkflowClient Unit Tests', () {
+    const validWorkflowId = 'wf_0195f3a0000070008000000000000001';
+
     test(
       'getWorkflowUiSchema returns strongly typed WorkflowUiSchema on valid 200',
       () async {
-        const workflowId = 'wf_executive_review';
-        final mockPayload = {
-          'expected_inputs': [
-            {
+        final mockPayload = <String, Object?>{
+          'expected_inputs': <Map<String, Object?>>[
+            <String, Object?>{
               'input_key': 'deliverable_text',
-              'label': {
-                'translations': {
+              'label': <String, Object?>{
+                'translations': <String, String>{
                   'en': 'Deliverable Document',
                   'fi': 'Asiakirja',
                 },
@@ -34,33 +41,33 @@ void main() {
               'required': true,
               'is_chat_history': false,
               'is_endorsed_deliverable': true,
-              'input_modes': ['text', 'file'],
-              'description': {
-                'translations': {
+              'input_modes': <String>['text', 'file'],
+              'description': <String, Object?>{
+                'translations': <String, String>{
                   'en': 'Executive coaching brief',
                   'fi': 'Johtamisen valmennustehtävä',
                 },
               },
               'scan_for_performative_patterns': false,
               'ai_description': 'Primary text deliverable to evaluate',
-              'questionnaire_definition': <Map<String, dynamic>>[],
+              'questionnaire_definition': <Map<String, Object?>>[],
             },
           ],
         };
 
         when(
-          () => mockDio.get('/api/v2/workflows/$workflowId/ui_schema'),
+          () => mockDio.get('studio/workflows/$validWorkflowId/ui_schema'),
         ).thenAnswer(
           (_) async => Response(
             requestOptions: RequestOptions(
-              path: '/api/v2/workflows/$workflowId/ui_schema',
+              path: 'studio/workflows/$validWorkflowId/ui_schema',
             ),
             data: mockPayload,
             statusCode: 200,
           ),
         );
 
-        final result = await client.getWorkflowUiSchema(workflowId);
+        final result = await client.getWorkflowUiSchema(validWorkflowId);
 
         expect(result, isA<WorkflowUiSchema>());
         expect(result.expectedInputs.length, 1);
@@ -72,26 +79,54 @@ void main() {
         expect(input.description.get('fi'), 'Johtamisen valmennustehtävä');
 
         verify(
-          () => mockDio.get('/api/v2/workflows/$workflowId/ui_schema'),
+          () => mockDio.get('studio/workflows/$validWorkflowId/ui_schema'),
         ).called(1);
       },
     );
 
     test(
-      'getWorkflowUiSchema fails fast with UnrecognizedKeysException on unrecognized keys',
+      'Negative Test 1: getWorkflowUiSchema fails fast with AppException on invalid Opaque Stripe ID',
       () async {
-        const workflowId = 'wf_test_drift';
-        final corruptPayload = {
-          'expected_inputs': <Map<String, dynamic>>[],
+        for (final invalidId in const [
+          '',
+          'wf_short',
+          'wf_0195f3a000007000800000000000000', // 31 hex chars (min-1)
+          'wf_0195f3a00000700080000000000000012', // 33 hex chars (max+1)
+          'invalid_prefix_0195f3a0000070008000000000000001',
+        ]) {
+          expect(
+            () => client.getWorkflowUiSchema(invalidId),
+            throwsA(
+              isA<AppException>().having(
+                (e) => e.errorCode,
+                'errorCode',
+                'VALIDATION_FAILED',
+              ),
+            ),
+          );
+        }
+
+        verify(
+          () => mockLogger.error('WorkflowClient', any(), any(), any()),
+        ).called(5);
+        verifyNever(() => mockDio.get(any()));
+      },
+    );
+
+    test(
+      'Negative Test 2: getWorkflowUiSchema fails fast with CheckedFromJsonException on unrecognized keys',
+      () async {
+        final corruptPayload = <String, Object?>{
+          'expected_inputs': <Map<String, Object?>>[],
           'unrecognized_legacy_parameter': 'corrupt_data',
         };
 
         when(
-          () => mockDio.get('/api/v2/workflows/$workflowId/ui_schema'),
+          () => mockDio.get('studio/workflows/$validWorkflowId/ui_schema'),
         ).thenAnswer(
           (_) async => Response(
             requestOptions: RequestOptions(
-              path: '/api/v2/workflows/$workflowId/ui_schema',
+              path: 'studio/workflows/$validWorkflowId/ui_schema',
             ),
             data: corruptPayload,
             statusCode: 200,
@@ -99,7 +134,7 @@ void main() {
         );
 
         expect(
-          () => client.getWorkflowUiSchema(workflowId),
+          () => client.getWorkflowUiSchema(validWorkflowId),
           throwsA(
             isA<CheckedFromJsonException>().having(
               (e) => e.message,
@@ -112,20 +147,18 @@ void main() {
     );
 
     test(
-      'getWorkflowUiSchema rethrows DioException on network or HTTP 404 failure',
+      'Negative Test 3: getWorkflowUiSchema rethrows DioException on network or HTTP 404 failure',
       () async {
-        const workflowId = 'wf_nonexistent';
-
         when(
-          () => mockDio.get('/api/v2/workflows/$workflowId/ui_schema'),
+          () => mockDio.get('studio/workflows/$validWorkflowId/ui_schema'),
         ).thenThrow(
           DioException(
             requestOptions: RequestOptions(
-              path: '/api/v2/workflows/$workflowId/ui_schema',
+              path: 'studio/workflows/$validWorkflowId/ui_schema',
             ),
             response: Response(
               requestOptions: RequestOptions(
-                path: '/api/v2/workflows/$workflowId/ui_schema',
+                path: 'studio/workflows/$validWorkflowId/ui_schema',
               ),
               statusCode: 404,
               statusMessage: 'Workflow Not Found',
@@ -135,7 +168,7 @@ void main() {
         );
 
         expect(
-          () => client.getWorkflowUiSchema(workflowId),
+          () => client.getWorkflowUiSchema(validWorkflowId),
           throwsA(
             isA<DioException>().having(
               (e) => e.response?.statusCode,
@@ -148,12 +181,11 @@ void main() {
     );
 
     test(
-      'getWorkflowUiSchema fails fast on malformed inner expected_inputs payload',
+      'Negative Test 4: getWorkflowUiSchema fails fast on malformed inner expected_inputs payload',
       () async {
-        const workflowId = 'wf_malformed_inputs';
-        final malformedPayload = {
-          'expected_inputs': [
-            {
+        final malformedPayload = <String, Object?>{
+          'expected_inputs': <Map<String, Object?>>[
+            <String, Object?>{
               // missing required input_key, label, description
               'required': true,
             },
@@ -161,11 +193,11 @@ void main() {
         };
 
         when(
-          () => mockDio.get('/api/v2/workflows/$workflowId/ui_schema'),
+          () => mockDio.get('studio/workflows/$validWorkflowId/ui_schema'),
         ).thenAnswer(
           (_) async => Response(
             requestOptions: RequestOptions(
-              path: '/api/v2/workflows/$workflowId/ui_schema',
+              path: 'studio/workflows/$validWorkflowId/ui_schema',
             ),
             data: malformedPayload,
             statusCode: 200,
@@ -173,7 +205,7 @@ void main() {
         );
 
         expect(
-          () => client.getWorkflowUiSchema(workflowId),
+          () => client.getWorkflowUiSchema(validWorkflowId),
           throwsA(
             isA<CheckedFromJsonException>().having(
               (e) => e.key,

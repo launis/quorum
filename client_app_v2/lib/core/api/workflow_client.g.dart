@@ -25,7 +25,7 @@ final class WorkflowClientProvider
         argument: null,
         retry: null,
         name: r'workflowClientProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -52,4 +52,4 @@ final class WorkflowClientProvider
   }
 }
 
-String _$workflowClientHash() => r'3181e8901bc9a9e4efcb28efeb676681191d7243';
+String _$workflowClientHash() => r'a8aafbc0c609d2d360994069bb708e55c702d8a3';
