@@ -44,7 +44,7 @@ class TestPromptBlockForm extends PromptBlockForm {
 class MockPromptBlocksController extends PromptBlocksController {
   final Future<PromptBlockSimulationResponse> Function(
     PromptBlock payload,
-    Map<String, dynamic> mockInputs,
+    Map<String, Object?> mockInputs,
   )?
   onSimulate;
   final Future<void> Function(String id)? onDelete;
@@ -57,7 +57,7 @@ class MockPromptBlocksController extends PromptBlocksController {
   @override
   Future<PromptBlockSimulationResponse> simulatePromptBlock(
     PromptBlock payload,
-    Map<String, dynamic> mockInputs, {
+    Map<String, Object?> mockInputs, {
     int? targetScaleScore,
     String? targetLocale,
     String? contextText,
@@ -795,6 +795,37 @@ void main() {
         expect(savedPayload!.type, equals(BlockDataType.instruction));
         expect(savedPayload!.isEvaluative, isFalse);
         expect(savedPayload!.allowDecimals, isFalse);
+      },
+    );
+
+    testWidgets(
+      'saving PromptBlock across async loading frame does not mutate disposed ValueNotifier<bool>',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final saveCompleter = Completer<void>();
+        const block = PromptBlock.systemRule(
+          id: 'blk_0195f3a00000700a8000000000000001',
+          slug: 'sys_rule_async_save',
+          label: I18nText(translations: {'en': 'Async Save Rule'}),
+          description: I18nText(translations: {'en': 'Desc'}),
+          instructionText: 'Instruction',
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(block: block, onSave: (_) => saveCompleter.future),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.save));
+        await tester.pump();
+
+        saveCompleter.complete();
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
       },
     );
   });

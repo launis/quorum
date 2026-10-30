@@ -41,6 +41,74 @@ class PromptBlockBuilderView extends HookConsumerWidget {
     final AsyncValue<PromptBlock> formState = ref.watch(
       promptBlockFormProvider(blockId),
     );
+    final simulationError = useState<String?>(null);
+
+    final validateMutation = useMutation<PromptBlockSimulationResponse>(
+      onSuccess: (data) {
+        if (context.mounted) {
+          if (!data.valid && data.errors.isNotEmpty) {
+            simulationError.value = data.errors.join(', ');
+            return;
+          }
+          simulationError.value = null;
+          final promptContext = data.promptContext;
+          final staticMessages = promptContext?.staticMessages ?? const [];
+          final dynamicMessages = promptContext?.dynamicMessages ?? const [];
+          final rendered = data.renderedPrompt;
+
+          showDialog<void>(
+            context: context,
+            builder: (ctx) => PromptPreviewDialog(
+              staticContent: PromptPreviewFormatter.formatMessages(
+                staticMessages,
+              ),
+              dynamicContent: PromptPreviewFormatter.formatMessages(
+                dynamicMessages,
+              ),
+              schemaContent: PromptPreviewFormatter.formatSchema(
+                null,
+                rendered,
+              ),
+            ),
+          );
+        }
+      },
+      onError: (e) {
+        if (context.mounted) {
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to validate prompt block: $e', e);
+          simulationError.value = l10n.simulatorFailedError(e.toString());
+        }
+      },
+    );
+
+    final deleteMutation = useMutation<void>(
+      onSuccess: (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.studioSaveSuccess)));
+          context.pop();
+        }
+      },
+      onError: (e) {
+        if (context.mounted) {
+          final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
+          ref
+              .read(loggerServiceProvider)
+              .error('Studio', 'Failed to delete prompt block: $e', e);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      },
+    );
+
+    final isSaving = useState(false);
 
     return switch (formState) {
       AsyncData(:final value) => _buildScaffold(
@@ -50,6 +118,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
         formState,
         value,
         blockId,
+        simulationError,
+        validateMutation,
+        deleteMutation,
+        isSaving,
       ),
       AsyncError(:final error, :final stackTrace) => Scaffold(
         appBar: AppBar(title: Text(l10n.promptBlockEditTitle)),
@@ -148,6 +220,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
     AsyncValue<PromptBlock> formState,
     PromptBlock payload,
     String blockId,
+    ValueNotifier<String?> simulationError,
+    MutationState<PromptBlockSimulationResponse> validateMutation,
+    MutationState<void> deleteMutation,
+    ValueNotifier<bool> isSaving,
   ) {
     final isMatrix =
         payload.categoryId == 'matrix' &&
@@ -155,75 +231,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
             payload.scales?.isNotEmpty == true ||
             payload.rows?.isNotEmpty == true ||
             payload.columns?.isNotEmpty == true);
-
-    final simulationError = useState<String?>(null);
-
-    final validateMutation = useMutation<PromptBlockSimulationResponse>(
-      onSuccess: (data) {
-        if (context.mounted) {
-          if (!data.valid && data.errors.isNotEmpty) {
-            simulationError.value = data.errors.join(', ');
-            return;
-          }
-          simulationError.value = null;
-          final promptContext = data.promptContext;
-          final staticMessages = promptContext?.staticMessages ?? const [];
-          final dynamicMessages = promptContext?.dynamicMessages ?? const [];
-          final rendered = data.renderedPrompt;
-
-          showDialog<void>(
-            context: context,
-            builder: (ctx) => PromptPreviewDialog(
-              staticContent: PromptPreviewFormatter.formatMessages(
-                staticMessages,
-              ),
-              dynamicContent: PromptPreviewFormatter.formatMessages(
-                dynamicMessages,
-              ),
-              schemaContent: PromptPreviewFormatter.formatSchema(
-                null,
-                rendered,
-              ),
-            ),
-          );
-        }
-      },
-      onError: (e) {
-        if (context.mounted) {
-          ref
-              .read(loggerServiceProvider)
-              .error('Studio', 'Failed to validate prompt block: $e', e);
-          simulationError.value = l10n.simulatorFailedError(e.toString());
-        }
-      },
-    );
-
-    final deleteMutation = useMutation<void>(
-      onSuccess: (_) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.studioSaveSuccess)));
-          context.pop();
-        }
-      },
-      onError: (e) {
-        if (context.mounted) {
-          final errorMsg = AppExceptionX.extractLocalizedHint(e, l10n);
-          ref
-              .read(loggerServiceProvider)
-              .error('Studio', 'Failed to delete prompt block: $e', e);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMsg),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
-      },
-    );
-
-    final isSaving = useState(false);
 
     Future<void> savePromptBlock() async {
       if (isSaving.value) return;
@@ -270,7 +277,9 @@ class PromptBlockBuilderView extends HookConsumerWidget {
           );
         }
       } finally {
-        isSaving.value = false;
+        if (context.mounted) {
+          isSaving.value = false;
+        }
       }
     }
 

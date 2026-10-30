@@ -28,7 +28,7 @@ class ProfileSectionConfigTab extends ConsumerWidget {
 
     final promptBlocksState = ref.watch(promptBlocksControllerProvider);
     final workflowsState = ref.watch(workflowsControllerProvider);
-    final stepsState = ref.watch(stepsControllerProvider);
+    final stepsState = ref.watch(allBlueprintsProvider);
     final selectedSection = ref.watch(
       selectedOutputProfileConfigSectionProvider(id),
     );

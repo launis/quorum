@@ -92,6 +92,7 @@ void main() {
               () => MockPromptBlocksController(),
             ),
             stepsControllerProvider.overrideWith(() => MockStepsController()),
+            allBlueprintsProvider.overrideWith((ref) async => []),
           ],
           child: const MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -132,6 +133,7 @@ void main() {
                 () => MockPromptBlocksController(),
               ),
               stepsControllerProvider.overrideWith(() => MockStepsController()),
+              allBlueprintsProvider.overrideWith((ref) async => []),
               workflowAvailableExtensionsProvider(
                 'wf_test',
               ).overrideWith((ref) async => []),
@@ -172,5 +174,97 @@ void main() {
         expect(find.byType(ExecutiveSummaryBlockCard), findsNothing);
       },
     );
+
+    testWidgets(
+      'resolves allowedBlockIds from allBlueprintsProvider including system core steps',
+      (WidgetTester tester) async {
+        const cohesionBlockId = 'blk_0195f3a00000700c80a1e50000000001';
+        const causalStepId = 'stp_0195f3a00000700c84a5a1d15c00438a';
+        final profile =
+            _createProfile(
+              targetBlockOrder: [TargetBlockType.matrixGraphsBlock],
+            ).copyWith(
+              matrixSynthesisGroups: const [
+                MatrixSynthesisGroup(
+                  id: 'grp_0195f3a00000700a8000000000000001',
+                  title: I18nText(translations: {'en': 'Group 1'}),
+                  targetBlocks: [cohesionBlockId],
+                ),
+              ],
+            );
+        final testWorkflow = Workflow(
+          id: 'wf_test',
+          slug: 'wf-test',
+          name: const I18nText(translations: {'en': 'Test Flow'}),
+          description: const I18nText(
+            translations: {'en': 'Test Flow Description'},
+          ),
+          modelRegistryId: 'sys_b1c2d3e4f5a60718',
+          steps: const [
+            StepRule(
+              id: 'sr_0195f3a00000700a88f1d71000000002',
+              taskBlueprint: causalStepId,
+            ),
+          ],
+        );
+        const systemCoreStep = NodeStrategy.causalDiscovery(
+          id: causalStepId,
+          slug: 'step_causal_discovery',
+          name: I18nText(translations: {'en': 'Causal Discovery'}),
+          description: I18nText(translations: {'en': 'System Core Step'}),
+          isSystemCore: true,
+          criteriaBlockIds: [cohesionBlockId],
+        );
+        const cohesionBlock = PromptBlock.matrix(
+          id: cohesionBlockId,
+          slug: 'matrix_causal_cohesion',
+          label: I18nText(translations: {'en': 'Causal Cohesion Matrix'}),
+          description: I18nText(translations: {'en': 'Desc'}),
+          scales: [],
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              outputProfileFormProvider(
+                'prf_test',
+              ).overrideWith(() => TestOutputProfileForm(AsyncData(profile))),
+              workflowsControllerProvider.overrideWith(
+                () => MockWorkflowsController([testWorkflow]),
+              ),
+              promptBlocksControllerProvider.overrideWith(
+                () => _StubPromptBlocksController([cohesionBlock]),
+              ),
+              stepsControllerProvider.overrideWith(() => MockStepsController()),
+              allBlueprintsProvider.overrideWith(
+                (ref) async => [systemCoreStep],
+              ),
+              workflowAvailableExtensionsProvider(
+                'wf_test',
+              ).overrideWith((ref) async => []),
+            ],
+            child: const MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(body: ProfileSectionConfigTab(id: 'prf_test')),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Matrix Visualizations & Graphs'));
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining('Causal Cohesion Matrix'), findsWidgets);
+      },
+    );
   });
+}
+
+class _StubPromptBlocksController extends PromptBlocksController {
+  final List<PromptBlock> _blocks;
+  _StubPromptBlocksController(this._blocks);
+
+  @override
+  FutureOr<List<PromptBlock>> build() async => _blocks;
 }

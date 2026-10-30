@@ -30,7 +30,7 @@ class ProfileEditorView extends HookConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final formState = ref.watch(workflowFormProvider(workflowId));
     final promptBlocksState = ref.watch(promptBlocksControllerProvider);
-    final stepsState = ref.watch(stepsControllerProvider);
+    final stepsState = ref.watch(allBlueprintsProvider);
     final availableExtensionsState = ref.watch(
       workflowAvailableExtensionsProvider(workflowId),
     );

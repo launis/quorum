@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
@@ -57,6 +58,15 @@ void main() {
     when(() => mockLogger.info(any(), any())).thenReturn(null);
 
     when(() => mockClient.getSteps()).thenAnswer((_) async => []);
+    when(
+      () => mockClient.getSteps(scope: StepFilterScope.all),
+    ).thenAnswer((_) async => []);
+    when(
+      () => mockClient.getSteps(scope: StepFilterScope.specialists),
+    ).thenAnswer((_) async => []);
+    when(
+      () => mockClient.getWorkflowAvailableExtensions(any()),
+    ).thenAnswer((_) async => []);
     when(() => mockClient.getPromptBlocks()).thenAnswer((_) async => []);
     when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
   });
