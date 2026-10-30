@@ -4,7 +4,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
 import 'package:client_app/core/models/enums.dart';
-import 'package:uuid/uuid.dart';
+import 'package:client_app/utils/json_converters.dart';
 import 'workflow_step_card.dart';
 
 /// **WorkflowStepsTab**
@@ -40,9 +40,8 @@ class WorkflowStepsTab extends StatelessWidget {
 
   void _addStep() {
     final steps = List<StepRule>.from(workflow.steps);
-    final uuidHex = const Uuid().v4().replaceAll('-', '');
-    final newId =
-        'sr_${uuidHex.length >= 16 ? uuidHex.characters.take(16).toString() : uuidHex.padRight(16, '0')}';
+    // Phase 1, Step 1: Generate canonical 32-hex sr_ UUIDv7 identifier
+    final newId = generateOpaqueUuid7('sr');
     final newStep = StepRule(
       id: newId,
       taskBlueprint: '',
@@ -71,9 +70,8 @@ class WorkflowStepsTab extends StatelessWidget {
     if (index < 0 || index >= steps.length) return;
 
     final original = steps[index];
-    final uuidHex = const Uuid().v4().replaceAll('-', '');
-    final clonedId =
-        'sr_${uuidHex.length >= 16 ? uuidHex.characters.take(16).toString() : uuidHex.padRight(16, '0')}';
+    // Phase 1, Step 1: Generate canonical 32-hex sr_ UUIDv7 identifier
+    final clonedId = generateOpaqueUuid7('sr');
     final clonedStep = original.copyWith(id: clonedId);
 
     steps.insert(index + 1, clonedStep);

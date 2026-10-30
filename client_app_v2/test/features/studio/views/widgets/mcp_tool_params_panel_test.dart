@@ -278,7 +278,7 @@ void main() {
       WidgetTester tester,
     ) async {
       NodeStrategy stepPayload = const NodeStrategy.llm(
-        id: 'stp_1111222233334444',
+        id: 'stp_0195f3a0000070008000000000000001',
         slug: 'verify_step',
         name: I18nText(translations: <String, String>{'en': 'Verify Step'}),
         allowedMcpTools: <String>[

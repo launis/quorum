@@ -9,7 +9,7 @@ void main() {
   group('NodeStrategy Strict Parsing', () {
     test('Successfully parses valid expectedInputs via Isolate', () async {
       final payload = {
-        'id': 'st_a1b2c3d4e5f60000',
+        'id': 'st_0195f3a0000070008000000000000000',
         'slug': 'test_slug',
         'name': {
           'translations': {'en': 'Test'},
@@ -39,7 +39,7 @@ void main() {
       'Fails-Fast when expectedInputs is the wrong type (Map instead of List)',
       () async {
         final payload = {
-          'id': 'st_a1b2c3d4e5f60001',
+          'id': 'st_0195f3a0000070008000000000000001',
           'slug': 'test_slug',
           'name': {
             'translations': {'en': 'Test'},
@@ -63,7 +63,7 @@ void main() {
       'Logic nodes parse successfully without requiring expectedInputs',
       () async {
         final payload = {
-          'id': 'st_a1b2c3d4e5f60002',
+          'id': 'st_0195f3a0000070008000000000000002',
           'slug': 'logic_slug',
           'name': {
             'translations': {'en': 'Test'},
@@ -130,8 +130,8 @@ void main() {
   group('StepRule Governance Fields', () {
     test('test_step_rule_deserializes_is_synthesis_source_default_true', () {
       final json = {
-        'id': 'sr_1234567890abcdef',
-        'task_blueprint': 'sp_1234567890abcdef',
+        'id': 'sr_0195f3a0000070008000000000000001',
+        'task_blueprint': 'sp_0195f3a0000070008000000000000001',
       };
 
       final stepRule = StepRule.fromJson(json);
@@ -140,8 +140,8 @@ void main() {
 
     test('test_step_rule_deserializes_is_synthesis_source_explicit_false', () {
       final json = {
-        'id': 'sr_1234567890abcdef',
-        'task_blueprint': 'sp_1234567890abcdef',
+        'id': 'sr_0195f3a0000070008000000000000001',
+        'task_blueprint': 'sp_0195f3a0000070008000000000000001',
         'is_synthesis_source': false,
       };
 
@@ -151,8 +151,8 @@ void main() {
 
     test('test_step_rule_rejects_is_synthesis_source_wrong_type', () {
       final json = {
-        'id': 'sr_1234567890abcdef',
-        'task_blueprint': 'sp_1234567890abcdef',
+        'id': 'sr_0195f3a0000070008000000000000001',
+        'task_blueprint': 'sp_0195f3a0000070008000000000000001',
         'is_synthesis_source': 'not_a_bool',
       };
 
@@ -168,7 +168,7 @@ void main() {
       'test_node_strategy_llm_deserializes_is_system_core_default_false',
       () {
         final json = {
-          'id': 'st_1234567890abcdef',
+          'id': 'st_0195f3a0000070008000000000000003',
           'slug': 'test',
           'name': {
             'translations': {'en': 'Test'},
@@ -194,7 +194,7 @@ void main() {
       'test_node_strategy_llm_deserializes_is_system_core_explicit_true',
       () {
         final json = {
-          'id': 'st_1234567890abcdef',
+          'id': 'st_0195f3a0000070008000000000000003',
           'slug': 'test',
           'name': {
             'translations': {'en': 'Test'},
@@ -221,7 +221,7 @@ void main() {
       'test_node_strategy_logic_deserializes_is_system_core_explicit_true',
       () {
         final json = {
-          'id': 'st_1234567890abcdef',
+          'id': 'st_0195f3a0000070008000000000000003',
           'slug': 'test',
           'name': {
             'translations': {'en': 'Test'},
@@ -248,7 +248,7 @@ void main() {
       'test_node_strategy_rejects_unknown_extra_key_with_is_system_core',
       () {
         final json = {
-          'id': 'st_1234567890abcdef',
+          'id': 'st_0195f3a0000070008000000000000003',
           'slug': 'test',
           'name': {
             'translations': {'en': 'Test'},
@@ -269,7 +269,7 @@ void main() {
     test('test_node_strategy_unions_deserialize_and_serialize_zone', () {
       // 1. LLM union with default zone (zoneB)
       final llmJson = {
-        'id': 'st_1234567890abcdef',
+        'id': 'st_0195f3a0000070008000000000000003',
         'slug': 'test_llm',
         'name': {
           'translations': {'en': 'Test LLM'},
@@ -290,7 +290,7 @@ void main() {
 
       // 2. Logic union with explicit zoneA
       final logicJson = {
-        'id': 'st_1234567890abcdef',
+        'id': 'st_0195f3a0000070008000000000000003',
         'slug': 'test_logic',
         'name': {
           'translations': {'en': 'Test Logic'},
@@ -312,7 +312,7 @@ void main() {
 
       // 3. Causal Discovery union with explicit zoneB
       final cdJson = {
-        'id': 'st_1234567890abcdef',
+        'id': 'st_0195f3a0000070008000000000000003',
         'slug': 'test_cd',
         'name': {
           'translations': {'en': 'Test CD'},
@@ -336,11 +336,11 @@ void main() {
   group('Workflow Schema Parity & Purged Fields Verification', () {
     test('Workflow.toJson() must not contain purged legacy field ui_schema', () {
       const workflow = Workflow(
-        id: 'wf_0123456789abcdef',
+        id: 'wf_0195f3a0000070008000000000000001',
         slug: 'test_wf',
         name: I18nText(translations: {'en': 'Test Workflow'}),
         description: I18nText(translations: {'en': 'Test Description'}),
-        modelRegistryId: 'sys_b1c2d3e4f5a60718',
+        modelRegistryId: 'sys_0195f3a0000070008000000000000001',
       );
 
       final json = workflow.toJson();
@@ -356,7 +356,7 @@ void main() {
       'NodeStrategy.toJson() must not contain purged legacy field output_schema',
       () {
         const node = NodeStrategy.llm(
-          id: 'st_0123456789abcdef',
+          id: 'st_0195f3a0000070008000000000000004',
           slug: 'test_step',
           name: I18nText(translations: {'en': 'Test Step'}),
           cognitiveTier: CognitiveTier.fast,
@@ -376,16 +376,16 @@ void main() {
       'NodeStrategy enforces reference equality (equal: false) to prevent O(N^2) list comparison',
       () {
         final nodeA = NodeStrategy.llm(
-          id: 'st_0123456789abcdef',
+          id: 'st_0195f3a0000070008000000000000004',
           slug: 'test_step',
           name: const I18nText(translations: {'en': 'Test Step'}),
-          criteriaBlockIds: ['blk_0123456789abcdef'],
+          criteriaBlockIds: ['blk_0195f3a0000070008000000000000001'],
         );
         final nodeB = NodeStrategy.llm(
-          id: 'st_0123456789abcdef',
+          id: 'st_0195f3a0000070008000000000000004',
           slug: 'test_step',
           name: const I18nText(translations: {'en': 'Test Step'}),
-          criteriaBlockIds: ['blk_0123456789abcdef'],
+          criteriaBlockIds: ['blk_0195f3a0000070008000000000000001'],
         );
 
         expect(nodeA == nodeB, isFalse);
@@ -396,7 +396,7 @@ void main() {
       'Workflow deserializes and serializes HistoricalContextMode enum strictly',
       () {
         final json = {
-          'id': 'wf_0123456789abcdef',
+          'id': 'wf_0195f3a0000070008000000000000001',
           'slug': 'test_wf',
           'name': {
             'translations': {'en': 'Workflow'},
@@ -404,7 +404,7 @@ void main() {
           'description': {
             'translations': {'en': 'Description'},
           },
-          'model_registry_id': 'sys_b1c2d3e4f5a60718',
+          'model_registry_id': 'sys_0195f3a0000070008000000000000001',
           'historical_context_mode': 'SLIDING_WINDOW_3',
         };
 
@@ -424,7 +424,7 @@ void main() {
       'Workflow rejects invalid historical_context_mode enum value fail-fast (negative)',
       () {
         final json = {
-          'id': 'wf_0123456789abcdef',
+          'id': 'wf_0195f3a0000070008000000000000001',
           'slug': 'test_wf',
           'name': {
             'translations': {'en': 'Workflow'},
@@ -432,7 +432,7 @@ void main() {
           'description': {
             'translations': {'en': 'Description'},
           },
-          'model_registry_id': 'sys_b1c2d3e4f5a60718',
+          'model_registry_id': 'sys_0195f3a0000070008000000000000001',
           'historical_context_mode': 'INVALID_MODE',
         };
 
@@ -445,7 +445,7 @@ void main() {
 
     test('Workflow rejects unrecognized keys fail-fast (negative)', () {
       final json = {
-        'id': 'wf_0123456789abcdef',
+        'id': 'wf_0195f3a0000070008000000000000001',
         'slug': 'test_wf',
         'name': {
           'translations': {'en': 'Workflow'},
@@ -453,7 +453,7 @@ void main() {
         'description': {
           'translations': {'en': 'Description'},
         },
-        'model_registry_id': 'sys_b1c2d3e4f5a60718',
+        'model_registry_id': 'sys_0195f3a0000070008000000000000001',
         'unrecognized_extra_field': true,
       };
 
@@ -465,8 +465,8 @@ void main() {
 
     test('StepRule correctly parses causal_source_step_id', () {
       final json = {
-        'id': 'st_0123456789abcdef',
-        'task_blueprint': 'st_abcdef0123456789',
+        'id': 'st_0195f3a0000070008000000000000004',
+        'task_blueprint': 'st_0195f3a0000070008000000000000005',
         'depends_on': ['st_causal_upstream_01'],
         'causal_source_step_id': 'st_causal_upstream_01',
         'is_synthesis_source': true,
@@ -482,8 +482,8 @@ void main() {
 
     test('StepRule rejects unrecognized keys fail-fast (negative)', () {
       final json = {
-        'id': 'st_0123456789abcdef',
-        'task_blueprint': 'st_abcdef0123456789',
+        'id': 'st_0195f3a0000070008000000000000004',
+        'task_blueprint': 'st_0195f3a0000070008000000000000005',
         'invalid_unrecognized_key': 'fail_fast',
       };
 
@@ -495,7 +495,7 @@ void main() {
 
     test('NodeStrategy parses engine_type causal_discovery', () {
       final json = {
-        'id': 'st_0123456789abcdef',
+        'id': 'st_0195f3a0000070008000000000000004',
         'slug': 'causal_step',
         'name': {
           'translations': {'en': 'Causal Step'},
@@ -515,7 +515,7 @@ void main() {
 
     test('NodeStrategy parses type causal_discovery from seed blueprint', () {
       final json = {
-        'id': 'sp_c4a5a1d15c00438a',
+        'id': 'sp_0195f3a0000070008000000000000002',
         'slug': 'step_causal_discovery',
         'organization_id': 'SYSTEM',
         'name': {
@@ -533,7 +533,7 @@ void main() {
           },
         },
         'type': 'causal_discovery',
-        'extraction_protocol_block_id': 'blk_573802341db9d68c',
+        'extraction_protocol_block_id': 'blk_0195f3a0000070008000000000000002',
         'criteria_block_ids': <String>[],
         'pre_hooks': ['inject_step_metadata'],
         'post_hooks': <String>[],
@@ -549,7 +549,7 @@ void main() {
       expect(parsed, isA<NodeStrategyCausalDiscovery>());
       switch (parsed) {
         case NodeStrategyCausalDiscovery c:
-          expect(c.id, 'sp_c4a5a1d15c00438a');
+          expect(c.id, 'sp_0195f3a0000070008000000000000002');
           expect(c.slug, 'step_causal_discovery');
           expect(c.engineType, EngineType.causalDiscovery);
         case NodeStrategyLlm _:

@@ -8,7 +8,7 @@ void main() {
       'Positive: Parses complete Option A ModelConfig with 4 canonical tiers',
       () {
         final payload = {
-          'id': 'sys_e26807f3bfa3454d',
+          'id': 'sys_0195f3a0000070008000000000000001',
           'name': 'Google Gemini Sovereign Stack',
           'slug': 'gemini-stack',
           'type': 'model_registry',
@@ -42,7 +42,7 @@ void main() {
         };
 
         final config = ModelConfig.fromJson(payload);
-        expect(config.id, 'sys_e26807f3bfa3454d');
+        expect(config.id, 'sys_0195f3a0000070008000000000000001');
         expect(config.name, 'Google Gemini Sovereign Stack');
         expect(config.defaultProvider, 'google');
         expect(config.tierDefinitions.length, 4);
@@ -69,7 +69,7 @@ void main() {
       'Negative 2: Throws CheckedFromJsonException on unrecognized key in ModelConfig',
       () {
         final payload = {
-          'id': 'sys_1234567890abcdef',
+          'id': 'sys_0195f3a0000070008000000000000002',
           'type': 'model_registry',
           'unrecognized_extra_key': 'illegal',
           'tier_definitions': <String, dynamic>{},
@@ -86,7 +86,7 @@ void main() {
       'Negative 3: Throws CheckedFromJsonException on unrecognized key in LlmModelConfig',
       () {
         final payload = {
-          'id': 'sys_1234567890abcdef',
+          'id': 'sys_0195f3a0000070008000000000000002',
           'type': 'model_registry',
           'tier_definitions': {
             'fast': {
@@ -108,7 +108,7 @@ void main() {
       'Negative 4: Throws CheckedFromJsonException when numeric field receives invalid type',
       () {
         final payload = {
-          'id': 'sys_1234567890abcdef',
+          'id': 'sys_0195f3a0000070008000000000000002',
           'type': 'model_registry',
           'tier_definitions': {
             'fast': {
@@ -130,7 +130,7 @@ void main() {
       'Positive 2: Parses reasoning_effort from additional_params and exposes via getter',
       () {
         final payload = {
-          'id': 'sys_1234567890abcdef',
+          'id': 'sys_0195f3a0000070008000000000000002',
           'type': 'model_registry',
           'tier_definitions': {
             'reasoning': {
@@ -164,7 +164,7 @@ void main() {
         expect(json.containsKey('reasoning_effort'), isFalse);
         expect(
           (json['additional_params']
-              as Map<String, dynamic>?)?['reasoning_effort'],
+              as Map<String, Object?>?)?['reasoning_effort'],
           'high',
         );
       },
@@ -174,7 +174,7 @@ void main() {
       'Negative 5: Throws CheckedFromJsonException when reasoning_effort is provided at root level',
       () {
         final payload = {
-          'id': 'sys_1234567890abcdef',
+          'id': 'sys_0195f3a0000070008000000000000002',
           'type': 'model_registry',
           'tier_definitions': {
             'reasoning': {

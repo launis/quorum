@@ -25,7 +25,7 @@ void main() {
       final mockData = [
         {
           'category_id': 'system_rule',
-          'id': 'blk_1234567812345678',
+          'id': 'blk_0195f3a0000070008000000000000001',
           'slug': 'test_rule',
           'label': {
             'translations': {'en': 'Test Rule'},
@@ -56,7 +56,7 @@ void main() {
       // Assert
       expect(result, isA<List<PromptBlock>>());
       expect(result.length, 1);
-      expect(result.first.id, 'blk_1234567812345678');
+      expect(result.first.id, 'blk_0195f3a0000070008000000000000001');
       expect(result.first, isA<SystemRulePromptBlock>());
       verify(() => mockDio.get('studio/prompt-blocks')).called(1);
     });
@@ -67,7 +67,7 @@ void main() {
         // Arrange: HTTP 200 with JSON containing unknown key 'legacy_field'
         final invalidBlockJson = {
           'category_id': 'system_rule',
-          'id': 'blk_1234567812345678',
+          'id': 'blk_0195f3a0000070008000000000000001',
           'slug': 'test_rule',
           'label': {
             'translations': {'en': 'Test Rule'},
@@ -128,7 +128,7 @@ void main() {
       () async {
         // Arrange: PromptBlockSimulationRequest omitting optional contextText and targetLocale
         const block = PromptBlock.systemRule(
-          id: 'blk_1234567812345678',
+          id: 'blk_0195f3a0000070008000000000000001',
           slug: 'test_rule',
           label: I18nText(translations: {'en': 'Test Rule'}),
           description: I18nText(translations: {'en': 'Test Description'}),
@@ -169,7 +169,7 @@ void main() {
                     data: captureAny(named: 'data'),
                   ),
                 ).captured.single
-                as Map<String, dynamic>;
+                as Map<String, Object?>;
 
         expect(captured['target_locale'], equals('en'));
         expect(
@@ -186,7 +186,7 @@ void main() {
       () async {
         // Arrange
         const blockToSave = PromptBlock.systemRule(
-          id: 'blk_1234567812345678',
+          id: 'blk_0195f3a0000070008000000000000001',
           slug: 'test_rule',
           label: I18nText(translations: {'en': 'Test Rule'}),
           description: I18nText(translations: {'en': 'Test Description'}),
@@ -194,7 +194,7 @@ void main() {
 
         final returnedData = {
           'category_id': 'system_rule',
-          'id': 'blk_1234567812345678',
+          'id': 'blk_0195f3a0000070008000000000000001',
           'slug': 'test_rule',
           'label': {
             'translations': {'en': 'Test Rule'},
@@ -212,13 +212,13 @@ void main() {
 
         when(
           () => mockDio.put(
-            'studio/prompt-blocks/blk_1234567812345678',
+            'studio/prompt-blocks/blk_0195f3a0000070008000000000000001',
             data: any(named: 'data'),
           ),
         ).thenAnswer(
           (_) async => Response(
             requestOptions: RequestOptions(
-              path: 'studio/prompt-blocks/blk_1234567812345678',
+              path: 'studio/prompt-blocks/blk_0195f3a0000070008000000000000001',
             ),
             data: returnedData,
             statusCode: 200,
@@ -227,16 +227,16 @@ void main() {
 
         // Act
         final result = await client.savePromptBlock(
-          'blk_1234567812345678',
+          'blk_0195f3a0000070008000000000000001',
           blockToSave,
         );
 
         // Assert
-        expect(result.id, equals('blk_1234567812345678'));
+        expect(result.id, equals('blk_0195f3a0000070008000000000000001'));
         expect(result, isA<SystemRulePromptBlock>());
         verify(
           () => mockDio.put(
-            'studio/prompt-blocks/blk_1234567812345678',
+            'studio/prompt-blocks/blk_0195f3a0000070008000000000000001',
             data: any(named: 'data'),
           ),
         ).called(1);

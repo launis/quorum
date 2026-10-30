@@ -7,7 +7,7 @@ void main() {
   group('MatrixSynthesisGroup JSON Parsing', () {
     test('Should parse MatrixSynthesisGroup with valid fields', () {
       final jsonPayload = {
-        'id': 'grp_1111111111111111',
+        'id': 'grp_0195f3a0000070008000000000000001',
         'title': {
           'translations': {'fi': 'Otsikko', 'en': 'Title'},
         },
@@ -18,7 +18,7 @@ void main() {
       final group = MatrixSynthesisGroup.fromJson(jsonPayload);
 
       expect(group, isNotNull);
-      expect(group.id, 'grp_1111111111111111');
+      expect(group.id, 'grp_0195f3a0000070008000000000000001');
       expect(group.title.translations['en'], 'Title');
       expect(group.targetBlocks, ['blk_1', 'blk_2']);
       expect(group.viewType, PresetView.compare2d);
@@ -26,7 +26,7 @@ void main() {
 
     test('Should throw on unrecognized keys in MatrixSynthesisGroup', () {
       final jsonPayload = {
-        'id': 'grp_1111111111111111',
+        'id': 'grp_0195f3a0000070008000000000000001',
         'title': {
           'translations': {'en': 'Title'},
         },
@@ -44,7 +44,7 @@ void main() {
       'Should throw when legacy synthesis_directive is in MatrixSynthesisGroup',
       () {
         final jsonPayload = {
-          'id': 'grp_1111111111111111',
+          'id': 'grp_0195f3a0000070008000000000000001',
           'title': {
             'translations': {'en': 'Title'},
           },
@@ -63,9 +63,9 @@ void main() {
   group('OutputProfile JSON Parsing', () {
     test('Should parse fully populated OutputProfile with all fields', () {
       final jsonPayload = {
-        'id': 'op_1234567890abcdef',
+        'id': 'op_0195f3a0000070008000000000000001',
         'slug': 'test-profile',
-        'workflow_id': 'wf_9d68c573802341db',
+        'workflow_id': 'wf_0195f3a0000070008000000000000001',
         'organization_id': 'org_123',
         'name': {
           'translations': {'en': 'Test Profile'},
@@ -98,7 +98,7 @@ void main() {
         'language': 'en',
         'matrix_synthesis_groups': [
           {
-            'id': 'grp_1111111111111111',
+            'id': 'grp_0195f3a0000070008000000000000001',
             'title': {
               'translations': {'en': 'Group 1'},
             },
@@ -124,7 +124,7 @@ void main() {
       };
 
       final profile = OutputProfile.fromJson(jsonPayload);
-      expect(profile.id, 'op_1234567890abcdef');
+      expect(profile.id, 'op_0195f3a0000070008000000000000001');
       expect(profile.displayScale, DisplayScale.custom);
       expect(profile.maxExtensionItems, 5);
       expect(profile.synthesisLengthConstraint, 300);
@@ -140,7 +140,10 @@ void main() {
       expect(profile.targetBlockOrder.first, TargetBlockType.metadataBlock);
       expect(profile.targetBlockOrder.last, TargetBlockType.auditTrailBlock);
       expect(profile.matrixSynthesisGroups.length, 1);
-      expect(profile.matrixSynthesisGroups.first.id, 'grp_1111111111111111');
+      expect(
+        profile.matrixSynthesisGroups.first.id,
+        'grp_0195f3a0000070008000000000000001',
+      );
       expect(profile.visibleBlockExtensions, [
         XaiExtensionType.citation,
         XaiExtensionType.coaching,
@@ -151,8 +154,8 @@ void main() {
 
     test('test_output_profile_language_enum_parsing', () {
       final basePayload = {
-        'id': 'op_1234567890abcdef',
-        'workflow_id': 'wf_9d68c573802341db',
+        'id': 'op_0195f3a0000070008000000000000001',
+        'workflow_id': 'wf_0195f3a0000070008000000000000001',
         'name': {
           'translations': {'en': 'Test Profile'},
         },
@@ -182,8 +185,8 @@ void main() {
 
     test('test_output_profile_unknown_display_scale_throws', () {
       final jsonPayload = {
-        'id': 'op_1234567890abcdef',
-        'workflow_id': 'wf_9d68c573802341db',
+        'id': 'op_0195f3a0000070008000000000000001',
+        'workflow_id': 'wf_0195f3a0000070008000000000000001',
         'name': {
           'translations': {'en': 'Test Profile'},
         },
@@ -198,8 +201,8 @@ void main() {
 
     test('test_output_profile_unknown_target_block_type_throws', () {
       final jsonPayload = {
-        'id': 'op_1234567890abcdef',
-        'workflow_id': 'wf_9d68c573802341db',
+        'id': 'op_0195f3a0000070008000000000000001',
+        'workflow_id': 'wf_0195f3a0000070008000000000000001',
         'name': {
           'translations': {'en': 'Test Profile'},
         },
@@ -214,8 +217,8 @@ void main() {
 
     test('test_output_profile_extra_root_key_throws', () {
       final jsonPayload = {
-        'id': 'op_1234567890abcdef',
-        'workflow_id': 'wf_9d68c573802341db',
+        'id': 'op_0195f3a0000070008000000000000001',
+        'workflow_id': 'wf_0195f3a0000070008000000000000001',
         'name': {
           'translations': {'en': 'Test Profile'},
         },
@@ -230,8 +233,8 @@ void main() {
 
     test('test_output_profile_purged_layouts_key_throws', () {
       final jsonPayload = {
-        'id': 'op_1234567890abcdef',
-        'workflow_id': 'wf_9d68c573802341db',
+        'id': 'op_0195f3a0000070008000000000000001',
+        'workflow_id': 'wf_0195f3a0000070008000000000000001',
         'name': {
           'translations': {'en': 'Test Profile'},
         },
@@ -246,8 +249,8 @@ void main() {
 
     test('test_output_profile_purged_metric_mappings_key_throws', () {
       final jsonPayload = {
-        'id': 'op_1234567890abcdef',
-        'workflow_id': 'wf_9d68c573802341db',
+        'id': 'op_0195f3a0000070008000000000000001',
+        'workflow_id': 'wf_0195f3a0000070008000000000000001',
         'name': {
           'translations': {'en': 'Test Profile'},
         },
@@ -264,8 +267,8 @@ void main() {
 
     test('test_output_profile_purged_synthesis_key_throws', () {
       final jsonPayload = {
-        'id': 'op_1234567890abcdef',
-        'workflow_id': 'wf_9d68c573802341db',
+        'id': 'op_0195f3a0000070008000000000000001',
+        'workflow_id': 'wf_0195f3a0000070008000000000000001',
         'name': {
           'translations': {'en': 'Test Profile'},
         },
@@ -282,8 +285,8 @@ void main() {
       'Should parse and serialize OutputProfile with custom_scale_min and custom_scale_max',
       () {
         final jsonPayload = {
-          'id': 'op_1234567890abcdef',
-          'workflow_id': 'wf_9d68c573802341db',
+          'id': 'op_0195f3a0000070008000000000000001',
+          'workflow_id': 'wf_0195f3a0000070008000000000000001',
           'name': {
             'translations': {'en': 'Test Profile'},
           },

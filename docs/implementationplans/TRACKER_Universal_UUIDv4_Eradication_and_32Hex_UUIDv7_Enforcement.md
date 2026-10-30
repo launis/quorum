@@ -1,0 +1,117 @@
+# Tracker: Universal Eradication of Legacy UUIDv4 Generators & Full 32-Hex RFC 9562 UUIDv7 Enforcement
+
+**Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]
+
+<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+  <rule>@[.agents/rules/03_seed_vault.md]</rule>
+  <rule>@[.agents/rules/04_directory_reference.md]</rule>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+</required_context_rules>
+
+## Step Execution Status
+
+**Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]
+
+- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`
+  - [x] Step 1: Phase 1: Flutter Client UUIDv7 SSOT, StrictOpaqueIdConverter Lock & DGR003/DGR008 Technical Debt Cleanup
+  - [ ] Step 2: Phase 2: Backend Core UUIDv7 Primitive & Domain Model Default Factories
+  - [ ] Step 3: Phase 3: Backend Services, Repositories, Hooks, LLM & Test Doubles UUIDv4 Eradication
+  - [ ] Step 4: Phase 4: Static AST (QGR030) & Dart (DGR008) Guardrail Enforcement
+  - [ ] Step 5: Phase 5: Rules, Knowledge Items & Tier 2 Hardening Skills Synchronization
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`
+
+### Post-Implementation Gates
+
+- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+  - [ ] @[backend_v2/database/repositories/audit.py]
+  - [ ] @[backend_v2/database/repositories/execution.py]
+  - [ ] @[backend_v2/database/repositories/knowledge.py]
+  - [ ] @[backend_v2/hooks/linguistics.py]
+  - [ ] @[backend_v2/hooks/llm.py]
+  - [ ] @[backend_v2/hooks/references.py]
+  - [ ] @[backend_v2/llm/client.py]
+  - [ ] @[backend_v2/llm/mock_data.py]
+  - [ ] @[backend_v2/llm/provider/litellm_response_stage.py]
+  - [ ] @[backend_v2/models/auth.py]
+  - [ ] @[backend_v2/models/chunking.py]
+  - [ ] @[backend_v2/models/core_base.py]
+  - [ ] @[backend_v2/models/domain/base.py]
+  - [ ] @[backend_v2/models/domain/matrix.py]
+  - [ ] @[backend_v2/models/state.py]
+  - [ ] @[backend_v2/services/auth/organization_service.py]
+  - [ ] @[backend_v2/services/auth/user_service.py]
+  - [ ] @[backend_v2/services/drivers/local_file_driver.py]
+  - [ ] @[backend_v2/services/mcp/dispatcher.py]
+  - [ ] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
+  - [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
+  - [ ] @[backend_v2/services/usage_service.py]
+  - [ ] @[scripts/_ast_guardrails.py]
+  - [ ] @[scripts/_dart_guardrails.py]
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
+  - [ ] @[client_app_v2/lib/features/studio/models/prompt_block.dart]
+  - [ ] @[client_app_v2/lib/features/studio/utils/workflow_cloner.dart]
+  - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]
+  - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]
+  - [ ] @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]
+  - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]
+  - [ ] @[client_app_v2/lib/utils/json_converters.dart]
+- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+
+### Documentation & Knowledge Item Update
+
+- [ ] **[NOK]** As-Built Architectural Sync: Run:
+  ```powershell
+  /tier7-describe-architecture @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[ki_god_code_prevention.md]
+  ```
+
+  #### Directives for Tier 7 Agent:
+  1. **Target KIs to Synchronize:**
+     - `@[ki_god_code_prevention.md]`: Document the universal eradication of `uuid.uuid4()` and `Uuid().v4()`, the canonical `generate_uuid7()` helper in `backend_v2/models/core_base.py`, `generateOpaqueUuid7(prefix)` in `client_app_v2/lib/utils/json_converters.dart`, and the `QGR030` / `DGR008` static guardrails banning version-4 UUID generation.
+  2. **Directory Reference Sync:**
+     - Update `@[.agents/rules/04_directory_reference.md]` to register `client_app_v2/test/unit/utils/json_converters_test.dart` and the `generate_uuid7()` / `generateOpaqueUuid7()` SSOT primitives.
+  3. **Pillar Documentation Sync:**
+     - Update timeless narratives in `docs/architecture/` describing 32-hex RFC 9562 UUIDv7 identifier generation across Backend and Frontend in present tense without historical language or plan IDs.
+
+### Final Plan Audit
+
+- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+
+## Instructions for the Execution Agent
+
+- **Atomic Commit Mandate**: After completing each cohesive logical step and passing quality gates, execute an atomic git commit using strict Conventional Commits (`<type>(<scope>): <imperative summary in lowercase, max 72 chars>`).
+- **Universal Quality Gate Loops**:
+  - Backend / Scripts: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py <target_path> --test --ast-strict`
+  - Frontend / Flutter: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build`
+- **File Reference Syntax**: Normalize all codebase file references to workspace-relative POSIX paths (`@[backend_v2/target.py]`).
+- **Session Handover Protocol**: Trigger `/tier5-session-handover` if processing >8 user prompts in a session, completing 3 atomic git commits, or modifying >5 distinct complex modules.
+
+## Requirements Traceability Matrix
+
+| Requirement | Description | Plan Step | Status |
+| :--- | :--- | :--- | :--- |
+| REQ-001 | Tighten `StrictOpaqueIdConverter` to 32-hex `r'^[a-z]{2,5}_[a-f0-9]{32}$'`, add `generateOpaqueUuid7(String prefix)` in `@[client_app_v2/lib/utils/json_converters.dart]`, migrate Flutter Studio widgets/cloner/models (`@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]`, `@[client_app_v2/lib/features/studio/utils/workflow_cloner.dart]`, `@[client_app_v2/lib/features/studio/models/prompt_block.dart]`, `@[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]`), and update Flutter test fixtures and `[NEW] @[client_app_v2/test/unit/utils/json_converters_test.dart]`. | Step 1 | [x] Completed |
+| REQ-002 | Extract `generate_uuid7(timestamp_ms: int \| None = None) -> uuid.UUID` in `@[backend_v2/models/core_base.py#L329-L382]`, migrate domain model default factories in `@[backend_v2/models/auth.py]`, `@[backend_v2/models/domain/base.py#L260-L369]`, `@[backend_v2/models/domain/matrix.py#L113-L242]`, `@[backend_v2/models/chunking.py#L26-L65]`, and `@[backend_v2/models/state.py]`, and add unit tests in `@[backend_v2/tests/unit/models/test_core_base.py#L196-L238]`. | Step 2 | [ ] Pending |
+| REQ-003 | Replace `uuid.uuid4()` with `generate_opaque_id(EntityPrefix.<TYPE>)` and `generate_uuid7()` across backend services, repositories, hooks, LLM providers, model factories, and repository fakes, and scope test patches in `@[backend_v2/tests/unit/hooks/test_references.py]` and `@[backend_v2/tests/unit/test_references.py#L190-L199]`. | Step 3 | [ ] Pending |
+| REQ-004 | Enforce `QGR030` in `@[scripts/_ast_guardrails.py]` blocking `uuid.uuid4` / `uuid4` in domain code and `DGR008` in `@[scripts/_dart_guardrails.py#L135-L362]` blocking `.v4(` in handwritten Dart files, with unit tests in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py#L2419-L2433]` and `@[backend_v2/tests/unit/scripts/test_dart_guardrails.py#L494-L502]`. | Step 4 | [ ] Pending |
+| REQ-005 | Synchronize `@[.agents/rules/01-python-backend.md]`, `@[.agents/rules/02_flutter_desktop.md]`, `@[.agents/rules/03_seed_vault.md]`, `@[.agents/skills/tier2-hardening-backend/SKILL.md]`, `@[.agents/skills/tier2-hardening-frontend/SKILL.md]`, `@[.agents/skills/tier2-hardening-knowledge/SKILL.md]`, `@[.agents/skills/tier2-execute/references/modernity_and_tech_debt_checklist.md]`, and Knowledge Items to enforce 32-hex RFC 9562 UUIDv7 parity. | Step 5 | [ ] Pending |
+
+# Session Handover Context
+
+## Achieved
+- Initialized `@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]` for `@[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`.
+
+## Learned
+- Both `StrictOpaqueIdConverter` on the Flutter client and `OPAQUE_STRIPE_ID_REGEX` / `PostgresEntityAdapter` on the Python backend require 32-hex RFC 9562 UUIDv7 identifiers (`^[a-z]{2,5}_[a-f0-9]{32}$` with version nibble `7`).
+
+## Remaining
+- Execute Steps 1 through 5 of `@[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`.
+
+## Resume Command
+```powershell
+/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]
+```

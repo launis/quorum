@@ -1,16 +1,14 @@
-import 'package:uuid/uuid.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/utils/json_converters.dart';
 
 /// **WorkflowCloner (The Routing Logic Engine)**
 ///
 /// Handles the complex deep-cloning of a Workflow DAG.
-/// Strict compliance with V2 Architecture `Arkkitehtuuristandardi_Tyonkulun_Kloonaus.md`:
+/// Strict compliance with V2 Architecture:
 /// 1. Operates entirely on raw `Map<String, Object?>` payloads (Zero-Deploy SDUI Policy).
 /// 2. Implements Fail-Fast security against broken dependencies.
 /// 3. Re-routes explicit data paths instead of doing blind global string replaces.
 class WorkflowCloner {
-  static const Uuid _uuid = Uuid();
-
   /// Creates a completely standalone copy of the workflow.
   /// Generates new Opaque IDs for steps and structurally updates all internal
   /// semantic routing references (`depends_on`, `input_mappings`, `output_profiles`).
@@ -50,8 +48,8 @@ class WorkflowCloner {
       final oldId = (step['id'] ?? step['step_id'])?.toString() ?? '';
       if (oldId.isEmpty) continue;
 
-      // Generate secure 128-bit Opaque ID matching Epic 10 standard (sr_ + 16 chars)
-      final newId = 'sr_${_uuid.v4().replaceAll('-', '').substring(0, 16)}';
+      // Phase 1, Step 1: Generate canonical 32-hex sr_ UUIDv7 identifier
+      final newId = generateOpaqueUuid7('sr');
       idMap[oldId] = newId;
 
       // Update the step itself
@@ -76,7 +74,7 @@ class WorkflowCloner {
         final String oldDep = dep.toString();
         final mappedDep =
             idMap[oldDep] ??
-            oldDep; // Fallback to old if not in map (will trigger Riski 3 check later)
+            oldDep; // Fallback to old if not in map (will trigger Risk 3 check later)
         newDependsOn.add(mappedDep);
       }
       step['depends_on'] = newDependsOn;
@@ -136,7 +134,7 @@ class WorkflowCloner {
       cloned['output_profiles'] = updatedBlueprints;
     }
 
-    // --- Phase C: Riski 3 - Fail Fast Validation ---
+    // --- Phase C: Risk 3 - Fail Fast Validation ---
     for (final step in steps) {
       final stepMap = step is Map
           ? step as Map<String, Object?>

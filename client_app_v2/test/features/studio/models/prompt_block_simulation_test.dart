@@ -6,7 +6,7 @@ void main() {
   group('PromptBlockSimulation DTO Contract Tests', () {
     final samplePromptBlockJson = {
       'category_id': 'system_rule',
-      'id': 'blk_7a8b9c0d1e2f3a4b',
+      'id': 'blk_0195f3a0000070008000000000000001',
       'slug': 'test-block',
       'label': {
         'translations': {'en': 'Test Block'},
@@ -28,7 +28,7 @@ void main() {
 
       final request = PromptBlockSimulationRequest.fromJson(validRequestJson);
 
-      expect(request.block.id, 'blk_7a8b9c0d1e2f3a4b');
+      expect(request.block.id, 'blk_0195f3a0000070008000000000000001');
       expect(request.mockInputs['target_speaker'], 'speaker_0');
       expect(request.targetScaleScore, 3);
       expect(request.targetLocale, 'en');

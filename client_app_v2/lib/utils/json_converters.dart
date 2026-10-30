@@ -1,7 +1,27 @@
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:uuid/uuid.dart';
 
-/// Konvertteri DateTime-objekteille. Odottaa ISO-8601 muotoiltua stringiä (UTC).
+final RegExp _opaquePrefixRegex = RegExp(r'^[a-z]{2,5}$');
+final RegExp _opaqueStripeIdRegex = RegExp(
+  r'^[a-z]{2,5}_[a-f0-9]{32}$',
+  caseSensitive: false,
+);
+
+// Phase 1, Step 1: Generate canonical 32-hex RFC 9562 UUIDv7 Opaque Stripe ID
+/// Generates a canonical 32-character hexadecimal RFC 9562 UUIDv7 Opaque Stripe ID.
+String generateOpaqueUuid7(String prefix) {
+  final cleanedPrefix = prefix.trim().toLowerCase();
+  if (!_opaquePrefixRegex.hasMatch(cleanedPrefix)) {
+    throw AppException.validation(
+      'Invalid Opaque ID prefix: "$prefix". Expected 2-5 lowercase ASCII letters.',
+    );
+  }
+  final hexPayload = const Uuid().v7().replaceAll('-', '').toLowerCase();
+  return '${cleanedPrefix}_$hexPayload';
+}
+
+/// Converter for DateTime objects expecting ISO-8601 UTC strings.
 class StrictDateTimeConverter implements JsonConverter<DateTime, String> {
   const StrictDateTimeConverter();
 
@@ -22,8 +42,8 @@ class StrictDateTimeConverter implements JsonConverter<DateTime, String> {
   }
 }
 
-/// Strict Enum Konvertteri. Ei tunne varatyylejä (Fallback / Unknown).
-/// Kaatuu heti heittäen AppExceptionin jos backendistä tulee tuntematon data-kenttä.
+/// Strict Enum converter without fallback values.
+/// Throws AppException immediately if an unrecognized enum value is received.
 class StrictEnumConverter<T extends Enum> implements JsonConverter<T, String> {
   final List<T> enumValues;
   final String Function(T)? toJsonFn;
@@ -49,16 +69,16 @@ class StrictEnumConverter<T extends Enum> implements JsonConverter<T, String> {
   }
 }
 
-/// Opaque ID Konvertteri. Varmistaa RegExillä että tunnisteet ovat aitoja.
+// Phase 1, Step 1: Enforce 32-hex Opaque Stripe ID format in StrictOpaqueIdConverter
+/// Opaque ID converter enforcing 32-character hexadecimal RFC 9562 UUIDv7 format.
 class StrictOpaqueIdConverter implements JsonConverter<String, String> {
   const StrictOpaqueIdConverter();
 
   @override
   String fromJson(String json) {
-    final regex = RegExp(r'^[a-z]{2,5}_[a-f0-9]{16,32}$', caseSensitive: false);
-    if (!regex.hasMatch(json)) {
+    if (!_opaqueStripeIdRegex.hasMatch(json)) {
       throw AppException.validation(
-        'Invalid Opaque Stripe ID format: "$json". Must start with a 2-5 letter prefix, followed by underscore and exactly 16-32 hex characters.',
+        'Invalid Opaque Stripe ID format: "$json". Must start with a 2-5 letter prefix, followed by underscore and exactly 32 hex characters.',
       );
     }
     return json;

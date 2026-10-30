@@ -1,6 +1,5 @@
 import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:convert';
-import 'package:uuid/uuid.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/json_converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -158,7 +157,7 @@ abstract class TDAAssertion with _$TDAAssertion {
   factory TDAAssertion.fromJson(Map<String, dynamic> json) =>
       _$TDAAssertionFromJson(json);
 
-  /// Generates an Opaque Stripe ID automatically with 32 hex chars
+  /// Generates an Opaque Stripe ID automatically with 32 hex chars (RFC 9562 UUIDv7).
   factory TDAAssertion.create({
     required String conceptDescription,
     required bool inverseEvidence,
@@ -169,9 +168,9 @@ abstract class TDAAssertion with _$TDAAssertion {
     String? logicalExpression,
     TargetSpeaker targetSpeaker = TargetSpeaker.user,
   }) {
-    final uuidHex = const Uuid().v4().replaceAll('-', '');
+    // Phase 1, Step 1: Generate canonical 32-hex tda_ UUIDv7 identifier
     return TDAAssertion(
-      tdaId: 'tda_$uuidHex',
+      tdaId: generateOpaqueUuid7('tda'),
       conceptDescription: conceptDescription,
       inverseEvidence: inverseEvidence,
       aggregationMode: aggregationMode,

@@ -169,8 +169,9 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
     setState(() => _isLoadingPreview = true);
 
     try {
+      // Phase 1, Step 1: Use canonical 32-hex UUIDv7 sentinel for transient scale simulation
       final transientBlock = PromptBlock.matrix(
-        id: 'blk_0000000000000000',
+        id: 'blk_0195f3a0000070008000000000000000',
         slug: 'sim_preview',
         label: const I18nText(translations: {'en': 'Simulation'}),
         description: const I18nText(translations: {'en': 'Simulation'}),

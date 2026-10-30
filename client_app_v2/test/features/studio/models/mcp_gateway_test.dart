@@ -8,7 +8,7 @@ void main() {
     test('test_mcp_gateway_json_deserialization_success', () {
       // Input: Valid JSON matching SystemConfigMCPGateways SSOT
       final validJson = {
-        'id': 'gw_1234567812345678',
+        'id': 'gw_0195f3a0000070008000000000000001',
         'type': 'stdio',
         'slug': 'filesystem_gateway',
         'endpoint_url': 'https://mcp.example.com/v1',
@@ -44,7 +44,7 @@ void main() {
       final gateway = McpGateway.fromJson(validJson);
 
       // Expected: Instantiates McpGateway with correct tools list and recursive schema DTOs
-      expect(gateway.id, 'gw_1234567812345678');
+      expect(gateway.id, 'gw_0195f3a0000070008000000000000001');
       expect(gateway.type, 'stdio');
       expect(gateway.slug, 'filesystem_gateway');
       expect(gateway.endpointUrl, 'https://mcp.example.com/v1');
@@ -71,7 +71,7 @@ void main() {
 
     test('test_mcp_gateway_with_explicit_capability', () {
       final validJson = {
-        'id': 'gw_1234567812345678',
+        'id': 'gw_0195f3a0000070008000000000000001',
         'type': 'stdio',
         'tools': [
           {
@@ -93,7 +93,7 @@ void main() {
     test('test_mcp_gateway_hallucinated_fields_fail_fast', () {
       // Input: JSON containing hallucinated 'allowed_tools' or 'is_active'
       final hallucinatedJson1 = {
-        'id': 'gw_1234567812345678',
+        'id': 'gw_0195f3a0000070008000000000000001',
         'type': 'stdio',
         'slug': 'filesystem_gateway',
         'allowed_tools': [], // Hallucinated key
@@ -101,7 +101,7 @@ void main() {
       };
 
       final hallucinatedJson2 = {
-        'id': 'gw_1234567812345678',
+        'id': 'gw_0195f3a0000070008000000000000001',
         'type': 'stdio',
         'slug': 'filesystem_gateway',
         'is_active': true, // Hallucinated key
