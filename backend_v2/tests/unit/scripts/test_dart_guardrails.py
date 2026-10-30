@@ -7,6 +7,10 @@ false-positive immunity for non-UI/test scopes, CLI table formatting, and --stri
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
+
+import pytest
+from pydantic import ValidationError
 
 from scripts._dart_guardrails import (
     DartViolation,
@@ -660,3 +664,78 @@ def test_dgr010_test_scope_immune() -> None:
     violations = _scan_snippet(code, filepath="client_app_v2/test/unit/controller_test.dart")
     dgr010 = [v for v in violations if v.rule_code == "DGR010"]
     assert len(dgr010) == 0
+
+
+# ==============================================================================
+# Partition 11: ISTQB Negative & Boundary Value Tests (DTO & OS I/O Faults)
+# ==============================================================================
+
+
+def test_dart_violation_dto_negative_lineno_rejected() -> None:
+    with pytest.raises(ValidationError):
+        DartViolation(
+            filepath="client_app_v2/lib/main.dart",
+            lineno=-1,
+            col_offset=0,
+            rule_code="DGR001",
+            message="Invalid line number",
+            remediation="Fix line number",
+            severity=GuardrailSeverity.FATAL,
+            is_suppressed=False,
+        )
+
+
+def test_dart_violation_dto_negative_col_offset_rejected() -> None:
+    with pytest.raises(ValidationError):
+        DartViolation(
+            filepath="client_app_v2/lib/main.dart",
+            lineno=1,
+            col_offset=-1,
+            rule_code="DGR001",
+            message="Invalid column offset",
+            remediation="Fix column offset",
+            severity=GuardrailSeverity.FATAL,
+            is_suppressed=False,
+        )
+
+
+def test_dart_violation_dto_invalid_rule_code_pattern_rejected() -> None:
+    with pytest.raises(ValidationError):
+        DartViolation(
+            filepath="client_app_v2/lib/main.dart",
+            lineno=1,
+            col_offset=0,
+            rule_code="INVALID_CODE",
+            message="Invalid rule code",
+            remediation="Use DGRxxx pattern",
+            severity=GuardrailSeverity.FATAL,
+            is_suppressed=False,
+        )
+
+
+def test_dart_violation_dto_extra_field_rejected() -> None:
+    with pytest.raises(ValidationError):
+        DartViolation.model_validate(
+            {
+                "filepath": "client_app_v2/lib/main.dart",
+                "lineno": 1,
+                "col_offset": 0,
+                "rule_code": "DGR001",
+                "message": "Valid message",
+                "remediation": "Valid remediation",
+                "severity": GuardrailSeverity.FATAL,
+                "is_suppressed": False,
+                "unexpected_extra": "forbidden",
+            }
+        )
+
+
+def test_dgr000_os_error_on_read_bytes(tmp_path: Path) -> None:
+    target = tmp_path / "unreadable.dart"
+    target.write_text("class Unreadable {}\n", encoding="utf-8")
+    with patch.object(Path, "read_bytes", side_effect=OSError("Permission denied")):
+        violations = scan_dart_file(target)
+    assert len(violations) == 1
+    assert violations[0].rule_code == "DGR000"
+    assert violations[0].severity == GuardrailSeverity.FATAL
+    assert "Fatal OS read error" in violations[0].message
