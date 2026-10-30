@@ -38,7 +38,7 @@
   - [x] @[backend_v2/llm/provider/litellm_response_stage.py]
   - [x] @[backend_v2/models/auth.py]
   - [x] @[backend_v2/models/chunking.py]
-  - [ ] @[backend_v2/models/core_base.py]
+  - [x] @[backend_v2/models/core_base.py]
   - [ ] @[backend_v2/models/domain/base.py]
   - [ ] @[backend_v2/models/domain/matrix.py]
   - [ ] @[backend_v2/models/state.py]
