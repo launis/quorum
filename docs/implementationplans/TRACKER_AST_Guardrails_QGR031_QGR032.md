@@ -14,24 +14,24 @@
 
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]
 
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md] @[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md] @[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`
   - [x] Step 1: Implement QGR020 Bare Field Ban, QGR031 Filter Guard, QGR032 Factory Guard & QGR033 Docstring/RFC7807 Guard in scripts/_ast_guardrails.py
   - [x] Step 2: Replace Hardcoded Script Tuple with Dynamic scripts/*.py Discovery in scripts/backend_audit_loop.py
   - [x] Step 3: Add ISTQB Unit Tests for QGR020, QGR031, QGR032, QGR033 & Dynamic Script Discovery and Upgrade Polyfactory Meta-Test
-  - [ ] Step 4: Implement SHA-256 Hardening Cache DTOs, Tracker Seeding (Waves 1-4 & UUIDv7) & 0s Short-Circuit in scripts/auto_hardening_runner.py
-  - [ ] Step 5: Add Comprehensive ISTQB Unit Tests for SHA-256 Hardening Cache & Tracker Seeding in test_auto_hardening_runner.py
+  - [x] Step 4: Implement SHA-256 Hardening Cache DTOs, Tracker Seeding (Waves 1-4 & UUIDv7) & 0s Short-Circuit in scripts/auto_hardening_runner.py
+  - [x] Step 5: Add Comprehensive ISTQB Unit Tests for SHA-256 Hardening Cache & Tracker Seeding in test_auto_hardening_runner.py
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md] @[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/backend_audit_loop.py]
   - [ ] @[scripts/auto_hardening_runner.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
 
@@ -68,21 +68,26 @@
 | REQ-001 | Implement `QGR020` Check 20B (bare `Field()` ban on non-`Annotated` Pydantic fields), `QGR031` (`Filter`/`QueryCondition` static operator & value validation), `QGR032` (`ModelFactory` `Use(generate_opaque_id, ...)` invariant), and `QGR033` (`Raises: None` ban, PEP 257 module/public-class docstrings, and RFC 7807 `logger.error` before `raise AppException`) in `@[scripts/_ast_guardrails.py]`. | Step 1 | [x] Completed |
 | REQ-002 | Replace hardcoded `_MACRO_AUTHORITATIVE_SCRIPTS` maintenance with dynamic `discover_authoritative_scripts()` (`Path("scripts").glob("*.py")`) in `@[scripts/backend_audit_loop.py]`. | Step 2 | [x] Completed |
 | REQ-003 | Add ISTQB positive/negative unit tests for `QGR020`, `QGR031`, `QGR032`, `QGR033`, and `discover_authoritative_scripts` in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]`, and add dynamic `ModelFactory.__subclasses__()` discovery in `@[backend_v2/tests/factories/test_model_factories.py]`. | Step 3 | [x] Completed |
-| REQ-004 | Implement deterministic content-addressed SHA-256 hardening cache (`HardeningCacheEntryDTO`, `HardeningCacheManifestDTO`, `target + unit_test + .agents/rules/ SHA-256`), automatic seeding from completed Wave 1–4 and UUIDv7 trackers, and 0-second `[x]` cache-hit short-circuit in `@[scripts/auto_hardening_runner.py]`. | Step 4 | [ ] Pending |
-| REQ-005 | Add ISTQB unit tests for 0-second SHA-256 cache hits, cache invalidation on target/test/rule mutation, completed tracker seeding, and `--no-cache` bypass in `@[backend_v2/tests/unit/scripts/test_auto_hardening_runner.py]`. | Step 5 | [ ] Pending |
+| REQ-004 | Implement deterministic content-addressed SHA-256 hardening cache (`HardeningCacheEntryDTO`, `HardeningCacheManifestDTO`, `target + unit_test + .agents/rules/ SHA-256`), automatic seeding from completed Wave 1–4 and UUIDv7 trackers, and 0-second `[x]` cache-hit short-circuit in `@[scripts/auto_hardening_runner.py]`. | Step 4 | [x] Completed |
+| REQ-005 | Add ISTQB unit tests for 0-second SHA-256 cache hits, cache invalidation on target/test/rule mutation, completed tracker seeding, and `--no-cache` bypass in `@[backend_v2/tests/unit/scripts/test_auto_hardening_runner.py]`. | Step 5 | [x] Completed |
 
 # Session Handover Context
 
 ## Achieved
-- Drafted and synchronized `@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]` and `@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]` covering `QGR020` Check 20B, `QGR031`, `QGR032`, `QGR033`, dynamic `scripts/*.py` discovery, and the content-addressed SHA-256 hardening cache in `scripts/auto_hardening_runner.py` seeded from completed Wave 1–4 and UUIDv7 trackers.
+- Completed and verified Steps 1 through 5 (`REQ-001` through `REQ-005`) of `@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]`.
+- Implemented `QGR020` Check 20B (bare `Field()` ban on non-`Annotated` Pydantic fields), `QGR031` (`Filter`/`QueryCondition` static operator & value validation), `QGR032` (`ModelFactory` `Use(generate_opaque_id, ...)` invariant), and `QGR033` (`Raises: None` ban, PEP 257 module/public-class docstrings, and RFC 7807 `logger.error` before `raise AppException`) in `@[scripts/_ast_guardrails.py]`.
+- Replaced hardcoded script whitelisting with dynamic `discover_authoritative_scripts()` (`Path("scripts").glob("*.py")`) in `@[scripts/backend_audit_loop.py]`.
+- Implemented deterministic content-addressed SHA-256 hardening cache (`HardeningCacheEntryDTO`, `HardeningCacheManifestDTO`, composite SHA-256 over `target_file + unit_test_files + .agents/rules/*.md`), automatic seeding of 335 hardened files from completed Wave 1–4 and UUIDv7 trackers into `data/hardening_cache.json`, and 0-second `⚡ CACHE HIT` short-circuit in `@[scripts/auto_hardening_runner.py]`.
+- Added ISTQB unit tests in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]`, `@[backend_v2/tests/unit/scripts/test_auto_hardening_runner.py]`, and `@[backend_v2/tests/factories/test_model_factories.py]`, updated `@[.agents/rules/04_directory_reference.md]`, and passed the Global Completion Gate (`backend_audit_loop.py backend_v2/ --test` with 6614 passed tests and 97.40% coverage).
 
 ## Learned
-- Across the 403 production files in `backend_v2/`, `Raises: None` has 0 violations, missing top-level public class docstrings has 0 violations, unlogged `AppException` has only 1 domain file (`backend_v2/services/auth/repositories.py`), missing module docstrings has 4 files, and legacy bare `Field(...)` has 25 files. Locking these in self-verifying `RESIDUAL_*_FILES` sets prevents any regressions on already-hardened Wave 1–4 and UUIDv7 files while strictly enforcing `FATAL` guardrails on all new and modified code.
+- `backend_v2/services/orchestrator/strategies/llm_strategy/*.py` invokes `step_logger.error(...)` on injected structured logger instances; matching any receiver identifier containing `"log"` in `_function_has_error_log` cleanly recognizes all structured logger instances with 0 false positives across all 403 `backend_v2/` modules.
+- Pinning `visible_workflow_extensions` to `[]` in `OutputProfileFactory` prevents Polyfactory from randomly injecting `XaiExtensionType.VARIANCE_VALIDATION` when `variance_target_block` is `None`.
 
 ## Remaining
-- Execute Steps 1 through 5 via `/tier2-execute --full-auto`, run Tier 2 Hardening (`auto_hardening_runner.py`), synchronize documentation via `/tier7-describe-architecture`, and complete `/tier8-audit-plan`.
+- Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md] @[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`, execute Tier 2 Hardening (`scripts/auto_hardening_runner.py`) on `@[scripts/_ast_guardrails.py]`, `@[scripts/backend_audit_loop.py]`, and `@[scripts/auto_hardening_runner.py]`, and synchronize architecture documentation via `/tier7-describe-architecture`.
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md] @[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md] @[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]
 ```

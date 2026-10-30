@@ -53,6 +53,7 @@ uv run python scripts/auto_hardening_runner.py --tracker docs/implementationplan
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import shlex
 import shutil
@@ -85,16 +86,30 @@ DEFAULT_BACKEND_AGENT_TEMPLATE: Final[str] = (
 DEFAULT_FRONTEND_AGENT_TEMPLATE: Final[str] = (
     'agy --model {model} --dangerously-skip-permissions --print "/tier2-hardening-frontend @[{target}]"'
 )
+# Phase 2, Step 4: Content-addressed SHA-256 hardening cache path and historical completed trackers
+DEFAULT_HARDENING_CACHE_PATH: Final[Path] = Path("data/hardening_cache.json")
+HISTORICAL_COMPLETED_TRACKERS: Final[tuple[str, ...]] = (
+    "docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md",
+    "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md",
+    "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md",
+    "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md",
+    "docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md",
+    "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md",
+)
 
 __all__ = [
     "CheckpointResultDTO",
     "DEFAULT_AUDIT_TIMEOUT_SECONDS",
     "DEFAULT_BACKEND_AGENT_TEMPLATE",
     "DEFAULT_FRONTEND_AGENT_TEMPLATE",
+    "DEFAULT_HARDENING_CACHE_PATH",
     "DEFAULT_SUBAGENT_MAX_RETRIES",
     "DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS",
     "FORMATTER_TIMEOUT_SECONDS",
     "GIT_SUBPROCESS_TIMEOUT_SECONDS",
+    "HISTORICAL_COMPLETED_TRACKERS",
+    "HardeningCacheEntryDTO",
+    "HardeningCacheManifestDTO",
     "HardeningGate",
     "HardeningIterationResultDTO",
     "HardeningRunSummaryDTO",
@@ -106,18 +121,25 @@ __all__ = [
     "capture_workspace_snapshot",
     "check_tracker_has_unparsed_hardening_items",
     "clean_path_arg",
+    "compute_file_sha256",
+    "compute_rules_sha256",
+    "compute_target_cache_entry",
     "execute_circuit_breaker_rollback",
     "execute_subagent_pass",
     "execute_subprocess_with_tree_kill",
     "fetch_unhardened_targets",
+    "load_or_seed_hardening_cache",
     "main",
     "mark_tracker_and_checkpoint",
     "mark_tracker_target_done",
+    "parse_tracker_hardened_targets",
     "parse_tracker_unhardened_targets",
     "process_target_with_retries",
+    "resolve_target_unit_test_files",
     "run_hardening_pipeline",
     "run_macro_quality_gate",
     "run_quality_gate",
+    "save_hardening_cache",
     "unquote_git_path",
 ]
 
@@ -128,6 +150,41 @@ class HardeningGate(StrEnum):
     BACKEND = "backend"
     FRONTEND = "frontend"
     ALL = "all"
+
+
+class HardeningCacheEntryDTO(BaseModel):
+    """Immutable SHA-256 content-addressed cache record for a verified target file."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    target_file: Annotated[str, Field(description="Normalized POSIX relative path of the hardened target.")]
+    target_sha256: Annotated[
+        str, Field(pattern=r"^[a-f0-9]{64}$", description="SHA-256 hex digest of target file content.")
+    ]
+    unit_test_sha256: Annotated[
+        str, Field(pattern=r"^[a-f0-9]{64}$", description="Composite SHA-256 hex digest of resolved unit test file(s).")
+    ]
+    rules_sha256: Annotated[
+        str, Field(pattern=r"^[a-f0-9]{64}$", description="Composite SHA-256 hex digest of .agents/rules/ files.")
+    ]
+    composite_sha256: Annotated[
+        str,
+        Field(pattern=r"^[a-f0-9]{64}$", description="Combined SHA-256 hex digest of target, unit tests, and rules."),
+    ]
+    source_tracker: Annotated[
+        str | None, Field(default=None, description="Tracker markdown path where target was hardened.")
+    ] = None
+
+
+class HardeningCacheManifestDTO(BaseModel):
+    """Persistent manifest of SHA-256 content-addressed hardening cache entries."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    entries: Annotated[
+        dict[str, HardeningCacheEntryDTO],
+        Field(default_factory=dict, description="Map of target relative path to cache entry."),
+    ]
 
 
 class HardeningRunnerArgsDTO(BaseModel):
@@ -177,6 +234,15 @@ class HardeningRunnerArgsDTO(BaseModel):
             description="Use fast micro-audit during per-target iterations and run macro-audit at completion.",
         ),
     ] = True
+    # Phase 2, Step 4: Add SHA-256 hardening cache configuration fields
+    no_cache: Annotated[
+        bool,
+        Field(default=False, description="Bypass SHA-256 hardening cache and force execution."),
+    ] = False
+    cache_file: Annotated[
+        Path,
+        Field(default=DEFAULT_HARDENING_CACHE_PATH, description="Path to SHA-256 hardening cache JSON."),
+    ] = DEFAULT_HARDENING_CACHE_PATH
 
 
 class HardeningIterationResultDTO(BaseModel):
@@ -194,6 +260,9 @@ class HardeningIterationResultDTO(BaseModel):
     ] = None
     git_committed: Annotated[bool, Field(default=False, description="Whether atomic git commit was executed.")] = False
     tracker_marked: Annotated[bool, Field(default=False, description="Whether tracker markdown was updated.")] = False
+    cache_hit: Annotated[
+        bool, Field(default=False, description="Whether target was satisfied via 0s SHA-256 cache hit.")
+    ] = False
 
 
 class HardeningRunSummaryDTO(BaseModel):
@@ -392,6 +461,283 @@ def parse_tracker_unhardened_targets(tracker_content: str, gate: HardeningGate) 
                 unhardened.append(clean_path)
 
     return unhardened
+
+
+def parse_tracker_hardened_targets(tracker_content: str, gate: HardeningGate) -> list[str]:
+    """Extract checked (`- [x]`) target items from tracker markdown under the specified gate section.
+
+    Args:
+        tracker_content: Raw tracker markdown content.
+        gate: Hardening gate (backend, frontend, or all) to extract completed items for.
+
+    Returns:
+        List of checked target relative paths.
+    """
+    # Phase 2, Step 4: Parse checked - [x] targets under Tier 2 Hardening (Backend / Frontend)
+    if gate == HardeningGate.ALL:
+        backend_targets = parse_tracker_hardened_targets(tracker_content, HardeningGate.BACKEND)
+        frontend_targets = parse_tracker_hardened_targets(tracker_content, HardeningGate.FRONTEND)
+        return backend_targets + frontend_targets
+
+    gate_name = "Backend" if gate == HardeningGate.BACKEND else "Frontend"
+    header_pattern = re.compile(
+        rf"^-\s*\[[ xX]\]\s*.*\bTier\s+2\s+Hardening\s*\({gate_name}\)",
+        re.MULTILINE | re.IGNORECASE,
+    )
+    match = header_pattern.search(tracker_content)
+    if not match:
+        return []
+
+    lines = tracker_content[match.end() :].splitlines()
+    hardened: list[str] = []
+    item_pattern = re.compile(
+        r"^\s+-\s*\[[xX]\]\s*(?:`?\[(?:NEW|MODIFY|DELETE)\]\s*`?)?"
+        r"`?(?:@\[?([a-zA-Z0-9_/\\.-]+?)(?:#[^`\]\n]+)?\]|"
+        r"([a-zA-Z0-9_.-]+(?:[/\\][a-zA-Z0-9_.-]+)*\.[a-zA-Z0-9]+(?:#[^`\]\n]+)?))`?",
+    )
+
+    for line in lines:
+        if line.startswith("- [") or line.startswith("## ") or line.startswith("### "):
+            break
+        if "[DELETE]" in line:
+            continue
+        m = item_pattern.match(line)
+        if m:
+            raw_path = (m.group(1) or m.group(2) or "").replace("\\", "/").strip()
+            clean_path = raw_path.split("#")[0].strip()
+            if clean_path and not clean_path.startswith("["):
+                if gate == HardeningGate.BACKEND and not clean_path.endswith(".py"):
+                    continue
+                if gate == HardeningGate.FRONTEND and not clean_path.endswith(".dart"):
+                    continue
+                hardened.append(clean_path)
+
+    return hardened
+
+
+def compute_file_sha256(file_path: Path) -> str:
+    """Compute the SHA-256 hexadecimal digest of a file on disk.
+
+    Args:
+        file_path: Path to the file to hash.
+
+    Returns:
+        Lowercase 64-character hexadecimal SHA-256 digest string.
+    """
+    # Phase 2, Step 4: Compute deterministic SHA-256 hex digest of file bytes
+    return hashlib.sha256(file_path.read_bytes()).hexdigest()
+
+
+def resolve_target_unit_test_files(target_file: str, repo_root: Path) -> list[Path]:
+    """Resolve existing unit test files corresponding to a backend, script, or frontend target.
+
+    Args:
+        target_file: Relative path of the target file.
+        repo_root: Workspace root directory.
+
+    Returns:
+        Sorted list of existing unit test Paths corresponding to target_file.
+    """
+    # Phase 2, Step 4: Resolve unit test files for composite SHA-256 cache invalidation
+    norm_target = target_file.replace("\\", "/").strip()
+    candidates: set[Path] = set()
+
+    if norm_target.startswith("backend_v2/tests/"):
+        direct = repo_root / norm_target
+        if direct.is_file():
+            candidates.add(direct)
+    elif norm_target.startswith("backend_v2/") and norm_target.endswith(".py"):
+        rel = Path(norm_target).relative_to("backend_v2")
+        unit_root = repo_root / "backend_v2" / "tests" / "unit"
+        direct_candidate = unit_root / rel.parent / f"test_{rel.name}"
+        if direct_candidate.is_file():
+            candidates.add(direct_candidate)
+        if rel.name == "__init__.py":
+            for suffix in ("facade", "init"):
+                pkg_candidate = unit_root / rel.parent / f"test_{rel.parent.name}_{suffix}.py"
+                if pkg_candidate.is_file():
+                    candidates.add(pkg_candidate)
+    elif norm_target.startswith("scripts/") and norm_target.endswith(".py"):
+        script_name = Path(norm_target).name
+        if script_name.startswith("_"):
+            script_test = repo_root / "backend_v2" / "tests" / "unit" / "scripts" / f"test{script_name}"
+        else:
+            script_test = repo_root / "backend_v2" / "tests" / "unit" / "scripts" / f"test_{script_name}"
+        if script_test.is_file():
+            candidates.add(script_test)
+    elif norm_target.startswith("client_app_v2/lib/") and norm_target.endswith(".dart"):
+        rel = Path(norm_target).relative_to("client_app_v2/lib")
+        for prefix in (repo_root / "client_app_v2" / "test" / "unit", repo_root / "client_app_v2" / "test"):
+            dart_test = prefix / rel.parent / f"{rel.stem}_test.dart"
+            if dart_test.is_file():
+                candidates.add(dart_test)
+
+    return sorted(candidates, key=lambda p: p.as_posix())
+
+
+def compute_rules_sha256(repo_root: Path) -> str:
+    """Compute a composite SHA-256 hexadecimal digest across all `.agents/rules/*.md` files.
+
+    Args:
+        repo_root: Workspace root directory.
+
+    Returns:
+        Lowercase 64-character hexadecimal SHA-256 digest of all rule files.
+    """
+    # Phase 2, Step 4: Include .agents/rules/*.md in composite SHA-256 to invalidate cache on rule changes
+    hasher = hashlib.sha256()
+    rules_dir = repo_root / ".agents" / "rules"
+    if rules_dir.is_dir():
+        for rule_file in sorted(rules_dir.glob("*.md"), key=lambda p: p.name):
+            if rule_file.is_file():
+                file_digest = compute_file_sha256(rule_file)
+                hasher.update(f"{rule_file.name}:{file_digest}\n".encode())
+    return hasher.hexdigest()
+
+
+def compute_target_cache_entry(
+    target_file: str,
+    repo_root: Path,
+    rules_sha256: str | None = None,
+    source_tracker: str | None = None,
+) -> HardeningCacheEntryDTO | None:
+    """Compute the SHA-256 cache entry for a target file if it exists on disk.
+
+    Args:
+        target_file: Relative path of the target file.
+        repo_root: Workspace root directory.
+        rules_sha256: Precomputed SHA-256 digest of `.agents/rules/*.md`, or None to compute on demand.
+        source_tracker: Optional tracker path where the target was verified.
+
+    Returns:
+        Populated HardeningCacheEntryDTO if target_file exists on disk, or None if missing.
+    """
+    # Phase 2, Step 4: Build composite SHA-256 cache entry over (target + unit_tests + rules)
+    norm_target = target_file.replace("\\", "/").strip()
+    target_path = repo_root / norm_target
+    if not target_path.is_file():
+        return None
+
+    target_digest = compute_file_sha256(target_path)
+    test_files = resolve_target_unit_test_files(norm_target, repo_root)
+    unit_hasher = hashlib.sha256()
+    for tf in test_files:
+        rel_tf = tf.relative_to(repo_root).as_posix()
+        unit_hasher.update(f"{rel_tf}:{compute_file_sha256(tf)}\n".encode())
+    unit_test_digest = unit_hasher.hexdigest()
+
+    resolved_rules_digest = rules_sha256 if rules_sha256 is not None else compute_rules_sha256(repo_root)
+
+    comp_hasher = hashlib.sha256()
+    comp_hasher.update(f"target:{norm_target}:{target_digest}\n".encode())
+    comp_hasher.update(f"tests:{unit_test_digest}\n".encode())
+    comp_hasher.update(f"rules:{resolved_rules_digest}\n".encode())
+    composite_digest = comp_hasher.hexdigest()
+
+    return HardeningCacheEntryDTO(
+        target_file=norm_target,
+        target_sha256=target_digest,
+        unit_test_sha256=unit_test_digest,
+        rules_sha256=resolved_rules_digest,
+        composite_sha256=composite_digest,
+        source_tracker=source_tracker,
+    )
+
+
+def save_hardening_cache(
+    cache_path: Path,
+    manifest: HardeningCacheManifestDTO,
+    repo_root: Path,
+) -> None:
+    """Persist the HardeningCacheManifestDTO to disk as formatted JSON.
+
+    Args:
+        cache_path: Relative or absolute path to the hardening cache JSON file.
+        manifest: Validated HardeningCacheManifestDTO to write.
+        repo_root: Workspace root directory.
+    """
+    # Phase 2, Step 4: Persist strongly typed SHA-256 hardening cache manifest
+    resolved_path = cache_path if cache_path.is_absolute() else (repo_root / cache_path)
+    resolved_path.parent.mkdir(parents=True, exist_ok=True)
+    resolved_path.write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
+
+
+def load_or_seed_hardening_cache(
+    cache_path: Path,
+    repo_root: Path,
+) -> HardeningCacheManifestDTO:
+    """Load the SHA-256 hardening cache manifest and seed missing `- [x]` targets from completed trackers.
+
+    Args:
+        cache_path: Relative or absolute path to the hardening cache JSON file.
+        repo_root: Workspace root directory.
+
+    Returns:
+        Validated HardeningCacheManifestDTO containing existing and newly seeded entries.
+    """
+    # Phase 2, Step 4: Load hardening_cache.json and automatically seed completed Wave 1-4 and UUIDv7 trackers
+    resolved_path = cache_path if cache_path.is_absolute() else (repo_root / cache_path)
+    entries: dict[str, HardeningCacheEntryDTO] = {}
+    if resolved_path.is_file():
+        try:
+            loaded = HardeningCacheManifestDTO.model_validate_json(resolved_path.read_text(encoding="utf-8"))
+            entries = dict(loaded.entries)
+        except ValidationError, ValueError, OSError:
+            entries = {}
+
+    rules_digest = compute_rules_sha256(repo_root)
+    tracker_rel_paths: list[str] = list(HISTORICAL_COMPLETED_TRACKERS)
+    impl_dir = repo_root / "docs" / "implementationplans"
+    if impl_dir.is_dir():
+        for p in sorted(impl_dir.glob("TRACKER_*.md")):
+            rel_p = p.relative_to(repo_root).as_posix()
+            if rel_p not in tracker_rel_paths:
+                tracker_rel_paths.append(rel_p)
+    epic_dir = repo_root / "docs" / "epic"
+    if epic_dir.is_dir():
+        for p in sorted(epic_dir.glob("*_tracker.md")):
+            rel_p = p.relative_to(repo_root).as_posix()
+            if rel_p not in tracker_rel_paths:
+                tracker_rel_paths.append(rel_p)
+
+    # Collect any target currently marked unchecked `- [ ]` in any tracker so in-progress files are not auto-seeded
+    unchecked_targets: set[str] = set()
+    for rel_tracker in tracker_rel_paths:
+        t_path = repo_root / rel_tracker
+        if t_path.is_file():
+            try:
+                t_content = t_path.read_text(encoding="utf-8")
+                for ut in parse_tracker_unhardened_targets(t_content, HardeningGate.ALL):
+                    unchecked_targets.add(ut)
+            except OSError:
+                continue
+
+    seeded_new = False
+    for rel_tracker in tracker_rel_paths:
+        t_path = repo_root / rel_tracker
+        if not t_path.is_file():
+            continue
+        try:
+            t_content = t_path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for hardened_target in parse_tracker_hardened_targets(t_content, HardeningGate.ALL):
+            if hardened_target in entries or hardened_target in unchecked_targets:
+                continue
+            entry = compute_target_cache_entry(
+                hardened_target,
+                repo_root,
+                rules_sha256=rules_digest,
+                source_tracker=rel_tracker,
+            )
+            if entry is not None:
+                entries[hardened_target] = entry
+                seeded_new = True
+
+    manifest = HardeningCacheManifestDTO(entries=entries)
+    if seeded_new:
+        save_hardening_cache(cache_path, manifest, repo_root)
+    return manifest
 
 
 def check_tracker_has_unparsed_hardening_items(tracker_content: str, gate: HardeningGate) -> bool:
@@ -860,12 +1206,12 @@ def execute_circuit_breaker_rollback(
     current = capture_workspace_snapshot(root)
     norm_target = target_file.replace("\\", "/")
 
-    excluded = {"hardening_state.json"}
+    excluded = {"hardening_state.json", "hardening_cache.json", "data/hardening_cache.json"}
 
     to_restore: list[str] = []
     for f in current.modified_files:
         norm_f = f.replace("\\", "/")
-        if norm_f in excluded or norm_f.endswith("/hardening_state.json"):
+        if norm_f in excluded or norm_f.endswith(("/hardening_state.json", "/hardening_cache.json")):
             continue
         if norm_f == norm_target or norm_f not in snapshot.modified_files:
             to_restore.append(norm_f)
@@ -885,7 +1231,7 @@ def execute_circuit_breaker_rollback(
 
     for u in current.untracked_files:
         norm_u = u.replace("\\", "/")
-        if norm_u in excluded or norm_u.endswith("/hardening_state.json"):
+        if norm_u in excluded or norm_u.endswith(("/hardening_state.json", "/hardening_cache.json")):
             continue
         if norm_u not in snapshot.untracked_files:
             file_path = root / norm_u
@@ -983,6 +1329,36 @@ def process_target_with_retries(
         HardeningIterationResultDTO summarizing target hardening execution.
     """
     root = repo_root or get_repo_root()
+    norm_target = target_file.replace("\\", "/").strip()
+
+    # Phase 2, Step 4: Check SHA-256 content-addressed hardening cache for 0s short-circuit
+    if not args.no_cache:
+        manifest = load_or_seed_hardening_cache(args.cache_file, root)
+        current_entry = compute_target_cache_entry(norm_target, root)
+        existing_entry = manifest.entries[norm_target] if norm_target in manifest.entries else None
+        if (
+            existing_entry is not None
+            and current_entry is not None
+            and existing_entry.composite_sha256 == current_entry.composite_sha256
+        ):
+            print(
+                f"  {ANSIColors.GREEN}⚡ CACHE HIT: {target_file} "
+                f"(SHA-256 unchanged, 0.0s — skipped LLM subagent){ANSIColors.RESET}",
+                flush=True,
+            )
+            checkpoint = mark_tracker_and_checkpoint(target_file, args.tracker, args.state_file, repo_root=root)
+            return HardeningIterationResultDTO(
+                target_file=target_file,
+                gate=args.gate,
+                success=True,
+                attempts=0,
+                duration_seconds=0.0,
+                error_message=None,
+                git_committed=checkpoint.git_committed,
+                tracker_marked=checkpoint.tracker_marked,
+                cache_hit=True,
+            )
+
     start_time = time.monotonic()
     attempts = 0
     max_attempts = max(1, args.max_retries + 1)
@@ -998,6 +1374,15 @@ def process_target_with_retries(
         )
 
         if gate_res.success:
+            if not args.no_cache:
+                manifest = load_or_seed_hardening_cache(args.cache_file, root)
+                tracker_str = args.tracker.as_posix() if args.tracker is not None else None
+                updated_entry = compute_target_cache_entry(norm_target, root, source_tracker=tracker_str)
+                if updated_entry is not None:
+                    updated_manifest = manifest.model_copy(
+                        update={"entries": {**manifest.entries, norm_target: updated_entry}}
+                    )
+                    save_hardening_cache(args.cache_file, updated_manifest, root)
             checkpoint = mark_tracker_and_checkpoint(target_file, args.tracker, args.state_file, repo_root=root)
             duration = time.monotonic() - start_time
             return HardeningIterationResultDTO(
@@ -1009,6 +1394,7 @@ def process_target_with_retries(
                 error_message=None,
                 git_committed=checkpoint.git_committed,
                 tracker_marked=checkpoint.tracker_marked,
+                cache_hit=False,
             )
 
         last_error = gate_res.output
@@ -1024,6 +1410,7 @@ def process_target_with_retries(
         error_message=last_error,
         git_committed=False,
         tracker_marked=False,
+        cache_hit=False,
     )
 
 
@@ -1147,7 +1534,9 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
                 break
 
     # Step 2: Execute universal macro-audit once across all hardened backend targets at queue completion
-    successful_backend_targets = [it.target_file for it in iterations if it.success and it.target_file.endswith(".py")]
+    successful_backend_targets = [
+        it.target_file for it in iterations if it.success and not it.cache_hit and it.target_file.endswith(".py")
+    ]
     if args.micro_audit and successful_backend_targets and (failure_count == 0 or args.continue_on_failure):
         print(
             f"\n{ANSIColors.CYAN}🔍 Executing Final Macro-Audit Completion Gate across "
@@ -1270,6 +1659,22 @@ Key Behavioral Invariants for Autonomous AI Agents:
         default=True,
         help="Disable fast micro-audit mode during per-target iterations and run full 10-stage audit per file.",
     )
+    # Phase 2, Step 4: Expose --no-cache / --force-agent and --cache-file CLI flags
+    parser.add_argument(
+        "--no-cache",
+        "--force-agent",
+        dest="no_cache",
+        action="store_true",
+        default=False,
+        help="Bypass SHA-256 content-addressed hardening cache and force subagent + audit execution.",
+    )
+    parser.add_argument(
+        "--cache-file",
+        dest="cache_file",
+        type=Path,
+        default=DEFAULT_HARDENING_CACHE_PATH,
+        help="Path to SHA-256 hardening cache JSON manifest (default: data/hardening_cache.json).",
+    )
 
     parsed = parser.parse_args(argv)
 
@@ -1324,6 +1729,8 @@ Key Behavioral Invariants for Autonomous AI Agents:
             verbose=parsed.verbose,
             model=parsed.model,
             micro_audit=parsed.micro_audit,
+            no_cache=parsed.no_cache,
+            cache_file=clean_path_arg(parsed.cache_file) or DEFAULT_HARDENING_CACHE_PATH,
         )
     except (ValidationError, ValueError) as err:
         sys.stderr.write(f"{ANSIColors.RED}❌ Argument Validation Error: {err}{ANSIColors.RESET}\n")

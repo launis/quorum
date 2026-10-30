@@ -67,6 +67,7 @@ from backend_v2.models.enums import (
     HistoricalContextMode,
     PromptBlockCategory,
     TargetBlockType,
+    XaiExtensionType,
 )
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.models.view.sdui import AnySduiBlock
@@ -319,6 +320,15 @@ class OutputProfileFactory(ModelFactory[OutputProfile]):
 
         Returns:
             Empty list of AnySduiBlock models.
+        """
+        return []
+
+    @classmethod
+    def visible_workflow_extensions(cls) -> list[XaiExtensionType]:
+        """Generate a deterministic empty visible workflow extensions list.
+
+        Returns:
+            Empty list of XaiExtensionType enum values.
         """
         return []
 

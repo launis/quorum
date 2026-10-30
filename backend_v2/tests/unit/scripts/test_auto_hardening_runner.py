@@ -15,6 +15,9 @@ import pytest
 from scripts.auto_hardening_runner import (
     DEFAULT_BACKEND_AGENT_TEMPLATE,
     DEFAULT_FRONTEND_AGENT_TEMPLATE,
+    DEFAULT_HARDENING_CACHE_PATH,
+    HISTORICAL_COMPLETED_TRACKERS,
+    HardeningCacheManifestDTO,
     HardeningGate,
     HardeningIterationResultDTO,
     HardeningRunnerArgsDTO,
@@ -25,18 +28,23 @@ from scripts.auto_hardening_runner import (
     capture_workspace_snapshot,
     check_tracker_has_unparsed_hardening_items,
     clean_path_arg,
+    compute_target_cache_entry,
     execute_circuit_breaker_rollback,
     execute_subagent_pass,
     execute_subprocess_with_tree_kill,
     fetch_unhardened_targets,
+    load_or_seed_hardening_cache,
     main,
     mark_tracker_and_checkpoint,
     mark_tracker_target_done,
+    parse_tracker_hardened_targets,
     parse_tracker_unhardened_targets,
     process_target_with_retries,
+    resolve_target_unit_test_files,
     run_hardening_pipeline,
     run_macro_quality_gate,
     run_quality_gate,
+    save_hardening_cache,
     unquote_git_path,
 )
 
@@ -1011,20 +1019,19 @@ def test_default_model_selection_medium_and_cli_override(tmp_path: Path, monkeyp
 
     # CLI override --model gemini-3.8-flash-high
     captured_dtos: list[HardeningRunnerArgsDTO] = []
-    monkeypatch.setattr(
-        "scripts.auto_hardening_runner.run_hardening_pipeline",
-        lambda dto: (
-            captured_dtos.append(dto)
-            or HardeningRunSummaryDTO(
-                total_targets=1,
-                processed_count=1,
-                success_count=1,
-                failure_count=0,
-                skipped_count=0,
-                iterations=[],
-            )
-        ),
-    )
+
+    def _capture_pipeline(dto: HardeningRunnerArgsDTO) -> HardeningRunSummaryDTO:
+        captured_dtos.append(dto)
+        return HardeningRunSummaryDTO(
+            total_targets=1,
+            processed_count=1,
+            success_count=1,
+            failure_count=0,
+            skipped_count=0,
+            iterations=[],
+        )
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.run_hardening_pipeline", _capture_pipeline)
     code = main(["--targets", "backend_v2/test.py", "--model", "gemini-3.8-flash-high", "--no-micro"])
     assert code == 0
     assert captured_dtos[-1].model == "gemini-3.8-flash-high"
@@ -1197,3 +1204,277 @@ def test_unquote_git_path_and_capture_workspace_snapshot_octal_filtering(
     snap = capture_workspace_snapshot(tmp_path)
     assert snap.modified_files == ["backend_v2/services/target.py"]
     assert snap.untracked_files == ["backend_v2/services/new_file.py"]
+
+
+def test_sha256_cache_hit_skips_subagent_and_marks_tracker_zero_seconds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """TC-AHR-CACHE-POS-01: Verify unchanged composite SHA-256 hits cache in 0.0s, skips LLM subagent, and marks [x]."""
+    rules_dir = tmp_path / ".agents" / "rules"
+    rules_dir.mkdir(parents=True)
+    (rules_dir / "00-antigravity-core.md").write_text("# Core Rules\n", encoding="utf-8")
+
+    target_rel = "backend_v2/services/cached_svc.py"
+    target_path = tmp_path / target_rel
+    target_path.parent.mkdir(parents=True)
+    target_path.write_text('"""Cached service."""\n', encoding="utf-8")
+
+    test_rel = "backend_v2/tests/unit/services/test_cached_svc.py"
+    test_path = tmp_path / test_rel
+    test_path.parent.mkdir(parents=True)
+    test_path.write_text('"""Cached unit test."""\n', encoding="utf-8")
+
+    cache_file = tmp_path / "data" / "hardening_cache.json"
+    entry = compute_target_cache_entry(
+        target_rel,
+        tmp_path,
+        source_tracker="docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md",
+    )
+    assert entry is not None
+    save_hardening_cache(cache_file, HardeningCacheManifestDTO(entries={target_rel: entry}), tmp_path)
+
+    tracker_path = tmp_path / "docs" / "implementationplans" / "TRACKER_Active.md"
+    tracker_path.parent.mkdir(parents=True)
+    tracker_path.write_text(
+        f"# Active Tracker\n- [ ] **[NOK] Tier 2 Hardening (Backend)**:\n  - [ ] @[{target_rel}]\n",
+        encoding="utf-8",
+    )
+
+    subagent_called = False
+    gate_called = False
+
+    def _forbid_subagent(*_a: object, **_k: object) -> bool:
+        nonlocal subagent_called
+        subagent_called = True
+        return True
+
+    def _forbid_gate(*_a: object, **_k: object) -> QualityGateResultDTO:
+        nonlocal gate_called
+        gate_called = True
+        return QualityGateResultDTO(success=True, output="ok", exit_code=0)
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subagent_pass", _forbid_subagent)
+    monkeypatch.setattr("scripts.auto_hardening_runner.run_quality_gate", _forbid_gate)
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *_a, **_k: subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+    )
+
+    args = HardeningRunnerArgsDTO(
+        tracker=tracker_path,
+        gate=HardeningGate.BACKEND,
+        cache_file=cache_file,
+        no_cache=False,
+    )
+    res = process_target_with_retries(target_rel, args, repo_root=tmp_path)
+    assert res.success is True
+    assert res.cache_hit is True
+    assert res.attempts == 0
+    assert res.duration_seconds == 0.0
+    assert res.tracker_marked is True
+    assert subagent_called is False
+    assert gate_called is False
+    assert f"- [x] @[{target_rel}]" in tracker_path.read_text(encoding="utf-8")
+
+
+def test_sha256_cache_invalidates_on_target_test_or_rule_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """TC-AHR-CACHE-NEG-01: Verify 1-byte mutation in target, unit test, or rule invalidates SHA-256 cache."""
+    rules_dir = tmp_path / ".agents" / "rules"
+    rules_dir.mkdir(parents=True)
+    rule_file = rules_dir / "01-python-backend.md"
+    rule_file.write_text("# Backend Rules v1\n", encoding="utf-8")
+
+    target_rel = "backend_v2/services/mut_svc.py"
+    target_path = tmp_path / target_rel
+    target_path.parent.mkdir(parents=True)
+    target_path.write_text('"""Service v1."""\n', encoding="utf-8")
+
+    test_rel = "backend_v2/tests/unit/services/test_mut_svc.py"
+    test_path = tmp_path / test_rel
+    test_path.parent.mkdir(parents=True)
+    test_path.write_text('"""Test v1."""\n', encoding="utf-8")
+
+    cache_file = tmp_path / "data" / "hardening_cache.json"
+    initial_entry = compute_target_cache_entry(target_rel, tmp_path)
+    assert initial_entry is not None
+    save_hardening_cache(cache_file, HardeningCacheManifestDTO(entries={target_rel: initial_entry}), tmp_path)
+
+    # 1. Mutate target file by 1 byte -> composite_sha256 must change
+    target_path.write_text('"""Service v2."""\n', encoding="utf-8")
+    after_target_mut = compute_target_cache_entry(target_rel, tmp_path)
+    assert after_target_mut is not None
+    assert after_target_mut.target_sha256 != initial_entry.target_sha256
+    assert after_target_mut.composite_sha256 != initial_entry.composite_sha256
+
+    # 2. Mutate unit test file by 1 byte -> composite_sha256 must change
+    test_path.write_text('"""Test v2."""\n', encoding="utf-8")
+    after_test_mut = compute_target_cache_entry(target_rel, tmp_path)
+    assert after_test_mut is not None
+    assert after_test_mut.unit_test_sha256 != after_target_mut.unit_test_sha256
+    assert after_test_mut.composite_sha256 != after_target_mut.composite_sha256
+
+    # 3. Mutate .agents/rules/ file by 1 byte -> composite_sha256 must change
+    rule_file.write_text("# Backend Rules v2\n", encoding="utf-8")
+    after_rule_mut = compute_target_cache_entry(target_rel, tmp_path)
+    assert after_rule_mut is not None
+    assert after_rule_mut.rules_sha256 != after_test_mut.rules_sha256
+    assert after_rule_mut.composite_sha256 != after_test_mut.composite_sha256
+
+    # Verify cache miss triggers full hardening pass and updates cache entry on success
+    subagent_calls = 0
+
+    def _record_subagent(*_a: object, **_k: object) -> bool:
+        nonlocal subagent_calls
+        subagent_calls += 1
+        return True
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subagent_pass", _record_subagent)
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.run_quality_gate",
+        lambda *_a, **_k: QualityGateResultDTO(success=True, output="ok", exit_code=0),
+    )
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *_a, **_k: subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+    )
+
+    args = HardeningRunnerArgsDTO(
+        targets=[target_rel],
+        gate=HardeningGate.BACKEND,
+        cache_file=cache_file,
+        no_cache=False,
+    )
+    res = process_target_with_retries(target_rel, args, repo_root=tmp_path)
+    assert res.success is True
+    assert res.cache_hit is False
+    assert res.attempts == 1
+    assert subagent_calls == 1
+
+    reloaded = HardeningCacheManifestDTO.model_validate_json(cache_file.read_text(encoding="utf-8"))
+    assert reloaded.entries[target_rel].composite_sha256 == after_rule_mut.composite_sha256
+
+
+def test_seed_cache_from_completed_wave_and_uuidv7_trackers(tmp_path: Path) -> None:
+    """TC-AHR-CACHE-POS-02: Verify completed Wave 1-4 and UUIDv7 trackers seed hardening_cache.json."""
+    assert "docs/implementationplans/TRACKER_Backend_Targeted_Hardening.md" in HISTORICAL_COMPLETED_TRACKERS
+    assert "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md" in HISTORICAL_COMPLETED_TRACKERS
+    assert "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md" in HISTORICAL_COMPLETED_TRACKERS
+    assert "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md" in HISTORICAL_COMPLETED_TRACKERS
+    assert "docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md" in HISTORICAL_COMPLETED_TRACKERS
+    assert (
+        "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md"
+        in HISTORICAL_COMPLETED_TRACKERS
+    )
+
+    rules_dir = tmp_path / ".agents" / "rules"
+    rules_dir.mkdir(parents=True)
+    (rules_dir / "00-antigravity-core.md").write_text("# Core\n", encoding="utf-8")
+
+    svc_rel = "backend_v2/services/wave2_service.py"
+    svc_file = tmp_path / svc_rel
+    svc_file.parent.mkdir(parents=True)
+    svc_file.write_text('"""Wave 2 service."""\n', encoding="utf-8")
+
+    script_rel = "scripts/_ast_guardrails.py"
+    script_file = tmp_path / script_rel
+    script_file.parent.mkdir(parents=True)
+    script_file.write_text('"""Guardrails."""\n', encoding="utf-8")
+    script_test = tmp_path / "backend_v2" / "tests" / "unit" / "scripts" / "test_ast_guardrails.py"
+    script_test.parent.mkdir(parents=True)
+    script_test.write_text('"""Guardrails test."""\n', encoding="utf-8")
+
+    dart_rel = "client_app_v2/lib/utils/json_converters.dart"
+    dart_file = tmp_path / dart_rel
+    dart_file.parent.mkdir(parents=True)
+    dart_file.write_text("// Dart converter\n", encoding="utf-8")
+    dart_test = tmp_path / "client_app_v2" / "test" / "unit" / "utils" / "json_converters_test.dart"
+    dart_test.parent.mkdir(parents=True)
+    dart_test.write_text("// Dart test\n", encoding="utf-8")
+
+    wave2_tracker = tmp_path / "docs" / "implementationplans" / "TRACKER_Backend_Targeted_Hardening_Wave2.md"
+    wave2_tracker.parent.mkdir(parents=True)
+    wave2_tracker.write_text(
+        f"# Wave 2 Tracker\n- [x] **[OK] Tier 2 Hardening (Backend)**:\n  - [x] @[{svc_rel}]\n",
+        encoding="utf-8",
+    )
+
+    uuid7_tracker = (
+        tmp_path
+        / "docs"
+        / "implementationplans"
+        / "TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md"
+    )
+    uuid7_tracker.write_text(
+        "# UUIDv7 Tracker\n"
+        "- [x] **[OK] Tier 2 Hardening (Backend)**:\n"
+        f"  - [x] @[{script_rel}]\n"
+        "- [x] **[OK] Tier 2 Hardening (Frontend)**:\n"
+        f"  - [x] @[{dart_rel}]\n",
+        encoding="utf-8",
+    )
+
+    parsed_backend = parse_tracker_hardened_targets(uuid7_tracker.read_text(encoding="utf-8"), HardeningGate.BACKEND)
+    parsed_frontend = parse_tracker_hardened_targets(uuid7_tracker.read_text(encoding="utf-8"), HardeningGate.FRONTEND)
+    assert parsed_backend == [script_rel]
+    assert parsed_frontend == [dart_rel]
+
+    assert resolve_target_unit_test_files(script_rel, tmp_path) == [script_test]
+    assert resolve_target_unit_test_files(dart_rel, tmp_path) == [dart_test]
+
+    cache_path = tmp_path / DEFAULT_HARDENING_CACHE_PATH
+    manifest = load_or_seed_hardening_cache(cache_path, tmp_path)
+    assert svc_rel in manifest.entries
+    assert script_rel in manifest.entries
+    assert dart_rel in manifest.entries
+    assert manifest.entries[svc_rel].source_tracker == (
+        "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave2.md"
+    )
+    assert cache_path.is_file()
+
+
+def test_no_cache_flag_bypasses_sha256_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """TC-AHR-CACHE-NEG-02: Verify --no-cache / --force-agent bypasses valid SHA-256 cache entry."""
+    rules_dir = tmp_path / ".agents" / "rules"
+    rules_dir.mkdir(parents=True)
+    (rules_dir / "00-antigravity-core.md").write_text("# Core\n", encoding="utf-8")
+
+    target_rel = "backend_v2/services/forced_svc.py"
+    target_path = tmp_path / target_rel
+    target_path.parent.mkdir(parents=True)
+    target_path.write_text('"""Forced service."""\n', encoding="utf-8")
+
+    cache_file = tmp_path / "data" / "hardening_cache.json"
+    entry = compute_target_cache_entry(target_rel, tmp_path)
+    assert entry is not None
+    save_hardening_cache(cache_file, HardeningCacheManifestDTO(entries={target_rel: entry}), tmp_path)
+
+    subagent_called = False
+
+    def _track_subagent(*_a: object, **_k: object) -> bool:
+        nonlocal subagent_called
+        subagent_called = True
+        return True
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subagent_pass", _track_subagent)
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.run_quality_gate",
+        lambda *_a, **_k: QualityGateResultDTO(success=True, output="ok", exit_code=0),
+    )
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *_a, **_k: subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+    )
+
+    args = HardeningRunnerArgsDTO(
+        targets=[target_rel],
+        gate=HardeningGate.BACKEND,
+        cache_file=cache_file,
+        no_cache=True,
+    )
+    res = process_target_with_retries(target_rel, args, repo_root=tmp_path)
+    assert res.success is True
+    assert res.cache_hit is False
+    assert res.attempts == 1
+    assert subagent_called is True

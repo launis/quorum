@@ -65,14 +65,14 @@ def test_chunk_payload_single_chunk() -> None:
 
 def test_chunking_request_empty_list() -> None:
     """Test that creating a chunking request with an empty list fails."""
-    with pytest.raises(ValidationError) as exc_info:
+    with pytest.raises(AppException) as exc_info:
         ChunkingRequest[int](
             parent_id="wor_0195f3a0000070018234567890abcdef",
             items=[],
             max_chunk_size=10,
         )
 
-    assert "Cannot chunk an empty list" in str(exc_info.value)
+    assert "Cannot chunk an empty list" in exc_info.value.message
 
 
 def test_chunking_request_invalid_chunk_size() -> None:
