@@ -47,7 +47,7 @@
   - [x] @[backend_v2/services/drivers/local_file_driver.py]
   - [x] @[backend_v2/services/mcp/dispatcher.py]
   - [x] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
-  - [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
+  - [x] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
   - [ ] @[backend_v2/services/usage_service.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/_dart_guardrails.py]
