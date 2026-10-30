@@ -7,12 +7,12 @@ the cost calculated by LiteLLM (no local pricing logic).
 from __future__ import annotations
 
 import logging
-import uuid
 from datetime import UTC, datetime
 
 from backend_v2.database.interfaces import IAuditRepository, IIdentityRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain import UsageRecord
 from backend_v2.models.domain.base import UsageAggregateUpdateDTO
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage, UsageReport
@@ -163,7 +163,8 @@ class UsageService:
         """
         try:
             record = UsageRecord(
-                id=f"usg_{uuid.uuid4().hex[:16]}",
+                # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 usage ID
+                id=f"usg_{generate_uuid7().hex}",
                 org_id=org_id,
                 user_id=user_id,
                 model=model,

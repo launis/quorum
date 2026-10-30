@@ -1,7 +1,6 @@
 """Linguistics hooks for analyzing text patterns and language use."""
 
 import logging
-import uuid
 from typing import Annotated
 
 from fastapi import status
@@ -18,6 +17,7 @@ from backend_v2.core.hook_registry import (
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.linguistics import (
     DynamicLinguisticsExtractorDTO,
     LinguisticsPayloadDTO,
@@ -201,7 +201,8 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
     # Create strictly typed result
     patterns_list: list[PerformativePatternDTO] = [
         PerformativePatternDTO(
-            pattern_id=f"ptrn_{uuid.uuid4().hex[:8]}",
+            # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 pattern ID
+            pattern_id=f"ptrn_{generate_uuid7().hex}",
             detected_phrase=p,
             category="performative_filler",
         )

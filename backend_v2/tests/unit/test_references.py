@@ -104,13 +104,12 @@ async def test_generate_bibliography_hook_none_gvars_raises() -> None:
     from backend_v2.core.hook_registry import HookResult
     from backend_v2.exceptions import AppException
 
-    state = HookState.model_construct(
+    state = HookState(
         execution_id="123",
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={"text": "Hello"}),
-        global_context_vars=None,
         metadata=ExecutionMetadata(),
-    )
+    ).model_copy(update={"global_context_vars": None})
     deps = MagicMock(spec=HookDependencies)
 
     with pytest.raises(AppException) as exc:
@@ -134,7 +133,7 @@ async def test_generate_bibliography_hook_invalid_context_raises() -> None:
             execution_id="123",
             workflow_id="wf1",
             inputs=ExecutionInputsDTO(raw_inputs={"text": "Hello"}),
-            global_context_vars=GlobalContextVarsDTO(knowledge_base="not_a_dict"),
+            global_context_vars=GlobalContextVarsDTO.model_validate({"knowledge_base": "not_a_dict"}),
             metadata=ExecutionMetadata(),
         )
         await cast(Awaitable[HookResult], generate_bibliography_hook(state, deps))
@@ -193,7 +192,7 @@ def test_generate_bibliography_generic_error_raises() -> None:
     from backend_v2.exceptions import AppException
     from backend_v2.hooks.references import generate_bibliography
 
-    with patch("uuid.uuid4", side_effect=RuntimeError("UUID generation failure")):
+    with patch("backend_v2.hooks.references.generate_uuid7", side_effect=RuntimeError("UUID generation failure")):
         with pytest.raises(AppException) as exc:
             generate_bibliography("sample text", None)
         assert exc.value.status_code == 500

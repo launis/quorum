@@ -99,7 +99,7 @@ async def test_execute_phase_1(mock_executor, mock_client, settings_mock):
     assert result[0].source_quotes == ("chunk1",)
     assert result[0].source_id == "chunk_0"
     assert result[0].tda_id.startswith("tda_")
-    assert len(result[0].tda_id) == 12
+    assert len(result[0].tda_id) == 36
     assert result[1].is_logical_deduction is True
     assert usage.total_tokens == 100
 

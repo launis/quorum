@@ -2,14 +2,13 @@
 
 import json
 import logging
-import uuid
 
 from pydantic import BaseModel, JsonValue, TypeAdapter, ValidationError
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.core_base import generate_opaque_id, generate_uuid7
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
@@ -49,7 +48,8 @@ class ExecutionRepositoryImpl(BaseRepository):
                     if fc.mcp_tool_audit:
                         coll_path = f"executions/{doc_id}/audit_trails"
                         for audit_trace in fc.mcp_tool_audit:
-                            item_id = audit_trace.id or str(uuid.uuid4())
+                            # Phase 3, Step 3: Generate RFC 9562 UUIDv7 audit trace ID
+                            item_id = audit_trace.id or f"trc_{generate_uuid7().hex}"
                             trace_dict = audit_trace.model_dump(mode="json")
                             trace_dict["id"] = item_id
                             try:

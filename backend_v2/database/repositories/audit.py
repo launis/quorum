@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from datetime import UTC, datetime
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.base import (
     AuditLogCreateDTO,
     AuditLogEntry,
@@ -33,7 +33,8 @@ class AuditRepositoryImpl(BaseRepository):
             event_data: AuditLogCreateDTO containing audit event fields.
         """
         payload = event_data.model_dump(mode="json")
-        doc_id = str(uuid.uuid4())
+        # Phase 3, Step 3: Generate RFC 9562 UUIDv7 audit event ID
+        doc_id = str(generate_uuid7())
         payload["id"] = doc_id
         if "timestamp" not in payload or not payload["timestamp"]:
             payload["timestamp"] = datetime.now(UTC).isoformat()
@@ -101,7 +102,7 @@ class AuditRepositoryImpl(BaseRepository):
             record: UsageRecord model.
         """
         data = record.model_dump(mode="json")
-        doc_id = data["id"] if "id" in data and data["id"] else str(uuid.uuid4())
+        doc_id = data["id"] if "id" in data and data["id"] else f"usg_{generate_uuid7().hex}"
         data["id"] = doc_id
         await self.driver.upsert("usage", data, doc_id)
 

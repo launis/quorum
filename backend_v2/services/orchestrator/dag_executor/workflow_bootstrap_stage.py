@@ -6,7 +6,6 @@ import asyncio
 import dataclasses
 import logging
 import sys
-import uuid
 from collections.abc import Callable
 from typing import Any
 
@@ -23,7 +22,7 @@ from backend_v2.core.hook_registry import (
 from backend_v2.core.telemetry import inject_trace_context
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
 from backend_v2.models.auth import User
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.core_base import I18nText, generate_uuid7
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
@@ -343,7 +342,8 @@ async def execute_rag_preflight_stage(
             break
     if target_step is None or target_step.task_blueprint is None:
         return
-    vid, _update_lock, run_st = f"sys_rag_{uuid.uuid4().hex[:16]}", state.update_lock, ExecutionStatus.RUNNING
+    # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 RAG preflight step ID
+    vid, _update_lock, run_st = f"sys_rag_{generate_uuid7().hex}", state.update_lock, ExecutionStatus.RUNNING
     async with _update_lock:
         state.exec_record = state.exec_record.transition_step(vid, run_st, 0, "system.rag.preflight", has_warning=False)
     await safe_commit_execution_state(state, committer)

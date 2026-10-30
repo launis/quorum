@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import copy
 import inspect
-import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -46,7 +45,7 @@ from backend_v2.models.auth import (
     UserCreate,
     UserUpdate,
 )
-from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.core_base import generate_opaque_id, generate_uuid7
 from backend_v2.models.domain.base import (
     AuditLogCreateDTO,
     AuditLogEntry,
@@ -880,7 +879,8 @@ class InMemoryKnowledgeRepository(BaseInMemoryRepository[Concept], IKnowledgeRep
 
     async def add_banned_phrase(self, phrase: str, language: str = "en") -> None:
         self._check_fault("add_banned_phrase")
-        bp_id = f"bp_{uuid.uuid4().hex}"
+        # Phase 3, Step 3: Use RFC 9562 UUIDv7 hex in repository fakes
+        bp_id = f"bp_{generate_uuid7().hex}"
         self._banned_phrases[phrase] = BannedPhrase(id=bp_id, phrase=phrase, language=language)
 
     async def delete_banned_phrase(self, phrase: str) -> bool:
@@ -909,7 +909,7 @@ class InMemoryKnowledgeRepository(BaseInMemoryRepository[Concept], IKnowledgeRep
 
     async def add_concept(self, item: ConceptCreateDTO) -> str:
         self._check_fault("add_concept")
-        c_id = f"con_{uuid.uuid4().hex}"
+        c_id = f"con_{generate_uuid7().hex}"
         data_dict = item.model_dump(mode="python")
         data_dict["id"] = c_id
         model = Concept.model_validate(data_dict)
@@ -918,7 +918,7 @@ class InMemoryKnowledgeRepository(BaseInMemoryRepository[Concept], IKnowledgeRep
 
     async def add_reference(self, item: ReferenceCreateDTO) -> str:
         self._check_fault("add_reference")
-        r_id = f"ref_{uuid.uuid4().hex}"
+        r_id = f"ref_{generate_uuid7().hex}"
         data_dict = item.model_dump(mode="python")
         data_dict["id"] = r_id
         model = Reference.model_validate(data_dict)
@@ -927,7 +927,7 @@ class InMemoryKnowledgeRepository(BaseInMemoryRepository[Concept], IKnowledgeRep
 
     async def add_claim(self, item: ClaimCreateDTO) -> str:
         self._check_fault("add_claim")
-        cl_id = f"cl_{uuid.uuid4().hex}"
+        cl_id = f"cl_{generate_uuid7().hex}"
         data_dict = item.model_dump(mode="python")
         data_dict["id"] = cl_id
         model = Claim.model_validate(data_dict)

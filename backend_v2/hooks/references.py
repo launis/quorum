@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import uuid
 
 from pydantic import ValidationError
 
@@ -16,6 +15,7 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.references import (
     BibliographyResultDTO,
     ReferenceDTO,
@@ -52,7 +52,8 @@ def generate_bibliography(
         # Stubbed implementation of ReferenceManager (Not ported to V2)
         refs: list[ReferenceDTO] = [
             ReferenceDTO(
-                source_id=f"ref_{uuid.uuid4().hex[:8]}",
+                # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 reference source ID
+                source_id=f"ref_{generate_uuid7().hex}",
                 title="[MOCK REFERENCE] Bibliography Generator (ReferenceManager) - Not Connected",
                 snippet=(
                     "The automated bibliography generator (Reference Hook) executed successfully, "

@@ -1,11 +1,11 @@
 """Mock Data Store for AI Layer Testing (Zero-Token Cost)."""
 
-import uuid
 from datetime import datetime, timezone
 from typing import cast
 
 from pydantic import BaseModel, JsonValue
 
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain import (
     AnalystOutput,
     ArchiveCase,
@@ -53,6 +53,7 @@ from backend_v2.models.enums import (
     AbductiveConclusion,
     AuthenticityLevel,
     BloomLevel,
+    EntityPrefix,
     EthicalSeverity,
     FidelityLevel,
     InteractionStrategy,
@@ -449,7 +450,8 @@ def get_fallback_data(key: str) -> dict[str, JsonValue]:
     elif key == "atomize_mock":
         assertions = [
             {
-                "tda_id": f"tda_{uuid.uuid4().hex}",
+                # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 TDA assertion ID
+                "tda_id": generate_opaque_id(EntityPrefix.TDA),
                 "concept_description": f"Atom {i} concept description for testing",
                 "anchor_target": "Test anchor",
                 "bounding_box_scope": "paragraph",

@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import uuid
-
 from polyfactory.factories.pydantic_factory import ModelFactory
 
-from backend_v2.models.core_base import I18nText, generate_opaque_id
+from backend_v2.models.core_base import I18nText, generate_opaque_id, generate_uuid7
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.archival import PrecedentDTO
 from backend_v2.models.domain.causal import CausalAnalysis
@@ -158,7 +156,8 @@ class WorkflowFactory(ModelFactory[Workflow]):
         Returns:
             Unique workflow slug identifier string.
         """
-        return f"wf_slug_{uuid.uuid4().hex[:8]}"
+        # Phase 3, Step 3: Use RFC 9562 UUIDv7 hex for unique test slug
+        return f"wf_slug_{generate_uuid7().hex[:8]}"
 
     @classmethod
     def name(cls) -> I18nText:
@@ -253,7 +252,7 @@ class SystemRulePromptBlockFactory(ModelFactory[SystemRulePromptBlock]):
         Returns:
             Unique prompt block slug string.
         """
-        return f"blk_slug_{uuid.uuid4().hex[:8]}"
+        return f"blk_slug_{generate_uuid7().hex[:8]}"
 
     @classmethod
     def label(cls) -> I18nText:
@@ -353,7 +352,7 @@ class OutputProfileFactory(ModelFactory[OutputProfile]):
         Returns:
             Unique output profile slug string.
         """
-        return f"prof_slug_{uuid.uuid4().hex[:8]}"
+        return f"prof_slug_{generate_uuid7().hex[:8]}"
 
     @classmethod
     def workflow_id(cls) -> str:
@@ -423,7 +422,7 @@ class MatrixPromptBlockFactory(ModelFactory[MatrixPromptBlock]):
         Returns:
             Unique matrix block slug string.
         """
-        return f"mat_{uuid.uuid4().hex[:8]}"
+        return f"mat_{generate_uuid7().hex[:8]}"
 
     @classmethod
     def label(cls) -> I18nText:

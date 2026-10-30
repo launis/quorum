@@ -50,7 +50,7 @@ def test_generate_bibliography_reraises_app_exception() -> None:
         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
     )
     with (
-        patch("backend_v2.hooks.references.uuid.uuid4", side_effect=expected_exc),
+        patch("backend_v2.hooks.references.generate_uuid7", side_effect=expected_exc),
         pytest.raises(AppException) as exc_info,
     ):
         generate_bibliography("Sample text", None)
@@ -61,7 +61,7 @@ def test_generate_bibliography_reraises_app_exception() -> None:
 def test_generate_bibliography_generic_error_raises_citation_parsing_failed() -> None:
     """Test that unexpected errors in generate_bibliography raise CITATION_PARSING_FAILED."""
     with (
-        patch("backend_v2.hooks.references.uuid.uuid4", side_effect=RuntimeError("UUID generation failure")),
+        patch("backend_v2.hooks.references.generate_uuid7", side_effect=RuntimeError("UUID generation failure")),
         pytest.raises(AppException) as exc_info,
     ):
         generate_bibliography("Sample text", None)
@@ -155,14 +155,13 @@ async def test_generate_bibliography_hook_invalid_inputs_raises(mock_deps: HookD
 @pytest.mark.asyncio
 async def test_generate_bibliography_hook_missing_context_vars_raises(mock_deps: HookDependencies) -> None:
     """Test that missing global_context_vars raises VALIDATION_FAILED."""
-    state = HookState.model_construct(
+    state = HookState(
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="step_1",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"text_payload": "Analysis"}),
-        global_context_vars=None,
-    )
+    ).model_copy(update={"global_context_vars": None})
     with pytest.raises(AppException) as exc_info:
         await generate_bibliography_hook(state, mock_deps)
 

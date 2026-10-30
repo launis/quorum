@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import uuid
 from datetime import datetime, timezone
 from typing import Any
 
@@ -25,7 +24,8 @@ from backend_v2.models.auth import (
     UserCreate,
     UserRole,
 )
-from backend_v2.models.enums import SystemLocale
+from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.enums import EntityPrefix, SystemLocale
 from backend_v2.services.auth.constants import LEGACY_SYSTEM_ORG_ID
 from backend_v2.services.auth.protocols import UserCreatorProtocol
 from backend_v2.services.auth.repositories import (
@@ -92,7 +92,8 @@ class OrganizationService:
         if initiator.role != UserRole.ROOT:
             raise PermissionDeniedError("Only ROOT can create organizations.")
 
-        org_id = f"org_{uuid.uuid4().hex}"
+        # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 organization ID
+        org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
 
         new_org = Organization(
             id=org_id,

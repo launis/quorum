@@ -4,12 +4,12 @@ import asyncio
 import logging
 import os
 import shutil
-import uuid
 from pathlib import Path
 
 import aiofiles
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.services.file_driver import FileDriver
 
 logger = logging.getLogger(__name__)
@@ -121,7 +121,8 @@ class LocalFileDriver(FileDriver):
             # Explicitly create parent directories to maintain parity with cloud storage drivers
             # where paths are virtual keys and directory creation is implicit.
             full_path.parent.mkdir(parents=True, exist_ok=True)
-            tmp_path = full_path.with_name(f"{full_path.name}.{uuid.uuid4().hex}.tmp")
+            # Phase 3, Step 3: Use canonical 32-hex RFC 9562 UUIDv7 for temporary file suffix
+            tmp_path = full_path.with_name(f"{full_path.name}.{generate_uuid7().hex}.tmp")
 
             if isinstance(data, bytes):
                 async with aiofiles.open(tmp_path, "wb") as f:

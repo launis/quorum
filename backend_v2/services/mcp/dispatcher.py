@@ -12,7 +12,6 @@ import json
 import logging
 import re
 import time
-import uuid
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
@@ -23,6 +22,7 @@ from pydantic import BaseModel, JsonValue, ValidationError
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
     MCPAuditTrace,
@@ -611,7 +611,8 @@ class ToolDispatcher:
         deduped_urls = list(dict.fromkeys(extracted_urls))
 
         return MCPAuditTrace(
-            id=f"trc_{uuid.uuid4().hex[:8]}",
+            # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 trace ID
+            id=f"trc_{generate_uuid7().hex}",
             gateway_id=gateway.id,
             gateway_slug=gateway.slug,
             namespaced_alias=descriptor.namespaced_alias,

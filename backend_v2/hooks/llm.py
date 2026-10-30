@@ -1,7 +1,6 @@
 """LLM hooks for configuring model providers and context."""
 
 import logging
-import uuid
 
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
@@ -11,6 +10,7 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.enums import CognitiveTier
 from backend_v2.models.llm import LLMProviderConfig
@@ -122,7 +122,8 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
             )
 
         llm_config = LLMProviderConfig(
-            id=f"llm_{uuid.uuid4().hex[:8]}",
+            # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 LLM config ID
+            id=f"llm_{generate_uuid7().hex}",
             provider=target_strategy.provider,
             model_name=target_strategy.model_name,
             api_key=target_strategy.api_key,

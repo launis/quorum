@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-import uuid
 from collections.abc import Mapping, Sequence
 from typing import Any, Self, cast
 
@@ -24,6 +23,7 @@ from backend_v2.llm.ingress_pipeline import UniversalIngress
 
 # Phase 4, Step 2: Import LLMFactory from modular provider_factory submodule
 from backend_v2.llm.provider.provider_factory import LLMFactory
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.system_config import ChatMessageDTO, SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.mcp import MCPToolDeclarationDTO
@@ -288,7 +288,8 @@ class LLMClient:
                 )
 
         provider_config = LLMProviderConfig(
-            id=f"prv_{uuid.uuid4().hex}",
+            # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 provider config ID
+            id=f"prv_{generate_uuid7().hex}",
             provider=target_provider_type,
             model_name=target_model_name,
             api_key=target_strategy.api_key,

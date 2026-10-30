@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import uuid
 from collections.abc import Awaitable, Callable
 
 from pydantic import ValidationError
@@ -14,6 +13,7 @@ from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.blackboard import (
     DraftAtomList,
     DraftExtractedAtom,
@@ -21,6 +21,7 @@ from backend_v2.models.domain.blackboard import (
 )
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import ChunkPacketDTO, ExtractedAtom, GlobalOntologyMap, OntologyEntity
+from backend_v2.models.enums import EntityPrefix
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -302,7 +303,8 @@ class TwoPassAtomizer:
 
         final_atoms: list[ExtractedAtom] = []
         for draft in draft_result.atoms:
-            tda_id = f"tda_{uuid.uuid4().hex[:8]}"
+            # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 TDA assertion ID
+            tda_id = generate_opaque_id(EntityPrefix.TDA)
             exact_quote = None
 
             if not draft.is_logical_deduction:

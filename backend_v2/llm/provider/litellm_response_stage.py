@@ -4,7 +4,6 @@ import asyncio
 import logging
 import sys
 import time
-import uuid
 from typing import Any
 
 import opentelemetry.trace as otel_trace
@@ -20,6 +19,7 @@ from backend_v2.exceptions import (
 )
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.provider.env_and_schema_utils import _safe_static_getattr
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.mcp import OpenAIFunctionCallDTO, OpenAIToolCallDTO
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.llm import LLMMessageDTO, LLMResponse, ProviderMetadataDTO
@@ -260,7 +260,8 @@ async def extract_litellm_content_and_usage(
                 fn_name = "unknown" if not (fn and "name" in dir(fn)) else fn.name
                 fn_args = "{}" if not (fn and "arguments" in dir(fn)) else fn.arguments
                 fn_dto = OpenAIFunctionCallDTO(name=fn_name, arguments=fn_args)
-                tc_id = str(tc.id) if "id" in dir(tc) else f"call_{uuid.uuid4().hex[:8]}"
+                # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 tool call ID
+                tc_id = str(tc.id) if "id" in dir(tc) else f"call_{generate_uuid7().hex}"
                 extracted_tool_calls.append(OpenAIToolCallDTO(id=tc_id, function=fn_dto))
 
     meta_dto = ProviderMetadataDTO(

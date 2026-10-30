@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import uuid
 from datetime import datetime, timezone
 from typing import Any
 
@@ -25,6 +24,8 @@ from backend_v2.models.auth import (
     UserRole,
     UserUpdate,
 )
+from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.enums import EntityPrefix
 from backend_v2.services.auth.constants import (
     LEGACY_ROOT_MASTER_ID,
     LEGACY_SYSTEM_ORG_ID,
@@ -190,7 +191,8 @@ class UserService:
                     ) from e
         else:
             # Generate a mock UID
-            new_id = f"local_{uuid.uuid4().hex[:8]}"
+            # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 user ID
+            new_id = generate_opaque_id(EntityPrefix.USER)
 
         # 2. Create in Local DB
         new_user = User(

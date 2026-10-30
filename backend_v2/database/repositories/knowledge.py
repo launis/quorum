@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import logging
-import uuid
 
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.knowledge import (
     BannedPhrase,
     Claim,
@@ -69,7 +69,8 @@ class KnowledgeRepositoryImpl(BaseRepository):
         """
         existing = await self.driver.query("banned_phrases", [Filter("phrase", "==", phrase)], limit=1)
         if not existing:
-            doc_id = str(uuid.uuid4())
+            # Phase 3, Step 3: Generate RFC 9562 UUIDv7 banned phrase ID
+            doc_id = str(generate_uuid7())
             await self.driver.upsert("banned_phrases", {"phrase": phrase, "language": language, "id": doc_id}, doc_id)
 
     async def delete_banned_phrase(self, phrase: str) -> bool:
@@ -217,7 +218,8 @@ class KnowledgeRepositoryImpl(BaseRepository):
             The created concept ID.
         """
         payload = item.model_dump(mode="json")
-        doc_id = str(uuid.uuid4())
+        # Phase 3, Step 3: Generate RFC 9562 UUIDv7 knowledge document ID
+        doc_id = str(generate_uuid7())
         payload["id"] = doc_id
         return await self.driver.upsert("concepts", payload, doc_id)
 
@@ -231,7 +233,8 @@ class KnowledgeRepositoryImpl(BaseRepository):
             The created reference ID.
         """
         payload = item.model_dump(mode="json")
-        doc_id = str(uuid.uuid4())
+        # Phase 3, Step 3: Generate RFC 9562 UUIDv7 knowledge document ID
+        doc_id = str(generate_uuid7())
         payload["id"] = doc_id
         return await self.driver.upsert("references", payload, doc_id)
 
@@ -245,7 +248,8 @@ class KnowledgeRepositoryImpl(BaseRepository):
             The created claim ID.
         """
         payload = item.model_dump(mode="json")
-        doc_id = str(uuid.uuid4())
+        # Phase 3, Step 3: Generate RFC 9562 UUIDv7 knowledge document ID
+        doc_id = str(generate_uuid7())
         payload["id"] = doc_id
         return await self.driver.upsert("claims", payload, doc_id)
 
