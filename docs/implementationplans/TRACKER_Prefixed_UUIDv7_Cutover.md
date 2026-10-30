@@ -38,7 +38,7 @@
   - [x] @[backend_v2/models/dtos/causal_discovery.py]
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]
-  - [ ] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
+  - [x] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
   - [ ] @[backend_v2/services/studio/workflow_service.py]
   - [ ] @[backend_v2/settings.py]
