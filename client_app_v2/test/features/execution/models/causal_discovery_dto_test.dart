@@ -48,6 +48,37 @@ void main() {
         throwsA(isA<CheckedFromJsonException>()),
       );
     });
+
+    test('rejects invalid ExecutionStatus enum value fail-fast (negative)', () {
+      final json = {
+        'node_id': 'claim_node_01',
+        'claim': 'Test claim',
+        'status': 'INVALID_STATUS_ENUM',
+      };
+
+      expect(
+        () => CausalNodeDto.fromJson(json),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
+
+    test('enforces reference equality via @Freezed(equal: false)', () {
+      const nodeA = CausalNodeDto(
+        nodeId: 'claim_node_01',
+        claim: 'Test claim',
+        status: ExecutionStatus.passed,
+      );
+      const nodeB = CausalNodeDto(
+        nodeId: 'claim_node_01',
+        claim: 'Test claim',
+        status: ExecutionStatus.passed,
+      );
+
+      // Use non-const instantiation to verify runtime identity comparison
+      final runtimeNodeA = CausalNodeDto.fromJson(nodeA.toJson());
+      final runtimeNodeB = CausalNodeDto.fromJson(nodeB.toJson());
+      expect(runtimeNodeA == runtimeNodeB, isFalse);
+    });
   });
 
   group('CausalEdgeDto Parity & Validation', () {
@@ -79,6 +110,20 @@ void main() {
         throwsA(isA<CheckedFromJsonException>()),
       );
     });
+
+    test('rejects unrecognized keys on CausalEdgeDto fail-fast (negative)', () {
+      final json = {
+        'source_id': 'node_a',
+        'target_id': 'node_b',
+        'reasoning': 'Valid reasoning',
+        'unexpected_edge_field': 'forbidden',
+      };
+
+      expect(
+        () => CausalEdgeDto.fromJson(json),
+        throwsA(isA<CheckedFromJsonException>()),
+      );
+    });
   });
 
   group('CausalRootCauseDiagnosisDto Parity & Validation', () {
@@ -102,6 +147,44 @@ void main() {
       expect(serialized['penalty_points'], 12.5);
       expect(serialized['root_cause_type'], 'warrant_grounding_failure');
     });
+
+    test(
+      'rejects unrecognized keys on CausalRootCauseDiagnosisDto fail-fast (negative)',
+      () {
+        final json = {
+          'failing_node_id': 'fail_01',
+          'root_cause_parent_id': 'root_01',
+          'paragraph_ref': 'p_03',
+          'explanation': 'Root cause explanation',
+          'penalty_points': 10.0,
+          'extra_diagnosis_key': 'forbidden',
+        };
+
+        expect(
+          () => CausalRootCauseDiagnosisDto.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
+
+    test(
+      'rejects invalid CausalRootCauseType enum value fail-fast (negative)',
+      () {
+        final json = {
+          'failing_node_id': 'fail_01',
+          'root_cause_parent_id': 'root_01',
+          'paragraph_ref': 'p_03',
+          'explanation': 'Root cause explanation',
+          'penalty_points': 10.0,
+          'root_cause_type': 'unknown_root_cause_type',
+        };
+
+        expect(
+          () => CausalRootCauseDiagnosisDto.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
   });
 
   group('AntiFluffAuditDto Parity & Validation', () {
@@ -203,6 +286,38 @@ void main() {
         expect(dto.unlocksNodeIds, ['node_downstream_01']);
       },
     );
+
+    test(
+      'rejects unrecognized keys on PrescriptiveRemediationDto fail-fast (negative)',
+      () {
+        final json = {
+          'target_node_id': 'node_fix_01',
+          'required_action': 'Refactor query',
+          'potential_score_impact': 18.0,
+          'extra_remediation_field': true,
+        };
+
+        expect(
+          () => PrescriptiveRemediationDto.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
+
+    test(
+      'rejects missing required fields on PrescriptiveRemediationDto fail-fast (negative)',
+      () {
+        final json = {
+          'target_node_id': 'node_fix_01',
+          // missing required_action and potential_score_impact
+        };
+
+        expect(
+          () => PrescriptiveRemediationDto.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
   });
 
   group('FairScoringBreakdownDto Parity & Validation', () {
@@ -224,6 +339,43 @@ void main() {
 
         final serialized = dto.toJson();
         expect(serialized['raw_penalty_points'], 50.0);
+      },
+    );
+
+    test(
+      'rejects unrecognized keys on FairScoringBreakdownDto fail-fast (negative)',
+      () {
+        final json = {
+          'independent_error_count': 2,
+          'cascading_fault_count': 5,
+          'raw_penalty_points': 50.0,
+          'deduplicated_penalty_points': 20.0,
+          'dampened_savings_points': 30.0,
+          'unexpected_scoring_field': 0.0,
+        };
+
+        expect(
+          () => FairScoringBreakdownDto.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
+
+    test(
+      'rejects invalid type on FairScoringBreakdownDto numeric field fail-fast (negative)',
+      () {
+        final json = {
+          'independent_error_count': 'invalid_int',
+          'cascading_fault_count': 5,
+          'raw_penalty_points': 50.0,
+          'deduplicated_penalty_points': 20.0,
+          'dampened_savings_points': 30.0,
+        };
+
+        expect(
+          () => FairScoringBreakdownDto.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
       },
     );
   });
