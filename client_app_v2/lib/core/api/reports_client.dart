@@ -97,7 +97,7 @@ class ReportsClient {
 
   String _normalizeBaseUrl() {
     final base = _dio.options.baseUrl;
-    return base.endsWith('/') ? base.substring(0, base.length - 1) : base;
+    return base.replaceAll(RegExp(r'/+$'), '');
   }
 
   /// Download URL builders for direct browser/file streaming

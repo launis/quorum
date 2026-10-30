@@ -19,7 +19,7 @@ __all__ = [
     "router",
 ]
 
-router = APIRouter(prefix="/system", tags=["System"])
+router = APIRouter(tags=["System"])
 
 
 @router.get(
