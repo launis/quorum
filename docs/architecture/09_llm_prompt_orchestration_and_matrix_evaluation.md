@@ -547,7 +547,7 @@ Every prompt block possesses seven core attributes guaranteed by the `PromptBloc
 
 #### 1. Opaque Identifier (`id`)
 * **Role:** Permanent, immutable Single Source of Truth (SSOT) identifier.
-* **Format:** Valid Stripe-Pattern Opaque ID matching the regular expression `^blk_[a-zA-Z0-9]{16,32}$`.
+* **Format:** Valid 32-hex RFC 9562 UUIDv7 Opaque Stripe ID matching the regular expression `^blk_[a-fA-F0-9]{32}$`.
 * **Operational Impact:** Enables strict referential integrity across `seed_data.json`, workflow steps (`Step`), and forensic telemetry in `ExecutionRecord`.
 
 #### 2. Human-Readable Routing Slug (`slug`)

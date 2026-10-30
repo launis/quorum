@@ -64,7 +64,7 @@
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[ki_god_code_prevention.md]
   ```
@@ -108,15 +108,16 @@
 - Extracted `generate_uuid7(timestamp_ms: int | None = None) -> uuid.UUID` in `@[backend_v2/models/core_base.py]`, and eradicated `uuid.uuid4()` across all domain models, services, repositories, hooks, LLM modules, model factories, and repository fakes.
 - Added static AST guardrail `QGR030` in `@[scripts/_ast_guardrails.py]` banning `uuid.uuid4` / `uuid4` in domain code and Dart guardrail `DGR008` in `@[scripts/_dart_guardrails.py]` banning `.v4(` in handwritten Dart files.
 - Synchronized `.agents/rules/`, Tier 2 hardening skills, and `<appDataDir>/knowledge/` artifacts, and passed both global completion gates (`flutter_audit_loop.py client_app_v2/ --build` and `backend_audit_loop.py backend_v2/ --test` with 6566 passed tests and 97.34% coverage).
+- Completed `/tier8-audit-plan` (`d27fc6fc2`) and `/tier7-describe-architecture`, synchronizing `docs/architecture/01_system_context_and_invariants.md`, `docs/architecture/02_data_seeding_and_ontology.md`, `docs/architecture/05_resilience_and_observability.md`, `docs/architecture/09_llm_prompt_orchestration_and_matrix_evaluation.md`, `@[.agents/rules/04_directory_reference.md]`, and Knowledge Base metadata.
 
 ## Learned
 - Both `StrictOpaqueIdConverter` on the Flutter client and `OPAQUE_STRIPE_ID_REGEX` / `PostgresEntityAdapter` on the Python backend enforce 32-hex RFC 9562 UUIDv7 identifiers (`^[a-z]{2,5}_[a-f0-9]{32}$` with version nibble `7`).
 - Updating `two_pass_atomizer.py` to generate 32-hex `tda_` IDs via `generate_opaque_id(EntityPrefix.TDA)` required updating the length assertion in `@[backend_v2/tests/unit/services/orchestrator/test_two_pass_atomizer.py]` from `12` (`tda_` + 8-hex) to `36` (`tda_` + 32-hex).
 
 ## Remaining
-- Execute `/tier8-audit-plan` and the Post-Implementation Gates in `@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`.
+- Optional automated Tier 2 Hardening batch loops (`auto_hardening_runner.py` for Backend and Frontend targets in `@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]
+/tier5-resume @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]
 ```
