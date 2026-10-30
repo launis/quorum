@@ -205,3 +205,63 @@ def test_flattened_atom_v2_core_base_inheritance_and_whitespace_stripping() -> N
                 "unauthorized_extra": "fail",
             }
         )
+
+
+def test_matrix_istqb_boundary_value_partitions() -> None:
+    """Verifies ISTQB Boundary Value Analysis (min-1 vs min) and invalid ID patterns."""
+    # ContrastivePairDTO min_length=10 boundary: 9 chars (min-1) fails, 10 chars (min) passes
+    with pytest.raises(ValidationError):
+        ContrastivePairDTO(acceptable="123456789", rejected="1234567890")
+    with pytest.raises(ValidationError):
+        ContrastivePairDTO(acceptable="1234567890", rejected="123456789")
+    cp_min = ContrastivePairDTO(acceptable="1234567890", rejected="0987654321")
+    assert len(cp_min.acceptable) == 10
+    assert len(cp_min.rejected) == 10
+
+    # TDAAssertion concept_description min_length=10 boundary: 9 chars (min-1) fails, 10 chars (min) passes
+    with pytest.raises(ValidationError):
+        TDAAssertion(
+            inverse_evidence=False,
+            aggregation_mode="EXISTS",
+            concept_description="123456789",
+        )
+    tda_min = TDAAssertion(
+        inverse_evidence=False,
+        aggregation_mode="EXISTS",
+        concept_description="1234567890",
+        acceptance_criteria=[AcceptanceCriterion(instruction="12345")],
+        anti_patterns=[AntiPattern(pattern="12345")],
+    )
+    assert len(tda_min.concept_description) == 10
+
+    # AcceptanceCriterion & AntiPattern min length=5 boundary: 4 chars (min-1) fails
+    with pytest.raises(ValidationError, match="must be at least 5 characters long"):
+        TDAAssertion(
+            inverse_evidence=False,
+            aggregation_mode="EXISTS",
+            concept_description="1234567890",
+            acceptance_criteria=[AcceptanceCriterion(instruction="1234")],
+        )
+    with pytest.raises(ValidationError, match="must be at least 5 characters long"):
+        TDAAssertion(
+            inverse_evidence=False,
+            aggregation_mode="EXISTS",
+            concept_description="1234567890",
+            anti_patterns=[AntiPattern(pattern="1234")],
+        )
+
+    # TDAAssertion tda_id Opaque Stripe ID regex boundary
+    with pytest.raises(ValidationError):
+        TDAAssertion(
+            tda_id="tda_short",
+            inverse_evidence=False,
+            aggregation_mode="EXISTS",
+            concept_description="1234567890",
+        )
+
+    # MatrixClaim tda_assertions min_length=1 boundary: 0 items (min-1) fails
+    with pytest.raises(ValidationError):
+        MatrixClaim(
+            label=I18nText(translations={"en": "Claim"}),
+            tda_assertions=[],
+        )

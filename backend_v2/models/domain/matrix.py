@@ -50,7 +50,12 @@ class TheoryGrounding(V2CoreBase):
 
 
 class AcceptanceCriterion(V2CoreBase):
-    """Structured acceptance criterion with bilingual instruction."""
+    """Structured acceptance criterion with monolingual instruction.
+
+    Attributes:
+        instruction: Structured monolingual instruction.
+        requires_contextual_override: Whether contextual override is required.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -59,7 +64,12 @@ class AcceptanceCriterion(V2CoreBase):
 
 
 class AntiPattern(V2CoreBase):
-    """Known anti-pattern with bilingual description."""
+    """Known anti-pattern with monolingual description.
+
+    Attributes:
+        pattern: Known anti-pattern with monolingual description.
+        allows_contextual_excuse: Whether contextual excuse is permitted.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -68,7 +78,14 @@ class AntiPattern(V2CoreBase):
 
 
 def _coerce_to_tuple(v: Any) -> Any:
-    """Coerces list to tuple for immutable DAG depends_on fields."""
+    """Coerces list to tuple for immutable DAG depends_on fields.
+
+    Args:
+        v: Raw input collection or value to coerce.
+
+    Returns:
+        Tuple representation if input is a list, otherwise the unmodified value.
+    """
     if isinstance(v, list):
         return tuple(v)
     return v
@@ -98,6 +115,9 @@ class ContrastivePairDTO(V2CoreBase):
     @model_validator(mode="after")
     def validate_contrastive_diversity(self) -> Self:
         """Enforces that acceptable and rejected exemplars are distinct and non-empty.
+
+        Returns:
+            The validated contrastive pair instance.
 
         Raises:
             ValueError: If acceptable equals rejected or either exemplar is blank.
@@ -197,14 +217,14 @@ class TDAAssertion(V2CoreBase):
     ]
 
     @model_validator(mode="after")
-    def validate_math_logic(self) -> TDAAssertion:
+    def validate_math_logic(self) -> Self:
         """Validates the consistency of the assertion constraints.
-
-        Raises:
-            AppException: If constraints are mathematically or logically invalid.
 
         Returns:
             The validated assertion.
+
+        Raises:
+            ValueError: If constraints are mathematically or logically invalid.
         """
         if self.inverse_evidence and self.aggregation_mode == "ALL_MUST_COMPLY":
             msg = "Inverse evidence (poison detection) strictly requires 'EXISTS' aggregation mode."
