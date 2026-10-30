@@ -35,7 +35,7 @@
   - [x] @[backend_v2/models/core_base.py]
   - [x] @[backend_v2/models/domain/step.py]
   - [x] @[backend_v2/models/domain/workflow.py]
-  - [ ] @[backend_v2/models/dtos/causal_discovery.py]
+  - [x] @[backend_v2/models/dtos/causal_discovery.py]
   - [ ] @[backend_v2/models/enums.py]
   - [ ] @[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
