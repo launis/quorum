@@ -688,6 +688,7 @@ class StudioWorkflowService:
                         ErrorCodes.DELETE_BLOCKED_BY_USAGE.name,
                         id,
                         wf.id,
+                        exc_info=True,
                         extra={
                             "error_code": ErrorCodes.DELETE_BLOCKED_BY_USAGE.value,
                             "step_id": id,

@@ -1094,3 +1094,53 @@ async def test_get_workflow_available_extensions_includes_system_core_steps(
 
     exts = await workflow_service.get_workflow_available_extensions(root_token, wf.id)
     assert exts == ["detailed_gap_analysis", "executive_summary"]
+
+
+async def test_delete_step_blocked_by_workflow_usage_raises(
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
+) -> None:
+    """Tests that deleting a step referenced by a workflow raises 400 DELETE_BLOCKED_BY_USAGE."""
+    step_data = _valid_step("stp_0195f3a00000700080000123456789ab", is_system_core=False, org_id="org_123")
+    await mock_workflow_repo.save_step(step_data)
+    wf = _valid_workflow(org_id="org_123").model_copy(
+        update={
+            "steps": [
+                StepRule(
+                    id="sr_0195f3a00000700080000123456789ab",
+                    task_blueprint=step_data.id,
+                )
+            ]
+        }
+    )
+    await mock_workflow_repo.save_workflow(wf)
+
+    with pytest.raises(AppException) as exc_info:
+        await workflow_service.delete_step(admin_token, step_data.id, force_delete=False)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+    assert exc_info.value.details["step_id"] == step_data.id
+    assert exc_info.value.details["workflow_id"] == wf.id
+
+
+async def test_delete_step_force_delete_bypasses_workflow_usage_check(
+    workflow_service: StudioWorkflowService, admin_token: TokenData, mock_workflow_repo: InMemoryWorkflowRepository
+) -> None:
+    """Tests that force_delete=True deletes a step even when referenced by a workflow."""
+    step_data = _valid_step("stp_0195f3a00000700080000123456789ab", is_system_core=False, org_id="org_123")
+    await mock_workflow_repo.save_step(step_data)
+    wf = _valid_workflow(org_id="org_123").model_copy(
+        update={
+            "steps": [
+                StepRule(
+                    id="sr_0195f3a00000700080000123456789ab",
+                    task_blueprint=step_data.id,
+                )
+            ]
+        }
+    )
+    await mock_workflow_repo.save_workflow(wf)
+
+    await workflow_service.delete_step(admin_token, step_data.id, force_delete=True)
+    persisted = await mock_workflow_repo.get_step_by_id(step_data.id)
+    assert persisted is None
