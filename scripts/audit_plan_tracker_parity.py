@@ -411,7 +411,10 @@ def parse_tracker_document(content: str, tracker_path: Path) -> TrackerDocumentA
         has_frontend_agent_cmd = (
             "scripts/auto_hardening_runner.py" in f_header
             and "--agent-cmd" in f_header
-            and "/tier2-hardening-frontend" in f_header
+            and (
+                "/tier2-hardening-frontend" in f_header
+                or ("--gate all" in f_header and "/tier2-hardening-backend" in f_header)
+            )
             and "--no-agent" not in f_header
         )
         for f in re.findall(r"@\[([^\]]+)\]", f_match.group(2)):
@@ -526,8 +529,13 @@ def audit_plan_tracker_parity(plan_ast: PlanDocumentAST, tracker_ast: TrackerDoc
         )
 
     # Check TPR004: Target Production File Hardening Coverage & Extension Integrity
-    backend_prod_targets = {t.file_path for t in plan_ast.target_files if t.is_production and t.is_backend}
-    frontend_prod_targets = {t.file_path for t in plan_ast.target_files if t.is_production and t.is_frontend}
+    deleted_targets = {t.file_path for t in plan_ast.target_files if t.action == "DELETE"}
+    backend_prod_targets = {
+        t.file_path for t in plan_ast.target_files if t.is_production and t.is_backend and t.action != "DELETE"
+    }
+    frontend_prod_targets = {
+        t.file_path for t in plan_ast.target_files if t.is_production and t.is_frontend and t.action != "DELETE"
+    }
 
     tracker_backend_files = set(tracker_ast.hardening_checklist.backend_files)
     tracker_frontend_files = set(tracker_ast.hardening_checklist.frontend_files)
@@ -559,6 +567,19 @@ def audit_plan_tracker_parity(plan_ast: PlanDocumentAST, tracker_ast: TrackerDoc
                     remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Backend)` in tracker.",
                 )
             )
+        elif fpath in deleted_targets:
+            findings.append(
+                ParityAuditFindingDTO(
+                    rule_code=ParityRuleCode.TPR004,
+                    category="Hardening Checklist",
+                    severity=GuardrailSeverity.FATAL,
+                    message=(
+                        f"Deleted file `{fpath}` in Tier 2 Hardening (Backend) checklist is invalid; "
+                        "hardening applies exclusively to surviving production files."
+                    ),
+                    remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Backend)` in tracker.",
+                )
+            )
 
     for fpath in sorted(tracker_frontend_files):
         if not fpath.lower().endswith(".dart"):
@@ -583,6 +604,19 @@ def audit_plan_tracker_parity(plan_ast: PlanDocumentAST, tracker_ast: TrackerDoc
                     message=(
                         f"Test file `{fpath}` in Tier 2 Hardening (Frontend) checklist is invalid; "
                         "tests are verification evidence, not hardening targets."
+                    ),
+                    remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Frontend)` in tracker.",
+                )
+            )
+        elif fpath in deleted_targets:
+            findings.append(
+                ParityAuditFindingDTO(
+                    rule_code=ParityRuleCode.TPR004,
+                    category="Hardening Checklist",
+                    severity=GuardrailSeverity.FATAL,
+                    message=(
+                        f"Deleted file `{fpath}` in Tier 2 Hardening (Frontend) checklist is invalid; "
+                        "hardening applies exclusively to surviving production files."
                     ),
                     remediation=f"Remove `  - [ ] @[{fpath}]` from `Tier 2 Hardening (Frontend)` in tracker.",
                 )

@@ -318,6 +318,11 @@ def check_hardening_targets(content: str) -> list[TrackerAuditFinding]:
                     )
                 )
 
+        has_valid_skill = expected_skill in header_line or (
+            gate_name.lower() == "frontend"
+            and "--gate all" in header_line
+            and "/tier2-hardening-backend" in header_line
+        )
         if "--no-agent" in header_line:
             findings.append(
                 TrackerAuditFinding(
@@ -338,7 +343,7 @@ def check_hardening_targets(content: str) -> list[TrackerAuditFinding]:
         elif has_child_targets and (
             "scripts/auto_hardening_runner.py" not in header_line
             or "--agent-cmd" not in header_line
-            or expected_skill not in header_line
+            or not has_valid_skill
         ):
             findings.append(
                 TrackerAuditFinding(

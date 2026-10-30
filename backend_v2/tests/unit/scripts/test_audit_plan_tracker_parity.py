@@ -469,3 +469,154 @@ def test_missing_hardening_agent_cmd_triggers_fatal_tpr008(tmp_path: Path) -> No
         "Tier 2 Hardening (Frontend) gate is missing mandatory `scripts/auto_hardening_runner.py` with `--agent-cmd`"
         in messages
     )
+
+
+def test_deleted_targets_excluded_from_required_hardening_checklist(tmp_path: Path) -> None:
+    """Verify [DELETE] target files in plan are excluded from required Tier 2 Hardening checklists."""
+    plan_text = """<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+</required_context_rules>
+# Plan: Delete Targets
+## Target Scope
+- `[MODIFY]` @[backend_v2/services/surviving.py]
+- `[DELETE]` @[backend_v2/services/dead_router.py]
+- `[MODIFY]` @[client_app_v2/lib/surviving_view.dart]
+- `[DELETE]` @[client_app_v2/lib/dead_view.dart]
+
+```xml
+<execution_protocol>
+  <step id="1" name="STEP ONE">
+    <action>Action</action>
+  </step>
+</execution_protocol>
+```
+"""
+    tracker_text = """<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+</required_context_rules>
+# Tracker: Delete Targets Excluded
+**Plan:** @[plan.md]
+## Step Execution Status
+- [ ] **[NOK] Execution:** `/tier2-execute @[plan.md] @[task.md]`
+  - [ ] Step 1: STEP ONE
+
+### Post-Implementation Gates
+- [ ] **[NOK] Golden Master & Test Restoration Audit**
+- [ ] **[NOK] Pre-Delete Audit**
+- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**
+- [ ] **[NOK] Tier 2 Hardening (Backend):** Run `scripts/auto_hardening_runner.py --gate all --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
+  - [ ] @[backend_v2/services/surviving.py]
+- [ ] **[NOK] Tier 2 Hardening (Frontend):** Run `scripts/auto_hardening_runner.py --gate all --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
+  - [ ] @[client_app_v2/lib/surviving_view.dart]
+
+### Documentation & Knowledge Item Update
+- [ ] **[NOK]** As-Built Architectural Sync: Run:
+
+### Final Plan Audit
+- [ ] **[NOK]** System 2 Red-Team Audit: Run:
+
+## Requirements Traceability Matrix
+| Req | Desc | Plan Step | Status |
+|---|---|---|---|
+| R1 | Detailed description here | Step 1 | [ ] Pending |
+
+# Session Handover Context
+## Achieved
+- Done
+## Learned
+- Notes
+## Remaining
+- Rest
+## Resume Command
+`/tier2-execute`
+"""
+    p_file = tmp_path / "plan.md"
+    p_file.write_text(plan_text, encoding="utf-8")
+    t_file = tmp_path / "tracker.md"
+    t_file.write_text(tracker_text, encoding="utf-8")
+
+    plan_ast = parse_plan_document(plan_text, p_file)
+    tracker_ast = parse_tracker_document(tracker_text, t_file)
+    report = audit_plan_tracker_parity(plan_ast, tracker_ast)
+
+    fatal_findings = [f for f in report.findings if f.severity.value == "FATAL"]
+    assert not fatal_findings, f"Unexpected fatal findings: {fatal_findings}"
+    assert report.total_target_files == 2
+    assert report.tracked_target_files == 2
+
+
+def test_deleted_target_included_in_hardening_checklist_triggers_fatal_tpr004(tmp_path: Path) -> None:
+    """Verify TPR004 FATAL finding when a plan [DELETE] file is included in Tier 2 Hardening checklists."""
+    plan_text = """<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+</required_context_rules>
+# Plan: Delete Targets Included
+## Target Scope
+- `[MODIFY]` @[backend_v2/services/surviving.py]
+- `[DELETE]` @[backend_v2/services/dead_router.py]
+- `[DELETE]` @[client_app_v2/lib/dead_view.dart]
+
+```xml
+<execution_protocol>
+  <step id="1" name="STEP ONE">
+    <action>Action</action>
+  </step>
+</execution_protocol>
+```
+"""
+    tracker_text = """<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+</required_context_rules>
+# Tracker: Deleted Target in Hardening
+**Plan:** @[plan.md]
+## Step Execution Status
+- [ ] **[NOK] Execution:** `/tier2-execute @[plan.md] @[task.md]`
+  - [ ] Step 1: STEP ONE
+
+### Post-Implementation Gates
+- [ ] **[NOK] Golden Master & Test Restoration Audit**
+- [ ] **[NOK] Pre-Delete Audit**
+- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**
+- [ ] **[NOK] Tier 2 Hardening (Backend):** Run `scripts/auto_hardening_runner.py --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
+  - [ ] @[backend_v2/services/surviving.py]
+  - [ ] @[backend_v2/services/dead_router.py]
+- [ ] **[NOK] Tier 2 Hardening (Frontend):** Run `scripts/auto_hardening_runner.py --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`
+  - [ ] @[client_app_v2/lib/dead_view.dart]
+
+### Documentation & Knowledge Item Update
+- [ ] **[NOK]** As-Built Architectural Sync: Run:
+
+### Final Plan Audit
+- [ ] **[NOK]** System 2 Red-Team Audit: Run:
+
+## Requirements Traceability Matrix
+| Req | Desc | Plan Step | Status |
+|---|---|---|---|
+| R1 | Detailed description here | Step 1 | [ ] Pending |
+
+# Session Handover Context
+## Achieved
+- Done
+## Learned
+- Notes
+## Remaining
+- Rest
+## Resume Command
+`/tier2-execute`
+"""
+    p_file = tmp_path / "plan.md"
+    p_file.write_text(plan_text, encoding="utf-8")
+    t_file = tmp_path / "tracker.md"
+    t_file.write_text(tracker_text, encoding="utf-8")
+
+    plan_ast = parse_plan_document(plan_text, p_file)
+    tracker_ast = parse_tracker_document(tracker_text, t_file)
+    report = audit_plan_tracker_parity(plan_ast, tracker_ast)
+
+    fatal_findings = [f for f in report.findings if f.severity.value == "FATAL"]
+    assert len(fatal_findings) == 2
+    assert all(f.rule_code.value == "TPR004" for f in fatal_findings)
+    messages = " ".join(f.message for f in fatal_findings)
+    assert "Deleted file `backend_v2/services/dead_router.py` in Tier 2 Hardening (Backend)" in messages
+    assert "Deleted file `client_app_v2/lib/dead_view.dart` in Tier 2 Hardening (Frontend)" in messages
+

@@ -570,11 +570,11 @@
     },
     "backend_v2/api/routers/studio/workflows.py": {
       "target_file": "backend_v2/api/routers/studio/workflows.py",
-      "target_sha256": "ee92120b2c866a1da981f5eed94448100838393631381e9c2b008eb3abc05cbf",
-      "unit_test_sha256": "6b3bf3cb317e82fb9d3e4845da0d8f9fb3312367916a40b36c0324c3bd0d8f77",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "5b13e88a58cf6b3e356dfd47446b97d98317db07577e97a10db6a16be330d11d",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave3.md"
+      "target_sha256": "b164e9030bb819127a1a54aa4bd3fcc516396b674709c91d3b4e5014af990ed4",
+      "unit_test_sha256": "cc70fd622f9f5a364a5f459b78dd59d5489032f9ce9abc07773e148abc675004",
+      "rules_sha256": "912bfe288118baaf70932f17d98521837247670cf36730a1e1b5222aa8028e52",
+      "composite_sha256": "d20f7979fc6a80e92f19c779553fff6ccfd9f06a231541fa2e7163083752bb46",
+      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
     },
     "backend_v2/api/routers/execution/workflows.py": {
       "target_file": "backend_v2/api/routers/execution/workflows.py",
@@ -1458,11 +1458,11 @@
     },
     "backend_v2/api/routers/studio/steps.py": {
       "target_file": "backend_v2/api/routers/studio/steps.py",
-      "target_sha256": "4b96c1a02064baffdeb69bac61412fe925c31e7b4fc357e52bfeaa974ce2b790",
-      "unit_test_sha256": "b2e5c2dfceeab99b06546bc55d0a978384377202c14d0825e8afb69113459348",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "0c842f5d3fd2cbbdc0b9e24b014111b0cae97b5b8af3baebd9636a0522500f15",
-      "source_tracker": "docs/implementationplans/TRACKER_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md"
+      "target_sha256": "b3ca306f6694bf1dd5864481d29ab5c8a64e346c2548d243c1b91d761f342390",
+      "unit_test_sha256": "c2aeb335b58e6b426dac19c9120137e26bd0f55abcf2a3172d0ded054524524f",
+      "rules_sha256": "912bfe288118baaf70932f17d98521837247670cf36730a1e1b5222aa8028e52",
+      "composite_sha256": "34a643c08e5dd64ca14485d764f95f1e70b97baccc288838a7b04218fc329a90",
+      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
     },
     "client_app_v2/lib/features/studio/controllers/studio_controller.dart": {
       "target_file": "client_app_v2/lib/features/studio/controllers/studio_controller.dart",
@@ -2703,6 +2703,22 @@
       "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
       "composite_sha256": "ac01787157cd571b685e5d6c393da2d7cddc8cec579b4d3443af5047a0544faa",
       "source_tracker": "docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md"
+    },
+    "backend_v2/api/routers/studio/__init__.py": {
+      "target_file": "backend_v2/api/routers/studio/__init__.py",
+      "target_sha256": "e0cc7313bbc150dbaa8428610ac4b83a078d36e4d430c1e635c186675ba4cc0a",
+      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rules_sha256": "912bfe288118baaf70932f17d98521837247670cf36730a1e1b5222aa8028e52",
+      "composite_sha256": "1ba8bb4689c5a369e69fd03c22fecfdb47bb1b716a8b4da691b279a79b6d85b0",
+      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+    },
+    "backend_v2/api/routers/system/health.py": {
+      "target_file": "backend_v2/api/routers/system/health.py",
+      "target_sha256": "cdbc97048edd66c1e861887a34c370951fcd2a8df602104519ec814664306cac",
+      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rules_sha256": "912bfe288118baaf70932f17d98521837247670cf36730a1e1b5222aa8028e52",
+      "composite_sha256": "8568c5c574391d5b75565ca30b5a294d92d70baa91ea3dcfdacea8dc4692d680",
+      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
     }
   }
 }

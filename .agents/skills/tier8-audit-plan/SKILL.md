@@ -87,7 +87,7 @@ description: Tier 8 (Audit Plan) - System 2 deep-dive evaluation and audit of a 
 
     <step id="6">RETROSPECTIVE REPORT GENERATION &amp; HANDOVER: 
       - Produce a final `red_team_audit_[target_name].md` artifact in the conversation artifact directory containing a strict Pass/Fail traceability matrix and the complete Five-Axis System 2 As-Built Audit.
-      - Point the user directly to the generated audit artifact and provide the exact `/tier5-resume` command for the next action.
+      - Point the user directly to the generated audit artifact and provide the exact `/tier5-resume` command or unified `--gate all` hardening command (`$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[<tracker_path>]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`) when `Tier 2 Hardening` targets remain unchecked.
     </step>
   </execution_protocol>
 </system_prompt>
