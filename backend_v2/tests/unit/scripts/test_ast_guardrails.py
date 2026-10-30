@@ -18,8 +18,11 @@ from scripts._ast_guardrails import (
     BOUNDARY_EXEMPTION_FILES,
     OPEN_JSON_EXEMPTION_FILES,
     REPO_ROOT,
+    RESIDUAL_BARE_FIELD_FILES,
     RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES,
     RESIDUAL_FUTURE_PHASE_QGR028_FILES,
+    RESIDUAL_MISSING_DOCSTRING_FILES,
+    RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES,
     GuardrailSeverity,
     GuardrailViolation,
     _find_nested_dict_subscript,
@@ -29,6 +32,7 @@ from scripts._ast_guardrails import (
     scan_files_for_guardrails,
     scan_source_code_for_guardrails,
 )
+from scripts.backend_audit_loop import discover_authoritative_scripts
 
 __all__ = [
     "_get_ann",
@@ -36,17 +40,26 @@ __all__ = [
 ]
 
 
-def _scan_snippet(code: str, filepath: str = "backend_v2/services/sample.py") -> list[GuardrailViolation]:
+def _scan_snippet(
+    code: str,
+    filepath: str = "backend_v2/services/sample.py",
+    *,
+    include_qgr033: bool = False,
+) -> list[GuardrailViolation]:
     """Scan a Python code snippet as UTF-8 source bytes against AST guardrails.
 
     Args:
         code: Raw Python source snippet to scan.
         filepath: Virtual relative file path used for domain severity classification.
+        include_qgr033: Whether to retain QGR033 docstring/logging violations on synthetic snippets.
 
     Returns:
         List of detected GuardrailViolation objects.
     """
-    return scan_source_code_for_guardrails(filepath, code.encode("utf-8"))
+    violations = scan_source_code_for_guardrails(filepath, code.encode("utf-8"))
+    if not include_qgr033:
+        return [v for v in violations if v.rule_code != "QGR033"]
+    return violations
 
 
 def _get_ann(code: str) -> ast.AST:
@@ -889,7 +902,7 @@ def test_qgr011_detects_id_in_create_request() -> None:
     code = """
 class ItemCreateRequest(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
-    id: str = Field(description="Custom ID")
+    id: Annotated[str, Field(description="Custom ID")]
     name: str
 """
     violations = _scan_snippet(code, filepath="backend_v2/models/dtos/item.py")
@@ -980,7 +993,7 @@ def test_relative_path_fatal_enforcement() -> None:
     """Verifies that relative path inputs (models/foo.py, services/foo.py, hooks/bar.py) trigger FATAL severity."""
     code_qgr001 = "x = getattr(obj, 'attr', None)\n"
     code_qgr002 = "x = data.get('key', 'default')\n"
-    code_qgr012 = "if isinstance(data, dict):\n    pass\n"
+    code_qgr012 = '"""Sample module."""\nif isinstance(data, dict):\n    pass\n'
 
     # Services relative path -> FATAL
     v1 = scan_source_code_for_guardrails("services/foo.py", code_qgr001.encode("utf-8"))
@@ -1012,12 +1025,19 @@ def test_relative_path_fatal_enforcement() -> None:
 
 
 def test_qgr012_fatal_severity_in_test_files() -> None:
-    """Verifies that test files receive FATAL severity for isinstance dict checks."""
+    """Verifies QGR012 scoping: domain routers emit FATAL while offline scripts and tests are exempt."""
+    # Phase 2, Step 2: Verify QGR012 is scoped to self._is_domain_code and not self._is_boundary_exempt
     code = "if isinstance(payload, dict):\n    pass\n"
-    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_item.py")
-    assert len(violations) == 1
-    assert violations[0].rule_code == "QGR012"
-    assert violations[0].severity == GuardrailSeverity.FATAL
+    domain_violations = _scan_snippet(code, filepath="backend_v2/api/routers/executions.py")
+    assert len(domain_violations) == 1
+    assert domain_violations[0].rule_code == "QGR012"
+    assert domain_violations[0].severity == GuardrailSeverity.FATAL
+
+    script_violations = _scan_snippet(code, filepath="scripts/diff_executions.py")
+    assert [v for v in script_violations if v.rule_code == "QGR012"] == []
+
+    test_violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_item.py")
+    assert [v for v in test_violations if v.rule_code == "QGR012"] == []
 
 
 def test_qgr012_mapping_fatal_in_domain_code() -> None:
@@ -2410,6 +2430,9 @@ def test_boundary_and_residual_exemption_sets_exist_on_disk() -> None:
         ("OPEN_JSON_EXEMPTION_FILES", OPEN_JSON_EXEMPTION_FILES),
         ("RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES", RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES),
         ("RESIDUAL_FUTURE_PHASE_QGR028_FILES", RESIDUAL_FUTURE_PHASE_QGR028_FILES),
+        ("RESIDUAL_BARE_FIELD_FILES", RESIDUAL_BARE_FIELD_FILES),
+        ("RESIDUAL_MISSING_DOCSTRING_FILES", RESIDUAL_MISSING_DOCSTRING_FILES),
+        ("RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES", RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES),
     ]
     for set_name, file_set in exemption_sets:
         for path in file_set:
@@ -2558,13 +2581,233 @@ def test_qgr031_in_operator_with_string_literal_raises_fatal() -> None:
     """QGR031: Negative test verifying 'in' operator with string literal value raises fatal violation."""
     # Phase 1, Step 1: Reject string literal value on 'in' Filter preventing character iteration
     code = """
-from backend_v2.database.driver import Filter
+from backend_v2.database.driver import Filter, FilterOperator, QueryCondition
 
 f1 = Filter("id", "in", "wf_0195f3a0000070008000000000000001")
 f2 = Filter(field="id", operator="in", value=b"wf_bytes")
+f3 = QueryCondition(field="id", op=FilterOperator.IN, value="wf_0195f3a0000070008000000000000001")
+f4 = QueryCondition(field="id", op=FilterOperator.INVALID_OP, value="x")
 """
     violations = _scan_snippet(code, filepath="backend_v2/database/repositories/workflow.py")
     qgr031 = [v for v in violations if v.rule_code == "QGR031"]
-    assert len(qgr031) == 2
+    assert len(qgr031) == 4
     assert all(v.severity == GuardrailSeverity.FATAL for v in qgr031)
 
+
+def test_qgr020_bare_field_without_annotated_raises_fatal() -> None:
+    """QGR020 Check 20B: Bare = Field(...) without PEP 593 Annotated[...] raises FATAL violation."""
+    # Phase 1, Step 3: Verify bare Field(...) on Pydantic model without Annotated[...] triggers QGR020
+    code = '''"""Module docstring."""
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class SampleDTO(BaseModel):
+    """Sample DTO docstring."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+    count: int = Field(default=1, ge=0)
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/models/dtos/new_sample.py")
+    qgr020 = [v for v in violations if v.rule_code == "QGR020"]
+    assert len(qgr020) == 1
+    assert qgr020[0].severity == GuardrailSeverity.FATAL
+    assert "Bare `= Field(...)` assignment without PEP 593 `Annotated[...]`" in qgr020[0].message
+
+
+def test_qgr020_annotated_field_and_residual_exemption_allowed() -> None:
+    """QGR020 Check 20B: PEP 593 Annotated[T, Field(...)] and residual files pass cleanly."""
+    # Phase 1, Step 3: Verify Annotated[T, Field(...)] passes with 0 QGR020 violations
+    valid_code = '''"""Module docstring."""
+
+from typing import Annotated
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class SampleDTO(BaseModel):
+    """Sample DTO docstring."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+    count: Annotated[int, Field(ge=0)] = 1
+'''
+    assert [
+        v for v in _scan_snippet(valid_code, filepath="backend_v2/models/dtos/new_sample.py") if v.rule_code == "QGR020"
+    ] == []
+
+    residual_code = '''"""Module docstring."""
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class LegacyDTO(BaseModel):
+    """Legacy DTO docstring."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+    count: int = Field(default=1)
+'''
+    assert [
+        v
+        for v in _scan_snippet(residual_code, filepath="backend_v2/models/domain/workflow.py")
+        if v.rule_code == "QGR020"
+    ] == []
+
+
+def test_qgr032_model_factory_hardcoded_or_uuid4_id_raises_fatal() -> None:
+    """QGR032: ModelFactory subclasses assigning hardcoded IDs or non-opaque methods raise FATAL violations."""
+    # Phase 1, Step 3: Verify QGR032 catches hardcoded IDs, lambdas, and non-opaque classmethods in ModelFactory
+    code = '''"""Factory test module."""
+
+from polyfactory import Use
+from polyfactory.factories.pydantic_factory import ModelFactory
+
+
+class BadWorkflowFactory(ModelFactory[Workflow]):
+    """Bad factory."""
+
+    id = "wf_0195f3a0000070008000000000000001"
+    organization_id = Use(lambda: "org_0195f3a0000070008000000000000001")
+
+    @classmethod
+    def workflow_id(cls) -> str:
+        """Bad workflow_id generator."""
+        return "wf_0195f3a0000070008000000000000001"
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/tests/factories/model_factories.py")
+    qgr032 = [v for v in violations if v.rule_code == "QGR032"]
+    assert len(qgr032) == 3
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr032)
+
+
+def test_qgr032_model_factory_use_generate_opaque_id_allowed() -> None:
+    """QGR032: ModelFactory subclasses using Use(generate_opaque_id, ...) or classmethod generate_opaque_id pass."""
+    # Phase 1, Step 3: Verify QGR032 allows canonical Use(generate_opaque_id, ...) and classmethod generate_opaque_id
+    code = '''"""Factory test module."""
+
+from polyfactory import Use
+from polyfactory.factories.pydantic_factory import ModelFactory
+from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.enums import EntityPrefix
+
+
+class GoodWorkflowFactory(ModelFactory[Workflow]):
+    """Good factory."""
+
+    id = Use(generate_opaque_id, EntityPrefix.WORKFLOW)
+    profile_id: str | None = None
+
+    @classmethod
+    def organization_id(cls) -> str:
+        """Valid organization_id generator."""
+        return generate_opaque_id(EntityPrefix.ORGANIZATION)
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/tests/factories/model_factories.py")
+    assert [v for v in violations if v.rule_code == "QGR032"] == []
+
+
+def test_qgr033_raises_none_in_docstring_raises_fatal() -> None:
+    """QGR033 Check 33A: `Raises: None` in module, class, or function docstrings raises FATAL violations."""
+    # Phase 1, Step 3: Verify QGR033 bans Raises: None across module, class, and function docstrings
+    code = '''"""Module summary.
+
+Raises:
+    None
+"""
+
+
+class MyService:
+    """Service summary.
+
+    Raises: None
+    """
+
+    def execute(self) -> int:
+        """Execute operation.
+
+        Returns:
+            Result integer.
+
+        Raises:
+            None
+        """
+        return 1
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/services/my_service.py", include_qgr033=True)
+    qgr033 = [v for v in violations if v.rule_code == "QGR033"]
+    assert len(qgr033) == 3
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr033)
+
+
+def test_qgr033_missing_module_or_public_class_docstring_raises_fatal() -> None:
+    """QGR033 Check 33B: Missing PEP 257 module or top-level public class docstring raises FATAL violations."""
+    # Phase 1, Step 3: Verify QGR033 detects missing module and public class docstrings in domain code
+    code = """
+class UndocumentedService:
+    def run(self) -> int:
+        return 42
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/services/undocumented.py", include_qgr033=True)
+    qgr033 = [v for v in violations if v.rule_code == "QGR033"]
+    assert len(qgr033) == 2
+    assert any("Missing PEP 257 module-level docstring" in v.message for v in qgr033)
+    assert any("Missing PEP 257 docstring on public domain class `UndocumentedService`" in v.message for v in qgr033)
+
+
+def test_qgr033_unlogged_app_exception_in_domain_function_raises_fatal() -> None:
+    """QGR033 Check 33C: Raising AppException without logger.error in domain function raises FATAL violation."""
+    # Phase 1, Step 3: Verify QGR033 enforces RFC 7807 logger.error before raising AppException
+    code = '''"""Service module."""
+
+from backend_v2.exceptions import AppException, ErrorCodes
+
+
+def fail_without_log() -> None:
+    """Raise AppException without logging."""
+    raise AppException(ErrorCodes.VALIDATION_FAILED, "Missing required input")
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/services/my_service.py", include_qgr033=True)
+    qgr033 = [v for v in violations if v.rule_code == "QGR033"]
+    assert len(qgr033) == 1
+    assert "Unlogged `raise AppException(...)` in `fail_without_log()`" in qgr033[0].message
+
+
+def test_qgr033_logged_app_exception_and_valid_docstrings_allowed() -> None:
+    """QGR033: Properly documented module/class and logged AppException pass with zero violations."""
+    # Phase 1, Step 3: Verify valid PEP 257 docstrings and logger.error before raise AppException pass QGR033
+    code = '''"""Service module docstring."""
+
+import logging
+from backend_v2.exceptions import AppException, ErrorCodes
+
+logger = logging.getLogger(__name__)
+
+
+class DocumentedService:
+    """Documented domain service class."""
+
+    def fail_with_log(self) -> None:
+        """Log error and raise AppException."""
+        logger.error("Validation failed for request")
+        raise AppException(ErrorCodes.VALIDATION_FAILED, "Validation failed")
+'''
+    violations = _scan_snippet(code, filepath="backend_v2/services/my_service.py", include_qgr033=True)
+    assert [v for v in violations if v.rule_code == "QGR033"] == []
+
+
+def test_discover_authoritative_scripts_dynamic_glob(tmp_path: Path) -> None:
+    """Verify discover_authoritative_scripts dynamically discovers all *.py files in scripts directory."""
+    # Phase 1, Step 3: Test dynamic script discovery in backend_audit_loop.py
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir()
+    (scripts_dir / "alpha.py").write_text('"""Alpha."""\n', encoding="utf-8")
+    (scripts_dir / "beta.py").write_text('"""Beta."""\n', encoding="utf-8")
+    (scripts_dir / "README.md").write_text("# Ignore non-py\n", encoding="utf-8")
+
+    discovered = discover_authoritative_scripts(scripts_dir)
+    assert len(discovered) == 2
+    assert discovered[0].endswith("scripts/alpha.py")
+    assert discovered[1].endswith("scripts/beta.py")
+
+    repo_scripts = discover_authoritative_scripts()
+    assert "scripts/_ast_guardrails.py" in repo_scripts
+    assert "scripts/auto_hardening_runner.py" in repo_scripts
+    assert "scripts/backend_audit_loop.py" in repo_scripts

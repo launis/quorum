@@ -69,6 +69,7 @@ from backend_v2.models.enums import (
     TargetBlockType,
 )
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
+from backend_v2.models.view.sdui import AnySduiBlock
 
 __all__ = [
     "CausalGraphPayloadDTOFactory",
@@ -309,6 +310,15 @@ class OutputProfileFactory(ModelFactory[OutputProfile]):
 
         Returns:
             Empty list of MatrixSynthesisGroup models.
+        """
+        return []
+
+    @classmethod
+    def layout(cls) -> list[AnySduiBlock]:
+        """Generate a deterministic empty SDUI layout block list.
+
+        Returns:
+            Empty list of AnySduiBlock models.
         """
         return []
 

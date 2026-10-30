@@ -5,8 +5,10 @@ from __future__ import annotations
 import re
 
 import pytest
+from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import ValidationError
 
+import backend_v2.tests.factories.model_factories as model_factories_mod
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.scoring import StepPanelDTO
@@ -30,6 +32,8 @@ from backend_v2.tests.factories.model_factories import (
 __all__ = [
     "ALL_FACTORIES",
     "RegisteredFactoryType",
+    "discover_all_model_factories",
+    "test_dynamic_discovery_matches_registered_factories",
     "test_polyfactory_build_succeeds",
     "test_polyfactory_causal_graph_referential_integrity_error",
     "test_polyfactory_invalid_extra_field_error",
@@ -68,6 +72,30 @@ ALL_FACTORIES: tuple[RegisteredFactoryType, ...] = (
 )
 
 
+def discover_all_model_factories() -> tuple[type[object], ...]:
+    """Dynamically discover all ModelFactory subclasses defined in model_factories.py.
+
+    Returns:
+        Tuple of concrete ModelFactory subclasses from backend_v2.tests.factories.model_factories.
+    """
+    # Phase 1, Step 3: Dynamically discover all ModelFactory subclasses via __subclasses__()
+    discovered: list[type[object]] = []
+    stack: list[type[object]] = list(ModelFactory.__subclasses__())
+    while stack:
+        cls = stack.pop()
+        stack.extend(cls.__subclasses__())
+        if cls.__module__ == model_factories_mod.__name__:
+            discovered.append(cls)
+    return tuple(discovered)
+
+
+def test_dynamic_discovery_matches_registered_factories() -> None:
+    """Verify dynamic ModelFactory.__subclasses__() discovery matches ALL_FACTORIES."""
+    # Phase 1, Step 3: Prevent unregistered ModelFactory subclasses from bypassing meta-tests
+    discovered = discover_all_model_factories()
+    assert set(discovered) == set(ALL_FACTORIES)
+
+
 @pytest.mark.parametrize("factory_cls", ALL_FACTORIES)
 def test_polyfactory_build_succeeds(factory_cls: RegisteredFactoryType) -> None:
     """Assert that each registered Polyfactory model factory builds valid instances.
@@ -82,12 +110,12 @@ def test_polyfactory_build_succeeds(factory_cls: RegisteredFactoryType) -> None:
     validated = model_cls.model_validate(instance)
     dumped = validated.model_dump()
     assert dumped is not None
-    if "id" in dumped and isinstance(dumped["id"], str):
-        assert re.match(OPAQUE_STRIPE_ID_REGEX, dumped["id"]) is not None
-    if "organization_id" in dumped and isinstance(dumped["organization_id"], str):
-        assert re.match(OPAQUE_STRIPE_ID_REGEX, dumped["organization_id"]) is not None
-    if "node_id" in dumped and isinstance(dumped["node_id"], str):
-        assert re.match(OPAQUE_STRIPE_ID_REGEX, dumped["node_id"]) is not None
+    # Phase 1, Step 3: Verify all primary and relational entity IDs match 32-hex OPAQUE_STRIPE_ID_REGEX
+    for id_key in ("id", "organization_id", "node_id", "execution_id", "workflow_id", "profile_id"):
+        if id_key in dumped and isinstance(dumped[id_key], str):
+            assert re.match(OPAQUE_STRIPE_ID_REGEX, dumped[id_key]) is not None, (
+                f"{factory_cls.__name__}.{id_key} generated invalid Opaque ID: {dumped[id_key]!r}"
+            )
 
 
 def test_polyfactory_invalid_id_error() -> None:

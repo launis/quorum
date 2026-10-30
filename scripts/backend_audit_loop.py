@@ -57,37 +57,29 @@ from scripts._ast_guardrails import (
 )
 
 __all__ = [
+    "_MACRO_AUTHORITATIVE_SCRIPTS",
+    "discover_authoritative_scripts",
     "find_transitional_strangler_proxy_files",
     "main",
     "run_tests_with_strict_coverage",
 ]
 
-# Authoritative operational and guardrail scripts audited in macro completion gate
-_MACRO_AUTHORITATIVE_SCRIPTS: tuple[str, ...] = (
-    "scripts/_script_base.py",
-    "scripts/_ast_boundary_utils.py",
-    "scripts/_ast_guardrails.py",
-    "scripts/_dart_guardrails.py",
-    "scripts/reconcile_storage.py",
-    "scripts/audit_zero_orm_strictness.py",
-    "scripts/backend_audit_loop.py",
-    "scripts/audit_markdown_boundaries.py",
-    "scripts/audit_dict_eradication.py",
-    "scripts/audit_technical_debt.py",
-    "scripts/audit_skills_architecture.py",
-    "scripts/audit_clean_imports.py",
-    "scripts/audit_database_atoms.py",
-    "scripts/audit_dto_parity.py",
-    "scripts/audit_epic_coverage.py",
-    "scripts/audit_flutter_theme_sovereignty.py",
-    "scripts/audit_manifest_generator.py",
-    "scripts/audit_mutation_coverage.py",
-    "scripts/audit_planner_output.py",
-    "scripts/audit_plan_tracker_parity.py",
-    "scripts/audit_rules_staleness.py",
-    "scripts/audit_tracker_output.py",
-    "scripts/audit_warning_baseline.py",
-)
+
+def discover_authoritative_scripts(scripts_dir: Path = Path("scripts")) -> tuple[str, ...]:
+    """Dynamically discover all authoritative Python scripts in the scripts directory.
+
+    Args:
+        scripts_dir: Directory containing operational and guardrail Python scripts.
+
+    Returns:
+        Sorted tuple of workspace-relative POSIX script paths.
+    """
+    # Phase 1, Step 2: Dynamically discover all scripts/*.py files as single source of truth
+    return tuple(sorted(p.as_posix() for p in scripts_dir.glob("*.py") if p.is_file()))
+
+
+_MACRO_AUTHORITATIVE_SCRIPTS: tuple[str, ...] = discover_authoritative_scripts()
+
 
 # Force pure Python Protobuf implementation to prevent duplicate descriptor pool crashes in Python 3.14+
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
@@ -541,11 +533,11 @@ Optional steps:
         print("Error: Script must be executed from the project root (where backend_v2 is located).")
         sys.exit(1)
 
-    # Expand macro completion gate targets with authoritative operational and guardrail scripts
+    # Phase 2, Step 2: Expand macro completion gate targets with dynamically discovered scripts/*.py
     is_macro_backend_gate = not args.micro and any(t.replace("\\", "/").rstrip("/") == "backend_v2" for t in targets)
     stage_targets: list[str] = list(targets)
     if is_macro_backend_gate:
-        for script_path in _MACRO_AUTHORITATIVE_SCRIPTS:
+        for script_path in discover_authoritative_scripts():
             if script_path not in stage_targets:
                 stage_targets.append(script_path)
 

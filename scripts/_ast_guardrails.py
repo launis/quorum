@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR030).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR033).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -28,10 +28,16 @@ __all__ = [
     "OPEN_JSON_EXEMPTION_FILES",
     "POSITIVE_REPOSITORY_CLASSES",
     "QuorumGuardrailVisitor",
+    "RESIDUAL_BARE_FIELD_FILES",
     "RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES",
     "RESIDUAL_FUTURE_PHASE_QGR028_FILES",
+    "RESIDUAL_MISSING_DOCSTRING_FILES",
+    "RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES",
+    "_find_direct_app_exception_raises",
     "_find_jsonvalue_dict_subscript",
     "_find_nested_dict_subscript",
+    "_function_has_error_log",
+    "_is_annotated_subscript",
     "_is_dict_type_node",
     "_is_pytest_fixture_decorator",
     "_is_repository_identifier",
@@ -189,11 +195,65 @@ RESIDUAL_FUTURE_PHASE_QGR028_FILES: frozenset[str] = frozenset(
     }
 )
 
+# Phase 1, Step 1: Self-verifying residual sets for QGR020 Check 20B and QGR033 Checks 33B/33C
+RESIDUAL_BARE_FIELD_FILES: frozenset[str] = frozenset(
+    {
+        "backend_v2/core/hook_registry.py",
+        "backend_v2/core/registry.py",
+        "backend_v2/exceptions.py",
+        "backend_v2/models/domain/execution.py",
+        "backend_v2/models/domain/inputs.py",
+        "backend_v2/models/domain/matrix.py",
+        "backend_v2/models/domain/output_profile.py",
+        "backend_v2/models/domain/prompt_blocks.py",
+        "backend_v2/models/domain/step.py",
+        "backend_v2/models/domain/system_config.py",
+        "backend_v2/models/domain/workflow.py",
+        "backend_v2/models/dtos/engine.py",
+        "backend_v2/models/dtos/hook_state.py",
+        "backend_v2/models/dtos/quote_evidence.py",
+        "backend_v2/models/dtos/report_data.py",
+        "backend_v2/models/dtos/theory_manifest.py",
+        "backend_v2/models/llm.py",
+        "backend_v2/models/view/sdui.py",
+        "backend_v2/services/chat_parser.py",
+        "backend_v2/services/execution/ingress_service.py",
+        "backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py",
+        "scripts/ablation_live_executor.py",
+        "scripts/audit_database_atoms.py",
+        "scripts/diff_executions.py",
+        "scripts/reconcile_storage.py",
+    }
+)
+
+RESIDUAL_MISSING_DOCSTRING_FILES: frozenset[str] = frozenset(
+    {
+        "backend_v2/models/dtos/variance.py",
+        "backend_v2/services/orchestrator/extraction_schema_factory.py",
+        "backend_v2/services/orchestrator/rag_preflight_service.py",
+        "backend_v2/services/orchestrator/schema_factory.py",
+    }
+)
+
+RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES: frozenset[str] = frozenset(
+    {
+        "backend_v2/exceptions.py",
+        "backend_v2/logging_config.py",
+        "backend_v2/services/auth/repositories.py",
+    }
+)
+
 _QGR030_ENTITY_PREFIXES: frozenset[str] = frozenset(
     {"exe", "rep", "tda", "wf", "stp", "sr", "prf", "blk", "sys", "usr", "org", "nod", "edg", "sc"}
 )
 _QGR030_MOCK_ID_REGEX: re.Pattern[str] = re.compile(r"^([a-z]{2,5})_([a-zA-Z0-9]{14,32})$")
 _QGR030_NON_HEX_CHARS: frozenset[str] = frozenset("ghijklmnopqrstuvwxyzGHIJKLMNOPQRSTUVWXYZ")
+
+_QGR031_VALID_OPERATOR_LITERALS: frozenset[str] = frozenset(
+    {"==", "!=", ">", ">=", "<", "<=", "in", "array-contains", "array_contains"}
+)
+_QGR031_VALID_ENUM_ATTRS: frozenset[str] = frozenset({"EQ", "NE", "GT", "GTE", "LT", "LTE", "IN", "CONTAINS"})
+_RAISES_NONE_REGEX: re.Pattern[str] = re.compile(r"Raises:\s*(?:\n\s*)?None\b")
 
 
 def _is_repository_identifier(name: str) -> bool:
@@ -549,6 +609,101 @@ def _has_annotated_field(node: ast.AST | None) -> bool:
     return False
 
 
+def _is_annotated_subscript(annotation: ast.AST | None) -> bool:
+    """Check whether a type annotation is a PEP 593 Annotated[...] subscript.
+
+    Args:
+        annotation: AST annotation node or None to inspect.
+
+    Returns:
+        True if the annotation is an Annotated[...] subscript, False otherwise.
+    """
+    # Phase 1, Step 1: Detect PEP 593 Annotated[...] subscript for QGR020 Check 20B
+    if isinstance(annotation, ast.Subscript):
+        match annotation.value:
+            case ast.Name(id="Annotated") | ast.Attribute(attr="Annotated"):
+                return True
+            case _:
+                return False
+    return False
+
+
+def _function_has_error_log(fn_node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """Check whether a function body contains a structured error logging call.
+
+    Args:
+        fn_node: Function or async function definition AST node to inspect.
+
+    Returns:
+        True if the function scope invokes an error logger or error-logging helper, False otherwise.
+    """
+    # Phase 1, Step 1: Verify RFC 7807 error logging before raising AppException in QGR033
+    stack: list[ast.AST] = list(fn_node.body)
+    while stack:
+        curr = stack.pop()
+        if isinstance(curr, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        if isinstance(curr, ast.Call):
+            match curr.func:
+                case ast.Attribute(
+                    value=ast.Name(id=recv_name),
+                    attr="error" | "critical" | "exception",
+                ) if "log" in recv_name.lower():
+                    return True
+                case ast.Attribute(
+                    value=ast.Attribute(attr=recv_attr),
+                    attr="error" | "critical" | "exception",
+                ) if "log" in recv_attr.lower():
+                    return True
+                case ast.Name(id=fn_name) if "log_error" in fn_name or "_log_" in fn_name:
+                    return True
+                case ast.Attribute(attr=attr_name) if "log_error" in attr_name or "_log_" in attr_name:
+                    return True
+                case _:
+                    pass
+        stack.extend(ast.iter_child_nodes(curr))
+    return False
+
+
+def _find_direct_app_exception_raises(fn_node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[ast.Raise]:
+    """Collect direct `raise AppException(...)` nodes within a function scope.
+
+    Args:
+        fn_node: Function or async function definition AST node to inspect.
+
+    Returns:
+        List of ast.Raise nodes directly raising AppException.
+    """
+    # Phase 1, Step 1: Collect direct AppException raises within function scope for QGR033
+    raises: list[ast.Raise] = []
+    stack: list[ast.AST] = list(fn_node.body)
+    while stack:
+        curr = stack.pop()
+        if isinstance(curr, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        if isinstance(curr, ast.Raise) and isinstance(curr.exc, ast.Call):
+            match curr.exc.func:
+                case ast.Name(id="AppException") | ast.Attribute(attr="AppException"):
+                    raises.append(curr)
+                case _:
+                    pass
+        stack.extend(ast.iter_child_nodes(curr))
+    return raises
+
+
+def _matches_residual_set(norm_path: str, residual_set: frozenset[str]) -> bool:
+    """Check whether a normalized path matches any workspace-relative path in a residual set.
+
+    Args:
+        norm_path: Forward-slash normalized filepath string.
+        residual_set: Frozenset of workspace-relative POSIX file paths.
+
+    Returns:
+        True if norm_path matches an entry in residual_set, False otherwise.
+    """
+    return norm_path in residual_set or any(norm_path.endswith("/" + target) for target in residual_set)
+
+
 def _find_string_quoted_annotations(node: ast.AST | None) -> list[ast.Constant]:
     """Find string constants used as type annotations while exempting Literal slices and Annotated metadata.
 
@@ -833,6 +988,33 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "Use PostgreSQL 19 Zero-ORM adapters (`PostgresStorageDriver`, `PostgresUnitOfWork`, `PostgresEntityAdapter`).",
                         severity=GuardrailSeverity.FATAL,
                     )
+
+        # Phase 1, Step 1: QGR033 Check 33A (Raises: None ban) & Check 33B (Module PEP 257 docstring guard)
+        if not self.is_guardrail_self:
+            mod_doc = ast.get_docstring(node, clean=False)
+            if mod_doc and _RAISES_NONE_REGEX.search(mod_doc):
+                self._add_violation(
+                    node,
+                    "QGR033",
+                    "Banned `Raises: None` detected in module docstring.",
+                    "Remove `Raises: None` from docstrings; only document actual raised exceptions per `docstring_fail_fast_ban`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            if (
+                not self._is_test_file
+                and self._is_domain_code
+                and ("backend_v2/" in norm_path or norm_path.startswith("backend_v2/"))
+                and not _matches_residual_set(norm_path, RESIDUAL_MISSING_DOCSTRING_FILES)
+                and not mod_doc
+            ):
+                self._add_violation(
+                    node,
+                    "QGR033",
+                    f"Missing PEP 257 module-level docstring in `{norm_path}`.",
+                    "Add a concise PEP 257 module docstring starting with a summary line terminating with a period.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
@@ -888,21 +1070,23 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def _check_qgr031_filter_call(self, node: ast.Call) -> None:
-        """Enforce QGR031 validating static Filter(...) field, operator, and 'in' collection targets.
+        """Enforce QGR031 validating static Filter(...) and QueryCondition(...) field, operator, and 'in' targets.
 
         Args:
             node: Function or method Call AST node to inspect.
         """
-        # Phase 1, Step 1: Enforce static query filter discipline on Filter(...) calls
-        if self.is_guardrail_self or self._is_test_file:
+        # Phase 1, Step 1: Enforce static query filter discipline on Filter(...) and QueryCondition(...) calls
+        if self.is_guardrail_self or self._normalized_path.endswith("backend_v2/tests/unit/database/test_postgres.py"):
             return
-        is_filter_call = False
+        call_target_name: str | None = None
         match node.func:
-            case ast.Name(id="Filter") | ast.Attribute(attr="Filter"):
-                is_filter_call = True
+            case ast.Name(id=("Filter" | "QueryCondition") as fn_id):
+                call_target_name = fn_id
+            case ast.Attribute(attr=("Filter" | "QueryCondition") as attr_id):
+                call_target_name = attr_id
             case _:
-                is_filter_call = False
-        if not is_filter_call:
+                call_target_name = None
+        if call_target_name is None:
             return
 
         field_node: ast.AST | None = node.args[0] if len(node.args) >= 1 else None
@@ -911,7 +1095,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         for kw in node.keywords:
             if kw.arg == "field":
                 field_node = kw.value
-            elif kw.arg == "operator":
+            elif kw.arg in ("operator", "op"):
                 operator_node = kw.value
             elif kw.arg == "value":
                 value_node = kw.value
@@ -921,33 +1105,47 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 self._add_violation(
                     field_node,
                     "QGR031",
-                    f"Empty or whitespace-only `Filter` field literal `{field_node.value!r}` detected.",
-                    "Provide a non-empty document field path string to `Filter(field, operator, value)`.",
+                    f"Empty or whitespace-only `{call_target_name}` field literal `{field_node.value!r}` detected.",
+                    f"Provide a non-empty document field path string to `{call_target_name}(field, op, value)`.",
                     severity=GuardrailSeverity.FATAL,
                 )
 
+        is_in_operator = False
         if isinstance(operator_node, ast.Constant) and isinstance(operator_node.value, str):
-            valid_operators = {"==", "!=", "<", "<=", ">", ">=", "in", "array-contains"}
-            if operator_node.value not in valid_operators:
+            if operator_node.value not in _QGR031_VALID_OPERATOR_LITERALS:
                 self._add_violation(
                     operator_node,
                     "QGR031",
-                    f"Invalid `Filter` operator literal `{operator_node.value!r}` detected.",
-                    "Use a canonical `Operator` literal from `{'==', '!=', '<', '<=', '>', '>=', 'in', 'array-contains'}`.",
+                    f"Invalid `{call_target_name}` operator literal `{operator_node.value!r}` detected.",
+                    "Use a canonical operator literal from `{'==', '!=', '<', '<=', '>', '>=', 'in', 'array_contains', 'array-contains'}` or `FilterOperator` enum.",
                     severity=GuardrailSeverity.FATAL,
                 )
-            elif (
-                operator_node.value == "in"
-                and isinstance(value_node, ast.Constant)
-                and isinstance(value_node.value, (str, bytes))
-            ):
+            elif operator_node.value == "in":
+                is_in_operator = True
+        elif (
+            isinstance(operator_node, ast.Attribute)
+            and isinstance(operator_node.value, ast.Name)
+            and operator_node.value.id == "FilterOperator"
+        ):
+            if operator_node.attr not in _QGR031_VALID_ENUM_ATTRS:
                 self._add_violation(
-                    value_node,
+                    operator_node,
                     "QGR031",
-                    f"String or bytes literal `{value_node.value!r}` passed as target value to `Filter(..., operator='in', ...)`.",
-                    "Pass a collection (`list`, `tuple`, `set`, or `frozenset`) as the `value` for an `'in'` filter instead of a string literal.",
+                    f"Invalid `FilterOperator.{operator_node.attr}` member detected in `{call_target_name}`.",
+                    "Use a valid `FilterOperator` member (`EQ`, `NE`, `GT`, `GTE`, `LT`, `LTE`, `IN`, `CONTAINS`).",
                     severity=GuardrailSeverity.FATAL,
                 )
+            elif operator_node.attr == "IN":
+                is_in_operator = True
+
+        if is_in_operator and isinstance(value_node, ast.Constant) and isinstance(value_node.value, (str, bytes)):
+            self._add_violation(
+                value_node,
+                "QGR031",
+                f"String or bytes literal `{value_node.value!r}` passed as target value to `{call_target_name}(..., op='in', ...)`.",
+                "Pass a collection (`list`, `tuple`, `set`, or `frozenset`) as the `value` for an `'in'` filter instead of a string literal.",
+                severity=GuardrailSeverity.FATAL,
+            )
 
     def visit_Call(self, node: ast.Call) -> None:
         """Inspect Call AST node for banned reflection, fallbacks, timeouts, duck-typing, and mock patterns.
@@ -1201,8 +1399,10 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 pass
 
         # QGR012: isinstance(..., dict | Mapping) or composite duck-typing check
+        # Phase 2, Step 2: Scope QGR012 to domain code and non-boundary-exempt files
         if (
-            not self._is_boundary_exempt
+            self._is_domain_code
+            and not self._is_boundary_exempt
             and isinstance(node.func, ast.Name)
             and node.func.id == "isinstance"
             and len(node.args) >= 2
@@ -1651,6 +1851,101 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         """
         self._check_qgr026_decorators(node)
 
+        # Phase 1, Step 1: QGR033 Check 33A (Raises: None ban) & Check 33B (Public class PEP 257 docstring guard)
+        if not self.is_guardrail_self:
+            cls_doc = ast.get_docstring(node, clean=False)
+            if cls_doc and _RAISES_NONE_REGEX.search(cls_doc):
+                self._add_violation(
+                    node,
+                    "QGR033",
+                    f"Banned `Raises: None` detected in docstring of class `{node.name}`.",
+                    "Remove `Raises: None` from docstrings; class docstrings must only describe the class and public Attributes per PEP 257.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            if (
+                not self._is_test_file
+                and self._is_domain_code
+                and ("backend_v2/" in self._normalized_path or self._normalized_path.startswith("backend_v2/"))
+                and self._function_depth == 0
+                and not node.name.startswith("_")
+                and not cls_doc
+            ):
+                self._add_violation(
+                    node,
+                    "QGR033",
+                    f"Missing PEP 257 docstring on public domain class `{node.name}`.",
+                    "Add a PEP 257 Google-style docstring starting with a concise summary line terminating with a period.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+
+        # Phase 1, Step 1: QGR032 Polyfactory ModelFactory 32-Hex UUIDv7 Invariant
+        is_model_factory = False
+        for base in node.bases:
+            match base:
+                case ast.Name(id="ModelFactory") | ast.Attribute(attr="ModelFactory"):
+                    is_model_factory = True
+                case ast.Subscript(value=ast.Name(id="ModelFactory") | ast.Attribute(attr="ModelFactory")):
+                    is_model_factory = True
+                case _:
+                    pass
+        if not self.is_guardrail_self and (
+            is_model_factory or self._normalized_path.endswith("backend_v2/tests/factories/model_factories.py")
+        ):
+            qgr032_id_fields = {"id", "organization_id", "node_id", "execution_id", "workflow_id", "profile_id"}
+            for stmt in node.body:
+                target_names: list[str] = []
+                assigned_val: ast.AST | None = None
+                match stmt:
+                    case ast.Assign(targets=targets, value=val):
+                        target_names = [t.id for t in targets if isinstance(t, ast.Name)]
+                        assigned_val = val
+                    case ast.AnnAssign(target=ast.Name(id=t_id), value=val):
+                        target_names = [t_id]
+                        assigned_val = val
+                    case ast.FunctionDef(name=fn_name) if fn_name in qgr032_id_fields:
+                        has_opaque_call = any(
+                            isinstance(sub, ast.Call)
+                            and (
+                                (isinstance(sub.func, ast.Name) and sub.func.id == "generate_opaque_id")
+                                or (isinstance(sub.func, ast.Attribute) and sub.func.attr == "generate_opaque_id")
+                            )
+                            for sub in ast.walk(stmt)
+                        )
+                        if not has_opaque_call:
+                            self._add_violation(
+                                stmt,
+                                "QGR032",
+                                f"Polyfactory `{node.name}.{fn_name}()` must generate IDs via `generate_opaque_id(EntityPrefix.<TYPE>)`.",
+                                "Route all entity ID factory methods through `generate_opaque_id(EntityPrefix.<TYPE>)`.",
+                                severity=GuardrailSeverity.FATAL,
+                            )
+                    case _:
+                        pass
+                if assigned_val is not None and not (
+                    isinstance(assigned_val, ast.Constant) and assigned_val.value is None
+                ):
+                    for t_name in target_names:
+                        if t_name in qgr032_id_fields:
+                            is_valid_use = False
+                            if isinstance(assigned_val, ast.Call):
+                                is_use_fn = (
+                                    isinstance(assigned_val.func, ast.Name) and assigned_val.func.id == "Use"
+                                ) or (isinstance(assigned_val.func, ast.Attribute) and assigned_val.func.attr == "Use")
+                                if is_use_fn and len(assigned_val.args) >= 1:
+                                    first_arg = assigned_val.args[0]
+                                    if (isinstance(first_arg, ast.Name) and first_arg.id == "generate_opaque_id") or (
+                                        isinstance(first_arg, ast.Attribute) and first_arg.attr == "generate_opaque_id"
+                                    ):
+                                        is_valid_use = True
+                            if not is_valid_use:
+                                self._add_violation(
+                                    stmt,
+                                    "QGR032",
+                                    f"Polyfactory `{node.name}.{t_name}` assignment must use `Use(generate_opaque_id, EntityPrefix.<TYPE>)`.",
+                                    "Replace hardcoded ID literals, lambdas, or uuid4 calls in ModelFactory subclasses with `Use(generate_opaque_id, EntityPrefix.<TYPE>)`.",
+                                    severity=GuardrailSeverity.FATAL,
+                                )
+
         # QGR014 (g): Prohibit ad-hoc repository classes defining interface methods outside tests/fakes/
         if self._is_test_file and "tests/fakes" not in self.filepath.replace("\\", "/"):
             for stmt in node.body:
@@ -2094,6 +2389,41 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 severity=GuardrailSeverity.FATAL,
             )
 
+    def _check_qgr033_function_contracts(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        """Enforce QGR033 banning `Raises: None` in docstrings and unlogged `raise AppException(...)` in domain code.
+
+        Args:
+            node: Function or async function AST node to inspect.
+        """
+        # Phase 1, Step 1: QGR033 Check 33A (Raises: None ban) & Check 33C (RFC 7807 logger.error before AppException)
+        if not self.is_guardrail_self:
+            fn_doc = ast.get_docstring(node, clean=False)
+            if fn_doc and _RAISES_NONE_REGEX.search(fn_doc):
+                self._add_violation(
+                    node,
+                    "QGR033",
+                    f"Banned `Raises: None` detected in docstring of `{node.name}()`.",
+                    "Remove `Raises: None` from function docstrings; explicitly list actual AppException error codes or omit the Raises section if none.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+
+        if (
+            not self.is_guardrail_self
+            and self._is_domain_code
+            and not self._is_test_file
+            and not _matches_residual_set(self._normalized_path, RESIDUAL_UNLOGGED_APP_EXCEPTION_FILES)
+        ):
+            direct_raises = _find_direct_app_exception_raises(node)
+            if direct_raises and not _function_has_error_log(node):
+                for raise_node in direct_raises:
+                    self._add_violation(
+                        raise_node,
+                        "QGR033",
+                        f"Unlogged `raise AppException(...)` in `{node.name}()` violates RFC 7807 Dual-Reporting.",
+                        "Precede `raise AppException(...)` with a structured `logger.error(...)` call within the same function scope per `rfc7807_dual_reporting_mandate`.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
+
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         """Audits synchronous function definitions for decorators, annotations, and scope tracking.
 
@@ -2102,6 +2432,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         """
         self._check_qgr026_decorators(node)
         self._check_function_annotations(node)
+        self._check_qgr033_function_contracts(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
         saved_repo_vars = set(self._repo_result_vars)
@@ -2118,6 +2449,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         """
         self._check_qgr026_decorators(node)
         self._check_function_annotations(node)
+        self._check_qgr033_function_contracts(node)
         self._function_depth += 1
         self._function_stack.append(node.name)
         saved_repo_vars = set(self._repo_result_vars)
@@ -2162,6 +2494,22 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR020",
                     f"Duplicate `Field()` assignment on Annotated field `{ast.unparse(node.target)}`.",
                     "Remove redundant `= Field(...)` assignment or replace with literal/factory default per `pydantic_annotated_fields_mandate`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            # Phase 1, Step 1: QGR020 Check 20B - Bare Field(...) assignment without Annotated[...] on Pydantic classes
+            elif (
+                self._current_class_name in self._pydantic_base_classes_in_file
+                and self._function_depth == 0
+                and node.value is not None
+                and _is_field_call(node.value)
+                and not _is_annotated_subscript(node.annotation)
+                and not _matches_residual_set(self._normalized_path, RESIDUAL_BARE_FIELD_FILES)
+            ):
+                self._add_violation(
+                    node,
+                    "QGR020",
+                    f"Bare `= Field(...)` assignment without PEP 593 `Annotated[...]` on `{self._current_class_name}.{ast.unparse(node.target)}`.",
+                    "Wrap the field annotation in PEP 593 `Annotated[T, Field(...)]` per `pydantic_annotated_fields_mandate`.",
                     severity=GuardrailSeverity.FATAL,
                 )
             # QGR020: Class-level mutable default in class definitions (only directly in class body)
@@ -3196,7 +3544,7 @@ def format_violations_table(violations: list[GuardrailViolation]) -> str:
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point for running AST codebase guardrails.
 
-    Parses positional targets and flags, scans files for AST violations (QGR000-QGR030),
+    Parses positional targets and flags, scans files for AST violations (QGR000-QGR033),
     and exits with code 0 on success or 1 on failure.
 
     Args:
@@ -3206,7 +3554,7 @@ def main(argv: list[str] | None = None) -> None:
         SystemExit: Always raised with exit code 0 on pass or 1 when violations fail the gate.
     """
     parser = argparse.ArgumentParser(
-        description="""Automated AST Codebase Guardrails Engine (QGR000-QGR030).
+        description="""Automated AST Codebase Guardrails Engine (QGR000-QGR033).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum:
   QGR000: Syntax Error Detection (FATAL)
@@ -3229,7 +3577,7 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR017: Eradicated Facades & Legacy Modules Ban (FATAL)
   QGR018: Dictionary Type Laundering via TypeAdapter Ban (FATAL)
   QGR019: In-Place dict.pop Mutation Ban (FATAL)
-  QGR020: Duplicate Field() on Annotated Fields & Class Mutable Defaults (FATAL)
+  QGR020: Bare/Duplicate Field() on Pydantic Fields & Class Mutable Defaults (FATAL)
   QGR021: llm_debug_logger Eradication Import Ban (FATAL)
   QGR022: Unshielded f-string Prompt Interpolation Ban (FATAL)
   QGR023: Anonymous Multi-Value State Tuples Ban (FATAL)
@@ -3240,6 +3588,9 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR028: Redundant Repository Reconstitution & Dict State Conversion Ban (FATAL)
   QGR029: Untyped Dict Return in Test Fixtures Ban (FATAL)
   QGR030: Non-Hexadecimal Mock Entity ID Literal Ban (FATAL)
+  QGR031: Static Filter & QueryCondition Operator/Value Discipline (FATAL)
+  QGR032: Polyfactory ModelFactory 32-Hex UUIDv7 Invariant (FATAL)
+  QGR033: PEP 257 Docstring, Raises: None Ban & RFC 7807 Dual-Reporting (FATAL)
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples (PowerShell):
