@@ -1,6 +1,9 @@
+"""Unit tests for backend_v2.llm.mock_data."""
+
 import pytest
 from pydantic import BaseModel
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.mock_data import MOCK_REGISTRY, get_fallback_data
 
 
@@ -53,7 +56,18 @@ def test_get_fallback_data_atomize_mock() -> None:
     assert len(tda_list) == 15
 
 
-def test_get_fallback_data_fail_fast() -> None:
-    """Test that an unknown key throws a ValueError (Fail-Fast)."""
-    with pytest.raises(ValueError, match="Strict Mock Data Error: Mock data not found for key 'unknown_key'"):
+def test_get_fallback_data_unknown_key_raises_app_exception() -> None:
+    """Negative test: verify unknown key raises AppException (VALIDATION_FAILED)."""
+    with pytest.raises(
+        AppException, match="Strict Mock Data Error: Mock data not found for key 'unknown_key'"
+    ) as exc_info:
         get_fallback_data("unknown_key")
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.parametrize("invalid_key", ["", "   "])
+def test_get_fallback_data_empty_or_whitespace_key_raises_app_exception(invalid_key: str) -> None:
+    """Negative boundary test: verify empty or whitespace-only key raises AppException."""
+    with pytest.raises(AppException, match="Strict Mock Data Error: Mock data key cannot be empty") as exc_info:
+        get_fallback_data(invalid_key)
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

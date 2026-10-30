@@ -1,10 +1,12 @@
 """Mock Data Store for AI Layer Testing (Zero-Token Cost)."""
 
+import logging
 from datetime import datetime, timezone
 from typing import cast
 
 from pydantic import BaseModel, JsonValue
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain import (
     AnalystOutput,
@@ -45,8 +47,10 @@ from backend_v2.models.domain import (
 from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
+    MatrixExplanationsResult,
     MatrixSectionSynthesesResult,
     SynthesisOutputDTO,
+    SynthesisRowExplanationDTO,
     XaiHighlightsResult,
 )
 from backend_v2.models.enums import (
@@ -64,9 +68,13 @@ from backend_v2.models.enums import (
     VerificationResult,
 )
 from backend_v2.models.view.sdui import ParagraphBlock
+from backend_v2.settings import get_settings
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "AGENT_CLASS_TO_MOCK_KEY",
+    "FALLBACK_MODEL_REGISTRY",
     "MOCK_ANALYST_OUTPUT",
     "MOCK_ARCHIVIST_OUTPUT",
     "MOCK_CAUSAL_ANALYSIS",
@@ -88,6 +96,7 @@ __all__ = [
     "MOCK_PERFORMATIVITY_OUTPUT",
     "MOCK_PROFILER_OUTPUT",
     "MOCK_REGISTRY",
+    "MOCK_ROW_EXPLAINER_OUTPUT",
     "MOCK_SYNTHESIS_OUTPUT",
     "MOCK_XAI_HIGHLIGHTS_OUTPUT",
     "MOCK_XAI_OUTPUT",
@@ -347,6 +356,16 @@ MOCK_XAI_HIGHLIGHTS_OUTPUT = XaiHighlightsResult(
     xai_highlights=[],
 )
 
+MOCK_ROW_EXPLAINER_OUTPUT = MatrixExplanationsResult(
+    explanations=[
+        SynthesisRowExplanationDTO(
+            matrix_id="m0",
+            row_explanation="Mock row explanation for testing.",
+            curated_quotes=["Evidence quote"],
+        )
+    ]
+)
+
 MOCK_INPUT_PROCESSING_OUTPUT = InputProcessingOutputDTO(
     thought_process="Mock Guard Trace: Checked security.",
     conclusion="Safe to proceed.",
@@ -408,86 +427,88 @@ AGENT_CLASS_TO_MOCK_KEY = {
     "SynthesisHook": "text_consolidation_hook",
 }
 
+FALLBACK_MODEL_REGISTRY: dict[str, BaseModel] = {
+    "guard_agent": MOCK_INPUT_PROCESSING_OUTPUT,
+    "analyst_agent": MOCK_ANALYST_OUTPUT,
+    "interaction_agent": MOCK_INTERACTION_OUTPUT,
+    "logician_agent": MOCK_LOGICIAN_OUTPUT,
+    "falsifier_agent": MOCK_FALSIFIER_OUTPUT,
+    "causal_agent": MOCK_CAUSAL_OUTPUT,
+    "performativity_agent": MOCK_PERFORMATIVITY_OUTPUT,
+    "fact_checker_agent": MOCK_OVERSEER_OUTPUT,
+    "profiler_agent": MOCK_PROFILER_OUTPUT,
+    "archivist_agent": MOCK_ARCHIVIST_OUTPUT,
+    "judge_agent": MOCK_JUDGE_OUTPUT,
+    "xai_agent": MOCK_XAI_OUTPUT,
+    "text_consolidation_hook": MOCK_SYNTHESIS_OUTPUT,
+    "row_explainer": MOCK_ROW_EXPLAINER_OUTPUT,
+    "ExecutiveSummaryTask": MOCK_EXECUTIVE_SUMMARY_OUTPUT,
+    "MatrixSectionTask": MOCK_MATRIX_SECTION_SYNTHESES_OUTPUT,
+    "XaiHighlightsTask": MOCK_XAI_HIGHLIGHTS_OUTPUT,
+}
+
+
+def _build_atomize_mock_payload() -> dict[str, JsonValue]:
+    """Builds the dynamic TDA assertion batch payload for atomize_mock.
+
+    Returns:
+        Dictionary containing canonical TDA assertions and rubric CoT.
+    """
+    batch_size = get_settings().sensor_batch_size
+    assertions = [
+        {
+            "tda_id": generate_opaque_id(EntityPrefix.TDA),
+            "concept_description": f"Atom {i} concept description for testing",
+            "anchor_target": "Test anchor",
+            "bounding_box_scope": "paragraph",
+            "extraction_rule": "Test extraction rule",
+            "inverse_evidence": False,
+            "aggregation_mode": "EXISTS",
+        }
+        for i in range(1, batch_size + 1)
+    ]
+    return cast(dict[str, JsonValue], {"tda_assertions": assertions, "rubric_cot": "Mocked CoT for testing"})
+
 
 def get_fallback_data(key: str) -> dict[str, JsonValue]:
     """Retrieves predefined mock data based on the provided key.
 
     Args:
-        key: The mock key identifying the agent/type.
+        key: The mock key identifying the agent or synthesis task.
 
     Returns:
         A dictionary containing the JSON-safe mock data.
 
     Raises:
-        ValueError: If mock data is not found for the given key.
+        AppException: If the key is empty or mock data is not found for the given key (ErrorCodes.VALIDATION_FAILED).
     """
-    if key == "guard_agent":
-        return MOCK_INPUT_PROCESSING_OUTPUT.model_dump(mode="json")
-    elif key == "analyst_agent":
-        return MOCK_ANALYST_OUTPUT.model_dump(mode="json")
-    elif key == "interaction_agent":
-        return MOCK_INTERACTION_OUTPUT.model_dump(mode="json")
-    elif key == "logician_agent":
-        return MOCK_LOGICIAN_OUTPUT.model_dump(mode="json")
-    elif key == "falsifier_agent":
-        return MOCK_FALSIFIER_OUTPUT.model_dump(mode="json")
-    elif key == "causal_agent":
-        return MOCK_CAUSAL_OUTPUT.model_dump(mode="json")
-    elif key == "performativity_agent":
-        return MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json")
-    elif key == "fact_checker_agent":
-        return MOCK_OVERSEER_OUTPUT.model_dump(mode="json")
-    elif key == "profiler_agent":
-        return MOCK_PROFILER_OUTPUT.model_dump(mode="json")
-    elif key == "archivist_agent":
-        return MOCK_ARCHIVIST_OUTPUT.model_dump(mode="json")
-    elif key == "judge_agent":
-        return MOCK_JUDGE_OUTPUT.model_dump(mode="json")
-    elif key == "xai_agent":
-        return MOCK_XAI_OUTPUT.model_dump(mode="json")
-    elif key == "text_consolidation_hook":
-        return MOCK_SYNTHESIS_OUTPUT.model_dump(mode="json")
-    elif key == "atomize_mock":
-        assertions = [
-            {
-                # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 TDA assertion ID
-                "tda_id": generate_opaque_id(EntityPrefix.TDA),
-                "concept_description": f"Atom {i} concept description for testing",
-                "anchor_target": "Test anchor",
-                "bounding_box_scope": "paragraph",
-                "extraction_rule": "Test extraction rule",
-                "inverse_evidence": False,
-                "aggregation_mode": "EXISTS",
-            }
-            for i in range(1, 16)
-        ]
-        return cast(dict[str, JsonValue], {"tda_assertions": assertions, "rubric_cot": "Mocked CoT for testing"})
-
-    if key == "row_explainer":
-        return cast(
-            dict[str, JsonValue],
-            {
-                "explanations": [
-                    {
-                        "matrix_id": "m0",
-                        "row_explanation": "Mock row explanation for testing.",
-                        "curated_quotes": ["Evidence quote"],
-                    }
-                ]
-            },
+    if not key or not key.strip():
+        msg = "Strict Mock Data Error: Mock data key cannot be empty."
+        logger.error(
+            "[MockData] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
+        raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-    if key == "variance_explainer":
+    lookup_key = "MatrixSectionTask" if key.partition("_")[0] == "MatrixSectionTask" else key
+    if lookup_key in FALLBACK_MODEL_REGISTRY:
+        return FALLBACK_MODEL_REGISTRY[lookup_key].model_dump(mode="json")
+
+    if lookup_key == "atomize_mock":
+        return _build_atomize_mock_payload()
+
+    if lookup_key == "variance_explainer":
         return cast(dict[str, JsonValue], {"explanation": "Mock explanation for variance."})
 
-    if key == "ExecutiveSummaryTask":
-        return MOCK_EXECUTIVE_SUMMARY_OUTPUT.model_dump(mode="json")
-
-    if key.startswith("MatrixSectionTask"):
-        return MOCK_MATRIX_SECTION_SYNTHESES_OUTPUT.model_dump(mode="json")
-
-    if key == "XaiHighlightsTask":
-        return MOCK_XAI_HIGHLIGHTS_OUTPUT.model_dump(mode="json")
-
-    # STRICT FAIL-FAST: No silent dictionary fallbacks
-    raise ValueError(f"Strict Mock Data Error: Mock data not found for key '{key}'")
+    msg = f"Strict Mock Data Error: Mock data not found for key '{key}'"
+    logger.error(
+        "[MockData] %s: %s",
+        ErrorCodes.VALIDATION_FAILED.name,
+        msg,
+        exc_info=True,
+        extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+    )
+    raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
