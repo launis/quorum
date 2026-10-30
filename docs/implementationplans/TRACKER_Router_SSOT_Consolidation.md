@@ -27,7 +27,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] [DELETE] @[backend_v2/api/routers/studio/system_configs.py]
   - [x] @[backend_v2/api/routers/studio/__init__.py]
-  - [ ] @[backend_v2/api/routers/system/health.py]
+  - [x] @[backend_v2/api/routers/system/health.py]
   - [x] [DELETE] @[backend_v2/api/routers/execution/workflows.py]
   - [ ] @[backend_v2/api/routers/studio/workflows.py]
   - [ ] @[backend_v2/api/routers/studio/steps.py]
