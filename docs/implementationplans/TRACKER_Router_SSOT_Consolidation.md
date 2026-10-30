@@ -39,7 +39,7 @@
   - [x] @[backend_v2/api/routers/studio/mcp_gateways.py]
   - [x] @[backend_v2/api/routers/execution/reports.py]
   - [x] @[backend_v2/api/routers/execution/executions.py]
-  - [ ] @[backend_v2/api/routers/execution/__init__.py]
+  - [x] @[backend_v2/api/routers/execution/__init__.py]
   - [ ] @[backend_v2/main.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[client_app_v2/lib/core/api/reports_client.dart]
