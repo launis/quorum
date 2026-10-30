@@ -30,7 +30,7 @@
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[backend_v2/database/postgres/entity_adapter.py]
   - [x] @[backend_v2/models/core_base.py]
   - [x] @[backend_v2/models/domain/step.py]
@@ -44,7 +44,7 @@
   - [x] @[backend_v2/settings.py]
   - [x] @[scripts/_ast_guardrails.py]
   - [x] @[scripts/audit_zero_orm_strictness.py]
-  - [ ] @[scripts/sanitize_seed_vault.py]
+  - [x] @[scripts/sanitize_seed_vault.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
   - [ ] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
