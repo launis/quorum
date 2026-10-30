@@ -1,3 +1,5 @@
+"""LLM Client wrapper and cognitive tier factory for structured and free-form execution."""
+
 from __future__ import annotations
 
 import json
