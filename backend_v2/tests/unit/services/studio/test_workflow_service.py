@@ -107,6 +107,7 @@ def _valid_step(
         type=StepType.LLM,
         organization_id=org_id,
         safety="safe",
+        mcp_tool_params={},
         cognitive_tier=CognitiveTier.FAST,
         criteria_block_ids=["blk_0195f3a00000700080000123456789ab"],
         extraction_protocol_block_id="blk_0195f3a00000700080000123456789ab",
@@ -1061,3 +1062,35 @@ async def test_clone_workflow_remaps_causal_source_step_id(
     assert cloned_specialist.id != specialist_step.id
     assert cloned_specialist.depends_on == [cloned_causal.id]
     assert cloned_specialist.causal_source_step_id == cloned_causal.id
+
+
+async def test_get_workflow_available_extensions_includes_system_core_steps(
+    workflow_service: StudioWorkflowService,
+    root_token: TokenData,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_prompt_block_repo: InMemoryPromptBlockRepository,
+) -> None:
+    """Regression test: get_workflow_available_extensions must include extensions from is_system_core=True steps."""
+    wf = _valid_workflow(org_id="SYSTEM")
+    system_step = _valid_step(
+        "stp_0195f3a00000700c84a5a1d15c00438a",
+        slug="step_causal_discovery",
+        is_system_core=True,
+        org_id="SYSTEM",
+    )
+    wf_with_steps = wf.model_copy(
+        update={
+            "steps": [
+                StepRule(
+                    id="sr_0195f3a00000700a88f1d71000000002",
+                    task_blueprint="stp_0195f3a00000700c84a5a1d15c00438a",
+                )
+            ]
+        }
+    )
+    await mock_workflow_repo.save_workflow(wf_with_steps)
+    await mock_workflow_repo.save_step(system_step)
+    await mock_prompt_block_repo.create_prompt_block(_valid_matrix_block("blk_0195f3a00000700080000123456789ab"))
+
+    exts = await workflow_service.get_workflow_available_extensions(root_token, wf.id)
+    assert exts == ["detailed_gap_analysis", "executive_summary"]

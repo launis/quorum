@@ -10,10 +10,18 @@ from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundErro
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
-from backend_v2.models.enums import TargetBlockType
+from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.enums import CognitiveTier, HistoricalContextMode, StepType, TargetBlockType
 from backend_v2.services.studio.output_profile_service import StudioOutputProfileService
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryOutputProfileRepository
+from backend_v2.services.studio.workflow_service import StudioWorkflowService
+from backend_v2.tests.fakes.in_memory_repositories import (
+    InMemoryOutputProfileRepository,
+    InMemoryPromptBlockRepository,
+    InMemorySystemRepository,
+    InMemoryWorkflowRepository,
+)
 
 
 @pytest.fixture
@@ -440,3 +448,93 @@ async def test_save_output_profile_raises_when_missing_after_save(
         assert exc_info.value.error_code == ErrorCodes.RESOURCE_NOT_FOUND.value
     finally:
         mock_output_profile_repo.clear_faults()
+
+
+@pytest.mark.asyncio
+async def test_save_and_draft_output_profile_resolves_system_core_step_blocks() -> None:
+    """Regression test: save_output_profile and create_output_profile_draft must resolve system-core steps."""
+    wf_repo = InMemoryWorkflowRepository()
+    op_repo = InMemoryOutputProfileRepository()
+    pb_repo = InMemoryPromptBlockRepository()
+    sys_repo = InMemorySystemRepository()
+
+    real_wf_service = StudioWorkflowService(
+        workflow_repo=wf_repo,
+        output_profile_repo=op_repo,
+        prompt_block_repo=pb_repo,
+        system_repo=sys_repo,
+    )
+    real_op_service = StudioOutputProfileService(
+        output_profile_repo=op_repo,
+        workflow_service=real_wf_service,
+    )
+
+    initiator = TokenData(id="usr_0195f3a00000700a8000000000000001", role=UserRole.ROOT, organization_id="SYSTEM")
+    cohesion_block_id = "blk_0195f3a00000700c80a1e50000000001"
+    causal_step_id = "stp_0195f3a00000700c84a5a1d15c00438a"
+    workflow_id = "wf_0195f3a00000700a88f1d71000000001"
+    profile_id = "prf_0195f3a00000700a88f1d71000000001"
+
+    system_core_step = Step(
+        id=causal_step_id,
+        slug="step_causal_discovery",
+        name=I18nText(translations={"en": "Causal Discovery"}),
+        type=StepType.CAUSAL_DISCOVERY,
+        organization_id="SYSTEM",
+        safety="safe",
+        mcp_tool_params={},
+        cognitive_tier=CognitiveTier.FAST,
+        criteria_block_ids=[cohesion_block_id],
+        extraction_protocol_block_id="blk_0195f3a0000070008000000000000002",
+        is_system_core=True,
+    )
+    await wf_repo.save_step(system_core_step)
+
+    workflow = Workflow(
+        id=workflow_id,
+        slug="wf_board_audit",
+        name=I18nText(translations={"en": "Board Audit"}),
+        description=I18nText(translations={"en": "Desc"}),
+        status="active",
+        version=1,
+        organization_id="SYSTEM",
+        expected_inputs=[],
+        steps=[
+            StepRule(
+                id="sr_0195f3a00000700a88f1d71000000002",
+                task_blueprint=causal_step_id,
+            )
+        ],
+        default_profile_id=profile_id,
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
+    )
+    await wf_repo.save_workflow(workflow)
+
+    profile = _make_valid_profile(
+        profile_id,
+        "prf_board_audit",
+        workflow_id,
+        "SYSTEM",
+        "Board Profile",
+    ).model_copy(
+        update={
+            "matrix_synthesis_groups": [
+                MatrixSynthesisGroup(
+                    id="grp_0195f3a0000070008000000000000001",
+                    title=I18nText(translations={"en": "Causal Group"}),
+                    target_blocks=[cohesion_block_id],
+                )
+            ]
+        }
+    )
+
+    saved = await real_op_service.save_output_profile(initiator, profile.id, profile)
+    assert saved.id == profile.id
+    assert saved.matrix_synthesis_groups[0].target_blocks == [cohesion_block_id]
+
+    draft = await real_op_service.create_output_profile_draft(initiator)
+    assert draft.variance_target_block in {
+        cohesion_block_id,
+        "blk_0195f3a0000070008000000000000002",
+    }

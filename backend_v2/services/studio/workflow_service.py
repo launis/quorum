@@ -247,7 +247,8 @@ class StudioWorkflowService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant isolation is violated.
         """
         workflow = await self.get_workflow(initiator, id)
-        all_steps = await self.list_steps(initiator)
+        # Step 1: Include both specialist and system-core steps when resolving workflow matrix extensions
+        all_steps = await self.list_steps(initiator, scope=StepFilterScope.ALL)
         step_map = {s.id: s for s in all_steps}
 
         used_block_ids: set[str] = set()

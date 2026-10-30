@@ -9,7 +9,7 @@ from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundErro
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.enums import EntityPrefix
+from backend_v2.models.enums import EntityPrefix, StepFilterScope
 from backend_v2.services.factories.output_profile_factory import build_draft_output_profile
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
@@ -113,7 +113,8 @@ class StudioOutputProfileService:
         enforce_modification_rights(initiator, profile.organization_id)
 
         workflow = await self.workflow_service.get_workflow(initiator, profile.workflow_id)
-        all_steps = await self.workflow_service.list_steps(initiator)
+        # Step 1: Resolve all workflow step scopes including system-core steps for layout target validation
+        all_steps = await self.workflow_service.list_steps(initiator, scope=StepFilterScope.ALL)
 
         # Delegate permission calculation to the Domain Model
         allowed_blocks = workflow.get_allowed_layout_targets(all_steps)
@@ -209,7 +210,8 @@ class StudioOutputProfileService:
             raise ResourceNotFoundError(resource_type="workflow", resource_id="primary_default")
         target_wf = workflows[0]
         target_wf_id = target_wf.id
-        all_steps = await self.workflow_service.list_steps(initiator)
+        # Step 1: Resolve all workflow step scopes including system-core steps for draft target initialization
+        all_steps = await self.workflow_service.list_steps(initiator, scope=StepFilterScope.ALL)
         prompt_blocks = target_wf.get_allowed_prompt_block_targets(all_steps)
         matrix_block = next(iter(prompt_blocks), None)
 
