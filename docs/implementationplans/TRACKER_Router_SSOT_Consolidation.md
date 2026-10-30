@@ -35,7 +35,7 @@
   - [x] @[backend_v2/services/studio/workflow_service.py]
   - [x] @[backend_v2/services/studio/output_profile_service.py]
   - [x] @[backend_v2/services/studio/system_config_service.py]
-  - [ ] @[backend_v2/api/routers/studio/model_registry.py]
+  - [x] @[backend_v2/api/routers/studio/model_registry.py]
   - [ ] @[backend_v2/api/routers/studio/mcp_gateways.py]
   - [ ] @[backend_v2/api/routers/execution/reports.py]
   - [ ] @[backend_v2/api/routers/execution/executions.py]
