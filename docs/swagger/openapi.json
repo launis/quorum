@@ -6179,7 +6179,7 @@
           "instruction"
         ],
         "title": "AcceptanceCriterion",
-        "description": "Structured acceptance criterion with bilingual instruction."
+        "description": "Structured acceptance criterion with monolingual instruction.\n\nAttributes:\n    instruction: Structured monolingual instruction.\n    requires_contextual_override: Whether contextual override is required."
       },
       "AccordionBlock-Input": {
         "properties": {
@@ -6827,7 +6827,7 @@
           "pattern"
         ],
         "title": "AntiPattern",
-        "description": "Known anti-pattern with bilingual description."
+        "description": "Known anti-pattern with monolingual description.\n\nAttributes:\n    pattern: Known anti-pattern with monolingual description.\n    allows_contextual_excuse: Whether contextual excuse is permitted."
       },
       "ArchivalPrecedentDTO": {
         "properties": {
@@ -8936,7 +8936,7 @@
           "error_message"
         ],
         "title": "ErrorTraceEvent",
-        "description": "Specific event representing a fail-fast error katkos.\n\nAttributes:\n    event_type: Constant 'error' event type.\n    error_code: The standard ErrorCode string.\n    error_message: Detailed error message."
+        "description": "Specific event representing a fail-fast error interruption.\n\nAttributes:\n    event_type: Constant 'error' event type.\n    error_code: The standard ErrorCode string.\n    error_message: Detailed error message."
       },
       "EvaluatedAtomDTO": {
         "properties": {
@@ -11335,7 +11335,8 @@
         "properties": {
           "target_id": {
             "type": "string",
-            "title": "Target Id"
+            "title": "Target Id",
+            "description": "ID of the user to impersonate"
           }
         },
         "additionalProperties": false,
@@ -11344,17 +11345,19 @@
           "target_id"
         ],
         "title": "ImpersonationRequest",
-        "description": "Request payload for impersonation.\n\nAttributes:\n    target_id (str): ID of the user to impersonate."
+        "description": "Request payload for initiating administrative user impersonation.\n\nAttributes:\n    target_id: Identifier of the target user to impersonate."
       },
       "ImpersonationResponse": {
         "properties": {
           "access_token": {
             "type": "string",
-            "title": "Access Token"
+            "title": "Access Token",
+            "description": "Impersonation access token"
           },
           "token_type": {
             "type": "string",
             "title": "Token Type",
+            "description": "Token type scheme",
             "default": "bearer"
           }
         },
@@ -11364,7 +11367,7 @@
           "access_token"
         ],
         "title": "ImpersonationResponse",
-        "description": "Response containing the impersonation token.\n\nAttributes:\n    access_token (str): Impersonation access token.\n    token_type (str): Token type (usually 'bearer')."
+        "description": "Response containing the issued administrative impersonation token.\n\nAttributes:\n    access_token: Signed JWT impersonation access token.\n    token_type: Authorization token scheme (defaults to 'bearer')."
       },
       "IngressInputValue": {
         "anyOf": [
@@ -12467,11 +12470,13 @@
       "LoginResponse": {
         "properties": {
           "user": {
-            "$ref": "#/components/schemas/User"
+            "$ref": "#/components/schemas/User",
+            "description": "Authenticated user object"
           },
           "token_valid": {
             "type": "boolean",
-            "title": "Token Valid"
+            "title": "Token Valid",
+            "description": "Whether the token is valid"
           },
           "debug_msg": {
             "anyOf": [
@@ -12482,7 +12487,8 @@
                 "type": "null"
               }
             ],
-            "title": "Debug Msg"
+            "title": "Debug Msg",
+            "description": "Optional debug message"
           }
         },
         "additionalProperties": false,
@@ -12492,7 +12498,7 @@
           "token_valid"
         ],
         "title": "LoginResponse",
-        "description": "Response model for successful login.\n\nAttributes:\n    user (User): Authenticated user object.\n    token_valid (bool): Whether the token is valid.\n    debug_msg (Optional[str]): Optional debug message."
+        "description": "Response model for a successful authentication session handshake.\n\nAttributes:\n    user: Authenticated user domain object.\n    token_valid: Whether the verified token is valid.\n    debug_msg: Optional diagnostic message."
       },
       "MCPArgumentScalar": {
         "anyOf": [
@@ -15551,34 +15557,40 @@
           "rpm_limit"
         ],
         "title": "Organization",
-        "description": "Represents a tenant or customer organization.\n\nAttributes:\n    id (str): Unique Organization ID (e.g. 'nokia-v1').\n    name (str): Display Name.\n    created_at (Optional[str]): ISO Timestamp.\n    is_active (bool): Subscription status.\n    tier (str): Service Tier.\n    contact_email (Optional[str]): Admin Contact.\n    billing_id (Optional[str]): External Billing ID (Stripe/etc).\n    subscription_status (SubscriptionStatus): Current billing status.\n    quota_limit (int): Monthly API call quota."
+        "description": "Represents a tenant or customer organization.\n\nAttributes:\n    id: Unique Organization Opaque Stripe ID.\n    slug: Optional human-readable identifier.\n    name: Organization display name.\n    created_at: Creation timestamp.\n    is_active: Whether the organization subscription is active.\n    tier: Service tier designation.\n    contact_email: Administrative contact email address.\n    billing_id: External billing provider identifier.\n    subscription_status: Current SaaS billing status.\n    quota_limit: Monthly API call quota in USD.\n    tpm_limit: Tokens per minute rate limit.\n    rpm_limit: Requests per minute rate limit."
       },
       "OrganizationCreate": {
         "properties": {
           "name": {
             "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "description": "Organization display name"
           },
           "admin_email": {
             "type": "string",
             "format": "email",
-            "title": "Admin Email"
+            "title": "Admin Email",
+            "description": "Email for the initial admin user"
           },
           "admin_password": {
             "type": "string",
-            "title": "Admin Password"
+            "title": "Admin Password",
+            "description": "Password for the initial admin user"
           },
           "admin_name": {
             "type": "string",
-            "title": "Admin Name"
+            "title": "Admin Name",
+            "description": "Display name for the initial admin user"
           },
           "tpm_limit": {
             "type": "integer",
-            "title": "Tpm Limit"
+            "title": "Tpm Limit",
+            "description": "Tokens Per Minute Limit"
           },
           "rpm_limit": {
             "type": "integer",
-            "title": "Rpm Limit"
+            "title": "Rpm Limit",
+            "description": "Requests Per Minute Limit"
           }
         },
         "additionalProperties": false,
@@ -15592,17 +15604,19 @@
           "rpm_limit"
         ],
         "title": "OrganizationCreate",
-        "description": "Payload for creating a new organization.\n\nAttributes:\n    name (str): Organization display name.\n    admin_email (EmailStr): Email for the initial admin user.\n    admin_password (str): Password for the initial admin user.\n    admin_name (str): Display name for the initial admin user."
+        "description": "Payload for provisioning a new tenant organization and its initial administrator.\n\nAttributes:\n    name: Organization display name.\n    admin_email: Email address for the initial administrator user.\n    admin_password: Password for the initial administrator user.\n    admin_name: Display name for the initial administrator user.\n    tpm_limit: Tokens per minute limit allocated to the organization.\n    rpm_limit: Requests per minute limit allocated to the organization."
       },
       "OrganizationDeleteResponse": {
         "properties": {
           "status": {
             "type": "string",
-            "title": "Status"
+            "title": "Status",
+            "description": "Deletion status message"
           },
           "deleted_id": {
             "type": "string",
-            "title": "Deleted Id"
+            "title": "Deleted Id",
+            "description": "ID of the deleted organization"
           }
         },
         "additionalProperties": false,
@@ -15612,7 +15626,7 @@
           "deleted_id"
         ],
         "title": "OrganizationDeleteResponse",
-        "description": "Payload response for deleting an organization.\n\nAttributes:\n    status (str): Deletion status message.\n    deleted_id (str): ID of the deleted organization."
+        "description": "Payload response for deleting an organization.\n\nAttributes:\n    status: Deletion status indicator message.\n    deleted_id: Identifier of the deleted organization."
       },
       "OutputProfile": {
         "properties": {
@@ -21745,7 +21759,7 @@
           "trial"
         ],
         "title": "SubscriptionStatus",
-        "description": "SaaS Subscription Status."
+        "description": "SaaS subscription lifecycle status enumeration.\n\nAttributes:\n    ACTIVE: Subscription is active and in good standing.\n    PAST_DUE: Subscription payment is past due.\n    CANCELED: Subscription has been canceled.\n    TRIAL: Organization is operating on a trial period."
       },
       "SynthesisDistillationDTO": {
         "properties": {
@@ -22630,7 +22644,8 @@
         "properties": {
           "token": {
             "type": "string",
-            "title": "Token"
+            "title": "Token",
+            "description": "JWT token string"
           }
         },
         "additionalProperties": false,
@@ -22639,7 +22654,7 @@
           "token"
         ],
         "title": "TokenPayload",
-        "description": "Payload for token verification.\n\nAttributes:\n    token (str): JWT token string."
+        "description": "Request payload for cryptographic token verification.\n\nAttributes:\n    token: Raw JWT bearer token string."
       },
       "TokenUsage": {
         "properties": {
@@ -23664,7 +23679,7 @@
           "created_at"
         ],
         "title": "User",
-        "description": "Full User model representing a persisted user record.\n\nAttributes:\n    id (str): Unique ID (matches Firebase UID if used).\n    slug (Optional[str]): Legacy human-readable identifier.\n    created_at (str): ISO 8601 Timestamp.\n    created_by (Optional[str]): UID of the creator."
+        "description": "Full User model representing a persisted user record.\n\nAttributes:\n    id: Unique User Opaque Stripe ID.\n    slug: Optional human-readable identifier.\n    created_at: Account creation timestamp.\n    created_by: Identifier of the creator user, if applicable."
       },
       "UserCreate": {
         "properties": {
@@ -23757,17 +23772,19 @@
           "theme_mode"
         ],
         "title": "UserCreate",
-        "description": "Payload for creating a new user.\n\nAttributes:\n    password (Optional[str]): Initial password (min 6 chars).\n    created_by (Optional[str]): UID of the admin creating this user."
+        "description": "Payload for creating a new user account.\n\nAttributes:\n    password: Optional initial password (minimum 6 characters).\n    created_by: Optional identifier of the administrator creating the user."
       },
       "UserDeleteResponse": {
         "properties": {
           "status": {
             "type": "string",
-            "title": "Status"
+            "title": "Status",
+            "description": "Deletion status message"
           },
           "id": {
             "type": "string",
-            "title": "Id"
+            "title": "Id",
+            "description": "ID of the deleted user"
           }
         },
         "additionalProperties": false,
@@ -23777,7 +23794,7 @@
           "id"
         ],
         "title": "UserDeleteResponse",
-        "description": "Payload response for deleting a user.\n\nAttributes:\n    status (str): Deletion status message.\n    id (str): ID of the deleted user."
+        "description": "Payload response for deleting a user account.\n\nAttributes:\n    status: Deletion status indicator message.\n    id: Identifier of the deleted user."
       },
       "UserRole": {
         "type": "string",
@@ -23884,7 +23901,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "UserUpdate",
-        "description": "Payload for updating an existing user.\n\nAttributes:\n    display_name (Optional[str]): New display name.\n    role (Optional[UserRole]): New role assignment.\n    is_active (Optional[bool]): New active status.\n    password (Optional[str]): New password (only for admin resets)."
+        "description": "Payload for updating an existing user account.\n\nAttributes:\n    name: Updated user display name.\n    role: Updated role assignment.\n    is_active: Updated account active status.\n    password: Updated password for administrative resets.\n    language: Updated preferred UI locale.\n    theme_mode: Updated preferred UI theme mode.\n    organization_id: Updated organization assignment identifier."
       },
       "ValidationError": {
         "properties": {
