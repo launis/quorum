@@ -428,6 +428,74 @@ async def test_llm_strategy_missing_atoms_crash(
 
 
 @pytest.mark.asyncio
+async def test_causal_discovery_step_with_cohesion_matrix_skips_shuffled_atoms(
+    in_memory_repo: InMemoryUnifiedWorkflowRepository,
+    strategy_deps: StrategyDependencies,
+) -> None:
+    """Verify CAUSAL_DISCOVERY step with MatrixPromptBlock cohesion rubric succeeds without shuffled_atoms."""
+    cohesion_matrix_blk = _create_matrix_block("blk_0195f3a00000700c80a1e50000000001")
+    profile = _create_default_profile(workflow_id="wf_0195f3a00000700a88f1d71000000001")
+    hook_state = HookState(
+        execution_id="exe_0195f3a0000070008123456789abcdef",
+        workflow_id="wf_0195f3a00000700a88f1d71000000001",
+        step_id="sr_0195f3a00000700a88f1d71000000002",
+        task_blueprint="stp_0195f3a00000700c84a5a1d15c00438a",
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(shuffled_atoms=None),
+        inputs=ExecutionInputsDTO(raw_inputs={"doc": "Primary source document text."}),
+    )
+    base_stage1 = _build_stage1_result(
+        repo=in_memory_repo,
+        criteria_blocks=[cohesion_matrix_blk],
+        output_profile=profile,
+        hook_state=hook_state,
+    )
+    causal_step_obj = base_stage1.step_obj.model_copy(
+        update={
+            "id": "stp_0195f3a00000700c84a5a1d15c00438a",
+            "slug": "step_causal_discovery",
+            "type": StepType.CAUSAL_DISCOVERY,
+            "engine_type": EngineType.CAUSAL_DISCOVERY,
+            "criteria_block_ids": [cohesion_matrix_blk.id],
+        }
+    )
+    stage1_causal = BlueprintStageResult(
+        step_obj=causal_step_obj,
+        workflow_obj=base_stage1.workflow_obj,
+        hook_state=base_stage1.hook_state,
+        hook_deps=base_stage1.hook_deps,
+        pre_events=base_stage1.pre_events,
+        block_map=base_stage1.block_map,
+        role_block=base_stage1.role_block,
+        protocol_block=base_stage1.protocol_block,
+        execution_persona_block=base_stage1.execution_persona_block,
+        criteria_blocks_models=base_stage1.criteria_blocks_models,
+        output_profile_id=base_stage1.output_profile_id,
+        output_profile=base_stage1.output_profile,
+        target_locale=base_stage1.target_locale,
+        global_source_text=base_stage1.global_source_text,
+        state_data=base_stage1.state_data,
+        inputs_payload=base_stage1.inputs_payload,
+    )
+    step = StepRule(
+        id="sr_0195f3a00000700a88f1d71000000002",
+        task_blueprint="stp_0195f3a00000700c84a5a1d15c00438a",
+        input_mappings={},
+    )
+    ctx = _create_ctx(
+        workflow_id="wf_0195f3a00000700a88f1d71000000001",
+        output_profile_id=profile.id,
+    )
+
+    res = await execute_prompt_and_schema_stage(stage1=stage1_causal, step=step, context=ctx, deps=strategy_deps)
+
+    assert isinstance(res, PromptAndSchemaStageResult)
+    assert res.hydrated_shuffled_atoms is None
+    assert res.target_chunks == [None]
+    assert res.matrix_block is not None and res.matrix_block.id == cohesion_matrix_blk.id
+
+
+@pytest.mark.asyncio
 async def test_prompt_and_schema_stage_resolves_schema_map_and_dynamic_schema_with_frozen_ctx(
     in_memory_repo: InMemoryUnifiedWorkflowRepository,
     strategy_deps: StrategyDependencies,

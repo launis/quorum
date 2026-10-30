@@ -17,11 +17,11 @@ from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
-from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.dtos.engine import FlattenedAtom
 from backend_v2.models.dtos.prompt import PromptMappingDTO
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
-from backend_v2.models.enums import PromptBlockCategory
+from backend_v2.models.enums import EngineType, PromptBlockCategory, StepType
 from backend_v2.services.orchestrator.chunking_service import ChunkingService
 from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyContext, StrategyDependencies
@@ -144,6 +144,7 @@ def _resolve_matrix_shuffled_atoms(
     criteria_blocks_models: list[PromptBlock],
     hook_state: HookState,
     step: StepRule,
+    step_obj: Step,
     step_logger: logging.Logger,
 ) -> list[FlattenedAtom] | None:
     """Validate and extract non-empty shuffled_atoms when the step evaluates a MatrixPromptBlock.
@@ -152,14 +153,20 @@ def _resolve_matrix_shuffled_atoms(
         criteria_blocks_models: Resolved criteria PromptBlock models for the active step.
         hook_state: Ingress HookState containing global_context_vars.
         step: Active workflow StepRule identifier container.
+        step_obj: Active Step blueprint defining execution type and engine_type.
         step_logger: Logger instance used to emit structured RFC 7807 error logs.
 
     Returns:
-        Non-empty list of FlattenedAtom instances for matrix steps, or None for non-matrix steps.
+        Non-empty list of FlattenedAtom instances for matrix steps, or None for non-matrix
+        or causal discovery steps.
 
     Raises:
         AppException: With ErrorCodes.VALIDATION_FAILED when a matrix step has missing or empty shuffled_atoms.
     """
+    # Step 1: Bypass pre-flattened shuffled_atoms validation for autonomous causal discovery steps
+    if step_obj.engine_type == EngineType.CAUSAL_DISCOVERY or step_obj.type == StepType.CAUSAL_DISCOVERY:
+        return None
+
     is_matrix_step = any(b.category_id == PromptBlockCategory.MATRIX for b in criteria_blocks_models)
     if not is_matrix_step:
         return None
@@ -370,6 +377,7 @@ async def execute_prompt_and_schema_stage(
         criteria_blocks_models=stage1.criteria_blocks_models,
         hook_state=hook_state,
         step=step,
+        step_obj=stage1.step_obj,
         step_logger=step_logger,
     )
     has_shuffled_atoms = hydrated_shuffled_atoms is not None
