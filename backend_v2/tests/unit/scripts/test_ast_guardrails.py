@@ -2505,3 +2505,66 @@ def test_qgr030_non_32_hex_entity_id_in_strict_scope_raises_fatal() -> None:
     assert len(qgr030) == 1
     assert qgr030[0].severity == GuardrailSeverity.FATAL
     assert "Banned non-32-hex entity ID literal" in qgr030[0].message
+
+
+def test_qgr031_valid_filter_calls_pass() -> None:
+    """QGR031: Happy-path test verifying valid Filter calls pass with zero violations."""
+    # Phase 1, Step 1: Verify valid Filter operators and collection 'in' targets pass QGR031
+    code = """
+from backend_v2.database.driver import Filter
+
+f1 = Filter("organization_id", "==", org_id)
+f2 = Filter("id", "in", [id_1, id_2])
+f3 = Filter(field="tags", operator="array-contains", value="pg19")
+f4 = Filter("score", ">=", 90)
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/database/repositories/workflow.py")
+    assert [v for v in violations if v.rule_code == "QGR031"] == []
+
+
+def test_qgr031_empty_filter_field_raises_fatal() -> None:
+    """QGR031: Negative test verifying empty or whitespace-only Filter field raises fatal violation."""
+    # Phase 1, Step 1: Reject empty or whitespace-only Filter field literals
+    code = """
+from backend_v2.database.driver import Filter
+
+f1 = Filter("", "==", val)
+f2 = Filter(field="   ", operator="==", value=val)
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/database/repositories/workflow.py")
+    qgr031 = [v for v in violations if v.rule_code == "QGR031"]
+    assert len(qgr031) == 2
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr031)
+
+
+def test_qgr031_invalid_filter_operators_raise_fatal() -> None:
+    """QGR031: Negative test verifying SQL/ORM drift operators raise fatal violations."""
+    # Phase 1, Step 1: Reject invalid Filter operator literals outside _VALID_OPERATORS
+    code = """
+from backend_v2.database.driver import Filter
+
+f1 = Filter("id", "LIKE", "%x%")
+f2 = Filter("id", "=", val)
+f3 = Filter(field="id", operator="eq", value=val)
+f4 = Filter("id", "IN", [val])
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/database/repositories/workflow.py")
+    qgr031 = [v for v in violations if v.rule_code == "QGR031"]
+    assert len(qgr031) == 4
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr031)
+
+
+def test_qgr031_in_operator_with_string_literal_raises_fatal() -> None:
+    """QGR031: Negative test verifying 'in' operator with string literal value raises fatal violation."""
+    # Phase 1, Step 1: Reject string literal value on 'in' Filter preventing character iteration
+    code = """
+from backend_v2.database.driver import Filter
+
+f1 = Filter("id", "in", "wf_0195f3a0000070008000000000000001")
+f2 = Filter(field="id", operator="in", value=b"wf_bytes")
+"""
+    violations = _scan_snippet(code, filepath="backend_v2/database/repositories/workflow.py")
+    qgr031 = [v for v in violations if v.rule_code == "QGR031"]
+    assert len(qgr031) == 2
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr031)
+

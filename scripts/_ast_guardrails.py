@@ -887,12 +887,76 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             )
         self.generic_visit(node)
 
+    def _check_qgr031_filter_call(self, node: ast.Call) -> None:
+        """Enforce QGR031 validating static Filter(...) field, operator, and 'in' collection targets.
+
+        Args:
+            node: Function or method Call AST node to inspect.
+        """
+        # Phase 1, Step 1: Enforce static query filter discipline on Filter(...) calls
+        if self.is_guardrail_self or self._is_test_file:
+            return
+        is_filter_call = False
+        match node.func:
+            case ast.Name(id="Filter") | ast.Attribute(attr="Filter"):
+                is_filter_call = True
+            case _:
+                is_filter_call = False
+        if not is_filter_call:
+            return
+
+        field_node: ast.AST | None = node.args[0] if len(node.args) >= 1 else None
+        operator_node: ast.AST | None = node.args[1] if len(node.args) >= 2 else None
+        value_node: ast.AST | None = node.args[2] if len(node.args) >= 3 else None
+        for kw in node.keywords:
+            if kw.arg == "field":
+                field_node = kw.value
+            elif kw.arg == "operator":
+                operator_node = kw.value
+            elif kw.arg == "value":
+                value_node = kw.value
+
+        if isinstance(field_node, ast.Constant) and isinstance(field_node.value, str):
+            if not field_node.value.strip():
+                self._add_violation(
+                    field_node,
+                    "QGR031",
+                    f"Empty or whitespace-only `Filter` field literal `{field_node.value!r}` detected.",
+                    "Provide a non-empty document field path string to `Filter(field, operator, value)`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+
+        if isinstance(operator_node, ast.Constant) and isinstance(operator_node.value, str):
+            valid_operators = {"==", "!=", "<", "<=", ">", ">=", "in", "array-contains"}
+            if operator_node.value not in valid_operators:
+                self._add_violation(
+                    operator_node,
+                    "QGR031",
+                    f"Invalid `Filter` operator literal `{operator_node.value!r}` detected.",
+                    "Use a canonical `Operator` literal from `{'==', '!=', '<', '<=', '>', '>=', 'in', 'array-contains'}`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            elif (
+                operator_node.value == "in"
+                and isinstance(value_node, ast.Constant)
+                and isinstance(value_node.value, (str, bytes))
+            ):
+                self._add_violation(
+                    value_node,
+                    "QGR031",
+                    f"String or bytes literal `{value_node.value!r}` passed as target value to `Filter(..., operator='in', ...)`.",
+                    "Pass a collection (`list`, `tuple`, `set`, or `frozenset`) as the `value` for an `'in'` filter instead of a string literal.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+
     def visit_Call(self, node: ast.Call) -> None:
         """Inspect Call AST node for banned reflection, fallbacks, timeouts, duck-typing, and mock patterns.
 
         Args:
             node: Function or method Call AST node.
         """
+        self._check_qgr031_filter_call(node)
+
         # QGR030: Ban deprecated storage_backend keyword arguments in function/Settings calls
         if not self.is_guardrail_self:
             for kw in node.keywords:
