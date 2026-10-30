@@ -2679,6 +2679,30 @@
       "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
       "composite_sha256": "1409da15b9652415c137a5ebaf8e63912f34c45de535556b9a05cc79eb2e9911",
       "source_tracker": "docs/epic/report_service_decomposition_tracker.md"
+    },
+    "scripts/_ast_guardrails.py": {
+      "target_file": "scripts/_ast_guardrails.py",
+      "target_sha256": "fed0704f2925f556d9f16445817c836c8c2cd4c363c9ba4c8f55839c4f2cdbb1",
+      "unit_test_sha256": "f02bdf6ddc6fdece04ddc00cfe1a32732aa879e21c0aacc7f7d56578add325cf",
+      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
+      "composite_sha256": "b8ac70100ec459c27ae51a6de8347712d2f098fc4e97fd467a1c8354c7aaf95b",
+      "source_tracker": "docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md"
+    },
+    "scripts/backend_audit_loop.py": {
+      "target_file": "scripts/backend_audit_loop.py",
+      "target_sha256": "8e5896b9dd66fa985e7dd475d480cf46728e3846054539189e5aa1bb14f6f957",
+      "unit_test_sha256": "b83a10d2ae2516491bf0e0fb38c7b04b0b72e0302846a4b532f22c8571235b9e",
+      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
+      "composite_sha256": "f8681f5c13c0e0ff3b47970e5b4bbe4002141e1a4e8297ed9e53c854817387e1",
+      "source_tracker": "docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md"
+    },
+    "scripts/auto_hardening_runner.py": {
+      "target_file": "scripts/auto_hardening_runner.py",
+      "target_sha256": "4efb890cf95f14745e73f4a8267aa53dd83ff1cae747e47b6a9298dacf556b9f",
+      "unit_test_sha256": "2928c44a99841b7419557544fb0edf204d74116404bf99b5be3642165668a2ef",
+      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
+      "composite_sha256": "ac01787157cd571b685e5d6c393da2d7cddc8cec579b4d3443af5047a0544faa",
+      "source_tracker": "docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md"
     }
   }
 }
