@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
@@ -15,7 +17,6 @@ import 'package:client_app/router/router.dart';
 import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/core/logging/logger_service.dart';
-import 'package:client_app/shared/models/i18n_text.dart';
 
 /// **Studio Dashboard View**
 ///
@@ -36,22 +37,6 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
       TextEditingController();
   String _modelRegistrySearchQuery = '';
 
-  String _getLocalizedName(dynamic entity, String currentLocale) {
-    if (entity == null) return 'Unknown';
-    if (entity is NodeStrategy) {
-      final name = entity.name.translations[currentLocale];
-      final defaultName = entity.name.translations['en'];
-      return name ?? defaultName ?? entity.id;
-    }
-    if (entity is! Map) return 'Unknown';
-    final nameVal = entity['name'] ?? entity['label'];
-    if (nameVal is String) return nameVal;
-    if (nameVal is Map) {
-      return I18nText.fromJson(Map.from(nameVal)).get(currentLocale);
-    }
-    return entity['id']?.toString() ?? 'Unknown';
-  }
-
   @override
   void initState() {
     super.initState();
@@ -69,85 +54,72 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    // Listen to tab changes to trigger refresh if desired
-    // However, it's usually enough just to let the AsyncValue handle rebuilds.
-
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          tooltip: 'Back to Application',
-          onPressed: () => context.go('/dashboard'),
-        ),
-        title: Text(l10n.studioViewsAdminStudioV2),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.read(promptBlocksControllerProvider.notifier).refresh();
-              ref.read(workflowsControllerProvider.notifier).refresh();
-            },
+    return AppErrorBoundary(
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            tooltip: l10n.backToDashboard,
+            onPressed: () => context.go('/dashboard'),
           ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: [
-            Tab(
-              icon: const Icon(Icons.schema),
-              text: l10n.studioDashboardWorkflowsTitle,
-            ),
-            Tab(
-              icon: const Icon(Icons.chat),
-              text: l10n.studioViewsPromptBlocksTab,
-            ),
-            Tab(
-              icon: const Icon(Icons.dataset),
-              text: l10n.studioDashboardMatricesTitle,
-            ),
-            Tab(
-              icon: const Icon(Icons.extension),
-              text: l10n.studioViewsStepsTab,
-            ),
-            Tab(
-              icon: const Icon(Icons.print),
-              text: l10n.studioViewsProfilesTab,
-            ),
-            Tab(
-              icon: const Icon(Icons.settings),
-              text: l10n.modelRegistryTitle,
-            ),
-            Tab(
-              icon: const Icon(Icons.hub),
-              text: l10n.studioDashboardGatewaysTitle,
+          title: Text(l10n.studioViewsAdminStudioV2),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: l10n.refresh,
+              onPressed: () {
+                ref.read(promptBlocksControllerProvider.notifier).refresh();
+                ref.read(workflowsControllerProvider.notifier).refresh();
+              },
             ),
           ],
+          bottom: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            tabs: [
+              Tab(
+                icon: const Icon(Icons.schema),
+                text: l10n.studioDashboardWorkflowsTitle,
+              ),
+              Tab(
+                icon: const Icon(Icons.chat),
+                text: l10n.studioViewsPromptBlocksTab,
+              ),
+              Tab(
+                icon: const Icon(Icons.dataset),
+                text: l10n.studioDashboardMatricesTitle,
+              ),
+              Tab(
+                icon: const Icon(Icons.extension),
+                text: l10n.studioViewsStepsTab,
+              ),
+              Tab(
+                icon: const Icon(Icons.print),
+                text: l10n.studioViewsProfilesTab,
+              ),
+              Tab(
+                icon: const Icon(Icons.settings),
+                text: l10n.modelRegistryTitle,
+              ),
+              Tab(
+                icon: const Icon(Icons.hub),
+                text: l10n.studioDashboardGatewaysTitle,
+              ),
+            ],
+          ),
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // TAB 1: Workflows
-          const WorkflowsMasterView(),
-
-          // TAB 2: Regular Prompt Blocks
-          _buildRegularBlocksTab(context, ref, l10n),
-
-          // TAB 3: Matrices (BARS)
-          _buildMatricesTab(context, ref, l10n),
-
-          // TAB 4: Steps
-          _buildStepsTab(context, ref, l10n),
-
-          // TAB 5: Profiles (Tulostusprofiilit)
-          _buildProfilesTab(context, ref, l10n),
-
-          // TAB 6: Model Registry
-          _buildModelRegistryTab(context, ref, l10n),
-
-          // TAB 7: MCP Gateways
-          const McpGatewaysMasterView(),
-        ],
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            const WorkflowsMasterView(),
+            _buildRegularBlocksTab(context, ref, l10n),
+            _buildMatricesTab(context, ref, l10n),
+            _buildStepsTab(context, ref, l10n),
+            _buildProfilesTab(context, ref, l10n),
+            _buildModelRegistryTab(context, ref, l10n),
+            const McpGatewaysMasterView(),
+          ],
+        ),
       ),
     );
   }
@@ -168,7 +140,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     final promptBlocksState = ref.watch(promptBlocksControllerProvider);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: AppSpacing.p16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -180,33 +152,42 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                 final draft = await ref
                     .read(promptBlocksControllerProvider.notifier)
                     .createPromptBlockDraft();
-                if (context.mounted) {
-                  PromptBlockEditRoute(
-                    id: draft.id,
-                    slug: draft.slug,
-                  ).go(context);
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        l10n.studioViewsMintDraftError(e.toString()),
-                      ),
-                    ),
-                  );
-                }
+                if (!context.mounted) return;
+                PromptBlockEditRoute(
+                  id: draft.id,
+                  slug: draft.slug,
+                ).go(context);
+              } catch (e, st) {
+                ref
+                    .read(loggerServiceProvider)
+                    .error(
+                      'Studio',
+                      'Failed to mint standard prompt block draft: $e',
+                      e,
+                      st,
+                    );
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.studioViewsMintDraftError(e.toString())),
+                  ),
+                );
               }
             },
           ),
-          const SizedBox(height: 16),
-          promptBlocksState.when(
-            data: (allBlocks) {
-              final regularBlocks = allBlocks
-                  .where((b) => b.categoryId != 'matrix')
+          AppSpacing.h16,
+          switch (promptBlocksState) {
+            AsyncData(:final value) => () {
+              final regularBlocks = value
+                  .where(
+                    (b) => !PromptBlockCategoryGroups.matrixCategories.contains(
+                      b.categoryId,
+                    ),
+                  )
                   .toList();
-              if (regularBlocks.isEmpty)
+              if (regularBlocks.isEmpty) {
                 return Text(l10n.studioViewsNoStandardPromptBlocks);
+              }
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -233,10 +214,13 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                         leading: const Icon(Icons.text_snippet),
                         title: Text(
                           blockName,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                           '$blockId\n${l10n.studioViewsSlugSubtitle(slugStr)}',
+                          overflow: TextOverflow.ellipsis,
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -262,27 +246,29 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                         },
                       ),
                     );
-                  } catch (e) {
+                  } catch (e, st) {
                     ref
                         .read(loggerServiceProvider)
                         .error(
                           'Studio',
                           'Error rendering block list tile: $e',
                           e,
+                          st,
                         );
-                    return ErrorView(error: e, compact: true);
+                    return ErrorView(error: e, stackTrace: st, compact: true);
                   }
                 },
               );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => ErrorView(
-              error: e,
+            }(),
+            AsyncLoading() => const Center(child: CircularProgressIndicator()),
+            AsyncError(:final error, :final stackTrace) => ErrorView(
+              error: error,
+              stackTrace: stackTrace,
               compact: true,
               onRetry: () =>
                   ref.read(promptBlocksControllerProvider.notifier).refresh(),
             ),
-          ),
+          },
         ],
       ),
     );
@@ -296,7 +282,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     final promptBlocksState = ref.watch(promptBlocksControllerProvider);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: AppSpacing.p16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -307,34 +293,41 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               try {
                 final draft = await ref
                     .read(promptBlocksControllerProvider.notifier)
-                    .createPromptBlockDraft(categoryId: 'matrix');
-                if (context.mounted) {
-                  PromptBlockEditRoute(
-                    id: draft.id,
-                    slug: draft.slug,
-                  ).go(context);
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        l10n.studioViewsMintDraftError(e.toString()),
-                      ),
-                    ),
-                  );
-                }
+                    .createPromptBlockDraft(
+                      categoryId:
+                          PromptBlockCategoryGroups.matrixCategories.first,
+                    );
+                if (!context.mounted) return;
+                PromptBlockEditRoute(
+                  id: draft.id,
+                  slug: draft.slug,
+                ).go(context);
+              } catch (e, st) {
+                ref
+                    .read(loggerServiceProvider)
+                    .error('Studio', 'Failed to mint matrix draft: $e', e, st);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.studioViewsMintDraftError(e.toString())),
+                  ),
+                );
               }
             },
           ),
-          const SizedBox(height: 16),
-          promptBlocksState.when(
-            data: (allBlocks) {
-              final matrices = allBlocks
-                  .where((b) => b.categoryId == 'matrix')
+          AppSpacing.h16,
+          switch (promptBlocksState) {
+            AsyncData(:final value) => () {
+              final matrices = value
+                  .where(
+                    (b) => PromptBlockCategoryGroups.matrixCategories.contains(
+                      b.categoryId,
+                    ),
+                  )
                   .toList();
-              if (matrices.isEmpty)
+              if (matrices.isEmpty) {
                 return Text(l10n.studioViewsNoMatricesDefined);
+              }
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -353,7 +346,6 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                             'Matrix slug is missing.',
                           ));
 
-                    // NO HARDCODING MANDATE: Read 'scales', default to empty if null.
                     final scalesList = matrix.scales;
                     final ruleCount = scalesList?.length ?? 0;
                     final matrixName = matrix.label.get(
@@ -365,10 +357,13 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                         leading: const Icon(Icons.grid_on),
                         title: Text(
                           matrixName,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                           '$matrixId\n${l10n.matrixSubtitle(ruleCount)}',
+                          overflow: TextOverflow.ellipsis,
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -394,27 +389,29 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                         },
                       ),
                     );
-                  } catch (e) {
+                  } catch (e, st) {
                     ref
                         .read(loggerServiceProvider)
                         .error(
                           'Studio',
                           'Error rendering matrix list tile: $e',
                           e,
+                          st,
                         );
-                    return ErrorView(error: e, compact: true);
+                    return ErrorView(error: e, stackTrace: st, compact: true);
                   }
                 },
               );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => ErrorView(
-              error: e,
+            }(),
+            AsyncLoading() => const Center(child: CircularProgressIndicator()),
+            AsyncError(:final error, :final stackTrace) => ErrorView(
+              error: error,
+              stackTrace: stackTrace,
               compact: true,
               onRetry: () =>
                   ref.read(promptBlocksControllerProvider.notifier).refresh(),
             ),
-          ),
+          },
         ],
       ),
     );
@@ -425,14 +422,13 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     WidgetRef ref,
     AppLocalizations l10n,
   ) {
-    // ... Existing implementation of Steps Tab ...
     final blueprintsState = ref.watch(stepsControllerProvider);
     final currentScope = ref
         .watch(stepsControllerProvider.notifier)
         .currentScope;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: AppSpacing.p16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -441,20 +437,21 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               final draft = await ref
                   .read(stepsControllerProvider.notifier)
                   .createStepDraft();
-              if (context.mounted) {
-                StepEditRoute(id: draft.id).go(context);
-              }
-            } catch (e) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.studioViewsMintDraftError(e.toString())),
-                  ),
-                );
-              }
+              if (!context.mounted) return;
+              StepEditRoute(id: draft.id).go(context);
+            } catch (e, st) {
+              ref
+                  .read(loggerServiceProvider)
+                  .error('Studio', 'Failed to mint step draft: $e', e, st);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(l10n.studioViewsMintDraftError(e.toString())),
+                ),
+              );
             }
           }),
-          const SizedBox(height: 16),
+          AppSpacing.h16,
           SegmentedButton<StepFilterScope>(
             segments: [
               ButtonSegment<StepFilterScope>(
@@ -480,19 +477,19 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                   .setScope(newSelection.first);
             },
           ),
-          const SizedBox(height: 16),
-          blueprintsState.when(
-            data: (blueprints) {
-              if (blueprints.isEmpty) {
+          AppSpacing.h16,
+          switch (blueprintsState) {
+            AsyncData(:final value) => () {
+              if (value.isEmpty) {
                 return Text(l10n.studioViewsNoStepsDefined);
               }
               return ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: blueprints.length,
+                itemCount: value.length,
                 itemBuilder: (context, index) {
                   try {
-                    final blueprint = blueprints[index];
+                    final blueprint = value[index];
                     final blueprintId = blueprint.id;
                     if (blueprintId.isEmpty) {
                       throw AppException.validation(
@@ -500,27 +497,29 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       );
                     }
 
-                    final stepName = _getLocalizedName(
-                      blueprint,
+                    final stepName = blueprint.name.get(
                       Localizations.localeOf(context).languageCode,
                     );
 
                     final String typeLabel = switch (blueprint) {
-                      NodeStrategyLogic() => 'Logic: ${blueprint.hook}',
+                      NodeStrategyLogic() => '${l10n.type}: ${blueprint.hook}',
                       NodeStrategyLlm() =>
-                        'LLM: ${blueprint.cognitiveTier.name}',
+                        '${l10n.type}: ${blueprint.cognitiveTier.name}',
                       NodeStrategyCausalDiscovery() =>
-                        'Causal Discovery (${blueprint.engineType.name})',
+                        '${l10n.type}: ${blueprint.engineType.name}',
                     };
 
                     return Card(
                       child: ListTile(
                         title: Text(
                           stepName,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                           '$blueprintId\n${l10n.studioViewsSlugSubtitle(blueprint.slug)}\n$typeLabel',
+                          overflow: TextOverflow.ellipsis,
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -541,29 +540,29 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                         },
                       ),
                     );
-                  } catch (e) {
+                  } catch (e, st) {
                     ref
                         .read(loggerServiceProvider)
                         .error(
                           'Studio',
                           'Error rendering step list tile: $e',
                           e,
+                          st,
                         );
-                    return ErrorView(error: e, compact: true);
+                    return ErrorView(error: e, stackTrace: st, compact: true);
                   }
                 },
               );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) {
-              return ErrorView(
-                error: e,
-                compact: true,
-                onRetry: () =>
-                    ref.read(stepsControllerProvider.notifier).refresh(),
-              );
-            },
-          ),
+            }(),
+            AsyncLoading() => const Center(child: CircularProgressIndicator()),
+            AsyncError(:final error, :final stackTrace) => ErrorView(
+              error: error,
+              stackTrace: stackTrace,
+              compact: true,
+              onRetry: () =>
+                  ref.read(stepsControllerProvider.notifier).refresh(),
+            ),
+          },
         ],
       ),
     );
@@ -577,7 +576,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     final registryState = ref.watch(modelRegistryControllerProvider);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: AppSpacing.p16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -586,24 +585,30 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
               final draft = await ref
                   .read(modelRegistryControllerProvider.notifier)
                   .createSystemConfigDraft();
-              if (context.mounted) {
-                ModelRegistryEditRoute(id: draft.id).go(context);
-              }
-            } catch (e) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.studioViewsMintDraftError(e.toString())),
-                  ),
-                );
-              }
+              if (!context.mounted) return;
+              ModelRegistryEditRoute(id: draft.id).go(context);
+            } catch (e, st) {
+              ref
+                  .read(loggerServiceProvider)
+                  .error(
+                    'Studio',
+                    'Failed to mint system config draft: $e',
+                    e,
+                    st,
+                  );
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(l10n.studioViewsMintDraftError(e.toString())),
+                ),
+              );
             }
           }),
-          const SizedBox(height: 16),
-          registryState.when(
-            data: (configs) {
+          AppSpacing.h16,
+          switch (registryState) {
+            AsyncData(:final value) => () {
               final query = _modelRegistrySearchQuery.trim().toLowerCase();
-              final filteredConfigs = configs.where((c) {
+              final filteredConfigs = value.where((c) {
                 if (query.isEmpty) return true;
                 return c.name.toLowerCase().contains(query) ||
                     c.id.toLowerCase().contains(query) ||
@@ -627,6 +632,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                             suffixIcon: _modelRegistrySearchQuery.isNotEmpty
                                 ? IconButton(
                                     icon: const Icon(Icons.clear),
+                                    tooltip: l10n.studioMasterClearSearch,
                                     onPressed: () {
                                       _modelRegistrySearchController.clear();
                                       setState(() {
@@ -643,19 +649,19 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                           },
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      AppSpacing.w12,
                       Chip(
                         avatar: const Icon(Icons.tune, size: 16),
                         label: Text(
-                          '${filteredConfigs.length} / ${configs.length}',
+                          '${filteredConfigs.length} / ${value.length}',
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  AppSpacing.h16,
                   if (filteredConfigs.isEmpty)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24.0),
+                      padding: AppSpacing.p24,
                       child: Center(
                         child: Text(l10n.studioViewsNoSystemConfigs),
                       ),
@@ -677,19 +683,23 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                           final modelCount = config.tierDefinitions.length;
 
                           return Card(
-                            margin: const EdgeInsets.only(bottom: 8.0),
+                            margin: const EdgeInsets.only(
+                              bottom: AppSpacing.s8,
+                            ),
                             child: ListTile(
                               title: Text(
                                 config.name.isNotEmpty ? config.name : configId,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyLarge
+                                    ?.copyWith(fontWeight: FontWeight.w600),
                               ),
                               subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 4.0),
+                                padding: const EdgeInsets.only(
+                                  top: AppSpacing.s4,
+                                ),
                                 child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 4,
+                                  spacing: AppSpacing.s8,
+                                  runSpacing: AppSpacing.s4,
                                   children: [
                                     Chip(
                                       visualDensity: VisualDensity.compact,
@@ -752,32 +762,35 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                               },
                             ),
                           );
-                        } catch (e) {
+                        } catch (e, st) {
                           ref
                               .read(loggerServiceProvider)
                               .error(
                                 'Studio',
                                 'Error rendering config list tile: $e',
                                 e,
+                                st,
                               );
-                          return ErrorView(error: e, compact: true);
+                          return ErrorView(
+                            error: e,
+                            stackTrace: st,
+                            compact: true,
+                          );
                         }
                       },
                     ),
                 ],
               );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) {
-              return ErrorView(
-                error: e,
-                compact: true,
-                onRetry: () => ref
-                    .read(modelRegistryControllerProvider.notifier)
-                    .refresh(),
-              );
-            },
-          ),
+            }(),
+            AsyncLoading() => const Center(child: CircularProgressIndicator()),
+            AsyncError(:final error, :final stackTrace) => ErrorView(
+              error: error,
+              stackTrace: stackTrace,
+              compact: true,
+              onRetry: () =>
+                  ref.read(modelRegistryControllerProvider.notifier).refresh(),
+            ),
+          },
         ],
       ),
     );
@@ -792,7 +805,14 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
+        Expanded(
+          child: Text(
+            title,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+        ),
+        AppSpacing.w12,
         FilledButton.icon(
           onPressed: onAdd,
           icon: const Icon(Icons.add),
