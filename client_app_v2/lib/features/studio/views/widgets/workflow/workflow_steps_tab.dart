@@ -15,7 +15,7 @@ class WorkflowStepsTab extends StatelessWidget {
   final Workflow workflow;
   final List<NodeStrategy> blueprints;
   final List<McpGateway> mcpGateways;
-  final Function(Workflow) onChanged;
+  final ValueChanged<Workflow> onChanged;
 
   const WorkflowStepsTab({
     super.key,
@@ -40,7 +40,7 @@ class WorkflowStepsTab extends StatelessWidget {
 
   void _addStep() {
     final steps = List<StepRule>.from(workflow.steps);
-    // Phase 1, Step 1: Generate canonical 32-hex sr_ UUIDv7 identifier
+    // Mint a 32-hex RFC 9562 UUIDv7 step rule identifier to satisfy backend schema validation.
     final newId = generateOpaqueUuid7('sr');
     final newStep = StepRule(
       id: newId,
@@ -70,7 +70,7 @@ class WorkflowStepsTab extends StatelessWidget {
     if (index < 0 || index >= steps.length) return;
 
     final original = steps[index];
-    // Phase 1, Step 1: Generate canonical 32-hex sr_ UUIDv7 identifier
+    // Mint a fresh 32-hex UUIDv7 identifier so cloned step rules never collide in the DAG.
     final clonedId = generateOpaqueUuid7('sr');
     final clonedStep = original.copyWith(id: clonedId);
 
@@ -128,64 +128,70 @@ class WorkflowStepsTab extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final allSteps = List<StepRule>.from(workflow.steps);
 
-    return SingleChildScrollView(
-      child: Padding(
-        padding: AppSpacing.p16,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1200),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: AppSpacing.p16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: Text(
-                    l10n.studioWorkflowStepsDependencies,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.studioWorkflowStepsDependencies,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
+                    AppSpacing.w16,
+                    OutlinedButton.icon(
+                      onPressed: _addStep,
+                      icon: const Icon(Icons.add),
+                      label: Text(l10n.studioWorkflowAddStepNodeBtn),
+                    ),
+                  ],
+                ),
+                AppSpacing.h16,
+                if (allSteps.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.s24),
+                      child: Text(
+                        l10n.studioWorkflowStepsEmpty,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                AppSpacing.w16,
-                OutlinedButton.icon(
-                  onPressed: _addStep,
-                  icon: const Icon(Icons.add),
-                  label: Text(l10n.studioWorkflowAddStepNodeBtn),
-                ),
+                ...allSteps.asMap().entries.map((entry) {
+                  return WorkflowStepCard(
+                    index: entry.key,
+                    stepDef: entry.value,
+                    blueprints: blueprints,
+                    allSteps: allSteps,
+                    mcpGateways: mcpGateways,
+                    globalWorkflowInputs: workflow.expectedInputs,
+                    l10n: l10n,
+                    onChanged: (updatedStep) {
+                      final newSteps = List<StepRule>.from(allSteps);
+                      newSteps[entry.key] = updatedStep;
+                      onChanged(workflow.copyWith(steps: newSteps));
+                    },
+                    onCopy: () => _copyStep(entry.key),
+                    onDelete: () => _deleteStep(entry.key),
+                  );
+                }),
               ],
             ),
-            AppSpacing.h16,
-            if (allSteps.isEmpty)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.s24),
-                  child: Text(
-                    l10n.studioWorkflowStepsEmpty,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ),
-            ...allSteps.asMap().entries.map((entry) {
-              return WorkflowStepCard(
-                index: entry.key,
-                stepDef: entry.value,
-                blueprints: blueprints,
-                allSteps: allSteps,
-                mcpGateways: mcpGateways,
-                globalWorkflowInputs: workflow.expectedInputs,
-                l10n: l10n,
-                onChanged: (updatedStep) {
-                  final newSteps = List<StepRule>.from(allSteps);
-                  newSteps[entry.key] = updatedStep;
-                  onChanged(workflow.copyWith(steps: newSteps));
-                },
-                onCopy: () => _copyStep(entry.key),
-                onDelete: () => _deleteStep(entry.key),
-              );
-            }),
-          ],
+          ),
         ),
       ),
     );

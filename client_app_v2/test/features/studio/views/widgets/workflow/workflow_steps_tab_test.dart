@@ -149,7 +149,7 @@ void main() {
     Widget createTestWidget({
       required Workflow workflow,
       List<NodeStrategy>? customBlueprints,
-      Function(Workflow)? onChanged,
+      ValueChanged<Workflow>? onChanged,
       Locale locale = const Locale('fi'),
     }) {
       return MaterialApp(
@@ -305,6 +305,155 @@ void main() {
           funnelStep.dependsOn,
           equals(['sr_specialist_001', 'sr_steering_001']),
         );
+      },
+    );
+
+    testWidgets(
+      '_copyStep clones step with canonical 32-hex sr_ UUIDv7 and wires cloned ID into Zone C dependsOn',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1280, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        Workflow? updatedWorkflow;
+
+        await tester.pumpWidget(
+          createTestWidget(
+            workflow: mockWorkflow,
+            onChanged: (wf) => updatedWorkflow = wf,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final copyButtons = find.byIcon(Icons.content_copy);
+        expect(copyButtons, findsWidgets);
+
+        await tester.ensureVisible(copyButtons.first);
+        await tester.tap(copyButtons.first);
+        await tester.pumpAndSettle();
+
+        expect(updatedWorkflow, isNotNull);
+        final steps = updatedWorkflow!.steps;
+        expect(steps.length, equals(6));
+
+        final clonedStep = steps[2];
+        expect(clonedStep.id, matches(RegExp(r'^sr_[0-9a-f]{32}$')));
+        expect(clonedStep.taskBlueprint, equals('sp_specialist_coach'));
+
+        final funnelStep = steps.last;
+        expect(funnelStep.dependsOn.contains(clonedStep.id), isTrue);
+      },
+    );
+
+    testWidgets(
+      'Boundary: empty steps list renders empty-state message and adding first step initializes empty dependsOn without Zone C anchor',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1280, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        Workflow? updatedWorkflow;
+        final emptyWorkflow = mockWorkflow.copyWith(steps: const []);
+
+        await tester.pumpWidget(
+          createTestWidget(
+            workflow: emptyWorkflow,
+            onChanged: (wf) => updatedWorkflow = wf,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(WorkflowStepCard), findsNothing);
+
+        final addButton = find.byIcon(Icons.add);
+        await tester.tap(addButton);
+        await tester.pumpAndSettle();
+
+        expect(updatedWorkflow, isNotNull);
+        expect(updatedWorkflow!.steps.length, equals(1));
+        final firstAdded = updatedWorkflow!.steps.first;
+        expect(firstAdded.id, matches(RegExp(r'^sr_[0-9a-f]{32}$')));
+        expect(firstAdded.dependsOn, isEmpty);
+        expect(firstAdded.isSynthesisSource, isTrue);
+      },
+    );
+
+    testWidgets(
+      'Boundary & Negative: _deleteStep prunes exact and sub-field inputMappings pointing to deleted step while preserving unrelated mappings',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1280, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        Workflow? updatedWorkflow;
+        final workflowWithMappings = mockWorkflow.copyWith(
+          steps: [
+            mockWorkflow.steps[0],
+            mockWorkflow.steps[1],
+            mockWorkflow.steps[2],
+            mockWorkflow.steps[3].copyWith(
+              inputMappings: const {
+                'exact_ref': r'$steps.sr_specialist_001',
+                'sub_ref': r'$steps.sr_specialist_001.summary',
+                'valid_step_ref': r'$steps.sr_input_001.raw_text',
+                'valid_input_ref': r'$inputs.document_a',
+              },
+            ),
+            mockWorkflow.steps[4],
+          ],
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            workflow: workflowWithMappings,
+            onChanged: (wf) => updatedWorkflow = wf,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // First delete button belongs to Step 1 (sr_specialist_001)
+        final deleteButtons = find.byIcon(Icons.delete);
+        await tester.ensureVisible(deleteButtons.first);
+        await tester.tap(deleteButtons.first);
+        await tester.pumpAndSettle();
+
+        expect(updatedWorkflow, isNotNull);
+        final steeringStep = updatedWorkflow!.steps.firstWhere(
+          (s) => s.id == 'sr_steering_001',
+        );
+        expect(steeringStep.inputMappings.containsKey('exact_ref'), isFalse);
+        expect(steeringStep.inputMappings.containsKey('sub_ref'), isFalse);
+        expect(
+          steeringStep.inputMappings['valid_step_ref'],
+          equals(r'$steps.sr_input_001.raw_text'),
+        );
+        expect(
+          steeringStep.inputMappings['valid_input_ref'],
+          equals(r'$inputs.document_a'),
+        );
+      },
+    );
+
+    testWidgets(
+      'Boundary: compact 360px Finnish viewport renders header and empty state with zero RenderFlex overflow',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(360, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final emptyWorkflow = mockWorkflow.copyWith(steps: const []);
+
+        await tester.pumpWidget(
+          createTestWidget(workflow: emptyWorkflow, locale: const Locale('fi')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.byIcon(Icons.add), findsOneWidget);
       },
     );
   });
