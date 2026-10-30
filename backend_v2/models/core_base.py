@@ -36,7 +36,6 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-# Phase 1, Step 1: Lock universal 32-hex RFC 9562 UUIDv7 Opaque Stripe ID regex
 OPAQUE_STRIPE_ID_REGEX: str = r"^([a-z]{2,5})_[a-fA-F0-9]{32}$"
 
 
@@ -104,7 +103,7 @@ class I18nText(V2CoreBase):
             Sanitized translations dictionary with canonical keys.
 
         Raises:
-            AppException: If 'en' key is missing or empty.
+            AppException: With ErrorCodes.VALIDATION_FAILED if 'en' key is missing or empty.
         """
         sanitized: dict[str, str] = {}
         for raw_key, raw_val in v.items():
@@ -128,14 +127,14 @@ class I18nText(V2CoreBase):
         """Strictly typed method to resolve the best localization, avoiding 'naked dict' fallback logic.
 
         Args:
-            target_locale: The requested locale code (e.g. 'fi', 'fi-FI').
+            target_locale: The requested locale code ('fi' or 'fi-FI').
             fallback_locale: Fallback locale code if target_locale is unavailable (default: 'en').
 
         Returns:
             The resolved localized string.
 
         Raises:
-            AppException: If no valid non-empty translation is resolved.
+            AppException: With ErrorCodes.VALIDATION_FAILED if no valid non-empty translation is resolved.
         """
         if target_locale:
             target_lang = re.split(r"[-_]", target_locale.strip())[0].lower()
@@ -171,7 +170,7 @@ class I18nText(V2CoreBase):
             The resolved string.
 
         Raises:
-            AppException: If no valid non-empty translation is resolved.
+            AppException: With ErrorCodes.VALIDATION_FAILED if no valid non-empty translation is resolved.
         """
         return self.resolve(target_locale=lang_code, fallback_locale=fallback)
 
@@ -183,12 +182,14 @@ class I18nText(V2CoreBase):
 
         Returns:
             New I18nText instance with updated translation values.
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if resulting translations fail baseline validation.
         """
         new_translations = {k: f"{v}{suffix}" for k, v in self.translations.items()}
         return I18nText(translations=new_translations)
 
 
-# Phase 1, Step 1: Universal 32-hex RFC 9562 UUIDv7 delegation across all EntityPrefix members
 def generate_opaque_id(prefix: EntityPrefix | str, length: int = 32) -> str:
     """Generates a canonical 32-hex RFC 9562 UUIDv7 Opaque Stripe ID.
 
@@ -327,7 +328,6 @@ def format_prefixed_uuid7(
     return f"{prefix.value}_{uuid_obj.hex}"
 
 
-# Phase 2, Step 2: Extract standalone RFC 9562 UUIDv7 primitive
 def generate_uuid7(timestamp_ms: int | None = None) -> uuid.UUID:
     """Generate a monotonic 16-byte RFC 9562 UUIDv7 instance.
 
@@ -406,7 +406,7 @@ def generate_uuid7_opaque_id(
 def coerce_source_quotes_tuple(v: object) -> tuple[str, ...] | None:
     """Coerces various quote representations into an immutable tuple of non-empty strings.
 
-    Prevents string shattering (e.g. converting a string directly to a tuple of characters)
+    Prevents string shattering (converting a string directly to a tuple of characters)
     by explicitly checking for `str`. Strips whitespace and filters out empty strings.
     Returns None if the result is empty or if input is None.
 

@@ -245,7 +245,7 @@ def test_uuid7_prefixed_bridge_and_monotonic_generation() -> None:
 
 def test_uuid7_prefixed_bridge_negative_boundaries() -> None:
     """Verify ISTQB negative boundaries on parse_prefixed_uuid7, format_prefixed_uuid7, and generate_uuid7_opaque_id."""
-    v4_uuid = uuid.uuid4()
+    v4_uuid = uuid.UUID("00000000-0000-4000-8000-000000000001")
     v4_prefixed = f"nod_{v4_uuid.hex}"
 
     # Wrong prefix
