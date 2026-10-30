@@ -1,9 +1,12 @@
 """Unit tests for Chunking Domain Models."""
 
 import pytest
+from fastapi import status
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.chunking import Chunk, ChunkingRequest
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
 
 
 def test_chunk_valid() -> None:
@@ -15,6 +18,8 @@ def test_chunk_valid() -> None:
     model = Chunk[str].model_validate(data)
     assert model.index == 0
     assert len(model.items) == 2
+    assert model.id.startswith("chk_")
+    assert len(model.id) == 36
 
 
 def test_chunking_request_valid() -> None:
@@ -29,14 +34,16 @@ def test_chunking_request_valid() -> None:
 
 
 def test_chunking_request_empty_items() -> None:
-    """Test ChunkingRequest fails if items is empty."""
+    """Test ChunkingRequest fails with AppException if items is empty."""
     data = {
         "items": [],
         "max_chunk_size": 2,
     }
-    with pytest.raises(ValidationError) as exc_info:
+    with pytest.raises(AppException) as exc_info:
         ChunkingRequest[str].model_validate(data)
-    assert "Cannot chunk an empty list" in str(exc_info.value)
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert "Cannot chunk an empty list" in exc_info.value.message
 
 
 def test_chunk_negative_index_boundary() -> None:
@@ -51,15 +58,16 @@ def test_chunk_negative_index_boundary() -> None:
 
 
 def test_chunk_invalid_id_pattern() -> None:
-    """Test Chunk fails when id does not match opaque stripe pattern."""
+    """Test Chunk fails when id does not match canonical 32-hex opaque stripe pattern."""
     data = {
-        "id": "invalid_chunk_id",
+        "id": "chk_short123",
         "index": 0,
         "items": ["a"],
     }
     with pytest.raises(ValidationError) as exc_info:
         Chunk[str].model_validate(data)
     assert "string_pattern_mismatch" in str(exc_info.value)
+    assert OPAQUE_STRIPE_ID_REGEX in str(exc_info.value)
 
 
 def test_chunking_request_invalid_chunk_size_boundary() -> None:
