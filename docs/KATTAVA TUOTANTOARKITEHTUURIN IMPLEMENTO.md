@@ -11,6 +11,7 @@
 > 3b. **Arkkitehtuurin Parannuskohteiden Toteutus & `entity_adapter.py`-purku (Askeleet 3.3–3.5)**:
 >    * **Askel 3.3 (Malli A) — [SUORITETTU, KOVENNETTU & LUKITTU]:** Yhtenäinen 32-hex `PrefixedUUID7`-arkkitehtuuri, Natiivi PostgreSQL 19 `UUIDv7` kaikissa 12 taulussa, `@[backend_v2/seed/seed_data.json]` 32-hex Cutover, `@[scripts/sanitize_seed_vault.py]`-automaatio, `@[docs/tiede.md]`-graafimatematiikan synkronointi sekä kaikkien legacy `uuid.uuid4()`- ja `Uuid().v4()`-generaattoreiden poisto ja `QGR030`/`DGR008`-lukitus (`@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]` [15/15], `@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]` [31/31], `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 2).
 >    * **Askel 3.4 — [SEURAAVANA JONOSSA]:** AST- ja Laatuporttilaajennukset `QGR031` (`FilterOperator`-kurinalaisuus), dynaaminen `scripts/*.py`-skannaus & `QGR032` (Polyfactory 32-hex `UUIDv7` -invarianttivartija) (`@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 3).
+>    * **Askel 3.4b — [SUUNNITELMA VALMIINA]:** FastAPI Reitittimien SSOT-konsolidointi (`reports.py`, `workflows.py`, `system_configs.py`) & Universaalin `CRUD + Clone` (`POST /{id}/clone`) -elinkaaren lukitus (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md]`, `@[ki_router_ssot_and_crud_clone_lifecycle.md]`).
 >    * **Askel 3.5:** `PostgresEntityAdapter` (`@[backend_v2/database/postgres/entity_adapter.py]`, 1 975 LOC) God Code -purku 4 SRP-moduuliin (`iam_adapter.py`, `studio_adapter.py`, `execution_adapter.py`, `seeding_adapter.py` + `<150 LOC` `__init__.py` fasaadi).
 > 4. **B2B SaaS IAM, Token Exchange & Enterprise Hardening** (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`)
 > 5. **Firebase Storage & Direct-to-Cloud Signed URLs** (`[NEW]` `@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]`)
@@ -347,6 +348,8 @@ Toteutus etenee vaiheittain ja matalariskisesti. Kaikki tekninen tekeminen kytke
 │        [SUORITETTU & LUKITTU: 15/15 + 31/31 kohdetta, QGR030 & DGR008] │
 │    2F. AST & Laatuportit QGR031, scripts/*.py & QGR032 [SEURAAVA]      │
 │        (Askel 3.4: arkkitehtuurin_parannuskohteet.md Luku 3)           │
+│    2F-2. Router SSOT Consolidation & CRUD+Clone Guard (Askel 3.4b)     │
+│        (IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md)              │
 │    2G. PostgresEntityAdapter (1 975 LOC) God Code -purku (Askel 3.5)   │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
@@ -422,6 +425,7 @@ Alla oleva taulukko näyttää yhdellä silmäyksellä, mitkä toteutussuunnitel
 | **Askel 3.2d** | **Backend Karkaisuaalto 4** (`34/34` valmis: Domain Models & DTO Schemas) | 🟢 **100 % SUORITETTU & LUKITTU:** `@[docs/implementationplans/TRACKER_Backend_Targeted_Hardening_Wave4.md]` | Valmis — E2E-varmennusajo `exe_01a188e876717069b74a7b3716a02489` läpäisty (`d12ada5d1`). |
 | **Askel 3.3** | **Malli A (`PrefixedUUID7` 12 taulussa + `seed_data.json` + `sanitize_seed_vault.py` + Legacy `UUIDv4`-poisto & `QGR030`/`DGR008`)** | 🟢 **100 % SUORITETTU, KOVENNETTU & LUKITTU:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_Prefixed_UUIDv7_Cutover.md]`, `@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]` (`15/15`), `@[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]` & `@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]` (`31/31`) | Valmis — ei toimenpiteitä. |
 | **Askel 3.4** | **AST- ja Laatuporttilaajennukset (`QGR031`, `scripts/*.py` & `QGR032`)** | 🟢 **SUUNNITELMA & TRACKER VALMIINA LEVYLLÄ:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]` & `@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]` | Seuraava jonossa — valmis suoraan `/tier2-execute --full-auto` -suoritukseen. |
+| **Askel 3.4b** | **FastAPI Reitittimien SSOT-konsolidointi (`reports.py`, `workflows.py`, `system_configs.py`) & Universaali `CRUD + Clone` -lukitus** | 🟢 **SUUNNITELMA & KI VALMIINA LEVYLLÄ:** `@[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md]` & `@[ki_router_ssot_and_crud_clone_lifecycle.md]` | Generoi seurantatiedosto komennolla `/tier1-plan-tracker-generator @[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md]` tai suorita suoraan `/tier2-execute --full-auto`. |
 | **Askel 3.5** | **`PostgresEntityAdapter` (`entity_adapter.py`, 1 975 LOC) God Code -purku** (4 SRP-adapteriin) | 🟡 Määritelty Luvussa 2.4 ja Luvussa 7 (Kohta 13). | Generoi purkusuunnitelma ja tracker komennolla `/tier3-god-code-decomposition @[backend_v2/database/postgres/entity_adapter.py]`. |
 | **Askel 4** | **B2B SaaS IAM, 2FA, Token Exchange, Redis Kill-Switch & BYOK (`EPIC 160`)** (`9` backend + `9` frontend tiedostoa) | 🟢 Eepos `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` on valmiina ja synkronoituna 32-hex `UUIDv7`:ään. | Generoi vaihesuunnitelmat ja `EPIC_160_tracker.md` komennolla `/tier1-planner @[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`. |
 | **Askel 5** | **Firebase Storage Direct-to-Cloud Signed URLs** (`3` tiedostopalvelutiedostoa) | 🟡 Arkkitehtuuri määritelty Luvussa 4. | Luo `IMPLEMENTATION_PLAN_Storage_Signed_URLs.md` ja `TRACKER_Storage_Signed_URLs.md` (`/tier0-create-plan` + `/tier1-plan-tracker-generator`). |
@@ -754,6 +758,25 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
 * **Suorituskomento:**
   ```powershell
   /tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md] @[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]
+  ```
+
+---
+
+### Askel 3.4b: FastAPI Reitittimien SSOT-konsolidointi (`reports.py`, `workflows.py`, `system_configs.py`) & Universaalin `CRUD + Clone` -elinkaaren lukitus (Vaihe 2f-2) — [SUUNNITELMA & KI VALMIINA]
+* **Toteutussuunnitelma (Implementation Plan):** `@[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md]`
+* **Arkkitehtuurinen KI-standardi:** `@[ki_router_ssot_and_crud_clone_lifecycle.md]` (`single_router_ssot_mandate` & `crud_and_clone_lifecycle_standard_mandate`)
+* **Tavoite:** Varmistetaan 100 % **1 Entiteetti = 1 Reititin SSOT** -kurinalaisuus kaikissa ei-IAM-reitittimissä ennen Askeleen 4 (`EPIC 160` IAM-reitittimien `auth.py`, `users.py`, `organizations.py` siivous) ja Askeleen 5.1 (Flutter API-asiakkaiden karkaisu) käynnistämistä sekä lukitaan universaali `CRUD + Draft + Clone` (`POST /{id}/clone`) -elinkaari automaattiseen laatuporttiin:
+  1. **Kuolleen tyhjän reitittimen poisto (`system_configs.py`) & `/system/hooks`-prefiksikorjaus (`system/health.py`):** Poistetaan tyhjä varjoreititin `@[backend_v2/api/routers/studio/system_configs.py]` ja sen testi `@[backend_v2/tests/unit/api/routers/studio/test_system_configs.py]`, siivotaan `@[backend_v2/api/routers/studio/__init__.py]` sekä poistetaan päällekkäinen `prefix="/system"` tiedostosta `@[backend_v2/api/routers/system/health.py]` (`/api/v2/system/system/hooks` -> `/api/v2/system/hooks`).
+  2. **`Workflow`-reitittimen SSOT-konsolidointi (`studio/workflows.py`) & kaikkien 5 vanhan Studio-reitittimen yhdenmukaistaminen `output_profiles.py`-standardiin:** Siirretään `GET /{id}/ui_schema` (`response_model=WorkflowSchemaResponseDTO`) tiedostosta `@[backend_v2/api/routers/execution/workflows.py]` osaksi ainoaa virallista `Workflow`-reititintä `@[backend_v2/api/routers/studio/workflows.py]` (`/api/v2/studio/workflows/{id}/ui_schema`), poistetaan `execution/workflows.py`, päivitetään Flutterin `@[client_app_v2/lib/core/api/workflow_client.dart]` ja päivitetään kaikki 5 vanhempaa Studio-reititintä (`workflows.py`, `steps.py`, `prompt_blocks.py`, `model_registry.py`, `mcp_gateways.py`) tarkistamaan polkuparametreista `Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)]` sekä `PUT /{id}`-kutsuista Fail-Fast `ErrorCodes.ID_MISMATCH` täsmälleen `@[backend_v2/api/routers/output_profiles.py]`-mallin mukaisesti.
+  3. **`ReportArtifact`-reitittimen täysi 1-Router SSOT-konsolidointi (`execution/reports.py` & `main.py`):** Yhdistetään `external_router` (`GET /external/reports/{report_id}`) suoraan `reports.py`:n ainoaan `router`-instanssiin, poistetaan `execution_reports_subrouter`, `external_router`, kaksoiskoristellut `include_in_schema=False` `/execution/...`-varjopolut, tuplakiinnitys `@[backend_v2/api/routers/execution/__init__.py]`-tiedostosta sekä vanhentuneet `external_reports_router`-kiinnitykset (`/api/v1` ja `/api/v2`) `@[backend_v2/main.py]`-tiedostosta; korjataan samalla `@[client_app_v2/lib/core/api/reports_client.dart]`-tiedoston `DGR008` `.substring()`-tekninen velka.
+  4. **Universaali `CRUD + Clone` (`POST /{id}/clone`) & `OPAQUE_STRIPE_ID_REGEX` OpenAPI-laatuportti (`@[backend_v2/tests/unit/api/test_router_ssot_guardrails.py]`):** Lukitaan automaattinen testi, joka tarkistaa `app.routes`- ja `app.openapi()["paths"]`-rakenteista, ettei yksikään reitti ala `/api/v1`-, `/api/v2/system/system`- tai `/api/v2/execution/reports`-etuliitteellä ja että kaikki 6 konfiguroitavaa Studio/Ontologia-entiteettiä (`workflows`, `steps`, `prompt-blocks`, `output-profiles`, `model-registry`, `mcp-gateways`) toteuttavat täyden `GET /`, `POST /`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` ja `POST /{id}/clone` -pinnan `OPAQUE_STRIPE_ID_REGEX`-polkuvalidoinnilla.
+* **1. Generoi seurantatiedosto (valinnainen):**
+  ```powershell
+  /tier1-plan-tracker-generator @[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md]
+  ```
+* **2. Suorituskomento:**
+  ```powershell
+  /tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md]
   ```
 
 ---
@@ -1157,4 +1180,4 @@ Vastaavasti kuin backendissä (`backend_v2/` 403 tiedostoa), myös koko Flutter 
 ## Remaining
 ### Hardening State Snapshot
 * **Backend Hardening Waves 1–4 + Askel 3.3 (`PrefixedUUID7` & `UUIDv4` Eradication):** `100% COMPLETED & LOCKED` (`391/403` = `97.0%` of `backend_v2/` hardened; `12` files remaining in Askel 4 IAM [`9` files] and Askel 5 Storage [`3` files]).
-* **Immediate Next Task:** Execute **Askel 3.4** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]` and `@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`), followed by **Askel 3.5** (`PostgresEntityAdapter` God Code decomposition).
+* **Immediate Next Task:** Execute **Askel 3.4** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]` and `@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`), followed by **Askel 3.4b** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md]`) and **Askel 3.5** (`PostgresEntityAdapter` God Code decomposition).

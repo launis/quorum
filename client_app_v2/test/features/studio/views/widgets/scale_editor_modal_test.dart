@@ -525,7 +525,7 @@ void main() {
         final saveBtn = find.widgetWithText(FilledButton, 'Save');
         // Rapidly tap save twice
         await tester.tap(saveBtn);
-        await tester.tap(saveBtn);
+        await tester.tap(saveBtn, warnIfMissed: false);
         await tester.pumpAndSettle();
 
         expect(popCount, 1);

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
@@ -151,7 +152,8 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
         return;
       }
       for (final tda in claim.tdaAssertions) {
-        if (tda.conceptDescription.trim().length < 10) {
+        if (tda.conceptDescription.trim().length <
+            SystemUiConstraints.tdaConceptMinLength.value) {
           _isSaving = false;
           setState(() => _selectedClaimIndex = i);
           return;
@@ -169,7 +171,7 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
     setState(() => _isLoadingPreview = true);
 
     try {
-      // Phase 1, Step 1: Use canonical 32-hex UUIDv7 sentinel for transient scale simulation
+      // Use canonical 32-hex UUIDv7 sentinel for transient scale simulation
       final transientBlock = PromptBlock.matrix(
         id: 'blk_0195f3a0000070008000000000000000',
         slug: 'sim_preview',
@@ -184,7 +186,7 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
           .read(promptBlocksControllerProvider.notifier)
           .simulatePromptBlock(
             transientBlock,
-            const <String, dynamic>{},
+            const <String, Object?>{},
             targetScaleScore: _editableScale.score,
             targetLocale: currentLocale,
           );
@@ -211,7 +213,10 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
           schemaContent: schemaContent,
         ),
       );
-    } catch (e) {
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('ScaleEditorModal', 'Scale prompt simulation failed', e, st);
       if (!mounted) return;
       setState(() {
         _isLoadingPreview = false;
@@ -306,8 +311,8 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
               helperText: l10n.scaleConceptDescriptionHelper,
               border: const OutlineInputBorder(),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 8,
+                horizontal: AppSpacing.s12,
+                vertical: AppSpacing.s8,
               ),
             ),
             maxLines: 3,
@@ -336,8 +341,8 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                   helperText: l10n.tdaAnchorTargetHelper,
                   border: const OutlineInputBorder(),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
+                    horizontal: AppSpacing.s12,
+                    vertical: AppSpacing.s8,
                   ),
                 ),
                 onChanged: (val) => _updateActiveTda(
@@ -356,8 +361,8 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                   helperText: l10n.tdaBoundingBoxHelper,
                   border: const OutlineInputBorder(),
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
+                    horizontal: AppSpacing.s12,
+                    vertical: AppSpacing.s8,
                   ),
                 ),
                 items: [
@@ -410,8 +415,8 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
               helperText: l10n.tdaExtractionRuleHelper,
               border: const OutlineInputBorder(),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 8,
+                horizontal: AppSpacing.s12,
+                vertical: AppSpacing.s8,
               ),
             ),
             onChanged: (val) => _updateActiveTda(
@@ -430,8 +435,8 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
               helperText: l10n.scaleEvaluationTrackHelper,
               border: const OutlineInputBorder(),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 8,
+                horizontal: AppSpacing.s12,
+                vertical: AppSpacing.s8,
               ),
             ),
             items: EvaluationTrack.values.map((track) {
@@ -477,8 +482,8 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                 helperText: l10n.scaleLogicalExpressionHelper,
                 border: const OutlineInputBorder(),
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
+                  horizontal: AppSpacing.s12,
+                  vertical: AppSpacing.s8,
                 ),
               ),
               onChanged: (val) => _updateActiveTda(
@@ -611,11 +616,14 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
           ),
           if (tda.inverseEvidence)
             Container(
-              margin: const EdgeInsets.only(top: 8, bottom: 12),
+              margin: const EdgeInsets.only(
+                top: AppSpacing.s8,
+                bottom: AppSpacing.s12,
+              ),
               padding: AppSpacing.p12,
               decoration: BoxDecoration(
                 color: theme.colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppSpacing.s8),
                 border: Border.all(
                   color: theme.colorScheme.error.withValues(alpha: 0.3),
                 ),
@@ -626,7 +634,7 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                   Icon(
                     Icons.warning_amber_rounded,
                     color: theme.colorScheme.onErrorContainer,
-                    size: 24,
+                    size: AppSpacing.s24,
                   ),
                   AppSpacing.w8,
                   Expanded(
@@ -663,8 +671,8 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
               helperText: l10n.scaleAggregationModeHelper,
               border: const OutlineInputBorder(),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 8,
+                horizontal: AppSpacing.s12,
+                vertical: AppSpacing.s8,
               ),
             ),
             items: AggregationMode.values.map((mode) {
@@ -729,14 +737,14 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
             margin: const EdgeInsets.only(bottom: AppSpacing.s16),
             decoration: BoxDecoration(
               color: theme.colorScheme.errorContainer,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppSpacing.s8),
             ),
             child: Row(
               children: [
                 Icon(
                   Icons.error_outline,
                   color: theme.colorScheme.onErrorContainer,
-                  size: 20,
+                  size: AppSpacing.s24,
                 ),
                 AppSpacing.w8,
                 Expanded(
@@ -750,7 +758,7 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                 IconButton(
                   icon: Icon(
                     Icons.close,
-                    size: 18,
+                    size: AppSpacing.s16,
                     color: theme.colorScheme.onErrorContainer,
                   ),
                   onPressed: () => setState(() => _previewErrorMessage = null),
@@ -873,9 +881,11 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                     IconButton(
                       icon: _isLoadingPreview
                           ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              width: AppSpacing.s16,
+                              height: AppSpacing.s16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: AppSpacing.s2,
+                              ),
                             )
                           : Icon(
                               Icons.bug_report,
@@ -921,13 +931,13 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                                               () => _selectedClaimIndex = idx,
                                             ),
                                             borderRadius: BorderRadius.circular(
-                                              12,
+                                              AppSpacing.s12,
                                             ),
                                             child: Container(
                                               padding:
                                                   const EdgeInsets.symmetric(
-                                                    horizontal: 12,
-                                                    vertical: 10,
+                                                    horizontal: AppSpacing.s12,
+                                                    vertical: AppSpacing.s8,
                                                   ),
                                               decoration: BoxDecoration(
                                                 color: isSelected
@@ -938,7 +948,9 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                                                           .colorScheme
                                                           .surfaceContainerLow,
                                                 borderRadius:
-                                                    BorderRadius.circular(12),
+                                                    BorderRadius.circular(
+                                                      AppSpacing.s12,
+                                                    ),
                                                 border: Border.all(
                                                   color: isSelected
                                                       ? theme
@@ -982,7 +994,7 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                                                     IconButton(
                                                       icon: const Icon(
                                                         Icons.delete,
-                                                        size: 18,
+                                                        size: AppSpacing.s16,
                                                       ),
                                                       color: theme
                                                           .colorScheme
@@ -1046,7 +1058,10 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                                       AppSpacing.w8,
                                     ],
                                     ActionChip(
-                                      avatar: const Icon(Icons.add, size: 16),
+                                      avatar: const Icon(
+                                        Icons.add,
+                                        size: AppSpacing.s16,
+                                      ),
                                       label: Text(l10n.matrixAddCriterion),
                                       onPressed: _addClaim,
                                     ),
