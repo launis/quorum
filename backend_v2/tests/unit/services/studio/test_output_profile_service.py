@@ -221,6 +221,53 @@ async def test_delete_output_profile(service: StudioOutputProfileService) -> Non
 
 
 @pytest.mark.asyncio
+async def test_delete_output_profile_blocked_by_workflow_default_raises_app_exception(
+    service: StudioOutputProfileService, mock_workflow_service: AsyncMock
+) -> None:
+    """ISTQB Negative: Deleting an output profile set as default_profile_id on a workflow raises 400 DELETE_BLOCKED_BY_USAGE."""
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
+    profile_id = "prf_0195f3a0000070008000111111111111"
+    workflow_id = "wf_0195f3a0000070008000000000000001"
+    p1 = _make_valid_profile(
+        profile_id,
+        "opt_1",
+        workflow_id,
+        "org_0195f3a0000070008000000000000001",
+        "P1",
+    )
+    await service.output_profile_repo.create_output_profile(p1)
+
+    workflow = Workflow(
+        id=workflow_id,
+        slug="wf_blocking",
+        name=I18nText(translations={"en": "Blocking Workflow"}),
+        description=I18nText(translations={"en": "Desc"}),
+        status="active",
+        version=1,
+        organization_id="org_0195f3a0000070008000000000000001",
+        expected_inputs=[],
+        steps=[],
+        default_profile_id=profile_id,
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="sys_0195f3a0000070008000e26807f3bfa3",
+    )
+    mock_workflow_service.list_workflows.return_value = [workflow]
+
+    with pytest.raises(AppException) as exc_info:
+        await service.delete_output_profile(initiator, profile_id)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.DELETE_BLOCKED_BY_USAGE.value
+    assert exc_info.value.details["profile_id"] == profile_id
+    assert exc_info.value.details["workflow_id"] == workflow_id
+    assert await service.output_profile_repo.get_output_profile_by_id(profile_id) is not None
+
+
+@pytest.mark.asyncio
 async def test_create_and_clone_output_profile(
     service: StudioOutputProfileService, mock_workflow_service: AsyncMock
 ) -> None:
