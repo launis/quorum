@@ -45,7 +45,7 @@
   - [x] @[backend_v2/services/auth/organization_service.py]
   - [x] @[backend_v2/services/auth/user_service.py]
   - [x] @[backend_v2/services/drivers/local_file_driver.py]
-  - [ ] @[backend_v2/services/mcp/dispatcher.py]
+  - [x] @[backend_v2/services/mcp/dispatcher.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
   - [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
   - [ ] @[backend_v2/services/usage_service.py]
