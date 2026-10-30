@@ -59,7 +59,7 @@ async def test_track_usage_prompt_caching_drift_alert(
     for idx in range(4):
         await fake_repo.log_usage(
             UsageRecord(
-                id=f"usg_000000000000000{idx}",
+                id=f"usg_0195f3a000007001800000000000000{idx}",
                 org_id=org_id,
                 user_id=user_id,
                 model="test-model",
@@ -180,7 +180,7 @@ async def test_check_quota_org_not_found(
 ) -> None:
     """Verify unknown organization raises 404 AppException with RESOURCE_NOT_FOUND."""
     with pytest.raises(AppException) as excinfo:
-        await usage_service.check_quota("org_missing00000000")
+        await usage_service.check_quota("org_0195f3a0000070018000000000000099")
 
     assert excinfo.value.status_code == 404
     assert excinfo.value.details == {"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
@@ -283,3 +283,51 @@ async def test_get_usage_report_failure_raises_app_exception(
 
     assert excinfo.value.status_code == 500
     assert excinfo.value.details == {"error_code": ErrorCodes.USAGE_TRACKING_FAILED.value}
+
+
+@pytest.mark.asyncio
+async def test_get_usage_report_app_exception_passthrough(
+    usage_service: UsageService,
+    fake_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Verify explicit AppException raised during get_usage_report is re-raised without double-wrapping."""
+    domain_err = AppException(
+        message="Invalid aggregate state",
+        status_code=422,
+        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+    )
+    async with fake_repo._audit.fault_context("get_usage_aggregate", domain_err):
+        with pytest.raises(AppException) as excinfo:
+            await usage_service.get_usage_report(scope="org", entity_id="org_0195f3a0000070018234abcd5678ef90")
+
+    assert excinfo.value.status_code == 422
+    assert excinfo.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("input_tokens", "cost_usd"),
+    [
+        (-1, 0.01),
+        (10, -0.01),
+    ],
+)
+async def test_track_usage_negative_boundary_values_raise_app_exception(
+    usage_service: UsageService,
+    input_tokens: int,
+    cost_usd: float,
+) -> None:
+    """Verify negative boundary values for tokens or cost_usd fail fast via AppException."""
+    with pytest.raises(AppException) as excinfo:
+        await usage_service.track_usage(
+            org_id="org_0195f3a0000070018234abcd5678ef90",
+            user_id="usr_0195f3a0000070018234abcd5678ef90",
+            model="test-model",
+            input_tokens=input_tokens,
+            output_tokens=20,
+            cost_usd=cost_usd,
+        )
+
+    assert excinfo.value.status_code == 500
+    assert excinfo.value.details == {"error_code": ErrorCodes.USAGE_TRACKING_FAILED.value}
+

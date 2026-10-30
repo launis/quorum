@@ -163,7 +163,7 @@ class UsageService:
         """
         try:
             record = UsageRecord(
-                # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 usage ID
+                # Generate canonical 32-hex RFC 9562 UUIDv7 usage ID
                 id=f"usg_{generate_uuid7().hex}",
                 org_id=org_id,
                 user_id=user_id,
