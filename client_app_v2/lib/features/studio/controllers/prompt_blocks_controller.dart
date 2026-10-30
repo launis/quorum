@@ -14,21 +14,21 @@ part 'prompt_blocks_controller.g.dart';
 
 // --- Providers ---
 
-/// Fetches a single Prompt Block natively by ID
+/// Fetches a single Prompt Block natively by ID.
 @riverpod
 Future<PromptBlock> promptBlockById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
   return await client.getPromptBlock(id);
 }
 
-// --- Gold Standard Form State (Flat MVC) ---
+// --- Form State (Flat MVC) ---
 
 @riverpod
 class PromptBlockForm extends _$PromptBlockForm {
   @override
   FutureOr<PromptBlock> build(String configId) async {
     final block = await ref.watch(promptBlockByIdProvider(configId).future);
-    return block.copyWith(); // Deep copy equivalent due to Freezed immutability
+    return block.copyWith();
   }
 
   void forceRebuild(PromptBlock block) {
@@ -36,20 +36,22 @@ class PromptBlockForm extends _$PromptBlockForm {
   }
 
   Future<void> submit(PromptBlock block) async {
+    // Seed AsyncData before AsyncLoading so Riverpod retains unsaved edits if save fails
+    state = AsyncData(block);
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final idToSave = block.id.isEmpty ? configId : block.id;
       if (idToSave.isEmpty || idToSave == 'new') {
-        throw AppException.validation("Block ID is required");
+        throw AppException.validation('Block ID is required');
       }
 
-      await ref
+      final saved = await ref
           .read(promptBlocksControllerProvider.notifier)
           .savePromptBlock(idToSave, block);
-      return block;
+      return saved;
     });
-    if (state.hasError) {
-      throw state.error!;
+    if (state case AsyncValue(error: final Object error)) {
+      throw error;
     }
   }
 }
@@ -57,7 +59,7 @@ class PromptBlockForm extends _$PromptBlockForm {
 // --- Controllers ---
 
 /// Controller managing Prompt Blocks strictly using strongly typed [PromptBlock] models.
-/// Implements Optimistic UI principles where possible.
+/// Implements optimistic UI updates with automatic state rollback on failure.
 @riverpod
 class PromptBlocksController extends _$PromptBlocksController {
   @override
@@ -85,14 +87,13 @@ class PromptBlocksController extends _$PromptBlocksController {
     }
   }
 
-  /// Saves a Prompt Block config utilizing Optimistic Updates.
+  /// Saves a Prompt Block configuration utilizing optimistic updates with rollback on failure.
   Future<PromptBlock> savePromptBlock(String id, PromptBlock block) async {
     final previousState = state;
-    PromptBlock returnData = block.copyWith(id: id);
+    final returnData = block.copyWith(id: id);
 
-    // 1. Optimistic Update
-    if (state.hasValue && state.value != null) {
-      final currentList = List<PromptBlock>.from(state.value!);
+    if (state case AsyncData(:final value)) {
+      final currentList = List<PromptBlock>.from(value);
       final index = currentList.indexWhere((m) => m.id == id);
 
       if (index >= 0) {
@@ -104,23 +105,20 @@ class PromptBlocksController extends _$PromptBlocksController {
     }
 
     try {
-      // 2. Network Call
       final client = ref.read(studioClientProvider);
       final verifiedBlock = await client.savePromptBlock(id, returnData);
 
-      // 3. Confirm with Actual Data
-      if (state.hasValue && state.value != null) {
-        final currentList = List<PromptBlock>.from(state.value!);
+      if (state case AsyncData(:final value)) {
+        final currentList = List<PromptBlock>.from(value);
         final index = currentList.indexWhere((m) => m.id == id);
         if (index >= 0) {
           currentList[index] = verifiedBlock;
           state = AsyncValue.data(currentList);
         }
-        returnData = verifiedBlock;
       }
-      return returnData;
+      ref.invalidate(promptBlockByIdProvider(id));
+      return verifiedBlock;
     } catch (e, st) {
-      // 4. Rollback on Failure
       state = previousState;
       ref
           .read(loggerServiceProvider)
@@ -128,23 +126,24 @@ class PromptBlocksController extends _$PromptBlocksController {
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
+      if (e is AppException) {
+        rethrow;
+      }
       throw AppException.unknown(e);
     }
   }
 
-  /// Clones a Prompt Block, using Optimistic UI appending.
+  /// Clones a Prompt Block and prepends the backend-minted copy to state.
   Future<PromptBlock> clonePromptBlock(String id) async {
     final previousState = state;
 
     try {
-      // 1. Network Call
       final client = ref.read(studioClientProvider);
       final clonedBlock = await client.clonePromptBlock(id);
 
-      // 2. Update State
-      if (state.hasValue && state.value != null) {
-        final currentList = List<PromptBlock>.from(state.value!);
-        currentList.insert(0, clonedBlock);
+      if (state case AsyncData(:final value)) {
+        final currentList = List<PromptBlock>.from(value)
+          ..insert(0, clonedBlock);
         state = AsyncValue.data(currentList);
       }
       return clonedBlock;
@@ -156,11 +155,14 @@ class PromptBlocksController extends _$PromptBlocksController {
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
+      if (e is AppException) {
+        rethrow;
+      }
       throw AppException.unknown(e);
     }
   }
 
-  /// Creates a draft Prompt Block via the SSoT backend.
+  /// Creates a draft Prompt Block via the SSOT backend.
   Future<PromptBlock> createPromptBlockDraft({String? categoryId}) async {
     final previousState = state;
     try {
@@ -169,9 +171,9 @@ class PromptBlocksController extends _$PromptBlocksController {
         categoryId: categoryId,
       );
 
-      if (state.hasValue && state.value != null) {
-        final currentList = List<PromptBlock>.from(state.value!);
-        currentList.insert(0, draftBlock);
+      if (state case AsyncData(:final value)) {
+        final currentList = List<PromptBlock>.from(value)
+          ..insert(0, draftBlock);
         state = AsyncValue.data(currentList);
       }
       return draftBlock;
@@ -180,28 +182,37 @@ class PromptBlocksController extends _$PromptBlocksController {
       ref
           .read(loggerServiceProvider)
           .error('PromptBlocksController', 'Create draft failed', e, st);
-      if (e is DioException && e.error is AppException) throw e.error!;
+      if (e is DioException && e.error is AppException) {
+        throw e.error!;
+      }
+      if (e is AppException) {
+        rethrow;
+      }
       throw AppException.unknown(e);
     }
   }
 
-  /// Deletes a Prompt Block. Throwing AppException on orphan rejection
+  /// Deletes a Prompt Block and propagates AppException on active reference conflicts.
   Future<void> deletePromptBlock(String id) async {
     try {
       final client = ref.read(studioClientProvider);
       await client.deletePromptBlock(id);
 
-      if (state.hasValue && state.value != null) {
-        final currentList = List<PromptBlock>.from(state.value!);
-        currentList.removeWhere((m) => m.id == id);
+      if (state case AsyncData(:final value)) {
+        final currentList = List<PromptBlock>.from(value)
+          ..removeWhere((m) => m.id == id);
         state = AsyncValue.data(currentList);
       }
+      ref.invalidate(promptBlockByIdProvider(id));
     } catch (e, st) {
       ref
           .read(loggerServiceProvider)
           .error('PromptBlocksController', 'Delete failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
+      }
+      if (e is AppException) {
+        rethrow;
       }
       throw AppException.unknown(e);
     }
@@ -239,6 +250,9 @@ class PromptBlocksController extends _$PromptBlocksController {
           .error('PromptBlocksController', 'Simulate failed', e, st);
       if (e is DioException && e.error is AppException) {
         throw e.error!;
+      }
+      if (e is AppException) {
+        rethrow;
       }
       throw AppException.unknown(e);
     }
