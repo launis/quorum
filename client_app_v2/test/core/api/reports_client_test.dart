@@ -226,6 +226,69 @@ void main() {
       verify(() => mockDio.get('/reports/$testReportId/sdui')).called(1);
     });
 
+    test('getReportRows fetches and maps list of ReportRowItem', () async {
+      final rowJson = {
+        'execution_id': testExecutionId,
+        'report_id': testReportId,
+        'metric_key': 'm_1',
+        'metric_label': 'Metric 1',
+        'score': 4.5,
+        'max_scale': 5.0,
+        'weight': 1.0,
+        'is_inverse_evidence': false,
+      };
+
+      when(() => mockDio.get('/reports/$testReportId/rows')).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/reports/$testReportId/rows'),
+          data: [rowJson],
+          statusCode: 200,
+        ),
+      );
+
+      final result = await client.getReportRows(testReportId);
+      expect(result.length, equals(1));
+      expect(result.first.metricKey, equals('m_1'));
+      expect(result.first.score, equals(4.5));
+      verify(() => mockDio.get('/reports/$testReportId/rows')).called(1);
+    });
+
+    test(
+      'regenerateReport posts to regenerate endpoint and returns summary',
+      () async {
+        when(
+          () => mockDio.post('/reports/$testReportId/regenerate'),
+        ).thenAnswer(
+          (_) async => Response(
+            requestOptions: RequestOptions(
+              path: '/reports/$testReportId/regenerate',
+            ),
+            data: testSummaryJson,
+            statusCode: 200,
+          ),
+        );
+
+        final result = await client.regenerateReport(testReportId);
+        expect(result.id, equals(testReportId));
+        expect(result.status, equals(ReportStatus.ready));
+        verify(
+          () => mockDio.post('/reports/$testReportId/regenerate'),
+        ).called(1);
+      },
+    );
+
+    test('deleteReport sends DELETE request for reportId', () async {
+      when(() => mockDio.delete('/reports/$testReportId')).thenAnswer(
+        (_) async => Response(
+          requestOptions: RequestOptions(path: '/reports/$testReportId'),
+          statusCode: 204,
+        ),
+      );
+
+      await client.deleteReport(testReportId);
+      verify(() => mockDio.delete('/reports/$testReportId')).called(1);
+    });
+
     test('download binary methods return Uint8List bytes', () async {
       final bytes = [1, 2, 3, 4, 5];
       when(
