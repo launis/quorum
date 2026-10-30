@@ -247,7 +247,6 @@ class StudioWorkflowService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant isolation is violated.
         """
         workflow = await self.get_workflow(initiator, id)
-        # Step 1: Include both specialist and system-core steps when resolving workflow matrix extensions
         all_steps = await self.list_steps(initiator, scope=StepFilterScope.ALL)
         step_map = {s.id: s for s in all_steps}
 
@@ -376,7 +375,6 @@ class StudioWorkflowService:
         if active_gateways:
             chosen_gateway_id = active_gateways[0].id
 
-        # Phase 4, Step 4: Dynamic repository lookup and None default for draft profile
         draft = Workflow(
             id=new_id,
             slug=new_id,
@@ -692,10 +690,9 @@ class StudioWorkflowService:
             The created step draft.
 
         Raises:
-            AppException (ErrorCodes.STATE_INTEGRITY_ERROR): If no protocol block is found.
+            AppException (ErrorCodes.STATE_INTEGRITY_ERROR): If no protocol or criteria block is found.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are denied.
         """
-        # Phase 4, Step 4: Resolve protocol and default criteria block dynamically from repository
         all_blocks = await self.prompt_block_repo.get_all_prompt_blocks()
         protocol_block_id: str | None = None
         default_criteria_id: str | None = None
