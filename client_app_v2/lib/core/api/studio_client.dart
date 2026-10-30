@@ -334,7 +334,7 @@ class StudioClient {
     return McpGateway.fromJson(response.data);
   }
 
-  /// Phase 4, Step 4.1: Introspects an external MCP server and discovers available tools.
+  /// Introspects an external MCP server and discovers available tools.
   Future<McpGateway> discoverMcpGatewayTools(String id) async {
     final response = await _dio.post('studio/mcp-gateways/$id/discover');
     return McpGateway.fromJson(response.data);
