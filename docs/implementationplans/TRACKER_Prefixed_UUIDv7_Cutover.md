@@ -39,7 +39,7 @@
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/services/orchestrator/causal_cohesion_evaluator.py]
   - [x] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
-  - [ ] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
+  - [x] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
   - [ ] @[backend_v2/services/studio/workflow_service.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] @[scripts/_ast_guardrails.py]
