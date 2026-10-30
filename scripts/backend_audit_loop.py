@@ -73,8 +73,10 @@ def discover_authoritative_scripts(scripts_dir: Path = Path("scripts")) -> tuple
 
     Returns:
         Sorted tuple of workspace-relative POSIX script paths.
+
+    Raises:
+        OSError: If the scripts directory cannot be accessed during glob traversal.
     """
-    # Phase 1, Step 2: Dynamically discover all scripts/*.py files as single source of truth
     return tuple(sorted(p.as_posix() for p in scripts_dir.glob("*.py") if p.is_file()))
 
 
@@ -95,7 +97,7 @@ if isinstance(sys.stdout, io.TextIOWrapper):
 def find_transitional_strangler_proxy_files(targets: list[str]) -> list[str]:
     """Discover in-flight Strangler Fig proxy files coexisting with same-stem subdirectories.
 
-    When MyPy scans a parent folder (e.g. backend_v2/), its file crawler skips any foo.py
+    When MyPy scans a parent folder (specifically: backend_v2/), its file crawler skips any foo.py
     if a directory named foo/ exists in the same folder. Adding foo.py explicitly ensures
     MyPy loads the proxy module symbols during multi-phase strangler fig migrations.
 
@@ -104,6 +106,9 @@ def find_transitional_strangler_proxy_files(targets: list[str]) -> list[str]:
 
     Returns:
         List of transitional proxy file paths discovered.
+
+    Raises:
+        OSError: If directory traversal fails on the filesystem.
     """
     discovered: list[str] = []
     for target in targets:
@@ -533,7 +538,7 @@ Optional steps:
         print("Error: Script must be executed from the project root (where backend_v2 is located).")
         sys.exit(1)
 
-    # Phase 2, Step 2: Expand macro completion gate targets with dynamically discovered scripts/*.py
+    # Expand macro completion gate targets with dynamically discovered scripts/*.py
     is_macro_backend_gate = not args.micro and any(t.replace("\\", "/").rstrip("/") == "backend_v2" for t in targets)
     stage_targets: list[str] = list(targets)
     if is_macro_backend_gate:
