@@ -29,7 +29,7 @@
   - [x] @[backend_v2/api/routers/studio/__init__.py]
   - [x] @[backend_v2/api/routers/system/health.py]
   - [x] [DELETE] @[backend_v2/api/routers/execution/workflows.py]
-  - [ ] @[backend_v2/api/routers/studio/workflows.py]
+  - [x] @[backend_v2/api/routers/studio/workflows.py]
   - [ ] @[backend_v2/api/routers/studio/steps.py]
   - [ ] @[backend_v2/api/routers/studio/prompt_blocks.py]
   - [ ] @[backend_v2/database/repositories/components/prompt_block.py]
