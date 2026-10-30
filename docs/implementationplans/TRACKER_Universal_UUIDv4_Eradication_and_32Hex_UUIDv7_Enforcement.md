@@ -31,7 +31,7 @@
   - [x] @[backend_v2/database/repositories/execution.py]
   - [x] @[backend_v2/database/repositories/knowledge.py]
   - [x] @[backend_v2/hooks/linguistics.py]
-  - [ ] @[backend_v2/hooks/llm.py]
+  - [x] @[backend_v2/hooks/llm.py]
   - [ ] @[backend_v2/hooks/references.py]
   - [ ] @[backend_v2/llm/client.py]
   - [ ] @[backend_v2/llm/mock_data.py]
