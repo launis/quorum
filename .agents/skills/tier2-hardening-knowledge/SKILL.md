@@ -34,7 +34,7 @@ description: Tier 2 (Knowledge Hardening) - Systematic Red-Teaming, XML Refactor
       <action>Discover KI subdirectories within `<appDataDir>/knowledge/`, read `<appDataDir>/brain/<conversation-id>/scratch/hardening_ki_state.json` if resuming, and process a maximum of 3 KI packages per session.</action>
     </phase>
     <phase id="2" name="Auditing, Refactoring &amp; Metadata Synchronization">
-      <action>Read `artifacts/ki_*.md` and `metadata.json`, evaluate against `@[.agents/skills/tier2-execute/references/modernity_and_tech_debt_checklist.md]`, rewrite the KI artifact into Quorum XML format, synchronize `metadata.json`, verify references exist on disk, update `hardening_ki_state.json`, commit changes, and execute a Baton Pass after 3 KI packages.</action>
+      <action>Read `artifacts/ki_*.md` and `metadata.json`, evaluate against `@[.agents/skills/tier2-execute/references/modernity_and_tech_debt_checklist.md]`, purge legacy `uuid4()` and 8/16-hex ID patterns in favor of 32-hex RFC 9562 UUIDv7 (`generate_opaque_id` / `generate_uuid7`), rewrite the KI artifact into Quorum XML format, synchronize `metadata.json`, verify references exist on disk, update `hardening_ki_state.json`, commit changes, and execute a Baton Pass after 3 KI packages.</action>
     </phase>
   </phases>
 </system_prompt>

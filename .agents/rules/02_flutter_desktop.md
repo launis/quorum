@@ -37,7 +37,7 @@
     </rule_block>
 
     <rule_block id="id_backend_authority_and_frontend_read_only_mandate">
-        <mandate>NEVER allow entity IDs (`workflow.id`, `step.id`, `prompt_block.id`, `profile.id`) to be editable in frontend, generate IDs client-side without randomized crypto generators, or send custom user-crafted ID strings. All canonical entity IDs MUST be issued and generated exclusively by backend using randomized Opaque Stripe IDs (`uuid.uuid4().hex[:16]`). In Flutter, all ID fields MUST be strictly read-only (`readOnly: true` or un-editable display chips).</mandate>
+        <mandate>NEVER allow entity IDs (`workflow.id`, `step.id`, `prompt_block.id`, `profile.id`) to be editable in frontend, use `Uuid().v4()`, truncate IDs via `.substring(0, 16)` / `.take(16)`, or send custom user-crafted ID strings. Primary entity IDs MUST be issued by the backend via 32-hex RFC 9562 UUIDv7 (`generate_opaque_id`), and transient client sub-entity keys (`sr_`, `grp_`, `tda_`) MUST use `generateOpaqueUuid7(prefix)` in `json_converters.dart`. In Flutter, all ID fields MUST be strictly read-only (`readOnly: true` or un-editable display chips).</mandate>
     </rule_block>
 
     <rule_block id="3rd_party_semantic_sandboxing">

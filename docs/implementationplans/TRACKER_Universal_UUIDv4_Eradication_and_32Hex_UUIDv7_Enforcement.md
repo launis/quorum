@@ -15,12 +15,12 @@
 
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]
 
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`
   - [x] Step 1: Phase 1: Flutter Client UUIDv7 SSOT, StrictOpaqueIdConverter Lock & DGR003/DGR008 Technical Debt Cleanup
   - [x] Step 2: Phase 2: Backend Core UUIDv7 Primitive & Domain Model Default Factories
   - [x] Step 3: Phase 3: Backend Services, Repositories, Hooks, LLM & Test Doubles UUIDv4 Eradication
   - [x] Step 4: Phase 4: Static AST (QGR030) & Dart (DGR008) Guardrail Enforcement
-  - [ ] Step 5: Phase 5: Rules, Knowledge Items & Tier 2 Hardening Skills Synchronization
+  - [x] Step 5: Phase 5: Rules, Knowledge Items & Tier 2 Hardening Skills Synchronization
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`
 
 ### Post-Implementation Gates
@@ -98,20 +98,25 @@
 | REQ-002 | Extract `generate_uuid7(timestamp_ms: int \| None = None) -> uuid.UUID` in `@[backend_v2/models/core_base.py#L329-L382]`, migrate domain model default factories in `@[backend_v2/models/auth.py]`, `@[backend_v2/models/domain/base.py#L260-L369]`, `@[backend_v2/models/domain/matrix.py#L113-L242]`, `@[backend_v2/models/chunking.py#L26-L65]`, and `@[backend_v2/models/state.py]`, and add unit tests in `@[backend_v2/tests/unit/models/test_core_base.py#L196-L238]`. | Step 2 | [x] Completed |
 | REQ-003 | Replace `uuid.uuid4()` with `generate_opaque_id(EntityPrefix.<TYPE>)` and `generate_uuid7()` across backend services, repositories, hooks, LLM providers, model factories, and repository fakes, and scope test patches in `@[backend_v2/tests/unit/hooks/test_references.py]` and `@[backend_v2/tests/unit/test_references.py#L190-L199]`. | Step 3 | [x] Completed |
 | REQ-004 | Enforce `QGR030` in `@[scripts/_ast_guardrails.py]` blocking `uuid.uuid4` / `uuid4` in domain code and `DGR008` in `@[scripts/_dart_guardrails.py#L135-L362]` blocking `.v4(` in handwritten Dart files, with unit tests in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py#L2419-L2433]` and `@[backend_v2/tests/unit/scripts/test_dart_guardrails.py#L494-L502]`. | Step 4 | [x] Completed |
-| REQ-005 | Synchronize `@[.agents/rules/01-python-backend.md]`, `@[.agents/rules/02_flutter_desktop.md]`, `@[.agents/rules/03_seed_vault.md]`, `@[.agents/skills/tier2-hardening-backend/SKILL.md]`, `@[.agents/skills/tier2-hardening-frontend/SKILL.md]`, `@[.agents/skills/tier2-hardening-knowledge/SKILL.md]`, `@[.agents/skills/tier2-execute/references/modernity_and_tech_debt_checklist.md]`, and Knowledge Items to enforce 32-hex RFC 9562 UUIDv7 parity. | Step 5 | [ ] Pending |
+| REQ-005 | Synchronize `@[.agents/rules/01-python-backend.md]`, `@[.agents/rules/02_flutter_desktop.md]`, `@[.agents/rules/03_seed_vault.md]`, `@[.agents/skills/tier2-hardening-backend/SKILL.md]`, `@[.agents/skills/tier2-hardening-frontend/SKILL.md]`, `@[.agents/skills/tier2-hardening-knowledge/SKILL.md]`, `@[.agents/skills/tier2-execute/references/modernity_and_tech_debt_checklist.md]`, and Knowledge Items to enforce 32-hex RFC 9562 UUIDv7 parity. | Step 5 | [x] Completed |
 
 # Session Handover Context
 
 ## Achieved
-- Initialized `@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]` for `@[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`.
+- Completed Steps 1 through 5 of `@[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]` with 4 atomic commits (`8ee9bce02`, `8e618981d`, `0e534720a`, `265eeaaef`) plus the Step 5 rules/skills/KI synchronization commit.
+- Tightened `StrictOpaqueIdConverter` to 32-hex and added `generateOpaqueUuid7(String prefix)` in `@[client_app_v2/lib/utils/json_converters.dart]`, migrating all Flutter Studio widgets, cloners, models, and test fixtures.
+- Extracted `generate_uuid7(timestamp_ms: int | None = None) -> uuid.UUID` in `@[backend_v2/models/core_base.py]`, and eradicated `uuid.uuid4()` across all domain models, services, repositories, hooks, LLM modules, model factories, and repository fakes.
+- Added static AST guardrail `QGR030` in `@[scripts/_ast_guardrails.py]` banning `uuid.uuid4` / `uuid4` in domain code and Dart guardrail `DGR008` in `@[scripts/_dart_guardrails.py]` banning `.v4(` in handwritten Dart files.
+- Synchronized `.agents/rules/`, Tier 2 hardening skills, and `<appDataDir>/knowledge/` artifacts, and passed both global completion gates (`flutter_audit_loop.py client_app_v2/ --build` and `backend_audit_loop.py backend_v2/ --test` with 6566 passed tests and 97.34% coverage).
 
 ## Learned
-- Both `StrictOpaqueIdConverter` on the Flutter client and `OPAQUE_STRIPE_ID_REGEX` / `PostgresEntityAdapter` on the Python backend require 32-hex RFC 9562 UUIDv7 identifiers (`^[a-z]{2,5}_[a-f0-9]{32}$` with version nibble `7`).
+- Both `StrictOpaqueIdConverter` on the Flutter client and `OPAQUE_STRIPE_ID_REGEX` / `PostgresEntityAdapter` on the Python backend enforce 32-hex RFC 9562 UUIDv7 identifiers (`^[a-z]{2,5}_[a-f0-9]{32}$` with version nibble `7`).
+- Updating `two_pass_atomizer.py` to generate 32-hex `tda_` IDs via `generate_opaque_id(EntityPrefix.TDA)` required updating the length assertion in `@[backend_v2/tests/unit/services/orchestrator/test_two_pass_atomizer.py]` from `12` (`tda_` + 8-hex) to `36` (`tda_` + 32-hex).
 
 ## Remaining
-- Execute Steps 1 through 5 of `@[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`.
+- Execute `/tier8-audit-plan` and the Post-Implementation Gates in `@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]`.
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md] @[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]
 ```

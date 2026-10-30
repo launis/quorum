@@ -65,7 +65,7 @@ description: Tier 2 (Backend Hardening) - Step-by-step auditing loop for Python 
         RUBBER-STAMP BAN: You are STRICTLY FORBIDDEN from outputting generic "Automated PASS" justifications without line references.
         For EVERY audited file, you MUST physically read the file line-by-line using `view_file` and produce SUBSTANTIVE CODE EVIDENCE for the 7 Architecture Invariants (6 Core + Subsystem KI Contract):
         1. ENCAPSULATION: Quote the exact line number of `__all__ = [...]` and verify only intended public symbols are exported.
-        2. ZERO-FALLBACK &amp; NAKED DICT BAN: Grep/inspect for `.get(`, `getattr(`, ` or `, `hasattr(`, `isinstance(..., dict)`, `match/case dict`, `dict[str, Any]`, `list[dict]`, `cast(Any, ...)`. Prove that missing data triggers Fail-Fast `AppException` rather than silent fallback defaults, and that all state transit uses 100% strongly typed Pydantic V2 DTOs.
+        2. ZERO-FALLBACK, NAKED DICT &amp; UUIDV4 BAN: Grep/inspect for `.get(`, `getattr(`, ` or `, `hasattr(`, `isinstance(..., dict)`, `match/case dict`, `dict[str, Any]`, `list[dict]`, `cast(Any, ...)`, `uuid.uuid4(`, `uuid4(`, and `.hex[:8]` / `.hex[:16]`. Prove that missing data triggers Fail-Fast `AppException`, state transit uses 100% strongly typed Pydantic V2 DTOs, and all IDs use 32-hex RFC 9562 UUIDv7 via `generate_opaque_id(EntityPrefix.<TYPE>)` or `generate_uuid7()` (`QGR030`).
         3. RFC 7807 DUAL-LOGGING: Quote the exact line numbers where `logger.error(..., exc_info=True)` is called immediately before `raise AppException(...)`.
         4. PEP 257 &amp; RAISES CONTRACT: Verify docstrings explicitly enumerate every `AppException` error code raised; ban `Raises: None`.
         5. SSOT CONFIG SOVEREIGNTY: Prove that no timeouts, limits, or thresholds are hardcoded; quote where `settings.py` is injected.
@@ -115,7 +115,7 @@ description: Tier 2 (Backend Hardening) - Step-by-step auditing loop for Python 
         `/tier5-resume --target="[absolute_path_to_tracker_artifact], [target_directory_being_audited]" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"`.
       </action>
       
-      <constraint name="LEGACY DEBT ANNIHILATION">Consult `@[.agents/skills/tier2-execute/references/modernity_and_tech_debt_checklist.md]` and aggressively refactor legacy dictionary contracts into 100% strict Pydantic V2 DTOs (`ConfigDict(strict=True, extra='forbid')`). If legacy unit tests fail because they expect old dictionary behaviors, ruthlessly rewrite or delete the offending legacy test.</constraint>
+      <constraint name="LEGACY DEBT ANNIHILATION">Consult `@[.agents/skills/tier2-execute/references/modernity_and_tech_debt_checklist.md]` and aggressively refactor legacy dictionary contracts into 100% strict Pydantic V2 DTOs (`ConfigDict(strict=True, extra='forbid')`) and legacy `uuid.uuid4()` / 8-16 hex IDs into 32-hex RFC 9562 UUIDv7 (`generate_opaque_id` / `generate_uuid7`). If legacy unit tests fail because they expect old dictionary or ID behaviors, ruthlessly rewrite or delete the offending legacy test.</constraint>
     </phase>
   </phases>
 </system_prompt>

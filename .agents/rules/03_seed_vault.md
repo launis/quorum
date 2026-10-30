@@ -17,11 +17,11 @@
     </rule_block>
 
     <rule_block id="hallucinated_data_keys">
-        <mandate>NEVER invent extra JSON keys not strictly defined in Pydantic models, or use human-readable IDs (`id: "new_user_1"`). All generated IDs MUST strictly follow the Opaque Stripe ID pattern (e.g. `usr_x8f9a2b1`, `blk_a1b2c3d4`). No semantic string slugs allowed.</mandate>
+        <mandate>NEVER invent extra JSON keys not strictly defined in Pydantic models, or use human-readable IDs (`id: "new_user_1"`). All generated IDs MUST strictly follow the 32-hex RFC 9562 UUIDv7 Opaque Stripe ID pattern (`usr_0195f3a0000070008000000000000001`, `blk_0195f3a0000070008000000000000002`). No semantic string slugs allowed.</mandate>
     </rule_block>
 
     <rule_block id="relational_slug_ban">
-        <mandate>NEVER use a `slug` as a foreign key or relational identifier in `seed_data.json` (e.g., `"row_explanations_block_id": "blk_row_explanation_rules"`). A `slug` is strictly an informative metadata field; ALL relational bindings MUST use the exact opaque ID (e.g., `"row_explanations_block_id": "blk_ad303690b26b413d"`).</mandate>
+        <mandate>NEVER use a `slug` as a foreign key or relational identifier in `seed_data.json` (e.g., `"row_explanations_block_id": "blk_row_explanation_rules"`). A `slug` is strictly an informative metadata field; ALL relational bindings MUST use the exact 32-hex RFC 9562 UUIDv7 opaque ID (e.g., `"row_explanations_block_id": "blk_0195f3a0000070008000000000000002"`).</mandate>
     </rule_block>
 
     <rule_block id="matrix_slug_identification_ban">

@@ -67,7 +67,7 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
         Every audited file MUST be physically read line-by-line using `view_file` and classified into ONE of the two inspection profiles:
 
         PROFILE A: MODELS, CONTROLLERS, REPOSITORIES &amp; DATA SERVICES (`models`, `controllers`, `repositories`, `providers`, `services`):
-        1. ZERO-FALLBACK &amp; STRICT JSON CONFORMITY: Ban silent null-coalescing defaults (`?? 'default'`); mandate `@JsonSerializable(disallowUnrecognizedKeys: true)`.
+        1. ZERO-FALLBACK, STRICT JSON CONFORMITY &amp; 32-HEX UUIDV7: Ban silent null-coalescing defaults (`?? 'default'`), `Uuid().v4()`, and `.substring(0, 16)` / `.take(16)` ID truncations (`DGR008`); mandate `@JsonSerializable(disallowUnrecognizedKeys: true)`, `StrictOpaqueIdConverter`, and `generateOpaqueUuid7(prefix)`.
         2. FREEZED &amp; ENUM PARITY: Mandate `@freezed(equal: false)` and camelCase `@JsonKey(name: 'snake_case')` 1:1 with Python Pydantic V2 schemas; centralize enums in `lib/core/models/enums.dart` using `@JsonEnum()`.
         3. RIVERPOD CODE-GEN &amp; SRP: Mandate `@riverpod` code generation; offload JSON decoding >100KB via `Isolate.run`.
         4. PATTERN MATCHING STATE UNWRAPPING: Mandate Dart 3 native `switch (state)` with pattern matching (`AsyncData(:final value)`, `AsyncError(:final error)`, `AsyncLoading()`); ban `.when()` / `.maybeWhen()`.
@@ -79,7 +79,7 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
         1. FLUTTER THEME SOVEREIGNTY: Total ban on direct `Color(0x...)` and naked `TextStyle(...)`; resolve strictly via `Theme.of(context).colorScheme`, `Theme.of(context).extension<AppSemanticColors>()`, or `AppSpacing`.
         2. DUAL-AXIS LOCALIZATION (ICU/ARB): Mandate `context.l10n.<key>` or `AppLocalizations.of(context)`; ban hardcoded UI strings.
         3. DESKTOP PRO UX &amp; OVERFLOW CONTAINMENT: Wrap dynamic text/dropdowns inside `Row`/grid layouts in `Expanded` or `Flexible` with `overflow: TextOverflow.ellipsis`; set `isExpanded: true` on dropdowns.
-        4. DUMB PAINTER SDUI CONTRACT: Zero business/semantic math in widgets; parse SDUI blocks via `SduiBlockDTO` wrapped in `AppErrorBoundary`.
+        4. DUMB PAINTER SDUI CONTRACT &amp; 32-HEX UUIDV7: Zero business/semantic math in widgets; parse SDUI blocks via `SduiBlockDTO` wrapped in `AppErrorBoundary`; ban `Uuid().v4()`, `.substring(0, 16)`, and `.take(16)` in favor of `generateOpaqueUuid7(prefix)` (`DGR008`).
         5. FAIL-FAST UI BOUNDARY DEFENSE: Total ban on `SizedBox.shrink()` masking broken UI or empty `catch (e) {}` blocks.
         6. ISTQB WIDGET TEST PROOF: Verify >=2 negative/boundary widget tests and passing execution via `flutter_audit_loop.py`.
         7. SUBSYSTEM KI INVARIANT PARITY: Cite exact line evidence for applicable KI or state `NA - Generic Widget/Component (No Subsystem KI applies)`.
@@ -122,7 +122,7 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
       </action>
 
       <constraint name="LEGACY DEBT ANNIHILATION">
-        Consult `@[.agents/skills/tier2-execute/references/modernity_and_tech_debt_checklist.md]` and refactor raw `Map<String, dynamic>` casting, manual string styling, and un-annotated providers into Freezed models and theme-sovereign Dumb Painter widgets.
+        Consult `@[.agents/skills/tier2-execute/references/modernity_and_tech_debt_checklist.md]` and refactor raw `Map<String, dynamic>` casting, manual string styling, un-annotated providers, and legacy `Uuid().v4()` / 16-hex ID truncations into Freezed models, `generateOpaqueUuid7(prefix)`, and theme-sovereign Dumb Painter widgets.
       </constraint>
     </phase>
   </phases>

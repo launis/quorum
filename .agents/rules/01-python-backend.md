@@ -37,7 +37,7 @@
     </rule_block>
 
     <rule_block id="id_backend_generation_authority_mandate">
-        <mandate>NEVER accept client-defined primary IDs on resource creation endpoints, use sequential/semantic counters, or rely on frontend timestamps. All primary and relational entity IDs MUST be generated exclusively on the backend via randomized cryptographic generators (`f"{prefix}_{uuid.uuid4().hex[:16]}"`). Resources in draft endpoints MUST have their canonical Opaque Stripe ID pre-assigned by the backend. All models MUST enforce strict regex `pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"` on `id` fields.</mandate>
+        <mandate>NEVER accept client-defined primary IDs on resource creation endpoints, use sequential/semantic counters, rely on frontend timestamps, or call legacy `uuid.uuid4()`. All primary and relational entity IDs MUST be generated exclusively on the backend via 32-hex RFC 9562 UUIDv7 generators (`generate_opaque_id(EntityPrefix.<TYPE>)` or `generate_uuid7()`). Resources in draft endpoints MUST have their canonical Opaque Stripe ID pre-assigned by the backend. All models MUST enforce strict regex `OPAQUE_STRIPE_ID_REGEX = r"^([a-z]{2,5})_[a-fA-F0-9]{32}$"` on `id` fields.</mandate>
     </rule_block>
 
     <rule_block id="hermetic_test_fixtures_mandate">
@@ -123,7 +123,7 @@
     </rule_block>
 
     <rule_block id="opaque_stripe_id_ssot_constant_mandate">
-        <mandate>NEVER duplicate raw regex string literals like `r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"` or hardcode string prefixes (`"wf"`, `"stp"`, `"prf"`, `"blk"`, `"sys"`, `"exe"`, `"usr"`, `"org"`) across models, routers, or services. ALL Opaque Stripe ID validation MUST import and bind `OPAQUE_STRIPE_ID_REGEX` from `backend_v2.models.core_base`. ALL ID generation MUST use `generate_opaque_id(EntityPrefix.<TYPE>)` using `EntityPrefix` from `backend_v2.models.enums`.</mandate>
+        <mandate>NEVER duplicate raw regex string literals like `r"^([a-z]{2,5})_[a-fA-F0-9]{32}$"` or hardcode string prefixes (`"wf"`, `"stp"`, `"prf"`, `"blk"`, `"sys"`, `"exe"`, `"usr"`, `"org"`) across models, routers, or services. ALL Opaque Stripe ID validation MUST import and bind `OPAQUE_STRIPE_ID_REGEX` from `backend_v2.models.core_base`. ALL ID generation MUST use `generate_opaque_id(EntityPrefix.<TYPE>)` or `generate_uuid7()` using `EntityPrefix` from `backend_v2.models.enums`.</mandate>
     </rule_block>
 
     <rule_block id="in_place_upsert_standard_mandate">
@@ -327,7 +327,7 @@
     </rule_block>
 
     <rule_block id="md5_hashery_ban">
-        <mandate>NEVER use `hashlib.md5` or `hashlib.sha1` for dynamic ID generation. ALWAYS use `uuid.uuid4().hex[:8]`. For cryptographic operations, `random` is forbidden; always enforce `secrets`.</mandate>
+        <mandate>NEVER use `hashlib.md5`, `hashlib.sha1`, or `uuid.uuid4()` for dynamic ID generation. ALWAYS use 32-hex RFC 9562 UUIDv7 via `generate_opaque_id(EntityPrefix.<TYPE>)` or `generate_uuid7()`. For cryptographic operations, `random` is forbidden; always enforce `secrets`.</mandate>
     </rule_block>
 
     <rule_block id="high_fidelity_prompting">
