@@ -20,15 +20,15 @@
   - [x] Step 3: Add ISTQB Unit Tests for QGR020, QGR031, QGR032, QGR033 & Dynamic Script Discovery and Upgrade Polyfactory Meta-Test
   - [x] Step 4: Implement SHA-256 Hardening Cache DTOs, Tracker Seeding (Waves 1-4 & UUIDv7) & 0s Short-Circuit in scripts/auto_hardening_runner.py
   - [x] Step 5: Add Comprehensive ISTQB Unit Tests for SHA-256 Hardening Cache & Tracker Seeding in test_auto_hardening_runner.py
-- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md] @[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md] @[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`
 
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
-- [x] **[OK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[scripts/_ast_guardrails.py]
-  - [x] @[scripts/backend_audit_loop.py]
-  - [x] @[scripts/auto_hardening_runner.py]
+  - [ ] @[scripts/backend_audit_loop.py]
+  - [ ] @[scripts/auto_hardening_runner.py]
 - [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
@@ -51,7 +51,7 @@
 
 ### Final Plan Audit
 
-- [x] **[OK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md] @[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
+- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md] @[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
 
@@ -88,9 +88,10 @@
 - Dynamic `Path("scripts").glob("*.py")` script discovery in `backend_audit_loop.py` eliminates maintenance of hardcoded script lists, guaranteeing that newly created operational and guardrail scripts immediately undergo the full 10-stage quality gate.
 
 ## Remaining
-- None. Implementation Plan and Tracker are 100% complete, verified, and audited.
+- Execute Tier 2 Hardening via `scripts/auto_hardening_runner.py` for `@[scripts/_ast_guardrails.py]`, `@[scripts/backend_audit_loop.py]`, and `@[scripts/auto_hardening_runner.py]`.
+- Re-run Tier 8 System 2 Red-Team Audit (`/tier8-audit-plan`).
 
 ## Resume Command
 ```powershell
-# Plan and Tracker 100% Complete
+$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
 ```
