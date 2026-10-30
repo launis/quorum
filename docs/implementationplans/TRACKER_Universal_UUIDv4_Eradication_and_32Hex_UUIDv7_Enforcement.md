@@ -41,7 +41,7 @@
   - [x] @[backend_v2/models/core_base.py]
   - [x] @[backend_v2/models/domain/base.py]
   - [x] @[backend_v2/models/domain/matrix.py]
-  - [ ] @[backend_v2/models/state.py]
+  - [x] @[backend_v2/models/state.py]
   - [ ] @[backend_v2/services/auth/organization_service.py]
   - [ ] @[backend_v2/services/auth/user_service.py]
   - [ ] @[backend_v2/services/drivers/local_file_driver.py]
