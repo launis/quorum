@@ -37,7 +37,7 @@
   - [x] @[backend_v2/services/studio/system_config_service.py]
   - [x] @[backend_v2/api/routers/studio/model_registry.py]
   - [x] @[backend_v2/api/routers/studio/mcp_gateways.py]
-  - [ ] @[backend_v2/api/routers/execution/reports.py]
+  - [x] @[backend_v2/api/routers/execution/reports.py]
   - [ ] @[backend_v2/api/routers/execution/executions.py]
   - [ ] @[backend_v2/api/routers/execution/__init__.py]
   - [ ] @[backend_v2/main.py]
