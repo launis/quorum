@@ -13,17 +13,32 @@ from backend_v2.api.dependencies import (
     get_current_user_from_header,
     get_execution_service,
 )
+from backend_v2.exceptions import (
+    AppException,
+    ErrorCodes,
+    PermissionDeniedError,
+    ResourceNotFoundError,
+)
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.execution_core import ExecutionMetadata
 
+MOCK_USER_ID = "usr_0195f3a0000070018234567890abcdef"
+MOCK_ORG_ID = "org_0195f3a0000070018234567890abcdef"
+MOCK_EXE_ID = "exe_0195f3a0000070018234567890abcdef"
+MOCK_WOR_ID = "wor_0195f3a0000070018234567890abcdef"
+MOCK_PRF_ID = "prf_0195f3a0000070018234567890abcdef"
+MOCK_ATM_ID = "atm_0195f3a0000070018234567890abcdef"
+MOCK_EVQ_ID = "evq_0195f3a0000070018234567890abcdef"
+
 # Basic mock for user
-mock_user = TokenData(id="test-user-id", role=UserRole.ROOT, organization_id="root_org")
+mock_user = TokenData(id=MOCK_USER_ID, role=UserRole.ROOT, organization_id=MOCK_ORG_ID)
 
 
 @pytest.fixture
 def override_dependencies() -> Generator[None]:
+    """Override FastAPI authentication and Arq pool dependencies."""
     app.dependency_overrides[get_current_user_from_header] = lambda: mock_user
     app.dependency_overrides[get_arq_pool] = lambda: AsyncMock()
     yield
@@ -32,6 +47,7 @@ def override_dependencies() -> Generator[None]:
 
 @pytest.fixture
 def mock_execution_service() -> Any:
+    """Provide a mocked ExecutionService injected into the router."""
     service = AsyncMock()
     app.dependency_overrides[get_execution_service] = lambda: service
     return service
@@ -44,16 +60,16 @@ def test_start_execution_null_matrix_sampling_strategy_regression(
     client = TestClient(app)
 
     mock_record = ExecutionRecord(
-        id="exe_0195f3a0000070018234567890abcdef",
-        workflow_id="wor_0195f3a0000070018234567890abcdef",
-        output_profile_id="prf_001",
+        id=MOCK_EXE_ID,
+        workflow_id=MOCK_WOR_ID,
+        output_profile_id=MOCK_PRF_ID,
         target_locale="fi",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
     )
     mock_execution_service.start_execution.return_value = mock_record
 
     payload = {
-        "workflow_id": "wor_0195f3a0000070018234567890abcdef",
+        "workflow_id": MOCK_WOR_ID,
         "target_locale": "fi",
         "raw_inputs": {"dynamic_inputs": {}},
         "profile_id": None,
@@ -66,13 +82,22 @@ def test_start_execution_null_matrix_sampling_strategy_regression(
     assert response.status_code == 202
 
 
+def test_start_execution_invalid_payload_422(
+    override_dependencies: Any, mock_execution_service: Any
+) -> None:
+    """Negative test: POST /api/v2/execution/executions/ rejects invalid schema payload with 422."""
+    client = TestClient(app)
+    response = client.post("/api/v2/execution/executions/", json={"unexpected_field": "invalid"})
+    assert response.status_code == 422
+
+
 def test_list_executions_returns_records(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Test GET /api/v2/execution/executions/ returns execution records."""
     client = TestClient(app)
     mock_record = ExecutionRecord(
-        id="exe_0195f3a0000070018234567890abcdef",
-        workflow_id="wor_0195f3a0000070018234567890abcdef",
-        output_profile_id="prf_001",
+        id=MOCK_EXE_ID,
+        workflow_id=MOCK_WOR_ID,
+        output_profile_id=MOCK_PRF_ID,
         target_locale="fi",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
     )
@@ -82,41 +107,83 @@ def test_list_executions_returns_records(override_dependencies: Any, mock_execut
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
-    assert data[0]["id"] == "exe_0195f3a0000070018234567890abcdef"
+    assert data[0]["id"] == MOCK_EXE_ID
 
 
 def test_get_execution_status(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Test GET /api/v2/execution/executions/{execution_id} returns status."""
     client = TestClient(app)
     mock_record = ExecutionRecord(
-        id="exe_0195f3a0000070018234567890abcdef",
-        workflow_id="wor_0195f3a0000070018234567890abcdef",
-        output_profile_id="prf_001",
+        id=MOCK_EXE_ID,
+        workflow_id=MOCK_WOR_ID,
+        output_profile_id=MOCK_PRF_ID,
         target_locale="fi",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
     )
     mock_execution_service.get_execution.return_value = mock_record
 
-    response = client.get("/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef")
+    response = client.get(f"/api/v2/execution/executions/{MOCK_EXE_ID}")
     assert response.status_code == 200
-    assert response.json()["id"] == "exe_0195f3a0000070018234567890abcdef"
+    assert response.json()["id"] == MOCK_EXE_ID
+
+
+def test_get_execution_status_not_found_404(
+    override_dependencies: Any, mock_execution_service: Any
+) -> None:
+    """Negative test: GET /api/v2/execution/executions/{execution_id} returns 404 when missing."""
+    client = TestClient(app)
+    mock_execution_service.get_execution.side_effect = ResourceNotFoundError(
+        resource_type="Execution", resource_id=MOCK_EXE_ID
+    )
+
+    response = client.get(f"/api/v2/execution/executions/{MOCK_EXE_ID}")
+    assert response.status_code == 404
+    assert response.json()["extensions"]["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+
+def test_get_execution_status_permission_denied_403(
+    override_dependencies: Any, mock_execution_service: Any
+) -> None:
+    """Negative test: GET /api/v2/execution/executions/{execution_id} returns 403 when forbidden."""
+    client = TestClient(app)
+    mock_execution_service.get_execution.side_effect = PermissionDeniedError("Access denied")
+
+    response = client.get(f"/api/v2/execution/executions/{MOCK_EXE_ID}")
+    assert response.status_code == 403
+    assert response.json()["extensions"]["error_code"] == ErrorCodes.PERMISSION_DENIED.value
 
 
 def test_resume_execution(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Test POST /api/v2/execution/executions/{execution_id}/resume resumes workflow."""
     client = TestClient(app)
     mock_record = ExecutionRecord(
-        id="exe_0195f3a0000070018234567890abcdef",
-        workflow_id="wor_0195f3a0000070018234567890abcdef",
-        output_profile_id="prf_001",
+        id=MOCK_EXE_ID,
+        workflow_id=MOCK_WOR_ID,
+        output_profile_id=MOCK_PRF_ID,
         target_locale="fi",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
     )
     mock_execution_service.resume_execution.return_value = mock_record
 
-    response = client.post("/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/resume")
+    response = client.post(f"/api/v2/execution/executions/{MOCK_EXE_ID}/resume")
     assert response.status_code == 202
-    assert response.json()["id"] == "exe_0195f3a0000070018234567890abcdef"
+    assert response.json()["id"] == MOCK_EXE_ID
+
+
+def test_resume_execution_unresumable_state_409(
+    override_dependencies: Any, mock_execution_service: Any
+) -> None:
+    """Negative test: POST /api/v2/execution/executions/{execution_id}/resume returns 409 when unresumable."""
+    client = TestClient(app)
+    mock_execution_service.resume_execution.side_effect = AppException(
+        message="Execution is not in a resumable state",
+        status_code=409,
+        details={"error_code": ErrorCodes.UNRESUMABLE_STATE_ERROR.value},
+    )
+
+    response = client.post(f"/api/v2/execution/executions/{MOCK_EXE_ID}/resume")
+    assert response.status_code == 409
+    assert response.json()["extensions"]["error_code"] == ErrorCodes.UNRESUMABLE_STATE_ERROR.value
 
 
 def test_stream_execution_status(override_dependencies: Any, mock_execution_service: Any) -> None:
@@ -128,7 +195,7 @@ def test_stream_execution_status(override_dependencies: Any, mock_execution_serv
 
     mock_execution_service.stream_status = fake_stream
 
-    response = client.get("/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/stream")
+    response = client.get(f"/api/v2/execution/executions/{MOCK_EXE_ID}/stream")
     assert response.status_code == 200
     assert "text/event-stream" in response.headers["content-type"]
 
@@ -138,7 +205,7 @@ def test_delete_execution(override_dependencies: Any, mock_execution_service: An
     client = TestClient(app)
     mock_execution_service.delete_execution.return_value = None
 
-    response = client.delete("/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef")
+    response = client.delete(f"/api/v2/execution/executions/{MOCK_EXE_ID}")
     assert response.status_code == 204
 
 
@@ -147,7 +214,7 @@ def test_download_frozen_context(override_dependencies: Any, mock_execution_serv
     client = TestClient(app)
     mock_execution_service.get_frozen_context_bytes.return_value = (b'{"key": "val"}', "frozen_context.json")
 
-    response = client.get("/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/frozen_context")
+    response = client.get(f"/api/v2/execution/executions/{MOCK_EXE_ID}/frozen_context")
     assert response.status_code == 200
     assert response.headers["content-disposition"] == 'attachment; filename="frozen_context.json"'
     assert response.content == b'{"key": "val"}'
@@ -158,7 +225,7 @@ def test_delete_profile_synthesis(override_dependencies: Any, mock_execution_ser
     client = TestClient(app)
     mock_execution_service.clear_profile_synthesis.return_value = None
 
-    response = client.delete("/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/profiles/prf_001")
+    response = client.delete(f"/api/v2/execution/executions/{MOCK_EXE_ID}/profiles/{MOCK_PRF_ID}")
     assert response.status_code == 204
 
 
@@ -169,7 +236,7 @@ def test_override_atom(override_dependencies: Any, mock_execution_service: Any) 
 
     payload = {"reason": "Manual review correction", "new_status": "PASSED"}
     response = client.patch(
-        "/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/atoms/atm_001/override",
+        f"/api/v2/execution/executions/{MOCK_EXE_ID}/atoms/{MOCK_ATM_ID}/override",
         json=payload,
     )
     assert response.status_code == 200
@@ -183,7 +250,7 @@ def test_reject_evidence_quote(override_dependencies: Any, mock_execution_servic
 
     payload = {"rejection_reason": "Out of context evidence"}
     response = client.put(
-        "/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/evidence/evq_001/reject",
+        f"/api/v2/execution/executions/{MOCK_EXE_ID}/evidence/{MOCK_EVQ_ID}/reject",
         json=payload,
     )
     assert response.status_code == 200
@@ -193,11 +260,11 @@ def test_reject_evidence_quote(override_dependencies: Any, mock_execution_servic
 @pytest.mark.parametrize(
     "method,path",
     [
-        ("GET", "/api/v2/execution/executions/exe_test/render"),
-        ("POST", "/api/v2/execution/executions/exe_test/render_pdf"),
-        ("GET", "/api/v2/execution/executions/exe_test/export"),
-        ("GET", "/api/v2/execution/executions/exe_test/report"),
-        ("GET", "/api/v2/execution/executions/exe_test/sdui"),
+        ("GET", "/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/render"),
+        ("POST", "/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/render_pdf"),
+        ("GET", "/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/export"),
+        ("GET", "/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/report"),
+        ("GET", "/api/v2/execution/executions/exe_0195f3a0000070018234567890abcdef/sdui"),
     ],
 )
 def test_eradicated_render_routes_return_404(

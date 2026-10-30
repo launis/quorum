@@ -47,7 +47,8 @@ async def list_executions(
         A list of execution records accessible by the user.
 
     Raises:
-        AppException: If fetching executions fails or permission is denied.
+        AppException: If repository lookup or resumability evaluation fails
+            (ErrorCodes.INTERNAL_SERVER_ERROR).
     """
     return await execution_service.list_executions(initiator=current_user)
 
@@ -73,7 +74,15 @@ async def start_execution(
         The newly created execution record in a pending/running state.
 
     Raises:
-        AppException: If validation fails, quota exceeded, or permission denied.
+        ResourceNotFoundError: If workflow, profile, or model registry does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        PermissionDeniedError: If the initiator lacks access to the workflow
+            (ErrorCodes.PERMISSION_DENIED).
+        ConfigurationError: If a referenced step or prompt block blueprint is missing
+            (ErrorCodes.CONFIGURATION_ERROR).
+        AppException: If quota is exceeded (ErrorCodes.RATE_LIMIT_EXCEEDED), input or
+            profile validation fails (ErrorCodes.VALIDATION_FAILED), or a required
+            repository dependency is missing (ErrorCodes.SERVICE_DEPENDENCY_MISSING).
     """
     return await execution_service.start_execution(
         initiator=current_user, payload=payload, arq_pool=arq_pool, doc_service=doc_service
@@ -97,7 +106,10 @@ async def get_execution_status(
         The requested execution record.
 
     Raises:
-        AppException: If the execution is not found or permission denied.
+        ResourceNotFoundError: If the execution record does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        PermissionDeniedError: If the initiator lacks access to the execution
+            (ErrorCodes.PERMISSION_DENIED).
     """
     return await execution_service.get_execution(initiator=current_user, execution_id=execution_id)
 
@@ -121,7 +133,13 @@ async def resume_execution(
         The resumed execution record in a running state.
 
     Raises:
-        AppException: If unresumable state, quota exceeded, or not found.
+        ResourceNotFoundError: If the execution record does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        PermissionDeniedError: If the initiator lacks access to the execution
+            (ErrorCodes.PERMISSION_DENIED).
+        AppException: If the execution state is unresumable
+            (ErrorCodes.UNRESUMABLE_STATE_ERROR) or organization quota is exceeded
+            (ErrorCodes.RATE_LIMIT_EXCEEDED).
     """
     return await execution_service.resume_execution(
         initiator=current_user, execution_id=execution_id, arq_pool=arq_pool
@@ -134,7 +152,7 @@ async def stream_execution_status(
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
 ) -> StreamingResponse:
-    """Stream execution status and results securely via Sever-Sent Events (SSE).
+    """Stream execution status and results securely via Server-Sent Events (SSE).
 
     Args:
         execution_id: The unique identifier of the execution.
@@ -145,7 +163,10 @@ async def stream_execution_status(
         A StreamingResponse emitting SSE events.
 
     Raises:
-        AppException: If the execution is not found or permission denied.
+        ResourceNotFoundError: If the execution record does not exist on preflight check
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        PermissionDeniedError: If the initiator lacks access to the execution on preflight
+            check (ErrorCodes.PERMISSION_DENIED).
     """
     return StreamingResponse(
         execution_service.stream_status(initiator=current_user, execution_id=execution_id),
@@ -172,7 +193,12 @@ async def delete_execution(
         execution_service: The execution domain service.
 
     Raises:
-        AppException: If deletion fails or permission is denied.
+        ResourceNotFoundError: If the execution record does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        PermissionDeniedError: If the initiator lacks deletion rights
+            (ErrorCodes.PERMISSION_DENIED).
+        AppException: If cascading storage or repository deletion fails
+            (ErrorCodes.INTERNAL_SERVER_ERROR).
     """
     await execution_service.delete_execution(initiator=current_user, execution_id=execution_id)
 
@@ -194,7 +220,12 @@ async def download_frozen_context(
         A Response containing the frozen context file.
 
     Raises:
-        AppException: If the file is not found or permission is denied.
+        ResourceNotFoundError: If the execution record does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        PermissionDeniedError: If the initiator lacks access to the execution
+            (ErrorCodes.PERMISSION_DENIED).
+        AppException: If reading the offloaded frozen context blob from storage fails
+            (ErrorCodes.RESOURCE_NOT_FOUND).
     """
     content, filename = await execution_service.get_frozen_context_bytes(
         initiator=current_user, execution_id=execution_id
@@ -213,7 +244,7 @@ async def delete_profile_synthesis(
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
 ) -> None:
-    """Clears the cached synthesis state for a specific profile.
+    """Clear the cached synthesis state for a specific profile.
 
     Args:
         execution_id: The unique identifier of the execution.
@@ -222,7 +253,12 @@ async def delete_profile_synthesis(
         execution_service: The execution domain service.
 
     Raises:
-        AppException: If the execution is not found or permission is denied.
+        ResourceNotFoundError: If the execution or workflow record does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        PermissionDeniedError: If the initiator lacks access to the execution
+            (ErrorCodes.PERMISSION_DENIED).
+        AppException: If deleting the cached PDF report blob fails
+            (ErrorCodes.INTERNAL_SERVER_ERROR).
     """
     await execution_service.clear_profile_synthesis(
         initiator=current_user, execution_id=execution_id, profile_id=profile_id
@@ -254,7 +290,12 @@ async def override_atom(
         A success message indicating the atom was overridden and the execution recalculated.
 
     Raises:
-        AppException: If the override fails or permission is denied.
+        ResourceNotFoundError: If the execution record does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        PermissionDeniedError: If the initiator lacks permission to modify the execution
+            (ErrorCodes.PERMISSION_DENIED).
+        AppException: If the target atom is not found (ErrorCodes.RESOURCE_NOT_FOUND) or
+            required repositories are missing (ErrorCodes.CONFIGURATION_ERROR).
     """
     await execution_service.override_atom(
         initiator=current_user,
@@ -290,7 +331,10 @@ async def reject_evidence_quote(
         A success message.
 
     Raises:
-        AppException: If rejection fails or permission is denied.
+        ResourceNotFoundError: If the execution record does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        PermissionDeniedError: If the initiator lacks permission to modify the execution
+            (ErrorCodes.PERMISSION_DENIED).
     """
     await execution_service.reject_evidence_quote(
         initiator=current_user,
