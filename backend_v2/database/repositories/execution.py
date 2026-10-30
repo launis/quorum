@@ -1,4 +1,4 @@
-"""Database repository implementation module."""
+"""Database repository implementation module for Execution records and traces."""
 
 import json
 import logging
@@ -29,14 +29,16 @@ class ExecutionRepositoryImpl(BaseRepository):
     """Repository implementation for Execution traces and statuses."""
 
     async def _offload_payloads(self, doc_id: str, data: dict[str, JsonValue]) -> None:
-        """Repository method implementation.
+        """Offloads MCP audit trails to subcollections and large payloads to storage blobs.
 
         Args:
             doc_id: The execution document ID.
-            data: Raw execution data dictionary.
+            data: Raw execution data dictionary mutated in-place.
 
         Raises:
-            AppException: If a critical operation fails.
+            AppException: If FrozenContext validation fails (ErrorCodes.VALIDATION_FAILED)
+                or persisting audit traces or storage blobs fails
+                (ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         driver = get_storage_driver()
 
@@ -49,15 +51,20 @@ class ExecutionRepositoryImpl(BaseRepository):
                     if fc.mcp_tool_audit:
                         coll_path = f"executions/{doc_id}/audit_trails"
                         for audit_trace in fc.mcp_tool_audit:
-                            # Phase 3, Step 3: Generate RFC 9562 UUIDv7 audit trace ID
-                            item_id = audit_trace.id or f"trc_{generate_uuid7().hex}"
+                            # Generate RFC 9562 UUIDv7 audit trace ID when not pre-assigned
+                            item_id = audit_trace.id if audit_trace.id else f"trc_{generate_uuid7().hex}"
                             trace_dict = audit_trace.model_dump(mode="json")
                             trace_dict["id"] = item_id
                             try:
                                 await self.driver.upsert(coll_path, trace_dict, item_id)
                             except Exception as e:
                                 msg = f"Failed to persist audit trace {item_id}: {e}"
-                                logger.error("[ExecutionRepository] %s", msg)
+                                logger.error(
+                                    "[ExecutionRepository] %s: %s",
+                                    ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                                    msg,
+                                    exc_info=True,
+                                )
                                 raise AppException(
                                     message=msg,
                                     status_code=500,
@@ -88,7 +95,12 @@ class ExecutionRepositoryImpl(BaseRepository):
                         del data[field]
                 except Exception as e:
                     msg = f"Failed to offload {field} for {doc_id}: {e}"
-                    logger.error("[ExecutionRepository] %s", msg, exc_info=True)
+                    logger.error(
+                        "[ExecutionRepository] %s: %s",
+                        ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                        msg,
+                        exc_info=True,
+                    )
                     raise AppException(
                         message=msg,
                         status_code=500,
@@ -96,13 +108,14 @@ class ExecutionRepositoryImpl(BaseRepository):
                     ) from e
 
     async def _hydrate_payloads(self, data: dict[str, HydrationPayloadValue] | None) -> None:
-        """Hydrate storage blob payloads and subcollection audit trails.
+        """Hydrates storage blob payloads and subcollection audit trails into the record.
 
         Args:
             data: Execution record dictionary to hydrate in-place.
 
         Raises:
-            AppException: If blob trace data is missing or corrupted.
+            AppException: If blob trace data or subcollection audit trails are missing
+                or corrupted (ErrorCodes.DATA_CORRUPTION).
         """
         if not data:
             return
@@ -116,7 +129,7 @@ class ExecutionRepositoryImpl(BaseRepository):
                 if isinstance(path_val, str) and path_val.strip():
                     try:
                         blob_data = await driver.read(path_val)
-                        if not blob_data or not blob_data.strip():
+                        if not (blob_data and blob_data.strip()):
                             status_val = None
                             if "status" in data:
                                 status_val = data["status"]
@@ -138,11 +151,10 @@ class ExecutionRepositoryImpl(BaseRepository):
                             data[field] = FrozenContext.model_validate_json(blob_data)
                         elif field == "context_variables":
                             data[field] = ContextVariablesDTO.model_validate_json(blob_data)
-                        else:
-                            data[field] = TypeAdapter(JsonValue).validate_json(blob_data)
                     except Exception as e:
-                        logger.warning(
-                            "[ExecutionRepository] Failed to hydrate %s from %s. Error: %s",
+                        logger.error(
+                            "[ExecutionRepository] %s: Failed to hydrate %s from %s. Error: %s",
+                            ErrorCodes.DATA_CORRUPTION.name,
                             field,
                             path_val,
                             e,
@@ -185,7 +197,12 @@ class ExecutionRepositoryImpl(BaseRepository):
                         data["frozen_context"] = FrozenContext(mcp_tool_audit=audit_models)
             except Exception as e:
                 msg = f"Failed to hydrate audit_trails for {doc_id}: {e}"
-                logger.error("[ExecutionRepository] %s", msg, exc_info=True)
+                logger.error(
+                    "[ExecutionRepository] %s: %s",
+                    ErrorCodes.DATA_CORRUPTION.name,
+                    msg,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -203,9 +220,11 @@ class ExecutionRepositoryImpl(BaseRepository):
             The validated ExecutionRecord instance if found, otherwise None.
 
         Raises:
-            AppException: If data corruption prevents parsing the record.
+            AppException: If data corruption prevents hydrating or parsing the record
+                (ErrorCodes.DATA_CORRUPTION).
         """
-        data = await self.driver.get("executions", execution_id)
+        driver = self.driver
+        data = await driver.get("executions", execution_id)
         if data:
             try:
                 if hydrate:
@@ -237,7 +256,8 @@ class ExecutionRepositoryImpl(BaseRepository):
         Returns:
             The execution status string if found, otherwise None.
         """
-        data = await self.driver.get("executions", execution_id)
+        driver = self.driver
+        data = await driver.get("executions", execution_id)
         if data and "status" in data:
             status_val = data["status"]
             if isinstance(status_val, str):
@@ -252,6 +272,10 @@ class ExecutionRepositoryImpl(BaseRepository):
 
         Returns:
             The created execution ID.
+
+        Raises:
+            AppException: If FrozenContext validation fails (ErrorCodes.VALIDATION_FAILED)
+                or payload offloading fails (ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         data = execution_data.model_dump(mode="json", exclude_unset=True)
         doc_id = data["id"] if "id" in data else generate_opaque_id(EntityPrefix.EXECUTION)
@@ -268,6 +292,10 @@ class ExecutionRepositoryImpl(BaseRepository):
 
         Returns:
             True if the update succeeded, False otherwise.
+
+        Raises:
+            AppException: If FrozenContext validation fails (ErrorCodes.VALIDATION_FAILED)
+                or payload offloading fails (ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         data = updates.model_dump(mode="json", exclude_unset=True)
         await self._offload_payloads(execution_id, data)
@@ -284,10 +312,11 @@ class ExecutionRepositoryImpl(BaseRepository):
             True if updated successfully, False if execution not found.
 
         Raises:
-            AppException: If hydration or persistence fails.
+            AppException: If hydration fails during trace append (ErrorCodes.DATA_CORRUPTION).
         """
-        event_dict = event_data.model_dump(mode="json")
-        data = await self.driver.get("executions", execution_id)
+        event_dict = event_data.model_dump(mode="json", exclude_none=True)
+        driver = self.driver
+        data = await driver.get("executions", execution_id)
         if not data:
             return False
 
@@ -326,6 +355,10 @@ class ExecutionRepositoryImpl(BaseRepository):
 
         Returns:
             List of validated ExecutionRecord instances.
+
+        Raises:
+            AppException: If a stored execution record is corrupted and fails model
+                validation (ErrorCodes.DATA_CORRUPTION).
         """
         filters = []
         if organization_id:
@@ -365,6 +398,10 @@ class ExecutionRepositoryImpl(BaseRepository):
 
         Returns:
             List of validated ExecutionRecord instances.
+
+        Raises:
+            AppException: If a stored execution record is corrupted and fails model
+                validation (ErrorCodes.DATA_CORRUPTION).
         """
         filters = [Filter("status", "==", "completed")]
         results = await self.driver.query(
