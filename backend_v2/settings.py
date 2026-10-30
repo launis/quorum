@@ -1035,6 +1035,9 @@ class Settings(BaseSettings):
 
         Returns:
             True if mock tokens are permitted, False otherwise.
+
+        Raises:
+            ConfigurationError: If storage backend is unsupported when evaluating active_backend.
         """
         if self.is_cloud_storage:
             return False

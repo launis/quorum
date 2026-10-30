@@ -142,11 +142,22 @@ def test_settings_service_account_auto_detection() -> None:
         assert "vertex_ai" in settings.enabled_providers
 
 
-def test_settings_storage_backend_fallback_and_invalid() -> None:
-    """Test PostgreSQL 19 sovereign storage backend and removed storage_backend field rejection."""
+def test_settings_storage_backend_fallback_and_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test PostgreSQL 19 sovereign storage backend and invalid STORAGE_BACKEND environment rejection."""
     s_default = Settings(use_mock_llm=True)
     assert s_default.active_backend == StorageBackend.POSTGRES
     assert s_default.is_cloud_storage is False
+
+    s_none = Settings(use_mock_llm=True, storage_backend=None)
+    assert s_none.active_backend == StorageBackend.POSTGRES
+
+    monkeypatch.setenv("STORAGE_BACKEND", "UNSUPPORTED_DB")
+    s_invalid = Settings(use_mock_llm=True)
+    with pytest.raises(AppException, match="Unsupported STORAGE_BACKEND"):
+        _ = s_invalid.active_backend
+    with pytest.raises(AppException, match="Unsupported STORAGE_BACKEND"):
+        _ = s_invalid.allow_mock_tokens
+    monkeypatch.delenv("STORAGE_BACKEND", raising=False)
 
     s_dev = Settings(use_mock_llm=True, environment="development", use_json_logging=False)
     assert s_dev.log_format == "readable"
@@ -157,6 +168,14 @@ def test_settings_storage_backend_fallback_and_invalid() -> None:
 
     s_prod_local = Settings(use_mock_llm=True, environment="production", use_firebase_auth=False)
     assert s_prod_local.allow_mock_tokens is True
+
+    s_cloud = Settings(
+        use_mock_llm=True,
+        environment="development",
+        storage_bucket_name="quorum-prod-bucket",
+    )
+    assert s_cloud.is_cloud_storage is True
+    assert s_cloud.allow_mock_tokens is False
 
 
 def test_settings_allow_mock_tokens_defense_in_depth() -> None:
