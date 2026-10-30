@@ -42,7 +42,7 @@
   - [x] @[backend_v2/models/domain/base.py]
   - [x] @[backend_v2/models/domain/matrix.py]
   - [x] @[backend_v2/models/state.py]
-  - [ ] @[backend_v2/services/auth/organization_service.py]
+  - [x] @[backend_v2/services/auth/organization_service.py]
   - [ ] @[backend_v2/services/auth/user_service.py]
   - [ ] @[backend_v2/services/drivers/local_file_driver.py]
   - [ ] @[backend_v2/services/mcp/dispatcher.py]
