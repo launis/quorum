@@ -8,12 +8,12 @@ part of 'prompt_blocks_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Fetches a single Prompt Block natively by ID
+/// Fetches a single Prompt Block natively by ID.
 
 @ProviderFor(promptBlockById)
 final promptBlockByIdProvider = PromptBlockByIdFamily._();
 
-/// Fetches a single Prompt Block natively by ID
+/// Fetches a single Prompt Block natively by ID.
 
 final class PromptBlockByIdProvider
     extends
@@ -23,7 +23,7 @@ final class PromptBlockByIdProvider
           FutureOr<PromptBlock>
         >
     with $FutureModifier<PromptBlock>, $FutureProvider<PromptBlock> {
-  /// Fetches a single Prompt Block natively by ID
+  /// Fetches a single Prompt Block natively by ID.
   PromptBlockByIdProvider._({
     required PromptBlockByIdFamily super.from,
     required String super.argument,
@@ -70,7 +70,7 @@ final class PromptBlockByIdProvider
 
 String _$promptBlockByIdHash() => r'8d0545f8b8db6d846aa942aa5bd7fccec7da93b3';
 
-/// Fetches a single Prompt Block natively by ID
+/// Fetches a single Prompt Block natively by ID.
 
 final class PromptBlockByIdFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<PromptBlock>, String> {
@@ -83,7 +83,7 @@ final class PromptBlockByIdFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Fetches a single Prompt Block natively by ID
+  /// Fetches a single Prompt Block natively by ID.
 
   PromptBlockByIdProvider call(String id) =>
       PromptBlockByIdProvider._(argument: id, from: this);
@@ -133,7 +133,7 @@ final class PromptBlockFormProvider
   }
 }
 
-String _$promptBlockFormHash() => r'293a1b849e87006b90e95094fa45b100d70d3d2c';
+String _$promptBlockFormHash() => r'd54d5541a406ed56eab45d934db08e10b7d523a4';
 
 final class PromptBlockFormFamily extends $Family
     with
@@ -182,17 +182,17 @@ abstract class _$PromptBlockForm extends $AsyncNotifier<PromptBlock> {
 }
 
 /// Controller managing Prompt Blocks strictly using strongly typed [PromptBlock] models.
-/// Implements Optimistic UI principles where possible.
+/// Implements optimistic UI updates with automatic state rollback on failure.
 
 @ProviderFor(PromptBlocksController)
 final promptBlocksControllerProvider = PromptBlocksControllerProvider._();
 
 /// Controller managing Prompt Blocks strictly using strongly typed [PromptBlock] models.
-/// Implements Optimistic UI principles where possible.
+/// Implements optimistic UI updates with automatic state rollback on failure.
 final class PromptBlocksControllerProvider
     extends $AsyncNotifierProvider<PromptBlocksController, List<PromptBlock>> {
   /// Controller managing Prompt Blocks strictly using strongly typed [PromptBlock] models.
-  /// Implements Optimistic UI principles where possible.
+  /// Implements optimistic UI updates with automatic state rollback on failure.
   PromptBlocksControllerProvider._()
     : super(
         from: null,
@@ -213,10 +213,10 @@ final class PromptBlocksControllerProvider
 }
 
 String _$promptBlocksControllerHash() =>
-    r'c9662020410d9698e79b96a6ef4ecbb8afa8acc3';
+    r'f7f6030775ad77c1ddf6d2c49f939307141cdacb';
 
 /// Controller managing Prompt Blocks strictly using strongly typed [PromptBlock] models.
-/// Implements Optimistic UI principles where possible.
+/// Implements optimistic UI updates with automatic state rollback on failure.
 
 abstract class _$PromptBlocksController
     extends $AsyncNotifier<List<PromptBlock>> {
