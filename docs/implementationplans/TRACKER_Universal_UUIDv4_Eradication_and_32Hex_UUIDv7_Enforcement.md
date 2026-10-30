@@ -52,7 +52,7 @@
   - [x] @[scripts/_ast_guardrails.py]
   - [x] @[scripts/_dart_guardrails.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
-  - [ ] @[client_app_v2/lib/features/studio/models/prompt_block.dart]
+  - [x] @[client_app_v2/lib/features/studio/models/prompt_block.dart]
   - [ ] @[client_app_v2/lib/features/studio/utils/workflow_cloner.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]
