@@ -9,6 +9,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import FlattenedAtom
 from backend_v2.models.domain.step import ExpectedInput
@@ -384,3 +385,59 @@ def test_compute_causal_tda_fusion_topological_metrics_lcc_conv_and_steering() -
     assert res.anti_fluff_audit.branch_convergence_ratio == 0.25
     # Deliverable roots (zero internal in-degree): d1, d2, d4 (3 roots); d1 is steered by chat_node -> 1/3 = 0.3333
     assert res.anti_fluff_audit.steering_coupling_ratio == 0.3333
+
+    single_res = compute_causal_tda_fusion_result(graph=_make_graph(nodes=[d1]))
+    assert single_res.total_deliverable_nodes == 1
+    assert single_res.anti_fluff_audit.largest_component_ratio == 1.0
+
+
+def test_transform_causal_nodes_to_atoms_blank_fields_raise_app_exception() -> None:
+    """Verify transform_causal_nodes_to_atoms raises AppException on blank node_id or claim."""
+    blank_id_node = CausalNodeDTO(
+        node_id="   ",
+        claim="Valid proposition.",
+        source_quotes=None,
+        paragraph_ref=None,
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+    )
+    with pytest.raises(AppException) as exc_info:
+        transform_causal_nodes_to_atoms([blank_id_node])
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    blank_claim_node = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000001",
+        claim="",
+        source_quotes=None,
+        paragraph_ref=None,
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+    )
+    with pytest.raises(AppException) as claim_exc_info:
+        transform_causal_nodes_to_atoms([blank_claim_node])
+    assert claim_exc_info.value.details is not None
+    assert claim_exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.parametrize("invalid_dampening", [-0.1, 1.5])
+def test_compute_causal_tda_fusion_result_out_of_bounds_dampening_raises_app_exception(
+    invalid_dampening: float,
+) -> None:
+    """Verify compute_causal_tda_fusion_result raises AppException when dampening_factor is out of bounds."""
+    node = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000001",
+        claim="Valid proposition.",
+        source_quotes=("Quote",),
+        paragraph_ref="P1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+    )
+    graph = _make_graph(nodes=[node])
+    with pytest.raises(AppException) as exc_info:
+        compute_causal_tda_fusion_result(graph=graph, dampening_factor=invalid_dampening)
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

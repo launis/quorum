@@ -7,8 +7,10 @@ analytic outputs.
 
 from __future__ import annotations
 
+import logging
 from collections import deque
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.matrix import FlattenedAtom
 from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.dtos.atom_result import AtomResultDTO
@@ -16,6 +18,7 @@ from backend_v2.models.dtos.causal_discovery import (
     AntiFluffAuditDTO,
     CausalGraphPayloadDTO,
     CausalNodeDTO,
+    CausalRootCauseDiagnosisDTO,
     CausalTdaFusionResultDTO,
     FairScoringBreakdownDTO,
     PrescriptiveRemediationDTO,
@@ -24,13 +27,14 @@ from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.causal_cohesion_evaluator import CausalCohesionEvaluator
 from backend_v2.settings import get_settings
 
+logger = logging.getLogger(__name__)
+
 __all__ = [
     "compute_causal_tda_fusion_result",
     "transform_causal_nodes_to_atoms",
 ]
 
 
-# Phase 1, Step 1: Extract leaf causal TDA fusion functions
 def transform_causal_nodes_to_atoms(nodes: list[CausalNodeDTO]) -> list[FlattenedAtom]:
     """Transform causal discovery proposition nodes into immutable FlattenedAtom instances.
 
@@ -39,9 +43,29 @@ def transform_causal_nodes_to_atoms(nodes: list[CausalNodeDTO]) -> list[Flattene
 
     Returns:
         List of strictly typed FlattenedAtom instances for TDA evaluation.
+
+    Raises:
+        AppException: Triggered with VALIDATION_FAILED if any node has a blank node_id or claim.
     """
     atoms: list[FlattenedAtom] = []
     for node in nodes:
+        if not node.node_id.strip() or not node.claim.strip():
+            msg = "CausalNodeDTO requires non-blank node_id and claim for TDA atom transformation."
+            logger.error(
+                "[CausalTdaFusion] %s: %s (node_id=%r)",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                node.node_id,
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=422,
+                details={
+                    "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                    "node_id": node.node_id,
+                },
+            )
         anchor_target = ""
         if node.paragraph_ref is not None:
             anchor_target = node.paragraph_ref
@@ -111,6 +135,57 @@ def _compute_largest_component_ratio(
     return round(max_component_size / total_deliverable, 4)
 
 
+def _resolve_deliverable_nodes(
+    projected_graph: CausalGraphPayloadDTO,
+    expected_inputs: list[ExpectedInput] | None,
+) -> list[CausalNodeDTO]:
+    """Filter projected graph nodes belonging to the induced deliverable subgraph.
+
+    Args:
+        projected_graph: CausalGraphPayloadDTO with overlaid TDA evaluation statuses.
+        expected_inputs: Optional ExpectedInput definitions classifying deliverable inputs.
+
+    Returns:
+        List of CausalNodeDTO instances belonging to the deliverable subgraph.
+    """
+    deliverable_keys: set[str] = set()
+    if expected_inputs:
+        deliverable_keys = {ei.input_key for ei in expected_inputs if ei.is_endorsed_deliverable}
+        if not deliverable_keys:
+            deliverable_keys = {
+                ei.input_key
+                for ei in expected_inputs
+                if not ei.is_chat_history and not ei.is_assignment and "questionnaire" not in ei.input_modes
+            }
+
+    if deliverable_keys:
+        return [n for n in projected_graph.nodes if n.source_input_key in deliverable_keys]
+    return list(projected_graph.nodes)
+
+
+def _resolve_dialogue_node_ids(
+    projected_graph: CausalGraphPayloadDTO,
+    expected_inputs: list[ExpectedInput] | None,
+    deliverable_node_ids: set[str],
+) -> set[str]:
+    """Resolve the set of node IDs originating from dialogue history inputs.
+
+    Args:
+        projected_graph: CausalGraphPayloadDTO with overlaid TDA evaluation statuses.
+        expected_inputs: Optional ExpectedInput definitions classifying dialogue inputs.
+        deliverable_node_ids: Set of node IDs belonging to the induced deliverable subgraph.
+
+    Returns:
+        Set of node IDs belonging to dialogue inputs.
+    """
+    dialogue_keys: set[str] = set()
+    if expected_inputs:
+        dialogue_keys = {ei.input_key for ei in expected_inputs if ei.is_chat_history}
+    if dialogue_keys:
+        return {n.node_id for n in projected_graph.nodes if n.source_input_key in dialogue_keys}
+    return {n.node_id for n in projected_graph.nodes if n.node_id not in deliverable_node_ids}
+
+
 def _compute_anti_fluff_audit(
     projected_graph: CausalGraphPayloadDTO,
     expected_inputs: list[ExpectedInput] | None,
@@ -124,30 +199,9 @@ def _compute_anti_fluff_audit(
     Returns:
         2-tuple of (AntiFluffAuditDTO, total_deliverable_nodes).
     """
-    # Phase 5, Step 5: Compute r_LCC, r_conv, and kappa_steer over induced deliverable subgraph
-    deliverable_keys: set[str] = set()
-    dialogue_keys: set[str] = set()
-    if expected_inputs:
-        deliverable_keys = {ei.input_key for ei in expected_inputs if ei.is_endorsed_deliverable}
-        if not deliverable_keys:
-            deliverable_keys = {
-                ei.input_key
-                for ei in expected_inputs
-                if not ei.is_chat_history and not ei.is_assignment and "questionnaire" not in ei.input_modes
-            }
-        dialogue_keys = {ei.input_key for ei in expected_inputs if ei.is_chat_history}
-
-    deliverable_nodes: list[CausalNodeDTO]
-    if deliverable_keys:
-        deliverable_nodes = [n for n in projected_graph.nodes if n.source_input_key in deliverable_keys]
-    else:
-        deliverable_nodes = list(projected_graph.nodes)
-
+    deliverable_nodes = _resolve_deliverable_nodes(projected_graph, expected_inputs)
     deliverable_node_ids = {n.node_id for n in deliverable_nodes}
-    if dialogue_keys:
-        dialogue_node_ids = {n.node_id for n in projected_graph.nodes if n.source_input_key in dialogue_keys}
-    else:
-        dialogue_node_ids = {n.node_id for n in projected_graph.nodes if n.node_id not in deliverable_node_ids}
+    dialogue_node_ids = _resolve_dialogue_node_ids(projected_graph, expected_inputs, deliverable_node_ids)
 
     deliverable_isolated_count = 0
     convergent_count = 0
@@ -214,33 +268,21 @@ def _compute_anti_fluff_audit(
     return audit, total_deliverable_nodes
 
 
-def compute_causal_tda_fusion_result(
+def _project_evaluated_atoms_onto_graph(
     graph: CausalGraphPayloadDTO,
-    evaluative_matrices: dict[str, float] | None = None,
-    evaluated_atoms: list[AtomResultDTO] | None = None,
-    dampening_factor: float | None = None,
-    expected_inputs: list[ExpectedInput] | None = None,
-) -> CausalTdaFusionResultDTO:
-    """Computes composite fusion result executing five stakeholder benefit pipelines.
-
-    Executes:
-    1. Root Cause Attribution: Diagnoses cascading failures via blame_parent_ids.
-    2. Anti-Fluff Shield: Quantifies isolated concepts, unsupported claims, and logical cohesion.
-    3. Prescriptive Remediation: Identifies unlock paths for root cause failure nodes.
-    4. Visual XAI Data Projection: Overlays evaluated statuses and scores on graph nodes.
-    5. Fair Scoring Deduplication: Deduplicates cascading penalties with power-curve dampening.
+    evaluative_matrices: dict[str, float] | None,
+    evaluated_atoms: list[AtomResultDTO] | None,
+) -> CausalGraphPayloadDTO:
+    """Overlay evaluated TDA atom statuses and scores onto the causal graph nodes.
 
     Args:
-        graph: Causal graph payload discovered from source propositions.
+        graph: Upstream CausalGraphPayloadDTO discovered from source propositions.
         evaluative_matrices: Optional mapping of matrix IDs to evaluated scores.
         evaluated_atoms: Optional list of evaluated AtomResultDTO instances.
-        dampening_factor: Optional penalty dampening factor (defaults to settings value).
-        expected_inputs: Optional list of ExpectedInput configurations to induce deliverable subgraph.
 
     Returns:
-        CausalTdaFusionResultDTO combining graph and all five analytical facets.
+        Projected CausalGraphPayloadDTO with updated node statuses and scores.
     """
-    # 1. Visual XAI Data Projection: Overlay evaluated statuses/scores
     updated_nodes: list[CausalNodeDTO] = []
     atom_by_id: dict[str, AtomResultDTO] = {}
     if evaluated_atoms is not None:
@@ -270,18 +312,18 @@ def compute_causal_tda_fusion_result(
         else:
             updated_nodes.append(node)
 
-    projected_graph = graph.model_copy(update={"nodes": updated_nodes})
+    return graph.model_copy(update={"nodes": updated_nodes})
 
-    # 2. Root Cause Attribution: Diagnoses cascading failures via Algorithm 1
-    root_cause_diagnoses = CausalCohesionEvaluator().diagnose_root_causes(projected_graph)
 
-    # 3. Anti-Fluff Shield: Induce Deliverable Subgraph and evaluate Exogenous Boundary Axiom
-    anti_fluff_audit, total_deliverable_nodes = _compute_anti_fluff_audit(
-        projected_graph=projected_graph,
-        expected_inputs=expected_inputs,
-    )
+def _build_prescriptive_remediations(projected_graph: CausalGraphPayloadDTO) -> list[PrescriptiveRemediationDTO]:
+    """Identify unlock paths and score impact for root cause failure nodes.
 
-    # 4. Prescriptive Remediation
+    Args:
+        projected_graph: CausalGraphPayloadDTO with overlaid TDA evaluation statuses.
+
+    Returns:
+        List of PrescriptiveRemediationDTO instances for root cause nodes with downstream dependents.
+    """
     prescriptive_remediations: list[PrescriptiveRemediationDTO] = []
     node_by_id = {n.node_id: n for n in projected_graph.nodes}
     for root_id in projected_graph.root_cause_node_ids:
@@ -304,12 +346,24 @@ def compute_causal_tda_fusion_result(
                     potential_score_impact=float(len(unlocked) + 1),
                 )
             )
+    return prescriptive_remediations
 
-    # 5. Fair Scoring Deduplication
-    effective_dampening = get_settings().causal_secondary_fault_dampening
-    if dampening_factor is not None:
-        effective_dampening = dampening_factor
 
+def _compute_fair_scoring_breakdown(
+    projected_graph: CausalGraphPayloadDTO,
+    root_cause_diagnoses: list[CausalRootCauseDiagnosisDTO],
+    effective_dampening: float,
+) -> FairScoringBreakdownDTO:
+    """Compute fair scoring breakdown deduplicating cascading faults with dampening.
+
+    Args:
+        projected_graph: CausalGraphPayloadDTO with overlaid TDA evaluation statuses.
+        root_cause_diagnoses: Diagnosed cascading failure attributions.
+        effective_dampening: Secondary fault dampening factor in [0.0, 1.0].
+
+    Returns:
+        Validated FairScoringBreakdownDTO satisfying the scoring identity.
+    """
     failing_nodes = [
         n
         for n in projected_graph.nodes
@@ -326,12 +380,79 @@ def compute_causal_tda_fusion_result(
     dampened_savings = round(float(cascading_fault_count) * 1.0 * effective_dampening, 4)
     deduplicated_penalty = round(raw_penalty - dampened_savings, 4)
 
-    fair_scoring = FairScoringBreakdownDTO(
+    return FairScoringBreakdownDTO(
         independent_error_count=independent_error_count,
         cascading_fault_count=cascading_fault_count,
         raw_penalty_points=raw_penalty,
         deduplicated_penalty_points=deduplicated_penalty,
         dampened_savings_points=dampened_savings,
+    )
+
+
+def compute_causal_tda_fusion_result(
+    graph: CausalGraphPayloadDTO,
+    evaluative_matrices: dict[str, float] | None = None,
+    evaluated_atoms: list[AtomResultDTO] | None = None,
+    dampening_factor: float | None = None,
+    expected_inputs: list[ExpectedInput] | None = None,
+) -> CausalTdaFusionResultDTO:
+    """Compute composite fusion result executing five stakeholder benefit pipelines.
+
+    Executes:
+    1. Root Cause Attribution: Diagnoses cascading failures via blame_parent_ids.
+    2. Anti-Fluff Shield: Quantifies isolated concepts, unsupported claims, and logical cohesion.
+    3. Prescriptive Remediation: Identifies unlock paths for root cause failure nodes.
+    4. Visual XAI Data Projection: Overlays evaluated statuses and scores on graph nodes.
+    5. Fair Scoring Deduplication: Deduplicates cascading penalties with power-curve dampening.
+
+    Args:
+        graph: Causal graph payload discovered from source propositions.
+        evaluative_matrices: Optional mapping of matrix IDs to evaluated scores.
+        evaluated_atoms: Optional list of evaluated AtomResultDTO instances.
+        dampening_factor: Optional penalty dampening factor in [0.0, 1.0] (defaults to settings value).
+        expected_inputs: Optional list of ExpectedInput configurations to induce deliverable subgraph.
+
+    Returns:
+        CausalTdaFusionResultDTO combining graph and all five analytical facets.
+
+    Raises:
+        AppException: Triggered with VALIDATION_FAILED if dampening_factor is outside [0.0, 1.0].
+    """
+    effective_dampening = get_settings().causal_secondary_fault_dampening
+    if dampening_factor is not None:
+        if not 0.0 <= dampening_factor <= 1.0:
+            msg = f"dampening_factor must reside within [0.0, 1.0], got {dampening_factor}."
+            logger.error(
+                "[CausalTdaFusion] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                exc_info=True,
+            )
+            raise AppException(
+                message=msg,
+                status_code=422,
+                details={
+                    "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                    "dampening_factor": dampening_factor,
+                },
+            )
+        effective_dampening = dampening_factor
+
+    projected_graph = _project_evaluated_atoms_onto_graph(
+        graph=graph,
+        evaluative_matrices=evaluative_matrices,
+        evaluated_atoms=evaluated_atoms,
+    )
+    root_cause_diagnoses = CausalCohesionEvaluator().diagnose_root_causes(projected_graph)
+    anti_fluff_audit, total_deliverable_nodes = _compute_anti_fluff_audit(
+        projected_graph=projected_graph,
+        expected_inputs=expected_inputs,
+    )
+    prescriptive_remediations = _build_prescriptive_remediations(projected_graph)
+    fair_scoring = _compute_fair_scoring_breakdown(
+        projected_graph=projected_graph,
+        root_cause_diagnoses=root_cause_diagnoses,
+        effective_dampening=effective_dampening,
     )
 
     return CausalTdaFusionResultDTO(

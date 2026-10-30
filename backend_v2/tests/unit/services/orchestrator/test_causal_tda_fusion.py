@@ -940,3 +940,60 @@ def test_causal_fusion_falsification_elevation_and_topological_metrics() -> None
     cycle_res = compute_causal_tda_fusion_result(graph=graph_cycle, expected_inputs=None)
     assert cycle_res.anti_fluff_audit.cycle_detected is True
     assert cycle_res.anti_fluff_audit.logical_cohesion_score == 0.5
+
+    single_node_graph = _create_test_graph(nodes=[d1])
+    single_res = compute_causal_tda_fusion_result(graph=single_node_graph, expected_inputs=None)
+    assert single_res.total_deliverable_nodes == 1
+    assert single_res.anti_fluff_audit.largest_component_ratio == 1.0
+
+
+def test_transform_causal_nodes_to_atoms_blank_node_id_or_claim_raises_app_exception() -> None:
+    """Verifies transform_causal_nodes_to_atoms raises AppException on blank node_id or claim."""
+    blank_id_node = CausalNodeDTO(
+        node_id="   ",
+        claim="Valid proposition text.",
+        source_quotes=("Quote",),
+        paragraph_ref="P1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+    )
+    with pytest.raises(AppException) as exc_info:
+        transform_causal_nodes_to_atoms([blank_id_node])
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    blank_claim_node = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000001",
+        claim="   ",
+        source_quotes=("Quote",),
+        paragraph_ref="P1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+    )
+    with pytest.raises(AppException) as claim_exc_info:
+        transform_causal_nodes_to_atoms([blank_claim_node])
+    assert claim_exc_info.value.details is not None
+    assert claim_exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.parametrize("invalid_dampening", [-0.01, 1.01])
+def test_compute_causal_tda_fusion_result_invalid_dampening_raises_app_exception(
+    invalid_dampening: float,
+) -> None:
+    """Verifies compute_causal_tda_fusion_result raises AppException when dampening_factor is outside [0.0, 1.0]."""
+    node = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000001",
+        claim="Valid proposition text.",
+        source_quotes=("Quote",),
+        paragraph_ref="P1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+    )
+    graph = _create_test_graph(nodes=[node])
+    with pytest.raises(AppException) as exc_info:
+        compute_causal_tda_fusion_result(graph=graph, dampening_factor=invalid_dampening)
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
