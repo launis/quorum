@@ -24,7 +24,8 @@ from backend_v2.models.auth import (
     User,
     UserRole,
 )
-from backend_v2.models.enums import SystemLocale
+from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.enums import EntityPrefix, SystemLocale
 from backend_v2.services.auth import (
     LEGACY_SYSTEM_ORG_ID,
     AuthService,
@@ -841,3 +842,51 @@ async def test_direct_organization_service_execution_missing_user_creator_fails_
         await service.create_organization(root_initiator, payload)
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+@pytest.mark.asyncio
+async def test_delete_organization_force_firebase_delete_error_raises_app_exception(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Verifies that force deletion raises AppException when Firebase user deletion fails."""
+    mock_fb = MagicMock()
+    mock_fb.delete_user.side_effect = RuntimeError("Firebase transport error")
+    auth_service = AuthService(mock_repo, use_firebase=True, firebase_auth=mock_fb)
+
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    user_id = generate_opaque_id(EntityPrefix.USER)
+    root_id = generate_opaque_id(EntityPrefix.USER)
+
+    org = Organization(
+        id=org_id,
+        name="Firebase Fault Org",
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        tier="enterprise",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=500.0,
+        tpm_limit=50000,
+        rpm_limit=500,
+    )
+    await mock_repo.create_organization(org)
+    user = User(
+        id=user_id,
+        email="fb_fault@test.com",
+        name="FB Fault User",
+        role=UserRole.MEMBER,
+        organization_id=org_id,
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        language=SystemLocale.EN,
+        theme_mode="system",
+    )
+    await mock_repo.create_user(user)
+    root_initiator = TokenData(id=root_id, role=UserRole.ROOT)
+
+    with pytest.raises(AppException) as exc_info:
+        await auth_service.delete_organization(root_initiator, org_id, force=True)
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
+    mock_fb.delete_user.assert_called_once_with(user_id)

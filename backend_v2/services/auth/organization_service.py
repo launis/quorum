@@ -87,12 +87,19 @@ class OrganizationService:
             The newly created organization.
 
         Raises:
-            PermissionDeniedError: If the initiator is not ROOT.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator is not ROOT.
+            AppException: With ErrorCodes.CONFIGURATION_ERROR if UserCreatorProtocol is not configured.
         """
         if initiator.role != UserRole.ROOT:
+            logger.error(
+                "[OrganizationService] %s: Only ROOT can create organizations (initiator=%s).",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                exc_info=True,
+            )
             raise PermissionDeniedError("Only ROOT can create organizations.")
 
-        # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 organization ID
+        # Generate canonical 32-hex RFC 9562 UUIDv7 organization ID
         org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
 
         new_org = Organization(
@@ -121,6 +128,11 @@ class OrganizationService:
         )
 
         if self.user_creator is None:
+            logger.error(
+                "[OrganizationService] %s: UserCreatorProtocol is not configured.",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                exc_info=True,
+            )
             raise AppException(
                 message="Cannot create organization: UserCreatorProtocol is not configured.",
                 status_code=500,
@@ -157,8 +169,9 @@ class OrganizationService:
             None
 
         Raises:
-            PermissionDeniedError: If the initiator is not ROOT or targets system org.
-            ConflictError: If the organization is not empty and force is False.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator is not ROOT or targets system org.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if the organization is not empty and force is False.
+            AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if Firebase cascade user deletion fails.
         """
         logger.info(
             "[OrganizationService] delete_organization called. Initiator: %s, Target: %s, Force: %s",
@@ -168,6 +181,13 @@ class OrganizationService:
         )
 
         if initiator.role != UserRole.ROOT:
+            logger.error(
+                "[OrganizationService] %s: Only ROOT can delete organizations (initiator=%s, target=%s).",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                target_org_id,
+                exc_info=True,
+            )
             raise PermissionDeniedError("Only ROOT can delete organizations.")
 
         if target_org_id in (
@@ -178,6 +198,13 @@ class OrganizationService:
             "system",
             LEGACY_SYSTEM_ORG_ID,
         ):
+            logger.error(
+                "[OrganizationService] %s: Attempted to delete protected system organization %s (initiator=%s).",
+                ErrorCodes.PERMISSION_DENIED.name,
+                target_org_id,
+                initiator.id,
+                exc_info=True,
+            )
             raise PermissionDeniedError("CRITICAL: The 'system' organization is protected and CANNOT be deleted.")
 
         logger.info("[OrganizationService] Fetching users to check for safety...")
@@ -193,6 +220,7 @@ class OrganizationService:
                 "[OrganizationService] %s: Organization is not empty (%s users). Use force=True to delete.",
                 ErrorCodes.CONFLICT_ERROR.name,
                 user_count,
+                exc_info=True,
             )
             raise ConflictError(
                 message=f"Organization is not empty ({user_count} users). Use force=True to delete.",
@@ -206,9 +234,18 @@ class OrganizationService:
                     try:
                         await asyncio.to_thread(self.firebase_auth.delete_user, user.id)
                     except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as fb_err:
-                        if isinstance(fb_err, (KeyboardInterrupt, SystemExit)):
-                            raise
-                        logger.warning("Failed to cascade delete user %s in Firebase: %s", user.id, fb_err)
+                        logger.error(
+                            "[OrganizationService] %s: Failed to cascade delete user %s in Firebase: %s",
+                            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                            user.id,
+                            fb_err,
+                            exc_info=True,
+                        )
+                        raise AppException(
+                            message=f"Failed to cascade delete user {user.id} in Firebase: {fb_err}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                        ) from fb_err
 
                 await self.user_repo.delete(user.id)
 
@@ -232,14 +269,15 @@ class OrganizationService:
 
         Returns:
             A list of organizations scoped to the initiator's permissions.
+
+        Raises:
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the tenant's organization does not exist.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator lacks access.
         """
         if initiator.role != UserRole.ROOT:
             if not initiator.organization_id:
                 return []
-            org = await self.get_organization(initiator, initiator.organization_id)
-            if org:
-                return [org]
-            return []
+            return [await self.get_organization(initiator, initiator.organization_id)]
         return await self.org_repo.list_all()
 
     async def get_organization(self, initiator: TokenData, org_id: str) -> Organization:
@@ -253,17 +291,27 @@ class OrganizationService:
             The requested organization model.
 
         Raises:
-            ResourceNotFoundError: If the organization does not exist.
-            PermissionDeniedError: If the initiator lacks access.
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the organization does not exist.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator lacks access.
         """
         org = await self.org_repo.get_by_id(org_id)
 
         if not org:
+            logger.error(
+                "[OrganizationService] %s: Organization not found (org_id=%s).",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                org_id,
+                exc_info=True,
+            )
             raise ResourceNotFoundError(resource_type="organization", resource_id=org_id)
 
         if initiator.role != UserRole.ROOT and initiator.organization_id != org_id:
-            logger.warning(
-                "[OrganizationService] PERMISSION_DENIED: %s tried to read foreign org %s", initiator.id, org_id
+            logger.error(
+                "[OrganizationService] %s: %s tried to read foreign org %s",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                org_id,
+                exc_info=True,
             )
             raise PermissionDeniedError("You do not have permission to view this organization.")
 
@@ -283,10 +331,17 @@ class OrganizationService:
             The updated organization model.
 
         Raises:
-            PermissionDeniedError: If the initiator is not ROOT.
-            ResourceNotFoundError: If the organization does not exist.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator is not ROOT.
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the organization does not exist.
         """
         if initiator.role != UserRole.ROOT:
+            logger.error(
+                "[OrganizationService] %s: Only ROOT can update organizations (initiator=%s, org_id=%s).",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                org_id,
+                exc_info=True,
+            )
             raise PermissionDeniedError("Only ROOT can update organizations.")
 
         await self.get_organization(initiator, org_id)
