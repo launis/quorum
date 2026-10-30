@@ -41,13 +41,13 @@
   - [x] @[backend_v2/api/routers/execution/executions.py]
   - [x] @[backend_v2/api/routers/execution/__init__.py]
   - [x] @[backend_v2/main.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [x] @[client_app_v2/lib/core/api/reports_client.dart]
   - [x] @[client_app_v2/lib/core/api/workflow_client.dart]
   - [x] @[client_app_v2/lib/core/api/studio_client.dart]
   - [x] @[client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart]
   - [x] @[client_app_v2/lib/features/studio/views/matrices_master_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
