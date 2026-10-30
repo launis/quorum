@@ -29,7 +29,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
     """Repository implementation for Knowledge base, Banned phrases and Prompts."""
 
     async def get_banned_phrases(self) -> list[BannedPhrase]:
-        """Retrieves all banned phrases.
+        """Retrieve all banned phrases.
 
         Returns:
             List of validated BannedPhrase domain models.
@@ -61,7 +61,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         return phrases
 
     async def add_banned_phrase(self, phrase: str, language: str = SystemLocale.EN.value) -> None:
-        """Adds a new banned phrase if not already existing.
+        """Add a new banned phrase if not already existing.
 
         Args:
             phrase: The phrase string to ban.
@@ -69,12 +69,11 @@ class KnowledgeRepositoryImpl(BaseRepository):
         """
         existing = await self.driver.query("banned_phrases", [Filter("phrase", "==", phrase)], limit=1)
         if not existing:
-            # Phase 3, Step 3: Generate RFC 9562 UUIDv7 banned phrase ID
             doc_id = str(generate_uuid7())
             await self.driver.upsert("banned_phrases", {"phrase": phrase, "language": language, "id": doc_id}, doc_id)
 
     async def delete_banned_phrase(self, phrase: str) -> bool:
-        """Deletes a banned phrase.
+        """Delete a banned phrase.
 
         Args:
             phrase: The phrase string to remove.
@@ -88,7 +87,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         return False
 
     async def get_prompt_template(self, template_id: str) -> PromptTemplateDTO | None:
-        """Retrieves a prompt template by ID.
+        """Retrieve a prompt template by ID.
 
         Args:
             template_id: Unique identifier for the prompt template.
@@ -113,7 +112,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         return PromptTemplateDTO(system=sys_p, user=usr_p)
 
     async def get_concepts(self) -> list[Concept]:
-        """Retrieves all knowledge base concepts.
+        """Retrieve all knowledge base concepts.
 
         Returns:
             List of validated Concept domain models.
@@ -145,7 +144,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         return concepts
 
     async def get_references(self) -> list[Reference]:
-        """Retrieves all knowledge base references.
+        """Retrieve all knowledge base references.
 
         Returns:
             List of validated Reference domain models.
@@ -177,7 +176,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         return refs
 
     async def get_claims(self) -> list[Claim]:
-        """Retrieves all knowledge base claims.
+        """Retrieve all knowledge base claims.
 
         Returns:
             List of validated Claim domain models.
@@ -209,7 +208,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         return claims
 
     async def add_concept(self, item: ConceptCreateDTO) -> str:
-        """Adds a concept to knowledge base.
+        """Add a concept to the knowledge base.
 
         Args:
             item: ConceptCreateDTO data.
@@ -218,13 +217,12 @@ class KnowledgeRepositoryImpl(BaseRepository):
             The created concept ID.
         """
         payload = item.model_dump(mode="json")
-        # Phase 3, Step 3: Generate RFC 9562 UUIDv7 knowledge document ID
         doc_id = str(generate_uuid7())
         payload["id"] = doc_id
         return await self.driver.upsert("concepts", payload, doc_id)
 
     async def add_reference(self, item: ReferenceCreateDTO) -> str:
-        """Adds a reference to knowledge base.
+        """Add a reference to the knowledge base.
 
         Args:
             item: ReferenceCreateDTO data.
@@ -233,13 +231,12 @@ class KnowledgeRepositoryImpl(BaseRepository):
             The created reference ID.
         """
         payload = item.model_dump(mode="json")
-        # Phase 3, Step 3: Generate RFC 9562 UUIDv7 knowledge document ID
         doc_id = str(generate_uuid7())
         payload["id"] = doc_id
         return await self.driver.upsert("references", payload, doc_id)
 
     async def add_claim(self, item: ClaimCreateDTO) -> str:
-        """Adds a claim to knowledge base.
+        """Add a claim to the knowledge base.
 
         Args:
             item: ClaimCreateDTO data.
@@ -248,13 +245,12 @@ class KnowledgeRepositoryImpl(BaseRepository):
             The created claim ID.
         """
         payload = item.model_dump(mode="json")
-        # Phase 3, Step 3: Generate RFC 9562 UUIDv7 knowledge document ID
         doc_id = str(generate_uuid7())
         payload["id"] = doc_id
         return await self.driver.upsert("claims", payload, doc_id)
 
     async def clear_knowledge_base(self) -> None:
-        """Clears all concepts, references, and claims from the database."""
+        """Clear all concepts, references, and claims from the database."""
         await self.driver.clear("concepts")
         await self.driver.clear("references")
         await self.driver.clear("claims")
