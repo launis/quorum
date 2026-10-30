@@ -501,6 +501,16 @@ String truncate(String input) {
     dgr008 = [v for v in violations if v.rule_code == "DGR008"]
     assert len(dgr008) == 0
 
+    # Phase 4, Step 4: Verify Uuid().v4() triggers DGR008 in lib/ while Uuid().v7() and test/ pass
+    v4_lib = _scan_snippet("final id = const Uuid().v4();", filepath="client_app_v2/lib/features/studio/test.dart")
+    assert len([v for v in v4_lib if v.rule_code == "DGR008"]) == 1
+
+    v7_lib = _scan_snippet("final id = const Uuid().v7();", filepath="client_app_v2/lib/features/studio/test.dart")
+    assert len([v for v in v7_lib if v.rule_code == "DGR008"]) == 0
+
+    v4_test = _scan_snippet("final id = const Uuid().v4();", filepath="client_app_v2/test/features/studio/test.dart")
+    assert len([v for v in v4_test if v.rule_code == "DGR008"]) == 0
+
 
 def test_dgr008_substring_two_args_detected() -> None:
     code = """

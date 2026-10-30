@@ -2432,6 +2432,24 @@ b2 = StorageBackend.FIRESTORE
     assert len(qgr030) == 4
     assert all(v.severity == GuardrailSeverity.FATAL for v in qgr030)
 
+    # Phase 4, Step 4: Verify uuid.uuid4 and bare uuid4 raise fatal QGR030 in domain code
+    uuid4_domain_code = """
+import uuid
+from uuid import uuid4
+
+id1 = uuid.uuid4()
+id2 = uuid4()
+"""
+    domain_violations = _scan_snippet(uuid4_domain_code, filepath="backend_v2/services/some_service.py")
+    domain_qgr030 = [v for v in domain_violations if v.rule_code == "QGR030"]
+    assert len(domain_qgr030) == 2
+    assert all(v.severity == GuardrailSeverity.FATAL for v in domain_qgr030)
+
+    # Verify uuid.uuid4 remains allowed in unit test files for negative boundary tests
+    test_violations = _scan_snippet(uuid4_domain_code, filepath="backend_v2/tests/unit/test_some_service.py")
+    test_qgr030 = [v for v in test_violations if v.rule_code == "QGR030"]
+    assert len(test_qgr030) == 0
+
 
 def test_qgr030_non_hexadecimal_mock_entity_id_raises_fatal() -> None:
     """QGR030: Positive violation test detecting non-hexadecimal mock entity ID literals."""

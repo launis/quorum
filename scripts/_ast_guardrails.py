@@ -869,6 +869,22 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "PostgreSQL 19 (`StorageBackend.POSTGRES`) is the sole persistence backend; remove legacy LOCAL/FIRESTORE references.",
                 severity=GuardrailSeverity.FATAL,
             )
+
+        # Phase 4, Step 4: QGR030 Ban legacy uuid.uuid4 in domain code
+        if (
+            self._is_domain_code
+            and not self._is_test_file
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "uuid"
+            and node.attr == "uuid4"
+        ):
+            self._add_violation(
+                node,
+                "QGR030",
+                "Banned legacy `uuid.uuid4` detected in domain code.",
+                "Use `generate_opaque_id(EntityPrefix.<TYPE>)` or `generate_uuid7()` from `backend_v2.models.core_base` to enforce RFC 9562 UUIDv7.",
+                severity=GuardrailSeverity.FATAL,
+            )
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
@@ -2663,6 +2679,15 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 f"Banned reference to eradicated persistence symbol `{node.id}`.",
                 "Use PostgreSQL 19 Zero-ORM persistence "
                 "(`PostgresStorageDriver`, `PostgresUnitOfWork`, `InMemoryUnitOfWork`).",
+                severity=GuardrailSeverity.FATAL,
+            )
+        # Phase 4, Step 4: QGR030 Ban bare uuid4 identifier in domain code
+        if self._is_domain_code and not self._is_test_file and node.id == "uuid4":
+            self._add_violation(
+                node,
+                "QGR030",
+                "Banned legacy `uuid4` identifier detected in domain code.",
+                "Use `generate_opaque_id(EntityPrefix.<TYPE>)` or `generate_uuid7()` from `backend_v2.models.core_base` to enforce RFC 9562 UUIDv7.",
                 severity=GuardrailSeverity.FATAL,
             )
         self.generic_visit(node)

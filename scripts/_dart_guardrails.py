@@ -318,6 +318,21 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
                         is_suppressed=False,
                     )
                 )
+            # Phase 4, Step 4: DGR008 Ban legacy Uuid().v4() generation in handwritten Dart files
+            v4_match = re.search(r"\.v4\s*\(", line)
+            if v4_match:
+                violations.append(
+                    DartViolation(
+                        filepath=filepath,
+                        lineno=lineno,
+                        col_offset=v4_match.start(),
+                        rule_code="DGR008",
+                        message="Banned legacy `Uuid().v4()` version-4 UUID generation detected.",
+                        remediation="Use `generateOpaqueUuid7(prefix)` or `const Uuid().v7()` to enforce 32-hex RFC 9562 UUIDv7 parity.",
+                        severity=default_severity,
+                        is_suppressed=False,
+                    )
+                )
 
         # DGR010: Missing AsyncValue guards on dynamic AsyncNotifierProvider consumers
         if "test" not in path_parts:
