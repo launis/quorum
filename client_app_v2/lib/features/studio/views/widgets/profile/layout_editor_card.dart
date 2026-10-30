@@ -51,10 +51,9 @@ class LayoutEditorCard extends ConsumerWidget {
             Expanded(
               child: Text(
                 l10n.layoutBlocksTitle,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -119,7 +118,9 @@ class _CompactMatrixGroupItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Card(
       elevation: 0,
@@ -135,14 +136,17 @@ class _CompactMatrixGroupItem extends StatelessWidget {
           // Phase 1, Step 1: Resolve DGR003 by passing (index + 1).toString()
           child: Text(
             (index + 1).toString(),
-            style: const TextStyle(fontSize: 11),
+            style: theme.textTheme.labelSmall,
           ),
         ),
         title: Text(
-          group.title.translations['en'] ??
-              group.title.translations.values.firstOrNull ??
-              'Group #${index + 1}',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          group.title.get(
+            Localizations.localeOf(context).languageCode,
+            fallback: 'en',
+          ),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         trailing: IconButton(
           icon: Icon(Icons.delete_outline, color: colorScheme.error),
@@ -151,7 +155,7 @@ class _CompactMatrixGroupItem extends StatelessWidget {
         childrenPadding: AppSpacing.p12,
         children: [
           I18nTextField(
-            label: 'Group Title',
+            label: l10n.graphTitleLabel,
             initialData: group.title,
             onChanged: (val) {
               onUpdate(group.copyWith(title: val));

@@ -18,6 +18,7 @@ from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.services.storage import get_storage_driver
 
 logger = logging.getLogger(__name__)
+__all__ = ["ExecutionRepositoryImpl", "HydrationPayloadValue"]
 
 type HydrationPayloadValue = (
     JsonValue | BaseModel | list[ErrorTraceEvent | TombstoneEvent | TraceEvent] | list[MCPAuditTrace]

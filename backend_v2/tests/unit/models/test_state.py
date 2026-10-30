@@ -640,3 +640,109 @@ def test_state_projector_apply_delta_scoring_dict() -> None:
     by_block = {dto.block_id for dto in results}
     assert VirtualSystemStepID.SCORING_RESULT.value in by_block
     assert "custom_meta" in by_block
+
+
+def test_state_projector_apply_delta_dict_and_content_dto_branches() -> None:
+    """Test apply_delta branches for StepOutputContentDTO, graph merge, fusion dict, atom dicts, and results lists."""
+    projector = StateProjector()
+
+    # 1. StepOutputContentDTO directly (line 650) and subsequent CausalGraphPayloadDTO merge (lines 675-678)
+    content_dto = StepOutputContentDTO(data={"existing_key": "existing_val"})
+    projector.apply_delta(TraceEvent(step_name="stp_merge", event_type="output", content=content_dto))
+
+    node = CausalNodeDTO(
+        node_id="nod_1",
+        claim="Claim 1",
+        status=ExecutionStatus.PASSED,
+        blame_parent_ids=[],
+        dependent_child_ids=[],
+    )
+    graph = CausalGraphPayloadDTO(nodes=[node], edges=[])
+    projector.apply_delta(TraceEvent(step_name="stp_merge", event_type="output", content=graph))
+
+    # 2. Dict with anti_fluff_audit + fair_scoring + graph (line 696)
+    audit = AntiFluffAuditDTO(
+        isolated_concept_count=0,
+        cycle_detected=False,
+        unsupported_claims_count=0,
+        logical_cohesion_score=0.9,
+        detected_hollow_terms=[],
+    )
+    fair = FairScoringBreakdownDTO(
+        independent_error_count=0,
+        cascading_fault_count=0,
+        raw_penalty_points=0.0,
+        deduplicated_penalty_points=0.0,
+        dampened_savings_points=0.0,
+    )
+    fusion_dict = CausalTdaFusionResultDTO(graph=graph, anti_fluff_audit=audit, fair_scoring=fair).model_dump(
+        mode="json"
+    )
+    projector.apply_delta(TraceEvent(step_name="stp_fusion_dict", event_type="output", content=fusion_dict))
+
+    # 3. Dict with VirtualSystemStepID.SCORING_RESULT.value (line 700)
+    projector.apply_delta(
+        TraceEvent(
+            step_name="stp_score_key",
+            event_type="output",
+            content={VirtualSystemStepID.SCORING_RESULT.value: {"total_score": 75.0}},
+        )
+    )
+
+    # 4. Dict with tda_id and matrix_id (lines 711-712) + results list with hydrated_references merge (lines 714-740)
+    atom_dto = AtomResultDTO(
+        tda_id="tda_1",
+        matrix_id="blk_cohesion",
+        status=ExecutionStatus.PASSED,
+        contextual_override=True,
+        is_inverse_evidence=False,
+        evaluation_reasoning="Reasoning 1",
+        extensions={},
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
+    atom_dict = atom_dto.model_dump(mode="json")
+    projector.apply_delta(TraceEvent(step_name="stp_atom_dict", event_type="output", content=atom_dict))
+    projector.apply_delta(
+        TraceEvent(
+            step_name="stp_atom_dict",
+            event_type="output",
+            content={
+                "results": [atom_dto, atom_dict],
+                "hydrated_references": {"ref_1": "Title 1"},
+                "extra_meta": "val_1",
+            },
+        )
+    )
+    projector.apply_delta(
+        TraceEvent(
+            step_name="stp_atom_dict",
+            event_type="output",
+            content={
+                "results": [atom_dict],
+                "hydrated_references": {"ref_2": "Title 2"},
+                "extra_meta": "val_2",
+            },
+        )
+    )
+
+    # 5. Dict with non-atom results list (lines 741-750) and generic dict merge (lines 752-760)
+    projector.apply_delta(
+        TraceEvent(step_name="stp_non_atom", event_type="output", content={"results": ["plain_str"]})
+    )
+    projector.apply_delta(
+        TraceEvent(step_name="stp_non_atom", event_type="output", content={"results": ["plain_str_2"]})
+    )
+    projector.apply_delta(
+        TraceEvent(step_name="stp_generic_dict", event_type="output", content={"k1": "v1"})
+    )
+    projector.apply_delta(
+        TraceEvent(step_name="stp_generic_dict", event_type="output", content={"k2": "v2"})
+    )
+
+    snap = projector.snapshot
+    assert any(s.step_id == "stp_merge" and s.block_id == "graph" for s in snap)
+    assert any(s.step_id == "stp_fusion_dict" and s.block_id == "fusion" for s in snap)
+    assert any(s.step_id == "stp_atom_dict" and s.block_id == "hydrated_references" for s in snap)
+    assert any(s.step_id == "stp_generic_dict" and s.block_id == "k2" for s in snap)
+

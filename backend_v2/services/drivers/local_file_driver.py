@@ -13,6 +13,7 @@ from backend_v2.models.core_base import generate_uuid7
 from backend_v2.services.file_driver import FileDriver
 
 logger = logging.getLogger(__name__)
+__all__ = ["LocalFileDriver", "MAX_REPLACE_RETRIES", "REPLACE_RETRY_DELAY_SEC"]
 
 # Constants for Windows os.replace retry logic
 MAX_REPLACE_RETRIES = 15
@@ -142,7 +143,7 @@ class LocalFileDriver(FileDriver):
                     if attempt == MAX_REPLACE_RETRIES - 1:
                         logger.error("[LocalFileDriver] File is locked: %s", e)
                         raise AppException(
-                            message=f"Tiedosto on auki toisessa ohjelmassa: {str(e)}",
+                            message=f"File is locked by another process: {str(e)}",
                             status_code=409,
                             details={"error_code": ErrorCodes.FILE_LOCKED_ERROR.value},
                         ) from e
@@ -200,7 +201,7 @@ class LocalFileDriver(FileDriver):
                         f"[LocalFileDriver] {ErrorCodes.STORAGE_ACCESS_FAILED.name}: File is locked after {MAX_REPLACE_RETRIES} attempts: {e}"
                     )
                     raise AppException(
-                        message=f"Local Read Failed, tiedosto on auki: {str(e)}",
+                        message=f"Local Read Failed, file is locked: {str(e)}",
                         status_code=409,
                         details={"error_code": ErrorCodes.FILE_LOCKED_ERROR.value},
                     ) from e
@@ -302,7 +303,7 @@ class LocalFileDriver(FileDriver):
         except PermissionError as e:
             logger.error("[LocalFileDriver] Directory is locked: %s", e)
             raise AppException(
-                message=f"Hakemisto on auki toisessa ohjelmassa: {str(e)}",
+                message=f"Directory is locked by another process: {str(e)}",
                 status_code=409,
                 details={"error_code": ErrorCodes.FILE_LOCKED_ERROR.value},
             ) from e

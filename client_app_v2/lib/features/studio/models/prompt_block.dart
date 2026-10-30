@@ -34,7 +34,7 @@ enum BlockDataType {
     final lower = val.toLowerCase();
     return BlockDataType.values.firstWhere(
       (e) => e.backendValue == lower,
-      orElse: () => BlockDataType.stringType,
+      orElse: () => throw FormatException('Invalid BlockDataType: $val'),
     );
   }
 }
@@ -386,26 +386,44 @@ sealed class PromptBlock with _$PromptBlock {
       _$PromptBlockFromJson(json);
 
   /// Absolute minimum score from backend MatrixPromptBlock
-  int? get computedMin => mapOrNull(matrix: (m) => m.computedMin);
+  int? get computedMin => switch (this) {
+    MatrixPromptBlock(:final computedMin) => computedMin,
+    _ => null,
+  };
 
   /// Absolute maximum score from backend MatrixPromptBlock
-  int? get computedMax => mapOrNull(matrix: (m) => m.computedMax);
+  int? get computedMax => switch (this) {
+    MatrixPromptBlock(:final computedMax) => computedMax,
+    _ => null,
+  };
 
-  String get categoryId => map(
-    matrix: (_) => 'matrix',
-    systemRule: (_) => 'system_rule',
-    executionPersona: (_) => 'execution_persona',
-    agentRole: (_) => 'agent_role',
-    protocol: (_) => 'protocol',
-    runtimeVariables: (_) => 'runtime_variables',
-    taskDefinition: (_) => 'task_definition',
-  );
+  String get categoryId => switch (this) {
+    MatrixPromptBlock() => 'matrix',
+    SystemRulePromptBlock() => 'system_rule',
+    ExecutionPersonaPromptBlock() => 'execution_persona',
+    AgentRolePromptBlock() => 'agent_role',
+    ProtocolPromptBlock() => 'protocol',
+    RuntimeVariablesPromptBlock() => 'runtime_variables',
+    TaskDefinitionPromptBlock() => 'task_definition',
+  };
 
-  List<MatrixScale>? get scales => mapOrNull(matrix: (m) => m.scales);
-  List<MatrixRow>? get rows => mapOrNull(matrix: (m) => m.rows);
-  List<I18nText>? get columns => mapOrNull(matrix: (m) => m.columns);
-  bool get allowContextualOverride =>
-      mapOrNull(matrix: (m) => m.allowContextualOverride) ?? false;
+  List<MatrixScale>? get scales => switch (this) {
+    MatrixPromptBlock(:final scales) => scales,
+    _ => null,
+  };
+  List<MatrixRow>? get rows => switch (this) {
+    MatrixPromptBlock(:final rows) => rows,
+    _ => null,
+  };
+  List<I18nText>? get columns => switch (this) {
+    MatrixPromptBlock(:final columns) => columns,
+    _ => null,
+  };
+  bool get allowContextualOverride => switch (this) {
+    MatrixPromptBlock(:final allowContextualOverride) =>
+      allowContextualOverride,
+    _ => false,
+  };
 
   /// Parses raw JSON string to PromptBlock in a background isolate
   static Future<PromptBlock> parseInBackground(String rawJson) async {

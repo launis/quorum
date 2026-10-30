@@ -48,6 +48,25 @@ from backend_v2.models.enums import (
 )
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
 
+__all__ = [
+    "ClaimUpdateConfig",
+    "DUAL_TRACK_A_CONFIG",
+    "DUAL_TRACK_B_BLOCK_IDS",
+    "SPECIFIC_ATOM_HARMONIZATIONS",
+    "SanitizeResult",
+    "TrackAConfig",
+    "atomic_save_seed_data",
+    "clean_mechanical_phrases",
+    "create_vault_backup",
+    "main",
+    "run_seed_vault_sanitization",
+    "sanitize_output_profiles",
+    "sanitize_prompt_blocks",
+    "sanitize_steps",
+    "sanitize_workflows",
+    "strip_raw_xml",
+]
+
 _CAUSAL_COHESION_MATRIX_BLOCK_ID: str = "blk_0195f3a00000700c80a1e50000000001"
 _SYSTEM_ORG_UUID7_ID: str = "org_0195f3a0000070008000000000000000"
 

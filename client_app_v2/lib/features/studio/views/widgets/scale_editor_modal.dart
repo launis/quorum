@@ -266,18 +266,23 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
   }
 
   Widget _buildCard({required String title, required Widget child}) {
+    final theme = Theme.of(context);
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
+      ),
+      margin: const EdgeInsets.only(bottom: AppSpacing.s16),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               title,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             AppSpacing.h16,
             child,
@@ -489,6 +494,7 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
   }
 
   Widget _buildCard2Reasoning(TDAAssertion tda, AppLocalizations l10n) {
+    final theme = Theme.of(context);
     return _buildCard(
       title: l10n.scaleSectionReasoning,
       child: Column(
@@ -496,7 +502,9 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
         children: [
           Text(
             l10n.scaleAcceptanceCriteriaLabel,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           AppSpacing.h8,
           DynamicItemListEditor(
@@ -519,7 +527,9 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
           AppSpacing.h16,
           Text(
             l10n.scaleAntiPatternsLabel,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           AppSpacing.h8,
           DynamicItemListEditor(
@@ -668,7 +678,9 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                       ? l10n.scaleAggExists
                       : l10n.scaleAggAllMustComply,
                   style: isDisabled
-                      ? TextStyle(color: theme.disabledColor)
+                      ? theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.disabledColor,
+                        )
                       : null,
                 ),
               );
@@ -730,9 +742,8 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                 Expanded(
                   child: Text(
                     _previewErrorMessage!,
-                    style: TextStyle(
+                    style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onErrorContainer,
-                      fontSize: 13,
                     ),
                   ),
                 ),
