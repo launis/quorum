@@ -53,7 +53,7 @@
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md] @[ki_router_ssot_and_crud_clone_lifecycle.md]
   ```
@@ -104,6 +104,7 @@
 - Step 3: Consolidated ReportArtifact routes onto a single `router = APIRouter(tags=["Reports"])` mounted once under `/api/v2` in `main.py`, eradicated `external_reports_router` and legacy `/api/v1` mounts, deleted all 10 shadow decorators and duplicate direct subrouter methods, expanded `test_router_ssot_guardrails.py` to verify universal CRUD + Clone lifecycle parity across all 6 blueprint routers (`workflows`, `steps`, `prompt-blocks`, `output-profiles`, `model-registry`, `mcp-gateways`) with strict `OPAQUE_STRIPE_ID_REGEX` parameter pattern validation, and synchronized `04_directory_reference.md`. All backend audit loops and AST guardrails pass 100%.
 - Tier 8 Plan Audit: Executed `/tier8-audit-plan`, verified 100% of `REQ-001` through `REQ-012` across all 31 target files (`red_team_audit_Router_SSOT_Consolidation.md`), and verified Golden Master, Pre-Delete, and Semantic Coverage gates.
 - Tier 2 Hardening (Backend & Frontend): Completed 22/22 surviving target files (16 Backend `.py` and 6 Frontend `.dart`) via `scripts/auto_hardening_runner.py --gate all`.
+- Tier 7 As-Built Architectural Sync: Synchronized `@[ki_router_ssot_and_crud_clone_lifecycle.md]`, `@[.agents/rules/04_directory_reference.md]`, and timeless architecture pillars (`docs/architecture/01_system_context_and_invariants.md`, `docs/architecture/02_data_seeding_and_ontology.md`, `docs/architecture/04_server_driven_ui_and_presentation.md`).
 
 ## Learned
 - Single APIRouter mounting in `main.py` directly under `/api/v2` avoids duplicate subrouter mappings and guarantees predictable OpenAPI path generation.
@@ -111,7 +112,7 @@
 - `[DELETE]` targets are strictly excluded from `Tier 2 Hardening` checklists (`TRK007` and `TPR004`).
 
 ## Remaining
-- Documentation & Knowledge Item Update (`As-Built Architectural Sync` via `/tier7-describe-architecture`).
+- None (100% Complete).
 
 ## Resume Command
 ```powershell
