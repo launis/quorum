@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
@@ -41,7 +41,13 @@ _SINGLE_UNDERSCORE_SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:_[a-z0-9]+)*$")
 
 
 class StudioSystemConfigService:
-    """Domain Service for System Config management."""
+    """Domain Service for System Config management.
+
+    Attributes:
+        system_repo: Repository interface for system configuration persistence.
+        mcp_client: Protocol-agnostic MCP client for tool discovery.
+        gateway_cache: Typed cache for MCP gateway manifests.
+    """
 
     def __init__(
         self,
@@ -63,7 +69,7 @@ class StudioSystemConfigService:
     def get_available_models(
         self,
         initiator: TokenData,
-        llm_handler: Any,
+        llm_handler: LLMHandler,
         platform: LLMPlatformType = LLMPlatformType.ALL,
         location: str | None = None,
     ) -> list[str]:
@@ -79,14 +85,15 @@ class StudioSystemConfigService:
             A sorted list of available AI models.
 
         Raises:
-            PermissionDeniedError: If tenant access is violated.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
-        if initiator.role not in [UserRole.ROOT, UserRole.ADMIN]:
+        if initiator.role not in (UserRole.ROOT, UserRole.ADMIN):
             logger.error(
                 "[StudioSystemConfigService] %s: User %s (Role: %s) unauthorized to fetch available models.",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
                 initiator.role,
+                exc_info=True,
                 extra={
                     "error_code": ErrorCodes.PERMISSION_DENIED.value,
                     "user_id": initiator.id,
@@ -125,13 +132,14 @@ class StudioSystemConfigService:
             List of supported GCP locations.
 
         Raises:
-            PermissionDeniedError: If user is not authorized.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If user is not authorized.
         """
-        if initiator.role not in [UserRole.ROOT, UserRole.ADMIN]:
+        if initiator.role not in (UserRole.ROOT, UserRole.ADMIN):
             logger.error(
                 "[StudioSystemConfigService] %s: User %s attempted to list locations without ROOT/ADMIN permissions.",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("Only ROOT or ADMIN can access supported locations.")
@@ -149,13 +157,14 @@ class StudioSystemConfigService:
             List of supported LLM platforms.
 
         Raises:
-            PermissionDeniedError: If user is not authorized.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If user is not authorized.
         """
-        if initiator.role not in [UserRole.ROOT, UserRole.ADMIN]:
+        if initiator.role not in (UserRole.ROOT, UserRole.ADMIN):
             logger.error(
                 "[StudioSystemConfigService] %s: User %s attempted to list platforms without ROOT/ADMIN permissions.",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("Only ROOT or ADMIN can access supported platforms.")
@@ -207,26 +216,19 @@ class StudioSystemConfigService:
             The loaded SystemConfigModelRegistry.
 
         Raises:
-            PermissionDeniedError: If tenant access is violated.
-            ResourceNotFoundError: If the resource is missing.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
         """
         if initiator.role != UserRole.ROOT:
             logger.error(
                 "[StudioSystemConfigService] %s: Only ROOT can view system configs (Initiator: %s).",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("Only ROOT can view system configs.")
-        data = await self.system_repo.get_model_registry(registry_id=id)
-        if not data:
-            logger.error(
-                "[StudioSystemConfigService] %s: SystemConfig %s not found (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-            )
-            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
-        return data
+        return await self.system_repo.get_model_registry(registry_id=id)
 
     async def save_system_config(
         self, initiator: TokenData, id: str, data: SystemConfigModelRegistry
@@ -242,14 +244,16 @@ class StudioSystemConfigService:
             The saved SystemConfigModelRegistry.
 
         Raises:
-            PermissionDeniedError: If tenant access is violated.
-            ResourceNotFoundError: If the resource is missing.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after save.
         """
         if initiator.role != UserRole.ROOT:
             logger.error(
                 "[StudioSystemConfigService] %s: Only ROOT can modify system configs (Initiator: %s).",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("Only ROOT can modify system configs.")
 
@@ -257,16 +261,7 @@ class StudioSystemConfigService:
             data = data.model_copy(update={"id": id})
         await self.system_repo.update_model_registry(data)
 
-        saved = await self.system_repo.get_model_registry(registry_id=id)
-        if not saved:
-            logger.error(
-                "[StudioSystemConfigService] %s: SystemConfig %s not found after save (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-            )
-            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
-        return saved
+        return await self.system_repo.get_model_registry(registry_id=id)
 
     async def create_system_config_draft(self, initiator: TokenData) -> SystemConfigModelRegistry:
         """Create system config draft.
@@ -276,6 +271,10 @@ class StudioSystemConfigService:
 
         Returns:
             The drafted SystemConfigModelRegistry.
+
+        Raises:
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are denied.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the drafted resource is missing after save.
         """
         enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=True)
 
@@ -323,25 +322,19 @@ class StudioSystemConfigService:
             The cloned SystemConfigModelRegistry.
 
         Raises:
-            PermissionDeniedError: If tenant access is violated.
-            ResourceNotFoundError: If the resource is missing.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
         """
         if initiator.role != UserRole.ROOT:
             logger.error(
                 "[StudioSystemConfigService] %s: Only ROOT can clone system configs (Initiator: %s).",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("Only ROOT can clone system configs.")
         data = await self.system_repo.get_model_registry(registry_id=id)
-        if not data:
-            logger.error(
-                "[StudioSystemConfigService] %s: Model registry %s not found for cloning (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-            )
-            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
 
         new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
         cloned_name = f"{data.name} (Copy)"
@@ -365,25 +358,20 @@ class StudioSystemConfigService:
             id: The system config identifier.
 
         Raises:
-            PermissionDeniedError: If non-ROOT user attempts deletion.
-            ResourceNotFoundError: If the system config is missing.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If non-ROOT user attempts deletion.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the system config is missing.
+            AppException (ErrorCodes.SYSTEM_PROTECTED_RESOURCE): If attempting to delete the last model registry.
         """
         if initiator.role != UserRole.ROOT:
             logger.error(
                 "[StudioSystemConfigService] %s: Only ROOT can delete system configs (Initiator: %s).",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("Only ROOT can delete system configs.")
-        data = await self.system_repo.get_model_registry(registry_id=id)
-        if not data:
-            logger.error(
-                "[StudioSystemConfigService] %s: SystemConfig %s not found for deletion (Initiator: %s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                id,
-                initiator.id,
-            )
-            raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+        await self.system_repo.get_model_registry(registry_id=id)
 
         all_registries = await self.system_repo.get_all_model_registries()
         if len(all_registries) <= 1:
@@ -391,6 +379,7 @@ class StudioSystemConfigService:
                 "[StudioSystemConfigService] %s: Cannot delete the last remaining model registry %s.",
                 ErrorCodes.SYSTEM_PROTECTED_RESOURCE.name,
                 id,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.SYSTEM_PROTECTED_RESOURCE.value, "registry_id": id},
             )
             raise AppException(
@@ -425,14 +414,15 @@ class StudioSystemConfigService:
             The loaded SystemConfigMCPGateways.
 
         Raises:
-            PermissionDeniedError: If tenant access is violated.
-            ResourceNotFoundError: If the resource is missing.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
         """
         if initiator.role != UserRole.ROOT:
             logger.error(
                 "[StudioSystemConfigService] %s: Only ROOT can view system configs (Initiator: %s).",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("Only ROOT can view system configs.")
@@ -452,6 +442,7 @@ class StudioSystemConfigService:
             ErrorCodes.RESOURCE_NOT_FOUND.name,
             id,
             initiator.id,
+            exc_info=True,
             extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "gateway_id": id},
         )
         raise ResourceNotFoundError(resource_type="mcp_gateways", resource_id=id)
@@ -460,8 +451,6 @@ class StudioSystemConfigService:
         self, initiator: TokenData, id: str, data: SystemConfigMCPGateways
     ) -> SystemConfigMCPGateways:
         """Save an MCP gateway configuration with unique single-underscore slug validation.
-
-        # Phase 2, Step 2.3: Enforce unique single-underscore slugs and cache invalidation
 
         Args:
             initiator: The authenticated user.
@@ -472,15 +461,16 @@ class StudioSystemConfigService:
             The saved SystemConfigMCPGateways.
 
         Raises:
-            PermissionDeniedError: If tenant access is violated.
-            AppException: If slug format is invalid or collides with another gateway.
-            ResourceNotFoundError: If the resource is missing after persistence.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            AppException (ErrorCodes.VALIDATION_FAILED): If slug format is invalid or collides with another gateway.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing after persistence.
         """
         if initiator.role != UserRole.ROOT:
             logger.error(
                 "[StudioSystemConfigService] %s: Only ROOT can modify system configs (Initiator: %s).",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("Only ROOT can modify system configs.")
@@ -493,6 +483,7 @@ class StudioSystemConfigService:
                 "[StudioSystemConfigService] %s: Invalid MCP gateway slug format for %s.",
                 ErrorCodes.VALIDATION_FAILED.name,
                 id,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "gateway_id": id},
             )
             raise AppException(
@@ -509,6 +500,7 @@ class StudioSystemConfigService:
                     ErrorCodes.VALIDATION_FAILED.name,
                     id,
                     existing_gw.id,
+                    exc_info=True,
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "gateway_id": id},
                 )
                 raise AppException(
@@ -531,7 +523,9 @@ class StudioSystemConfigService:
             The drafted SystemConfigMCPGateways.
 
         Raises:
-            PermissionDeniedError: If modification rights are denied.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If modification rights are denied.
+            AppException (ErrorCodes.VALIDATION_FAILED): If draft slug validation fails.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the drafted resource is missing after save.
         """
         enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=False)
 
@@ -551,14 +545,16 @@ class StudioSystemConfigService:
             The cloned SystemConfigMCPGateways.
 
         Raises:
-            PermissionDeniedError: If tenant access is violated.
-            ResourceNotFoundError: If the source gateway is missing.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the source gateway is missing.
+            AppException (ErrorCodes.VALIDATION_FAILED): If cloned slug validation fails.
         """
         if initiator.role != UserRole.ROOT:
             logger.error(
                 "[StudioSystemConfigService] %s: Only ROOT can clone system configs (Initiator: %s).",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("Only ROOT can clone system configs.")
@@ -582,15 +578,13 @@ class StudioSystemConfigService:
     async def delete_mcp_gateways(self, initiator: TokenData, id: str) -> None:
         """Delete an MCP gateway configuration and invalidate its cache entry.
 
-        # Phase 2, Step 2.3: Dedicated delete_mcp_gateways method
-
         Args:
             initiator: The authenticated user.
             id: The MCP gateway identifier to delete.
 
         Raises:
-            PermissionDeniedError: If non-ROOT user attempts deletion.
-            ResourceNotFoundError: If the MCP gateway is missing.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If non-ROOT user attempts deletion.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the MCP gateway is missing.
         """
         enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=False)
         all_gateways = await self.system_repo.get_all_mcp_gateways()
@@ -601,6 +595,7 @@ class StudioSystemConfigService:
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
                 id,
                 initiator.id,
+                exc_info=True,
                 extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "gateway_id": id},
             )
             raise ResourceNotFoundError(resource_type="mcp_gateways", resource_id=id)
@@ -615,8 +610,6 @@ class StudioSystemConfigService:
     ) -> SystemConfigMCPGateways:
         """Connect to a remote MCP gateway, introspect tools via tools/list, and persist in-place.
 
-        # Phase 2, Step 2.3: Studio runtime tool discovery and allowlist preservation
-
         Args:
             initiator: The authenticated user.
             gateway_id: Canonical Opaque Stripe ID of the target gateway.
@@ -625,9 +618,9 @@ class StudioSystemConfigService:
             Updated SystemConfigMCPGateways containing merged discovered tools.
 
         Raises:
-            PermissionDeniedError: If non-ROOT user attempts discovery.
-            ResourceNotFoundError: If gateway_id does not exist.
-            AppException: On SSRF violation, auth error, or MCP protocol failure.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If non-ROOT user attempts discovery.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If gateway_id does not exist.
+            AppException (ErrorCodes.SECURITY_VIOLATION, ErrorCodes.AGENT_EXECUTION_CRITICAL): On SSRF violation, auth error, or MCP protocol failure.
         """
         enforce_modification_rights(initiator, SystemOrganizations.ROOT_SYSTEM, allow_system=False)
         gateway = await self.get_mcp_gateways(initiator, gateway_id)

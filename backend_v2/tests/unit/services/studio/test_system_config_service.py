@@ -252,20 +252,36 @@ async def test_create_model_registry_draft(
 
 
 @pytest.mark.asyncio
+async def test_create_model_registry_draft_permission_denied(
+    service: StudioSystemConfigService, member_token: TokenData
+) -> None:
+    """Assert non-authorized member raises PermissionDeniedError when creating model registry draft."""
+    with pytest.raises(PermissionDeniedError):
+        await service.create_system_config_draft(member_token)
+
+
+@pytest.mark.asyncio
 async def test_clone_system_config_success(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
-    """Clone existing model registry and verify stateful roundtrip."""
+    """Clone existing model registry (both with and without slug) and verify stateful roundtrip."""
     original = (await system_repo.get_all_model_registries())[0]
     res = await service.clone_system_config(root_token, original.id)
     assert res.id != original.id
     assert res.id.startswith("sys_")
     assert res.name == f"{original.name} (Copy)"
+    assert res.slug is None
     assert re.match(OPAQUE_STRIPE_ID_REGEX, res.id) is not None
 
     # Stateful Roundtrip:
     persisted = await system_repo.get_model_registry(res.id)
     assert persisted.id == res.id
+
+    # Clone a registry that has an explicit slug defined
+    with_slug = original.model_copy(update={"slug": "custom_registry"})
+    await service.save_system_config(root_token, original.id, with_slug)
+    res_with_slug = await service.clone_system_config(root_token, original.id)
+    assert res_with_slug.slug == "custom_registry-copy"
 
 
 @pytest.mark.asyncio
@@ -285,14 +301,17 @@ async def test_save_system_config_not_found_after_save(
     root_token: TokenData,
     system_repo: InMemorySystemRepository,
 ) -> None:
-    """Assert ResourceNotFoundError if registry not found after save."""
+    """Assert ResourceNotFoundError if registry not found after save with deterministic fault cleanup."""
     reg = _make_dummy_registry("sys_0195f3a0000070008123456789abcdef")
     system_repo.inject_fault(
         "get_model_registry",
         ResourceNotFoundError(resource_type="system_config", resource_id="sys_0195f3a0000070008123456789abcdef"),
     )
-    with pytest.raises(ResourceNotFoundError):
-        await service.save_system_config(root_token, "sys_0195f3a0000070008123456789abcdef", reg)
+    try:
+        with pytest.raises(ResourceNotFoundError):
+            await service.save_system_config(root_token, "sys_0195f3a0000070008123456789abcdef", reg)
+    finally:
+        system_repo.clear_faults()
 
 
 @pytest.mark.asyncio
@@ -504,6 +523,17 @@ async def test_create_mcp_gateway_draft(
     # Stateful Roundtrip:
     persisted = await system_repo.get_mcp_gateways(id=res.id)
     assert persisted.id == res.id
+
+
+@pytest.mark.asyncio
+async def test_create_mcp_gateway_draft_permission_denied(
+    service: StudioSystemConfigService, admin_token: TokenData, member_token: TokenData
+) -> None:
+    """Assert non-ROOT users (admin and member) raise PermissionDeniedError when creating MCP gateway draft."""
+    with pytest.raises(PermissionDeniedError):
+        await service.create_mcp_gateway_draft(admin_token)
+    with pytest.raises(PermissionDeniedError):
+        await service.create_mcp_gateway_draft(member_token)
 
 
 @pytest.mark.asyncio
