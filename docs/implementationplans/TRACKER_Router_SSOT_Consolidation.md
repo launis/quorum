@@ -45,7 +45,7 @@
   - [x] @[client_app_v2/lib/core/api/reports_client.dart]
   - [x] @[client_app_v2/lib/core/api/workflow_client.dart]
   - [x] @[client_app_v2/lib/core/api/studio_client.dart]
-  - [ ] @[client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart]
+  - [x] @[client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/matrices_master_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
