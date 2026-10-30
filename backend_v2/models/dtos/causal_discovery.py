@@ -1,6 +1,6 @@
 """Causal discovery immutable Pydantic V2 DTO contracts.
 
-Defines 8 strictly typed models for autonomous text DAG argument mining,
+Defines 9 strictly typed models for autonomous text DAG argument mining,
 topological causal graphs, root-cause fault attribution, and fair scoring arithmetic.
 """
 
@@ -143,13 +143,13 @@ class CausalGraphPayloadDTO(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_referential_integrity(self) -> CausalGraphPayloadDTO:
-        """Verifies that all edge endpoints, root cause IDs, and isolated node IDs exist in nodes.
-
-        Raises:
-            ValueError: If an unextracted node reference is detected.
+        """Verify that all edge endpoints, root cause IDs, and isolated node IDs exist in nodes.
 
         Returns:
             The validated CausalGraphPayloadDTO instance.
+
+        Raises:
+            ValueError: If an unextracted node or edge reference is detected.
         """
         valid_node_ids = {node.node_id for node in self.nodes}
         for edge in self.edges:
@@ -252,7 +252,7 @@ class AntiFluffAuditDTO(V2CoreBase):
         Field(default_factory=list, description="Detected hollow or performative buzzwords."),
     ]
 
-    # Phase 5, Step 5: Enforce topological ratio bounds [0.0, 1.0] via @field_validator per vertex_serving_grammar_fix
+    # Enforce topological ratio bounds [0.0, 1.0] via @field_validator per vertex_serving_grammar_fix
     @field_validator(
         "largest_component_ratio",
         "branch_convergence_ratio",
@@ -320,25 +320,14 @@ class FairScoringBreakdownDTO(V2CoreBase):
 
     @model_validator(mode="after")
     def validate_scoring_identity(self) -> FairScoringBreakdownDTO:
-        """Verifies mathematical identity raw == deduplicated + dampened_savings.
-
-        Raises:
-            ValueError: If identity is violated or penalty values are negative.
+        """Verify mathematical identity raw == deduplicated + dampened_savings.
 
         Returns:
             The validated FairScoringBreakdownDTO instance.
-        """
-        if self.independent_error_count < 0:
-            raise ValueError(f"independent_error_count must be non-negative: {self.independent_error_count}")
-        if self.cascading_fault_count < 0:
-            raise ValueError(f"cascading_fault_count must be non-negative: {self.cascading_fault_count}")
-        if self.raw_penalty_points < 0.0:
-            raise ValueError(f"raw_penalty_points must be non-negative: {self.raw_penalty_points}")
-        if self.deduplicated_penalty_points < 0.0:
-            raise ValueError(f"deduplicated_penalty_points must be non-negative: {self.deduplicated_penalty_points}")
-        if self.dampened_savings_points < 0.0:
-            raise ValueError(f"dampened_savings_points must be non-negative: {self.dampened_savings_points}")
 
+        Raises:
+            ValueError: If the scoring identity is violated beyond tolerance (1e-4).
+        """
         expected_sum = self.deduplicated_penalty_points + self.dampened_savings_points
         if abs(self.raw_penalty_points - expected_sum) >= 1e-4:
             raise ValueError(
@@ -380,7 +369,6 @@ class CausalTdaFusionResultDTO(V2CoreBase):
     ] = 0
 
 
-# Phase 5, Step 5: Define CounterfactualSimulationResultDTO for Algorithm 1 ATMS surgery
 class CounterfactualSimulationResultDTO(V2CoreBase):
     """Result contract for Algorithm 1 discrete counterfactual premise retraction simulation.
 

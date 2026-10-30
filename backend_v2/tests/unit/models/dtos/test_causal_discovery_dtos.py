@@ -238,15 +238,29 @@ def test_causal_dto_immutability_and_extra_forbidden() -> None:
     assert graph_config["strict"] is True
     assert graph_config["extra"] == "forbid"
 
-    # Extra forbid enforcement
+    # Extra forbid enforcement via JSON hydration
     with pytest.raises(ValidationError):
-        CausalNodeDTO.model_validate(
-            {
-                "node_id": "n0",
-                "claim": "Claim",
-                "status": ExecutionStatus.PASSED,
-                "unauthorized_key": "forbidden",
-            }
+        CausalNodeDTO.model_validate_json(
+            '{"node_id": "n0", "claim": "Claim", "status": "PASSED", "unauthorized_key": "forbidden"}'
+        )
+
+    # Strict type enforcement on CausalNodeDTO
+    with pytest.raises(ValidationError):
+        CausalNodeDTO.model_validate_json('{"node_id": "n0", "claim": 123, "status": "PASSED"}')
+
+    # Strict type and extra forbid enforcement on CausalEdgeDTO, CausalRootCauseDiagnosisDTO, PrescriptiveRemediationDTO
+    with pytest.raises(ValidationError):
+        CausalEdgeDTO.model_validate_json(
+            '{"source_id": "n0", "target_id": "n1", "reasoning": "Link", "extra_field": true}'
+        )
+    with pytest.raises(ValidationError):
+        CausalRootCauseDiagnosisDTO.model_validate_json(
+            '{"failing_node_id": "n1", "root_cause_parent_id": "n0", "paragraph_ref": "p1", '
+            '"explanation": "Why", "penalty_points": "not_a_float"}'
+        )
+    with pytest.raises(ValidationError):
+        PrescriptiveRemediationDTO.model_validate_json(
+            '{"target_node_id": "n0", "required_action": "Fix", "potential_score_impact": "invalid"}'
         )
 
 
@@ -375,6 +389,7 @@ def test_anti_fluff_audit_dto_topological_ratios_and_bounds() -> None:
         largest_component_ratio=0.85,
         branch_convergence_ratio=0.15,
         steering_coupling_ratio=0.50,
+        detected_hollow_terms=[],
     )
     assert audit.largest_component_ratio == 0.85
     assert audit.branch_convergence_ratio == 0.15
@@ -387,6 +402,7 @@ def test_anti_fluff_audit_dto_topological_ratios_and_bounds() -> None:
             unsupported_claims_count=0,
             logical_cohesion_score=1.0,
             largest_component_ratio=1.2,
+            detected_hollow_terms=[],
         )
 
     with pytest.raises(ValidationError, match="Topological ratio must be within"):
@@ -396,6 +412,7 @@ def test_anti_fluff_audit_dto_topological_ratios_and_bounds() -> None:
             unsupported_claims_count=0,
             logical_cohesion_score=1.0,
             branch_convergence_ratio=-0.05,
+            detected_hollow_terms=[],
         )
 
 
@@ -415,12 +432,16 @@ def test_counterfactual_simulation_result_dto_validation() -> None:
     with pytest.raises(ValidationError, match="collapse_ratio must be within"):
         CounterfactualSimulationResultDTO(
             retracted_root_id="nod_0195f3a0000070008000000000000001",
+            collapsed_node_ids=[],
+            surviving_node_ids=[],
             collapse_ratio=1.5,
         )
 
     with pytest.raises(ValidationError):
         CounterfactualSimulationResultDTO(
             retracted_root_id="nod_0195f3a0000070008000000000000001",
+            collapsed_node_ids=[],
+            surviving_node_ids=[],
             collapse_ratio=0.5,
             max_cascade_depth=-1,
         )
