@@ -37,7 +37,7 @@ void main(List<String> args) async {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer mock-token:usr_a3fd6b3d77c748f4',
+        'Authorization': 'Bearer mock-token:usr_0195f3a00000700a83fd6b3d77c748f4',
       },
     ),
   );

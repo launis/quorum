@@ -1068,27 +1068,27 @@ class Settings(BaseSettings):
     mock_admin_user_id: Annotated[
         str,
         Field(
-            default="usr_0195f3a000007000800018a0d5f61513",
+            default="usr_0195f3a00000700188a0d5f6151349a5",
             validation_alias=AliasChoices("mock_admin_user_id", "MOCK_ADMIN_USER_ID"),
             description="Mock Admin User ID",
         ),
-    ] = "usr_0195f3a000007000800018a0d5f61513"
+    ] = "usr_0195f3a00000700188a0d5f6151349a5"
     mock_root_user_id: Annotated[
         str,
         Field(
-            default="usr_0195f3a0000070008000a3fd6b3d77c7",
+            default="usr_0195f3a00000700a83fd6b3d77c748f4",
             validation_alias=AliasChoices("mock_root_user_id", "MOCK_ROOT_USER_ID"),
             description="Mock Root User ID",
         ),
-    ] = "usr_0195f3a0000070008000a3fd6b3d77c7"
+    ] = "usr_0195f3a00000700a83fd6b3d77c748f4"
     mock_analyst_user_id: Annotated[
         str,
         Field(
-            default="usr_0195f3a00000700080008a9234f9a0c2",
+            default="usr_0195f3a000007009836983a7a6c643ab",
             validation_alias=AliasChoices("mock_analyst_user_id", "MOCK_ANALYST_USER_ID"),
             description="Mock Analyst User ID",
         ),
-    ] = "usr_0195f3a00000700080008a9234f9a0c2"
+    ] = "usr_0195f3a000007009836983a7a6c643ab"
 
     @model_validator(mode="after")
     def validate_linker_axiom_budgets(self) -> Self:

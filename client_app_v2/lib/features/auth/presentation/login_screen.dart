@@ -229,7 +229,7 @@ class MockLoginPanel extends HookConsumerWidget {
           onPressed: isMockLoading.value
               ? null
               : () => mockLogin(
-                  'usr_1c1cf9c5178846bb', // MEMBER
+                  Env.mockMemberUserId, // MEMBER
                 ),
           child: const Text('Mock Login (Member)'),
         ),
@@ -238,7 +238,7 @@ class MockLoginPanel extends HookConsumerWidget {
           onPressed: isMockLoading.value
               ? null
               : () => mockLogin(
-                  'usr_b2d6e4487afc4e69', // VIEWER
+                  Env.mockViewerUserId, // VIEWER
                 ),
           child: const Text('Mock Login (Viewer)'),
         ),

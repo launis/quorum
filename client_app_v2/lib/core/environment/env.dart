@@ -52,9 +52,17 @@ class Env {
 
   // Centralized Mock User IDs from .env
   static String get mockAdminUserId =>
-      dotenv.env['MOCK_ADMIN_USER_ID'] ?? 'usr_18a0d5f6151349a5';
+      dotenv.env['MOCK_ADMIN_USER_ID'] ??
+      'usr_0195f3a00000700188a0d5f6151349a5';
   static String get mockRootUserId =>
-      dotenv.env['MOCK_ROOT_USER_ID'] ?? 'usr_a3fd6b3d77c748f4';
+      dotenv.env['MOCK_ROOT_USER_ID'] ?? 'usr_0195f3a00000700a83fd6b3d77c748f4';
   static String get mockAnalystUserId =>
-      dotenv.env['MOCK_ANALYST_USER_ID'] ?? 'usr_8a9234f9a0c242a1';
+      dotenv.env['MOCK_ANALYST_USER_ID'] ??
+      'usr_0195f3a000007009836983a7a6c643ab';
+  static String get mockMemberUserId =>
+      dotenv.env['MOCK_MEMBER_USER_ID'] ??
+      'usr_0195f3a0000070018c1cf9c5178846bb';
+  static String get mockViewerUserId =>
+      dotenv.env['MOCK_VIEWER_USER_ID'] ??
+      'usr_0195f3a00000700b82d6e4487afc4e69';
 }
