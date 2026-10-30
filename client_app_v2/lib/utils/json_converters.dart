@@ -8,7 +8,6 @@ final RegExp _opaqueStripeIdRegex = RegExp(
   caseSensitive: false,
 );
 
-// Phase 1, Step 1: Generate canonical 32-hex RFC 9562 UUIDv7 Opaque Stripe ID
 /// Generates a canonical 32-character hexadecimal RFC 9562 UUIDv7 Opaque Stripe ID.
 String generateOpaqueUuid7(String prefix) {
   final cleanedPrefix = prefix.trim().toLowerCase();
@@ -69,7 +68,6 @@ class StrictEnumConverter<T extends Enum> implements JsonConverter<T, String> {
   }
 }
 
-// Phase 1, Step 1: Enforce 32-hex Opaque Stripe ID format in StrictOpaqueIdConverter
 /// Opaque ID converter enforcing 32-character hexadecimal RFC 9562 UUIDv7 format.
 class StrictOpaqueIdConverter implements JsonConverter<String, String> {
   const StrictOpaqueIdConverter();
@@ -86,6 +84,11 @@ class StrictOpaqueIdConverter implements JsonConverter<String, String> {
 
   @override
   String toJson(String object) {
+    if (!_opaqueStripeIdRegex.hasMatch(object)) {
+      throw AppException.validation(
+        'Invalid Opaque Stripe ID format: "$object". Must start with a 2-5 letter prefix, followed by underscore and exactly 32 hex characters.',
+      );
+    }
     return object;
   }
 }
