@@ -30,7 +30,7 @@
   - [x] @[backend_v2/database/repositories/audit.py]
   - [x] @[backend_v2/database/repositories/execution.py]
   - [x] @[backend_v2/database/repositories/knowledge.py]
-  - [ ] @[backend_v2/hooks/linguistics.py]
+  - [x] @[backend_v2/hooks/linguistics.py]
   - [ ] @[backend_v2/hooks/llm.py]
   - [ ] @[backend_v2/hooks/references.py]
   - [ ] @[backend_v2/llm/client.py]
