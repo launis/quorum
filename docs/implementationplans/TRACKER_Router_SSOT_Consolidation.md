@@ -31,7 +31,7 @@
   - [x] @[backend_v2/api/routers/studio/steps.py]
   - [x] @[backend_v2/api/routers/studio/prompt_blocks.py]
   - [x] @[backend_v2/database/repositories/components/prompt_block.py]
-  - [ ] @[backend_v2/services/studio/prompt_block_service.py]
+  - [x] @[backend_v2/services/studio/prompt_block_service.py]
   - [ ] @[backend_v2/services/studio/workflow_service.py]
   - [ ] @[backend_v2/services/studio/output_profile_service.py]
   - [ ] @[backend_v2/services/studio/system_config_service.py]
