@@ -57,7 +57,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]
   - [ ] @[client_app_v2/lib/utils/json_converters.dart]
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
