@@ -1931,4 +1931,3 @@ async def test_user_service_firebase_delete_and_null_repo_returns(
     mock_fb.delete_user.side_effect = None
     assert await service.delete_user("usr_rootfbdel0001", forced_user.id) is True
     mock_fb.delete_user.assert_called_with(forced_user.id)
-

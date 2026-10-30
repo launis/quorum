@@ -127,7 +127,10 @@ async def test_usage_records_corruption_fail_fast(repo: AuditRepositoryImpl, moc
 @pytest.mark.asyncio
 async def test_usage_aggregate_corruption_fail_fast(repo: AuditRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Negative: tests that corrupted usage aggregate document raises AppException."""
-    mock_driver.get.return_value = {"organization_id": "org_0195f3a0000070018234567890abcdef", "total_input_tokens": -10}
+    mock_driver.get.return_value = {
+        "organization_id": "org_0195f3a0000070018234567890abcdef",
+        "total_input_tokens": -10,
+    }
     with pytest.raises(AppException) as exc_info:
         await repo.get_usage_aggregate("organization", "org_0195f3a0000070018234567890abcdef", "2026-08")
     assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED

@@ -119,10 +119,12 @@ Osana Askeleen 3.3 toteutusta (`@[docs/implementationplans/TRACKER_Prefixed_UUID
 
 ---
 
-## Luku 3: AST- ja Laatuporttilaajennukset (`QGR031`, `scripts/*.py` & `QGR032`)
+## Luku 3: AST- ja Laatuporttilaajennukset (`QGR020`, `QGR031`–`QGR033`, `scripts/*.py`) & `auto_hardening_runner.py` SHA-256 -välimuisti
 > **STATUS: SEURAAVANA JONOSSA (Askel 3.4: `@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]` & `@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`)**
-> *Selite: `@[scripts/_ast_guardrails.py]` kattaa tällä hetkellä säännöt `QGR000`–`QGR030` ja `@[scripts/_dart_guardrails.py]` säännöt `DGR001`–`DGR008`. Alla olevat kolme tarkistusta toteutetaan seuraavaksi Askeleessa 3.4.*
+> *Selite: `@[scripts/_ast_guardrails.py]` kattaa tällä hetkellä säännöt `QGR000`–`QGR030` ja `@[scripts/_dart_guardrails.py]` säännöt `DGR001`–`DGR008`. Alla olevat viisi tarkistusta ja automaatiolaajennusta toteutetaan seuraavaksi Askeleessa 3.4.*
 
 1. **`QGR031` (Kyselysuodattimien staattinen validointi):** Estää virheelliset operaattorit (`"eq"`, `"LIKE"`, `"="`), tyhjät kentät sekä `"in"`-operaattorin vahingolliset merkkijonoliteraalit staattisesti AST-tasolla.
 2. **`scripts/`-hakemiston dynaaminen automaattiskannaus:** Korvaa kovakoodatut skriptilistat dynaamisella `scripts/*.py` -globilla, estäen varjoskriptien ja vanhentuneiden aputyökalujen syntymisen laatuporttien ulkopuolelle.
 3. **Polyfactory-mallitehtaiden invarianttivartija (`QGR032` & metatestit):** Varmistaa, että testitehtaat käyttävät 32-heksaisia RFC 9562 `UUIDv7` Opaque ID -generaattoreita (`generate_opaque_id`) ja että jokainen tehdas palauttaa aina oletusarvoilla `.build()` validoituvan Pydantic V2 -mallin.
+4. **PEP 593 `Annotated[..., Field(...)]` (`QGR020` Check 20B) sekä PEP 257 / `Raises: None` / RFC 7807 `logger.error` (`QGR033`) staattiset AST-säännöt:** Siirtää yleisimmät LLM-hardening-säännöt suoraan `@[scripts/_ast_guardrails.py]`-tarkistukseen, jolloin virheet jäävät kiinni välittömästi `/tier2-execute`-vaiheessa yhdellä kertaa.
+5. **Sisältöosoitteinen SHA-256-karkaisuvälimuisti (`@[scripts/auto_hardening_runner.py]`):** Laskee kohdetiedoston, sen yksikkötestien ja `.agents/rules/*.md`-tiedostojen yhdistetyn SHA-256-tiivisteen ja esitäyttää välimuistin valmistuneista Karkaisuaaltojen 1–4 ja UUIDv7-trackereista (`179` kohdetta), kuitaten muuttumattomat tiedostot `- [x]`-tilaan 0 sekunnissa ilman LLM-aliagenttia.

@@ -330,4 +330,3 @@ async def test_track_usage_negative_boundary_values_raise_app_exception(
 
     assert excinfo.value.status_code == 500
     assert excinfo.value.details == {"error_code": ErrorCodes.USAGE_TRACKING_FAILED.value}
-

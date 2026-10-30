@@ -744,18 +744,12 @@ def test_state_projector_apply_delta_dict_and_content_dto_branches() -> None:
     )
 
     # 5. Dict with non-atom results list and generic dict merge
-    projector.apply_delta(
-        TraceEvent(step_name="stp_non_atom", event_type="output", content={"results": ["plain_str"]})
-    )
+    projector.apply_delta(TraceEvent(step_name="stp_non_atom", event_type="output", content={"results": ["plain_str"]}))
     projector.apply_delta(
         TraceEvent(step_name="stp_non_atom", event_type="output", content={"results": ["plain_str_2"]})
     )
-    projector.apply_delta(
-        TraceEvent(step_name="stp_generic_dict", event_type="output", content={"k1": "v1"})
-    )
-    projector.apply_delta(
-        TraceEvent(step_name="stp_generic_dict", event_type="output", content={"k2": "v2"})
-    )
+    projector.apply_delta(TraceEvent(step_name="stp_generic_dict", event_type="output", content={"k1": "v1"}))
+    projector.apply_delta(TraceEvent(step_name="stp_generic_dict", event_type="output", content={"k2": "v2"}))
 
     snap = projector.snapshot
     assert any(s.step_id == "stp_merge" and s.block_id == "graph" for s in snap)
