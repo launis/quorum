@@ -103,6 +103,7 @@
 - Step 2: Consolidated Workflow router SSOT (`GET /{id}/ui_schema`), deleted `execution/workflows.py`, upgraded all 5 Studio routers with `OPAQUE_STRIPE_ID_REGEX` and `ID_MISMATCH` Fail-Fast validation, added dynamic matrix draft creation (`category_id=matrix`), unlocked specialist steps on clone (`is_system_core=False`), and enforced 3-layer delete protection across repositories and services.
 - Step 3: Consolidated ReportArtifact routes onto a single `router = APIRouter(tags=["Reports"])` mounted once under `/api/v2` in `main.py`, eradicated `external_reports_router` and legacy `/api/v1` mounts, deleted all 10 shadow decorators and duplicate direct subrouter methods, expanded `test_router_ssot_guardrails.py` to verify universal CRUD + Clone lifecycle parity across all 6 blueprint routers (`workflows`, `steps`, `prompt-blocks`, `output-profiles`, `model-registry`, `mcp-gateways`) with strict `OPAQUE_STRIPE_ID_REGEX` parameter pattern validation, and synchronized `04_directory_reference.md`. All backend audit loops and AST guardrails pass 100%.
 - Tier 8 Plan Audit: Executed `/tier8-audit-plan`, verified 100% of `REQ-001` through `REQ-012` across all 31 target files (`red_team_audit_Router_SSOT_Consolidation.md`), and verified Golden Master, Pre-Delete, and Semantic Coverage gates.
+- Tier 2 Hardening (Backend & Frontend): Completed 22/22 surviving target files (16 Backend `.py` and 6 Frontend `.dart`) via `scripts/auto_hardening_runner.py --gate all`.
 
 ## Learned
 - Single APIRouter mounting in `main.py` directly under `/api/v2` avoids duplicate subrouter mappings and guarantees predictable OpenAPI path generation.
@@ -110,9 +111,9 @@
 - `[DELETE]` targets are strictly excluded from `Tier 2 Hardening` checklists (`TRK007` and `TPR004`).
 
 ## Remaining
-- Post-Implementation Gates: Tier 2 Hardening (Backend/Frontend via unified `--gate all` command) and Tier 7 As-Built Architectural Sync.
+- Documentation & Knowledge Item Update (`As-Built Architectural Sync` via `/tier7-describe-architecture`).
 
 ## Resume Command
 ```powershell
-$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
+/tier7-describe-architecture @[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md] @[ki_router_ssot_and_crud_clone_lifecycle.md]
 ```
