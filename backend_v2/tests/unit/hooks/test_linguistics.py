@@ -5,6 +5,7 @@ from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -13,15 +14,18 @@ from backend_v2.core.hook_registry import (
     HookResult,
     HookState,
 )
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.linguistics import (
     LinguisticAnalysisDTO,
     detect_performative_patterns,
 )
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.linguistics import (
     DynamicLinguisticsExtractorDTO,
     LinguisticsPayloadDTO,
     LinguisticsResultDTO,
 )
+from backend_v2.models.enums import EntityPrefix, LLMProvider
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
@@ -409,3 +413,130 @@ def test_linguistic_analysis_dto_validation() -> None:
     assert dto.sentence_count == 8
     assert dto.lexical_density == 0.65
     assert dto.performative_ratio == 0.12
+
+
+def test_linguistic_analysis_dto_boundary_violations() -> None:
+    """ISTQB boundary value negative tests for LinguisticAnalysisDTO."""
+    with pytest.raises(ValidationError):
+        LinguisticAnalysisDTO(token_count=-1)
+
+    with pytest.raises(ValidationError):
+        LinguisticAnalysisDTO(lexical_density=1.01)
+
+    with pytest.raises(ValidationError):
+        LinguisticAnalysisDTO(performative_ratio=-0.01)
+
+
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_invalid_payload_raises_app_exception(
+    mock_deps: HookDependencies,
+) -> None:
+    """ISTQB negative test: Malformed payload validation raises AppException with INVALID_OUTPUT_SCHEMA."""
+    wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+    exe_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    state = HookState(
+        workflow_id=wf_id,
+        execution_id=exe_id,
+        inputs=ExecutionInputsDTO(raw_inputs={"chat_log_user_only": "Valid text."}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
+        metadata=ExecutionMetadata(),
+    )
+
+    with (
+        patch(
+            "backend_v2.hooks.linguistics.LinguisticsPayloadDTO",
+            side_effect=ValueError("Simulated strict payload failure"),
+        ),
+        pytest.raises(AppException) as exc_info,
+    ):
+        await cast(Awaitable[HookResult], detect_performative_patterns(state, mock_deps))
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details == {"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value}
+
+
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_type_error_raises_app_exception(
+    mock_deps: HookDependencies,
+) -> None:
+    """ISTQB negative test: TypeError during payload inflation raises AppException Fail-Fast."""
+    wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+    exe_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    state = HookState(
+        workflow_id=wf_id,
+        execution_id=exe_id,
+        inputs=ExecutionInputsDTO(raw_inputs={"chat_log_user_only": "Text payload."}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
+        metadata=ExecutionMetadata(),
+    )
+
+    with (
+        patch(
+            "backend_v2.hooks.linguistics.LinguisticsPayloadDTO",
+            side_effect=TypeError("Invalid input type for linguistics"),
+        ),
+        pytest.raises(AppException) as exc_info,
+    ):
+        await cast(Awaitable[HookResult], detect_performative_patterns(state, mock_deps))
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details == {"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value}
+
+
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_fuzzy_fallback_and_provider_override(
+    mock_deps: HookDependencies, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify fuzzy morphological match acceptance and registry_id/provider_override routing."""
+    settings = get_settings()
+    custom_settings = settings.model_copy(update={"enable_dynamic_performative_extraction": True})
+    monkeypatch.setattr("backend_v2.hooks.linguistics.get_settings", lambda: custom_settings)
+
+    wf_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+    exe_id = generate_opaque_id(EntityPrefix.EXECUTION)
+    sys_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    state = HookState(
+        workflow_id=wf_id,
+        execution_id=exe_id,
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "chat_log_user_only": "Tässä palaverissa syvennytään tarkemmin tähän asiaan.",
+                "language": "fi",
+            }
+        ),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
+        metadata=ExecutionMetadata(
+            model_registry_id=sys_id,
+            provider_override=LLMProvider.VERTEX_AI,
+        ),
+    )
+
+    mock_llm_client = AsyncMock()
+    # "syvennyttään tarkemmin" is not an exact substring of "syvennytään tarkemmin", triggering fuzzy partial_ratio >= 85.0
+    mock_extractor_dto = DynamicLinguisticsExtractorDTO(detected_phrases=["syvennyttään tarkemmin"])
+
+    with (
+        patch(
+            "backend_v2.hooks.linguistics.LLMClient.from_strategy",
+            return_value=mock_llm_client,
+        ) as mock_from_strategy,
+        patch(
+            "backend_v2.hooks.linguistics.LLMTaskExecutor.execute_structured_task",
+            return_value=(mock_extractor_dto, None),
+        ),
+    ):
+        result = await cast(Awaitable[HookResult], detect_performative_patterns(state, mock_deps))
+        mock_from_strategy.assert_called_once_with(
+            "fast",
+            repository=mock_deps.system_repo,
+            pipeline_name="linguistics_hook",
+            registry_id=sys_id,
+            provider=LLMProvider.VERTEX_AI,
+        )
+
+    assert result.success is True
+    assert result.state_delta is not None
+    assert isinstance(result.state_delta.delta, LinguisticsResultDTO)
+    patterns = result.state_delta.delta.performative_patterns
+    assert len(patterns) == 1
+    assert patterns[0].detected_phrase == "syvennyttään tarkemmin"

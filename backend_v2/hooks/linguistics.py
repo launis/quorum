@@ -110,7 +110,13 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
         payload = LinguisticsPayloadDTO(dynamic_inputs=raw_inputs, language=lang_in_raw)
     except (ValidationError, TypeError, ValueError) as e:
         msg = f"Failed to strictly validate inputs for linguistics: {e}"
-        logger.error("[LinguisticsHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
+        logger.error(
+            "[LinguisticsHook] %s: %s",
+            ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+        )
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -201,7 +207,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
     # Create strictly typed result
     patterns_list: list[PerformativePatternDTO] = [
         PerformativePatternDTO(
-            # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 pattern ID
+            # Generate canonical 32-hex RFC 9562 UUIDv7 pattern ID
             pattern_id=f"ptrn_{generate_uuid7().hex}",
             detected_phrase=p,
             category="performative_filler",
