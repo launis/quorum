@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import socket
 
 import httpx
@@ -18,6 +19,7 @@ from backend_v2.api.routers.studio.mcp_gateways import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 from backend_v2.models.dtos.mcp import (
     MCPDiscoveredToolWireDTO,
@@ -27,6 +29,7 @@ from backend_v2.models.dtos.mcp import (
     MCPToolInputSchemaDTO,
     MCPToolsListResultDTO,
 )
+from backend_v2.models.enums import EntityPrefix
 from backend_v2.services.cache.typed_cache import MCPGatewayCache
 from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 from backend_v2.services.studio.system_config_service import StudioSystemConfigService
@@ -109,7 +112,8 @@ async def test_mcp_gateways_router_full_lifecycle(
     assert len(initial_list) == 1
 
     draft = await create_mcp_gateways(current_user=root_user, studio_service=studio_service)
-    assert draft.id.startswith("sys_")
+    assert re.match(OPAQUE_STRIPE_ID_REGEX, draft.id)
+    assert draft.id.split("_", 1)[0] == EntityPrefix.SYSTEM_CONFIG
 
     fetched = await get_mcp_gateway(
         gateway_id=draft.id,
@@ -207,3 +211,12 @@ async def test_mcp_gateways_router_negative_cases(
             studio_service=studio_service,
         )
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+    with pytest.raises(AppException) as mismatch_exc_info:
+        await save_mcp_gateway(
+            gateway_id="sys_0195f3a0000070098999999999999999",
+            data=duplicate_gw,
+            current_user=root_user,
+            studio_service=studio_service,
+        )
+    assert mismatch_exc_info.value.details["error_code"] == ErrorCodes.ID_MISMATCH.value

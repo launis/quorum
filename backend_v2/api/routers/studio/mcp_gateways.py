@@ -35,7 +35,7 @@ async def get_all_mcp_gateways(
         A list of MCP gateways configurations.
 
     Raises:
-        AppException: If fetching MCP gateways fails.
+        AppException: With ErrorCodes.DATABASE_ERROR if fetching MCP gateways fails.
     """
     return await studio_service.list_mcp_gateways(current_user)
 
@@ -54,7 +54,9 @@ async def create_mcp_gateways(
         The newly created MCP gateway draft configuration.
 
     Raises:
-        AppException: If creating the draft fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if modification rights are denied.
+        AppException: With ErrorCodes.VALIDATION_FAILED if draft slug validation fails.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the drafted resource is missing after save.
     """
     return await studio_service.create_mcp_gateway_draft(current_user)
 
@@ -76,8 +78,8 @@ async def get_mcp_gateway(
         The requested MCP gateway configuration.
 
     Raises:
-        ResourceNotFoundError: If the MCP gateway is not found.
-        AppException: If fetching the MCP gateway fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks ROOT role.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the MCP gateway is not found.
     """
     return await studio_service.get_mcp_gateways(current_user, gateway_id)
 
@@ -101,9 +103,9 @@ async def save_mcp_gateway(
         The updated MCP gateway configuration.
 
     Raises:
-        AppException: With ErrorCodes.ID_MISMATCH if path gateway_id does not match payload id.
-        ResourceNotFoundError: If the MCP gateway is not found.
-        AppException: If updating the MCP gateway fails.
+        AppException: With ErrorCodes.ID_MISMATCH if path gateway_id does not match payload id, or ErrorCodes.VALIDATION_FAILED if slug validation fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks ROOT role.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the MCP gateway is not found.
     """
     if data.id != gateway_id:
         logger.error(
@@ -132,8 +134,6 @@ async def delete_mcp_gateway(
 ) -> MCPGatewayDeleteResponse:
     """Delete an MCP Gateway configuration securely via SSOT Service Layer.
 
-    # Phase 2, Step 2.3: Wire DELETE /{gateway_id} to delete_mcp_gateways
-
     Args:
         gateway_id: The unique identifier of the MCP gateway to delete.
         current_user: The authenticated user making the request.
@@ -143,8 +143,8 @@ async def delete_mcp_gateway(
         An MCPGatewayDeleteResponse confirming the deletion.
 
     Raises:
-        ResourceNotFoundError: If the MCP gateway is not found.
-        AppException: If deleting the MCP gateway fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if non-ROOT user attempts deletion.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the MCP gateway is not found.
     """
     await studio_service.delete_mcp_gateways(current_user, gateway_id)
     return MCPGatewayDeleteResponse(status="success", deleted_id=gateway_id)
@@ -167,8 +167,9 @@ async def clone_mcp_gateway(
         The newly cloned MCP gateway configuration.
 
     Raises:
-        ResourceNotFoundError: If the source MCP gateway is not found.
-        AppException: If cloning the MCP gateway fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks ROOT role.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the source MCP gateway is not found.
+        AppException: With ErrorCodes.VALIDATION_FAILED if cloned slug validation fails.
     """
     return await studio_service.clone_mcp_gateways(current_user, gateway_id)
 
@@ -181,8 +182,6 @@ async def discover_mcp_gateway_tools(
 ) -> SystemConfigMCPGateways:
     """Connect to the remote MCP Gateway and introspect available tools via tools/list.
 
-    # Phase 2, Step 2.3: Add POST /{gateway_id}/discover Studio introspection endpoint
-
     Args:
         gateway_id: The unique identifier of the MCP gateway to introspect.
         current_user: The authenticated user making the request.
@@ -192,7 +191,8 @@ async def discover_mcp_gateway_tools(
         The updated SystemConfigMCPGateways containing discovered tool definitions.
 
     Raises:
-        ResourceNotFoundError: If the MCP gateway is not found.
-        AppException: If SSRF validation, authentication, or tool discovery fails.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if non-ROOT user attempts discovery.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the MCP gateway is not found.
+        AppException: With ErrorCodes.SECURITY_VIOLATION or ErrorCodes.AGENT_EXECUTION_CRITICAL if SSRF validation, authentication, or tool discovery fails.
     """
     return await studio_service.discover_mcp_gateway_tools(current_user, gateway_id)
