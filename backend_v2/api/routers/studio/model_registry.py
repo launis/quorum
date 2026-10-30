@@ -215,6 +215,7 @@ async def delete_model_registry(
     Raises:
         PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks ROOT role.
         ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the model registry is not found.
+        AppException: With ErrorCodes.SYSTEM_PROTECTED_RESOURCE if attempting to delete the last remaining model registry.
     """
     await studio_service.delete_system_config(current_user, registry_id)
     return ModelRegistryDeleteResponse(status="success", deleted_id=registry_id)

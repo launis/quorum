@@ -18,7 +18,7 @@ from backend_v2.api.routers.studio.model_registry import (
     get_supported_platforms,
     save_model_registry,
 )
-from backend_v2.exceptions import ErrorCodes, PermissionDeniedError, ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.llm.handler import LLMHandler
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
@@ -288,6 +288,18 @@ async def test_model_registry_router_negative_rbac_and_missing_resource(
             current_user=root_user,
             studio_service=studio_service,
         )
+
+    # Path registry_id vs payload data.id mismatch triggers AppException (ID_MISMATCH)
+    existing = (await get_all_model_registries(current_user=root_user, studio_service=studio_service))[0]
+    with pytest.raises(AppException) as exc_mismatch:
+        await save_model_registry(
+            registry_id=missing_id,
+            data=existing,
+            current_user=root_user,
+            studio_service=studio_service,
+        )
+    assert exc_mismatch.value.status_code == 400
+    assert exc_mismatch.value.details == {"error_code": ErrorCodes.ID_MISMATCH.value}
 
 
 def test_model_profile_and_registry_accepts_reasoning_effort_in_additional_params() -> None:
