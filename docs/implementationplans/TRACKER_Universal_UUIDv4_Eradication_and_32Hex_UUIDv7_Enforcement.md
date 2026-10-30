@@ -33,7 +33,7 @@
   - [x] @[backend_v2/hooks/linguistics.py]
   - [x] @[backend_v2/hooks/llm.py]
   - [x] @[backend_v2/hooks/references.py]
-  - [ ] @[backend_v2/llm/client.py]
+  - [x] @[backend_v2/llm/client.py]
   - [ ] @[backend_v2/llm/mock_data.py]
   - [ ] @[backend_v2/llm/provider/litellm_response_stage.py]
   - [ ] @[backend_v2/models/auth.py]
