@@ -17,7 +17,6 @@ from backend_v2.api.dependencies import (
     DocumentExtractionServiceDep,
     ExecutionServiceDep,
 )
-from backend_v2.api.routers.execution.reports import execution_reports_subrouter
 from backend_v2.models.domain.execution import (
     EvidenceRejectionRequest,
     ExecutionCreate,
@@ -31,7 +30,6 @@ __all__ = ["router"]
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/executions", tags=["Executions"])
-router.include_router(execution_reports_subrouter)
 
 
 @router.get("/", response_model=list[ExecutionRecord])

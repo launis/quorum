@@ -15,10 +15,10 @@
 
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md]
 
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md] @[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md] @[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]`
   - [x] Step 1: Remediate DGR008 and DGR009 Technical Debt in ReportsClient and MatricesMasterView, Fix System Health Prefix, and Demolish Dead System Configs Router
   - [x] Step 2: Consolidate Workflow Router SSOT, Upgrade All 5 Studio Blueprint Routers to Gold-Standard Parity, and Enforce Dynamic Matrix/Step Creation with 3-Layer Delete Protection
-  - [ ] Step 3: Consolidate ReportArtifact Router SSOT into Single APIRouter and Lock Universal CRUD+Clone Guardrails
+  - [x] Step 3: Consolidate ReportArtifact Router SSOT into Single APIRouter and Lock Universal CRUD+Clone Guardrails
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md] @[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]`
 
 ### Post-Implementation Gates
@@ -94,24 +94,25 @@
 | REQ-007 | Support dynamic matrix draft creation via `category_id` query parameter in `prompt_blocks.py`, `prompt_block_service.py`, and Flutter Studio client | Step 2 | [x] Completed |
 | REQ-008 | Unlock specialist steps on clone (`is_system_core=False`) in `workflow_service.py` while preserving informational `slug` | Step 2 | [x] Completed |
 | REQ-009 | Enforce 3-layer delete protection across `prompt_block.py` repository, `prompt_block_service.py`, `workflow_service.py`, `output_profile_service.py`, and `system_config_service.py` | Step 2 | [x] Completed |
-| REQ-010 | Consolidate `ReportArtifact` routes into single `APIRouter` in `reports.py` mounted once at `/api/v2`, eradicating `/api/v1` and shadow decorators | Step 3 | [ ] Pending |
-| REQ-011 | Expand `test_router_ssot_guardrails.py` to enforce universal CRUD + Clone parity across all 6 blueprint routers and reject shadow routes | Step 3 | [ ] Pending |
-| REQ-012 | Synchronize `04_directory_reference.md` with consolidated router topology | Step 3 | [ ] Pending |
+| REQ-010 | Consolidate `ReportArtifact` routes into single `APIRouter` in `reports.py` mounted once at `/api/v2`, eradicating `/api/v1` and shadow decorators | Step 3 | [x] Completed |
+| REQ-011 | Expand `test_router_ssot_guardrails.py` to enforce universal CRUD + Clone parity across all 6 blueprint routers and reject shadow routes | Step 3 | [x] Completed |
+| REQ-012 | Synchronize `04_directory_reference.md` with consolidated router topology | Step 3 | [x] Completed |
 
 # Session Handover Context
 
 ## Achieved
 - Step 1: Remediated DGR008 and DGR009 technical debt, fixed health router prefix, demolished dead system_configs router.
-- Step 2: Consolidated Workflow router SSOT (`GET /{id}/ui_schema`), deleted `execution/workflows.py`, upgraded all 5 Studio routers with `OPAQUE_STRIPE_ID_REGEX` and `ID_MISMATCH` Fail-Fast validation, added dynamic matrix draft creation (`category_id=matrix`), unlocked specialist steps on clone (`is_system_core=False`), and enforced 3-layer delete protection across repositories and services. All backend and flutter audit loops pass 100%.
+- Step 2: Consolidated Workflow router SSOT (`GET /{id}/ui_schema`), deleted `execution/workflows.py`, upgraded all 5 Studio routers with `OPAQUE_STRIPE_ID_REGEX` and `ID_MISMATCH` Fail-Fast validation, added dynamic matrix draft creation (`category_id=matrix`), unlocked specialist steps on clone (`is_system_core=False`), and enforced 3-layer delete protection across repositories and services.
+- Step 3: Consolidated ReportArtifact routes onto a single `router = APIRouter(tags=["Reports"])` mounted once under `/api/v2` in `main.py`, eradicated `external_reports_router` and legacy `/api/v1` mounts, deleted all 10 shadow decorators and duplicate direct subrouter methods, expanded `test_router_ssot_guardrails.py` to verify universal CRUD + Clone lifecycle parity across all 6 blueprint routers (`workflows`, `steps`, `prompt-blocks`, `output-profiles`, `model-registry`, `mcp-gateways`) with strict `OPAQUE_STRIPE_ID_REGEX` parameter pattern validation, and synchronized `04_directory_reference.md`. All backend audit loops and AST guardrails pass 100%.
 
 ## Learned
-- QGR016 forbids boolean `or` chains with 3+ conditions; positive set membership (`block_id in referenced_ids`) cleanly complies and reinforces SSOT invariants.
-- Moving test files to match directory structure (`test_mcp_gateways.py` and `test_model_registry.py` to `backend_v2/tests/unit/api/routers/studio/`) allows localized audit loops to compute full 98% coverage.
+- Single APIRouter mounting in `main.py` directly under `/api/v2` avoids duplicate subrouter mappings and guarantees predictable OpenAPI path generation.
+- FastAPI OpenAPI schema generation includes parameter `schema.pattern` reflecting `Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)]`, providing a deterministic AST/OpenAPI gate.
 
 ## Remaining
-- Step 3: Consolidate ReportArtifact Router SSOT into Single APIRouter and Lock Universal CRUD+Clone Guardrails
+- Post-Implementation Gates: Tier 2 Hardening (Backend/Frontend), Semantic Coverage Audit, and Tier 8 Plan Audit.
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md] @[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md] @[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]
 ```

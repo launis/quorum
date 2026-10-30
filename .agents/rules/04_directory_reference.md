@@ -34,7 +34,7 @@
 
     <module path="backend_v2/api/routers/">
         <responsibility>HTTP REST ENDPOINTS ONLY (1 ENTITY = 1 ROUTER SSOT)</responsibility>
-        <key_domains>execution/ (executions.py, reports.py), iam/, studio/ (steps.py), system/, output_profiles.py (NO PARALLEL SHADOW ROUTERS)</key_domains>
+        <key_domains>execution/ (executions.py, reports.py), iam/, studio/ (workflows.py, steps.py, prompt_blocks.py, model_registry.py, mcp_gateways.py), system/ (configs.py, health.py), output_profiles.py (NO PARALLEL SHADOW ROUTERS; UNIVERSAL CRUD+CLONE BLUEPRINT PARITY)</key_domains>
     </module>
     
     <module path="backend_v2/services/">

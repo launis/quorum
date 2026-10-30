@@ -28,23 +28,15 @@ from backend_v2.models.enums import ReportStatus
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["CreateReportRequestDTO", "execution_reports_subrouter", "external_router", "router"]
+__all__ = ["CreateReportRequestDTO", "router"]
 
 router = APIRouter(tags=["Reports"])
-external_router = APIRouter(prefix="/external", tags=["External Reports"])
-execution_reports_subrouter = APIRouter(tags=["Reports"])
 
 
 @router.post(
     "/executions/{execution_id}/reports",
     response_model=ReportArtifactSummaryDTO,
     status_code=status.HTTP_202_ACCEPTED,
-)
-@router.post(
-    "/execution/executions/{execution_id}/reports",
-    response_model=ReportArtifactSummaryDTO,
-    status_code=status.HTTP_202_ACCEPTED,
-    include_in_schema=False,
 )
 async def create_execution_report(
     execution_id: str,
@@ -120,11 +112,6 @@ async def create_execution_report(
     "/executions/{execution_id}/reports",
     response_model=list[ReportArtifactSummaryDTO],
 )
-@router.get(
-    "/execution/executions/{execution_id}/reports",
-    response_model=list[ReportArtifactSummaryDTO],
-    include_in_schema=False,
-)
 async def list_execution_reports(
     execution_id: str,
     current_user: CurrentUserDep,
@@ -149,86 +136,9 @@ async def list_execution_reports(
     return await report_service.list_reports_for_execution(execution_id)
 
 
-@execution_reports_subrouter.post(
-    "/{execution_id}/reports",
-    response_model=ReportArtifactSummaryDTO,
-    status_code=status.HTTP_202_ACCEPTED,
-    include_in_schema=False,
-)
-async def create_execution_report_direct(
-    execution_id: str,
-    payload: CreateReportRequestDTO,
-    current_user: CurrentUserDep,
-    report_service: ReportServiceDep,
-    arq_pool: ArqPoolDep,
-) -> ReportArtifactSummaryDTO:
-    """Subrouter endpoint for creating report artifacts under /executions prefix.
-
-    Args:
-        execution_id: Target execution identifier.
-        payload: Report compilation specification.
-        current_user: Authenticated user initiating compilation.
-        report_service: Injected report domain service.
-        arq_pool: Arq Redis connection pool.
-
-    Returns:
-        Summary of the newly created report artifact in GENERATING status.
-
-    Raises:
-        ExecutionNotReadyError: If execution is not in PASSED status (ErrorCodes.EXECUTION_NOT_READY).
-        ConflictError: If a report with the same profile is already generating (ErrorCodes.CONFLICT_ERROR).
-        ResourceNotFoundError: If execution or profile does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
-    """
-    return await create_execution_report(
-        execution_id=execution_id,
-        payload=payload,
-        current_user=current_user,
-        report_service=report_service,
-        arq_pool=arq_pool,
-    )
-
-
-@execution_reports_subrouter.get(
-    "/{execution_id}/reports",
-    response_model=list[ReportArtifactSummaryDTO],
-    include_in_schema=False,
-)
-async def list_execution_reports_direct(
-    execution_id: str,
-    current_user: CurrentUserDep,
-    execution_service: ExecutionServiceDep,
-    report_service: ReportServiceDep,
-) -> list[ReportArtifactSummaryDTO]:
-    """Subrouter endpoint for listing report artifacts under /executions prefix.
-
-    Args:
-        execution_id: The unique identifier of the execution.
-        current_user: Authenticated user making the request.
-        execution_service: Injected execution service for existence verification.
-        report_service: Injected report domain service.
-
-    Returns:
-        List of report artifact summaries.
-
-    Raises:
-        ResourceNotFoundError: If execution does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
-    """
-    return await list_execution_reports(
-        execution_id=execution_id,
-        current_user=current_user,
-        execution_service=execution_service,
-        report_service=report_service,
-    )
-
-
 @router.get(
     "/reports/{report_id}",
     response_model=ReportArtifact,
-)
-@router.get(
-    "/execution/reports/{report_id}",
-    response_model=ReportArtifact,
-    include_in_schema=False,
 )
 async def get_report_artifact(
     report_id: str,
@@ -255,11 +165,6 @@ async def get_report_artifact(
     "/reports/{report_id}/sdui",
     response_model=ReportDataDTO,
 )
-@router.get(
-    "/execution/reports/{report_id}/sdui",
-    response_model=ReportDataDTO,
-    include_in_schema=False,
-)
 async def get_report_sdui(
     report_id: str,
     current_user: CurrentUserDep,
@@ -285,10 +190,6 @@ async def get_report_sdui(
 
 @router.get(
     "/reports/{report_id}/pdf",
-)
-@router.get(
-    "/execution/reports/{report_id}/pdf",
-    include_in_schema=False,
 )
 async def get_report_pdf(
     report_id: str,
@@ -321,10 +222,6 @@ async def get_report_pdf(
 @router.get(
     "/reports/{report_id}/excel",
 )
-@router.get(
-    "/execution/reports/{report_id}/excel",
-    include_in_schema=False,
-)
 async def get_report_excel(
     report_id: str,
     current_user: CurrentUserDep,
@@ -355,10 +252,6 @@ async def get_report_excel(
 
 @router.get(
     "/reports/{report_id}/csv",
-)
-@router.get(
-    "/execution/reports/{report_id}/csv",
-    include_in_schema=False,
 )
 async def get_report_csv(
     report_id: str,
@@ -392,11 +285,6 @@ async def get_report_csv(
     "/reports/{report_id}/rows",
     response_model=list[ReportRowItemDTO],
 )
-@router.get(
-    "/execution/reports/{report_id}/rows",
-    response_model=list[ReportRowItemDTO],
-    include_in_schema=False,
-)
 async def get_report_rows(
     report_id: str,
     current_user: CurrentUserDep,
@@ -424,11 +312,6 @@ async def get_report_rows(
     "/reports/{report_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-@router.delete(
-    "/execution/reports/{report_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    include_in_schema=False,
-)
 async def delete_report_artifact(
     report_id: str,
     current_user: CurrentUserDep,
@@ -452,12 +335,6 @@ async def delete_report_artifact(
     "/reports/{report_id}/regenerate",
     response_model=ReportArtifactSummaryDTO,
     status_code=status.HTTP_202_ACCEPTED,
-)
-@router.post(
-    "/execution/reports/{report_id}/regenerate",
-    response_model=ReportArtifactSummaryDTO,
-    status_code=status.HTTP_202_ACCEPTED,
-    include_in_schema=False,
 )
 async def regenerate_report_artifact(
     report_id: str,
@@ -493,9 +370,10 @@ async def regenerate_report_artifact(
     )
 
 
-@external_router.get(
-    "/reports/{report_id}",
+@router.get(
+    "/external/reports/{report_id}",
     response_model=PublicReportDTO,
+    tags=["External Reports"],
 )
 async def get_public_external_report(
     report_id: str,

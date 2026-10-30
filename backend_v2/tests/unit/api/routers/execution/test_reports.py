@@ -11,7 +11,8 @@ Covers all 11 endpoints and ISTQB failure partitions per Step 8 and Step 10:
 - GET /api/v2/reports/{id}/rows (happy path 200)
 - DELETE /api/v2/reports/{id} (happy path 204, missing report 404)
 - POST /api/v2/reports/{id}/regenerate (happy path 202, missing report 404)
-- GET /api/v1/external/reports/{id} (happy path 200 with X-API-Key, invalid API key 401, missing auth 401)
+- GET /api/v2/external/reports/{id} (happy path 200 with X-API-Key, invalid API key 401, missing auth 401)
+- Eradicated legacy and shadow routes 404 (GET /api/v1/external/reports/{id}, GET /api/v2/execution/reports/{id})
 """
 
 from collections.abc import Generator
@@ -506,7 +507,7 @@ def test_get_public_external_report_success_api_key(
     override_dependencies: Any,
     mock_report_service: Any,
 ) -> None:
-    """Test GET /api/v1/external/reports/{id} returns PublicReportDTO using X-API-Key."""
+    """Test GET /api/v2/external/reports/{id} returns PublicReportDTO using X-API-Key."""
     client = TestClient(app)
     now = datetime.now(timezone.utc)
     mock_report_service.get_public_report.return_value = PublicReportDTO(
@@ -518,7 +519,7 @@ def test_get_public_external_report_success_api_key(
     )
 
     response = client.get(
-        f"/api/v1/external/reports/{MOCK_REP_ID}",
+        f"/api/v2/external/reports/{MOCK_REP_ID}",
         headers={"X-API-Key": "b2b_valid_api_key_secret"},
     )
 
@@ -534,11 +535,11 @@ def test_get_public_external_report_invalid_api_key_401(
     mock_report_service: Any,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Test GET /api/v1/external/reports/{id} rejects invalid API key with 401 without logging raw secret."""
+    """Test GET /api/v2/external/reports/{id} rejects invalid API key with 401 without logging raw secret."""
     client = TestClient(app)
 
     response = client.get(
-        f"/api/v1/external/reports/{MOCK_REP_ID}",
+        f"/api/v2/external/reports/{MOCK_REP_ID}",
         headers={"X-API-Key": "invalid"},
     )
 
@@ -553,12 +554,12 @@ def test_get_public_external_report_short_api_key_boundary_401(
     mock_report_service: Any,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Test GET /api/v1/external/reports/{id} rejects 7-char API key (min-1 boundary) and redacts key from logs."""
+    """Test GET /api/v2/external/reports/{id} rejects 7-char API key (min-1 boundary) and redacts key from logs."""
     client = TestClient(app)
     short_secret = "sec_7ch"
 
     response = client.get(
-        f"/api/v1/external/reports/{MOCK_REP_ID}",
+        f"/api/v2/external/reports/{MOCK_REP_ID}",
         headers={"X-API-Key": short_secret},
     )
 
@@ -572,49 +573,42 @@ def test_get_public_external_report_missing_auth_401(
     override_dependencies: Any,
     mock_report_service: Any,
 ) -> None:
-    """Test GET /api/v1/external/reports/{id} rejects requests without auth header with 401."""
+    """Test GET /api/v2/external/reports/{id} rejects requests without auth header with 401."""
     client = TestClient(app)
 
-    response = client.get(f"/api/v1/external/reports/{MOCK_REP_ID}")
+    response = client.get(f"/api/v2/external/reports/{MOCK_REP_ID}")
 
     assert response.status_code == 401
     data = response.json()
     assert data["extensions"]["error_code"] == ErrorCodes.AUTHENTICATION_FAILED.value
 
 
-def test_subrouter_direct_endpoints_success(
+def test_eradicated_legacy_and_shadow_routes_return_404(
     override_dependencies: Any,
-    mock_report_service: Any,
-    mock_execution_service: Any,
 ) -> None:
-    """Test subrouter /api/v2/execution/executions/{id}/reports POST and GET delegation."""
+    """Test that eradicated /api/v1 and shadow /execution/ reports routes return 404."""
     client = TestClient(app)
-    now = datetime.now(timezone.utc)
-    mock_execution_service.get_execution.return_value = AsyncMock()
-    mock_report_service.list_reports_for_execution.return_value = []
-    mock_report_service.create_report_artifact.return_value = ReportArtifact(
-        id=MOCK_REP_ID,
-        execution_id=MOCK_EXE_ID,
-        workflow_id=MOCK_WOR_ID,
-        profile_id=MOCK_PRF_ID,
-        locale="fi",
-        title="Direct Subrouter Report",
-        status=ReportStatus.PENDING,
-        created_at=now,
-        updated_at=now,
-    )
-    mock_report_service.compile_and_persist_artifact.return_value = None
 
-    post_res = client.post(
+    # Eradicated /api/v1 external reports route
+    res_v1 = client.get(
+        f"/api/v1/external/reports/{MOCK_REP_ID}",
+        headers={"X-API-Key": "b2b_valid_api_key_secret"},
+    )
+    assert res_v1.status_code == 404
+
+    # Eradicated /api/v2/execution/reports shadow route
+    res_shadow_report = client.get(f"/api/v2/execution/reports/{MOCK_REP_ID}")
+    assert res_shadow_report.status_code == 404
+
+    # Eradicated /api/v2/execution/executions/{id}/reports subrouter
+    res_shadow_subrouter = client.get(f"/api/v2/execution/executions/{MOCK_EXE_ID}/reports")
+    assert res_shadow_subrouter.status_code == 404
+
+    res_shadow_subrouter_post = client.post(
         f"/api/v2/execution/executions/{MOCK_EXE_ID}/reports",
         json={"profile_id": MOCK_PRF_ID, "locale": "fi"},
     )
-    assert post_res.status_code == 202
-    assert post_res.json()["id"] == MOCK_REP_ID
-
-    get_res = client.get(f"/api/v2/execution/executions/{MOCK_EXE_ID}/reports")
-    assert get_res.status_code == 200
-    assert get_res.json() == []
+    assert res_shadow_subrouter_post.status_code == 404
 
 
 def test_delete_report_artifact_missing_404(
