@@ -4,6 +4,8 @@ This module defines Pydantic models for user identity, role-based access control
 organization management, and cryptographic token structures.
 """
 
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 from enum import StrEnum
@@ -57,12 +59,19 @@ class UserRole(StrEnum):
     ROOT = "ROOT"  # System Owner / Platform Admin
     ADMIN = "ADMIN"  # Organization Admin (User Management)
     MANAGER = "MANAGER"  # Workflow/Process Lead
-    MEMBER = "MEMBER"  # Standard User (Audit Runner) - Was TESTER
+    MEMBER = "MEMBER"  # Standard User (Audit Runner)
     VIEWER = "VIEWER"  # Read-Only Stakeholder
 
 
 class SubscriptionStatus(StrEnum):
-    """SaaS Subscription Status."""
+    """SaaS subscription lifecycle status enumeration.
+
+    Attributes:
+        ACTIVE: Subscription is active and in good standing.
+        PAST_DUE: Subscription payment is past due.
+        CANCELED: Subscription has been canceled.
+        TRIAL: Organization is operating on a trial period.
+    """
 
     ACTIVE = "active"
     PAST_DUE = "past_due"
@@ -71,14 +80,26 @@ class SubscriptionStatus(StrEnum):
 
 
 class SystemOrganizations(StrEnum):
-    """Special predefined system organizations."""
+    """Special predefined system organization identifiers.
+
+    Attributes:
+        ROOT_SYSTEM: Canonical root system organization identifier.
+        LEGACY_SYSTEM: Legacy system scope marker retained for sentinel checks.
+    """
 
     ROOT_SYSTEM = "org_system000000"
     LEGACY_SYSTEM = "SYSTEM"
 
     @classmethod
     def is_system(cls, org_id: str | None) -> bool:
-        """Check if organization ID belongs to system/global scope."""
+        """Check whether an organization identifier belongs to the global system scope.
+
+        Args:
+            org_id: Organization identifier to evaluate, or None.
+
+        Returns:
+            True if the identifier represents a global system scope, False otherwise.
+        """
         return org_id is None or org_id in (cls.ROOT_SYSTEM.value, cls.LEGACY_SYSTEM.value, "")
 
 
@@ -92,15 +113,18 @@ class Organization(V2CoreBase):
     """Represents a tenant or customer organization.
 
     Attributes:
-        id (str): Unique Organization ID (e.g. 'nokia-v1').
-        name (str): Display Name.
-        created_at (Optional[str]): ISO Timestamp.
-        is_active (bool): Subscription status.
-        tier (str): Service Tier.
-        contact_email (Optional[str]): Admin Contact.
-        billing_id (Optional[str]): External Billing ID (Stripe/etc).
-        subscription_status (SubscriptionStatus): Current billing status.
-        quota_limit (int): Monthly API call quota.
+        id: Unique Organization Opaque Stripe ID.
+        slug: Optional human-readable identifier.
+        name: Organization display name.
+        created_at: Creation timestamp.
+        is_active: Whether the organization subscription is active.
+        tier: Service tier designation.
+        contact_email: Administrative contact email address.
+        billing_id: External billing provider identifier.
+        subscription_status: Current SaaS billing status.
+        quota_limit: Monthly API call quota in USD.
+        tpm_limit: Tokens per minute rate limit.
+        rpm_limit: Requests per minute rate limit.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -120,7 +144,7 @@ class Organization(V2CoreBase):
     tier: Annotated[str, Field(description="Service Tier")]
     contact_email: Annotated[str | None, Field(description="Admin Contact")] = None
 
-    # Billing & SaaS Fields (Phase 4)
+    # Billing & SaaS Fields
     billing_id: Annotated[str | None, Field(description="External Billing ID (Stripe/etc)")] = None
     subscription_status: Annotated[LaxSubscriptionStatus, Field(description="Current billing status")]
     quota_limit: Annotated[float, Field(description="Monthly API call quota (USD)")]
@@ -130,6 +154,17 @@ class Organization(V2CoreBase):
     @field_validator("created_at", mode="before")
     @classmethod
     def parse_datetime(cls, v: Any) -> Any:
+        """Coerces ISO 8601 datetime strings into datetime instances before strict validation.
+
+        Args:
+            v: Raw timestamp value (ISO string, datetime object, or None).
+
+        Returns:
+            Parsed datetime instance or original value for downstream validation.
+
+        Raises:
+            ValueError: If a string input is not a valid ISO 8601 timestamp.
+        """
         if isinstance(v, str):
             return datetime.fromisoformat(v.replace("Z", "+00:00"))
         return v
@@ -137,73 +172,75 @@ class Organization(V2CoreBase):
     @field_validator("quota_limit")
     @classmethod
     def validate_quota_limit(cls, v: float) -> float:
-        """Validates quota limit is not negative.
+        """Validates that the monthly quota limit is non-negative.
 
         Args:
-            v: Input limit.
+            v: Input quota limit in USD.
 
         Returns:
-            float: Validated limit.
+            Validated non-negative quota limit.
 
         Raises:
-            ValueError: If limit is negative.
+            ValueError: With logged ErrorCodes.VALIDATION_FAILED if limit is negative.
         """
         if v < 0.0:
             msg = "Quota limit cannot be negative."
-            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
         return v
 
     @field_validator("id", "name")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
-        """Validates string is not empty.
+        """Validates that a mandatory string field is not empty or whitespace-only.
 
         Args:
-            v: Input string.
+            v: Input string value.
 
         Returns:
-            str: Validated string.
+            Stripped non-empty string.
 
         Raises:
-            ValueError: If string is empty or whitespace only.
+            ValueError: With logged ErrorCodes.VALIDATION_FAILED if string is empty or whitespace-only.
         """
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
         return v.strip()
 
     @field_validator("contact_email", "billing_id")
     @classmethod
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
-        """Validates optional string is not empty if provided.
+        """Validates that an optional string field is not empty or whitespace-only when provided.
 
         Args:
-            v: Input string.
+            v: Input optional string value.
 
         Returns:
-            str | None: Validated string or None.
+            Stripped non-empty string, or None.
 
         Raises:
-            ValueError: If string is empty or whitespace only.
+            ValueError: With logged ErrorCodes.VALIDATION_FAILED if provided string is empty or whitespace-only.
         """
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
-            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
         return v.strip() if v else v
 
 
 class UserBase(V2CoreBase):
-    """Base Pydantic model for User data, distinguishing shared fields.
+    """Base Pydantic model for User data containing shared identity and preference fields.
 
     Attributes:
-        email (EmailStr): User email address.
-        display_name (Optional[str]): User display name.
-        role (UserRole): Assigned permission role.
-        organization_id (Optional[str]): ID of the organization this user belongs to.
-        is_active (bool): Is the account active?
+        email: User email address.
+        name: Optional user display name.
+        role: Assigned permission role.
+        organization_id: Identifier of the organization this user belongs to.
+        is_active: Whether the user account is active.
+        language: Preferred UI system locale.
+        theme_mode: Preferred UI theme mode ('system', 'light', or 'dark').
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
@@ -219,20 +256,20 @@ class UserBase(V2CoreBase):
     @field_validator("name", "organization_id")
     @classmethod
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
-        """Validates optional string is not empty if provided.
+        """Validates that an optional string field is not empty or whitespace-only when provided.
 
         Args:
-            v: Input string.
+            v: Input optional string value.
 
         Returns:
-            str | None: Validated string or None.
+            Stripped non-empty string, or None.
 
         Raises:
-            ValueError: If string is empty or whitespace only.
+            ValueError: With logged ErrorCodes.VALIDATION_FAILED if provided string is empty or whitespace-only.
         """
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
-            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
         return v.strip() if v else v
 
@@ -244,10 +281,10 @@ class User(UserBase):
     """Full User model representing a persisted user record.
 
     Attributes:
-        id (str): Unique ID (matches Firebase UID if used).
-        slug (Optional[str]): Legacy human-readable identifier.
-        created_at (str): ISO 8601 Timestamp.
-        created_by (Optional[str]): UID of the creator.
+        id: Unique User Opaque Stripe ID.
+        slug: Optional human-readable identifier.
+        created_at: Account creation timestamp.
+        created_by: Identifier of the creator user, if applicable.
     """
 
     id: Annotated[
@@ -265,6 +302,17 @@ class User(UserBase):
     @field_validator("created_at", mode="before")
     @classmethod
     def parse_datetime(cls, v: Any) -> Any:
+        """Coerces ISO 8601 datetime strings into datetime instances before strict validation.
+
+        Args:
+            v: Raw timestamp value (ISO string or datetime object).
+
+        Returns:
+            Parsed datetime instance or original value for downstream validation.
+
+        Raises:
+            ValueError: If a string input is not a valid ISO 8601 timestamp.
+        """
         if isinstance(v, str):
             return datetime.fromisoformat(v.replace("Z", "+00:00"))
         return v
@@ -272,62 +320,62 @@ class User(UserBase):
     @field_validator("id")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
-        """Validates string is not empty.
+        """Validates that the user identifier is not empty or whitespace-only.
 
         Args:
-            v: Input string.
+            v: Input identifier string.
 
         Returns:
-            str: Validated string.
+            Stripped non-empty identifier string.
 
         Raises:
-            ValueError: If string is empty or whitespace only.
+            ValueError: With logged ErrorCodes.VALIDATION_FAILED if string is empty or whitespace-only.
         """
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
         return v.strip()
 
     @field_validator("created_by")
     @classmethod
     def validate_created_by_optional(cls, v: str | None) -> str | None:
-        """Validates optional string is not empty if provided.
+        """Validates that the optional creator identifier is not empty when provided.
 
         Args:
-            v: Input string.
+            v: Input creator identifier string or None.
 
         Returns:
-            str | None: Validated string or None.
+            Stripped creator identifier string, or None.
 
         Raises:
-            ValueError: If string is empty or whitespace only.
+            ValueError: With logged ErrorCodes.VALIDATION_FAILED if provided string is empty or whitespace-only.
         """
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
-            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
         return v.strip() if v else v
 
 
 class UserAdminView(UserBase):
-    """Extended User model for admin views with statistics and raw datetime objects.
+    """Extended User model for administrative views with execution statistics and login metadata.
 
     Attributes:
-        id (str): Unique ID.
-        slug (Optional[str]): Legacy human-readable identifier.
-        created_at (datetime): Timestamp as datetime object.
-        created_by (Optional[str]): UID of the creator.
-        last_login_at (Optional[datetime]): Timestamp of last login.
-        execution_count (int): Total number of executions/audits run.
+        id: Unique User Opaque Stripe ID.
+        slug: Optional human-readable identifier.
+        created_at: Account creation timestamp.
+        created_by: Identifier of the creator user, if applicable.
+        last_login_at: Timestamp of most recent login, if available.
+        execution_count: Total number of workflow executions run by the user.
     """
 
-    id: str
-    slug: str | None = None
-    created_at: datetime
-    created_by: str | None = None
-    last_login_at: datetime | None = None
-    execution_count: int = 0
+    id: Annotated[str, Field(description="Unique user identifier")]
+    slug: Annotated[str | None, Field(default=None, description="Legacy human-readable identifier")] = None
+    created_at: Annotated[datetime, Field(description="Account creation timestamp")]
+    created_by: Annotated[str | None, Field(default=None, description="UID of the creator")] = None
+    last_login_at: Annotated[datetime | None, Field(default=None, description="Timestamp of last login")] = None
+    execution_count: Annotated[int, Field(default=0, description="Total number of executions run")] = 0
 
     model_config = ConfigDict(from_attributes=True, extra="forbid", frozen=True, strict=True)
 
@@ -336,11 +384,11 @@ class UserAdminView(UserBase):
 
 
 class UserCreate(UserBase):
-    """Payload for creating a new user.
+    """Payload for creating a new user account.
 
     Attributes:
-        password (Optional[str]): Initial password (min 6 chars).
-        created_by (Optional[str]): UID of the admin creating this user.
+        password: Optional initial password (minimum 6 characters).
+        created_by: Optional identifier of the administrator creating the user.
     """
 
     password: Annotated[str | None, Field(min_length=6, description="Initial password")] = None
@@ -348,47 +396,61 @@ class UserCreate(UserBase):
 
 
 class OrganizationCreate(BaseDTO):
-    """Payload for creating a new organization.
+    """Payload for provisioning a new tenant organization and its initial administrator.
 
     Attributes:
-        name (str): Organization display name.
-        admin_email (EmailStr): Email for the initial admin user.
-        admin_password (str): Password for the initial admin user.
-        admin_name (str): Display name for the initial admin user.
+        name: Organization display name.
+        admin_email: Email address for the initial administrator user.
+        admin_password: Password for the initial administrator user.
+        admin_name: Display name for the initial administrator user.
+        tpm_limit: Tokens per minute limit allocated to the organization.
+        rpm_limit: Requests per minute limit allocated to the organization.
     """
 
-    name: str
-    admin_email: EmailStr
-    admin_password: str
-    admin_name: str
-    tpm_limit: int
-    rpm_limit: int
+    name: Annotated[str, Field(description="Organization display name")]
+    admin_email: Annotated[EmailStr, Field(description="Email for the initial admin user")]
+    admin_password: Annotated[str, Field(description="Password for the initial admin user")]
+    admin_name: Annotated[str, Field(description="Display name for the initial admin user")]
+    tpm_limit: Annotated[int, Field(description="Tokens Per Minute Limit")]
+    rpm_limit: Annotated[int, Field(description="Requests Per Minute Limit")]
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     @field_validator("name", "admin_password", "admin_name")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
-        """Validates string is not empty.
+        """Validates that mandatory creation strings are not empty or whitespace-only.
 
         Args:
-            v: Input string.
+            v: Input string value.
 
         Returns:
-            str: Validated string.
+            Stripped non-empty string.
 
         Raises:
-            ValueError: If string is empty or whitespace only.
+            ValueError: With logged ErrorCodes.VALIDATION_FAILED if string is empty or whitespace-only.
         """
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
         return v.strip()
 
 
 class OrganizationUpdateDTO(BaseDTO):
-    """Payload for updating an existing organization."""
+    """Payload for updating an existing organization.
+
+    Attributes:
+        name: Updated organization display name.
+        tier: Updated service tier designation.
+        is_active: Updated active status flag.
+        contact_email: Updated administrative contact email.
+        billing_id: Updated external billing identifier.
+        subscription_status: Updated SaaS subscription status.
+        quota_limit: Updated monthly API quota limit in USD.
+        tpm_limit: Updated tokens per minute limit.
+        rpm_limit: Updated requests per minute limit.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -397,20 +459,27 @@ class OrganizationUpdateDTO(BaseDTO):
     is_active: Annotated[bool | None, Field(default=None, description="Updated active status")] = None
     contact_email: Annotated[str | None, Field(default=None, description="Updated contact email")] = None
     billing_id: Annotated[str | None, Field(default=None, description="Updated billing ID")] = None
-    subscription_status: Annotated[LaxSubscriptionStatus | None, Field(default=None)] = None
-    quota_limit: Annotated[float | None, Field(default=None, ge=0.0)] = None
-    tpm_limit: Annotated[int | None, Field(default=None, ge=1000)] = None
-    rpm_limit: Annotated[int | None, Field(default=None, ge=1)] = None
+    subscription_status: Annotated[
+        LaxSubscriptionStatus | None, Field(default=None, description="Updated subscription status")
+    ] = None
+    quota_limit: Annotated[
+        float | None, Field(default=None, ge=0.0, description="Updated monthly quota limit (USD)")
+    ] = None
+    tpm_limit: Annotated[int | None, Field(default=None, ge=1000, description="Updated TPM limit")] = None
+    rpm_limit: Annotated[int | None, Field(default=None, ge=1, description="Updated RPM limit")] = None
 
 
 class UserUpdate(BaseDTO):
-    """Payload for updating an existing user.
+    """Payload for updating an existing user account.
 
     Attributes:
-        display_name (Optional[str]): New display name.
-        role (Optional[UserRole]): New role assignment.
-        is_active (Optional[bool]): New active status.
-        password (Optional[str]): New password (only for admin resets).
+        name: Updated user display name.
+        role: Updated role assignment.
+        is_active: Updated account active status.
+        password: Updated password for administrative resets.
+        language: Updated preferred UI locale.
+        theme_mode: Updated preferred UI theme mode.
+        organization_id: Updated organization assignment identifier.
     """
 
     name: Annotated[str | None, Field(default=None, description="New display name")] = None
@@ -430,140 +499,140 @@ class UserUpdate(BaseDTO):
 
 
 class TokenData(V2CoreBase):
-    """Structure for JWT token payload data.
+    """Structure for verified JWT token payload data.
 
     Attributes:
-        id (str): User ID.
-        role (UserRole): User Role.
-        organization_id (Optional[str]): Organization ID.
-        email (Optional[str]): User email.
+        id: Authenticated user identifier.
+        role: Authenticated user permission role.
+        organization_id: Associated organization identifier, if tenant-scoped.
+        email: Authenticated user email address, if present in token claims.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    id: str
-    role: LaxUserRole
-    organization_id: str | None = None
-    email: str | None = None
+    id: Annotated[str, Field(description="Authenticated user ID")]
+    role: Annotated[LaxUserRole, Field(description="Authenticated user role")]
+    organization_id: Annotated[str | None, Field(default=None, description="Organization ID")] = None
+    email: Annotated[str | None, Field(default=None, description="User email address")] = None
 
     @field_validator("id")
     @classmethod
     def validate_non_empty(cls, v: str) -> str:
-        """Validates string is not empty.
+        """Validates that the token user identifier is not empty or whitespace-only.
 
         Args:
-            v: Input string.
+            v: Input identifier string.
 
         Returns:
-            str: Validated string.
+            Stripped non-empty identifier string.
 
         Raises:
-            ValueError: If string is empty or whitespace only.
+            ValueError: With logged ErrorCodes.VALIDATION_FAILED if string is empty or whitespace-only.
         """
         if not v or not v.strip():
             msg = "Field cannot be empty or whitespace only."
-            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
         return v.strip()
 
     @field_validator("organization_id", "email")
     @classmethod
     def validate_non_empty_optional(cls, v: str | None) -> str | None:
-        """Validates optional string is not empty if provided.
+        """Validates that optional token claim strings are not empty when provided.
 
         Args:
-            v: Input string.
+            v: Input optional string value.
 
         Returns:
-            str | None: Validated string or None.
+            Stripped non-empty string, or None.
 
         Raises:
-            ValueError: If string is empty or whitespace only.
+            ValueError: With logged ErrorCodes.VALIDATION_FAILED if provided string is empty or whitespace-only.
         """
         if v is not None and (not v or not v.strip()):
             msg = "Field cannot be empty or whitespace only."
-            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error("[AuthModel] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
         return v.strip() if v else v
 
 
 class UserDeleteResponse(BaseResponseDTO):
-    """Payload response for deleting a user.
+    """Payload response for deleting a user account.
 
     Attributes:
-        status (str): Deletion status message.
-        id (str): ID of the deleted user.
+        status: Deletion status indicator message.
+        id: Identifier of the deleted user.
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    status: str
-    id: str
+    status: Annotated[str, Field(description="Deletion status message")]
+    id: Annotated[str, Field(description="ID of the deleted user")]
 
 
 class TokenPayload(BaseDTO):
-    """Payload for token verification.
+    """Request payload for cryptographic token verification.
 
     Attributes:
-        token (str): JWT token string.
+        token: Raw JWT bearer token string.
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    token: str
+    token: Annotated[str, Field(description="JWT token string")]
 
 
 class LoginResponse(BaseResponseDTO):
-    """Response model for successful login.
+    """Response model for a successful authentication session handshake.
 
     Attributes:
-        user (User): Authenticated user object.
-        token_valid (bool): Whether the token is valid.
-        debug_msg (Optional[str]): Optional debug message.
+        user: Authenticated user domain object.
+        token_valid: Whether the verified token is valid.
+        debug_msg: Optional diagnostic message.
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    user: User
-    token_valid: bool
-    debug_msg: str | None = None
+    user: Annotated[User, Field(description="Authenticated user object")]
+    token_valid: Annotated[bool, Field(description="Whether the token is valid")]
+    debug_msg: Annotated[str | None, Field(default=None, description="Optional debug message")] = None
 
 
 class ImpersonationRequest(BaseDTO):
-    """Request payload for impersonation.
+    """Request payload for initiating administrative user impersonation.
 
     Attributes:
-        target_id (str): ID of the user to impersonate.
+        target_id: Identifier of the target user to impersonate.
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    target_id: str
+    target_id: Annotated[str, Field(description="ID of the user to impersonate")]
 
 
 class ImpersonationResponse(BaseResponseDTO):
-    """Response containing the impersonation token.
+    """Response containing the issued administrative impersonation token.
 
     Attributes:
-        access_token (str): Impersonation access token.
-        token_type (str): Token type (usually 'bearer').
+        access_token: Signed JWT impersonation access token.
+        token_type: Authorization token scheme (defaults to 'bearer').
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    access_token: str
-    token_type: str = "bearer"
+    access_token: Annotated[str, Field(description="Impersonation access token")]
+    token_type: Annotated[str, Field(default="bearer", description="Token type scheme")] = "bearer"
 
 
 class OrganizationDeleteResponse(BaseResponseDTO):
     """Payload response for deleting an organization.
 
     Attributes:
-        status (str): Deletion status message.
-        deleted_id (str): ID of the deleted organization.
+        status: Deletion status indicator message.
+        deleted_id: Identifier of the deleted organization.
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
-    status: str
-    deleted_id: str
+    status: Annotated[str, Field(description="Deletion status message")]
+    deleted_id: Annotated[str, Field(description="ID of the deleted organization")]
