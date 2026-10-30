@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
+import 'package:client_app/features/studio/views/components/clone_entity_button.dart';
 import 'package:client_app/features/studio/views/widgets/studio_master_header.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
@@ -68,9 +70,10 @@ class _MatricesMasterViewState extends ConsumerState<MatricesMasterView> {
                     backgroundColor: Theme.of(
                       context,
                     ).colorScheme.errorContainer,
-                    contentTextStyle: TextStyle(
-                      color: Theme.of(context).colorScheme.onErrorContainer,
-                    ),
+                    contentTextStyle: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                        ),
                     actions: [
                       TextButton(
                         onPressed: () => setState(() => _bannerError = null),
@@ -95,28 +98,21 @@ class _MatricesMasterViewState extends ConsumerState<MatricesMasterView> {
                       final draft = await ref
                           .read(promptBlocksControllerProvider.notifier)
                           .createPromptBlockDraft(categoryId: 'matrix');
-                      if (context.mounted) {
-                        PromptBlockEditRoute(
-                          id: draft.id,
-                          slug: draft.slug,
-                        ).go(context);
-                      }
+                      if (!context.mounted) return;
+                      PromptBlockEditRoute(
+                        id: draft.id,
+                        slug: draft.slug,
+                      ).go(context);
                     } catch (e, st) {
-                      if (context.mounted) {
-                        ref
-                            .read(loggerServiceProvider)
-                            .error(
-                              'MatricesMasterView',
-                              'Failed to mint',
-                              e,
-                              st,
-                            );
-                        setState(() {
-                          _bannerError = l10n.studioViewsFailedToCreate(
-                            e.toString(),
-                          );
-                        });
-                      }
+                      ref
+                          .read(loggerServiceProvider)
+                          .error('MatricesMasterView', 'Failed to mint', e, st);
+                      if (!context.mounted) return;
+                      setState(() {
+                        _bannerError = l10n.studioViewsFailedToCreate(
+                          e.toString(),
+                        );
+                      });
                     }
                   },
                 ),
@@ -142,15 +138,14 @@ class _MatricesMasterViewState extends ConsumerState<MatricesMasterView> {
                                       context,
                                     ).colorScheme.onSurfaceVariant,
                                   ),
-                                  title: const Text(
-                                    'Prototype Matrix Title',
+                                  title: Text(
+                                    l10n.studioDashboardMatricesTitle,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
-                                  subtitle: const Text(
-                                    'Prototype Subtitle',
+                                  subtitle: Text(
+                                    l10n.studioViewsMatricesDescription,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   trailing: const Row(
@@ -164,6 +159,11 @@ class _MatricesMasterViewState extends ConsumerState<MatricesMasterView> {
                               ),
                               itemBuilder: (context, index) {
                                 final matrix = filtered[index];
+                                if (matrix.id.isEmpty) {
+                                  throw AppException.validation(
+                                    'Fail-Fast: Matrix ID is missing.',
+                                  );
+                                }
                                 final displayName = matrix.label.get(
                                   currentLocale,
                                 );
@@ -178,13 +178,14 @@ class _MatricesMasterViewState extends ConsumerState<MatricesMasterView> {
                                       ).colorScheme.onSurfaceVariant,
                                     ),
                                     title: Text(
-                                      displayName.isNotEmpty
-                                          ? displayName
-                                          : matrix.id,
+                                      displayName,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
                                     subtitle: Text(
                                       l10n.studioViewsMatrixSubtitle(
@@ -196,32 +197,14 @@ class _MatricesMasterViewState extends ConsumerState<MatricesMasterView> {
                                     trailing: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.copy),
-                                          tooltip:
-                                              l10n.studioMasterDuplicateTooltip,
-                                          onPressed: () async {
-                                            final id = matrix.id;
-                                            if (id.isEmpty) return;
-
-                                            try {
-                                              await ref
-                                                  .read(
-                                                    promptBlocksControllerProvider
-                                                        .notifier,
-                                                  )
-                                                  .clonePromptBlock(id);
-                                            } catch (e, st) {
-                                              if (!context.mounted) return;
-                                              ref
-                                                  .read(loggerServiceProvider)
-                                                  .error(
-                                                    'Studio',
-                                                    'Failed to clone matrix: $e',
-                                                    e,
-                                                    st,
-                                                  );
-                                            }
+                                        CloneEntityButton(
+                                          onClone: () async {
+                                            await ref
+                                                .read(
+                                                  promptBlocksControllerProvider
+                                                      .notifier,
+                                                )
+                                                .clonePromptBlock(matrix.id);
                                           },
                                         ),
                                         const Icon(Icons.settings_ethernet),
@@ -239,8 +222,9 @@ class _MatricesMasterViewState extends ConsumerState<MatricesMasterView> {
                     AsyncLoading() => const Center(
                       child: CircularProgressIndicator(),
                     ),
-                    AsyncError(:final error) => ErrorView(
+                    AsyncError(:final error, :final stackTrace) => ErrorView(
                       error: error,
+                      stackTrace: stackTrace,
                       compact: true,
                       onRetry: () => ref
                           .read(promptBlocksControllerProvider.notifier)
