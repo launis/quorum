@@ -12,6 +12,7 @@ import argparse
 import datetime
 import io
 import json
+import logging
 import os
 import re
 import shutil
@@ -21,7 +22,7 @@ import tempfile
 import uuid
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, cast
+from typing import Annotated, Any
 
 # Ensure workspace root is in sys.path for direct script execution
 _workspace_root = str(Path(__file__).resolve().parent.parent)
@@ -34,19 +35,30 @@ if isinstance(sys.stdout, io.TextIOWrapper):
 if isinstance(sys.stderr, io.TextIOWrapper):
     sys.stderr.reconfigure(encoding="utf-8")
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter, ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import (
     I18nText,
     generate_uuid7_opaque_id,
 )
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
+from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import (
     EntityPrefix,
     PromptBlockCategory,
     StepType,
     SystemConfigID,
 )
-from backend_v2.seed.seed_registry import STANDARD_REGISTRY
+from backend_v2.settings import get_settings
+
+logger = logging.getLogger(__name__)
+
+_STEP_ADAPTER: TypeAdapter[Step] = TypeAdapter(Step)
+_WORKFLOW_ADAPTER: TypeAdapter[Workflow] = TypeAdapter(Workflow)
+_OUTPUT_PROFILE_ADAPTER: TypeAdapter[OutputProfile] = TypeAdapter(OutputProfile)
 
 __all__ = [
     "ClaimUpdateConfig",
@@ -55,6 +67,8 @@ __all__ = [
     "SPECIFIC_ATOM_HARMONIZATIONS",
     "SanitizeResult",
     "TrackAConfig",
+    "_sanitize_auxiliary_collections",
+    "_upgrade_or_generate_opaque_id",
     "atomic_save_seed_data",
     "clean_mechanical_phrases",
     "create_vault_backup",
@@ -111,18 +125,29 @@ def _upgrade_or_generate_opaque_id(raw_id: object, expected_prefix: EntityPrefix
 
 
 class SanitizeResult(BaseModel):
-    """Result summary of a seed vault sanitization run."""
+    """Result summary of a seed vault sanitization run.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        total_blocks_sanitized: Total prompt blocks inspected and sanitized.
+        total_atoms_mutated: Total matrix atoms modified.
+        total_steps_sanitized: Total steps validated and cleaned.
+        total_workflows_sanitized: Total workflows validated.
+        total_profiles_sanitized: Total output profiles cleaned.
+        backup_path: Path to the created timestamped backup.
+        is_dry_run: Whether the run was a dry-run.
+        success: Whether the entire sanitization passed cleanly.
+    """
 
-    total_blocks_sanitized: int = Field(default=0, description="Total prompt blocks inspected and sanitized.")
-    total_atoms_mutated: int = Field(default=0, description="Total matrix atoms modified.")
-    total_steps_sanitized: int = Field(default=0, description="Total steps validated and cleaned.")
-    total_workflows_sanitized: int = Field(default=0, description="Total workflows validated.")
-    total_profiles_sanitized: int = Field(default=0, description="Total output profiles cleaned.")
-    backup_path: str | None = Field(default=None, description="Path to the created timestamped backup.")
-    is_dry_run: bool = Field(default=False, description="Whether the run was a dry-run.")
-    success: bool = Field(default=True, description="Whether the entire sanitization passed cleanly.")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    total_blocks_sanitized: Annotated[int, Field(default=0, description="Total prompt blocks inspected and sanitized.")]
+    total_atoms_mutated: Annotated[int, Field(default=0, description="Total matrix atoms modified.")]
+    total_steps_sanitized: Annotated[int, Field(default=0, description="Total steps validated and cleaned.")]
+    total_workflows_sanitized: Annotated[int, Field(default=0, description="Total workflows validated.")]
+    total_profiles_sanitized: Annotated[int, Field(default=0, description="Total output profiles cleaned.")]
+    backup_path: Annotated[str | None, Field(default=None, description="Path to the created timestamped backup.")]
+    is_dry_run: Annotated[bool, Field(default=False, description="Whether the run was a dry-run.")]
+    success: Annotated[bool, Field(default=True, description="Whether the entire sanitization passed cleanly.")]
 
 
 # Specific atom ontology harmonizations (Map of tda_id -> (concept_description, extraction_rule))
@@ -231,23 +256,38 @@ SPECIFIC_ATOM_HARMONIZATIONS: dict[str, tuple[str, str]] = {
 
 
 class ClaimUpdateConfig(BaseModel):
-    """Configuration for updating a Track A Novice claim and assertion."""
+    """Configuration for updating a Track A Novice claim and assertion.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        label: Localized label for the Novice claim.
+        concept: Declarative concept description for the TDA assertion.
+        rule: Extraction rule for the TDA assertion.
+    """
 
-    label: I18nText
-    concept: str
-    rule: str
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    label: Annotated[I18nText, Field(description="Localized label for the Novice claim.")]
+    concept: Annotated[str, Field(description="Declarative concept description for the TDA assertion.")]
+    rule: Annotated[str, Field(description="Extraction rule for the TDA assertion.")]
 
 
 class TrackAConfig(BaseModel):
-    """Configuration for refactoring a Track A matrix Level 1 scale."""
+    """Configuration for refactoring a Track A matrix Level 1 scale.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        scale_name: Localized name of the Level 1 scale.
+        ai_label: English AI label for the Level 1 scale.
+        claim_updates: Mapping of TDA ID to claim update configuration.
+    """
 
-    scale_name: I18nText
-    ai_label: str
-    claim_updates: dict[str, ClaimUpdateConfig]
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    scale_name: Annotated[I18nText, Field(description="Localized name of the Level 1 scale.")]
+    ai_label: Annotated[str, Field(description="English AI label for the Level 1 scale.")]
+    claim_updates: Annotated[
+        dict[str, ClaimUpdateConfig],
+        Field(description="Mapping of TDA ID to claim update configuration."),
+    ]
 
 
 # Dual-Track Rubric Architecture: Track A Developmental Matrices configuration
@@ -471,7 +511,22 @@ def create_vault_backup(seed_path: Path) -> Path:
 
     Returns:
         The Path to the created backup file.
+
+    Raises:
+        AppException: With ErrorCodes.FILE_NOT_FOUND if seed_path does not exist on disk.
     """
+    if not seed_path.exists():
+        logger.error(
+            "[Sanitizer] %s: Cannot create backup; seed file not found at '%s'",
+            ErrorCodes.FILE_NOT_FOUND.value,
+            seed_path,
+            exc_info=True,
+        )
+        raise AppException(
+            message=f"Seed data file not found at: {seed_path}",
+            status_code=404,
+            details={"error_code": ErrorCodes.FILE_NOT_FOUND.value, "seed_path": str(seed_path)},
+        )
     timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d_%H%M%S")
     backup_dir = seed_path.parent / "backups"
     backup_dir.mkdir(parents=True, exist_ok=True)
@@ -488,7 +543,7 @@ def atomic_save_seed_data(data: Mapping[str, JsonValue], target_path: Path) -> N
         target_path: Destination JSON file path.
 
     Raises:
-        ValueError: If JSON syntax or serialization check fails before move.
+        AppException: With ErrorCodes.VALIDATION_FAILED if JSON syntax or collection check fails before move.
     """
     target_path = target_path.resolve()
     temp_dir = target_path.parent
@@ -502,14 +557,151 @@ def atomic_save_seed_data(data: Mapping[str, JsonValue], target_path: Path) -> N
         os.fsync(tf.fileno())
 
     # Dry-run validation of temporary file syntax
-    with open(temp_name, encoding="utf-8") as tf_read:
-        verified_data = json.load(tf_read)
-        if "prompt_blocks" not in verified_data:
-            os.remove(temp_name)
-            raise ValueError(f"Temporary file '{temp_name}' failed seed collection validation.")
+    temp_path = Path(temp_name)
+    verified_data = json.loads(temp_path.read_text(encoding="utf-8"))
+    if "prompt_blocks" not in verified_data:
+        temp_path.unlink(missing_ok=True)
+        logger.error(
+            "[Sanitizer] %s: Temporary file '%s' missing mandatory 'prompt_blocks' collection.",
+            ErrorCodes.VALIDATION_FAILED.value,
+            temp_name,
+            exc_info=True,
+        )
+        raise AppException(
+            message=f"Temporary file '{temp_name}' failed seed collection validation.",
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "temp_file": temp_name},
+        )
 
     # Atomic move over target file
-    os.replace(temp_name, target_path)
+    temp_path.replace(target_path)
+
+
+def _sanitize_assertion_item(
+    raw_assertion: Any,
+    block_id: str,
+    score_val: Any,
+    cfg: TrackAConfig | None,
+    claim_dict: dict[str, JsonValue],
+    min_rule_len: int,
+) -> tuple[JsonValue, int]:
+    """Sanitizes a single TDA assertion item within a matrix claim.
+
+    Args:
+        raw_assertion: Raw assertion dictionary.
+        block_id: Canonical Opaque ID of the parent prompt block.
+        score_val: Numeric score of the parent scale.
+        cfg: Optional TrackAConfig for Level 1 Novice refactoring.
+        claim_dict: Mutable claim dictionary for label updates when Track A matches.
+        min_rule_len: Minimum extraction rule length from Settings.
+
+    Returns:
+        A 2-tuple of (sanitized assertion dictionary, mutated count increment).
+    """
+    a: dict[str, JsonValue] = dict(raw_assertion)
+    mutated = 0
+    raw_tda_id = str(a["tda_id"]) if "tda_id" in a else ""
+    tda_id = _upgrade_or_generate_opaque_id(raw_tda_id, EntityPrefix.TDA)
+    a["tda_id"] = tda_id
+    if "depends_on" in a and isinstance(a["depends_on"], list):
+        raw_edges: Sequence[Any] = a["depends_on"]
+        upgraded_edges: list[JsonValue] = []
+        for edge in raw_edges:
+            e_dict: dict[str, JsonValue] = dict(edge)
+            if "tda_id" in e_dict:
+                e_dict["tda_id"] = _upgrade_or_generate_opaque_id(e_dict["tda_id"], EntityPrefix.TDA)
+            upgraded_edges.append(e_dict)
+        a["depends_on"] = upgraded_edges
+
+    # Dual-Track Invariants
+    if block_id in DUAL_TRACK_A_CONFIG and score_val == 1:
+        a["inverse_evidence"] = False
+        a["aggregation_mode"] = "ALL_MUST_COMPLY"
+        if cfg and tda_id in cfg.claim_updates:
+            u = cfg.claim_updates[tda_id]
+            claim_dict["label"] = u.label.model_dump()
+            a["concept_description"] = u.concept
+            a["extraction_rule"] = u.rule
+            mutated += 1
+    elif block_id in DUAL_TRACK_B_BLOCK_IDS and score_val in (1, 2):
+        a["inverse_evidence"] = True
+        a["aggregation_mode"] = "EXISTS"
+
+    # Check specific harmonization first
+    if tda_id in SPECIFIC_ATOM_HARMONIZATIONS:
+        new_desc, new_rule = SPECIFIC_ATOM_HARMONIZATIONS[tda_id]
+        a["concept_description"] = new_desc
+        a["extraction_rule"] = new_rule
+        mutated += 1
+    else:
+        desc = str(a["concept_description"]) if "concept_description" in a else ""
+        rule = str(a["extraction_rule"]) if "extraction_rule" in a else ""
+
+        cleaned_desc = clean_mechanical_phrases(strip_raw_xml(desc))
+        cleaned_rule = clean_mechanical_phrases(strip_raw_xml(rule))
+
+        if not cleaned_rule or len(cleaned_rule) < min_rule_len:
+            cleaned_rule = (
+                f"Locate and extract substantive evidence demonstrating the following requirement: {cleaned_desc}"
+            )
+
+        if len(cleaned_desc) > 180:
+            cleaned_desc = cleaned_desc[:175].rsplit(" ", 1)[0] + "."
+
+        if cleaned_desc != desc or cleaned_rule != rule:
+            a["concept_description"] = cleaned_desc
+            a["extraction_rule"] = cleaned_rule
+            mutated += 1
+
+    return a, mutated
+
+
+def _sanitize_matrix_scales(scales: Sequence[Any], block_id: str, min_rule_len: int) -> tuple[list[JsonValue], int]:
+    """Sanitizes all scales, claims, and TDA assertions within a matrix prompt block.
+
+    Args:
+        scales: Raw scales list from a matrix block.
+        block_id: Canonical Opaque ID of the matrix block.
+        min_rule_len: Minimum extraction rule length resolved from Settings.
+
+    Returns:
+        A 2-tuple of (sanitized scales list, mutated atoms count).
+    """
+    new_scales: list[JsonValue] = []
+    mutated_atoms_count = 0
+    for scale in scales:
+        s: dict[str, JsonValue] = dict(scale)
+        score_val = s["score"] if "score" in s else None
+        if "id" in s:
+            s["id"] = _upgrade_or_generate_opaque_id(s["id"], EntityPrefix.SCALE)
+
+        cfg: TrackAConfig | None = None
+        if block_id in DUAL_TRACK_A_CONFIG and score_val == 1:
+            cfg = DUAL_TRACK_A_CONFIG[block_id]
+            s["name"] = cfg.scale_name.model_dump()
+            s["ai_label"] = cfg.ai_label
+
+        claims = s["claims"] if "claims" in s else []
+        if isinstance(claims, list):
+            raw_claims: Sequence[Any] = claims
+            new_claims: list[JsonValue] = []
+            for claim in raw_claims:
+                c: dict[str, JsonValue] = dict(claim)
+                assertions = c["tda_assertions"] if "tda_assertions" in c else []
+                if isinstance(assertions, list):
+                    raw_assertions: Sequence[Any] = assertions
+                    new_assertions: list[JsonValue] = []
+                    for assertion in raw_assertions:
+                        sanitized_a, inc = _sanitize_assertion_item(
+                            assertion, block_id, score_val, cfg, c, min_rule_len
+                        )
+                        mutated_atoms_count += inc
+                        new_assertions.append(sanitized_a)
+                    c["tda_assertions"] = new_assertions
+                new_claims.append(c)
+            s["claims"] = new_claims
+        new_scales.append(s)
+    return new_scales, mutated_atoms_count
 
 
 def sanitize_prompt_blocks(prompt_blocks: Sequence[Any]) -> tuple[list[JsonValue], int]:
@@ -520,116 +712,49 @@ def sanitize_prompt_blocks(prompt_blocks: Sequence[Any]) -> tuple[list[JsonValue
 
     Returns:
         A tuple of (sanitized blocks, mutated atoms count).
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if any prompt block fails strict Pydantic V2 validation.
     """
     sanitized_blocks: list[JsonValue] = []
     mutated_atoms_count = 0
+    min_rule_len = get_settings().tda_concept_min_length
 
     for block in prompt_blocks:
-        b = dict(block)
-        # Phase 1 & 2, Step 1 & 2: Explicit key membership check and deterministic 32-hex UUIDv7 upgrade
+        b: dict[str, JsonValue] = dict(block)
         raw_block_id = str(b["id"]) if "id" in b else ""
         block_id = _upgrade_or_generate_opaque_id(raw_block_id, EntityPrefix.PROMPT_BLOCK)
         b["id"] = block_id
         category_id = str(b["category_id"]) if "category_id" in b else ""
 
-        # Strip XML from top-level prompt fields
         for field in ["ai_description", "role_enforcement", "instruction_text", "protocol_instructions"]:
-            if field in b and isinstance(b[field], str):
-                b[field] = strip_raw_xml(b[field])
+            if field in b:
+                val = b[field]
+                if isinstance(val, str):
+                    b[field] = strip_raw_xml(val)
 
         if category_id in (PromptBlockCategory.MATRIX, PromptBlockCategory.MATRIX.value):
             scales = b["scales"] if "scales" in b else []
             if isinstance(scales, list):
-                new_scales: list[JsonValue] = []
-                for scale in scales:
-                    s = dict(scale)
-                    # Phase 1, Step 1: Explicit key membership check instead of .get()
-                    score_val = s["score"] if "score" in s else None
-                    if "id" in s:
-                        s["id"] = _upgrade_or_generate_opaque_id(s["id"], EntityPrefix.SCALE)
-
-                    # Track A Level 1 Refactoring
-                    cfg: TrackAConfig | None = None
-                    if block_id in DUAL_TRACK_A_CONFIG and score_val == 1:
-                        cfg = DUAL_TRACK_A_CONFIG[block_id]
-                        s["name"] = cfg.scale_name.model_dump()
-                        s["ai_label"] = cfg.ai_label
-
-                    claims = s["claims"] if "claims" in s else []
-                    if isinstance(claims, list):
-                        new_claims: list[JsonValue] = []
-                        for claim in claims:
-                            c = dict(claim)
-                            assertions = c["tda_assertions"] if "tda_assertions" in c else []
-                            if isinstance(assertions, list):
-                                new_assertions: list[JsonValue] = []
-                                for assertion in assertions:
-                                    a = dict(assertion)
-                                    raw_tda_id = str(a["tda_id"]) if "tda_id" in a else ""
-                                    tda_id = _upgrade_or_generate_opaque_id(raw_tda_id, EntityPrefix.TDA)
-                                    a["tda_id"] = tda_id
-                                    if "depends_on" in a and isinstance(a["depends_on"], list):
-                                        upgraded_edges: list[JsonValue] = []
-                                        for edge in a["depends_on"]:
-                                            e_dict = dict(edge)
-                                            if "tda_id" in e_dict:
-                                                e_dict["tda_id"] = _upgrade_or_generate_opaque_id(
-                                                    e_dict["tda_id"], EntityPrefix.TDA
-                                                )
-                                            upgraded_edges.append(e_dict)
-                                        a["depends_on"] = upgraded_edges
-
-                                    # Dual-Track Invariants
-                                    if block_id in DUAL_TRACK_A_CONFIG and score_val == 1:
-                                        a["inverse_evidence"] = False
-                                        a["aggregation_mode"] = "ALL_MUST_COMPLY"
-                                        if cfg and tda_id in cfg.claim_updates:
-                                            u = cfg.claim_updates[tda_id]
-                                            c["label"] = u.label.model_dump()
-                                            a["concept_description"] = u.concept
-                                            a["extraction_rule"] = u.rule
-                                            mutated_atoms_count += 1
-                                    elif block_id in DUAL_TRACK_B_BLOCK_IDS and score_val in (1, 2):
-                                        a["inverse_evidence"] = True
-                                        a["aggregation_mode"] = "EXISTS"
-
-                                    # Check specific harmonization first
-                                    if tda_id in SPECIFIC_ATOM_HARMONIZATIONS:
-                                        new_desc, new_rule = SPECIFIC_ATOM_HARMONIZATIONS[tda_id]
-                                        a["concept_description"] = new_desc
-                                        a["extraction_rule"] = new_rule
-                                        mutated_atoms_count += 1
-                                    else:
-                                        # Generic sanitization
-                                        desc = a["concept_description"] if "concept_description" in a else ""
-                                        rule = a["extraction_rule"] if "extraction_rule" in a else ""
-
-                                        cleaned_desc = clean_mechanical_phrases(strip_raw_xml(desc))
-                                        cleaned_rule = clean_mechanical_phrases(strip_raw_xml(rule))
-
-                                        # Ensure rule is populated
-                                        if not cleaned_rule or len(cleaned_rule) < 10:
-                                            cleaned_rule = f"Locate and extract substantive evidence demonstrating the following requirement: {cleaned_desc}"
-
-                                        # Ensure concept is concise
-                                        if len(cleaned_desc) > 180:
-                                            cleaned_desc = cleaned_desc[:175].rsplit(" ", 1)[0] + "."
-
-                                        if cleaned_desc != desc or cleaned_rule != rule:
-                                            a["concept_description"] = cleaned_desc
-                                            a["extraction_rule"] = cleaned_rule
-                                            mutated_atoms_count += 1
-
-                                    new_assertions.append(a)
-                                c["tda_assertions"] = new_assertions
-                            new_claims.append(c)
-                        s["claims"] = new_claims
-                    new_scales.append(s)
+                new_scales, inc = _sanitize_matrix_scales(scales, block_id, min_rule_len)
+                mutated_atoms_count += inc
                 b["scales"] = new_scales
 
-        # Validate with strict Pydantic V2 TypeAdapter
-        adapter_blocks = cast(TypeAdapter[BaseModel], STANDARD_REGISTRY["prompt_blocks"]["model"])
-        validated_model = adapter_blocks.validate_python(b)
+        try:
+            validated_model = PromptBlockAdapter.validate_python(b)
+        except ValidationError as exc:
+            logger.error(
+                "[Sanitizer] %s: PromptBlock '%s' failed Pydantic V2 validation: %s",
+                ErrorCodes.VALIDATION_FAILED.value,
+                block_id,
+                exc,
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"PromptBlock '{block_id}' failed validation: {exc}",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "entity_id": block_id},
+            ) from exc
         serialized_block = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_blocks.append(serialized_block)
 
@@ -644,15 +769,17 @@ def sanitize_steps(steps: Sequence[Any]) -> list[JsonValue]:
 
     Returns:
         Sanitized and validated step dictionaries.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if any step fails strict Pydantic V2 validation.
     """
     sanitized_steps: list[JsonValue] = []
-    adapter_steps = cast(TypeAdapter[BaseModel], STANDARD_REGISTRY["steps"]["model"])
 
     for step in steps:
-        s = {k: v for k, v in step.items() if k != "output_schema"}
-        # Phase 2, Step 2: Upgrade step ID (normalizing sp_ -> stp_) and block foreign keys
+        s: dict[str, JsonValue] = {k: v for k, v in step.items() if k != "output_schema"}
         raw_step_id = s["id"] if "id" in s else None
-        s["id"] = _upgrade_or_generate_opaque_id(raw_step_id, EntityPrefix.STEP)
+        step_id = _upgrade_or_generate_opaque_id(raw_step_id, EntityPrefix.STEP)
+        s["id"] = step_id
         for fk_field in ("role_block_id", "extraction_protocol_block_id", "execution_persona_block_id"):
             if fk_field in s and s[fk_field] is not None:
                 s[fk_field] = _upgrade_or_generate_opaque_id(s[fk_field], EntityPrefix.PROMPT_BLOCK)
@@ -665,21 +792,99 @@ def sanitize_steps(steps: Sequence[Any]) -> list[JsonValue]:
         else:
             s["criteria_block_ids"] = []
 
-        # Phase 2, Step 2: Bind causal cohesion BARS matrix block directly to CAUSAL_DISCOVERY steps
         step_type = str(s["type"]) if "type" in s else ""
         if step_type in (StepType.CAUSAL_DISCOVERY, StepType.CAUSAL_DISCOVERY.value):
             if not s["criteria_block_ids"]:
                 s["criteria_block_ids"] = [_CAUSAL_COHESION_MATRIX_BLOCK_ID]
 
         for field in ["step_rules", "ai_description", "label"]:
-            if field in s and isinstance(s[field], str):
-                s[field] = strip_raw_xml(s[field])
+            if field in s:
+                val = s[field]
+                if isinstance(val, str):
+                    s[field] = strip_raw_xml(val)
 
-        validated_model = adapter_steps.validate_python(s)
+        try:
+            validated_model = _STEP_ADAPTER.validate_python(s)
+        except ValidationError as exc:
+            logger.error(
+                "[Sanitizer] %s: Step '%s' failed Pydantic V2 validation: %s",
+                ErrorCodes.VALIDATION_FAILED.value,
+                step_id,
+                exc,
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"Step '{step_id}' failed validation: {exc}",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "entity_id": step_id},
+            ) from exc
         serialized_step = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_steps.append(serialized_step)
 
     return sanitized_steps
+
+
+def _sanitize_workflow_step_references(raw_steps: Sequence[Any]) -> list[JsonValue]:
+    """Upgrades step reference IDs, blueprint links, dependencies, and input mappings in a workflow.
+
+    Args:
+        raw_steps: Raw list of workflow step references.
+
+    Returns:
+        Sanitized list of workflow step reference dictionaries.
+    """
+    sr_id_map: dict[str, str] = {}
+    for sr_item in raw_steps:
+        sr_dict = dict(sr_item)
+        if "id" in sr_dict and sr_dict["id"] is not None:
+            old_sr = str(sr_dict["id"])
+            sr_id_map[old_sr] = _upgrade_or_generate_opaque_id(old_sr, EntityPrefix.STEP_REFERENCE)
+
+    new_step_rules: list[JsonValue] = []
+    for sr_item in raw_steps:
+        sr: dict[str, JsonValue] = dict(sr_item)
+        old_sr_id = str(sr["id"]) if "id" in sr and sr["id"] is not None else ""
+        sr["id"] = (
+            sr_id_map[old_sr_id]
+            if old_sr_id in sr_id_map
+            else _upgrade_or_generate_opaque_id(None, EntityPrefix.STEP_REFERENCE)
+        )
+        if "task_blueprint" in sr and sr["task_blueprint"] is not None:
+            sr["task_blueprint"] = _upgrade_or_generate_opaque_id(sr["task_blueprint"], EntityPrefix.STEP)
+        if "depends_on" in sr and isinstance(sr["depends_on"], list):
+            sr["depends_on"] = [
+                sr_id_map[str(dep)]
+                if str(dep) in sr_id_map
+                else _upgrade_or_generate_opaque_id(dep, EntityPrefix.STEP_REFERENCE)
+                for dep in sr["depends_on"]
+            ]
+        if "causal_source_step_id" in sr and sr["causal_source_step_id"] is not None:
+            cs_str = str(sr["causal_source_step_id"])
+            sr["causal_source_step_id"] = (
+                sr_id_map[cs_str]
+                if cs_str in sr_id_map
+                else _upgrade_or_generate_opaque_id(cs_str, EntityPrefix.STEP_REFERENCE)
+            )
+        if "input_mappings" in sr and sr["input_mappings"]:
+            raw_mappings: Any = sr["input_mappings"]
+            new_mappings: dict[str, JsonValue] = {}
+            for mk, mv in dict(raw_mappings).items():
+                val_str = str(mv)
+                parts = val_str.split(".", 2)
+                if len(parts) >= 2 and parts[0] == "$steps":
+                    ref_sr = parts[1]
+                    if ref_sr != "matrix_reducer":
+                        upgraded_ref = (
+                            sr_id_map[ref_sr]
+                            if ref_sr in sr_id_map
+                            else _upgrade_or_generate_opaque_id(ref_sr, EntityPrefix.STEP_REFERENCE)
+                        )
+                        suffix = f".{parts[2]}" if len(parts) == 3 else ""
+                        val_str = f"$steps.{upgraded_ref}{suffix}"
+                new_mappings[str(mk)] = val_str
+            sr["input_mappings"] = new_mappings
+        new_step_rules.append(sr)
+    return new_step_rules
 
 
 def sanitize_workflows(workflows: Sequence[Any]) -> list[JsonValue]:
@@ -690,13 +895,16 @@ def sanitize_workflows(workflows: Sequence[Any]) -> list[JsonValue]:
 
     Returns:
         Sanitized and validated workflow dictionaries.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if any workflow fails strict Pydantic V2 validation.
     """
     sanitized_workflows: list[JsonValue] = []
-    adapter_workflows = cast(TypeAdapter[BaseModel], STANDARD_REGISTRY["workflows"]["model"])
 
     for workflow in workflows:
-        w = {k: v for k, v in workflow.items() if k not in ("ui_schema", "default_scoring_strategy")}
-        # Phase 1 & 2, Step 1 & 2: Explicit key membership check and 32-hex UUIDv7 upgrade
+        w: dict[str, JsonValue] = {
+            k: v for k, v in workflow.items() if k not in ("ui_schema", "default_scoring_strategy")
+        }
         raw_w_id = w["id"] if "id" in w else None
         w_id = _upgrade_or_generate_opaque_id(raw_w_id, EntityPrefix.WORKFLOW)
         w["id"] = w_id
@@ -711,57 +919,7 @@ def sanitize_workflows(workflows: Sequence[Any]) -> list[JsonValue]:
             w["model_registry_id"] = _upgrade_or_generate_opaque_id(w["model_registry_id"], EntityPrefix.SYSTEM_CONFIG)
 
         if "steps" in w and isinstance(w["steps"], list):
-            sr_id_map: dict[str, str] = {}
-            for sr_item in w["steps"]:
-                sr_dict = dict(sr_item)
-                if "id" in sr_dict and sr_dict["id"] is not None:
-                    old_sr = str(sr_dict["id"])
-                    sr_id_map[old_sr] = _upgrade_or_generate_opaque_id(old_sr, EntityPrefix.STEP_REFERENCE)
-
-            new_step_rules: list[JsonValue] = []
-            for sr_item in w["steps"]:
-                sr = dict(sr_item)
-                old_sr_id = str(sr["id"]) if "id" in sr and sr["id"] is not None else ""
-                sr["id"] = (
-                    sr_id_map[old_sr_id]
-                    if old_sr_id in sr_id_map
-                    else _upgrade_or_generate_opaque_id(None, EntityPrefix.STEP_REFERENCE)
-                )
-                if "task_blueprint" in sr and sr["task_blueprint"] is not None:
-                    sr["task_blueprint"] = _upgrade_or_generate_opaque_id(sr["task_blueprint"], EntityPrefix.STEP)
-                if "depends_on" in sr and isinstance(sr["depends_on"], list):
-                    sr["depends_on"] = [
-                        sr_id_map[str(dep)]
-                        if str(dep) in sr_id_map
-                        else _upgrade_or_generate_opaque_id(dep, EntityPrefix.STEP_REFERENCE)
-                        for dep in sr["depends_on"]
-                    ]
-                if "causal_source_step_id" in sr and sr["causal_source_step_id"] is not None:
-                    cs_str = str(sr["causal_source_step_id"])
-                    sr["causal_source_step_id"] = (
-                        sr_id_map[cs_str]
-                        if cs_str in sr_id_map
-                        else _upgrade_or_generate_opaque_id(cs_str, EntityPrefix.STEP_REFERENCE)
-                    )
-                if "input_mappings" in sr and sr["input_mappings"]:
-                    new_mappings: dict[str, str] = {}
-                    for mk, mv in dict(sr["input_mappings"]).items():
-                        val_str = str(mv)
-                        parts = val_str.split(".", 2)
-                        if len(parts) >= 2 and parts[0] == "$steps":
-                            ref_sr = parts[1]
-                            if ref_sr != "matrix_reducer":
-                                upgraded_ref = (
-                                    sr_id_map[ref_sr]
-                                    if ref_sr in sr_id_map
-                                    else _upgrade_or_generate_opaque_id(ref_sr, EntityPrefix.STEP_REFERENCE)
-                                )
-                                suffix = f".{parts[2]}" if len(parts) == 3 else ""
-                                val_str = f"$steps.{upgraded_ref}{suffix}"
-                        new_mappings[str(mk)] = val_str
-                    sr["input_mappings"] = new_mappings
-                new_step_rules.append(sr)
-            w["steps"] = new_step_rules
+            w["steps"] = _sanitize_workflow_step_references(w["steps"])
 
         wf_03_id = "wf_0195f3a00000700083a1d71000000003"
         wf_05_id = "wf_0195f3a00000700085a1d71000000005"
@@ -773,7 +931,21 @@ def sanitize_workflows(workflows: Sequence[Any]) -> list[JsonValue]:
             w["post_hoc_penalty"] = 0.0
         if "passivity_penalty" not in w:
             w["passivity_penalty"] = 0.05 if w_id == wf_03_id else 0.0
-        validated_model = adapter_workflows.validate_python(w)
+        try:
+            validated_model = _WORKFLOW_ADAPTER.validate_python(w)
+        except ValidationError as exc:
+            logger.error(
+                "[Sanitizer] %s: Workflow '%s' failed Pydantic V2 validation: %s",
+                ErrorCodes.VALIDATION_FAILED.value,
+                w_id,
+                exc,
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"Workflow '{w_id}' failed validation: {exc}",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "entity_id": w_id},
+            ) from exc
         serialized_workflow = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_workflows.append(serialized_workflow)
 
@@ -788,12 +960,14 @@ def sanitize_output_profiles(output_profiles: Sequence[Any]) -> list[JsonValue]:
 
     Returns:
         Sanitized and validated output profile dictionaries.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if any output profile fails strict Pydantic V2 validation.
     """
     sanitized_profiles: list[JsonValue] = []
-    adapter_profiles = cast(TypeAdapter[BaseModel], STANDARD_REGISTRY["output_profiles"]["model"])
 
     for profile in output_profiles:
-        p = {
+        p: dict[str, JsonValue] = {
             k: v
             for k, v in profile.items()
             if k
@@ -806,7 +980,8 @@ def sanitize_output_profiles(output_profiles: Sequence[Any]) -> list[JsonValue]:
             )
         }
         raw_p_id = p["id"] if "id" in p else None
-        p["id"] = _upgrade_or_generate_opaque_id(raw_p_id, EntityPrefix.OUTPUT_PROFILE)
+        p_id = _upgrade_or_generate_opaque_id(raw_p_id, EntityPrefix.OUTPUT_PROFILE)
+        p["id"] = p_id
         if "workflow_id" in p and p["workflow_id"] is not None:
             p["workflow_id"] = _upgrade_or_generate_opaque_id(p["workflow_id"], EntityPrefix.WORKFLOW)
         if "target_block_order" in p and isinstance(p["target_block_order"], list):
@@ -818,9 +993,10 @@ def sanitize_output_profiles(output_profiles: Sequence[Any]) -> list[JsonValue]:
                     new_tbo.append(tbo)
             p["target_block_order"] = new_tbo
         if "matrix_synthesis_groups" in p and isinstance(p["matrix_synthesis_groups"], list):
+            raw_groups: Sequence[Any] = p["matrix_synthesis_groups"]
             new_groups: list[JsonValue] = []
-            for grp_item in p["matrix_synthesis_groups"]:
-                grp = dict(grp_item)
+            for grp_item in raw_groups:
+                grp: dict[str, JsonValue] = dict(grp_item)
                 raw_grp_id = grp["id"] if "id" in grp else None
                 grp["id"] = _upgrade_or_generate_opaque_id(raw_grp_id, EntityPrefix.SYNTHESIS_GROUP)
                 if "target_blocks" in grp and isinstance(grp["target_blocks"], list):
@@ -837,7 +1013,21 @@ def sanitize_output_profiles(output_profiles: Sequence[Any]) -> list[JsonValue]:
             p["user_role_target_block"] = _upgrade_or_generate_opaque_id(
                 p["user_role_target_block"], EntityPrefix.PROMPT_BLOCK
             )
-        validated_model = adapter_profiles.validate_python(p)
+        try:
+            validated_model = _OUTPUT_PROFILE_ADAPTER.validate_python(p)
+        except ValidationError as exc:
+            logger.error(
+                "[Sanitizer] %s: OutputProfile '%s' failed Pydantic V2 validation: %s",
+                ErrorCodes.VALIDATION_FAILED.value,
+                p_id,
+                exc,
+                exc_info=True,
+            )
+            raise AppException(
+                message=f"OutputProfile '{p_id}' failed validation: {exc}",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "entity_id": p_id},
+            ) from exc
         serialized_profile = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_profiles.append(serialized_profile)
 
@@ -854,7 +1044,7 @@ def _sanitize_auxiliary_collections(data: dict[str, JsonValue]) -> None:
         raw_sys_cfgs: Sequence[Any] = data["system_config"]
         new_sys_cfgs: list[JsonValue] = []
         for item in raw_sys_cfgs:
-            cfg = dict(item)
+            cfg: dict[str, JsonValue] = dict(item)
             raw_cfg_id = cfg["id"] if "id" in cfg else None
             cfg["id"] = _upgrade_or_generate_opaque_id(raw_cfg_id, EntityPrefix.SYSTEM_CONFIG)
             new_sys_cfgs.append(cfg)
@@ -864,7 +1054,7 @@ def _sanitize_auxiliary_collections(data: dict[str, JsonValue]) -> None:
         raw_orgs: Sequence[Any] = data["organizations"]
         new_orgs: list[JsonValue] = []
         for item in raw_orgs:
-            org = dict(item)
+            org: dict[str, JsonValue] = dict(item)
             raw_org_id = org["id"] if "id" in org else None
             if raw_org_id != "org_system000000":
                 org["id"] = _upgrade_or_generate_opaque_id(raw_org_id, EntityPrefix.ORGANIZATION)
@@ -875,7 +1065,7 @@ def _sanitize_auxiliary_collections(data: dict[str, JsonValue]) -> None:
         raw_users: Sequence[Any] = data["users"]
         new_users: list[JsonValue] = []
         for item in raw_users:
-            usr = dict(item)
+            usr: dict[str, JsonValue] = dict(item)
             raw_usr_id = usr["id"] if "id" in usr else None
             usr["id"] = _upgrade_or_generate_opaque_id(raw_usr_id, EntityPrefix.USER)
             if "organization_id" in usr and usr["organization_id"] not in (None, "org_system000000", "SYSTEM"):
@@ -895,15 +1085,57 @@ def run_seed_vault_sanitization(seed_path: Path, dry_run: bool = False) -> Sanit
 
     Returns:
         A SanitizeResult model with execution statistics.
+
+    Raises:
+        AppException: With ErrorCodes.FILE_NOT_FOUND if seed_path does not exist,
+            ErrorCodes.INVALID_JSON_PAYLOAD if JSON syntax is malformed, or
+            ErrorCodes.VALIDATION_FAILED if entity schema validation fails.
     """
     if not seed_path.exists():
-        raise FileNotFoundError(f"Seed data file not found at: {seed_path}")
+        logger.error(
+            "[Sanitizer] %s: Seed data file not found at: %s",
+            ErrorCodes.FILE_NOT_FOUND.value,
+            seed_path,
+            exc_info=True,
+        )
+        raise AppException(
+            message=f"Seed data file not found at: {seed_path}",
+            status_code=404,
+            details={"error_code": ErrorCodes.FILE_NOT_FOUND.value, "seed_path": str(seed_path)},
+        )
 
     raw_content = seed_path.read_text(encoding="utf-8")
-    raw_data = json.loads(raw_content)
+    try:
+        raw_data: Any = json.loads(raw_content)
+    except json.JSONDecodeError as exc:
+        logger.error(
+            "[Sanitizer] %s: Malformed JSON in seed vault at '%s': %s",
+            ErrorCodes.INVALID_JSON_PAYLOAD.value,
+            seed_path,
+            exc,
+            exc_info=True,
+        )
+        raise AppException(
+            message=f"Malformed JSON in seed vault at '{seed_path}': {exc}",
+            status_code=400,
+            details={"error_code": ErrorCodes.INVALID_JSON_PAYLOAD.value, "seed_path": str(seed_path)},
+        ) from exc
+
+    if type(raw_data) is not dict:
+        logger.error(
+            "[Sanitizer] %s: Root JSON payload in '%s' must be a JSON object.",
+            ErrorCodes.VALIDATION_FAILED.value,
+            seed_path,
+            exc_info=True,
+        )
+        raise AppException(
+            message=f"Root JSON payload in '{seed_path}' must be a JSON object.",
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "seed_path": str(seed_path)},
+        )
 
     # Purge orphan root collections
-    data = {k: v for k, v in raw_data.items() if k != "step_blueprints"}
+    data: dict[str, JsonValue] = {str(k): v for k, v in raw_data.items() if k != "step_blueprints"}
 
     backup_path_str: str | None = None
     if not dry_run:
@@ -914,22 +1146,24 @@ def run_seed_vault_sanitization(seed_path: Path, dry_run: bool = False) -> Sanit
     _sanitize_auxiliary_collections(data)
 
     # 1. Sanitize prompt_blocks
-    prompt_blocks = data["prompt_blocks"] if "prompt_blocks" in data else []
+    prompt_blocks = data["prompt_blocks"] if "prompt_blocks" in data and isinstance(data["prompt_blocks"], list) else []
     sanitized_blocks, mutated_atoms = sanitize_prompt_blocks(prompt_blocks)
     data["prompt_blocks"] = sanitized_blocks
 
     # 2. Sanitize steps
-    steps = data["steps"] if "steps" in data else []
+    steps = data["steps"] if "steps" in data and isinstance(data["steps"], list) else []
     sanitized_steps = sanitize_steps(steps)
     data["steps"] = sanitized_steps
 
     # 3. Sanitize workflows
-    workflows = data["workflows"] if "workflows" in data else []
+    workflows = data["workflows"] if "workflows" in data and isinstance(data["workflows"], list) else []
     sanitized_workflows = sanitize_workflows(workflows)
     data["workflows"] = sanitized_workflows
 
     # 4. Sanitize output_profiles
-    output_profiles = data["output_profiles"] if "output_profiles" in data else []
+    output_profiles = (
+        data["output_profiles"] if "output_profiles" in data and isinstance(data["output_profiles"], list) else []
+    )
     sanitized_profiles = sanitize_output_profiles(output_profiles)
     data["output_profiles"] = sanitized_profiles
 
@@ -950,7 +1184,16 @@ def run_seed_vault_sanitization(seed_path: Path, dry_run: bool = False) -> Sanit
 
 
 def main(argv: list[str] | None = None) -> None:
-    """CLI entrypoint for sanitize_seed_vault.py."""
+    """CLI entrypoint for sanitize_seed_vault.py.
+
+    Args:
+        argv: Optional list of CLI argument strings.
+
+    Raises:
+        AppException: Propagated if seed vault sanitization fails.
+        SystemExit: On CLI completion (exit code 0) or subprocess verification failure (exit code 1).
+    """
+    default_seed_path = Path(get_settings().seed_data_path)
     parser = argparse.ArgumentParser(
         description="""Seed Vault Sanitization & Schema Normalization Engine.
 
@@ -970,8 +1213,8 @@ Automates deterministic cleanup, formatting, and verification of seed_data.json:
     parser.add_argument(
         "--seed-path",
         type=Path,
-        default=Path("backend_v2/seed/seed_data.json"),
-        help="Filesystem path to seed_data.json (default: backend_v2/seed/seed_data.json).",
+        default=default_seed_path,
+        help="Filesystem path to seed_data.json (defaults to Settings.seed_data_path).",
     )
     parser.add_argument(
         "--dry-run",

@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from pydantic import JsonValue, ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, parse_prefixed_uuid7
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.step import Step
@@ -21,8 +22,10 @@ from scripts.sanitize_seed_vault import (
     create_vault_backup,
     main,
     run_seed_vault_sanitization,
+    sanitize_output_profiles,
     sanitize_prompt_blocks,
     sanitize_steps,
+    sanitize_workflows,
     strip_raw_xml,
 )
 
@@ -252,9 +255,57 @@ def test_run_seed_vault_sanitization(tmp_path: Path) -> None:
     assert len(persisted["prompt_blocks"]) == 1
     assert "<system_directive>" not in persisted["prompt_blocks"][0]["ai_description"]
 
-    # 3. Negative path: missing seed file raises FileNotFoundError
-    with pytest.raises(FileNotFoundError):
+    # 3. Negative path: missing seed file raises AppException (FILE_NOT_FOUND)
+    with pytest.raises(AppException) as exc_info:
         run_seed_vault_sanitization(tmp_path / "nonexistent.json", dry_run=True)
+    assert exc_info.value.error_code == ErrorCodes.FILE_NOT_FOUND.value
+
+
+def test_negative_boundaries_and_schema_failures(tmp_path: Path) -> None:
+    """Verify ISTQB negative boundaries: missing backup file, malformed JSON, invalid root, and invalid schemas."""
+    # 1. create_vault_backup missing file -> AppException(FILE_NOT_FOUND)
+    with pytest.raises(AppException) as exc_backup:
+        create_vault_backup(tmp_path / "missing_seed.json")
+    assert exc_backup.value.error_code == ErrorCodes.FILE_NOT_FOUND.value
+
+    # 2. atomic_save_seed_data missing 'prompt_blocks' key -> AppException(VALIDATION_FAILED)
+    with pytest.raises(AppException) as exc_save:
+        atomic_save_seed_data({"steps": []}, tmp_path / "invalid_save.json")
+    assert exc_save.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    # 3. run_seed_vault_sanitization with malformed JSON -> AppException(INVALID_JSON_PAYLOAD)
+    bad_json_file = tmp_path / "bad.json"
+    bad_json_file.write_text("{not_valid_json", encoding="utf-8")
+    with pytest.raises(AppException) as exc_json:
+        run_seed_vault_sanitization(bad_json_file, dry_run=True)
+    assert exc_json.value.error_code == ErrorCodes.INVALID_JSON_PAYLOAD.value
+
+    # 4. run_seed_vault_sanitization with non-object root JSON (e.g., list) -> AppException(VALIDATION_FAILED)
+    list_json_file = tmp_path / "list_root.json"
+    list_json_file.write_text("[1, 2, 3]", encoding="utf-8")
+    with pytest.raises(AppException) as exc_root:
+        run_seed_vault_sanitization(list_json_file, dry_run=True)
+    assert exc_root.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    # 5. sanitize_prompt_blocks with invalid block schema -> AppException(VALIDATION_FAILED)
+    with pytest.raises(AppException) as exc_blk:
+        sanitize_prompt_blocks([{"id": "blk_1234567890abcdef", "category_id": "invalid_cat"}])
+    assert exc_blk.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    # 6. sanitize_steps with invalid step schema -> AppException(VALIDATION_FAILED)
+    with pytest.raises(AppException) as exc_stp:
+        sanitize_steps([{"id": "stp_1234567890abcdef", "unknown_extra_key": "rejected"}])
+    assert exc_stp.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    # 7. sanitize_workflows with invalid workflow schema -> AppException(VALIDATION_FAILED)
+    with pytest.raises(AppException) as exc_wf:
+        sanitize_workflows([{"id": "wf_1234567890abcdef", "unknown_extra_key": "rejected"}])
+    assert exc_wf.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    # 8. sanitize_output_profiles with invalid profile schema -> AppException(VALIDATION_FAILED)
+    with pytest.raises(AppException) as exc_prf:
+        sanitize_output_profiles([{"id": "prf_1234567890abcdef", "unknown_extra_key": "rejected"}])
+    assert exc_prf.value.error_code == ErrorCodes.VALIDATION_FAILED.value
 
 
 def test_sanitize_cli_exit_codes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
