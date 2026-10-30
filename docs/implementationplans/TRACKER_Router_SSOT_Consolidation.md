@@ -24,13 +24,11 @@
 ### Post-Implementation Gates
 
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]" --gate backend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
-  - [x] [DELETE] @[backend_v2/api/routers/studio/system_configs.py]
-  - [x] @[backend_v2/api/routers/studio/__init__.py]
-  - [x] @[backend_v2/api/routers/system/health.py]
-  - [x] [DELETE] @[backend_v2/api/routers/execution/workflows.py]
-  - [x] @[backend_v2/api/routers/studio/workflows.py]
-  - [ ] @[backend_v2/api/routers/studio/steps.py]
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+  - [ ] @[backend_v2/api/routers/studio/__init__.py]
+  - [ ] @[backend_v2/api/routers/system/health.py]
+  - [ ] @[backend_v2/api/routers/studio/workflows.py]
+  - [x] @[backend_v2/api/routers/studio/steps.py]
   - [ ] @[backend_v2/api/routers/studio/prompt_blocks.py]
   - [ ] @[backend_v2/database/repositories/components/prompt_block.py]
   - [ ] @[backend_v2/services/studio/prompt_block_service.py]
@@ -43,7 +41,7 @@
   - [ ] @[backend_v2/api/routers/execution/executions.py]
   - [ ] @[backend_v2/api/routers/execution/__init__.py]
   - [ ] @[backend_v2/main.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend @[{target}]'"`.
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
   - [ ] @[client_app_v2/lib/core/api/reports_client.dart]
   - [ ] @[client_app_v2/lib/core/api/workflow_client.dart]
   - [ ] @[client_app_v2/lib/core/api/studio_client.dart]
@@ -104,15 +102,17 @@
 - Step 1: Remediated DGR008 and DGR009 technical debt, fixed health router prefix, demolished dead system_configs router.
 - Step 2: Consolidated Workflow router SSOT (`GET /{id}/ui_schema`), deleted `execution/workflows.py`, upgraded all 5 Studio routers with `OPAQUE_STRIPE_ID_REGEX` and `ID_MISMATCH` Fail-Fast validation, added dynamic matrix draft creation (`category_id=matrix`), unlocked specialist steps on clone (`is_system_core=False`), and enforced 3-layer delete protection across repositories and services.
 - Step 3: Consolidated ReportArtifact routes onto a single `router = APIRouter(tags=["Reports"])` mounted once under `/api/v2` in `main.py`, eradicated `external_reports_router` and legacy `/api/v1` mounts, deleted all 10 shadow decorators and duplicate direct subrouter methods, expanded `test_router_ssot_guardrails.py` to verify universal CRUD + Clone lifecycle parity across all 6 blueprint routers (`workflows`, `steps`, `prompt-blocks`, `output-profiles`, `model-registry`, `mcp-gateways`) with strict `OPAQUE_STRIPE_ID_REGEX` parameter pattern validation, and synchronized `04_directory_reference.md`. All backend audit loops and AST guardrails pass 100%.
+- Tier 8 Plan Audit: Executed `/tier8-audit-plan`, verified 100% of `REQ-001` through `REQ-012` across all 31 target files (`red_team_audit_Router_SSOT_Consolidation.md`), and verified Golden Master, Pre-Delete, and Semantic Coverage gates.
 
 ## Learned
 - Single APIRouter mounting in `main.py` directly under `/api/v2` avoids duplicate subrouter mappings and guarantees predictable OpenAPI path generation.
 - FastAPI OpenAPI schema generation includes parameter `schema.pattern` reflecting `Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)]`, providing a deterministic AST/OpenAPI gate.
+- `[DELETE]` targets are strictly excluded from `Tier 2 Hardening` checklists (`TRK007` and `TPR004`).
 
 ## Remaining
-- Post-Implementation Gates: Tier 2 Hardening (Backend/Frontend), Semantic Coverage Audit, and Tier 8 Plan Audit.
+- Post-Implementation Gates: Tier 2 Hardening (Backend/Frontend via unified `--gate all` command) and Tier 7 As-Built Architectural Sync.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md] @[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]
+$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
 ```
