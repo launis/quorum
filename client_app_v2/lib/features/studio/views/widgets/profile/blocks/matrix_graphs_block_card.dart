@@ -97,7 +97,7 @@ class MatrixGraphsBlockCard extends StatelessWidget {
                   dragHandle: ReorderableDragStartListener(
                     index: idx,
                     child: const IconButton(
-                      icon: Icon(Icons.drag_handle, size: 20),
+                      icon: Icon(Icons.drag_handle, size: AppSpacing.s16),
                       onPressed: null,
                     ),
                   ),
@@ -162,7 +162,7 @@ class MatrixGraphsBlockCard extends StatelessWidget {
                 final newIndex = newGroups.length + 1;
                 newGroups.add(
                   MatrixSynthesisGroup(
-                    // Phase 1, Step 1: Generate canonical 32-hex grp_ UUIDv7 identifier
+                    // Generate canonical 32-hex grp_ UUIDv7 identifier
                     id: generateOpaqueUuid7('grp'),
                     title: I18nText(
                       translations: {
