@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/features/execution/models/tda_state.dart';
 import 'package:client_app/features/execution/views/widgets/sdui_blocks_renderer.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/theme/app_colors.dart';
 
 /// Renders a single matrix row enforcing the Zero-Math UI mandate.
 class MatrixRowItemWidget extends StatelessWidget {
@@ -14,11 +16,13 @@ class MatrixRowItemWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final semantic = context.semanticColors;
     final isEval = matrix.isEvaluative;
-    final isDlq = matrix.tdaState is Dlq;
+    final tdaState = matrix.tdaState;
+    final isDlq = tdaState is Dlq;
 
     final bgColor = isDlq
-        ? Colors.grey.shade200
+        ? semantic.neutral.withValues(alpha: 0.12)
         : isEval
         ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
         : theme.colorScheme.surfaceContainerLow;
@@ -33,7 +37,7 @@ class MatrixRowItemWidget extends StatelessWidget {
         color: bgColor,
         border: Border.all(
           color: isDlq
-              ? Colors.grey.shade400
+              ? semantic.neutral.withValues(alpha: 0.5)
               : isEval
               ? theme.colorScheme.outlineVariant
               : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
@@ -65,7 +69,7 @@ class MatrixRowItemWidget extends StatelessWidget {
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: isDlq
-                          ? Colors.grey.shade700
+                          ? semantic.neutral
                           : theme.colorScheme.primary,
                     ),
                   ),
@@ -74,30 +78,36 @@ class MatrixRowItemWidget extends StatelessWidget {
                     matrix.rowExplanation,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: isDlq
-                          ? Colors.grey.shade800
+                          ? semantic.neutral
                           : theme.colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
                 ],
-                if (isDlq) ...[
+                if (tdaState case Dlq(
+                  :final backendTrace,
+                  :final userReason,
+                )) ...[
                   AppSpacing.h8,
                   Tooltip(
-                    message: (matrix.tdaState as Dlq).backendTrace,
+                    message: backendTrace,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           Icons.warning_amber_rounded,
-                          size: 16,
-                          color: Colors.orange.shade800,
+                          size: AppSpacing.s16,
+                          color: semantic.warning,
                         ),
                         AppSpacing.w4,
-                        Text(
-                          (matrix.tdaState as Dlq).userReason,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.orange.shade900,
-                            fontWeight: FontWeight.bold,
+                        Flexible(
+                          child: Text(
+                            userReason,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: semantic.warning,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -108,44 +118,51 @@ class MatrixRowItemWidget extends StatelessWidget {
                 _buildLevelRow(context),
                 if (matrix.innerSduiBlocks.isNotEmpty) ...[
                   AppSpacing.h12,
-                  SduiBlocksRenderer(blocks: matrix.innerSduiBlocks),
+                  AppErrorBoundary(
+                    child: SduiBlocksRenderer(blocks: matrix.innerSduiBlocks),
+                  ),
                 ],
               ],
             ),
           ),
           AppSpacing.w16,
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                matrix.score == null
-                    ? '-'
-                    : '${matrix.score!.toStringAsFixed(1)} / ${matrix.scaleMax?.toStringAsFixed(1) ?? '-'}',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (matrix.normalizedScore != null)
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 Text(
-                  '${matrix.normalizedScore!.toStringAsFixed(1)} %',
+                  matrix.score == null
+                      ? '-'
+                      : '${matrix.score!.toStringAsFixed(1)} / ${matrix.scaleMax?.toStringAsFixed(1) ?? '-'}',
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isEval
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.secondary,
                   ),
                 ),
-              if (matrix.trueAtoms != null &&
-                  matrix.totalAtoms != null &&
-                  matrix.totalAtoms! > 0)
-                Text(
-                  '${matrix.trueAtoms} / ${matrix.totalAtoms}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                if (matrix.normalizedScore != null)
+                  Text(
+                    '${matrix.normalizedScore!.toStringAsFixed(1)} %',
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isEval
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.secondary,
+                    ),
                   ),
-                ),
-            ],
+                if (matrix.trueAtoms != null &&
+                    matrix.totalAtoms != null &&
+                    matrix.totalAtoms! > 0)
+                  Text(
+                    '${matrix.trueAtoms} / ${matrix.totalAtoms}',
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -178,22 +195,28 @@ class MatrixRowItemWidget extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                matrix.levelNames?[k] ?? 'T$k',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+              Flexible(
+                child: Text(
+                  matrix.levelNames?[k] ?? 'T$k',
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               AppSpacing.w4,
-              Text(
-                display,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: display != '-'
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                  color: display != '-'
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant,
+              Flexible(
+                child: Text(
+                  display,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: display != '-'
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: display != '-'
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ],
