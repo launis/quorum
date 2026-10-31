@@ -61,7 +61,7 @@
   - [x] @[client_app_v2/lib/features/settings/presentation/settings_controller.dart]
   - [x] @[client_app_v2/lib/features/studio/controllers/blueprint_editor_controller.dart]
   - [x] @[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]
-  - [ ] @[client_app_v2/lib/features/studio/controllers/model_registry_controller.dart]
+  - [x] @[client_app_v2/lib/features/studio/controllers/model_registry_controller.dart]
   - [ ] @[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]
   - [ ] @[client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart]
   - [ ] @[client_app_v2/lib/features/studio/controllers/studio_controller.dart]

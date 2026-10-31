@@ -14,13 +14,12 @@ part 'model_registry_controller.g.dart';
 
 // --- Controllers ---
 
-/// Controller managing the Model Registry strictly using strict representations.
-/// Implements Optimistic UI principles where possible.
+/// Controller managing the Model Registry strictly using immutable [ModelConfig] models.
+/// Implements optimistic UI updates with automatic state rollback on failure.
 @riverpod
 class ModelRegistryController extends _$ModelRegistryController {
   @override
   FutureOr<List<ModelConfig>> build() async {
-    // SWR Strategy for List Views
     ref.cacheFor(AppDurations.cacheTimeout);
     return _fetchConfigs();
   }
@@ -45,43 +44,38 @@ class ModelRegistryController extends _$ModelRegistryController {
     }
   }
 
-  /// Saves a model registry config utilizing Optimistic Updates.
+  /// Saves a model registry configuration utilizing optimistic updates with rollback on failure.
   Future<ModelConfig> saveConfig(String id, ModelConfig payload) async {
     final previousState = state;
-    ModelConfig returnData =
-        payload; // Assuming payload already has ID initialized or preserved
+    final returnData = payload.copyWith(id: id);
 
-    // 1. Optimistic Update
-    if (state.hasValue && state.value != null) {
-      final currentList = List<ModelConfig>.from(state.value!);
+    if (state case AsyncData(:final value)) {
+      final currentList = List<ModelConfig>.from(value);
       final index = currentList.indexWhere((m) => m.id == id);
 
       if (index >= 0) {
-        currentList[index] = payload;
+        currentList[index] = returnData;
       } else {
-        currentList.add(payload);
+        currentList.add(returnData);
       }
       state = AsyncValue.data(currentList);
     }
 
     try {
-      // 2. Network Call
       final client = ref.read(studioClientProvider);
-      final verifiedConfig = await client.saveSystemConfig(id, payload);
+      final verifiedConfig = await client.saveSystemConfig(id, returnData);
 
-      // 3. Confirm with Actual Data
-      if (state.hasValue && state.value != null) {
-        final currentList = List<ModelConfig>.from(state.value!);
+      if (state case AsyncData(:final value)) {
+        final currentList = List<ModelConfig>.from(value);
         final index = currentList.indexWhere((m) => m.id == id);
         if (index >= 0) {
           currentList[index] = verifiedConfig;
           state = AsyncValue.data(currentList);
         }
-        returnData = verifiedConfig;
       }
-      return returnData;
+      ref.invalidate(modelRegistryByIdProvider(id));
+      return verifiedConfig;
     } catch (e, st) {
-      // 4. Rollback on Failure
       state = previousState;
       ref
           .read(loggerServiceProvider)
@@ -89,21 +83,25 @@ class ModelRegistryController extends _$ModelRegistryController {
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
+      if (e is AppException) {
+        rethrow;
+      }
       throw AppException.unknown(e);
     }
   }
 
-  /// Deletes a model registry config. Throwing AppException on orphan rejection
+  /// Deletes a model registry configuration and propagates [AppException] on active reference conflicts.
   Future<void> deleteConfig(String id) async {
     try {
       final client = ref.read(studioClientProvider);
       await client.deleteSystemConfig(id);
 
-      if (state.hasValue && state.value != null) {
-        final currentList = List<ModelConfig>.from(state.value!);
-        currentList.removeWhere((m) => m.id == id);
+      if (state case AsyncData(:final value)) {
+        final currentList = List<ModelConfig>.from(value)
+          ..removeWhere((m) => m.id == id);
         state = AsyncValue.data(currentList);
       }
+      ref.invalidate(modelRegistryByIdProvider(id));
     } catch (e, st) {
       ref
           .read(loggerServiceProvider)
@@ -111,22 +109,22 @@ class ModelRegistryController extends _$ModelRegistryController {
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
+      if (e is AppException) {
+        rethrow;
+      }
       throw AppException.unknown(e);
     }
   }
 
-  /// Clones a system config utilizing Optimistic UI.
+  /// Clones a system config and appends the backend-minted copy to state.
   Future<ModelConfig> cloneConfig(String id) async {
     final previousState = state;
     try {
-      // 1. Network Call
       final client = ref.read(studioClientProvider);
       final clonedConfig = await client.cloneSystemConfig(id);
 
-      // 2. Update State
-      if (state.hasValue && state.value != null) {
-        final currentList = List<ModelConfig>.from(state.value!);
-        currentList.add(clonedConfig);
+      if (state case AsyncData(:final value)) {
+        final currentList = List<ModelConfig>.from(value)..add(clonedConfig);
         state = AsyncValue.data(currentList);
       }
       return clonedConfig;
@@ -138,20 +136,23 @@ class ModelRegistryController extends _$ModelRegistryController {
       if (e is DioException && e.error is AppException) {
         throw e.error!;
       }
+      if (e is AppException) {
+        rethrow;
+      }
       throw AppException.unknown(e);
     }
   }
 
-  /// Creates a draft System Config via the SSoT backend.
+  /// Creates a draft System Config via the SSOT backend.
   Future<ModelConfig> createSystemConfigDraft() async {
     final previousState = state;
     try {
       final client = ref.read(studioClientProvider);
       final draftConfig = await client.createSystemConfigDraft();
 
-      if (state.hasValue && state.value != null) {
-        final currentList = List<ModelConfig>.from(state.value!);
-        currentList.insert(0, draftConfig);
+      if (state case AsyncData(:final value)) {
+        final currentList = List<ModelConfig>.from(value)
+          ..insert(0, draftConfig);
         state = AsyncValue.data(currentList);
       }
       return draftConfig;
@@ -160,13 +161,18 @@ class ModelRegistryController extends _$ModelRegistryController {
       ref
           .read(loggerServiceProvider)
           .error('ModelRegistryController', 'Create draft failed', e, st);
-      if (e is DioException && e.error is AppException) throw e.error!;
+      if (e is DioException && e.error is AppException) {
+        throw e.error!;
+      }
+      if (e is AppException) {
+        rethrow;
+      }
       throw AppException.unknown(e);
     }
   }
 }
 
-/// Fetches a single System Config natively by ID
+/// Fetches a single System Config natively by ID.
 @riverpod
 Future<ModelConfig> modelRegistryById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
@@ -206,26 +212,33 @@ Future<List<LlmPlatform>> supportedPlatforms(Ref ref) async {
 class ModelRegistryForm extends _$ModelRegistryForm {
   @override
   FutureOr<ModelConfig> build(String configId) async {
-    // 1. Fetch data strictly
-    return ref.watch(modelRegistryByIdProvider(configId).future);
+    final config = await ref.watch(modelRegistryByIdProvider(configId).future);
+    return config.copyWith();
   }
 
-  /// Used by the form to trigger a rebuild on synchronous edits if required.
+  /// Updates the form state on synchronous edits.
   void forceRebuild(ModelConfig updatedConfig) {
     state = AsyncData(updatedConfig);
   }
 
   Future<void> submit(ModelConfig updatedData) async {
-    state = const AsyncLoading(); // Side effect isolation
+    // Seed AsyncData before AsyncLoading so Riverpod retains unsaved edits if save fails
+    state = AsyncData(updatedData);
+    state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
-      await ref
+      final idToSave = updatedData.id.isNotEmpty ? updatedData.id : configId;
+      if (idToSave.isEmpty || idToSave == 'new') {
+        throw AppException.validation('System Config ID is required');
+      }
+
+      final saved = await ref
           .read(modelRegistryControllerProvider.notifier)
-          .saveConfig(configId, updatedData);
-      return updatedData; // Optimistic form state return
+          .saveConfig(idToSave, updatedData);
+      return saved;
     });
-    if (state.hasError) {
-      throw state.error!;
+    if (state case AsyncValue(error: final Object error)) {
+      throw error;
     }
   }
 }

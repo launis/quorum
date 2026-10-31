@@ -8,18 +8,18 @@ part of 'model_registry_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Controller managing the Model Registry strictly using strict representations.
-/// Implements Optimistic UI principles where possible.
+/// Controller managing the Model Registry strictly using immutable [ModelConfig] models.
+/// Implements optimistic UI updates with automatic state rollback on failure.
 
 @ProviderFor(ModelRegistryController)
 final modelRegistryControllerProvider = ModelRegistryControllerProvider._();
 
-/// Controller managing the Model Registry strictly using strict representations.
-/// Implements Optimistic UI principles where possible.
+/// Controller managing the Model Registry strictly using immutable [ModelConfig] models.
+/// Implements optimistic UI updates with automatic state rollback on failure.
 final class ModelRegistryControllerProvider
     extends $AsyncNotifierProvider<ModelRegistryController, List<ModelConfig>> {
-  /// Controller managing the Model Registry strictly using strict representations.
-  /// Implements Optimistic UI principles where possible.
+  /// Controller managing the Model Registry strictly using immutable [ModelConfig] models.
+  /// Implements optimistic UI updates with automatic state rollback on failure.
   ModelRegistryControllerProvider._()
     : super(
         from: null,
@@ -40,10 +40,10 @@ final class ModelRegistryControllerProvider
 }
 
 String _$modelRegistryControllerHash() =>
-    r'86ba94a1a3f9eba817fc6afad6d55222e9429b7a';
+    r'8ad97f1427c87d65d50b9c2c5f22060749515bc8';
 
-/// Controller managing the Model Registry strictly using strict representations.
-/// Implements Optimistic UI principles where possible.
+/// Controller managing the Model Registry strictly using immutable [ModelConfig] models.
+/// Implements optimistic UI updates with automatic state rollback on failure.
 
 abstract class _$ModelRegistryController
     extends $AsyncNotifier<List<ModelConfig>> {
@@ -65,12 +65,12 @@ abstract class _$ModelRegistryController
   }
 }
 
-/// Fetches a single System Config natively by ID
+/// Fetches a single System Config natively by ID.
 
 @ProviderFor(modelRegistryById)
 final modelRegistryByIdProvider = ModelRegistryByIdFamily._();
 
-/// Fetches a single System Config natively by ID
+/// Fetches a single System Config natively by ID.
 
 final class ModelRegistryByIdProvider
     extends
@@ -80,7 +80,7 @@ final class ModelRegistryByIdProvider
           FutureOr<ModelConfig>
         >
     with $FutureModifier<ModelConfig>, $FutureProvider<ModelConfig> {
-  /// Fetches a single System Config natively by ID
+  /// Fetches a single System Config natively by ID.
   ModelRegistryByIdProvider._({
     required ModelRegistryByIdFamily super.from,
     required String super.argument,
@@ -127,7 +127,7 @@ final class ModelRegistryByIdProvider
 
 String _$modelRegistryByIdHash() => r'63993012eb757846edf08cf788d0b8125bde578f';
 
-/// Fetches a single System Config natively by ID
+/// Fetches a single System Config natively by ID.
 
 final class ModelRegistryByIdFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<ModelConfig>, String> {
@@ -140,7 +140,7 @@ final class ModelRegistryByIdFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Fetches a single System Config natively by ID
+  /// Fetches a single System Config natively by ID.
 
   ModelRegistryByIdProvider call(String id) =>
       ModelRegistryByIdProvider._(argument: id, from: this);
@@ -379,7 +379,7 @@ final class ModelRegistryFormProvider
   }
 }
 
-String _$modelRegistryFormHash() => r'5bf7ee704575a614efb570f91720c258dff7cead';
+String _$modelRegistryFormHash() => r'79965f32479e6bb5ef1074dd24da4da6e106072a';
 
 final class ModelRegistryFormFamily extends $Family
     with
