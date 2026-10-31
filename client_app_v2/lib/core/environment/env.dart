@@ -1,5 +1,6 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/utils/json_converters.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'env.g.dart';
@@ -8,7 +9,7 @@ part 'env.g.dart';
 ///
 /// Manages environment-specific variables and configuration secrets.
 /// This abstraction ensures the app is not hardcoded to specific URLs or keys,
-/// facilitating movement between Dev (localhost) and Production.
+/// facilitating movement between Dev and Production.
 ///
 /// **Source**:
 /// Loads values from the `.env` file via `flutter_dotenv`.
@@ -16,53 +17,64 @@ part 'env.g.dart';
 /// **Business Logic**:
 /// - Enforces the Zero-Compromise Pledge (Fail-Fast) by requiring all variables
 ///   to be present in the `.env` file. No silent fallbacks exist.
-@riverpod
+@Riverpod(keepAlive: true)
 Env env(Ref ref) {
-  return Env();
+  return const Env();
 }
 
 class Env {
-  /// The base URL for the Python Backend API.
-  ///
-  /// Examples:
-  /// - Local: `http://127.0.0.1:8000`
-  /// - Prod: `https://api.cognitivequorum.com`
-  static String get apiUrl {
-    final url = dotenv.env['API_URL'];
-    if (url == null || url.isEmpty) {
+  const Env();
+
+  static const StrictOpaqueIdConverter _idValidator = StrictOpaqueIdConverter();
+
+  static String _requireNonEmpty(String key) {
+    if (!dotenv.isInitialized) {
       throw AppException.validation(
-        'API_URL environment variable is missing from .env.',
+        'Fail-Fast: Environment configuration is not initialized when reading $key.',
       );
     }
-    return url;
-  }
-
-  /// The active environment mode (e.g. development, production).
-  /// Defaults to production if not specified to enforce security natively.
-  static String get environment {
-    final env = dotenv.env['ENVIRONMENT'];
-    if (env == null || env.isEmpty) {
-      return 'production';
+    final raw = dotenv.env[key];
+    if (raw == null || raw.trim().isEmpty) {
+      throw AppException.validation(
+        '$key environment variable is missing from .env.',
+      );
     }
-    return env;
+    return raw.trim();
   }
 
-  /// Whether mock tokens are allowed in the current environment
-  static bool get allowMockTokens => environment == 'development';
+  static String _requireMockUserId(String key) {
+    final value = _requireNonEmpty(key);
+    final validated = _idValidator.fromJson(value);
+    if (!validated.startsWith('usr_')) {
+      throw AppException.validation(
+        'Invalid Opaque User ID prefix for $key: "$validated". Expected "usr_" prefix.',
+      );
+    }
+    return validated;
+  }
 
-  // Centralized Mock User IDs from .env
-  static String get mockAdminUserId =>
-      dotenv.env['MOCK_ADMIN_USER_ID'] ??
-      'usr_0195f3a00000700188a0d5f6151349a5';
-  static String get mockRootUserId =>
-      dotenv.env['MOCK_ROOT_USER_ID'] ?? 'usr_0195f3a00000700a83fd6b3d77c748f4';
+  /// The base URL for the Python Backend API.
+  static String get apiUrl => _requireNonEmpty('API_URL');
+
+  /// The active environment mode (specifically: development or production).
+  static String get environment => _requireNonEmpty('ENVIRONMENT');
+
+  /// Whether mock tokens are allowed in the current environment.
+  static bool get allowMockTokens =>
+      dotenv.isInitialized &&
+      dotenv.env['ENVIRONMENT']?.trim() == 'development';
+
+  /// Centralized Mock User IDs from .env enforced via 32-hex UUIDv7 validation.
+  static String get mockAdminUserId => _requireMockUserId('MOCK_ADMIN_USER_ID');
+
+  static String get mockRootUserId => _requireMockUserId('MOCK_ROOT_USER_ID');
+
   static String get mockAnalystUserId =>
-      dotenv.env['MOCK_ANALYST_USER_ID'] ??
-      'usr_0195f3a000007009836983a7a6c643ab';
+      _requireMockUserId('MOCK_ANALYST_USER_ID');
+
   static String get mockMemberUserId =>
-      dotenv.env['MOCK_MEMBER_USER_ID'] ??
-      'usr_0195f3a0000070018c1cf9c5178846bb';
+      _requireMockUserId('MOCK_MEMBER_USER_ID');
+
   static String get mockViewerUserId =>
-      dotenv.env['MOCK_VIEWER_USER_ID'] ??
-      'usr_0195f3a00000700b82d6e4487afc4e69';
+      _requireMockUserId('MOCK_VIEWER_USER_ID');
 }
