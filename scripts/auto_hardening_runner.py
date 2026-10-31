@@ -79,6 +79,10 @@ FORMATTER_TIMEOUT_SECONDS: Final[int] = 60
 DEFAULT_AUDIT_TIMEOUT_SECONDS: Final[int] = 1800
 DEFAULT_SUBAGENT_MAX_RETRIES: Final[int] = 3
 DEFAULT_SUBAGENT_RETRY_BACKOFF_SECONDS: Final[float] = 3.0
+RETRY_ERROR_FEEDBACK_MAX_CHARS: Final[int] = 1500
+ES_CONTINUOUS: Final[int] = 0x80000000
+ES_SYSTEM_REQUIRED: Final[int] = 0x00000001
+ES_AWAYMODE_REQUIRED: Final[int] = 0x00000040
 # Step 2: Parameterize default subagent templates with {model}
 DEFAULT_BACKEND_AGENT_TEMPLATE: Final[str] = (
     'agy --model {model} --dangerously-skip-permissions --print "/tier2-hardening-backend @[{target}]"'
@@ -118,6 +122,7 @@ __all__ = [
     "QualityGateResultDTO",
     "TASKKILL_TIMEOUT_SECONDS",
     "WorkspaceSnapshotDTO",
+    "acquire_windows_wake_lock",
     "capture_workspace_snapshot",
     "check_tracker_has_unparsed_hardening_items",
     "clean_path_arg",
@@ -135,7 +140,9 @@ __all__ = [
     "parse_tracker_hardened_targets",
     "parse_tracker_unhardened_targets",
     "process_target_with_retries",
+    "release_windows_wake_lock",
     "resolve_target_unit_test_files",
+    "run_frontend_macro_quality_gate",
     "run_hardening_pipeline",
     "run_macro_quality_gate",
     "run_quality_gate",
@@ -302,12 +309,15 @@ class CheckpointResultDTO(BaseModel):
 
 
 class WorkspaceSnapshotDTO(BaseModel):
-    """Snapshot of tracked and untracked modifications for deterministic rollback diffs."""
+    """Snapshot of tracked, untracked, and HEAD commit state for deterministic rollback diffs."""
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     modified_files: Annotated[list[str], Field(default_factory=list, description="Tracked files with modifications.")]
     untracked_files: Annotated[list[str], Field(default_factory=list, description="Untracked newly created files.")]
+    head_sha: Annotated[str | None, Field(default=None, description="Git HEAD commit SHA prior to target attempt")] = (
+        None
+    )
 
 
 class HardeningStateFileDTO(BaseModel):
@@ -905,6 +915,18 @@ def execute_subprocess_with_tree_kill(
     )
     try:
         stdout, stderr = proc.communicate(timeout=timeout_seconds)
+        if sys.platform == "win32":
+            # Phase 2, Step 2: Reap lingering child MCP server processes (dart.exe, node.exe) on Windows
+            try:
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                    capture_output=True,
+                    timeout=TASKKILL_TIMEOUT_SECONDS,
+                    check=False,
+                    shell=False,
+                )
+            except subprocess.SubprocessError, OSError:
+                pass
         return subprocess.CompletedProcess(
             args=cmd,
             returncode=proc.returncode,
@@ -977,7 +999,13 @@ def _is_transient_subagent_startup_error(returncode: int, output: str) -> bool:
     return False
 
 
-def execute_subagent_pass(target_file: str, args: HardeningRunnerArgsDTO, repo_root: Path | None = None) -> bool:
+def execute_subagent_pass(
+    target_file: str,
+    args: HardeningRunnerArgsDTO,
+    repo_root: Path | None = None,
+    *,
+    previous_error: str | None = None,
+) -> bool:
     """Execute mandatory AI subagent hardening pass and automated pre-audit code formatting passes.
 
     Always invokes the AI subagent (`DEFAULT_BACKEND_AGENT_TEMPLATE` or `DEFAULT_FRONTEND_AGENT_TEMPLATE`
@@ -989,6 +1017,7 @@ def execute_subagent_pass(target_file: str, args: HardeningRunnerArgsDTO, repo_r
         target_file: Path of target file being hardened.
         args: Hardening runner configuration parameters.
         repo_root: Root workspace path.
+        previous_error: Optional failure output from a prior quality gate attempt for retry feedback.
 
     Returns:
         True if subagent and formatting passes succeeded or were explicitly skipped, False on error.
@@ -1008,6 +1037,15 @@ def execute_subagent_pass(target_file: str, args: HardeningRunnerArgsDTO, repo_r
         # Step 2: Format subagent_template with model=args.model
         formatted_cmd = subagent_template.format(model=args.model, target=target_file, target_file=target_file)
         cmd_args = shlex.split(formatted_cmd, posix=False if sys.platform == "win32" else True)
+        if previous_error and previous_error.strip() and cmd_args:
+            # Phase 2, Step 2: Inject truncated failure diagnostics into retry prompt argument
+            sanitized_error = " ".join(previous_error.strip()[-RETRY_ERROR_FEEDBACK_MAX_CHARS:].split())
+            suffix = f" [PREVIOUS ATTEMPT FAILED QUALITY GATE - FIX THESE ERRORS: {sanitized_error}]"
+            last_arg = cmd_args[-1]
+            if len(last_arg) >= 2 and last_arg[0] == last_arg[-1] and last_arg[0] in ('"', "'"):
+                cmd_args[-1] = f"{last_arg[:-1]}{suffix}{last_arg[-1]}"
+            else:
+                cmd_args[-1] = f"{last_arg}{suffix}"
         subagent_success = False
 
         for attempt in range(1, DEFAULT_SUBAGENT_MAX_RETRIES + 1):
@@ -1089,13 +1127,15 @@ def run_quality_gate(
     """
     root = repo_root or get_repo_root()
 
-    # Step 2: Dispatch --micro --no-logfire during per-target iterations when micro_audit is True
+    # Step 2: Dispatch --micro --no-logfire on backend and --micro on frontend when micro_audit is True
     if gate == HardeningGate.BACKEND or (gate == HardeningGate.ALL and not target_file.endswith(".dart")):
         cmd = ["uv", "run", "python", "scripts/backend_audit_loop.py", target_file, "--test", "--ast-strict"]
         if micro_audit:
             cmd.extend(["--micro", "--no-logfire"])
     else:
         cmd = ["uv", "run", "python", "scripts/flutter_audit_loop.py", target_file, "--build", "--strict"]
+        if micro_audit:
+            cmd.append("--micro")
 
     try:
         res = execute_subprocess_with_tree_kill(cmd, timeout_seconds=timeout_seconds, cwd=root)
@@ -1150,14 +1190,58 @@ def run_macro_quality_gate(
         )
 
 
+def run_frontend_macro_quality_gate(
+    timeout_seconds: int,
+    repo_root: Path | None = None,
+) -> QualityGateResultDTO:
+    """Execute the full Flutter macro quality gate across `client_app_v2/` at wave completion.
+
+    # Phase 2, Step 2: Symmetric frontend macro completion gate.
+
+    Args:
+        timeout_seconds: Audit timeout duration in seconds.
+        repo_root: Workspace root directory.
+
+    Returns:
+        QualityGateResultDTO encapsulating frontend macro-audit execution status and log output.
+    """
+    root = repo_root or get_repo_root()
+    cmd = [
+        "uv",
+        "run",
+        "python",
+        "scripts/flutter_audit_loop.py",
+        "client_app_v2/",
+        "--build",
+        "--strict",
+        "--test",
+    ]
+    try:
+        res = execute_subprocess_with_tree_kill(cmd, timeout_seconds=timeout_seconds, cwd=root)
+        output = f"{res.stdout}\n{res.stderr}".strip()
+        return QualityGateResultDTO(
+            success=res.returncode == 0,
+            output=output,
+            exit_code=res.returncode,
+        )
+    except subprocess.TimeoutExpired as exc:
+        out = (exc.output or "") if isinstance(exc.output, str) else ""
+        err = (exc.stderr or "") if isinstance(exc.stderr, str) else ""
+        return QualityGateResultDTO(
+            success=False,
+            output=f"Frontend macro-audit loop timed out after {timeout_seconds}s.\n{out}\n{err}".strip(),
+            exit_code=124,
+        )
+
+
 def capture_workspace_snapshot(repo_root: Path | None = None) -> WorkspaceSnapshotDTO:
-    """Capture current modified and untracked files snapshot from git status porcelain.
+    """Capture current modified, untracked, and HEAD SHA snapshot from git.
 
     Args:
         repo_root: Workspace root directory.
 
     Returns:
-        WorkspaceSnapshotDTO encapsulating lists of modified and untracked file paths.
+        WorkspaceSnapshotDTO encapsulating lists of modified and untracked file paths and HEAD SHA.
     """
     root = repo_root or get_repo_root()
     res = subprocess.run(
@@ -1171,7 +1255,20 @@ def capture_workspace_snapshot(repo_root: Path | None = None) -> WorkspaceSnapsh
         shell=False,
     )
     if res.returncode != 0:
-        return WorkspaceSnapshotDTO(modified_files=[], untracked_files=[])
+        return WorkspaceSnapshotDTO(modified_files=[], untracked_files=[], head_sha=None)
+
+    head_res = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        cwd=root,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
+        check=False,
+        shell=False,
+    )
+    raw_head = head_res.stdout.strip() if head_res.returncode == 0 else ""
+    head_sha = raw_head if re.fullmatch(r"[0-9a-fA-F]{7,40}", raw_head) else None
 
     modified: list[str] = []
     untracked: list[str] = []
@@ -1187,7 +1284,7 @@ def capture_workspace_snapshot(repo_root: Path | None = None) -> WorkspaceSnapsh
         else:
             modified.append(norm_path)
 
-    return WorkspaceSnapshotDTO(modified_files=modified, untracked_files=untracked)
+    return WorkspaceSnapshotDTO(modified_files=modified, untracked_files=untracked, head_sha=head_sha)
 
 
 def execute_circuit_breaker_rollback(
@@ -1195,7 +1292,7 @@ def execute_circuit_breaker_rollback(
     target_file: str,
     repo_root: Path | None = None,
 ) -> None:
-    """Roll back working directory modifications, strictly preserving hardening_state.json.
+    """Roll back working directory modifications and rogue commits, preserving hardening_state.json.
 
     Args:
         snapshot: Pre-attempt baseline workspace snapshot.
@@ -1204,6 +1301,17 @@ def execute_circuit_breaker_rollback(
     """
     root = repo_root or get_repo_root()
     current = capture_workspace_snapshot(root)
+    if snapshot.head_sha and current.head_sha and current.head_sha != snapshot.head_sha:
+        # Phase 2, Step 2: Reset intermediate subagent commits if HEAD diverged before quality gate failed
+        subprocess.run(
+            ["git", "reset", "--hard", snapshot.head_sha],
+            cwd=root,
+            capture_output=True,
+            timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
+            check=False,
+            shell=False,
+        )
+        current = capture_workspace_snapshot(root)
     norm_target = target_file.replace("\\", "/")
 
     excluded = {"hardening_state.json", "hardening_cache.json", "data/hardening_cache.json"}
@@ -1282,6 +1390,19 @@ def mark_tracker_and_checkpoint(
             state_file_updated = True
 
     files_to_stage = [target_file]
+    # Phase 2, Step 2: Atomically stage resolved unit test files and sibling .g.dart/.freezed.dart artifacts
+    for unit_test_path in resolve_target_unit_test_files(target_file, root):
+        rel_test = unit_test_path.relative_to(root).as_posix()
+        if rel_test not in files_to_stage:
+            files_to_stage.append(rel_test)
+    if target_file.endswith(".dart"):
+        target_disk_path = root / target_file
+        for ext in (".g.dart", ".freezed.dart"):
+            sibling = target_disk_path.with_suffix(ext)
+            if sibling.is_file():
+                rel_sibling = sibling.relative_to(root).as_posix()
+                if rel_sibling not in files_to_stage:
+                    files_to_stage.append(rel_sibling)
     if tracker_marked and cleaned_tracker:
         files_to_stage.append(str(cleaned_tracker))
 
@@ -1368,7 +1489,7 @@ def process_target_with_retries(
         attempts = attempt
         snapshot = capture_workspace_snapshot(root)
 
-        execute_subagent_pass(target_file, args, repo_root=root)
+        execute_subagent_pass(target_file, args, repo_root=root, previous_error=last_error)
         gate_res = run_quality_gate(
             target_file, args.gate, args.timeout_seconds, repo_root=root, micro_audit=args.micro_audit
         )
@@ -1412,6 +1533,47 @@ def process_target_with_retries(
         tracker_marked=False,
         cache_hit=False,
     )
+
+
+def acquire_windows_wake_lock() -> int | None:
+    """Assert a Win32 thread execution state wake-lock to prevent S0 Modern Standby during unattended runs.
+
+    # Phase 2, Step 2: Prevent Windows S0 Modern Standby suspension during unattended queues.
+
+    Returns:
+        Previous execution state integer if acquired on Windows, or None on non-Windows/failure.
+    """
+    if sys.platform != "win32":
+        return None
+    try:
+        import ctypes
+
+        flags = ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_AWAYMODE_REQUIRED
+        prev = ctypes.windll.kernel32.SetThreadExecutionState(flags)
+        return int(prev) if prev else None
+    except AttributeError, OSError, ValueError:
+        return None
+
+
+def release_windows_wake_lock(previous_state: int | None) -> None:
+    """Release the Win32 thread execution state wake-lock and restore normal idle timers.
+
+    # Phase 2, Step 2: Restore default Windows thread execution state on pipeline exit.
+
+    Args:
+        previous_state: Previous execution state returned by acquire_windows_wake_lock.
+
+    Returns:
+        None.
+    """
+    if sys.platform != "win32" or previous_state is None:
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
+    except AttributeError, OSError, ValueError:
+        pass
 
 
 def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None = None) -> HardeningRunSummaryDTO:
@@ -1473,6 +1635,7 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
             flush=True,
         )
         micro_flags = " --micro --no-logfire" if args.micro_audit else ""
+        frontend_micro_flag = " --micro" if args.micro_audit else ""
         for idx, target in enumerate(targets_to_run, 1):
             is_backend = args.gate == HardeningGate.BACKEND or (
                 args.gate == HardeningGate.ALL and not target.endswith(".dart")
@@ -1480,7 +1643,7 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
             gate_cmd = (
                 f"uv run python scripts/backend_audit_loop.py {target} --test --ast-strict{micro_flags}"
                 if is_backend
-                else f"uv run python scripts/flutter_audit_loop.py {target} --build"
+                else f"uv run python scripts/flutter_audit_loop.py {target} --build --strict{frontend_micro_flag}"
             )
             print(f"  [{idx}/{processed_count}] {target} -> Planned: {gate_cmd}", flush=True)
         return HardeningRunSummaryDTO(
@@ -1492,74 +1655,103 @@ def run_hardening_pipeline(args: HardeningRunnerArgsDTO, repo_root: Path | None 
             iterations=[],
         )
 
-    iterations: list[HardeningIterationResultDTO] = []
-    success_count = 0
-    failure_count = 0
+    wake_lock_state = acquire_windows_wake_lock()
+    try:
+        iterations: list[HardeningIterationResultDTO] = []
+        success_count = 0
+        failure_count = 0
 
-    print(
-        f"\n{ANSIColors.BOLD}Starting Autonomous Hardening Queue: {processed_count} targets{ANSIColors.RESET}",
-        flush=True,
-    )
-
-    for idx, target in enumerate(targets_to_run, 1):
         print(
-            f"\n{ANSIColors.CYAN}[{idx}/{processed_count}] Target: {target} ({args.gate.value}){ANSIColors.RESET}",
+            f"\n{ANSIColors.BOLD}Starting Autonomous Hardening Queue: {processed_count} targets{ANSIColors.RESET}",
             flush=True,
         )
-        iter_res = process_target_with_retries(target, args, repo_root=root)
-        iterations.append(iter_res)
 
-        if iter_res.success:
-            success_count += 1
-            dur = iter_res.duration_seconds
+        for idx, target in enumerate(targets_to_run, 1):
             print(
-                f"  {ANSIColors.GREEN}✅ SUCCESS: {target} (att: {iter_res.attempts}, {dur:.1f}s){ANSIColors.RESET}",
+                f"\n{ANSIColors.CYAN}[{idx}/{processed_count}] Target: {target} ({args.gate.value}){ANSIColors.RESET}",
                 flush=True,
             )
-        else:
-            failure_count += 1
-            dur = iter_res.duration_seconds
-            print(
-                f"  {ANSIColors.RED}❌ FAILED: {target} (att: {iter_res.attempts}, {dur:.1f}s){ANSIColors.RESET}",
-                flush=True,
-            )
-            if iter_res.error_message and args.verbose:
-                print(f"     Error summary: {iter_res.error_message[:400]}", flush=True)
+            iter_res = process_target_with_retries(target, args, repo_root=root)
+            iterations.append(iter_res)
 
-            if args.fail_fast and not args.continue_on_failure:
+            if iter_res.success:
+                success_count += 1
+                dur = iter_res.duration_seconds
                 print(
-                    f"{ANSIColors.YELLOW}⚡ Circuit breaker tripped (fail-fast). Halting queue.{ANSIColors.RESET}",
+                    f"  {ANSIColors.GREEN}✅ SUCCESS: {target} (att: {iter_res.attempts}, {dur:.1f}s){ANSIColors.RESET}",
                     flush=True,
                 )
-                break
+            else:
+                failure_count += 1
+                dur = iter_res.duration_seconds
+                print(
+                    f"  {ANSIColors.RED}❌ FAILED: {target} (att: {iter_res.attempts}, {dur:.1f}s){ANSIColors.RESET}",
+                    flush=True,
+                )
+                if iter_res.error_message and args.verbose:
+                    print(f"     Error summary: {iter_res.error_message[:400]}", flush=True)
 
-    # Step 2: Execute universal macro-audit once across all hardened backend targets at queue completion
-    successful_backend_targets = [
-        it.target_file for it in iterations if it.success and not it.cache_hit and it.target_file.endswith(".py")
-    ]
-    if args.micro_audit and successful_backend_targets and (failure_count == 0 or args.continue_on_failure):
-        print(
-            f"\n{ANSIColors.CYAN}🔍 Executing Final Macro-Audit Completion Gate across "
-            f"{len(successful_backend_targets)} hardened backend target(s)...{ANSIColors.RESET}",
-            flush=True,
+                if args.fail_fast and not args.continue_on_failure:
+                    print(
+                        f"{ANSIColors.YELLOW}⚡ Circuit breaker tripped (fail-fast). Halting queue.{ANSIColors.RESET}",
+                        flush=True,
+                    )
+                    break
+
+        # Step 2: Execute universal macro-audit once across all hardened backend targets at queue completion
+        successful_backend_targets = [
+            it.target_file for it in iterations if it.success and not it.cache_hit and it.target_file.endswith(".py")
+        ]
+        if args.micro_audit and successful_backend_targets and (failure_count == 0 or args.continue_on_failure):
+            print(
+                f"\n{ANSIColors.CYAN}🔍 Executing Final Macro-Audit Completion Gate across "
+                f"{len(successful_backend_targets)} hardened backend target(s)...{ANSIColors.RESET}",
+                flush=True,
+            )
+            macro_res = run_macro_quality_gate(successful_backend_targets, args.timeout_seconds, repo_root=root)
+            if macro_res.success:
+                print(f"  {ANSIColors.GREEN}✅ Final Macro-Audit Completion Gate PASSED.{ANSIColors.RESET}", flush=True)
+            else:
+                failure_count += 1
+                print(f"  {ANSIColors.RED}❌ Final Macro-Audit Completion Gate FAILED!{ANSIColors.RESET}", flush=True)
+                if macro_res.output:
+                    print(macro_res.output, flush=True)
+
+        # Phase 2, Step 2: Execute universal frontend macro-audit once across hardened frontend targets
+        successful_frontend_targets = [
+            it.target_file for it in iterations if it.success and not it.cache_hit and it.target_file.endswith(".dart")
+        ]
+        if args.micro_audit and successful_frontend_targets and (failure_count == 0 or args.continue_on_failure):
+            print(
+                f"\n{ANSIColors.CYAN}🔍 Executing Final Frontend Macro-Audit Completion Gate across "
+                f"{len(successful_frontend_targets)} hardened frontend target(s)...{ANSIColors.RESET}",
+                flush=True,
+            )
+            f_macro_res = run_frontend_macro_quality_gate(args.timeout_seconds, repo_root=root)
+            if f_macro_res.success:
+                print(
+                    f"  {ANSIColors.GREEN}✅ Final Frontend Macro-Audit Completion Gate PASSED.{ANSIColors.RESET}",
+                    flush=True,
+                )
+            else:
+                failure_count += 1
+                print(
+                    f"  {ANSIColors.RED}❌ Final Frontend Macro-Audit Completion Gate FAILED!{ANSIColors.RESET}",
+                    flush=True,
+                )
+                if f_macro_res.output:
+                    print(f_macro_res.output, flush=True)
+
+        return HardeningRunSummaryDTO(
+            total_targets=total_targets,
+            processed_count=len(iterations),
+            success_count=success_count,
+            failure_count=failure_count,
+            skipped_count=total_targets - len(iterations),
+            iterations=iterations,
         )
-        macro_res = run_macro_quality_gate(successful_backend_targets, args.timeout_seconds, repo_root=root)
-        if macro_res.success:
-            print(f"  {ANSIColors.GREEN}✅ Final Macro-Audit Completion Gate PASSED.{ANSIColors.RESET}", flush=True)
-        else:
-            failure_count += 1
-            print(f"  {ANSIColors.RED}❌ Final Macro-Audit Completion Gate FAILED!{ANSIColors.RESET}", flush=True)
-            if macro_res.output:
-                print(macro_res.output, flush=True)
-
-    return HardeningRunSummaryDTO(
-        total_targets=total_targets,
-        processed_count=len(iterations),
-        success_count=success_count,
-        failure_count=failure_count,
-        skipped_count=total_targets - len(iterations),
-        iterations=iterations,
-    )
+    finally:
+        release_windows_wake_lock(wake_lock_state)
 
 
 def main(argv: list[str] | None = None) -> int:

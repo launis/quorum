@@ -25,6 +25,7 @@ from scripts.auto_hardening_runner import (
     HardeningStateFileDTO,
     QualityGateResultDTO,
     WorkspaceSnapshotDTO,
+    acquire_windows_wake_lock,
     capture_workspace_snapshot,
     check_tracker_has_unparsed_hardening_items,
     clean_path_arg,
@@ -40,7 +41,9 @@ from scripts.auto_hardening_runner import (
     parse_tracker_hardened_targets,
     parse_tracker_unhardened_targets,
     process_target_with_retries,
+    release_windows_wake_lock,
     resolve_target_unit_test_files,
+    run_frontend_macro_quality_gate,
     run_hardening_pipeline,
     run_macro_quality_gate,
     run_quality_gate,
@@ -181,13 +184,13 @@ def test_failed_audit_triggers_retry_and_circuit_breaker(tmp_path: Path, monkeyp
 
 
 def test_frontend_gate_invokes_flutter_audit_loop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """TC-AHR-005 (positive): Verify that specifying gate=FRONTEND invokes flutter_audit_loop.py."""
-    invoked_cmd: list[str] = []
+    """TC-AHR-005 (positive): Verify that specifying gate=FRONTEND invokes flutter_audit_loop.py with and without --micro."""
+    invoked_cmds: list[list[str]] = []
 
     def mock_tree_kill(
         cmd: list[str], timeout_seconds: int, cwd: Path | None = None
     ) -> subprocess.CompletedProcess[str]:
-        invoked_cmd.extend(cmd)
+        invoked_cmds.append(cmd)
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Flutter OK", stderr="")
 
     monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill)
@@ -196,7 +199,7 @@ def test_frontend_gate_invokes_flutter_audit_loop(tmp_path: Path, monkeypatch: p
         "client_app_v2/lib/view.dart", HardeningGate.FRONTEND, timeout_seconds=120, repo_root=tmp_path
     )
     assert res.success is True
-    expected_cmd = [
+    assert invoked_cmds[-1] == [
         "uv",
         "run",
         "python",
@@ -205,7 +208,25 @@ def test_frontend_gate_invokes_flutter_audit_loop(tmp_path: Path, monkeypatch: p
         "--build",
         "--strict",
     ]
-    assert invoked_cmd == expected_cmd
+
+    res_micro = run_quality_gate(
+        "client_app_v2/lib/view.dart",
+        HardeningGate.FRONTEND,
+        timeout_seconds=120,
+        repo_root=tmp_path,
+        micro_audit=True,
+    )
+    assert res_micro.success is True
+    assert invoked_cmds[-1] == [
+        "uv",
+        "run",
+        "python",
+        "scripts/flutter_audit_loop.py",
+        "client_app_v2/lib/view.dart",
+        "--build",
+        "--strict",
+        "--micro",
+    ]
 
 
 def test_dry_run_mode_produces_zero_side_effects(
@@ -262,6 +283,10 @@ def test_max_files_batch_capping(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(
         "scripts.auto_hardening_runner.run_macro_quality_gate",
         lambda *a, **k: QualityGateResultDTO(success=True, output="Macro OK", exit_code=0),
+    )
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.run_frontend_macro_quality_gate",
+        lambda *a, **k: QualityGateResultDTO(success=True, output="Frontend Macro OK", exit_code=0),
     )
 
     args = HardeningRunnerArgsDTO(targets=all_targets, max_files=2, gate=HardeningGate.BACKEND)
@@ -925,6 +950,10 @@ def test_run_hardening_pipeline_gate_all(tmp_path: Path, monkeypatch: pytest.Mon
         "scripts.auto_hardening_runner.run_macro_quality_gate",
         lambda *a, **k: QualityGateResultDTO(success=True, output="Macro OK", exit_code=0),
     )
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.run_frontend_macro_quality_gate",
+        lambda *a, **k: QualityGateResultDTO(success=True, output="Frontend Macro OK", exit_code=0),
+    )
 
     args = HardeningRunnerArgsDTO(tracker=tracker_file, gate=HardeningGate.ALL)
     summary = run_hardening_pipeline(args, repo_root=tmp_path)
@@ -1152,6 +1181,123 @@ def test_macro_audit_completion_gate_success_and_failure(
     assert summary.failure_count == 1
     captured = capsys.readouterr()
     assert "Circular import detected in Stage 7" in captured.out
+
+
+def test_frontend_macro_quality_gate_and_phase2_resilience_capabilities(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify frontend macro gate, retry error feedback injection, head_sha rollback, sibling staging, and wake-lock."""
+    # 1. run_frontend_macro_quality_gate success and timeout
+    macro_cmds: list[list[str]] = []
+
+    def mock_tree_kill_ok(
+        cmd: list[str], timeout_seconds: int, cwd: Path | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        macro_cmds.append(cmd)
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Frontend Macro Passed", stderr="")
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill_ok)
+    res_f_ok = run_frontend_macro_quality_gate(timeout_seconds=120, repo_root=tmp_path)
+    assert res_f_ok.success is True
+    assert macro_cmds[-1] == [
+        "uv",
+        "run",
+        "python",
+        "scripts/flutter_audit_loop.py",
+        "client_app_v2/",
+        "--build",
+        "--strict",
+        "--test",
+    ]
+
+    def mock_tree_kill_timeout(
+        cmd: list[str], timeout_seconds: int, cwd: Path | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        raise subprocess.TimeoutExpired(cmd=cmd, timeout=timeout_seconds, output="Out", stderr="Err")
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_tree_kill_timeout)
+    res_f_timeout = run_frontend_macro_quality_gate(timeout_seconds=15, repo_root=tmp_path)
+    assert res_f_timeout.success is False
+    assert res_f_timeout.exit_code == 124
+    assert "Frontend macro-audit loop timed out after 15s" in res_f_timeout.output
+
+    # 2. Retry previous_error feedback injection in execute_subagent_pass
+    subagent_cmds: list[list[str]] = []
+
+    def mock_subagent_capture(
+        cmd: list[str], timeout_seconds: int, cwd: Path | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        subagent_cmds.append(cmd)
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="Fixed", stderr="")
+
+    monkeypatch.setattr("scripts.auto_hardening_runner.execute_subprocess_with_tree_kill", mock_subagent_capture)
+    args_retry = HardeningRunnerArgsDTO(
+        targets=["client_app_v2/lib/app.dart"],
+        gate=HardeningGate.FRONTEND,
+        no_auto_fix=True,
+    )
+    assert (
+        execute_subagent_pass(
+            "client_app_v2/lib/app.dart",
+            args_retry,
+            repo_root=tmp_path,
+            previous_error="DGR010 violation on line 42\nMissing switch guard",
+        )
+        is True
+    )
+    assert (
+        "PREVIOUS ATTEMPT FAILED QUALITY GATE - FIX THESE ERRORS: DGR010 violation on line 42 Missing switch guard"
+        in (subagent_cmds[-1][-1])
+    )
+
+    # 3. head_sha rollback reset when subagent created an intermediate commit
+    reset_cmds: list[list[str]] = []
+    snapshots = [
+        WorkspaceSnapshotDTO(modified_files=["client_app_v2/lib/app.dart"], untracked_files=[], head_sha="def5678901"),
+        WorkspaceSnapshotDTO(modified_files=["client_app_v2/lib/app.dart"], untracked_files=[], head_sha="abc1234567"),
+    ]
+    monkeypatch.setattr(
+        "scripts.auto_hardening_runner.capture_workspace_snapshot",
+        lambda root=None: snapshots.pop(0),
+    )
+
+    def _mock_reset_run(cmd: list[str], *_a: object, **_k: object) -> subprocess.CompletedProcess[str]:
+        reset_cmds.append(cmd)
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("subprocess.run", _mock_reset_run)
+    baseline = WorkspaceSnapshotDTO(modified_files=[], untracked_files=[], head_sha="abc1234567")
+    execute_circuit_breaker_rollback(baseline, "client_app_v2/lib/app.dart", repo_root=tmp_path)
+    assert ["git", "reset", "--hard", "abc1234567"] in reset_cmds
+
+    # 4. Atomic staging of unit tests and .g.dart/.freezed.dart siblings in mark_tracker_and_checkpoint
+    dart_dir = tmp_path / "client_app_v2" / "lib" / "models"
+    dart_dir.mkdir(parents=True, exist_ok=True)
+    (dart_dir / "item.dart").write_text("class Item {}\n", encoding="utf-8")
+    (dart_dir / "item.g.dart").write_text("// gen\n", encoding="utf-8")
+    (dart_dir / "item.freezed.dart").write_text("// freezed\n", encoding="utf-8")
+    test_dir = tmp_path / "client_app_v2" / "test" / "unit" / "models"
+    test_dir.mkdir(parents=True, exist_ok=True)
+    (test_dir / "item_test.dart").write_text("void main() {}\n", encoding="utf-8")
+
+    staged_cmds: list[list[str]] = []
+
+    def _mock_stage_run(cmd: list[str], *_a: object, **_k: object) -> subprocess.CompletedProcess[str]:
+        staged_cmds.append(cmd)
+        return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("subprocess.run", _mock_stage_run)
+    mark_tracker_and_checkpoint("client_app_v2/lib/models/item.dart", None, None, repo_root=tmp_path)
+    git_add_cmd = next(c for c in staged_cmds if c[:2] == ["git", "add"])
+    assert "client_app_v2/lib/models/item.dart" in git_add_cmd
+    assert "client_app_v2/test/unit/models/item_test.dart" in git_add_cmd
+    assert "client_app_v2/lib/models/item.g.dart" in git_add_cmd
+    assert "client_app_v2/lib/models/item.freezed.dart" in git_add_cmd
+
+    # 5. Windows wake-lock acquire/release on non-win32 and win32
+    monkeypatch.setattr("sys.platform", "linux")
+    assert acquire_windows_wake_lock() is None
+    release_windows_wake_lock(None)
 
 
 def test_resilient_backtick_tracker_parsing_and_marking(tmp_path: Path) -> None:
