@@ -1,20 +1,20 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
-
-import 'package:client_app/router/router.dart';
 import 'package:client_app/core/ui/error_view.dart';
-import 'package:client_app/l10n/gen/app_localizations.dart';
-
-import 'package:client_app/core/error/app_error_ext.dart';
-import 'package:client_app/features/execution/views/new_execution_view.dart';
-import 'package:client_app/core/logging/logger_service.dart';
-import 'package:client_app/core/error/app_exception.dart';
-import 'package:client_app/features/studio/models/workflow.dart';
-import 'package:client_app/features/studio/models/output_profile.dart';
-
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
+import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
+import 'package:client_app/features/execution/models/execution_record.dart';
+import 'package:client_app/features/execution/views/new_execution_view.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/router/router.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class DashboardView extends ConsumerStatefulWidget {
   const DashboardView({super.key});
@@ -53,13 +53,6 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Initial aggressive load logic
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        // ref.invalidate(executionListProvider);
-      }
-    });
-
     final asyncExecutions = ref.watch(executionListProvider);
     final asyncWorkflows = ref.watch(availableWorkflowsProvider);
 
@@ -78,176 +71,183 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
         icon: const Icon(Icons.add),
         label: Text(AppLocalizations.of(context)!.newAnalysis),
       ),
-      body: switch (asyncExecutions) {
-        AsyncData(:final value) =>
-          value.isEmpty
-              ? Center(child: Text(AppLocalizations.of(context)!.noExecutions))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(AppSpacing.s16),
-                  itemCount: value.length,
-                  itemBuilder: (context, index) {
-                    final exec = value[index];
-                    final id = exec.id;
-                    final status = exec.status;
-                    final workflowId = exec.workflowId;
-                    final createdAt = exec.createdAt ?? '';
+      body: AppErrorBoundary(
+        child: switch (asyncExecutions) {
+          AsyncData(:final value) =>
+            value.isEmpty
+                ? Center(
+                    child: Text(AppLocalizations.of(context)!.noExecutions),
+                  )
+                : ListView.builder(
+                    padding: AppSpacing.p16,
+                    itemCount: value.length,
+                    itemBuilder: (context, index) {
+                      final exec = value[index];
+                      final id = exec.id;
+                      final status = exec.status;
+                      final workflowId = exec.workflowId;
+                      final createdAt = exec.createdAt ?? '';
 
-                    // Formatting date
-                    String dateStr = createdAt;
-                    if (createdAt.isNotEmpty) {
-                      try {
-                        final dt = DateTime.parse(createdAt).toLocal();
-                        dateStr =
-                            '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-                      } catch (e, st) {
-                        ref
-                            .read(loggerServiceProvider)
-                            .error(
-                              'DashboardView',
-                              'Failed to parse createdAt date: $createdAt',
-                              e,
-                              st,
-                            );
-                        throw AppException.validation(
-                          'Corrupted DateTime string in execution data: $createdAt',
-                        );
+                      // Formatting date
+                      String dateStr = createdAt;
+                      if (createdAt.isNotEmpty) {
+                        try {
+                          final dt = DateTime.parse(createdAt).toLocal();
+                          dateStr =
+                              '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+                        } catch (e, st) {
+                          ref
+                              .read(loggerServiceProvider)
+                              .error(
+                                'DashboardView',
+                                'Failed to parse createdAt date: $createdAt',
+                                e,
+                                st,
+                              );
+                          throw AppException.validation(
+                            'Corrupted DateTime string in execution data: $createdAt',
+                          );
+                        }
                       }
-                    }
 
-                    // Metrics
-                    final costEstimate =
-                        (exec.costEstimate != null && exec.costEstimate! > 0)
-                        ? exec.costEstimate!
-                        : (exec.dagCostUsd +
-                              (exec.cumulativeSynthesisCost ?? 0.0));
-                    final promptTokens = exec.promptTokens;
-                    final completionTokens = exec.completionTokens;
-                    final reasoningTokens = exec.reasoningTokens;
-                    final synthTokens = exec.cumulativeSynthesisTokens ?? 0;
-                    final totalTokens =
-                        promptTokens +
-                        completionTokens +
-                        reasoningTokens +
-                        synthTokens;
+                      // Metrics
+                      final costEstimate =
+                          (exec.costEstimate != null && exec.costEstimate! > 0)
+                          ? exec.costEstimate!
+                          : (exec.dagCostUsd +
+                                (exec.cumulativeSynthesisCost ?? 0.0));
+                      final promptTokens = exec.promptTokens;
+                      final completionTokens = exec.completionTokens;
+                      final reasoningTokens = exec.reasoningTokens;
+                      final synthTokens = exec.cumulativeSynthesisTokens ?? 0;
+                      final totalTokens =
+                          promptTokens +
+                          completionTokens +
+                          reasoningTokens +
+                          synthTokens;
 
-                    String metricsStr = '';
-                    if (totalTokens > 0 ||
-                        promptTokens > 0 ||
-                        completionTokens > 0 ||
-                        costEstimate > 0) {
-                      final l10n = AppLocalizations.of(context)!;
-                      String tokensStr;
-                      if (promptTokens > 0 || completionTokens > 0) {
-                        tokensStr =
-                            '${l10n.reportPromptTokens(promptTokens.toString())} | ${l10n.reportCompletionTokens(completionTokens.toString())}';
-                      } else {
-                        tokensStr = l10n.tokensUsed(totalTokens);
+                      String metricsStr = '';
+                      if (totalTokens > 0 ||
+                          promptTokens > 0 ||
+                          completionTokens > 0 ||
+                          costEstimate > 0) {
+                        final l10n = AppLocalizations.of(context)!;
+                        String tokensStr;
+                        if (promptTokens > 0 || completionTokens > 0) {
+                          tokensStr =
+                              '${l10n.reportPromptTokens(promptTokens.toString())} | ${l10n.reportCompletionTokens(completionTokens.toString())}';
+                        } else {
+                          tokensStr = l10n.tokensUsed(totalTokens);
+                        }
+                        metricsStr =
+                            '\n${l10n.executionCostEstimate(costEstimate.toStringAsFixed(6))} | $tokensStr';
                       }
-                      metricsStr =
-                          '\n${l10n.executionCostEstimate(costEstimate.toStringAsFixed(6))} | $tokensStr';
-                    }
 
-                    // Resolve Workflow Name
-                    String workflowDisplay = AppLocalizations.of(
-                      context,
-                    )!.workflowPrefixLabel(workflowId);
-                    if (asyncWorkflows is AsyncData &&
-                        asyncWorkflows.value != null) {
-                      final workflows = asyncWorkflows.value!;
-                      final wf = workflows
-                          .where((w) => w.id == workflowId)
-                          .firstOrNull;
-                      if (wf != null) {
-                        final locale = Localizations.localeOf(
-                          context,
-                        ).languageCode;
-                        final titleStr = wf.name.get(locale);
-                        workflowDisplay = AppLocalizations.of(
-                          context,
-                        )!.workflowPrefixLabel(titleStr);
+                      // Resolve Workflow Name
+                      String workflowDisplay = AppLocalizations.of(
+                        context,
+                      )!.workflowPrefixLabel(workflowId);
+                      if (asyncWorkflows case AsyncData(
+                        value: final workflows,
+                      )) {
+                        final wf = workflows
+                            .where((w) => w.id == workflowId)
+                            .firstOrNull;
+                        if (wf != null) {
+                          final locale = Localizations.localeOf(
+                            context,
+                          ).languageCode;
+                          final titleStr = wf.name.get(locale);
+                          workflowDisplay = AppLocalizations.of(
+                            context,
+                          )!.workflowPrefixLabel(titleStr);
+                        }
                       }
-                    }
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: AppSpacing.s12),
-                      child: ListTile(
-                        title: Text(
-                          workflowDisplay,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text(
-                          '${AppLocalizations.of(context)!.executionIdLabel(id)}\n${AppLocalizations.of(context)!.created}: $dateStr$metricsStr',
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _buildStatusChip(status),
-                            AppSpacing.w8,
-                            if (status.toLowerCase() == 'passed' ||
-                                status.toLowerCase() == 'completed') ...[
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: AppSpacing.s12),
+                        child: ListTile(
+                          title: Text(
+                            workflowDisplay,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            '${AppLocalizations.of(context)!.executionIdLabel(id)}\n${AppLocalizations.of(context)!.created}: $dateStr$metricsStr',
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildStatusChip(status),
+                              AppSpacing.w8,
+                              if (status.toLowerCase() == 'passed' ||
+                                  status.toLowerCase() == 'completed') ...[
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.print,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                  tooltip: AppLocalizations.of(
+                                    context,
+                                  )!.printVariantSelectorTitle,
+                                  onPressed: () => _showVariantSelector(
+                                    context,
+                                    id,
+                                    workflowId,
+                                    asyncWorkflows,
+                                  ),
+                                ),
+                                AppSpacing.w8,
+                              ],
                               IconButton(
                                 icon: Icon(
-                                  Icons.print,
+                                  Icons.replay,
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                                 tooltip: AppLocalizations.of(
                                   context,
-                                )!.printVariantSelectorTitle,
-                                onPressed: () => _showVariantSelector(
-                                  context,
-                                  id,
-                                  workflowId,
-                                  asyncWorkflows,
-                                ),
+                                )!.rerunExecutionTooltip,
+                                onPressed: () =>
+                                    _cloneAndRunExecution(context, ref, id),
                               ),
                               AppSpacing.w8,
+                              IconButton(
+                                icon: Icon(
+                                  Icons.delete,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                                tooltip: AppLocalizations.of(
+                                  context,
+                                )!.deleteExecutionTooltip,
+                                onPressed: () =>
+                                    _confirmDelete(context, ref, id),
+                              ),
                             ],
-                            IconButton(
-                              icon: Icon(
-                                Icons.replay,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              tooltip: AppLocalizations.of(
-                                context,
-                              )!.rerunExecutionTooltip,
-                              onPressed: () =>
-                                  _cloneAndRunExecution(context, ref, id),
-                            ),
-                            AppSpacing.w8,
-                            IconButton(
-                              icon: Icon(
-                                Icons.delete,
-                                color: Theme.of(context).colorScheme.error,
-                              ),
-                              tooltip: AppLocalizations.of(
-                                context,
-                              )!.deleteExecutionTooltip,
-                              onPressed: () => _confirmDelete(context, ref, id),
-                            ),
-                          ],
+                          ),
+                          isThreeLine: true,
+                          onTap: () {
+                            // Navigate to details safely using GoRouter codegen
+                            if (status.toLowerCase() == 'passed' ||
+                                status.toLowerCase() == 'completed') {
+                              ExecutionReportRoute(executionId: id).go(context);
+                            } else {
+                              ExecutionRoute(executionId: id).go(context);
+                            }
+                          },
                         ),
-                        isThreeLine: true,
-                        onTap: () {
-                          // Navigate to details safely using GoRouter codegen
-                          if (status.toLowerCase() == 'passed' ||
-                              status.toLowerCase() == 'completed') {
-                            ExecutionReportRoute(executionId: id).go(context);
-                          } else {
-                            ExecutionRoute(executionId: id).go(context);
-                          }
-                        },
-                      ),
-                    );
-                  },
-                ),
-        AsyncError(:final error, :final stackTrace) => ErrorView(
-          error: error,
-          stackTrace: stackTrace,
-          onRetry: () => ref.invalidate(executionListProvider),
-        ),
-        _ => const Center(child: CircularProgressIndicator()),
-      },
+                      );
+                    },
+                  ),
+          AsyncError(:final error, :final stackTrace) => ErrorView(
+            error: error,
+            stackTrace: stackTrace,
+            onRetry: () => ref.invalidate(executionListProvider),
+          ),
+          _ => const Center(child: CircularProgressIndicator()),
+        },
+      ),
     );
   }
 
@@ -259,20 +259,32 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
   ) {
     if (workflowId.isEmpty) return;
 
-    final workflows = asyncWorkflows.asData?.value ?? [];
+    final workflows = switch (asyncWorkflows) {
+      AsyncData(:final value) => value,
+      _ => const <Workflow>[],
+    };
     final wf = workflows.where((w) => w.id == workflowId).firstOrNull;
 
     if (wf == null) {
-      throw AppException.validation(
+      final error = AppException.validation(
         'CRITICAL FAIL-FAST: Workflow $workflowId is not found in the payload for execution $executionId.',
       );
+      ref
+          .read(loggerServiceProvider)
+          .error(
+            'DashboardView',
+            'WORKFLOW_NOT_FOUND: Workflow $workflowId missing for execution $executionId',
+            error,
+            StackTrace.current,
+          );
+      throw error;
     }
 
     final outputProfiles = wf.outputProfiles;
     final variants = outputProfiles.keys.toList();
 
     if (variants.isEmpty) {
-      // Epic 14: Graceful Degradation for Workflow Builder (No-String Mandate compliant)
+      // Graceful degradation when no output profiles are configured on the workflow
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.errorValidation),
@@ -285,7 +297,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     // Navigation short-circuit removed to enforce modal appearance,
     // ensuring the user always has access to the "Clear profile synthesis" action.
 
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -299,7 +311,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.all(AppSpacing.s16),
+                padding: AppSpacing.p16,
                 child: Text(
                   AppLocalizations.of(context)!.printVariantSelectorTitle,
                   style: Theme.of(
@@ -317,7 +329,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                   AppLocalizations.of(context)!.printVariantSelectorDescription,
                 ),
               ),
-              const Divider(height: 1),
+              const Divider(),
               Flexible(
                 child: SingleChildScrollView(
                   child: Column(
@@ -352,12 +364,11 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                                   executionId,
                                   v,
                                 );
-                                if (ctx.mounted) {
-                                  ExecutionReportRoute(
-                                    executionId: executionId,
-                                    variant: v,
-                                  ).go(context);
-                                }
+                                if (!context.mounted) return;
+                                ExecutionReportRoute(
+                                  executionId: executionId,
+                                  variant: v,
+                                ).go(context);
                               },
                             ),
                             onTap: () {
@@ -395,9 +406,18 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
       final locale = Localizations.localeOf(context).languageCode;
       return profile.name.get(locale);
     }
-    throw AppException.validation(
+    final error = AppException.validation(
       'Fail-Fast: Missing required translation for key $key.',
     );
+    ref
+        .read(loggerServiceProvider)
+        .error(
+          'DashboardView',
+          'VARIANT_PROFILE_MISSING: Missing OutputProfile for key $key',
+          error,
+          StackTrace.current,
+        );
+    throw error;
   }
 
   Future<void> _confirmDelete(
@@ -430,7 +450,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     if (confirmed == true && context.mounted) {
       try {
         final dio = ref.read(apiClientProvider);
-        await dio.delete('/execution/executions/$id');
+        await dio.delete<void>('/execution/executions/$id');
         ref.invalidate(executionListProvider);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -470,7 +490,6 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     String id,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    final fallbackLocale = Localizations.localeOf(context).languageCode;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(l10n.processingStatus)));
@@ -478,28 +497,40 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     try {
       final dio = ref.read(apiClientProvider);
 
-      // 1. Fetch old execution
-      final getResponse = await dio.get('/execution/executions/$id');
-      final Map<String, Object?> oldExec = getResponse.data is Map
-          ? (getResponse.data as Map).cast<String, Object?>()
-          : throw AppException.network(
-              'Invalid response from server',
-            ).copyWith(extensions: const {'error_code': 'INVALID_RESPONSE'});
+      // 1. Fetch old execution and validate against ExecutionRecord schema
+      final getResponse = await dio.get<Map<String, Object?>>(
+        '/execution/executions/$id',
+      );
+      final oldExecData = getResponse.data;
+      if (oldExecData == null) {
+        final error = AppException.network(
+          'Invalid response from server',
+        ).copyWith(extensions: const {'error_code': 'INVALID_RESPONSE'});
+        ref
+            .read(loggerServiceProvider)
+            .error(
+              'DashboardView',
+              'RERUN_NULL_PAYLOAD: Null response data when cloning execution $id',
+              error,
+              StackTrace.current,
+            );
+        throw error;
+      }
+      final oldExec = ExecutionRecord.fromJson(oldExecData);
 
-      // 2. Prepare payload
-      final metadata = oldExec['metadata'] is Map
-          ? (oldExec['metadata'] as Map).cast<String, Object?>()
-          : const <String, Object?>{};
-      final payload = <String, Object?>{
-        'workflow_id': oldExec['workflow_id'],
-        'raw_inputs': oldExec['raw_inputs'],
-        'profile_id':
-            oldExec['output_profile_id'], // In Python it's output_profile_id inside ExecutionRecord
-        'target_locale': metadata['target_locale'] ?? fallbackLocale,
-      };
+      // 2. Prepare strongly typed request DTO
+      final request = ExecutionCreateRequestDto(
+        workflowId: oldExec.workflowId,
+        targetLocale: oldExec.targetLocale,
+        rawInputs: oldExec.rawInputs?.toJson() ?? const <String, Object?>{},
+        profileId: oldExec.outputProfileId,
+      );
 
       // 3. Post to create new execution
-      await dio.post('/execution/executions/', data: payload);
+      await dio.post<Map<String, Object?>>(
+        '/execution/executions/',
+        data: request.toJson(),
+      );
 
       // 4. Success UI & Invalidate Cache
       ref.invalidate(executionListProvider);
@@ -550,7 +581,7 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
 
     try {
       final dio = ref.read(apiClientProvider);
-      await dio.delete(
+      await dio.delete<void>(
         '/execution/executions/$executionId/profiles/$profileId',
       );
 

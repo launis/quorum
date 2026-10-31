@@ -1,20 +1,22 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:client_app/features/execution/views/dashboard_view.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
+import 'package:client_app/features/execution/views/dashboard_view.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
-import 'package:client_app/shared/models/i18n_text.dart';
-import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/theme/app_theme.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   Widget createTestWidget({
-    List overrides = const [],
+    List<Object> overrides = const [],
     Size screenSize = const Size(1920, 1080),
   }) {
     return ProviderScope(
@@ -36,14 +38,18 @@ void main() {
     );
   }
 
-  Workflow createWorkflow({required String id, required String name}) {
+  Workflow createWorkflow({
+    required String id,
+    required String name,
+    Map<String, OutputProfile> outputProfiles = const {},
+  }) {
     return Workflow(
       id: id,
       slug: 'slug_$id',
       name: I18nText(translations: {'en': name, 'fi': 'FI $name'}),
       description: const I18nText(translations: {'en': 'Desc', 'fi': 'Kuvaus'}),
       modelRegistryId: 'reg_default',
-      outputProfiles: const {},
+      outputProfiles: outputProfiles,
     );
   }
 
@@ -85,6 +91,7 @@ void main() {
       expect(find.text('Executions Dashboard'), findsOneWidget);
       expect(find.text('No executions found.'), findsOneWidget);
       expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byType(AppErrorBoundary), findsOneWidget);
     });
 
     testWidgets(
@@ -114,17 +121,13 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Check workflow title display
         expect(
           find.textContaining('Causal Discovery Workflow'),
           findsOneWidget,
         );
-
-        // Check execution ID and status chip
         expect(find.textContaining('exe_test_01'), findsOneWidget);
         expect(find.text('COMPLETED'), findsOneWidget);
 
-        // Check actions: Print, Replay, Delete
         expect(find.byIcon(Icons.print), findsOneWidget);
         expect(find.byIcon(Icons.replay), findsOneWidget);
         expect(find.byIcon(Icons.delete), findsOneWidget);
@@ -151,6 +154,39 @@ void main() {
         expect(find.byType(ErrorView), findsOneWidget);
         expect(find.byIcon(Icons.error_outline), findsOneWidget);
         expect(find.byIcon(Icons.refresh), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'negative boundary: shows validation SnackBar when print clicked on workflow with empty outputProfiles',
+      (tester) async {
+        final wf = createWorkflow(
+          id: 'wor_empty_profiles',
+          name: 'Empty Profiles Workflow',
+          outputProfiles: const {},
+        );
+        final exec = createExecution(
+          id: 'exe_print_01',
+          workflowId: 'wor_empty_profiles',
+          status: 'passed',
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            overrides: [
+              executionListProvider.overrideWith((ref) => Future.value([exec])),
+              availableWorkflowsProvider.overrideWith(
+                (ref) => Future.value([wf]),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.print));
+        await tester.pump();
+
+        expect(find.byType(SnackBar), findsOneWidget);
       },
     );
 
