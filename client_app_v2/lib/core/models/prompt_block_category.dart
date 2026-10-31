@@ -3,6 +3,7 @@ import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+@JsonEnum()
 enum PromptBlockCategory {
   @JsonValue('matrix')
   matrix,
@@ -49,7 +50,12 @@ enum PromptBlockCategory {
 
 extension PromptBlockCategoryL10n on PromptBlockCategory {
   String displayName(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) {
+      throw AppException.validation(
+        'Fail-Fast: AppLocalizations missing in BuildContext for PromptBlockCategory.',
+      );
+    }
     switch (this) {
       case PromptBlockCategory.matrix:
         return l10n.categoryMatrix;
