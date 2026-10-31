@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:client_app/core/api/reports_client.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/features/reports/models/report_artifact.dart';
@@ -16,7 +17,7 @@ Future<List<ReportArtifactSummary>> executionReports(
   final client = ref.watch(reportsClientProvider);
   final reports = await client.listReports(executionId);
 
-  // If any report is still compiling, self-invalidate after 2s interval
+  // Self-invalidate after 2s interval while any report artifact is still compiling.
   final isAnyCompiling = reports.any(
     (r) =>
         r.status == ReportStatus.generating || r.status == ReportStatus.pending,
@@ -37,8 +38,7 @@ Future<ReportArtifact> reportDetail(Ref ref, String reportId) async {
   final client = ref.watch(reportsClientProvider);
   final report = await client.getReport(reportId);
 
-  // If report is still compiling, self-invalidate after 2s interval.
-  // When compilation transitions to ready, invalidate downstream artifact providers.
+  // Self-invalidate after 2s interval while report is compiling; invalidate downstream SDUI and row providers once ready.
   if (report.status == ReportStatus.generating ||
       report.status == ReportStatus.pending) {
     final timer = Timer(const Duration(seconds: 2), () {
@@ -68,7 +68,9 @@ Future<List<ReportRowItem>> reportRows(Ref ref, String reportId) async {
 }
 
 /// Controller managing report lifecycle mutations (create, regenerate, delete).
-// Plan Step 1: Harden lifecycle with keepAlive: true to satisfy riverpod_autodispose_read_ban
+///
+/// Retains alive state so imperative `ref.read` action dispatches from UI callbacks
+/// do not dispose the notifier mid-flight.
 @Riverpod(keepAlive: true)
 class ReportArtifactActions extends _$ReportArtifactActions {
   @override
@@ -92,6 +94,14 @@ class ReportArtifactActions extends _$ReportArtifactActions {
       return summary;
     } catch (e, st) {
       if (ref.mounted) {
+        ref
+            .read(loggerServiceProvider)
+            .error(
+              'ReportArtifactActions',
+              'CREATE_REPORT_FAILED: Failed to create report for execution $executionId',
+              e,
+              st,
+            );
         state = AsyncValue.error(e, st);
       }
       rethrow;
@@ -114,6 +124,14 @@ class ReportArtifactActions extends _$ReportArtifactActions {
       return summary;
     } catch (e, st) {
       if (ref.mounted) {
+        ref
+            .read(loggerServiceProvider)
+            .error(
+              'ReportArtifactActions',
+              'REGENERATE_REPORT_FAILED: Failed to regenerate report $reportId',
+              e,
+              st,
+            );
         state = AsyncValue.error(e, st);
       }
       rethrow;
@@ -135,6 +153,14 @@ class ReportArtifactActions extends _$ReportArtifactActions {
       }
     } catch (e, st) {
       if (ref.mounted) {
+        ref
+            .read(loggerServiceProvider)
+            .error(
+              'ReportArtifactActions',
+              'DELETE_REPORT_FAILED: Failed to delete report $reportId',
+              e,
+              st,
+            );
         state = AsyncValue.error(e, st);
       }
       rethrow;

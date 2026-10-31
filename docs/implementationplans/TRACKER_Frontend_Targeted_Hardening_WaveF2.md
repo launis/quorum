@@ -57,7 +57,7 @@
   - [x] @[client_app_v2/lib/features/execution/providers/atom_result_provider.dart]
   - [x] @[client_app_v2/lib/features/execution/providers/hydrated_reference_provider.dart]
   - [x] @[client_app_v2/lib/features/execution/providers/report_data_v2_provider.dart]
-  - [ ] @[client_app_v2/lib/features/reports/controllers/report_artifact_controller.dart]
+  - [x] @[client_app_v2/lib/features/reports/controllers/report_artifact_controller.dart]
   - [ ] @[client_app_v2/lib/features/settings/presentation/settings_controller.dart]
   - [ ] @[client_app_v2/lib/features/studio/controllers/blueprint_editor_controller.dart]
   - [ ] @[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]

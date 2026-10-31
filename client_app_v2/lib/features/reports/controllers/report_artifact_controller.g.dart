@@ -353,17 +353,23 @@ final class ReportRowsFamily extends $Family
 }
 
 /// Controller managing report lifecycle mutations (create, regenerate, delete).
-// Plan Step 1: Harden lifecycle with keepAlive: true to satisfy riverpod_autodispose_read_ban
+///
+/// Retains alive state so imperative `ref.read` action dispatches from UI callbacks
+/// do not dispose the notifier mid-flight.
 
 @ProviderFor(ReportArtifactActions)
 final reportArtifactActionsProvider = ReportArtifactActionsProvider._();
 
 /// Controller managing report lifecycle mutations (create, regenerate, delete).
-// Plan Step 1: Harden lifecycle with keepAlive: true to satisfy riverpod_autodispose_read_ban
+///
+/// Retains alive state so imperative `ref.read` action dispatches from UI callbacks
+/// do not dispose the notifier mid-flight.
 final class ReportArtifactActionsProvider
     extends $NotifierProvider<ReportArtifactActions, AsyncValue<void>> {
   /// Controller managing report lifecycle mutations (create, regenerate, delete).
-  // Plan Step 1: Harden lifecycle with keepAlive: true to satisfy riverpod_autodispose_read_ban
+  ///
+  /// Retains alive state so imperative `ref.read` action dispatches from UI callbacks
+  /// do not dispose the notifier mid-flight.
   ReportArtifactActionsProvider._()
     : super(
         from: null,
@@ -392,10 +398,12 @@ final class ReportArtifactActionsProvider
 }
 
 String _$reportArtifactActionsHash() =>
-    r'ed19180efbd672cefccdfdd9a3a5cd3d29d683bf';
+    r'fb21aba6fcd2372230e672dbb8379e799ec1f47f';
 
 /// Controller managing report lifecycle mutations (create, regenerate, delete).
-// Plan Step 1: Harden lifecycle with keepAlive: true to satisfy riverpod_autodispose_read_ban
+///
+/// Retains alive state so imperative `ref.read` action dispatches from UI callbacks
+/// do not dispose the notifier mid-flight.
 
 abstract class _$ReportArtifactActions extends $Notifier<AsyncValue<void>> {
   AsyncValue<void> build();
