@@ -20,7 +20,7 @@
 ### Post-Implementation Gates
 
 - [x] **[SKIPPED] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]" --gate backend --model gemini-4-argon-medium` (Zero backend targets in frontend targeted hardening).
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
   - [x] @[client_app_v2/lib/features/execution/models/atom_result_dto.dart]
   - [x] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
   - [x] @[client_app_v2/lib/features/execution/models/distilled_evaluation.dart]
@@ -64,7 +64,7 @@
   - [x] @[client_app_v2/lib/features/studio/controllers/model_registry_controller.dart]
   - [x] @[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]
   - [x] @[client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart]
-  - [ ] @[client_app_v2/lib/features/studio/controllers/studio_controller.dart]
+  - [x] @[client_app_v2/lib/features/studio/controllers/studio_controller.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify unit test coverage across all 44 hardened Wave F2 Freezed models and Riverpod controllers.
 
