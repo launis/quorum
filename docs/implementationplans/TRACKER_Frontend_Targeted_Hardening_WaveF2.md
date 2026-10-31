@@ -39,7 +39,7 @@
   - [x] @[client_app_v2/lib/features/execution/models/tda_state.dart]
   - [x] @[client_app_v2/lib/features/execution/models/trace_context_carrier.dart]
   - [x] @[client_app_v2/lib/features/execution/models/workflow_inputs.dart]
-  - [ ] @[client_app_v2/lib/features/reports/models/report_artifact.dart]
+  - [x] @[client_app_v2/lib/features/reports/models/report_artifact.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/blueprint_config.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/gcp_location.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/llm_platform.dart]

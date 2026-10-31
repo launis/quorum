@@ -543,7 +543,7 @@ as int?,
 /// @nodoc
 mixin _$ReportRowItem {
 
-@JsonKey(name: 'execution_id') String get executionId;@JsonKey(name: 'report_id') String get reportId;@JsonKey(name: 'metric_key') String get metricKey;@JsonKey(name: 'metric_label') String get metricLabel; double get score;@JsonKey(name: 'max_scale') double get maxScale; double get weight; String? get reasoning; String? get quote;@JsonKey(name: 'is_inverse_evidence') bool get isInverseEvidence;
+@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') String get executionId;@StrictOpaqueIdConverter()@JsonKey(name: 'report_id') String get reportId;@JsonKey(name: 'metric_key') String get metricKey;@JsonKey(name: 'metric_label') String get metricLabel; double get score;@JsonKey(name: 'max_scale') double get maxScale; double get weight; String? get reasoning; String? get quote;@JsonKey(name: 'is_inverse_evidence') bool get isInverseEvidence;
 /// Create a copy of ReportRowItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -569,7 +569,7 @@ abstract mixin class $ReportRowItemCopyWith<$Res>  {
   factory $ReportRowItemCopyWith(ReportRowItem value, $Res Function(ReportRowItem) _then) = _$ReportRowItemCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'report_id') String reportId,@JsonKey(name: 'metric_key') String metricKey,@JsonKey(name: 'metric_label') String metricLabel, double score,@JsonKey(name: 'max_scale') double maxScale, double weight, String? reasoning, String? quote,@JsonKey(name: 'is_inverse_evidence') bool isInverseEvidence
+@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') String executionId,@StrictOpaqueIdConverter()@JsonKey(name: 'report_id') String reportId,@JsonKey(name: 'metric_key') String metricKey,@JsonKey(name: 'metric_label') String metricLabel, double score,@JsonKey(name: 'max_scale') double maxScale, double weight, String? reasoning, String? quote,@JsonKey(name: 'is_inverse_evidence') bool isInverseEvidence
 });
 
 
@@ -683,7 +683,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'metric_key')  String metricKey, @JsonKey(name: 'metric_label')  String metricLabel,  double score, @JsonKey(name: 'max_scale')  double maxScale,  double weight,  String? reasoning,  String? quote, @JsonKey(name: 'is_inverse_evidence')  bool isInverseEvidence)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id')  String executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'metric_key')  String metricKey, @JsonKey(name: 'metric_label')  String metricLabel,  double score, @JsonKey(name: 'max_scale')  double maxScale,  double weight,  String? reasoning,  String? quote, @JsonKey(name: 'is_inverse_evidence')  bool isInverseEvidence)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportRowItem() when $default != null:
 return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLabel,_that.score,_that.maxScale,_that.weight,_that.reasoning,_that.quote,_that.isInverseEvidence);case _:
@@ -704,7 +704,7 @@ return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLab
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'metric_key')  String metricKey, @JsonKey(name: 'metric_label')  String metricLabel,  double score, @JsonKey(name: 'max_scale')  double maxScale,  double weight,  String? reasoning,  String? quote, @JsonKey(name: 'is_inverse_evidence')  bool isInverseEvidence)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id')  String executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'metric_key')  String metricKey, @JsonKey(name: 'metric_label')  String metricLabel,  double score, @JsonKey(name: 'max_scale')  double maxScale,  double weight,  String? reasoning,  String? quote, @JsonKey(name: 'is_inverse_evidence')  bool isInverseEvidence)  $default,) {final _that = this;
 switch (_that) {
 case _ReportRowItem():
 return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLabel,_that.score,_that.maxScale,_that.weight,_that.reasoning,_that.quote,_that.isInverseEvidence);case _:
@@ -724,7 +724,7 @@ return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLab
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'metric_key')  String metricKey, @JsonKey(name: 'metric_label')  String metricLabel,  double score, @JsonKey(name: 'max_scale')  double maxScale,  double weight,  String? reasoning,  String? quote, @JsonKey(name: 'is_inverse_evidence')  bool isInverseEvidence)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id')  String executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'report_id')  String reportId, @JsonKey(name: 'metric_key')  String metricKey, @JsonKey(name: 'metric_label')  String metricLabel,  double score, @JsonKey(name: 'max_scale')  double maxScale,  double weight,  String? reasoning,  String? quote, @JsonKey(name: 'is_inverse_evidence')  bool isInverseEvidence)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportRowItem() when $default != null:
 return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLabel,_that.score,_that.maxScale,_that.weight,_that.reasoning,_that.quote,_that.isInverseEvidence);case _:
@@ -739,11 +739,11 @@ return $default(_that.executionId,_that.reportId,_that.metricKey,_that.metricLab
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportRowItem extends ReportRowItem {
-  const _ReportRowItem({@JsonKey(name: 'execution_id') required this.executionId, @JsonKey(name: 'report_id') required this.reportId, @JsonKey(name: 'metric_key') required this.metricKey, @JsonKey(name: 'metric_label') required this.metricLabel, required this.score, @JsonKey(name: 'max_scale') required this.maxScale, required this.weight, this.reasoning, this.quote, @JsonKey(name: 'is_inverse_evidence') this.isInverseEvidence = false}): super._();
+  const _ReportRowItem({@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') required this.executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'report_id') required this.reportId, @JsonKey(name: 'metric_key') required this.metricKey, @JsonKey(name: 'metric_label') required this.metricLabel, required this.score, @JsonKey(name: 'max_scale') required this.maxScale, required this.weight, this.reasoning, this.quote, @JsonKey(name: 'is_inverse_evidence') this.isInverseEvidence = false}): super._();
   factory _ReportRowItem.fromJson(Map<String, dynamic> json) => _$ReportRowItemFromJson(json);
 
-@override@JsonKey(name: 'execution_id') final  String executionId;
-@override@JsonKey(name: 'report_id') final  String reportId;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') final  String executionId;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'report_id') final  String reportId;
 @override@JsonKey(name: 'metric_key') final  String metricKey;
 @override@JsonKey(name: 'metric_label') final  String metricLabel;
 @override final  double score;
@@ -779,7 +779,7 @@ abstract mixin class _$ReportRowItemCopyWith<$Res> implements $ReportRowItemCopy
   factory _$ReportRowItemCopyWith(_ReportRowItem value, $Res Function(_ReportRowItem) _then) = __$ReportRowItemCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'report_id') String reportId,@JsonKey(name: 'metric_key') String metricKey,@JsonKey(name: 'metric_label') String metricLabel, double score,@JsonKey(name: 'max_scale') double maxScale, double weight, String? reasoning, String? quote,@JsonKey(name: 'is_inverse_evidence') bool isInverseEvidence
+@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') String executionId,@StrictOpaqueIdConverter()@JsonKey(name: 'report_id') String reportId,@JsonKey(name: 'metric_key') String metricKey,@JsonKey(name: 'metric_label') String metricLabel, double score,@JsonKey(name: 'max_scale') double maxScale, double weight, String? reasoning, String? quote,@JsonKey(name: 'is_inverse_evidence') bool isInverseEvidence
 });
 
 
@@ -819,7 +819,7 @@ as bool,
 /// @nodoc
 mixin _$ReportArtifact {
 
- String get id;@JsonKey(name: 'execution_id') String get executionId;@JsonKey(name: 'workflow_id') String get workflowId;@JsonKey(name: 'profile_id') String get profileId; String get locale; String get title; ReportStatus get status;@JsonKey(name: 'storage_paths') ReportStoragePaths get storagePaths;@JsonKey(name: 'metadata') ReportMetadata get metadata;@JsonKey(name: 'custom_preface_md') String? get customPrefaceMd;@JsonKey(name: 'error_message') String? get errorMessage;@JsonKey(name: 'created_at') DateTime get createdAt;@JsonKey(name: 'updated_at') DateTime get updatedAt;
+@StrictOpaqueIdConverter() String get id;@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') String get executionId;@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String get workflowId;@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') String get profileId; String get locale; String get title; ReportStatus get status;@JsonKey(name: 'storage_paths') ReportStoragePaths get storagePaths;@JsonKey(name: 'metadata') ReportMetadata get metadata;@JsonKey(name: 'custom_preface_md') String? get customPrefaceMd;@JsonKey(name: 'error_message') String? get errorMessage;@JsonKey(name: 'created_at') DateTime get createdAt;@JsonKey(name: 'updated_at') DateTime get updatedAt;
 /// Create a copy of ReportArtifact
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -845,7 +845,7 @@ abstract mixin class $ReportArtifactCopyWith<$Res>  {
   factory $ReportArtifactCopyWith(ReportArtifact value, $Res Function(ReportArtifact) _then) = _$ReportArtifactCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId, String locale, String title, ReportStatus status,@JsonKey(name: 'storage_paths') ReportStoragePaths storagePaths,@JsonKey(name: 'metadata') ReportMetadata metadata,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'error_message') String? errorMessage,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'updated_at') DateTime updatedAt
+@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') String executionId,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') String profileId, String locale, String title, ReportStatus status,@JsonKey(name: 'storage_paths') ReportStoragePaths storagePaths,@JsonKey(name: 'metadata') ReportMetadata metadata,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'error_message') String? errorMessage,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'updated_at') DateTime updatedAt
 });
 
 
@@ -980,7 +980,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId,  String locale,  String title,  ReportStatus status, @JsonKey(name: 'storage_paths')  ReportStoragePaths storagePaths, @JsonKey(name: 'metadata')  ReportMetadata metadata, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'updated_at')  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()@JsonKey(name: 'execution_id')  String executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @StrictOpaqueIdConverter()@JsonKey(name: 'profile_id')  String profileId,  String locale,  String title,  ReportStatus status, @JsonKey(name: 'storage_paths')  ReportStoragePaths storagePaths, @JsonKey(name: 'metadata')  ReportMetadata metadata, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'updated_at')  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportArtifact() when $default != null:
 return $default(_that.id,_that.executionId,_that.workflowId,_that.profileId,_that.locale,_that.title,_that.status,_that.storagePaths,_that.metadata,_that.customPrefaceMd,_that.errorMessage,_that.createdAt,_that.updatedAt);case _:
@@ -1001,7 +1001,7 @@ return $default(_that.id,_that.executionId,_that.workflowId,_that.profileId,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId,  String locale,  String title,  ReportStatus status, @JsonKey(name: 'storage_paths')  ReportStoragePaths storagePaths, @JsonKey(name: 'metadata')  ReportMetadata metadata, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'updated_at')  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()@JsonKey(name: 'execution_id')  String executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @StrictOpaqueIdConverter()@JsonKey(name: 'profile_id')  String profileId,  String locale,  String title,  ReportStatus status, @JsonKey(name: 'storage_paths')  ReportStoragePaths storagePaths, @JsonKey(name: 'metadata')  ReportMetadata metadata, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'updated_at')  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _ReportArtifact():
 return $default(_that.id,_that.executionId,_that.workflowId,_that.profileId,_that.locale,_that.title,_that.status,_that.storagePaths,_that.metadata,_that.customPrefaceMd,_that.errorMessage,_that.createdAt,_that.updatedAt);case _:
@@ -1021,7 +1021,7 @@ return $default(_that.id,_that.executionId,_that.workflowId,_that.profileId,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'workflow_id')  String workflowId, @JsonKey(name: 'profile_id')  String profileId,  String locale,  String title,  ReportStatus status, @JsonKey(name: 'storage_paths')  ReportStoragePaths storagePaths, @JsonKey(name: 'metadata')  ReportMetadata metadata, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'updated_at')  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()@JsonKey(name: 'execution_id')  String executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id')  String workflowId, @StrictOpaqueIdConverter()@JsonKey(name: 'profile_id')  String profileId,  String locale,  String title,  ReportStatus status, @JsonKey(name: 'storage_paths')  ReportStoragePaths storagePaths, @JsonKey(name: 'metadata')  ReportMetadata metadata, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'error_message')  String? errorMessage, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'updated_at')  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportArtifact() when $default != null:
 return $default(_that.id,_that.executionId,_that.workflowId,_that.profileId,_that.locale,_that.title,_that.status,_that.storagePaths,_that.metadata,_that.customPrefaceMd,_that.errorMessage,_that.createdAt,_that.updatedAt);case _:
@@ -1036,13 +1036,13 @@ return $default(_that.id,_that.executionId,_that.workflowId,_that.profileId,_tha
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportArtifact extends ReportArtifact {
-  const _ReportArtifact({required this.id, @JsonKey(name: 'execution_id') required this.executionId, @JsonKey(name: 'workflow_id') required this.workflowId, @JsonKey(name: 'profile_id') required this.profileId, required this.locale, required this.title, required this.status, @JsonKey(name: 'storage_paths') this.storagePaths = const ReportStoragePaths(), @JsonKey(name: 'metadata') this.metadata = const ReportMetadata(), @JsonKey(name: 'custom_preface_md') this.customPrefaceMd, @JsonKey(name: 'error_message') this.errorMessage, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'updated_at') required this.updatedAt}): super._();
+  const _ReportArtifact({@StrictOpaqueIdConverter() required this.id, @StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') required this.executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') required this.workflowId, @StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') required this.profileId, required this.locale, required this.title, required this.status, @JsonKey(name: 'storage_paths') this.storagePaths = const ReportStoragePaths(), @JsonKey(name: 'metadata') this.metadata = const ReportMetadata(), @JsonKey(name: 'custom_preface_md') this.customPrefaceMd, @JsonKey(name: 'error_message') this.errorMessage, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'updated_at') required this.updatedAt}): super._();
   factory _ReportArtifact.fromJson(Map<String, dynamic> json) => _$ReportArtifactFromJson(json);
 
-@override final  String id;
-@override@JsonKey(name: 'execution_id') final  String executionId;
-@override@JsonKey(name: 'workflow_id') final  String workflowId;
-@override@JsonKey(name: 'profile_id') final  String profileId;
+@override@StrictOpaqueIdConverter() final  String id;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') final  String executionId;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') final  String workflowId;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') final  String profileId;
 @override final  String locale;
 @override final  String title;
 @override final  ReportStatus status;
@@ -1079,7 +1079,7 @@ abstract mixin class _$ReportArtifactCopyWith<$Res> implements $ReportArtifactCo
   factory _$ReportArtifactCopyWith(_ReportArtifact value, $Res Function(_ReportArtifact) _then) = __$ReportArtifactCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'workflow_id') String workflowId,@JsonKey(name: 'profile_id') String profileId, String locale, String title, ReportStatus status,@JsonKey(name: 'storage_paths') ReportStoragePaths storagePaths,@JsonKey(name: 'metadata') ReportMetadata metadata,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'error_message') String? errorMessage,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'updated_at') DateTime updatedAt
+@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') String executionId,@StrictOpaqueIdConverter()@JsonKey(name: 'workflow_id') String workflowId,@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') String profileId, String locale, String title, ReportStatus status,@JsonKey(name: 'storage_paths') ReportStoragePaths storagePaths,@JsonKey(name: 'metadata') ReportMetadata metadata,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'error_message') String? errorMessage,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'updated_at') DateTime updatedAt
 });
 
 
@@ -1140,7 +1140,7 @@ $ReportMetadataCopyWith<$Res> get metadata {
 /// @nodoc
 mixin _$ReportArtifactSummary {
 
- String get id;@JsonKey(name: 'execution_id') String get executionId;@JsonKey(name: 'profile_id') String get profileId; String get locale; String get title; ReportStatus get status;@JsonKey(name: 'created_at') DateTime get createdAt;@JsonKey(name: 'updated_at') DateTime get updatedAt;
+@StrictOpaqueIdConverter() String get id;@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') String get executionId;@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') String get profileId; String get locale; String get title; ReportStatus get status;@JsonKey(name: 'created_at') DateTime get createdAt;@JsonKey(name: 'updated_at') DateTime get updatedAt;
 /// Create a copy of ReportArtifactSummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1166,7 +1166,7 @@ abstract mixin class $ReportArtifactSummaryCopyWith<$Res>  {
   factory $ReportArtifactSummaryCopyWith(ReportArtifactSummary value, $Res Function(ReportArtifactSummary) _then) = _$ReportArtifactSummaryCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'profile_id') String profileId, String locale, String title, ReportStatus status,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'updated_at') DateTime updatedAt
+@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') String executionId,@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') String profileId, String locale, String title, ReportStatus status,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'updated_at') DateTime updatedAt
 });
 
 
@@ -1278,7 +1278,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'profile_id')  String profileId,  String locale,  String title,  ReportStatus status, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'updated_at')  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()@JsonKey(name: 'execution_id')  String executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'profile_id')  String profileId,  String locale,  String title,  ReportStatus status, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'updated_at')  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReportArtifactSummary() when $default != null:
 return $default(_that.id,_that.executionId,_that.profileId,_that.locale,_that.title,_that.status,_that.createdAt,_that.updatedAt);case _:
@@ -1299,7 +1299,7 @@ return $default(_that.id,_that.executionId,_that.profileId,_that.locale,_that.ti
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'profile_id')  String profileId,  String locale,  String title,  ReportStatus status, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'updated_at')  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()@JsonKey(name: 'execution_id')  String executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'profile_id')  String profileId,  String locale,  String title,  ReportStatus status, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'updated_at')  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _ReportArtifactSummary():
 return $default(_that.id,_that.executionId,_that.profileId,_that.locale,_that.title,_that.status,_that.createdAt,_that.updatedAt);case _:
@@ -1319,7 +1319,7 @@ return $default(_that.id,_that.executionId,_that.profileId,_that.locale,_that.ti
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'execution_id')  String executionId, @JsonKey(name: 'profile_id')  String profileId,  String locale,  String title,  ReportStatus status, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'updated_at')  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id, @StrictOpaqueIdConverter()@JsonKey(name: 'execution_id')  String executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'profile_id')  String profileId,  String locale,  String title,  ReportStatus status, @JsonKey(name: 'created_at')  DateTime createdAt, @JsonKey(name: 'updated_at')  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _ReportArtifactSummary() when $default != null:
 return $default(_that.id,_that.executionId,_that.profileId,_that.locale,_that.title,_that.status,_that.createdAt,_that.updatedAt);case _:
@@ -1334,12 +1334,12 @@ return $default(_that.id,_that.executionId,_that.profileId,_that.locale,_that.ti
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ReportArtifactSummary extends ReportArtifactSummary {
-  const _ReportArtifactSummary({required this.id, @JsonKey(name: 'execution_id') required this.executionId, @JsonKey(name: 'profile_id') required this.profileId, required this.locale, required this.title, required this.status, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'updated_at') required this.updatedAt}): super._();
+  const _ReportArtifactSummary({@StrictOpaqueIdConverter() required this.id, @StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') required this.executionId, @StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') required this.profileId, required this.locale, required this.title, required this.status, @JsonKey(name: 'created_at') required this.createdAt, @JsonKey(name: 'updated_at') required this.updatedAt}): super._();
   factory _ReportArtifactSummary.fromJson(Map<String, dynamic> json) => _$ReportArtifactSummaryFromJson(json);
 
-@override final  String id;
-@override@JsonKey(name: 'execution_id') final  String executionId;
-@override@JsonKey(name: 'profile_id') final  String profileId;
+@override@StrictOpaqueIdConverter() final  String id;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') final  String executionId;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') final  String profileId;
 @override final  String locale;
 @override final  String title;
 @override final  ReportStatus status;
@@ -1372,7 +1372,7 @@ abstract mixin class _$ReportArtifactSummaryCopyWith<$Res> implements $ReportArt
   factory _$ReportArtifactSummaryCopyWith(_ReportArtifactSummary value, $Res Function(_ReportArtifactSummary) _then) = __$ReportArtifactSummaryCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'execution_id') String executionId,@JsonKey(name: 'profile_id') String profileId, String locale, String title, ReportStatus status,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'updated_at') DateTime updatedAt
+@StrictOpaqueIdConverter() String id,@StrictOpaqueIdConverter()@JsonKey(name: 'execution_id') String executionId,@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') String profileId, String locale, String title, ReportStatus status,@JsonKey(name: 'created_at') DateTime createdAt,@JsonKey(name: 'updated_at') DateTime updatedAt
 });
 
 
@@ -1410,7 +1410,7 @@ as DateTime,
 /// @nodoc
 mixin _$CreateReportRequest {
 
-@JsonKey(name: 'profile_id') String get profileId; String get locale;@JsonKey(name: 'force_resynthesis') bool get forceResynthesis;@JsonKey(name: 'custom_preface_md') String? get customPrefaceMd;@JsonKey(name: 'model_registry_id') String? get modelRegistryId;
+@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') String get profileId; String get locale;@JsonKey(name: 'force_resynthesis') bool get forceResynthesis;@JsonKey(name: 'custom_preface_md') String? get customPrefaceMd;@JsonKey(name: 'model_registry_id') String? get modelRegistryId;
 /// Create a copy of CreateReportRequest
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1421,14 +1421,7 @@ $CreateReportRequestCopyWith<CreateReportRequest> get copyWith => _$CreateReport
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateReportRequest&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.locale, locale) || other.locale == locale)&&(identical(other.forceResynthesis, forceResynthesis) || other.forceResynthesis == forceResynthesis)&&(identical(other.customPrefaceMd, customPrefaceMd) || other.customPrefaceMd == customPrefaceMd)&&(identical(other.modelRegistryId, modelRegistryId) || other.modelRegistryId == modelRegistryId));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,profileId,locale,forceResynthesis,customPrefaceMd,modelRegistryId);
 
 @override
 String toString() {
@@ -1443,7 +1436,7 @@ abstract mixin class $CreateReportRequestCopyWith<$Res>  {
   factory $CreateReportRequestCopyWith(CreateReportRequest value, $Res Function(CreateReportRequest) _then) = _$CreateReportRequestCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'profile_id') String profileId, String locale,@JsonKey(name: 'force_resynthesis') bool forceResynthesis,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'model_registry_id') String? modelRegistryId
+@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') String profileId, String locale,@JsonKey(name: 'force_resynthesis') bool forceResynthesis,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'model_registry_id') String? modelRegistryId
 });
 
 
@@ -1552,7 +1545,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'profile_id')  String profileId,  String locale, @JsonKey(name: 'force_resynthesis')  bool forceResynthesis, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'model_registry_id')  String? modelRegistryId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id')  String profileId,  String locale, @JsonKey(name: 'force_resynthesis')  bool forceResynthesis, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'model_registry_id')  String? modelRegistryId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CreateReportRequest() when $default != null:
 return $default(_that.profileId,_that.locale,_that.forceResynthesis,_that.customPrefaceMd,_that.modelRegistryId);case _:
@@ -1573,7 +1566,7 @@ return $default(_that.profileId,_that.locale,_that.forceResynthesis,_that.custom
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'profile_id')  String profileId,  String locale, @JsonKey(name: 'force_resynthesis')  bool forceResynthesis, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'model_registry_id')  String? modelRegistryId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id')  String profileId,  String locale, @JsonKey(name: 'force_resynthesis')  bool forceResynthesis, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'model_registry_id')  String? modelRegistryId)  $default,) {final _that = this;
 switch (_that) {
 case _CreateReportRequest():
 return $default(_that.profileId,_that.locale,_that.forceResynthesis,_that.customPrefaceMd,_that.modelRegistryId);case _:
@@ -1593,7 +1586,7 @@ return $default(_that.profileId,_that.locale,_that.forceResynthesis,_that.custom
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'profile_id')  String profileId,  String locale, @JsonKey(name: 'force_resynthesis')  bool forceResynthesis, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'model_registry_id')  String? modelRegistryId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id')  String profileId,  String locale, @JsonKey(name: 'force_resynthesis')  bool forceResynthesis, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd, @JsonKey(name: 'model_registry_id')  String? modelRegistryId)?  $default,) {final _that = this;
 switch (_that) {
 case _CreateReportRequest() when $default != null:
 return $default(_that.profileId,_that.locale,_that.forceResynthesis,_that.customPrefaceMd,_that.modelRegistryId);case _:
@@ -1608,10 +1601,10 @@ return $default(_that.profileId,_that.locale,_that.forceResynthesis,_that.custom
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _CreateReportRequest extends CreateReportRequest {
-  const _CreateReportRequest({@JsonKey(name: 'profile_id') required this.profileId, this.locale = 'fi', @JsonKey(name: 'force_resynthesis') this.forceResynthesis = false, @JsonKey(name: 'custom_preface_md') this.customPrefaceMd, @JsonKey(name: 'model_registry_id') this.modelRegistryId}): super._();
+  const _CreateReportRequest({@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') required this.profileId, this.locale = 'fi', @JsonKey(name: 'force_resynthesis') this.forceResynthesis = false, @JsonKey(name: 'custom_preface_md') this.customPrefaceMd, @JsonKey(name: 'model_registry_id') this.modelRegistryId}): super._();
   factory _CreateReportRequest.fromJson(Map<String, dynamic> json) => _$CreateReportRequestFromJson(json);
 
-@override@JsonKey(name: 'profile_id') final  String profileId;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') final  String profileId;
 @override@JsonKey() final  String locale;
 @override@JsonKey(name: 'force_resynthesis') final  bool forceResynthesis;
 @override@JsonKey(name: 'custom_preface_md') final  String? customPrefaceMd;
@@ -1628,14 +1621,7 @@ Map<String, dynamic> toJson() {
   return _$CreateReportRequestToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateReportRequest&&(identical(other.profileId, profileId) || other.profileId == profileId)&&(identical(other.locale, locale) || other.locale == locale)&&(identical(other.forceResynthesis, forceResynthesis) || other.forceResynthesis == forceResynthesis)&&(identical(other.customPrefaceMd, customPrefaceMd) || other.customPrefaceMd == customPrefaceMd)&&(identical(other.modelRegistryId, modelRegistryId) || other.modelRegistryId == modelRegistryId));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,profileId,locale,forceResynthesis,customPrefaceMd,modelRegistryId);
 
 @override
 String toString() {
@@ -1650,7 +1636,7 @@ abstract mixin class _$CreateReportRequestCopyWith<$Res> implements $CreateRepor
   factory _$CreateReportRequestCopyWith(_CreateReportRequest value, $Res Function(_CreateReportRequest) _then) = __$CreateReportRequestCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'profile_id') String profileId, String locale,@JsonKey(name: 'force_resynthesis') bool forceResynthesis,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'model_registry_id') String? modelRegistryId
+@StrictOpaqueIdConverter()@JsonKey(name: 'profile_id') String profileId, String locale,@JsonKey(name: 'force_resynthesis') bool forceResynthesis,@JsonKey(name: 'custom_preface_md') String? customPrefaceMd,@JsonKey(name: 'model_registry_id') String? modelRegistryId
 });
 
 

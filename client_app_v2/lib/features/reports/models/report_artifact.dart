@@ -1,4 +1,5 @@
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/utils/json_converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'report_artifact.freezed.dart';
@@ -49,8 +50,12 @@ abstract class ReportRowItem with _$ReportRowItem {
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory ReportRowItem({
-    @JsonKey(name: 'execution_id') required String executionId,
-    @JsonKey(name: 'report_id') required String reportId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'execution_id')
+    required String executionId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'report_id')
+    required String reportId,
     @JsonKey(name: 'metric_key') required String metricKey,
     @JsonKey(name: 'metric_label') required String metricLabel,
     required double score,
@@ -74,10 +79,16 @@ abstract class ReportArtifact with _$ReportArtifact {
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory ReportArtifact({
-    required String id,
-    @JsonKey(name: 'execution_id') required String executionId,
-    @JsonKey(name: 'workflow_id') required String workflowId,
-    @JsonKey(name: 'profile_id') required String profileId,
+    @StrictOpaqueIdConverter() required String id,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'execution_id')
+    required String executionId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'workflow_id')
+    required String workflowId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'profile_id')
+    required String profileId,
     required String locale,
     required String title,
     required ReportStatus status,
@@ -104,9 +115,13 @@ abstract class ReportArtifactSummary with _$ReportArtifactSummary {
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory ReportArtifactSummary({
-    required String id,
-    @JsonKey(name: 'execution_id') required String executionId,
-    @JsonKey(name: 'profile_id') required String profileId,
+    @StrictOpaqueIdConverter() required String id,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'execution_id')
+    required String executionId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'profile_id')
+    required String profileId,
     required String locale,
     required String title,
     required ReportStatus status,
@@ -119,13 +134,15 @@ abstract class ReportArtifactSummary with _$ReportArtifactSummary {
 }
 
 /// Request payload for creating a new materialized report artifact.
-@freezed
+@Freezed(equal: false)
 abstract class CreateReportRequest with _$CreateReportRequest {
   const CreateReportRequest._();
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory CreateReportRequest({
-    @JsonKey(name: 'profile_id') required String profileId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'profile_id')
+    required String profileId,
     @Default('fi') String locale,
     @JsonKey(name: 'force_resynthesis') @Default(false) bool forceResynthesis,
     @JsonKey(name: 'custom_preface_md') String? customPrefaceMd,

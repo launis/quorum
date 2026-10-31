@@ -135,8 +135,14 @@ _ReportRowItem _$ReportRowItemFromJson(Map<String, dynamic> json) =>
           ],
         );
         final val = _ReportRowItem(
-          executionId: $checkedConvert('execution_id', (v) => v as String),
-          reportId: $checkedConvert('report_id', (v) => v as String),
+          executionId: $checkedConvert(
+            'execution_id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
+          reportId: $checkedConvert(
+            'report_id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
           metricKey: $checkedConvert('metric_key', (v) => v as String),
           metricLabel: $checkedConvert('metric_label', (v) => v as String),
           score: $checkedConvert('score', (v) => (v as num).toDouble()),
@@ -161,19 +167,20 @@ _ReportRowItem _$ReportRowItemFromJson(Map<String, dynamic> json) =>
       },
     );
 
-Map<String, dynamic> _$ReportRowItemToJson(_ReportRowItem instance) =>
-    <String, dynamic>{
-      'execution_id': instance.executionId,
-      'report_id': instance.reportId,
-      'metric_key': instance.metricKey,
-      'metric_label': instance.metricLabel,
-      'score': instance.score,
-      'max_scale': instance.maxScale,
-      'weight': instance.weight,
-      'reasoning': instance.reasoning,
-      'quote': instance.quote,
-      'is_inverse_evidence': instance.isInverseEvidence,
-    };
+Map<String, dynamic> _$ReportRowItemToJson(
+  _ReportRowItem instance,
+) => <String, dynamic>{
+  'execution_id': const StrictOpaqueIdConverter().toJson(instance.executionId),
+  'report_id': const StrictOpaqueIdConverter().toJson(instance.reportId),
+  'metric_key': instance.metricKey,
+  'metric_label': instance.metricLabel,
+  'score': instance.score,
+  'max_scale': instance.maxScale,
+  'weight': instance.weight,
+  'reasoning': instance.reasoning,
+  'quote': instance.quote,
+  'is_inverse_evidence': instance.isInverseEvidence,
+};
 
 _ReportArtifact _$ReportArtifactFromJson(Map<String, dynamic> json) =>
     $checkedCreate(
@@ -199,10 +206,22 @@ _ReportArtifact _$ReportArtifactFromJson(Map<String, dynamic> json) =>
           ],
         );
         final val = _ReportArtifact(
-          id: $checkedConvert('id', (v) => v as String),
-          executionId: $checkedConvert('execution_id', (v) => v as String),
-          workflowId: $checkedConvert('workflow_id', (v) => v as String),
-          profileId: $checkedConvert('profile_id', (v) => v as String),
+          id: $checkedConvert(
+            'id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
+          executionId: $checkedConvert(
+            'execution_id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
+          workflowId: $checkedConvert(
+            'workflow_id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
+          profileId: $checkedConvert(
+            'profile_id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
           locale: $checkedConvert('locale', (v) => v as String),
           title: $checkedConvert('title', (v) => v as String),
           status: $checkedConvert(
@@ -249,22 +268,23 @@ _ReportArtifact _$ReportArtifactFromJson(Map<String, dynamic> json) =>
       },
     );
 
-Map<String, dynamic> _$ReportArtifactToJson(_ReportArtifact instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'execution_id': instance.executionId,
-      'workflow_id': instance.workflowId,
-      'profile_id': instance.profileId,
-      'locale': instance.locale,
-      'title': instance.title,
-      'status': _$ReportStatusEnumMap[instance.status]!,
-      'storage_paths': instance.storagePaths.toJson(),
-      'metadata': instance.metadata.toJson(),
-      'custom_preface_md': instance.customPrefaceMd,
-      'error_message': instance.errorMessage,
-      'created_at': instance.createdAt.toIso8601String(),
-      'updated_at': instance.updatedAt.toIso8601String(),
-    };
+Map<String, dynamic> _$ReportArtifactToJson(
+  _ReportArtifact instance,
+) => <String, dynamic>{
+  'id': const StrictOpaqueIdConverter().toJson(instance.id),
+  'execution_id': const StrictOpaqueIdConverter().toJson(instance.executionId),
+  'workflow_id': const StrictOpaqueIdConverter().toJson(instance.workflowId),
+  'profile_id': const StrictOpaqueIdConverter().toJson(instance.profileId),
+  'locale': instance.locale,
+  'title': instance.title,
+  'status': _$ReportStatusEnumMap[instance.status]!,
+  'storage_paths': instance.storagePaths.toJson(),
+  'metadata': instance.metadata.toJson(),
+  'custom_preface_md': instance.customPrefaceMd,
+  'error_message': instance.errorMessage,
+  'created_at': instance.createdAt.toIso8601String(),
+  'updated_at': instance.updatedAt.toIso8601String(),
+};
 
 const _$ReportStatusEnumMap = {
   ReportStatus.pending: 'pending',
@@ -293,9 +313,18 @@ _ReportArtifactSummary _$ReportArtifactSummaryFromJson(
       ],
     );
     final val = _ReportArtifactSummary(
-      id: $checkedConvert('id', (v) => v as String),
-      executionId: $checkedConvert('execution_id', (v) => v as String),
-      profileId: $checkedConvert('profile_id', (v) => v as String),
+      id: $checkedConvert(
+        'id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
+      executionId: $checkedConvert(
+        'execution_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
+      profileId: $checkedConvert(
+        'profile_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       locale: $checkedConvert('locale', (v) => v as String),
       title: $checkedConvert('title', (v) => v as String),
       status: $checkedConvert(
@@ -324,9 +353,9 @@ _ReportArtifactSummary _$ReportArtifactSummaryFromJson(
 Map<String, dynamic> _$ReportArtifactSummaryToJson(
   _ReportArtifactSummary instance,
 ) => <String, dynamic>{
-  'id': instance.id,
-  'execution_id': instance.executionId,
-  'profile_id': instance.profileId,
+  'id': const StrictOpaqueIdConverter().toJson(instance.id),
+  'execution_id': const StrictOpaqueIdConverter().toJson(instance.executionId),
+  'profile_id': const StrictOpaqueIdConverter().toJson(instance.profileId),
   'locale': instance.locale,
   'title': instance.title,
   'status': _$ReportStatusEnumMap[instance.status]!,
@@ -350,7 +379,10 @@ _CreateReportRequest _$CreateReportRequestFromJson(Map<String, dynamic> json) =>
           ],
         );
         final val = _CreateReportRequest(
-          profileId: $checkedConvert('profile_id', (v) => v as String),
+          profileId: $checkedConvert(
+            'profile_id',
+            (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+          ),
           locale: $checkedConvert('locale', (v) => v as String? ?? 'fi'),
           forceResynthesis: $checkedConvert(
             'force_resynthesis',
@@ -378,7 +410,7 @@ _CreateReportRequest _$CreateReportRequestFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$CreateReportRequestToJson(
   _CreateReportRequest instance,
 ) => <String, dynamic>{
-  'profile_id': instance.profileId,
+  'profile_id': const StrictOpaqueIdConverter().toJson(instance.profileId),
   'locale': instance.locale,
   'force_resynthesis': instance.forceResynthesis,
   'custom_preface_md': instance.customPrefaceMd,
