@@ -176,7 +176,10 @@ _StepRule _$StepRuleFromJson(Map<String, dynamic> json) => $checkedCreate(
       ),
       causalSourceStepId: $checkedConvert(
         'causal_source_step_id',
-        (v) => v as String?,
+        (v) => _$JsonConverterFromJson<String, String>(
+          v,
+          const StrictOpaqueIdConverter().fromJson,
+        ),
       ),
     );
     return val;
@@ -204,7 +207,10 @@ Map<String, dynamic> _$StepRuleToJson(_StepRule instance) => <String, dynamic>{
   'ui_pos_x': instance.uiPosX,
   'ui_pos_y': instance.uiPosY,
   'is_synthesis_source': instance.isSynthesisSource,
-  'causal_source_step_id': instance.causalSourceStepId,
+  'causal_source_step_id': _$JsonConverterToJson<String, String>(
+    instance.causalSourceStepId,
+    const StrictOpaqueIdConverter().toJson,
+  ),
 };
 
 const _$SduiBlockTypeEnumMap = {
@@ -227,6 +233,16 @@ const _$SduiBlockTypeEnumMap = {
   SduiBlockType.metrics1d: '1d_metrics',
   SduiBlockType.quadrantMatrix: 'quadrant_matrix',
 };
+
+Value? _$JsonConverterFromJson<Json, Value>(
+  Object? json,
+  Value? Function(Json json) fromJson,
+) => json == null ? null : fromJson(json as Json);
+
+Json? _$JsonConverterToJson<Json, Value>(
+  Value? value,
+  Json? Function(Value value) toJson,
+) => value == null ? null : toJson(value);
 
 NodeStrategyLlm _$NodeStrategyLlmFromJson(
   Map<String, dynamic> json,
@@ -405,11 +421,6 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'type': instance.$type,
     };
 
-Value? _$JsonConverterFromJson<Json, Value>(
-  Object? json,
-  Value? Function(Json json) fromJson,
-) => json == null ? null : fromJson(json as Json);
-
 const _$CognitiveTierEnumMap = {
   CognitiveTier.fast: 'fast',
   CognitiveTier.balanced: 'balanced',
@@ -429,11 +440,6 @@ const _$StepZoneEnumMap = {
   StepZone.zoneB: 'zone_b',
   StepZone.zoneC: 'zone_c',
 };
-
-Json? _$JsonConverterToJson<Json, Value>(
-  Value? value,
-  Json? Function(Value value) toJson,
-) => value == null ? null : toJson(value);
 
 NodeStrategyLogic _$NodeStrategyLogicFromJson(
   Map<String, dynamic> json,
@@ -858,8 +864,17 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'default_profile_id',
         (v) => v as String? ?? "default",
       ),
-      mcpGatewayId: $checkedConvert('mcp_gateway_id', (v) => v as String?),
-      modelRegistryId: $checkedConvert('model_registry_id', (v) => v as String),
+      mcpGatewayId: $checkedConvert(
+        'mcp_gateway_id',
+        (v) => _$JsonConverterFromJson<String, String>(
+          v,
+          const StrictOpaqueIdConverter().fromJson,
+        ),
+      ),
+      modelRegistryId: $checkedConvert(
+        'model_registry_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       defaultStrictnessLevel: $checkedConvert(
         'default_strictness_level',
         (v) => (v as num?)?.toInt() ?? 50,
@@ -955,8 +970,13 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
     (k, e) => MapEntry(k, e.toJson()),
   ),
   'default_profile_id': instance.defaultProfileId,
-  'mcp_gateway_id': instance.mcpGatewayId,
-  'model_registry_id': instance.modelRegistryId,
+  'mcp_gateway_id': _$JsonConverterToJson<String, String>(
+    instance.mcpGatewayId,
+    const StrictOpaqueIdConverter().toJson,
+  ),
+  'model_registry_id': const StrictOpaqueIdConverter().toJson(
+    instance.modelRegistryId,
+  ),
   'default_strictness_level': instance.defaultStrictnessLevel,
   'default_lexical_strictness_level': instance.defaultLexicalStrictnessLevel,
   'security_penalty': instance.securityPenalty,

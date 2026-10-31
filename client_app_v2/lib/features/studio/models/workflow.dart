@@ -1,3 +1,4 @@
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:convert';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -62,7 +63,9 @@ abstract class StepRule with _$StepRule {
     @Default(0.0) double uiPosX,
     @Default(0.0) double uiPosY,
     @Default(true) @JsonKey(name: 'is_synthesis_source') bool isSynthesisSource,
-    @JsonKey(name: 'causal_source_step_id') String? causalSourceStepId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'causal_source_step_id')
+    String? causalSourceStepId,
   }) = _StepRule;
 
   factory StepRule.fromJson(Map<String, dynamic> json) =>
@@ -187,8 +190,12 @@ abstract class Workflow with _$Workflow {
     String? organizationId,
     @Default({}) Map<String, OutputProfile> outputProfiles,
     @Default("default") String defaultProfileId,
-    @JsonKey(name: 'mcp_gateway_id') String? mcpGatewayId,
-    @JsonKey(name: 'model_registry_id') required String modelRegistryId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'mcp_gateway_id')
+    String? mcpGatewayId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'model_registry_id')
+    required String modelRegistryId,
     @JsonKey(name: 'default_strictness_level')
     @Default(50)
     int defaultStrictnessLevel,
@@ -221,16 +228,30 @@ abstract class Workflow with _$Workflow {
   /// Isolate Mandate: Zero-Latency Illusion requires background parsing
   static Future<Workflow> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
-      final dynamic decoded = jsonDecode(rawJson);
+      final Object? decoded = jsonDecode(rawJson);
+      if (decoded is! Map<String, Object?>) {
+        throw AppException.validation(
+          'Malformed Workflow JSON payload: expected JSON object.',
+        );
+      }
       return Workflow.fromJson(decoded);
     });
   }
 
   static Future<List<Workflow>> parseListInBackground(
-    List<dynamic> rawList,
+    List<Object?> rawList,
   ) async {
     return safeIsolateRun(() {
-      return rawList.map((e) => Workflow.fromJson(e)).toList();
+      return rawList
+          .map((Object? item) {
+            if (item is! Map<String, Object?>) {
+              throw AppException.validation(
+                'Malformed Workflow list item: expected JSON object.',
+              );
+            }
+            return Workflow.fromJson(item);
+          })
+          .toList(growable: false);
     });
   }
 }

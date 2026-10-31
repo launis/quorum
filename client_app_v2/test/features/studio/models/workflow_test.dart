@@ -464,20 +464,21 @@ void main() {
     });
 
     test('StepRule correctly parses causal_source_step_id', () {
+      const upstreamStepId = 'sr_0195f3a0000070008000000000000099';
       final json = {
         'id': 'st_0195f3a0000070008000000000000004',
         'task_blueprint': 'st_0195f3a0000070008000000000000005',
-        'depends_on': ['st_causal_upstream_01'],
-        'causal_source_step_id': 'st_causal_upstream_01',
+        'depends_on': [upstreamStepId],
+        'causal_source_step_id': upstreamStepId,
         'is_synthesis_source': true,
       };
 
       final step = StepRule.fromJson(json);
-      expect(step.causalSourceStepId, 'st_causal_upstream_01');
+      expect(step.causalSourceStepId, upstreamStepId);
       expect(step.isSynthesisSource, isTrue);
 
       final serialized = step.toJson();
-      expect(serialized['causal_source_step_id'], 'st_causal_upstream_01');
+      expect(serialized['causal_source_step_id'], upstreamStepId);
     });
 
     test('StepRule rejects unrecognized keys fail-fast (negative)', () {
