@@ -60,7 +60,7 @@
   - [x] @[client_app_v2/lib/utils/json_converters.dart]
   - [x] @[client_app_v2/lib/utils/riverpod_extensions.dart]
   - [x] @[client_app_v2/lib/shared/models/i18n_text.dart]
-  - [ ] @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
+  - [x] @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
   - [ ] @[client_app_v2/lib/features/settings/domain/models/app_settings_state.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify unit and widget test coverage across all 41 hardened Wave F1 modules.

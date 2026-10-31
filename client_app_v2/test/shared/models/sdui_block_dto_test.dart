@@ -393,5 +393,102 @@ void main() {
         throwsException,
       );
     });
+
+    test('parses accordion, metadata, score_card, and audit_trail blocks', () {
+      final accordion = SduiBlockDTO.fromJson({
+        'block_type': 'accordion',
+        'title': 'Section A',
+        'severity': 'info',
+        'icon_name': 'shield',
+        'children': [
+          {'block_type': 'paragraph', 'text': 'Nested text'},
+        ],
+      });
+      expect(accordion, isA<SduiAccordionBlock>());
+      if (accordion is SduiAccordionBlock) {
+        expect(accordion.title, 'Section A');
+        expect(accordion.severity, 'info');
+        expect(accordion.iconName, 'shield');
+        expect(accordion.children.length, 1);
+      }
+
+      final metadata = SduiBlockDTO.fromJson({
+        'block_type': 'metadata',
+        'title': 'Report Title',
+        'badges': ['Strict'],
+        'metadata_lines': ['Run 1'],
+        'costs': r'$0.05',
+        'tokens': {'total': '1200'},
+        'custom_preface_md': 'Preface',
+      });
+      expect(metadata, isA<SduiMetadataBlock>());
+      if (metadata is SduiMetadataBlock) {
+        expect(metadata.title, 'Report Title');
+        expect(metadata.badges, ['Strict']);
+        expect(metadata.tokens?['total'], '1200');
+      }
+
+      final scoreCard = SduiBlockDTO.fromJson({
+        'block_type': 'score_card',
+        'global_score': 88.5,
+      });
+      expect(scoreCard, isA<SduiScoreCardBlock>());
+      if (scoreCard is SduiScoreCardBlock) {
+        expect(scoreCard.globalScore, 88.5);
+      }
+
+      final auditTrail = SduiBlockDTO.fromJson({
+        'block_type': 'audit_trail',
+        'id': 'blk_audit',
+      });
+      expect(auditTrail, isA<SduiAuditTrailBlock>());
+      if (auditTrail is SduiAuditTrailBlock) {
+        expect(auditTrail.id, 'blk_audit');
+      }
+    });
+
+    test(
+      'throws exception on invalid enum value or unrecognized keys in remaining blocks',
+      () {
+        expect(
+          () => SduiBlockDTO.fromJson({
+            'block_type': 'alert_box',
+            'text': 'Alert',
+            'severity': 'invalid_severity_enum',
+          }),
+          throwsException,
+        );
+        expect(
+          () => SduiBlockDTO.fromJson({
+            'block_type': 'accordion',
+            'title': 'Sec',
+            'unrecognized_field': true,
+          }),
+          throwsException,
+        );
+        expect(
+          () => SduiBlockDTO.fromJson({
+            'block_type': 'metadata',
+            'title': 'Meta',
+            'unrecognized_field': true,
+          }),
+          throwsException,
+        );
+        expect(
+          () => SduiBlockDTO.fromJson({
+            'block_type': 'score_card',
+            'unrecognized_field': true,
+          }),
+          throwsException,
+        );
+        expect(
+          () => SduiBlockDTO.fromJson({
+            'block_type': 'audit_trail',
+            'unrecognized_field': true,
+          }),
+          throwsException,
+        );
+      },
+    );
   });
 }

@@ -1792,9 +1792,7 @@ class SduiMatrixTableBlock extends SduiBlockDTO {
   return EqualUnmodifiableListView(_matrixVisibleColumns);
 }
 
-// Phase 3, Step 3.3: Inline topological short-circuit and Toulmin falsification lineage
  final  List<String> _shortCircuitedByClaims;
-// Phase 3, Step 3.3: Inline topological short-circuit and Toulmin falsification lineage
 @JsonKey(name: 'short_circuited_by_claims') List<String> get shortCircuitedByClaims {
   if (_shortCircuitedByClaims is EqualUnmodifiableListView) return _shortCircuitedByClaims;
   // ignore: implicit_dynamic_type
@@ -1926,9 +1924,7 @@ class SduiCausalGraphBlock extends SduiBlockDTO {
 @JsonKey(name: 'intact_claims_count') final  int intactClaimsCount;
 @JsonKey(name: 'total_claims_count') final  int totalClaimsCount;
  final  I18nText summary;
-// Phase 3, Step 3.3: Inline topological short-circuit and Toulmin falsification lineage
  final  List<String> _shortCircuitedByClaims;
-// Phase 3, Step 3.3: Inline topological short-circuit and Toulmin falsification lineage
 @JsonKey(name: 'short_circuited_by_claims') List<String> get shortCircuitedByClaims {
   if (_shortCircuitedByClaims is EqualUnmodifiableListView) return _shortCircuitedByClaims;
   // ignore: implicit_dynamic_type
