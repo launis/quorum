@@ -19,8 +19,8 @@ void main() {
             body: DiagnosticScorecardWidget(
               axes: [
                 MatrixScorecardRowDto(
-                  blockId: 'm1',
-                  labelI18n: const I18nText(
+                  blockId: 'blk_01965b88000070008000000000000001',
+                  labelI18n: I18nText(
                     translations: {'fi': 'Testimatriisi', 'en': 'Test Matrix'},
                   ),
                   name: 'Test Matrix',
@@ -31,13 +31,13 @@ void main() {
                   levelBreakdown: {'Level 1': '2 / 2'},
                 ),
               ],
-              visibleColumns: const [
+              visibleColumns: [
                 'label',
                 'score',
                 'normalized_score',
                 'distribution',
               ],
-              executionId: 'test_execution_1',
+              executionId: 'exe_01965b88000070008000000000000001',
             ),
           ),
         ),
@@ -64,13 +64,13 @@ void main() {
         home: const Scaffold(
           body: DiagnosticScorecardWidget(
             axes: [],
-            visibleColumns: const [
+            visibleColumns: [
               'label',
               'score',
               'normalized_score',
               'distribution',
             ],
-            executionId: 'test_execution_1',
+            executionId: 'exe_01965b88000070008000000000000001',
           ),
         ),
       ),
@@ -81,4 +81,41 @@ void main() {
     // Verify it doesn't render anything
     expect(find.byType(AtomMatrixTableWidget), findsNothing);
   });
+
+  testWidgets(
+    'DiagnosticScorecardWidget skips rendering when visibleColumns is empty',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: const Scaffold(
+            body: DiagnosticScorecardWidget(
+              axes: [
+                MatrixScorecardRowDto(
+                  blockId: 'blk_01965b88000070008000000000000001',
+                  labelI18n: I18nText(
+                    translations: {'fi': 'Testimatriisi', 'en': 'Test Matrix'},
+                  ),
+                  name: 'Test Matrix',
+                  score: 4.5,
+                  isEvaluative: true,
+                  trueAtoms: 2,
+                  totalAtoms: 2,
+                  levelBreakdown: {'Level 1': '2 / 2'},
+                ),
+              ],
+              visibleColumns: [],
+              executionId: 'exe_01965b88000070008000000000000001',
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AtomMatrixTableWidget), findsNothing);
+    },
+  );
 }
