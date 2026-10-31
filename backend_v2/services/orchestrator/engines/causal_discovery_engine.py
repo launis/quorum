@@ -78,7 +78,12 @@ class CausalDiscoveryEngine(ExecutionEngine):
             document_text = request.global_source_text
             if not document_text or not document_text.strip():
                 msg = f"Causal discovery cannot execute on an empty text document for Step '{request.step.id}'."
-                logger.error("[CausalDiscoveryEngine] %s: %s", ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.name, msg)
+                logger.error(
+                    "[CausalDiscoveryEngine] %s: %s",
+                    ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.name,
+                    msg,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -131,7 +136,12 @@ class CausalDiscoveryEngine(ExecutionEngine):
 
             if not paragraphs:
                 msg = f"Causal discovery cannot execute on an empty text document for Step '{request.step.id}'."
-                logger.error("[CausalDiscoveryEngine] %s: %s", ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.name, msg)
+                logger.error(
+                    "[CausalDiscoveryEngine] %s: %s",
+                    ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT.name,
+                    msg,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -209,7 +219,12 @@ class CausalDiscoveryEngine(ExecutionEngine):
 
             if not valid_atoms:
                 msg = f"Causal discovery extracted 0 valid argument propositions for Step '{request.step.id}'."
-                logger.error("[CausalDiscoveryEngine] %s: %s", ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION.name, msg)
+                logger.error(
+                    "[CausalDiscoveryEngine] %s: %s",
+                    ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION.name,
+                    msg,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
