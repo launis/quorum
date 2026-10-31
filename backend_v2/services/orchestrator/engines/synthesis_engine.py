@@ -151,7 +151,7 @@ def _append_matrix_reducer_parts(
                 user_content_parts.append(f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>")
     except (TypeError, KeyError) as err:
         msg = f"Corrupted raw_extensions in __MATRIX_REDUCER_OUTPUT__: {err}"
-        logger.error("[SynthesisEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error("[SynthesisEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(
             message=msg,
             status_code=500,
@@ -207,7 +207,12 @@ class SynthesisEngine(ExecutionEngine):
                 )
                 logger.error(
                     "preflight_blackboard_missing",
-                    extra={"execution_id": request.context.execution_id, "step_id": request.step.id},
+                    exc_info=True,
+                    extra={
+                        "error_code": ErrorCodes.SYNTHESIS_ENGINE_ERROR.name,
+                        "execution_id": request.context.execution_id,
+                        "step_id": request.step.id,
+                    },
                 )
                 raise AppException(
                     message="__GLOBAL_ATOM_BLACKBOARD__ missing from context_variables",
@@ -276,6 +281,7 @@ class SynthesisEngine(ExecutionEngine):
             if request.hydrated_messages is None:
                 logger.error(
                     "synthesis_engine_missing_hydrated_messages",
+                    exc_info=True,
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": request.step.id},
                 )
                 raise AppException(
@@ -315,6 +321,7 @@ class SynthesisEngine(ExecutionEngine):
             if request.compiled_schema is None:
                 logger.error(
                     "synthesis_engine_missing_compiled_schema",
+                    exc_info=True,
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "step_id": request.step.id},
                 )
                 raise AppException(
@@ -337,7 +344,7 @@ class SynthesisEngine(ExecutionEngine):
             if request.progress_callback:
                 await request.progress_callback(90, 100)
 
-            output_dict = validated_model.model_dump()
+            output_dict = validated_model.model_dump(exclude_none=True)
 
             # Hydrate and strictly DROP hallucinated opaque UUIDs
             alias_engine.hydrate_and_filter_aliases(output_dict, {"atom_id", "source_id"})
@@ -348,7 +355,7 @@ class SynthesisEngine(ExecutionEngine):
             trace_events: list[TraceEvent] = []
             if usage.total_tokens > 0 or usage.cost_usd > 0.0:
                 output_dict.setdefault("_step_metadata", {})
-                output_dict["_step_metadata"]["token_usage"] = usage.model_dump()
+                output_dict["_step_metadata"]["token_usage"] = usage.model_dump(exclude_none=True)
                 output_dict["_step_metadata"]["model_strategy"] = "reasoning"
 
             trace_events.append(

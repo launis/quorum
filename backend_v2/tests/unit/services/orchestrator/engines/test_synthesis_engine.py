@@ -647,3 +647,30 @@ def test_synthesis_engine_implements_protocol(mock_executor: AsyncMock) -> None:
     engine = SynthesisEngine(llm_executor=mock_executor)
     assert isinstance(engine, ExecutionEngine)
     assert engine.telemetry_strategy_label == "synthesis"
+
+
+class StrictAliasOutput(BaseModel):
+    """Schema enforcing non-empty atom_id after alias hydration."""
+
+    atom_id: Annotated[str, Field(min_length=3, description="Hydrated opaque atom identifier")]
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+
+@pytest.mark.asyncio
+async def test_synthesis_engine_revalidation_failure_raises_validation_failed(
+    engine: SynthesisEngine, mock_executor: AsyncMock, base_request: EngineExecutionRequest
+) -> None:
+    """Verify ValidationError during post-hydration model_validate raises AppException(VALIDATION_FAILED)."""
+    req = base_request.model_copy(update={"compiled_schema": StrictAliasOutput})
+    # Hallucinated alias 'a999' gets dropped/scrubbed by hydrate_and_filter_aliases, causing re-validation failure
+    mock_output = StrictAliasOutput(atom_id="a999")
+    mock_usage = TokenUsage(prompt_tokens=5, completion_tokens=5, total_tokens=10)
+    mock_executor.execute_structured_task.return_value = (mock_output, mock_usage)
+
+    with pytest.raises(AppException) as exc_info:
+        await engine.execute(req)
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
