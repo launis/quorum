@@ -27,7 +27,7 @@
   - [x] @[scripts/_ast_guardrails.py]
   - [x] @[scripts/_dart_guardrails.py]
   - [x] @[scripts/audit_markdown_boundaries.py]
-  - [ ] @[scripts/auto_hardening_runner.py]
+  - [x] @[scripts/auto_hardening_runner.py]
   - [ ] @[scripts/flutter_audit_loop.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
