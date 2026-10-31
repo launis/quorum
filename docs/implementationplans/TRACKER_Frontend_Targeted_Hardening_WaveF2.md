@@ -30,7 +30,7 @@
   - [x] @[client_app_v2/lib/features/execution/models/execution_record.dart]
   - [x] @[client_app_v2/lib/features/execution/models/execution_step.dart]
   - [x] @[client_app_v2/lib/features/execution/models/execution_summary_snapshot.dart]
-  - [ ] @[client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart]
+  - [x] @[client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/human_override_request_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/hydrated_atom_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart]
