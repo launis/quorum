@@ -16,7 +16,7 @@ from backend_v2.services.orchestrator.anchor_validation.lexical_normalizer impor
 
 
 def test_anchor_validation_empty_inputs() -> None:
-    """Phase 4, Step 1: Verify empty input handling for normalizer, strict_match, and validate_evidence."""
+    """Verify empty input handling for normalizer, strict_match, and validate_evidence."""
     assert normalize_text_with_mapping("") == ("", [])
     assert strict_match("", ["quote"]).is_valid is False
     assert strict_match("text", []).is_valid is False
@@ -27,14 +27,14 @@ def test_anchor_validation_empty_inputs() -> None:
 
 
 def test_anchor_validation_strict_match() -> None:
-    """Phase 4, Step 1: Verify strict_match exact substring containment and non-matches."""
+    """Verify strict_match exact substring containment and non-matches."""
     assert strict_match("hello world document text", ["hello world"]).is_valid is True
     assert strict_match("hello world document text", ["absent quote"]).is_valid is False
     assert strict_match("hello world document text", [""]).is_valid is False
 
 
 def test_anchor_validation_calculate_fuzzy_score_long_quote() -> None:
-    """Phase 4, Step 1: Verify calculate_fuzzy_score for both long (>= 30) and short (< 30) normalized quotes."""
+    """Verify calculate_fuzzy_score for both long (>= 30) and short (< 30) normalized quotes."""
     long_quote = "this is a very long normalized quote with more than thirty chars"
     source = "this is a very long normalized quote with more than thirty characters in it"
     score = calculate_fuzzy_score(long_quote, source)

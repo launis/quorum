@@ -9,7 +9,7 @@ from rapidfuzz import fuzz
 from backend_v2.models.dtos.quote_evidence import GateMatchResultDTO
 from backend_v2.settings import get_settings
 
-# Phase 1, Step 1.3: Resolve leaf forensic citation thresholds from settings SSOT
+# Resolve leaf forensic citation thresholds from settings SSOT
 MAX_CITATION_SPAN_CHARS: int = get_settings().max_citation_span_chars
 MIN_MULTI_SEGMENT_FLOOR_CHARS: int = get_settings().min_multi_segment_floor_chars
 MIN_ENTROPY_GATE_CHARS: int = get_settings().min_entropy_gate_chars
@@ -24,7 +24,6 @@ __all__ = [
 ]
 
 
-# Phase 1, Step 1: Relocate normalize_text_with_mapping leaf function
 def normalize_text_with_mapping(text: str) -> tuple[str, list[int]]:
     """Normalizes text and returns a mapping from normalized index to original index.
 
@@ -77,12 +76,11 @@ def normalize_text_with_mapping(text: str) -> tuple[str, list[int]]:
     return "".join(norm_chars), index_map
 
 
-# Phase 1, Step 1: Relocate strict_match leaf function
 def strict_match(
     pdf_text: str,
     exact_quotes: Sequence[str] | tuple[str, ...] | list[str],
 ) -> GateMatchResultDTO:
-    """Phase 2 & Phase 3: O(N) Anchoring using strict substring matching.
+    """Perform O(N) anchoring using strict substring matching.
 
     Enforces forward-scan monotonic ordering (s_k < e_k < s_{k+1}), candidate s_1 anchor
     iteration, individual segment floor of 30 characters when m > 1, and bounding
@@ -103,7 +101,7 @@ def strict_match(
     settings = get_settings()
     min_floor_chars = settings.min_multi_segment_floor_chars
     max_span_chars = settings.max_citation_span_chars
-    # Phase 1, Step 1.3: Enforce individual segment floor from settings when m > 1
+    # Enforce individual segment floor from settings when m > 1
     if m > 1:
         for q in quotes:
             if len(q) < min_floor_chars:
@@ -152,7 +150,6 @@ def strict_match(
         search_offset = pos_0 + 1
 
 
-# Phase 1, Step 1: Relocate calculate_fuzzy_score leaf function
 def calculate_fuzzy_score(norm_quote: str, norm_text: str) -> float:
     """Choose fuzzy algorithm based on length of the normalized quote.
 
@@ -163,7 +160,7 @@ def calculate_fuzzy_score(norm_quote: str, norm_text: str) -> float:
     Returns:
         The fuzzy similarity score (0.0 to 100.0).
     """
-    # Phase 1, Step 1.3: Resolve multi-segment floor from settings SSOT
+    # Resolve multi-segment floor from settings SSOT
     if len(norm_quote) < get_settings().min_multi_segment_floor_chars:
         # Short quotes: enforce strict partial_ratio for contiguous matches (contiguity-guard)
         return float(fuzz.partial_ratio(norm_quote, norm_text))
