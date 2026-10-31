@@ -11,8 +11,8 @@ import 'package:client_app/core/logging/logger_service.dart';
 /// This interceptor acts as the security bridge between the Flutter Client and the Python Backend.
 /// It ensures that every outgoing HTTP request is authenticated with the current user's identity.
 ///
-/// **NOTE**: Token availability is ensured by providers (e.g., workflowListProvider)
-/// waiting for auth state before making API calls.
+/// **NOTE**: Token availability is ensured by upstream Riverpod providers
+/// waiting for authentication state before making API calls.
 class AuthInterceptor extends Interceptor {
   final Ref _ref;
 
@@ -30,6 +30,9 @@ class AuthInterceptor extends Interceptor {
     if (user != null) {
       try {
         final token = await user.getIdToken();
+        if (token == null || token.trim().isEmpty) {
+          throw StateError('Firebase ID token resolved to null or empty.');
+        }
         options.headers['Authorization'] = 'Bearer $token';
       } catch (e, stack) {
         // Token refresh failed - Fail-Fast, NEVER swallow silently
@@ -49,7 +52,7 @@ class AuthInterceptor extends Interceptor {
     } else {
       // 2. Try Mock Token (Hybrid/Dev Mode)
       final mockToken = _ref.read(mockTokenProvider);
-      if (mockToken != null) {
+      if (mockToken != null && mockToken.trim().isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $mockToken';
       }
     }
