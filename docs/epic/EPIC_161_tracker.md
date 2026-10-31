@@ -93,7 +93,7 @@
   - [x] @[backend_v2/services/sdui/adapters/causal_graph_adapter.py]
   - [x] @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]
   - [x] @[backend_v2/services/sdui/sdui_mapper_service.py]
-  - [ ] @[backend_v2/services/web_fetcher.py]
+  - [x] @[backend_v2/services/web_fetcher.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] @[backend_v2/workers/synthesis_tasks.py]
   - [ ] @[backend_v2/workers/synthesis_worker.py]
