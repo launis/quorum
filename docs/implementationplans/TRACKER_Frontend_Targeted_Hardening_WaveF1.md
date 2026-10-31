@@ -55,7 +55,7 @@
   - [x] @[client_app_v2/lib/core/state/mutation.dart]
   - [x] @[client_app_v2/lib/core/theme/app_spacing.dart]
   - [x] @[client_app_v2/lib/core/ui/error_view.dart]
-  - [ ] @[client_app_v2/lib/core/ui/splash_screen.dart]
+  - [x] @[client_app_v2/lib/core/ui/splash_screen.dart]
   - [ ] @[client_app_v2/lib/core/utils/safe_isolate.dart]
   - [ ] @[client_app_v2/lib/utils/json_converters.dart]
   - [ ] @[client_app_v2/lib/utils/riverpod_extensions.dart]
