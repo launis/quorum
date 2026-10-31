@@ -7,10 +7,11 @@ part 'app_exception.g.dart';
 ///
 /// This is the standardized error format returned by the backend API.
 /// All API and frontend errors conform to this structure.
-@freezed
+@Freezed(equal: false)
 abstract class AppException with _$AppException implements Exception {
   const AppException._();
 
+  @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory AppException({
     @Default('about:blank') String type,
     @Default('Error') String title,
@@ -29,10 +30,14 @@ abstract class AppException with _$AppException implements Exception {
   /// Converts: `https://api.quorum.fi/errors/execution-not-found`
   /// To: `EXECUTION_NOT_FOUND`
   String get errorCode {
-    if (extensions.containsKey('error_code')) {
-      return extensions['error_code'].toString();
+    final code = extensions['error_code'];
+    if (code != null) {
+      final codeStr = code.toString().trim();
+      if (codeStr.isNotEmpty) {
+        return codeStr;
+      }
     }
-    final slug = type.split('/').last;
+    final slug = type.split('/').last.trim();
     if (slug.isEmpty || slug == 'about:blank') return 'UNKNOWN_ERROR';
     return slug.replaceAll('-', '_').toUpperCase();
   }
@@ -43,7 +48,7 @@ abstract class AppException with _$AppException implements Exception {
     type: 'https://api.quorum.fi/errors/network-fatal',
     title: 'Network Error',
     status: 0,
-    detail: error?.toString() ?? 'Network connection failed.',
+    detail: error != null ? error.toString() : 'Network connection failed.',
     extensions: const {'error_code': 'NETWORK_FATAL'},
   );
 
@@ -51,7 +56,7 @@ abstract class AppException with _$AppException implements Exception {
     type: 'https://api.quorum.fi/errors/unknown-error',
     title: 'Unknown Error',
     status: 500,
-    detail: error?.toString() ?? 'An unknown error occurred.',
+    detail: error != null ? error.toString() : 'An unknown error occurred.',
     extensions: const {'error_code': 'UNKNOWN_ERROR'},
   );
 
@@ -69,7 +74,7 @@ abstract class AppException with _$AppException implements Exception {
     title: 'Unauthorized',
     status: 401,
     detail: 'Authentication is required.',
-    extensions: const {'error_code': 'AUTHENTICATION_FAILED'},
+    extensions: {'error_code': 'AUTHENTICATION_FAILED'},
   );
 
   factory AppException.notFound(String message) => AppException(
@@ -85,16 +90,17 @@ abstract class AppException with _$AppException implements Exception {
     title: 'Cancelled',
     status: 499,
     detail: 'The request was cancelled.',
-    extensions: const {'error_code': 'CANCELLED'},
+    extensions: {'error_code': 'CANCELLED'},
   );
 
-  factory AppException.timeout([String? message]) => AppException(
-    type: 'https://api.quorum.fi/errors/timeout',
-    title: 'Timeout',
-    status: 408,
-    detail: message ?? 'The request timed out.',
-    extensions: const {'error_code': 'TIMEOUT'},
-  );
+  factory AppException.timeout([String message = 'The request timed out.']) =>
+      AppException(
+        type: 'https://api.quorum.fi/errors/timeout',
+        title: 'Timeout',
+        status: 408,
+        detail: message,
+        extensions: const {'error_code': 'TIMEOUT'},
+      );
 
   factory AppException.validation(String message) => AppException(
     type: 'https://api.quorum.fi/errors/validation-failed',

@@ -26,14 +26,7 @@ $AppExceptionCopyWith<AppException> get copyWith => _$AppExceptionCopyWithImpl<A
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppException&&(identical(other.type, type) || other.type == type)&&(identical(other.title, title) || other.title == title)&&(identical(other.status, status) || other.status == status)&&(identical(other.detail, detail) || other.detail == detail)&&(identical(other.instance, instance) || other.instance == instance)&&(identical(other.requestId, requestId) || other.requestId == requestId)&&const DeepCollectionEquality().equals(other.extensions, extensions));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,type,title,status,detail,instance,requestId,const DeepCollectionEquality().hash(extensions));
 
 @override
 String toString() {
@@ -212,8 +205,8 @@ return $default(_that.type,_that.title,_that.status,_that.detail,_that.instance,
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(disallowUnrecognizedKeys: true)
 class _AppException extends AppException {
   const _AppException({this.type = 'about:blank', this.title = 'Error', this.status = 500, this.detail = 'Unknown error', this.instance, @JsonKey(name: 'request_id') this.requestId, final  Map<String, Object?> extensions = const <String, Object?>{}}): _extensions = extensions,super._();
   factory _AppException.fromJson(Map<String, dynamic> json) => _$AppExceptionFromJson(json);
@@ -243,14 +236,7 @@ Map<String, dynamic> toJson() {
   return _$AppExceptionToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppException&&(identical(other.type, type) || other.type == type)&&(identical(other.title, title) || other.title == title)&&(identical(other.status, status) || other.status == status)&&(identical(other.detail, detail) || other.detail == detail)&&(identical(other.instance, instance) || other.instance == instance)&&(identical(other.requestId, requestId) || other.requestId == requestId)&&const DeepCollectionEquality().equals(other._extensions, _extensions));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,type,title,status,detail,instance,requestId,const DeepCollectionEquality().hash(_extensions));
 
 @override
 String toString() {
