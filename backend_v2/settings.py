@@ -297,7 +297,7 @@ class Settings(BaseSettings):
     max_synthesis_reasoning_length: Annotated[
         int, Field(ge=0, description="Maximum character length for semantic reasoning in synthesis payloads")
     ] = 0
-    # Phase 1, Step 1.3: Centralized clipper and lexical threshold settings (0 = unbounded for text clippers)
+    # Centralized clipper and lexical threshold settings (0 = unbounded for text clippers)
     max_citation_span_chars: Annotated[
         int,
         Field(
@@ -487,7 +487,7 @@ class Settings(BaseSettings):
     causal_secondary_fault_dampening: Annotated[
         float, Field(default=0.25, description="Penalty dampening factor for cascading secondary faults")
     ] = 0.25
-    # Phase 5, Step 5: Configure Equation (13) Guttman tier thresholds and delete causal_cohesion_matrix_block_id
+    # Equation (13) Guttman tier thresholds for causal cohesion evaluation
     causal_cohesion_l2_min_nodes: Annotated[
         int, Field(default=2, description="Minimum causal graph nodes required for Level 2 BARS threshold")
     ] = 2
