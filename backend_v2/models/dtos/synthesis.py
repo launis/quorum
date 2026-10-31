@@ -81,7 +81,6 @@ class XaiHighlightItem(V2CoreBase):
     ]
 
 
-# Phase 2, Step 2.1: Full Contrastive Deficit Injection & Transitive N_A Parent Hydration
 class MatrixFailureDeficitDTO(V2CoreBase):
     """Structured failure or short-circuited deficit entry for a matrix criterion.
 
@@ -131,7 +130,6 @@ class MatrixFailureDeficitDTO(V2CoreBase):
     ] = None
 
 
-# Phase 2, Step 2.3: Unified CausalSynthesisBriefDTO for 4-Task Synthesis Fan-Out
 class CausalSynthesisBriefDTO(V2CoreBase):
     """Structured causal and Toulmin falsification synthesis brief for prompt tail injection.
 
@@ -195,6 +193,126 @@ class CausalSynthesisBriefDTO(V2CoreBase):
         ),
     ]
 
+    @staticmethod
+    def _resolve_node_label(
+        raw_claim: str,
+        node_id: str,
+        fallback_label: str,
+        node_claim_by_id: dict[str, str],
+    ) -> str:
+        """Resolve a human-readable proposition label from a claim or node ID map.
+
+        Args:
+            raw_claim: Direct claim string from the diagnosis item.
+            node_id: Node identifier to look up in the graph map.
+            fallback_label: Deterministic label returned when neither claim nor map entry exists.
+            node_claim_by_id: Mapping of graph node IDs to stripped claim strings.
+
+        Returns:
+            Resolved non-empty label string.
+        """
+        stripped = raw_claim.strip()
+        if stripped:
+            return stripped
+        if node_id in node_claim_by_id:
+            return node_claim_by_id[node_id]
+        return fallback_label
+
+    @classmethod
+    def _from_fusion_result(cls, causal_payload: CausalTdaFusionResultDTO) -> Self:
+        """Construct a CausalSynthesisBriefDTO from a full CausalTdaFusionResultDTO.
+
+        Args:
+            causal_payload: Evaluated CausalTdaFusionResultDTO instance.
+
+        Returns:
+            Populated CausalSynthesisBriefDTO instance.
+        """
+        node_claim_by_id: dict[str, str] = {
+            n.node_id: n.claim.strip() for n in causal_payload.graph.nodes if n.claim.strip()
+        }
+        intact = sum(1 for n in causal_payload.graph.nodes if n.status == ExecutionStatus.PASSED)
+        total = len(causal_payload.graph.nodes)
+
+        fault_chains: list[str] = []
+        penalties: list[str] = []
+        for diag in causal_payload.root_cause_diagnoses:
+            root_label = cls._resolve_node_label(
+                diag.root_cause_claim,
+                diag.root_cause_parent_id,
+                diag.root_cause_parent_id,
+                node_claim_by_id,
+            )
+            failing_label = cls._resolve_node_label(
+                diag.failing_node_claim,
+                diag.failing_node_id,
+                diag.failing_node_id,
+                node_claim_by_id,
+            )
+            fault_chains.append(f"{root_label} -> {failing_label} ({diag.warrant_relation}): {diag.explanation}")
+            if diag.penalty_points > 0.0:
+                penalties.append(f"{failing_label}: -{diag.penalty_points:.2f} ({diag.root_cause_type})")
+
+        rebuttals: list[str] = [
+            f"{cls._resolve_node_label('', item.rebuttal_id, 'Rebuttal', node_claim_by_id)} -> "
+            f"{cls._resolve_node_label('', item.invalidated_warrant_id, 'Invalidated Warrant', node_claim_by_id)} -> "
+            f"{item.claim_statement} (confidence: {item.rebuttal_confidence:.2f})"
+            for item in causal_payload.falsified_claims
+        ]
+        remediations: list[str] = [
+            f"{cls._resolve_node_label('', rem.target_node_id, rem.target_node_id, node_claim_by_id)}: "
+            f"{rem.required_action} (impact: +{rem.potential_score_impact:.2f})"
+            for rem in causal_payload.prescriptive_remediations
+        ]
+
+        fs = causal_payload.fair_scoring
+        if fs.raw_penalty_points > 0.0 or fs.deduplicated_penalty_points > 0.0:
+            penalties.append(
+                f"Fair Scoring Summary: raw=-{fs.raw_penalty_points:.2f}, "
+                f"deduplicated=-{fs.deduplicated_penalty_points:.2f}, "
+                f"dampened_savings=+{fs.dampened_savings_points:.2f} "
+                f"(independent_errors={fs.independent_error_count}, "
+                f"cascading_faults={fs.cascading_fault_count})"
+            )
+
+        return cls(
+            intact_propositions=intact,
+            total_propositions=total,
+            logical_cohesion_score=causal_payload.anti_fluff_audit.logical_cohesion_score,
+            cycle_detected=causal_payload.graph.cycle_detected,
+            root_cause_fault_chains=fault_chains,
+            toulmin_rebuttals=rebuttals,
+            prescriptive_remediations=remediations,
+            post_hoc_fidelity_penalties=penalties,
+        )
+
+    @classmethod
+    def _from_graph_payload(cls, causal_payload: CausalGraphPayloadDTO) -> Self:
+        """Construct a CausalSynthesisBriefDTO from a standalone CausalGraphPayloadDTO.
+
+        Args:
+            causal_payload: Evaluated CausalGraphPayloadDTO instance.
+
+        Returns:
+            Populated CausalSynthesisBriefDTO instance.
+        """
+        node_claim_by_id = {n.node_id: n.claim.strip() for n in causal_payload.nodes if n.claim.strip()}
+        intact = sum(1 for n in causal_payload.nodes if n.status == ExecutionStatus.PASSED)
+        root_chains: list[str] = [
+            f"Root Cause Proposition: {cls._resolve_node_label('', root_id, root_id, node_claim_by_id)}"
+            for root_id in causal_payload.root_cause_node_ids
+        ]
+        return cls(
+            intact_propositions=intact,
+            total_propositions=len(causal_payload.nodes),
+            logical_cohesion_score=None,
+            cycle_detected=causal_payload.cycle_detected,
+            root_cause_fault_chains=root_chains,
+            toulmin_rebuttals=[],
+            prescriptive_remediations=[],
+            post_hoc_fidelity_penalties=[],
+        )
+
     @classmethod
     def from_causal_payload(
         cls,
@@ -210,94 +328,9 @@ class CausalSynthesisBriefDTO(V2CoreBase):
         """
         match causal_payload:
             case CausalTdaFusionResultDTO():
-                node_claim_by_id: dict[str, str] = {
-                    n.node_id: n.claim.strip() for n in causal_payload.graph.nodes if n.claim.strip()
-                }
-                intact = sum(1 for n in causal_payload.graph.nodes if n.status == ExecutionStatus.PASSED)
-                total = len(causal_payload.graph.nodes)
-
-                fault_chains: list[str] = []
-                penalties: list[str] = []
-                for diag in causal_payload.root_cause_diagnoses:
-                    root_label = diag.root_cause_claim.strip()
-                    if not root_label and diag.root_cause_parent_id in node_claim_by_id:
-                        root_label = node_claim_by_id[diag.root_cause_parent_id]
-                    if not root_label:
-                        root_label = diag.root_cause_parent_id
-
-                    failing_label = diag.failing_node_claim.strip()
-                    if not failing_label and diag.failing_node_id in node_claim_by_id:
-                        failing_label = node_claim_by_id[diag.failing_node_id]
-                    if not failing_label:
-                        failing_label = diag.failing_node_id
-
-                    fault_chains.append(
-                        f"{root_label} -> {failing_label} ({diag.warrant_relation}): {diag.explanation}"
-                    )
-                    if diag.penalty_points > 0.0:
-                        penalties.append(f"{failing_label}: -{diag.penalty_points:.2f} ({diag.root_cause_type})")
-
-                rebuttals: list[str] = []
-                for match_item in causal_payload.falsified_claims:
-                    rebuttal_label = "Rebuttal"
-                    if match_item.rebuttal_id in node_claim_by_id:
-                        rebuttal_label = node_claim_by_id[match_item.rebuttal_id]
-                    warrant_label = "Invalidated Warrant"
-                    if match_item.invalidated_warrant_id in node_claim_by_id:
-                        warrant_label = node_claim_by_id[match_item.invalidated_warrant_id]
-                    rebuttals.append(
-                        f"{rebuttal_label} -> {warrant_label} -> {match_item.claim_statement} "
-                        f"(confidence: {match_item.rebuttal_confidence:.2f})"
-                    )
-
-                remediations: list[str] = []
-                for rem in causal_payload.prescriptive_remediations:
-                    target_label = rem.target_node_id
-                    if rem.target_node_id in node_claim_by_id:
-                        target_label = node_claim_by_id[rem.target_node_id]
-                    remediations.append(
-                        f"{target_label}: {rem.required_action} (impact: +{rem.potential_score_impact:.2f})"
-                    )
-
-                fs = causal_payload.fair_scoring
-                if fs.raw_penalty_points > 0.0 or fs.deduplicated_penalty_points > 0.0:
-                    penalties.append(
-                        f"Fair Scoring Summary: raw=-{fs.raw_penalty_points:.2f}, "
-                        f"deduplicated=-{fs.deduplicated_penalty_points:.2f}, "
-                        f"dampened_savings=+{fs.dampened_savings_points:.2f} "
-                        f"(independent_errors={fs.independent_error_count}, "
-                        f"cascading_faults={fs.cascading_fault_count})"
-                    )
-
-                return cls(
-                    intact_propositions=intact,
-                    total_propositions=total,
-                    logical_cohesion_score=causal_payload.anti_fluff_audit.logical_cohesion_score,
-                    cycle_detected=causal_payload.graph.cycle_detected,
-                    root_cause_fault_chains=fault_chains,
-                    toulmin_rebuttals=rebuttals,
-                    prescriptive_remediations=remediations,
-                    post_hoc_fidelity_penalties=penalties,
-                )
+                return cls._from_fusion_result(causal_payload)
             case CausalGraphPayloadDTO():
-                node_claim_by_id = {n.node_id: n.claim.strip() for n in causal_payload.nodes if n.claim.strip()}
-                intact = sum(1 for n in causal_payload.nodes if n.status == ExecutionStatus.PASSED)
-                root_chains: list[str] = []
-                for root_id in causal_payload.root_cause_node_ids:
-                    resolved_root = root_id
-                    if root_id in node_claim_by_id:
-                        resolved_root = node_claim_by_id[root_id]
-                    root_chains.append(f"Root Cause Proposition: {resolved_root}")
-                return cls(
-                    intact_propositions=intact,
-                    total_propositions=len(causal_payload.nodes),
-                    logical_cohesion_score=None,
-                    cycle_detected=causal_payload.cycle_detected,
-                    root_cause_fault_chains=root_chains,
-                    toulmin_rebuttals=[],
-                    prescriptive_remediations=[],
-                    post_hoc_fidelity_penalties=[],
-                )
+                return cls._from_graph_payload(causal_payload)
 
     def format_for_prompt(self) -> str:
         """Serialize the causal synthesis brief into a deterministic markdown block for prompt tail injection.

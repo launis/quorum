@@ -383,7 +383,17 @@ def test_matrix_failure_deficit_dto_and_causal_synthesis_brief_dto() -> None:
                 paragraph_ref="p1",
                 explanation="Warrant missing.",
                 penalty_points=1.25,
-            )
+            ),
+            CausalRootCauseDiagnosisDTO(
+                root_cause_parent_id="unmapped_parent_id",
+                root_cause_claim="Direct Root Claim",
+                failing_node_id="unmapped_failing_id",
+                failing_node_claim="",
+                warrant_relation=DependencyRelationType.WARRANTS,
+                paragraph_ref="p2",
+                explanation="Direct claim and unmapped ID fallback.",
+                penalty_points=0.0,
+            ),
         ],
         falsified_claims=[
             FalsifiedClaimMatch(
