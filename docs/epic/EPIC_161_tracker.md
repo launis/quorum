@@ -40,12 +40,12 @@
 ### Phase 3: Frontend Flutter UI, Jinja PDF & Freezed SDUI DTO Synchronization
 **Plan:** @[docs/epic/tasks_EPIC_161/03_phase3_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_161/03_phase3_plan.md`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_161/03_phase3_plan.md] @[docs/epic/EPIC_161_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_161/03_phase3_plan.md] @[docs/epic/EPIC_161_tracker.md]`
-  - [ ] Step 3.1: Inline Topological & Short-Circuit Lineage in SDUI Blocks & Report DTOs
-  - [ ] Step 3.2: Jinja2 PDF Template & PDF Generator Parity
-  - [ ] Step 3.3: Flutter Freezed SDUI DTO & Widget Synchronization
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_161/03_phase3_plan.md] @[docs/epic/EPIC_161_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_161/03_phase3_plan.md] @[docs/epic/EPIC_161_tracker.md]`
+  - [x] Step 3.1: Inline Topological & Short-Circuit Lineage in SDUI Blocks & Report DTOs
+  - [x] Step 3.2: Jinja2 PDF Template & PDF Generator Parity
+  - [x] Step 3.3: Flutter Freezed SDUI DTO & Widget Synchronization
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_161/03_phase3_plan.md] @[docs/epic/EPIC_161_tracker.md]`
 
 ### Phase 4: Verification & E2E Integration Gate
@@ -158,15 +158,20 @@
   - **Step 2.2 (`cdad7f0f1`)**: Serialized `matrix_reducer_output.reduced_atoms` with `AliasEngine` aliases (`@[backend_v2/utils/alias_engine.py]`, zero raw `tda_` UUIDs) into `user_content_parts` alongside `raw_xai_extensions` and `global_atom_blackboard` in `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L58-L301]`.
   - **Step 2.3**: Created `[NEW] CausalSynthesisBriefDTO` (`ConfigDict(strict=True, extra="forbid", frozen=True)`) in `@[backend_v2/models/dtos/synthesis.py]` combining resolved `CausalRootCauseDiagnosisDTO` chains, `FalsifiedClaimMatch` Toulmin rebuttals, and post-hoc fidelity penalties. Added static XML mandates `<causal_tda_diagnosis_mandate>` and `<contrastive_frontier_mandate>` in `@[backend_v2/models/prompts/synthesis/synthesis_directives.py]`. Removed `<global_length_constraint_chars>` from `base_dynamic_parts`, unified `create_row_explanations_task` onto the shared `CognitiveTier.BALANCED` `client: LLMClient` instance, and fanned out `CausalSynthesisBriefDTO` across all four tasks in `@[backend_v2/workers/synthesis_worker.py#L92-L664]` and `@[backend_v2/workers/synthesis_tasks.py#L61-L427]`.
   - Verified all 7 Phase 2 `<test_contracts>` and passed `backend_audit_loop.py --test --ast-strict` across all 7 target modules with exit code 0 and >90% coverage.
+- Completed Phase 3 Execution (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_161/03_phase3_plan.md] @[docs/epic/EPIC_161_tracker.md]`):
+  - **Step 3.1 (`32e3ccf3d`)**: Added `short_circuited_by_claims: list[str]` and `falsified_warrant_claims: list[str]` (`ConfigDict(strict=True, extra="forbid", frozen=True)`) to `@[backend_v2/models/dtos/report_data.py]`, `@[backend_v2/models/view/sdui.py]` (`SduiMatrixTableBlock`, `SduiCausalGraphBlock`, and `SduiMatrixSummaryTableBlock` alias), and `@[backend_v2/models/dtos/causal_discovery.py]` (`CausalNodeDTO`). Populated topological short-circuit and Toulmin falsification lineage in `@[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]`, `@[backend_v2/services/sdui/adapters/causal_graph_adapter.py#L32-L185]`, and `@[backend_v2/services/blueprint.py#L127-L698]`. Refactored `SduiMapperService.map_report_to_sdui` (`@[backend_v2/services/sdui/sdui_mapper_service.py#L91-L167]`) so `N_A` short-circuit lineage is anchored inline onto `SduiMatrixTableBlock` and `SduiCausalGraphBlock` without appending disembodied `SduiNACard` orphans at the bottom of `inner_sdui_blocks`.
+  - **Step 3.2 (`566aa2773`)**: Added `_normalize_lineage_claims` Jinja2 filter in `@[backend_v2/services/pdf_generator.py]` and rendered `short_circuited_by_claims` and `falsified_warrant_claims` deterministically on `matrix_summary` and `causal_graph` blocks in `@[backend_v2/templates/report_template.jinja2]`.
+  - **Step 3.3 (`bc78c2c80`)**: Synchronized `@JsonKey(name: 'short_circuited_by_claims')` and `@JsonKey(name: 'falsified_warrant_claims')` on `SduiMatrixTableBlock`, `SduiCausalGraphBlock`, and `CausalNodeDto` in `@[client_app_v2/lib/shared/models/sdui_block_dto.dart]` and `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`. Rendered inline short-circuit blocker chips and Toulmin falsification badges in `@[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]` and `@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`. Verified all 6 Phase 3 `<test_contracts>`, `flutter_audit_loop.py client_app_v2/ --build`, `audit_flutter_theme_sovereignty.py`, `audit_dto_parity.py --fail-on-mismatch`, and `test_sdui_semantic_parity.py` with 100% pass rate.
 
 ## Learned
 - `synthesis_worker.py` invokes `create_executive_summary_task`, `create_matrix_sections_tasks`, `create_xai_highlights_task`, and `create_row_explanations_task` exclusively with keyword arguments (`client=client`, `base_dynamic_parts=base_dynamic_parts`, `causal_diagnosis=causal_diagnosis_text`), so unit tests spying on task constructors must inspect `await_args.kwargs`.
 - `CausalGraphPayloadDTO` validates that all `root_cause_node_ids` exist in `nodes`; tests exercising empty-claim fallback on `CausalSynthesisBriefDTO.from_causal_payload` must include a matching `CausalNodeDTO` with whitespace-only `claim`.
+- `test_sdui_semantic_parity.py` generates random `SduiMatrixTableBlock` instances via Polyfactory and compares extracted Flutter `Text` tokens against PDF Markdown; normalizing lineage claims consistently via `.trim()` and deduplication in both `SduiMatrixTableWidget` and `pdf_generator.py` (`normalize_lineage_claims`) with unbolded body text styling guarantees 1:1 semantic parity.
 
 ## Remaining
-- Run System 2 Red-Team Plan Audit on Phase 2 (`/tier8-audit-plan @[docs/epic/tasks_EPIC_161/02_phase2_plan.md] @[docs/epic/EPIC_161_tracker.md]`), then proceed to Phase 3 (`@[docs/epic/tasks_EPIC_161/03_phase3_plan.md]`).
+- Run System 2 Red-Team Plan Audit on Phase 3 (`/tier8-audit-plan @[docs/epic/tasks_EPIC_161/03_phase3_plan.md] @[docs/epic/EPIC_161_tracker.md]`), then proceed to Phase 4 (`@[docs/epic/tasks_EPIC_161/04_phase4_plan.md]`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_161/02_phase2_plan.md] @[docs/epic/EPIC_161_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_161/03_phase3_plan.md] @[docs/epic/EPIC_161_tracker.md]
 ```
