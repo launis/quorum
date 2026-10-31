@@ -1,15 +1,126 @@
 import 'dart:async';
+import 'dart:io';
+
 import 'package:client_app/app.dart';
+import 'package:client_app/core/environment/env.dart';
+import 'package:client_app/core/logging/app_logger_observer.dart';
+import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/firebase_options.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:client_app/core/logging/logger_service.dart';
-import 'dart:io';
-import 'package:client_app/core/environment/env.dart';
-import 'package:flutter/foundation.dart';
-import 'package:client_app/core/logging/app_logger_observer.dart';
+
+/// Builds the global fallback diagnostic error widget when a framework build fails.
+Widget buildGlobalErrorWidget(FlutterErrorDetails details) {
+  bool isDebug = false;
+  assert(() {
+    isDebug = true;
+    return true;
+  }());
+
+  return Builder(
+    builder: (BuildContext context) {
+      final theme = Theme.of(context);
+      final colorScheme = theme.colorScheme;
+      final l10n = AppLocalizations.of(context);
+
+      return Material(
+        color: colorScheme.errorContainer,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: AppSpacing.p16,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: colorScheme.error,
+                  size: AppSpacing.s24 * 2,
+                ),
+                AppSpacing.h16,
+                if (l10n != null) ...[
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          l10n.errorUnknown,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onErrorContainer,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                  AppSpacing.h8,
+                ],
+                if (isDebug)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          details.exceptionAsString(),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onErrorContainer,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 6,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+/// Configures global Flutter framework, error widget, and platform dispatcher error hooks.
+void configureGlobalErrorHandling(LoggerService logger) {
+  // A. Flutter Framework Errors (Widget Build)
+  FlutterError.onError = (FlutterErrorDetails details) {
+    logger.error(
+      'FLUTTER',
+      'Framework Error',
+      details.exception,
+      details.stack,
+    );
+    // Ensure the Red Screen / Error boundary is rendered
+    FlutterError.presentError(details);
+  };
+
+  // Diagnostic Node: Replace Red Screen of Death with Local Error Box (No Graceful Degradation)
+  ErrorWidget.builder = buildGlobalErrorWidget;
+
+  // B. Async/Platform Errors (Futures, Zones)
+  PlatformDispatcher.instance.onError = (error, stack) {
+    logger.error('PLATFORM', 'Async Error', error, stack);
+    return true; // prevent default handling (crashing app)
+  };
+}
+
+/// Redirects global [debugPrint] messages to the structured [LoggerService] while filtering bootstrap noise.
+DebugPrintCallback createFilteredDebugPrint(LoggerService logger) {
+  return (String? message, {int? wrapWidth}) {
+    if (message != null &&
+        !message.contains('Error loading .env') &&
+        !message.contains('Error initializing Firebase')) {
+      logger.debug('FLUTTER_DEBUG', message);
+    }
+  };
+}
 
 Future<void> main() async {
   // 1. Initialize Bindings First
@@ -38,13 +149,7 @@ Future<void> main() async {
   await logger.init();
 
   // Redirect all debugPrints so the console remains clean
-  debugPrint = (String? message, {int? wrapWidth}) {
-    if (message != null &&
-        !message.contains('Error loading .env') &&
-        !message.contains('Error initializing Firebase')) {
-      logger.debug('FLUTTER_DEBUG', message);
-    }
-  };
+  debugPrint = createFilteredDebugPrint(logger);
 
   // LOG: Detailed
   logger.info('SYSTEM', 'Startup Audit:');
@@ -56,62 +161,7 @@ Future<void> main() async {
   logger.info('SYSTEM', ' - Build Mode: ${kReleaseMode ? "Release" : "Debug"}');
 
   // 5. Global Error Handling Setup
-
-  // A. Flutter Framework Errors (Widget Build)
-  FlutterError.onError = (FlutterErrorDetails details) {
-    logger.error(
-      'FLUTTER',
-      'Framework Error',
-      details.exception,
-      details.stack,
-    );
-    // Ensure the Red Screen / Error boundary is rendered
-    FlutterError.presentError(details);
-  };
-
-  // Diagnostic Node: Replace Red Screen of Death with Local Error Box (No Graceful Degradation)
-  ErrorWidget.builder = (FlutterErrorDetails details) {
-    bool isDebug = false;
-    assert(() {
-      isDebug = true;
-      return true;
-    }());
-
-    return Material(
-      color: const Color(0xFFFFEBEE), // red.shade50
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.warning_amber_rounded,
-                color: Color(0xFFB71C1C), // red.shade900
-                size: 48,
-              ),
-              const SizedBox(height: 16),
-              if (isDebug)
-                Text(
-                  details.exceptionAsString(),
-                  style: const TextStyle(
-                    color: Color(0xFFD32F2F),
-                    fontSize: 14,
-                  ), // red.shade700
-                  textAlign: TextAlign.center,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  };
-
-  // B. Async/Platform Errors (Futures, Zones)
-  PlatformDispatcher.instance.onError = (error, stack) {
-    logger.error('PLATFORM', 'Async Error', error, stack);
-    return true; // prevent default handling (crashing app)
-  };
+  configureGlobalErrorHandling(logger);
 
   // 6. Launch App
   runApp(
