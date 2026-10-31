@@ -52,4 +52,4 @@ final class ReportsClientProvider
   }
 }
 
-String _$reportsClientHash() => r'1deb1abb93312b8d503ac770a5bd0e044b22b7ca';
+String _$reportsClientHash() => r'91c7533d249e9cf7fbdcc745b530583f42ba06fb';

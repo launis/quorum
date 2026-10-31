@@ -33,7 +33,7 @@
   - [x] @[client_app_v2/lib/theme/app_durations.dart]
   - [x] @[client_app_v2/lib/theme/app_theme.dart]
   - [x] @[client_app_v2/lib/core/api/execution_client.dart]
-  - [ ] @[client_app_v2/lib/core/api/reports_client.dart]
+  - [x] @[client_app_v2/lib/core/api/reports_client.dart]
   - [ ] @[client_app_v2/lib/core/api/sse_client.dart]
   - [ ] @[client_app_v2/lib/core/api/studio_client.dart]
   - [ ] @[client_app_v2/lib/core/api/workflow_client.dart]
