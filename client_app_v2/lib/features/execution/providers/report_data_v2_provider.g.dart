@@ -64,7 +64,7 @@ final class ReportDataV2Provider
   }
 }
 
-String _$reportDataV2Hash() => r'9dc1213435d5eb88fc3a5a1c997c33898ef8dc19';
+String _$reportDataV2Hash() => r'6da7e14ed25cf184f385412dff6f445425a3a1d5';
 
 /// Fetches and holds the raw [ReportDataDto] payload for a given execution.
 /// Follows tenant_data_isolation: the state is scoped by executionId.

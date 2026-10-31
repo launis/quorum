@@ -6,6 +6,7 @@ import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/features/execution/providers/atom_result_provider.dart';
 import 'package:client_app/features/execution/providers/hydrated_reference_provider.dart';
 import 'package:client_app/features/execution/providers/report_data_v2_provider.dart';
+import 'package:client_app/utils/json_converters.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -22,33 +23,41 @@ class MockReportDataV2Notifier extends ReportDataV2 {
 void main() {
   group('ReportDataV2 Providers O(1) Lookups', () {
     late ProviderContainer container;
+    final execId = generateOpaqueUuid7('exe');
+    final uninitExecId = generateOpaqueUuid7('exe');
+    final workflowId = generateOpaqueUuid7('wf');
+    final profileId = generateOpaqueUuid7('op');
+    final node1Id = generateOpaqueUuid7('tda');
+    final invalidNodeId = generateOpaqueUuid7('tda');
 
-    final mockReportData = ReportDataDto(
-      executionId: 'exec_123',
-      workflowId: 'wf_abc',
-      profileId: 'prof_123',
-      globalMetrics: const ExecutionMetricsDTO(
-        totalAtoms: 10,
-        evaluated: 8,
-        shortCircuitedNa: 2,
-        durationMs: 1500,
-      ),
-      results: [
-        const AtomResultDTO(tdaId: 'node_1', status: ExecutionStatus.passed),
-      ],
-      hydratedReferences: {
-        'node_1': const HydratedAtomDTO(
-          sduiComponent: SDUIComponentType.extractedValueCard,
-          resolvedClaim: 'The weight',
-        ),
-      },
-    );
+    late ReportDataDto mockReportData;
 
     setUp(() {
+      mockReportData = ReportDataDto(
+        executionId: execId,
+        workflowId: workflowId,
+        profileId: profileId,
+        globalMetrics: const ExecutionMetricsDTO(
+          totalAtoms: 10,
+          evaluated: 8,
+          shortCircuitedNa: 2,
+          durationMs: 1500,
+        ),
+        results: [
+          AtomResultDTO(tdaId: node1Id, status: ExecutionStatus.passed),
+        ],
+        hydratedReferences: {
+          node1Id: const HydratedAtomDTO(
+            sduiComponent: SDUIComponentType.extractedValueCard,
+            resolvedClaim: 'The weight',
+          ),
+        },
+      );
+
       container = ProviderContainer(
         overrides: [
           reportDataV2Provider(
-            'exec_123',
+            execId,
           ).overrideWith(() => MockReportDataV2Notifier(mockReportData)),
         ],
       );
@@ -60,7 +69,7 @@ void main() {
 
     test('hydratedReference lookup is O(1) and retrieves correct node', () {
       final hydrated = container.read(
-        hydratedReferenceProvider('exec_123', 'node_1'),
+        hydratedReferenceProvider(execId, node1Id),
       );
       expect(hydrated, isNotNull);
       expect(hydrated?.sduiComponent, SDUIComponentType.extractedValueCard);
@@ -69,7 +78,7 @@ void main() {
 
     test('hydratedReference returns null for invalid node', () {
       final hydrated = container.read(
-        hydratedReferenceProvider('exec_123', 'invalid_node'),
+        hydratedReferenceProvider(execId, invalidNodeId),
       );
       expect(hydrated, isNull);
     });
@@ -80,13 +89,14 @@ void main() {
         final emptyContainer = ProviderContainer(
           overrides: [
             reportDataV2Provider(
-              'exec_456',
+              uninitExecId,
             ).overrideWith(() => MockReportDataV2Notifier(null)),
           ],
         );
+        addTearDown(emptyContainer.dispose);
         expect(
           () => emptyContainer.read(
-            hydratedReferenceProvider('exec_456', 'node_1'),
+            hydratedReferenceProvider(uninitExecId, node1Id),
           ),
           throwsA(
             predicate((e) => e.toString().contains('Fail-Fast: ReportDataDto')),
@@ -96,24 +106,22 @@ void main() {
     );
 
     test('atomResults returns list without topological sorting', () {
-      final rd = container.read(reportDataV2Provider('exec_123'));
-      print('DEBUG: reportData = $rd');
-      final results = container.read(atomResultsProvider('exec_123'));
-      print('DEBUG: results = $results');
+      final results = container.read(atomResultsProvider(execId));
       expect(results.length, 1);
-      expect(results.first.tdaId, 'node_1');
+      expect(results.first.tdaId, node1Id);
     });
 
     test('atomResults throws ProviderException if reportData is null', () {
       final emptyContainer = ProviderContainer(
         overrides: [
           reportDataV2Provider(
-            'exec_456',
+            uninitExecId,
           ).overrideWith(() => MockReportDataV2Notifier(null)),
         ],
       );
+      addTearDown(emptyContainer.dispose);
       expect(
-        () => emptyContainer.read(atomResultsProvider('exec_456')),
+        () => emptyContainer.read(atomResultsProvider(uninitExecId)),
         throwsA(
           predicate((e) => e.toString().contains('Fail-Fast: ReportDataDto')),
         ),
