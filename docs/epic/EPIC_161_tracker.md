@@ -83,7 +83,7 @@
   - [x] @[backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py]
   - [x] @[backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py]
   - [x] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
-  - [ ] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]
+  - [x] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]
   - [ ] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
   - [ ] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
   - [ ] @[backend_v2/services/orchestrator/matrix_reducer.py]
