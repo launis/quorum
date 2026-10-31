@@ -76,7 +76,7 @@
   - [x] @[backend_v2/models/dtos/lightweight_matrix.py]
   - [x] @[backend_v2/models/dtos/report_data.py]
   - [x] @[backend_v2/models/dtos/synthesis.py]
-  - [ ] @[backend_v2/models/prompts/synthesis/synthesis_directives.py]
+  - [x] @[backend_v2/models/prompts/synthesis/synthesis_directives.py]
   - [ ] @[backend_v2/models/view/sdui.py]
   - [ ] @[backend_v2/services/blueprint.py]
   - [ ] @[backend_v2/services/orchestrator/anchor_validation/evidence_validator.py]
