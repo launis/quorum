@@ -57,6 +57,7 @@ class SynthesisPayloadCompressor:
             logger.error(
                 "[SynthesisPayloadCompressor] %s: Cannot compress empty payload.",
                 ErrorCodes.VALIDATION_FAILED.name,
+                exc_info=True,
             )
             raise AppException(
                 message="Cannot compress empty payload.",
@@ -70,6 +71,7 @@ class SynthesisPayloadCompressor:
                 logger.error(
                     "[SynthesisPayloadCompressor] %s: Cannot compress empty string payload.",
                     ErrorCodes.VALIDATION_FAILED.name,
+                    exc_info=True,
                 )
                 raise AppException(
                     message="Cannot compress empty string payload.",
@@ -93,6 +95,7 @@ class SynthesisPayloadCompressor:
                 logger.error(
                     "[SynthesisPayloadCompressor] %s: Payload must be a dict, list, string, or scalar for compression.",
                     ErrorCodes.VALIDATION_FAILED.name,
+                    exc_info=True,
                 )
                 raise AppException(
                     message="Payload must be a dict, list, string, or scalar for compression.",
@@ -203,7 +206,8 @@ class SynthesisPayloadCompressor:
             Cleaned, JSON-serializable structure.
 
         Raises:
-            AppException: If results format or evaluation items are invalid.
+            AppException: Triggered with VALIDATION_FAILED if results format or evaluation
+                items are invalid.
         """
         if isinstance(val, BaseModel):
             return val.model_dump(
@@ -225,6 +229,7 @@ class SynthesisPayloadCompressor:
                 "[SynthesisPayloadCompressor] %s: Unsupported nested payload type: %s",
                 ErrorCodes.VALIDATION_FAILED.name,
                 type(val).__name__,
+                exc_info=True,
             )
             raise AppException(
                 message=f"Unsupported nested payload type: {type(val).__name__}",
@@ -240,6 +245,7 @@ class SynthesisPayloadCompressor:
                 logger.error(
                     "[SynthesisPayloadCompressor] %s: 'results' must be a list.",
                     ErrorCodes.VALIDATION_FAILED.name,
+                    exc_info=True,
                 )
                 raise AppException(
                     message="'results' must be a list.",
@@ -255,6 +261,7 @@ class SynthesisPayloadCompressor:
                     logger.error(
                         "[SynthesisPayloadCompressor] %s: Evaluation item must be a dictionary or EvaluatedAtomDTO.",
                         ErrorCodes.VALIDATION_FAILED.name,
+                        exc_info=True,
                     )
                     raise AppException(
                         message="Evaluation item must be a dictionary or EvaluatedAtomDTO.",
@@ -335,6 +342,7 @@ class SynthesisPayloadCompressor:
                         logger.error(
                             "[SynthesisPayloadCompressor] %s: Missing mandatory field in evaluation: 'atom_id'",
                             ErrorCodes.VALIDATION_FAILED.name,
+                            exc_info=True,
                         )
                         raise AppException(
                             message="Missing mandatory field in evaluation: 'atom_id'",
@@ -377,6 +385,7 @@ class SynthesisPayloadCompressor:
                             "[SynthesisPayloadCompressor] %s: Failed to hydrate evaluation: %s",
                             ErrorCodes.VALIDATION_FAILED.name,
                             str(e),
+                            exc_info=True,
                         )
                         raise AppException(
                             message=f"Failed to hydrate evaluation: {str(e)}",
@@ -434,6 +443,7 @@ class SynthesisPayloadCompressor:
                 logger.error(
                     "[SynthesisPayloadCompressor] %s: Results list cannot be empty after compression.",
                     ErrorCodes.VALIDATION_FAILED.name,
+                    exc_info=True,
                 )
                 raise AppException(
                     message="Results list cannot be empty after compression.",
