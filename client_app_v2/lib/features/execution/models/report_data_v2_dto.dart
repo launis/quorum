@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/utils/safe_isolate.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'matrix_scorecard_dto.dart';
 import 'atom_result_dto.dart';
@@ -70,7 +71,12 @@ abstract class ReportDataDto with _$ReportDataDto {
   /// This prevents Main Thread Jank when handling large payloads.
   static Future<ReportDataDto> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
-      final dynamic decoded = jsonDecode(rawJson);
+      final Object? decoded = jsonDecode(rawJson);
+      if (decoded is! Map<String, Object?>) {
+        throw AppException.validation(
+          'Invalid ReportDataDto JSON payload: expected a JSON object map.',
+        );
+      }
       return ReportDataDto.fromJson(decoded);
     });
   }
