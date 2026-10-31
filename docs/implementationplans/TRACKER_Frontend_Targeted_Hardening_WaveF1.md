@@ -58,7 +58,7 @@
   - [x] @[client_app_v2/lib/core/ui/splash_screen.dart]
   - [x] @[client_app_v2/lib/core/utils/safe_isolate.dart]
   - [x] @[client_app_v2/lib/utils/json_converters.dart]
-  - [ ] @[client_app_v2/lib/utils/riverpod_extensions.dart]
+  - [x] @[client_app_v2/lib/utils/riverpod_extensions.dart]
   - [ ] @[client_app_v2/lib/shared/models/i18n_text.dart]
   - [ ] @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
   - [ ] @[client_app_v2/lib/features/settings/domain/models/app_settings_state.dart]
