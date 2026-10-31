@@ -72,6 +72,26 @@ def _group_atoms_by_level(atoms: list[ScorecardAtomDTO]) -> dict[int, list[Score
     return {k: grouped[k] for k in sorted(grouped.keys())}
 
 
+def _normalize_lineage_claims(claims: list[str] | None) -> list[str]:
+    """Normalize and deduplicate topological short-circuit and Toulmin falsification claims.
+
+    Args:
+        claims: Sequence of lineage claim strings attached to an SDUI block.
+
+    Returns:
+        Ordered list of non-empty stripped claim strings.
+    """
+    # Phase 3, Step 3.2: Deterministic lineage normalization for PDF parity
+    if not claims:
+        return []
+    seen: list[str] = []
+    for claim in claims:
+        stripped = claim.strip()
+        if stripped and stripped not in seen:
+            seen.append(stripped)
+    return seen
+
+
 def _raise_unrecognized_sdui_block(block_type: str) -> None:
     """Trigger fail-fast exception for unrecognized SDUI blocks in Jinja2 templates.
 
@@ -107,6 +127,7 @@ class PdfReportService:
         self.env = Environment(loader=FileSystemLoader(str(template_dir)), undefined=StrictUndefined)
         self.env.filters["md"] = _md_filter
         self.env.filters["group_atoms_by_level"] = _group_atoms_by_level
+        self.env.filters["normalize_lineage_claims"] = _normalize_lineage_claims
         self.env.globals["raise_unrecognized_sdui_block"] = _raise_unrecognized_sdui_block
 
     def _render_block_charts(self, blocks: list[AnySduiBlock], target_locale: str) -> dict[int, str]:

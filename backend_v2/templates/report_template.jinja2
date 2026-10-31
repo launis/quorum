@@ -85,7 +85,19 @@
 <body>
 
     {% macro render_causal_graph_block(block) %}
-        {# Causal graph interactive inspector is omitted in static PDF documents per UX specification #}
+        {# Causal graph interactive inspector is omitted in static PDF documents per UX specification; inline short-circuit and Toulmin falsification lineage are rendered deterministically #}
+        {% set sc_claims = (block.short_circuited_by_claims | normalize_lineage_claims) if block.short_circuited_by_claims is defined else [] %}
+        {% set fw_claims = (block.falsified_warrant_claims | normalize_lineage_claims) if block.falsified_warrant_claims is defined else [] %}
+        {% if sc_claims or fw_claims %}
+        <div class="card" style="margin-bottom: 15px;">
+            {% for claim in sc_claims %}
+                <div style="margin-bottom: 4px; padding: 4px 8px; background-color: #ffebee; border-left: 3px solid #ef5350; border-radius: 4px; font-size: 11px; color: #b71c1c;">{{ claim }}</div>
+            {% endfor %}
+            {% for claim in fw_claims %}
+                <div style="margin-bottom: 4px; padding: 4px 8px; background-color: #fff3e0; border-left: 3px solid #ffa726; border-radius: 4px; font-size: 11px; color: #e65100;">{{ claim }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
     {% endmacro %}
 
     {% macro render_sdui_blocks(blocks, level=0, charts=none) %}
@@ -562,6 +574,22 @@
                     <div style="font-size: 11px; color: #666; margin-top: 8px; font-style: italic;">
                         {% if ns.has_evaluative %}<div>{{ l10n.matrixEvaluativeAsteriskLegend }}</div>{% endif %}
                         {% if ns.has_override %}<div>{{ l10n.matrixOverrideAsteriskLegend }}</div>{% endif %}
+                    </div>
+                    {% endif %}
+                    {% set matrix_sc_claims = (block.short_circuited_by_claims | normalize_lineage_claims) if block.short_circuited_by_claims is defined else [] %}
+                    {% set matrix_fw_claims = (block.falsified_warrant_claims | normalize_lineage_claims) if block.falsified_warrant_claims is defined else [] %}
+                    {% if matrix_sc_claims %}
+                    <div style="margin-top: 8px; font-size: 11px; color: #b71c1c;">
+                        {% for claim in matrix_sc_claims %}
+                            <div style="margin-bottom: 4px; padding: 4px 8px; background-color: #ffebee; border-left: 3px solid #ef5350; border-radius: 4px;">{{ claim }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if matrix_fw_claims %}
+                    <div style="margin-top: 8px; font-size: 11px; color: #e65100;">
+                        {% for claim in matrix_fw_claims %}
+                            <div style="margin-bottom: 4px; padding: 4px 8px; background-color: #fff3e0; border-left: 3px solid #ffa726; border-radius: 4px;">{{ claim }}</div>
+                        {% endfor %}
                     </div>
                     {% endif %}
                 </div>

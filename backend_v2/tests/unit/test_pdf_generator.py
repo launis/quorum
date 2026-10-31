@@ -7,6 +7,7 @@ import pytest
 from backend_v2.exceptions import AppException, ConfigurationError
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+from backend_v2.models.dtos.causal_discovery import AntiFluffAuditDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
@@ -14,6 +15,7 @@ from backend_v2.models.enums import ExecutionStatus, VisualIntent
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
     ParagraphBlock,
+    SduiCausalGraphBlock,
     SduiMatrixTableBlock,
     SduiMetadataBlock,
     SduiMetrics1DBlock,
@@ -414,3 +416,67 @@ async def test_pdf_generator_render_pdf_unexpected_exception() -> None:
             await svc.generate_execution_pdf(execution_id=_EXEC_ID_1, report_dto=dto, locale="en")
         assert exc_info.value.status_code == 500
         assert "PDF generation failed" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_pdf_generator_renders_inline_short_circuit_and_falsification_badges() -> None:
+    """Verify matrix summary table and causal graph blocks render inline short-circuit and Toulmin falsification claims."""
+    svc = PdfReportService()
+    norm_filter = svc.env.filters["normalize_lineage_claims"]
+    assert callable(norm_filter)
+    assert norm_filter(None) == []
+    assert norm_filter(["", "  ", "Claim A", "Claim A"]) == ["Claim A"]
+
+    atom = ScorecardAtomDTO(
+        atom_id="atm_11111111111111111111111111111111",
+        level=1,
+        level_name="Level 1",
+        claim_label="Claim 1",
+        extracted_facts={},
+        exact_quotes=[],
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="p1",
+            step_2_scan_source="s1",
+            step_3_evaluate_anti_patterns="a1",
+            step_4_final_conclusion="c1",
+        ),
+        status=ExecutionStatus.N_A,
+        semantic_reasoning="Blocked by upstream deficit",
+        contextual_override=False,
+        structural_location=None,
+        chart_display_label="A1",
+        visual_intent=VisualIntent.WARNING,
+    )
+    axis = _make_axis([atom])
+    matrix_block = SduiMatrixTableBlock(
+        matrix_visible_columns=["label", "raw_score"],
+        axes=[axis],
+        short_circuited_by_claims=["Prerequisite Claim A: Failed verification"],
+        falsified_warrant_claims=["Rebuttal R1 -> Warrant W1 -> Claim C1"],
+    )
+    causal_block = SduiCausalGraphBlock(
+        critical_path_nodes=[],
+        critical_edges=[],
+        root_cause_diagnoses=[],
+        anti_fluff_audit=AntiFluffAuditDTO(
+            isolated_concept_count=0,
+            cycle_detected=False,
+            unsupported_claims_count=0,
+            logical_cohesion_score=0.9,
+        ),
+        intact_claims_count=1,
+        total_claims_count=2,
+        summary=I18nText(translations={"en": "Causal summary.", "fi": "Kausaalinen yhteenveto."}),
+        short_circuited_by_claims=["Causal Blocker Node"],
+        falsified_warrant_claims=["Rebuttal R2 -> Warrant W2 -> Claim C2"],
+    )
+    dto = _make_report_dto(
+        _EXEC_ID_1,
+        [matrix_block, causal_block],
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Testiprofiili"}),
+    )
+    html = await svc.generate_execution_html(execution_id=_EXEC_ID_1, report_dto=dto, locale="en")
+    assert "Prerequisite Claim A: Failed verification" in html
+    assert "Rebuttal R1 -&gt; Warrant W1 -&gt; Claim C1" in html or "Rebuttal R1 -> Warrant W1 -> Claim C1" in html
+    assert "Causal Blocker Node" in html
+    assert "Rebuttal R2 -&gt; Warrant W2 -&gt; Claim C2" in html or "Rebuttal R2 -> Warrant W2 -> Claim C2" in html
