@@ -65,8 +65,8 @@ def test_step_rbac_save_member_forbidden(client_member: Any) -> None:
 
 
 def test_step_rbac_delete_member_forbidden(client_member: Any) -> None:
-    response = client_member.delete("/api/v2/studio/steps/step_someid123")
+    response = client_member.delete("/api/v2/studio/steps/stp_0195f3a0000070028222222222222222")
     if response.status_code == 404:
-        response = client_member.delete("/studio/steps/step_someid123")
+        response = client_member.delete("/studio/steps/stp_0195f3a0000070028222222222222222")
 
     assert response.status_code == 403

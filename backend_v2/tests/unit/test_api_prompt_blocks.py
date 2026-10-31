@@ -86,11 +86,11 @@ def test_delete_prompt_block(client: TestClient, fake_prompt_block_repo: InMemor
 
 def test_get_prompt_block_nonexistent_triggers_404(client: TestClient) -> None:
     """Negative test: Verifies that requesting a non-existent prompt block returns 404."""
-    response = client.get("/api/v2/studio/prompt-blocks/blk_nonexistent0000")
+    response = client.get("/api/v2/studio/prompt-blocks/blk_0195f3a0000070008000000000000404")
     assert response.status_code == 404
 
 
 def test_delete_prompt_block_nonexistent_triggers_404(client: TestClient) -> None:
     """Negative test: Verifies that deleting a non-existent prompt block returns 404."""
-    response = client.delete("/api/v2/studio/prompt-blocks/blk_nonexistent0000")
+    response = client.delete("/api/v2/studio/prompt-blocks/blk_0195f3a0000070008000000000000404")
     assert response.status_code == 404

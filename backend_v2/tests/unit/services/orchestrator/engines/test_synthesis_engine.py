@@ -2,7 +2,7 @@
 
 import re
 from typing import Annotated
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic import BaseModel, ConfigDict, Field
@@ -582,14 +582,29 @@ async def test_synthesis_engine_corrupted_matrix_reducer_serialization_raises(
     engine: SynthesisEngine, base_request: EngineExecutionRequest
 ) -> None:
     """Verify TypeError during matrix_reducer_output JSON serialization raises AppException(VALIDATION_FAILED)."""
-    with (
-        patch(
-            "backend_v2.services.orchestrator.engines.synthesis_engine.json.dumps",
-            side_effect=TypeError("Unserializable object"),
-        ),
-        pytest.raises(AppException) as exc_info,
-    ):
-        await engine.execute(base_request)
+    corrupted_matrix = LightweightMatrixDTO.model_construct(
+        execution_id="exec_1",
+        reduced_atoms=[ReducedAtomDTO(tda_id="atm_1", status=LaxExecutionStatus.PASSED)],
+        global_metrics={},
+        evaluated_matrices=[],
+        raw_extensions=[{"unserializable": object()}],
+    )
+    req = base_request.model_copy(
+        update={
+            "context": base_request.context.model_copy(
+                update={
+                    "context_variables": ContextVariablesDTO.model_construct(
+                        global_atom_blackboard=base_request.context.context_variables.global_atom_blackboard,
+                        matrix_reducer_output=corrupted_matrix,
+                        variables={},
+                    )
+                }
+            )
+        }
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await engine.execute(req)
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details is not None

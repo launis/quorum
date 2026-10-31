@@ -150,7 +150,7 @@ def client_root(mock_studio_service: AsyncMock) -> Any:
 
 
 def test_clone_workflow_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
-    response = client_admin.post("/api/v2/studio/workflows/wf_12345/clone")
+    response = client_admin.post("/api/v2/studio/workflows/wf_0195f3a0000070018111111111111111/clone")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "wf_0195f3a0000070038333333333333333"
@@ -158,7 +158,7 @@ def test_clone_workflow_endpoint(client_admin: TestClient, mock_studio_service: 
 
 
 def test_clone_step_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
-    response = client_admin.post("/api/v2/studio/steps/step_12345/clone")
+    response = client_admin.post("/api/v2/studio/steps/stp_0195f3a0000070018111111111111111/clone")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "stp_0195f3a0000070018111111111111112"
@@ -166,7 +166,7 @@ def test_clone_step_endpoint(client_admin: TestClient, mock_studio_service: Asyn
 
 
 def test_clone_prompt_block_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
-    response = client_admin.post("/api/v2/studio/prompt-blocks/blk_12345/clone")
+    response = client_admin.post("/api/v2/studio/prompt-blocks/blk_0195f3a0000070018111111111111111/clone")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "blk_0195f3a0000070018111111111111112"
@@ -175,7 +175,7 @@ def test_clone_prompt_block_endpoint(client_admin: TestClient, mock_studio_servi
 
 def test_clone_model_registry_endpoint(client_root: TestClient, mock_studio_service: AsyncMock) -> None:
     # System Configs require ROOT role
-    response = client_root.post("/api/v2/studio/model-registry/sys_12345/clone")
+    response = client_root.post("/api/v2/studio/model-registry/sys_0195f3a0000070018111111111111111/clone")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "sys_0195f3a0000070018111111111111112"
@@ -184,7 +184,7 @@ def test_clone_model_registry_endpoint(client_root: TestClient, mock_studio_serv
 
 def test_clone_mcp_gateways_endpoint(client_root: TestClient, mock_studio_service: AsyncMock) -> None:
     # MCP Gateways require ROOT role
-    response = client_root.post("/api/v2/studio/mcp-gateways/mcp_12345/clone")
+    response = client_root.post("/api/v2/studio/mcp-gateways/mcp_0195f3a0000070018111111111111111/clone")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "mcp_0195f3a0000070018111111111111112"

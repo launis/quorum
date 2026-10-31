@@ -107,11 +107,11 @@ def test_workflow_save_malformed_json_triggers_422(client_member: TestClient) ->
 
 def test_workflow_get_nonexistent_triggers_404(client_root: TestClient) -> None:
     """Negative test: Verifies that requesting a non-existent workflow returns 404 Not Found."""
-    response = client_root.get("/api/v2/studio/workflows/wf_nonexistent000000")
+    response = client_root.get("/api/v2/studio/workflows/wf_0195f3a0000070008000000000000404")
     assert response.status_code == 404
 
 
 def test_workflow_delete_nonexistent_triggers_404(client_root: TestClient) -> None:
     """Negative test: Verifies that deleting a non-existent workflow returns 404 Not Found."""
-    response = client_root.delete("/api/v2/studio/workflows/wf_nonexistent000000")
+    response = client_root.delete("/api/v2/studio/workflows/wf_0195f3a0000070008000000000000404")
     assert response.status_code == 404

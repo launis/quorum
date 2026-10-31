@@ -399,8 +399,8 @@ def test_matrix_reducer_extracts_causal_cohesion_when_wrapped_in_results() -> No
     assert "blk_cohesion_bars" in [m.matrix_id for m in reduced.evaluated_matrices]
     assert reduced.global_metrics["total_atoms"] == 2
     assert reduced.global_metrics["evaluated"] == 2
-    assert len(reduced.reduced_atoms) == 1
-    assert reduced.reduced_atoms[0].tda_id == "tda_2"
+    assert len(reduced.reduced_atoms) == 2
+    assert [a.tda_id for a in reduced.reduced_atoms] == ["tda_1", "tda_2"]
 
 
 def test_causal_cohesion_trace_event_must_provide_hydrated_references_for_report_dto() -> None:
