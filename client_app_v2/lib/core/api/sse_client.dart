@@ -1,10 +1,11 @@
-import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:convert';
-import 'package:dio/dio.dart';
-import 'package:client_app/core/network/api_client.dart';
-import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/core/network/api_client.dart';
+import 'package:client_app/core/utils/safe_isolate.dart';
+import 'package:client_app/utils/json_converters.dart';
+import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'sse_client.g.dart';
@@ -20,18 +21,35 @@ SseClient sseClient(Ref ref) {
 
 /// Client for interacting with Server-Sent Events (SSE).
 ///
-/// Strictly adheres to V2 De-Generator policy. Yields raw Maps.
+/// Yields decoded JSON payload maps for downstream DTO hydration.
 class SseClient {
   final Dio _dio;
   final LoggerService _logger;
+  static const StrictOpaqueIdConverter _idValidator = StrictOpaqueIdConverter();
 
   SseClient(this._dio, this._logger);
 
+  void _validateOpaqueId(String id, String fieldName, String methodName) {
+    try {
+      _idValidator.fromJson(id);
+    } on AppException catch (e, st) {
+      _logger.error(
+        'SseClient',
+        'Invalid $fieldName format "$id" for $methodName',
+        e,
+        st,
+      );
+      rethrow;
+    }
+  }
+
   /// Subscribes to an execution's live SSE stream.
   ///
-  /// Yields dynamic maps representing the current execution state or results.
-  /// Fails fast if the stream cannot be established.
+  /// Yields maps representing the current execution state or results.
+  /// Fails fast if the identifier is invalid or the stream cannot be established.
   Stream<Map<String, Object?>> subscribeToExecution(String executionId) async* {
+    _validateOpaqueId(executionId, 'executionId', 'subscribeToExecution');
+
     final response = await _dio.get<ResponseBody>(
       '/execution/executions/$executionId/stream',
       options: Options(
@@ -45,7 +63,14 @@ class SseClient {
 
     final stream = response.data?.stream;
     if (stream == null) {
-      throw AppException.network('Failed to establish SSE connection');
+      final error = AppException.network('Failed to establish SSE connection');
+      _logger.error(
+        'SseClient',
+        'Failed to establish SSE connection: null stream for $executionId',
+        error,
+        StackTrace.current,
+      );
+      throw error;
     }
 
     // Process the raw byte stream into continuous lines to prevent fragmentation
@@ -56,11 +81,10 @@ class SseClient {
 
     await for (final line in lineStream) {
       if (line.startsWith('data: ')) {
-        final dataStr = line.substring(6).trim();
+        final dataStr = line.replaceFirst('data: ', '').trim();
         if (dataStr.isNotEmpty) {
           try {
-            // Mandate 5.3: Concurrency & Performance via safeIsolateRun
-            // V3: Refactor to Delta Signal exclusively. Only process lightweight changes.
+            // Offload payload decoding and strip heavy snapshot data outside version_id
             final Map<String, Object?> payload = await safeIsolateRun(() {
               final raw = jsonDecode(dataStr) as Map<String, Object?>;
               final result = Map<String, Object?>.from(raw);
@@ -75,14 +99,14 @@ class SseClient {
             });
             yield payload;
           } catch (e, st) {
-            // Dual-Reporting Mandate: First log structurally before Graceful Degradation
+            // Dual-Reporting Mandate: First log structurally before failing fast
             _logger.error(
               'SseClient',
               'Malformed SSE chunk received or processing failed',
               e,
               st,
             );
-            // Absolute Death Mandate: Fail-fast and terminate the stream on fragment corruption
+            // Fail-fast and terminate the stream on fragment corruption
             rethrow;
           }
         }
