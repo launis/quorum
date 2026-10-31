@@ -1,4 +1,6 @@
-from typing import Any
+"""Unit and integration tests for Studio clone API endpoints."""
+
+from collections.abc import Generator
 from unittest.mock import AsyncMock
 
 import pytest
@@ -14,14 +16,21 @@ from backend_v2.api.dependencies import (
 )
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 from backend_v2.models.domain.step import Step
-from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
+from backend_v2.models.domain.system_config import (
+    ModelProfile,
+    SystemConfigMCPGateways,
+    SystemConfigModelRegistry,
+)
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import (
     BlockDataType,
+    CognitiveTier,
+    EntityPrefix,
     HistoricalContextMode,
     PromptBlockCategory,
     StepType,
@@ -30,6 +39,7 @@ from backend_v2.models.enums import (
 
 
 def mock_get_current_user_admin() -> TokenData:
+    """Provides an Admin user token for clone endpoint testing."""
     return TokenData(
         email="admin@test.com",
         id="usr_admin123",
@@ -39,6 +49,7 @@ def mock_get_current_user_admin() -> TokenData:
 
 
 def mock_get_current_user_root() -> TokenData:
+    """Provides a Root user token for system-level clone endpoint testing."""
     return TokenData(
         email="root@test.com",
         id="usr_root999",
@@ -49,8 +60,8 @@ def mock_get_current_user_root() -> TokenData:
 
 @pytest.fixture
 def mock_studio_service() -> AsyncMock:
+    """Provides a mocked Studio service pre-configured with cloned entity models."""
     service = AsyncMock()
-    # Configure mock returns for cloning
     service.clone_workflow.return_value = Workflow(
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
@@ -67,10 +78,11 @@ def mock_studio_service() -> AsyncMock:
         slug="test_step_clone",
         name=I18nText(translations={"en": "Step (Copy)", "fi": "Step (Copy)"}),
         type=StepType.LLM,
-        cognitive_tier="fast",
+        cognitive_tier=CognitiveTier.FAST,
         role_block_id=None,
         extraction_protocol_block_id="blk_0195f3a000007005873802341db9d68c",
         criteria_block_ids=["blk_0195f3a0000070008123456789abcdef"],
+        mcp_tool_params={},
     )
     service.clone_prompt_block.return_value = SystemRulePromptBlock(
         id="blk_0195f3a0000070018111111111111112",
@@ -80,9 +92,6 @@ def mock_studio_service() -> AsyncMock:
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
     )
-    from backend_v2.models.domain.system_config import ModelProfile
-    from backend_v2.models.enums import CognitiveTier
-
     dummy_profile = ModelProfile(provider="vertex_ai", model_name="gemini-1.5-flash")
     service.clone_system_config.return_value = SystemConfigModelRegistry(
         id="sys_0195f3a0000070018111111111111112",
@@ -101,8 +110,6 @@ def mock_studio_service() -> AsyncMock:
         type="mcp_gateways",
         tools=[],
     )
-    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
-
     service.clone_output_profile.return_value = OutputProfile(
         id="prof_0195f3a0000070018111111111111112",
         slug="test_prof_clone",
@@ -121,7 +128,8 @@ def mock_studio_service() -> AsyncMock:
 
 
 @pytest.fixture
-def client_admin(mock_studio_service: AsyncMock) -> Any:
+def client_admin(mock_studio_service: AsyncMock) -> Generator[TestClient]:
+    """Provides a TestClient authenticated as ADMIN."""
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user_admin
     app.dependency_overrides[get_studio_simulation_service] = lambda: mock_studio_service
     app.dependency_overrides[get_studio_workflow_service] = lambda: mock_studio_service
@@ -134,7 +142,8 @@ def client_admin(mock_studio_service: AsyncMock) -> Any:
 
 
 @pytest.fixture
-def client_root(mock_studio_service: AsyncMock) -> Any:
+def client_root(mock_studio_service: AsyncMock) -> Generator[TestClient]:
+    """Provides a TestClient authenticated as ROOT."""
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user_root
     app.dependency_overrides[get_studio_simulation_service] = lambda: mock_studio_service
     app.dependency_overrides[get_studio_workflow_service] = lambda: mock_studio_service
@@ -146,11 +155,10 @@ def client_root(mock_studio_service: AsyncMock) -> Any:
     app.dependency_overrides.clear()
 
 
-# --- Tests ---
-
-
 def test_clone_workflow_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
-    response = client_admin.post("/api/v2/studio/workflows/wf_0195f3a0000070018111111111111111/clone")
+    """Verifies cloning a workflow via the Studio endpoint."""
+    source_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+    response = client_admin.post(f"/api/v2/studio/workflows/{source_id}/clone")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "wf_0195f3a0000070038333333333333333"
@@ -158,7 +166,9 @@ def test_clone_workflow_endpoint(client_admin: TestClient, mock_studio_service: 
 
 
 def test_clone_step_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
-    response = client_admin.post("/api/v2/studio/steps/stp_0195f3a0000070018111111111111111/clone")
+    """Verifies cloning a step via the Studio endpoint."""
+    source_id = generate_opaque_id(EntityPrefix.STEP)
+    response = client_admin.post(f"/api/v2/studio/steps/{source_id}/clone")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "stp_0195f3a0000070018111111111111112"
@@ -166,7 +176,9 @@ def test_clone_step_endpoint(client_admin: TestClient, mock_studio_service: Asyn
 
 
 def test_clone_prompt_block_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
-    response = client_admin.post("/api/v2/studio/prompt-blocks/blk_0195f3a0000070018111111111111111/clone")
+    """Verifies cloning a prompt block via the Studio endpoint."""
+    source_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
+    response = client_admin.post(f"/api/v2/studio/prompt-blocks/{source_id}/clone")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "blk_0195f3a0000070018111111111111112"
@@ -174,8 +186,9 @@ def test_clone_prompt_block_endpoint(client_admin: TestClient, mock_studio_servi
 
 
 def test_clone_model_registry_endpoint(client_root: TestClient, mock_studio_service: AsyncMock) -> None:
-    # System Configs require ROOT role
-    response = client_root.post("/api/v2/studio/model-registry/sys_0195f3a0000070018111111111111111/clone")
+    """Verifies cloning a model registry configuration as ROOT."""
+    source_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    response = client_root.post(f"/api/v2/studio/model-registry/{source_id}/clone")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "sys_0195f3a0000070018111111111111112"
@@ -183,8 +196,9 @@ def test_clone_model_registry_endpoint(client_root: TestClient, mock_studio_serv
 
 
 def test_clone_mcp_gateways_endpoint(client_root: TestClient, mock_studio_service: AsyncMock) -> None:
-    # MCP Gateways require ROOT role
-    response = client_root.post("/api/v2/studio/mcp-gateways/mcp_0195f3a0000070018111111111111111/clone")
+    """Verifies cloning MCP gateway configuration as ROOT."""
+    source_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
+    response = client_root.post(f"/api/v2/studio/mcp-gateways/{source_id}/clone")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "mcp_0195f3a0000070018111111111111112"
@@ -192,7 +206,9 @@ def test_clone_mcp_gateways_endpoint(client_root: TestClient, mock_studio_servic
 
 
 def test_clone_output_profile_endpoint(client_admin: TestClient, mock_studio_service: AsyncMock) -> None:
-    response = client_admin.post("/api/v2/output-profiles/prof_0195f3a0000070018111111111111111/clone")
+    """Verifies cloning an output profile via the canonical endpoint."""
+    source_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
+    response = client_admin.post(f"/api/v2/output-profiles/{source_id}/clone")
     assert response.status_code == 201
     data = response.json()
     assert data["id"] == "prof_0195f3a0000070018111111111111112"

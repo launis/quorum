@@ -1,26 +1,33 @@
 """Unit tests for SynthesisEngine."""
 
 import re
+from collections.abc import Mapping
 from typing import Annotated
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
-from backend_v2.models.domain.blackboard import DraftExtractedAtom, GlobalAtomBlackboard
+from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom, GlobalAtomBlackboard
 from backend_v2.models.domain.step import StepRule
-from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, ReducedAtomDTO
+from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.atom_evaluation import (
+    EvaluatedMatrixRefDTO,
+    LightweightMatrixDTO,
+    RawXAIExtensionDTO,
+    ReducedAtomDTO,
+)
 from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.engine import EngineExecutionRequest
+from backend_v2.models.dtos.hook_state import GlobalContextVarsDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import LaxExecutionStatus, XaiExtensionType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.synthesis.style_directives import SPARSE_DATA_SYNTHESIS_MANDATE
-from backend_v2.models.state import TokenUsage
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.engines.base import ExecutionEngine
 from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
@@ -75,15 +82,24 @@ def base_request() -> EngineExecutionRequest:
         output_profile_id="prof_1",
         target_locale="en",
         metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+        prompt_blocks=[],
         context_variables=ContextVariablesDTO(
             global_atom_blackboard=GlobalAtomBlackboard(
-                atoms_by_input={"doc_0": {"atoms": [make_atom(f"atm_{i}") for i in range(1, 10)]}},
+                atoms_by_input={"doc_0": DraftAtomList(atoms=[make_atom(f"atm_{i}") for i in range(1, 10)])},
             ),
             matrix_reducer_output=LightweightMatrixDTO(
                 execution_id="exec_1",
-                reduced_atoms=[ReducedAtomDTO(tda_id="atm_1", status=LaxExecutionStatus.PASSED)],
+                reduced_atoms=[
+                    ReducedAtomDTO(
+                        tda_id="atm_1",
+                        status=LaxExecutionStatus.PASSED,
+                        depends_on_tda_ids=[],
+                        short_circuit_reason_tda_ids=[],
+                    )
+                ],
                 global_metrics={},
-                evaluated_matrices=[{"matrix_id": "mat_1"}],
+                evaluated_matrices=[EvaluatedMatrixRefDTO(matrix_id="mat_1")],
                 raw_extensions=[],
             ),
         ),
@@ -143,8 +159,13 @@ async def test_synthesis_engine_happy_path(
     trace = result.trace_events[0]
     assert trace.step_name == "sr_0195f3a000007005867890abcdef1234"
     assert trace.event_type == "output"
+    assert isinstance(trace.content, Mapping)
     assert trace.content["title"] == "Test"
-    assert trace.content["_step_metadata"]["token_usage"]["total_tokens"] == 30
+    step_meta = trace.content["_step_metadata"]
+    assert isinstance(step_meta, Mapping)
+    token_usage_meta = step_meta["token_usage"]
+    assert isinstance(token_usage_meta, Mapping)
+    assert token_usage_meta["total_tokens"] == 30
 
 
 @pytest.mark.asyncio
@@ -156,10 +177,12 @@ async def test_synthesis_engine_immutable_messages(
     mock_usage = TokenUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30)
     mock_executor.execute_structured_task.return_value = (mock_output, mock_usage)
 
+    assert base_request.hydrated_messages is not None
     original_messages_len = len(base_request.hydrated_messages)
 
     await engine.execute(base_request)
 
+    assert base_request.hydrated_messages is not None
     assert len(base_request.hydrated_messages) == original_messages_len
 
 
@@ -226,7 +249,9 @@ async def test_synthesis_engine_data_starvation_circuit_breaker(
     assert result.synthesis_output.total_atoms == 0
     assert "zero atoms extracted" in result.synthesis_output.reason
     assert len(result.trace_events) == 1
-    assert result.trace_events[0].content.event_type == "starvation"
+    trace_content = result.trace_events[0].content
+    assert isinstance(trace_content, DataStarvationEvent)
+    assert trace_content.event_type == "starvation"
     assert result.trace_events[0].step_name == "sr_0195f3a000007005867890abcdef1234"
 
     # Case B: 4 atoms (< 8) without matrix evidence
@@ -237,9 +262,9 @@ async def test_synthesis_engine_data_starvation_circuit_breaker(
                     "context_variables": ContextVariablesDTO(
                         global_atom_blackboard=GlobalAtomBlackboard(
                             atoms_by_input={
-                                "doc_0": {
-                                    "atoms": [make_atom(f"atm_{i}") for i in range(1, 5)],
-                                }
+                                "doc_0": DraftAtomList(
+                                    atoms=[make_atom(f"atm_{i}") for i in range(1, 5)],
+                                )
                             },
                         ),
                         matrix_reducer_output=LightweightMatrixDTO(
@@ -277,16 +302,23 @@ async def test_synthesis_engine_sparse_data_rule_injected(
                     "context_variables": ContextVariablesDTO(
                         global_atom_blackboard=GlobalAtomBlackboard(
                             atoms_by_input={
-                                "doc_0": {
-                                    "atoms": [
+                                "doc_0": DraftAtomList(
+                                    atoms=[
                                         make_atom("atm_1", claim="Single observation"),
                                     ]
-                                }
+                                )
                             },
                         ),
                         matrix_reducer_output=LightweightMatrixDTO(
                             execution_id="exec_1",
-                            reduced_atoms=[ReducedAtomDTO(tda_id="atm_1", status=LaxExecutionStatus.PASSED)],
+                            reduced_atoms=[
+                                ReducedAtomDTO(
+                                    tda_id="atm_1",
+                                    status=LaxExecutionStatus.PASSED,
+                                    depends_on_tda_ids=[],
+                                    short_circuit_reason_tda_ids=[],
+                                )
+                            ],
                             global_metrics={},
                             evaluated_matrices=[],
                             raw_extensions=[],
@@ -326,16 +358,23 @@ async def test_synthesis_engine_prompt_injection_cdata_shielding(
                     "context_variables": ContextVariablesDTO(
                         global_atom_blackboard=GlobalAtomBlackboard(
                             atoms_by_input={
-                                "doc_0": {
-                                    "atoms": [
+                                "doc_0": DraftAtomList(
+                                    atoms=[
                                         make_atom("atm_1", quote=malicious_text),
                                     ]
-                                }
+                                )
                             },
                         ),
                         matrix_reducer_output=LightweightMatrixDTO(
                             execution_id="exec_1",
-                            reduced_atoms=[ReducedAtomDTO(tda_id="atm_1", status=LaxExecutionStatus.PASSED)],
+                            reduced_atoms=[
+                                ReducedAtomDTO(
+                                    tda_id="atm_1",
+                                    status=LaxExecutionStatus.PASSED,
+                                    depends_on_tda_ids=[],
+                                    short_circuit_reason_tda_ids=[],
+                                )
+                            ],
                             global_metrics={},
                             evaluated_matrices=[],
                             raw_extensions=[],
@@ -402,10 +441,17 @@ async def test_synthesis_engine_with_raw_extensions_and_progress(
                         global_atom_blackboard=base_request.context.context_variables.global_atom_blackboard,
                         matrix_reducer_output=LightweightMatrixDTO(
                             execution_id="exec_1",
-                            reduced_atoms=[ReducedAtomDTO(tda_id="atm_1", status=LaxExecutionStatus.PASSED)],
+                            reduced_atoms=[
+                                ReducedAtomDTO(
+                                    tda_id="atm_1",
+                                    status=LaxExecutionStatus.PASSED,
+                                    depends_on_tda_ids=[],
+                                    short_circuit_reason_tda_ids=[],
+                                )
+                            ],
                             global_metrics={},
                             evaluated_matrices=[],
-                            raw_extensions=[{"risk_flag": True, "coaching": "Improve focus"}],
+                            raw_extensions=[RawXAIExtensionDTO(risk_flag=True, coaching="Improve focus")],
                         ),
                     )
                 }
@@ -472,7 +518,7 @@ async def test_synthesis_engine_with_lightweight_matrix_output(
                 update={
                     "context_variables": ContextVariablesDTO(
                         global_atom_blackboard=GlobalAtomBlackboard(
-                            atoms_by_input={"doc_0": {"atoms": [make_atom("atm_1")]}}
+                            atoms_by_input={"doc_0": DraftAtomList(atoms=[make_atom("atm_1")])}
                         ),
                         matrix_reducer_output=matrix_output,
                     )
@@ -510,12 +556,12 @@ async def test_synthesis_engine_execute_injects_aliased_reduced_atoms_into_user_
                     "context_variables": ContextVariablesDTO(
                         global_atom_blackboard=GlobalAtomBlackboard(
                             atoms_by_input={
-                                "doc_0": {
-                                    "atoms": [
+                                "doc_0": DraftAtomList(
+                                    atoms=[
                                         make_atom("a0", claim="First draft atom"),
                                         make_atom("a1", claim="Second draft atom"),
                                     ]
-                                }
+                                )
                             },
                         ),
                         matrix_reducer_output=LightweightMatrixDTO(
@@ -546,7 +592,7 @@ async def test_synthesis_engine_execute_injects_aliased_reduced_atoms_into_user_
                                 ),
                             ],
                             global_metrics={},
-                            evaluated_matrices=[{"matrix_id": "mat_1"}],
+                            evaluated_matrices=[EvaluatedMatrixRefDTO(matrix_id="mat_1")],
                             raw_extensions=[],
                         ),
                     )
@@ -581,30 +627,15 @@ async def test_synthesis_engine_execute_injects_aliased_reduced_atoms_into_user_
 async def test_synthesis_engine_corrupted_matrix_reducer_serialization_raises(
     engine: SynthesisEngine, base_request: EngineExecutionRequest
 ) -> None:
-    """Verify TypeError during matrix_reducer_output JSON serialization raises AppException(VALIDATION_FAILED)."""
-    corrupted_matrix = LightweightMatrixDTO.model_construct(
-        execution_id="exec_1",
-        reduced_atoms=[ReducedAtomDTO(tda_id="atm_1", status=LaxExecutionStatus.PASSED)],
-        global_metrics={},
-        evaluated_matrices=[],
-        raw_extensions=[{"unserializable": object()}],
-    )
-    req = base_request.model_copy(
-        update={
-            "context": base_request.context.model_copy(
-                update={
-                    "context_variables": ContextVariablesDTO.model_construct(
-                        global_atom_blackboard=base_request.context.context_variables.global_atom_blackboard,
-                        matrix_reducer_output=corrupted_matrix,
-                        variables={},
-                    )
-                }
-            )
-        }
-    )
-
-    with pytest.raises(AppException) as exc_info:
-        await engine.execute(req)
+    """Verify TypeError during matrix_reducer_output serialization raises AppException(VALIDATION_FAILED)."""
+    with (
+        patch(
+            "backend_v2.services.orchestrator.engines.synthesis_engine._serialize_reduced_atoms",
+            side_effect=TypeError("Unserializable object"),
+        ),
+        pytest.raises(AppException) as exc_info,
+    ):
+        await engine.execute(base_request)
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details is not None

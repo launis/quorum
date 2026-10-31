@@ -1,3 +1,5 @@
+"""Unit tests for PromptBlockRepositoryImpl orphan-prevention deletion boundary."""
+
 from __future__ import annotations
 
 import pytest
@@ -5,9 +7,9 @@ import pytest
 from backend_v2.database.postgres.storage_driver import PostgresStorageDriver
 from backend_v2.database.repositories.components.prompt_block import PromptBlockRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.step import Step
-from backend_v2.models.enums import CognitiveTier, StepType
+from backend_v2.models.enums import CognitiveTier, EntityPrefix, StepType
 from backend_v2.tests.factories import SystemRulePromptBlockFactory
 
 
@@ -22,8 +24,8 @@ async def test_delete_prompt_block_blocks_orphan_data(driver: PostgresStorageDri
     """Positive: tests Fail-Fast deletion boundary when prompt block is used by a Step."""
     repo = PromptBlockRepositoryImpl(driver=driver)
 
-    block_id = "blk_0195f3a0000070008000000000000001"
-    step_id = "stp_0195f3a0000070008000000000000001"
+    block_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
+    step_id = generate_opaque_id(EntityPrefix.STEP)
 
     block = SystemRulePromptBlockFactory.build(id=block_id)
     step = Step(
@@ -35,6 +37,7 @@ async def test_delete_prompt_block_blocks_orphan_data(driver: PostgresStorageDri
         role_block_id=None,
         extraction_protocol_block_id=block_id,
         criteria_block_ids=[block_id],
+        mcp_tool_params={},
     )
 
     # Seed block and referencing step in storage

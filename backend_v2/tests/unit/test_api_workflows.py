@@ -14,6 +14,8 @@ from backend_v2.api.dependencies import (
 )
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.enums import EntityPrefix
 from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
 from backend_v2.tests.factories import WorkflowFactory
@@ -99,19 +101,20 @@ def test_workflow_rbac_delete_member_forbidden(
 
 def test_workflow_save_malformed_json_triggers_422(client_member: TestClient) -> None:
     """Negative test: Verifies that invalid/malformed JSON body fails with 422 Unprocessable Entity."""
-    response = client_member.put(
-        "/api/v2/studio/workflows/wf_0195f3a0000070018234567890abcdef", json={"invalid": "payload"}
-    )
+    workflow_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+    response = client_member.put(f"/api/v2/studio/workflows/{workflow_id}", json={"invalid": "payload"})
     assert response.status_code == 422
 
 
 def test_workflow_get_nonexistent_triggers_404(client_root: TestClient) -> None:
     """Negative test: Verifies that requesting a non-existent workflow returns 404 Not Found."""
-    response = client_root.get("/api/v2/studio/workflows/wf_0195f3a0000070008000000000000404")
+    missing_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+    response = client_root.get(f"/api/v2/studio/workflows/{missing_id}")
     assert response.status_code == 404
 
 
 def test_workflow_delete_nonexistent_triggers_404(client_root: TestClient) -> None:
     """Negative test: Verifies that deleting a non-existent workflow returns 404 Not Found."""
-    response = client_root.delete("/api/v2/studio/workflows/wf_0195f3a0000070008000000000000404")
+    missing_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+    response = client_root.delete(f"/api/v2/studio/workflows/{missing_id}")
     assert response.status_code == 404

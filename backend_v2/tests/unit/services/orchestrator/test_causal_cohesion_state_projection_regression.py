@@ -7,15 +7,26 @@ does not corrupt StateProjector snapshot with bare AtomResultDTO or trigger
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
-from backend_v2.models.dtos.atom_result import AtomResultDTO
-from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalNodeDTO
+from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+from backend_v2.models.dtos.causal_discovery import (
+    AntiFluffAuditDTO,
+    CausalGraphPayloadDTO,
+    CausalNodeDTO,
+)
 from backend_v2.models.dtos.node_execution import StepOutputContentDTO
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import StateProjector, TraceEvent
+from backend_v2.services.orchestrator.causal_cohesion_evaluator import (
+    CausalCohesionEvaluator,
+)
 from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
 
 
@@ -38,6 +49,8 @@ def test_state_projector_atom_result_dto_does_not_corrupt_snapshot() -> None:
         edges=[],
         root_cause_node_ids=[],
         isolated_node_ids=[],
+        partition_node_ids={},
+        edge_root_causes=[],
     )
     graph_event = TraceEvent(
         step_name=step_id,
@@ -100,6 +113,8 @@ def test_state_projector_atom_result_dto_preserves_graph_and_accumulates_results
                 edges=[],
                 root_cause_node_ids=[],
                 isolated_node_ids=[],
+                partition_node_ids={},
+                edge_root_causes=[],
             ),
         )
     )
@@ -191,8 +206,6 @@ def test_state_projector_atom_result_list_aggregates_into_results() -> None:
 
 def test_state_projector_unsupported_content_type_fails_fast() -> None:
     """Negative Test: Unsupported arbitrary content in output event triggers Fail-Fast AppException."""
-    from backend_v2.exceptions import ErrorCodes
-
     projector = StateProjector()
 
     event = TraceEvent(
@@ -231,6 +244,8 @@ def test_state_projector_results_dict_preserves_graph_and_accumulates_results() 
                 edges=[],
                 root_cause_node_ids=[],
                 isolated_node_ids=[],
+                partition_node_ids={},
+                edge_root_causes=[],
             ),
         )
     )
@@ -300,6 +315,8 @@ def test_state_projector_results_dict_with_raw_dicts_deserializes_and_accumulate
                 edges=[],
                 root_cause_node_ids=[],
                 isolated_node_ids=[],
+                partition_node_ids={},
+                edge_root_causes=[],
             ),
         )
     )
@@ -327,7 +344,7 @@ def test_state_projector_results_dict_with_raw_dicts_deserializes_and_accumulate
         short_circuit_reason_tda_ids=[],
     )
 
-    # Content serialized from JSON trace as raw dictionaries
+    # Content serialized from JSON trace as raw dictionaries and hydrated via model_validate
     raw_content = {
         "results": [
             atom_1.model_dump(mode="json"),
@@ -335,10 +352,12 @@ def test_state_projector_results_dict_with_raw_dicts_deserializes_and_accumulate
         ]
     }
     projector.apply_delta(
-        TraceEvent(
-            step_name=step_id,
-            event_type="output",
-            content=raw_content,
+        TraceEvent.model_validate(
+            {
+                "step_name": step_id,
+                "event_type": "output",
+                "content": raw_content,
+            }
         )
     )
 
@@ -412,22 +431,13 @@ def test_causal_cohesion_trace_event_must_provide_hydrated_references_for_report
     validation to crash with:
     'Referential Integrity Error: Missing keys in hydrated_references: {...}'
     """
-    from datetime import datetime, timezone
-
-    from backend_v2.models.core_base import I18nText
-    from backend_v2.models.dtos.atom_result import HydratedAtomDTO
-    from backend_v2.models.dtos.causal_discovery import AntiFluffAuditDTO
-    from backend_v2.models.dtos.report_data import ReportDataDTO
-    from backend_v2.services.orchestrator.causal_cohesion_evaluator import (
-        CausalCohesionEvaluator,
-    )
-
     evaluator = CausalCohesionEvaluator()
     audit = AntiFluffAuditDTO(
         logical_cohesion_score=0.85,
         cycle_detected=False,
         isolated_concept_count=1,
         unsupported_claims_count=0,
+        detected_hollow_terms=[],
     )
     eval_dto = evaluator.evaluate_causal_cohesion(
         audit=audit,
@@ -461,8 +471,15 @@ def test_causal_cohesion_trace_event_must_provide_hydrated_references_for_report
     assert "results" in by_block
     assert "hydrated_references" in by_block
 
-    v2_results: list[AtomResultDTO] = by_block["results"].payload
-    v2_hydrated_refs: dict[str, HydratedAtomDTO] = by_block["hydrated_references"].payload
+    raw_results = by_block["results"].payload
+    assert isinstance(raw_results, list)
+    v2_results: list[AtomResultDTO] = [r for r in raw_results if isinstance(r, AtomResultDTO)]
+
+    raw_hydrated_refs = by_block["hydrated_references"].payload
+    assert isinstance(raw_hydrated_refs, dict)
+    v2_hydrated_refs: dict[str, HydratedAtomDTO] = {
+        str(k): v for k, v in raw_hydrated_refs.items() if isinstance(v, HydratedAtomDTO)
+    }
 
     # Invariant: ReportDataDTO referential integrity check must pass without exception
     i18n = I18nText(translations={"en": "Test", "fi": "Testi"})

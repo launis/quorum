@@ -14,6 +14,8 @@ from backend_v2.api.dependencies import (
 )
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.enums import EntityPrefix
 from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
 from backend_v2.tests.factories import SystemRulePromptBlockFactory
@@ -86,11 +88,13 @@ def test_delete_prompt_block(client: TestClient, fake_prompt_block_repo: InMemor
 
 def test_get_prompt_block_nonexistent_triggers_404(client: TestClient) -> None:
     """Negative test: Verifies that requesting a non-existent prompt block returns 404."""
-    response = client.get("/api/v2/studio/prompt-blocks/blk_0195f3a0000070008000000000000404")
+    missing_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
+    response = client.get(f"/api/v2/studio/prompt-blocks/{missing_id}")
     assert response.status_code == 404
 
 
 def test_delete_prompt_block_nonexistent_triggers_404(client: TestClient) -> None:
     """Negative test: Verifies that deleting a non-existent prompt block returns 404."""
-    response = client.delete("/api/v2/studio/prompt-blocks/blk_0195f3a0000070008000000000000404")
+    missing_id = generate_opaque_id(EntityPrefix.PROMPT_BLOCK)
+    response = client.delete(f"/api/v2/studio/prompt-blocks/{missing_id}")
     assert response.status_code == 404
