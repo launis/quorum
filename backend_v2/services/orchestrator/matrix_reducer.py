@@ -28,7 +28,14 @@ __all__ = ["MatrixReducer", "State"]
 
 
 def _parse_raw_extension(raw: Any) -> RawXAIExtensionDTO:
-    """Safely parse arbitrary extension data into RawXAIExtensionDTO."""
+    """Safely parse arbitrary extension data into RawXAIExtensionDTO.
+
+    Args:
+        raw: Arbitrary extension payload or existing RawXAIExtensionDTO.
+
+    Returns:
+        The validated RawXAIExtensionDTO instance.
+    """
     if isinstance(raw, RawXAIExtensionDTO):
         return raw
     if type(raw) is dict:
@@ -110,7 +117,7 @@ class MatrixReducer:
                 return cls.reduce_all_must_comply(states)
             case _:
                 msg = f"Unknown aggregation mode: {assertion.aggregation_mode}"
-                logger.error("[MatrixReducer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                logger.error("[MatrixReducer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
                     status_code=500,
@@ -176,7 +183,7 @@ class MatrixReducer:
                         )
                     except ValidationError as e:
                         msg = f"Failed to validate AtomResultDTO from execution trace: {e}"
-                        logger.error("[MatrixReducer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        logger.error("[MatrixReducer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                         raise AppException(
                             message=msg,
                             status_code=500,
