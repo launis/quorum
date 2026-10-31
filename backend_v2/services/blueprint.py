@@ -272,8 +272,10 @@ class BlueprintTransformer:
         if profile_cache:
             section_syntheses = profile_cache.section_syntheses
             if section_syntheses is None:
+                msg = "Fail-Fast: section_syntheses cannot be None in profile_cache."
+                logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise AppException(
-                    message="Fail-Fast: section_syntheses cannot be None in profile_cache.",
+                    message=msg,
                     status_code=500,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
