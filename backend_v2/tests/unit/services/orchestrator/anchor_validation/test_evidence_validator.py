@@ -472,4 +472,3 @@ def test_anchor_validation_directive_morphological_fallback_and_s1_retries() -> 
     )
     assert res_multi_morph is not None
     assert len(res_multi_morph) == 2
-

@@ -1,7 +1,7 @@
 """Unit tests for synthesis_tasks.py covering task construction and LLM execution."""
 
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 

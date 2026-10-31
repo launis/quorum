@@ -1597,4 +1597,3 @@ def test_matrix_failure_deficit_dto_invalid_status_raises_validation_error() -> 
                 "contrastive_acceptable": None,
             }
         )
-
