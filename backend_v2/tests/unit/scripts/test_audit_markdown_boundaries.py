@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from pydantic import ValidationError
 
 from scripts.audit_markdown_boundaries import (
     GuardrailSeverity,
@@ -37,6 +38,26 @@ def test_markdown_auditor_dto_structure() -> None:
     assert finding.rule_code == "MBD001"
     assert finding.severity == GuardrailSeverity.WARNING
     assert finding.remediation == "Replace with concrete list."
+
+    with pytest.raises(ValidationError):
+        MarkdownAuditFinding(
+            line_number=-1,
+            rule_code="MBD001",
+            category="Ambiguity",
+            message="Negative line",
+            severity=GuardrailSeverity.WARNING,
+            remediation="Fix line.",
+        )
+
+    with pytest.raises(ValidationError):
+        MarkdownAuditFinding(
+            line_number=1,
+            rule_code="INVALID_CODE",
+            category="Ambiguity",
+            message="Bad rule code",
+            severity=GuardrailSeverity.WARNING,
+            remediation="Fix code.",
+        )
 
 
 def test_print_helpers(capsys: pytest.CaptureFixture[str]) -> None:
@@ -592,6 +613,24 @@ def test_markdown_auditor_table_protocol_parity_ignores_ki_files(tmp_path: Path)
     auditor.check_table_protocol_parity()
     findings = [f for f in auditor.findings if f.rule_code == "MBD008"]
     assert findings == []
+
+
+def test_markdown_auditor_embedded_python_code_blocks(tmp_path: Path) -> None:
+    """Test scanning embedded Python code blocks for QGR AST guardrail violations."""
+    md_file = tmp_path / "codeblock_violation.md"
+    md_file.write_text(
+        "# Plan\n"
+        "```python\n"
+        "def bad_func(x: dict[str, object]) -> object:\n"
+        "    return getattr(x, 'foo', None)\n"
+        "```\n",
+        encoding="utf-8",
+    )
+
+    auditor = MarkdownAuditor(str(md_file), str(tmp_path))
+    auditor.check_embedded_python_code_blocks()
+    assert len(auditor.findings) >= 1
+    assert any(f.category == "Codeblock Guardrail" for f in auditor.findings)
 
 
 def test_markdown_auditor_zero_reflection_compliance() -> None:

@@ -11,6 +11,7 @@ import argparse
 import ast
 import re
 import sys
+import textwrap
 from pathlib import Path
 
 # Ensure workspace root is in sys.path for direct script execution
@@ -180,8 +181,7 @@ class MarkdownAuditor:
         """
         self.file_path = file_path
         self.repo_root = Path(repo_root)
-        with open(file_path, encoding="utf-8") as f:
-            self.content = f.read()
+        self.content = Path(file_path).read_text(encoding="utf-8")
         self.lines = self.content.splitlines()
         self.findings: list[MarkdownAuditFinding] = []
 
@@ -229,7 +229,7 @@ class MarkdownAuditor:
     def auto_fix_ast_bounds(self) -> int:
         """Deterministically resolve and rewrite symbolic @[file.py#SymbolName] and drifted #Lnn-mm bounds in-place.
 
-        Phase 3, Step 3: Reuse get_ast_definition_bounds from scripts/_ast_boundary_utils.py as SSOT.
+        Reuses get_ast_definition_bounds from scripts/_ast_boundary_utils.py as SSOT.
 
         Returns:
             Number of AST boundary references rewritten across the document.
@@ -620,8 +620,6 @@ class MarkdownAuditor:
 
     def check_embedded_python_code_blocks(self) -> None:
         """Scan embedded Python code blocks for codebase architectural violations (QGR000-QGR010)."""
-        import textwrap
-
         code_block_pattern = re.compile(r"```python\s*\n([\s\S]*?)```")
         for match in code_block_pattern.finditer(self.content):
             code_text = match.group(1)
