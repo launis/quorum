@@ -14,7 +14,7 @@ void main() {
     final matrices = [
       const MatrixScorecardRowDto(
         blockId: 'block_1',
-        labelI18n: const I18nText(
+        labelI18n: I18nText(
           translations: {'fi': 'Kognitio', 'en': 'Cognition'},
         ),
         name: 'Cognition',
@@ -69,7 +69,7 @@ void main() {
     final matrices = [
       const MatrixScorecardRowDto(
         blockId: 'block_1',
-        labelI18n: const I18nText(
+        labelI18n: I18nText(
           translations: {'fi': 'Kognitio', 'en': 'Cognition'},
         ),
         name: 'Cognition',
@@ -112,7 +112,7 @@ void main() {
       final matrices = [
         const MatrixScorecardRowDto(
           blockId: 'block_1',
-          labelI18n: const I18nText(
+          labelI18n: I18nText(
             translations: {'fi': 'Kognitio', 'en': 'Cognition'},
           ),
           name: 'Cognition',
@@ -171,7 +171,7 @@ void main() {
       final matrices = [
         const MatrixScorecardRowDto(
           blockId: 'block_1',
-          labelI18n: const I18nText(
+          labelI18n: I18nText(
             translations: {'fi': 'Kognitio', 'en': 'Cognition'},
           ),
           name: 'Cognition',
@@ -214,7 +214,7 @@ void main() {
       final matrices = [
         MatrixScorecardRowDto(
           blockId: 'block_override',
-          labelI18n: I18nText(
+          labelI18n: const I18nText(
             translations: {'fi': 'Override', 'en': 'Override'},
           ),
           name: 'Override',
@@ -234,12 +234,12 @@ void main() {
               visualIntent: VisualIntent.info,
               extractedFacts: {},
               exactQuotes: [
-                QuoteEvidenceDto(
+                const QuoteEvidenceDto(
                   verifiedSourceIds: ['doc_1'],
                   sourceQuotes: ['AI says FAIL'],
                 ),
               ],
-              internalLogicEn: ReasoningStepDto(
+              internalLogicEn: const ReasoningStepDto(
                 step1IdentifyPremise: '',
                 step2ScanSource: '',
                 step3EvaluateAntiPatterns: '',
@@ -255,7 +255,7 @@ void main() {
                 overriddenAt: DateTime.parse('2023-01-01T00:00:00Z'),
                 overriddenBy: 'Test User',
                 evidenceQuotes: [
-                  QuoteEvidenceDto(
+                  const QuoteEvidenceDto(
                     verifiedSourceIds: ['manual'],
                     sourceQuotes: ['Human evidence'],
                   ),
@@ -366,4 +366,67 @@ void main() {
     expect(find.byType(ListView), findsNothing);
     expect(find.byType(ExpansionTile), findsNothing);
   });
+
+  testWidgets(
+    'AtomMatrixTableWidget filters out systemError atoms and renders fallback dash',
+    (WidgetTester tester) async {
+      final matrices = [
+        const MatrixScorecardRowDto(
+          blockId: 'block_sys_err',
+          labelI18n: I18nText(translations: {'en': 'Error Atom Test'}),
+          name: 'Error Atom Test',
+          score: 0.0,
+          scaleMax: 5.0,
+          scoreDisplayLabel: '0.0 / 5.0',
+          levelBreakdown: {'1': '0 / 1'},
+          evaluatedAtoms: [
+            ScorecardAtomDto(
+              atomId: 'atom_err_1',
+              level: 1,
+              levelName: 'T1',
+              claimLabel: 'Broken atom',
+              chartDisplayLabel: 'Broken atom',
+              visualIntent: VisualIntent.error,
+              extractedFacts: {},
+              exactQuotes: [],
+              internalLogicEn: ReasoningStepDto(
+                step1IdentifyPremise: '',
+                step2ScanSource: '',
+                step3EvaluateAntiPatterns: '',
+                step4FinalConclusion: '',
+              ),
+              status: ExecutionStatus.systemError,
+              semanticReasoning: 'Evaluation error',
+              contextualOverride: false,
+            ),
+          ],
+        ),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('en'),
+            home: MediaQuery(
+              data: const MediaQueryData(size: Size(800, 600)),
+              child: Scaffold(
+                body: AtomMatrixTableWidget(
+                  matrices: matrices,
+                  visibleColumns: const ['quotes'],
+                  executionId: 'test_execution_err',
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Broken atom'), findsNothing);
+      expect(find.text('-'), findsOneWidget);
+    },
+  );
 }

@@ -53,7 +53,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
             Container(
               decoration: BoxDecoration(
                 border: Border.all(color: theme.colorScheme.outlineVariant),
-                borderRadius: BorderRadius.circular(8.0),
+                borderRadius: BorderRadius.circular(AppSpacing.s8),
               ),
               child: isSmallScreen
                   ? _buildMobileList(context, ref, tableMatrices, theme)
@@ -99,7 +99,10 @@ class AtomMatrixTableWidget extends ConsumerWidget {
       children: [
         Container(
           color: theme.colorScheme.surfaceContainerHighest,
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s16,
+            vertical: AppSpacing.s12,
+          ),
           child: Row(
             children: [
               if (visibleColumns.contains('label'))
@@ -175,8 +178,8 @@ class AtomMatrixTableWidget extends ConsumerWidget {
 
               return Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 12.0,
+                  horizontal: AppSpacing.s16,
+                  vertical: AppSpacing.s12,
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,7 +210,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                             if (m.description != null &&
                                 m.description!.isNotEmpty)
                               Padding(
-                                padding: const EdgeInsets.only(top: 4.0),
+                                padding: const EdgeInsets.only(
+                                  top: AppSpacing.s4,
+                                ),
                                 child: Text(
                                   m.description!,
                                   style: theme.textTheme.labelSmall?.copyWith(
@@ -232,7 +237,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                             final numLvl =
                                 double.tryParse(lvl)?.toInt().toString() ?? lvl;
                             return Padding(
-                              padding: const EdgeInsets.only(bottom: 2.0),
+                              padding: const EdgeInsets.only(
+                                bottom: AppSpacing.s2,
+                              ),
                               child: Text(
                                 l10n.scorecardLevelPrefix(
                                   numLvl,
@@ -349,7 +356,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
               ),
               if (m.description != null && m.description!.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
+                  padding: const EdgeInsets.only(top: AppSpacing.s4),
                   child: Text(
                     m.description!,
                     style: theme.textTheme.labelSmall?.copyWith(
@@ -375,7 +382,12 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: AppSpacing.s4),
                   child: Row(
                     children: [
-                      Text(l10n.scorecardNormalizedScoreSuffix),
+                      Flexible(
+                        child: Text(
+                          l10n.scorecardNormalizedScoreSuffix,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.s8,
@@ -398,7 +410,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                 ),
               if (visibleColumns.contains('row_explanation'))
                 Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
+                  padding: const EdgeInsets.only(top: AppSpacing.s4),
                   child: Text(
                     m.rowExplanation,
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -472,7 +484,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                AppSpacing.h4,
                 ..._buildLevelAtoms(context, m.atomsByLevel[level]!, theme),
               ],
             ),
@@ -486,16 +498,14 @@ class AtomMatrixTableWidget extends ConsumerWidget {
     List<ScorecardAtomDto> atoms,
     ThemeData theme,
   ) {
-    final validAtoms = atoms.where((atom) {
-      final statusName = atom.status?.name.toLowerCase() ?? '';
-      return statusName != 'systemerror' &&
-          !atom.semanticReasoning.startsWith('Chunk Processing Failed');
-    }).toList();
+    final validAtoms = atoms
+        .where((atom) => atom.status != ExecutionStatus.systemError)
+        .toList();
 
     if (validAtoms.isEmpty) {
       return [
         Padding(
-          padding: const EdgeInsets.only(bottom: 4.0),
+          padding: const EdgeInsets.only(bottom: AppSpacing.s4),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -550,11 +560,11 @@ class AtomMatrixTableWidget extends ConsumerWidget {
           top: AppSpacing.s8,
           bottom: AppSpacing.s4,
         ),
-        padding: const EdgeInsets.all(AppSpacing.s8),
+        padding: AppSpacing.p8,
         decoration: BoxDecoration(
           color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.15),
           border: Border.all(color: theme.colorScheme.tertiaryContainer),
-          borderRadius: BorderRadius.circular(4.0),
+          borderRadius: BorderRadius.circular(AppSpacing.s4),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -563,10 +573,10 @@ class AtomMatrixTableWidget extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.gavel,
-                  size: 16,
+                  size: AppSpacing.s16,
                   color: theme.colorScheme.onTertiaryContainer,
                 ),
-                const SizedBox(width: 4),
+                AppSpacing.w4,
                 Expanded(
                   child: Text(
                     AppLocalizations.of(
@@ -580,7 +590,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            AppSpacing.h4,
             Text(
               AppLocalizations.of(
                 context,
@@ -592,7 +602,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
             ),
             if (humanQuotes.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: 6.0),
+                padding: const EdgeInsets.only(top: AppSpacing.s6),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: humanQuotes,
@@ -604,7 +614,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.s12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -634,7 +644,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                 ),
                 if (aiQuotes.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(top: 2.0),
+                    padding: const EdgeInsets.only(top: AppSpacing.s2),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: aiQuotes,
@@ -642,7 +652,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   ),
                 if (atom.semanticReasoning.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
+                    padding: const EdgeInsets.only(top: AppSpacing.s4),
                     child: Text(
                       '${AppLocalizations.of(context)!.lblReasoning}: ${atom.semanticReasoning}',
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -700,7 +710,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
 
       parsedQuotes.add(
         Padding(
-          padding: const EdgeInsets.only(top: 4.0),
+          padding: const EdgeInsets.only(top: AppSpacing.s4),
           child: RichText(
             text: TextSpan(
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -713,10 +723,10 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   WidgetSpan(
                     alignment: PlaceholderAlignment.middle,
                     child: Container(
-                      margin: const EdgeInsets.only(right: 6.0),
+                      margin: const EdgeInsets.only(right: AppSpacing.s6),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6.0,
-                        vertical: 2.0,
+                        horizontal: AppSpacing.s6,
+                        vertical: AppSpacing.s2,
                       ),
                       decoration: BoxDecoration(
                         color: isFaded
@@ -732,7 +742,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                                   alpha: 0.3,
                                 ),
                         ),
-                        borderRadius: BorderRadius.circular(4.0),
+                        borderRadius: BorderRadius.circular(AppSpacing.s4),
                       ),
                       child: Text(
                         disp.toUpperCase(),
