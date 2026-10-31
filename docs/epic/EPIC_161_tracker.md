@@ -79,7 +79,7 @@
   - [x] @[backend_v2/models/prompts/synthesis/synthesis_directives.py]
   - [x] @[backend_v2/models/view/sdui.py]
   - [x] @[backend_v2/services/blueprint.py]
-  - [ ] @[backend_v2/services/orchestrator/anchor_validation/evidence_validator.py]
+  - [x] @[backend_v2/services/orchestrator/anchor_validation/evidence_validator.py]
   - [ ] @[backend_v2/services/orchestrator/anchor_validation/lexical_matcher.py]
   - [ ] @[backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
