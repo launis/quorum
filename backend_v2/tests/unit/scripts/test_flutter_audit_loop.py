@@ -16,7 +16,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from scripts.flutter_audit_loop import main
+from scripts.flutter_audit_loop import (
+    main,
+    requires_dart_codegen,
+    resolve_flutter_unit_test_files,
+)
 
 
 def _mock_completed_process(
@@ -119,6 +123,113 @@ def test_cli_build_flag_triggers_l10n_and_build_runner(mock_sub: MagicMock, tmp_
             calls = [c[0][0] for c in mock_sub.call_args_list]
             assert ["flutter", "gen-l10n"] in calls
             assert ["dart", "run", "build_runner", "build", "-d"] in calls
+
+
+def test_requires_dart_codegen_positive_and_negative_partitions(tmp_path: Path) -> None:
+    """Verify requires_dart_codegen across directories, .arb files, Freezed/Riverpod Dart files, and plain widgets."""
+    # Directory -> True
+    assert requires_dart_codegen(tmp_path) is True
+
+    # .arb file -> True
+    arb_file = tmp_path / "app_en.arb"
+    arb_file.write_text("{}", encoding="utf-8")
+    assert requires_dart_codegen(arb_file) is True
+
+    # Plain Dart widget -> False
+    plain_dart = tmp_path / "widget.dart"
+    plain_dart.write_text("class MyWidget {}\n", encoding="utf-8")
+    assert requires_dart_codegen(plain_dart) is False
+
+    # Dart file with Freezed / Riverpod / .g.dart -> True
+    codegen_dart = tmp_path / "model.dart"
+    codegen_dart.write_text("part 'model.freezed.dart';\n@freezed\nclass Model {}\n", encoding="utf-8")
+    assert requires_dart_codegen(codegen_dart) is True
+
+    # Non-existent or non-dart file -> False
+    assert requires_dart_codegen(tmp_path / "missing.dart") is False
+    txt_file = tmp_path / "notes.txt"
+    txt_file.write_text("@freezed", encoding="utf-8")
+    assert requires_dart_codegen(txt_file) is False
+
+
+def test_resolve_flutter_unit_test_files_positive_and_negative_partitions(tmp_path: Path) -> None:
+    """Verify resolve_flutter_unit_test_files resolves matching test/unit and test files or empty list when absent."""
+    client_app = tmp_path / "client_app_v2"
+    unit_test = client_app / "test" / "unit" / "features" / "studio" / "my_view_test.dart"
+    unit_test.parent.mkdir(parents=True)
+    unit_test.write_text("void main() {}\n", encoding="utf-8")
+
+    resolved = resolve_flutter_unit_test_files(
+        "client_app_v2/lib/features/studio/my_view.dart",
+        client_app,
+    )
+    assert resolved == ["test/unit/features/studio/my_view_test.dart"]
+
+    # Direct test target
+    direct_resolved = resolve_flutter_unit_test_files(
+        "client_app_v2/test/unit/features/studio/my_view_test.dart",
+        client_app,
+    )
+    assert direct_resolved == ["test/unit/features/studio/my_view_test.dart"]
+
+    # Missing test file -> empty list
+    assert resolve_flutter_unit_test_files("lib/features/studio/untested.dart", client_app) == []
+    assert resolve_flutter_unit_test_files("test/unit/missing_test.dart", client_app) == []
+    assert resolve_flutter_unit_test_files("lib/features/studio", client_app) == []
+
+
+@patch("subprocess.run")
+def test_cli_micro_skips_codegen_for_plain_widget_and_runs_isolated_test(mock_sub: MagicMock, tmp_path: Path) -> None:
+    """Verify --micro skips gen-l10n and build_runner for plain widget and executes isolated unit test."""
+    client_app = tmp_path / "client_app_v2"
+    lib_dir = client_app / "lib"
+    lib_dir.mkdir(parents=True)
+    target_file = lib_dir / "app.dart"
+    target_file.write_text("class MyApp {}\n", encoding="utf-8")
+
+    test_dir = client_app / "test" / "unit"
+    test_dir.mkdir(parents=True)
+    (test_dir / "app_test.dart").write_text("void main() {}\n", encoding="utf-8")
+
+    mock_sub.return_value = _mock_completed_process(0)
+    with patch("os.getcwd", return_value=str(client_app)):
+        with patch.object(
+            sys,
+            "argv",
+            ["flutter_audit_loop.py", "client_app_v2/lib/app.dart", "--build", "--strict", "--micro"],
+        ):
+            main()
+            calls = [c[0][0] for c in mock_sub.call_args_list]
+            assert ["flutter", "gen-l10n"] not in calls
+            assert ["dart", "run", "build_runner", "build", "-d"] not in calls
+            assert ["flutter", "test", "test/unit/app_test.dart"] in calls
+
+
+@patch("subprocess.run")
+def test_cli_micro_runs_codegen_when_target_contains_freezed_directive(mock_sub: MagicMock, tmp_path: Path) -> None:
+    """Verify --micro executes gen-l10n and build_runner when target file contains codegen directives."""
+    client_app = tmp_path / "client_app_v2"
+    lib_dir = client_app / "lib"
+    lib_dir.mkdir(parents=True)
+    target_file = lib_dir / "model.dart"
+    target_file.write_text("part 'model.freezed.dart';\n", encoding="utf-8")
+
+    test_dir = client_app / "test" / "unit"
+    test_dir.mkdir(parents=True)
+    (test_dir / "model_test.dart").write_text("void main() {}\n", encoding="utf-8")
+
+    mock_sub.return_value = _mock_completed_process(0)
+    with patch("os.getcwd", return_value=str(client_app)):
+        with patch.object(
+            sys,
+            "argv",
+            ["flutter_audit_loop.py", "client_app_v2/lib/model.dart", "--build", "--micro"],
+        ):
+            main()
+            calls = [c[0][0] for c in mock_sub.call_args_list]
+            assert ["flutter", "gen-l10n"] in calls
+            assert ["dart", "run", "build_runner", "build", "-d"] in calls
+            assert ["flutter", "test", "test/unit/model_test.dart"] in calls
 
 
 @patch("sys.exit")
@@ -273,6 +384,54 @@ def test_cli_test_flag_executes_flutter_test(mock_sub: MagicMock, tmp_path: Path
             main()
             calls = [c[0][0] for c in mock_sub.call_args_list]
             assert ["flutter", "test", "--coverage"] in calls
+
+
+@patch("sys.exit")
+@patch("subprocess.run")
+def test_cli_micro_missing_unit_test_triggers_fail_fast_exit(
+    mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path
+) -> None:
+    """Verify --micro exits with code 1 when the target Dart file has no corresponding unit test."""
+    client_app = tmp_path / "client_app_v2"
+    lib_dir = client_app / "lib"
+    lib_dir.mkdir(parents=True)
+    (lib_dir / "untested.dart").write_text("class Untested {}\n", encoding="utf-8")
+
+    mock_exit.side_effect = SystemExit(1)
+    mock_sub.return_value = _mock_completed_process(0)
+
+    with patch("os.getcwd", return_value=str(client_app)):
+        with patch.object(sys, "argv", ["flutter_audit_loop.py", "client_app_v2/lib/untested.dart", "--micro"]):
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 1
+
+
+@patch("sys.exit")
+@patch("subprocess.run")
+def test_cli_micro_unit_test_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
+    """Verify --micro exits with the failing test returncode when the isolated unit test fails."""
+    client_app = tmp_path / "client_app_v2"
+    lib_dir = client_app / "lib"
+    lib_dir.mkdir(parents=True)
+    (lib_dir / "app.dart").write_text("class MyApp {}\n", encoding="utf-8")
+    test_dir = client_app / "test" / "unit"
+    test_dir.mkdir(parents=True)
+    (test_dir / "app_test.dart").write_text("void main() {}\n", encoding="utf-8")
+
+    mock_exit.side_effect = SystemExit(1)
+    mock_sub.side_effect = [
+        _mock_completed_process(0),  # guardrails pass
+        _mock_completed_process(0),  # dart format passes
+        _mock_completed_process(0),  # dart analyze passes
+        _mock_completed_process(1),  # isolated flutter test fails
+    ]
+
+    with patch("os.getcwd", return_value=str(client_app)):
+        with patch.object(sys, "argv", ["flutter_audit_loop.py", "client_app_v2/lib/app.dart", "--micro"]):
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 1
 
 
 @patch("sys.exit")

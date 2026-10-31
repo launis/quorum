@@ -489,6 +489,13 @@
     <rule_block id="package_facade_and_inter_context_protocol_mandate">
         <mandate>Package facades (`__init__.py`) MUST be strictly under 300 lines and act purely as immutable dependency injection routers and re-export entry points. Mutable `@property` setters mutating sub-service state are strictly prohibited. Sub-services collaborating across bounded contexts MUST communicate via typed `typing.Protocol` contracts rather than loose `Callable[..., Any]` functions.</mandate>
     </rule_block>
+
+    <rule_block id="tripartite_postgres_pydantic_python_boundary">
+        <mandate>Enforce strict Tripartite Architecture roles and interface isolation across PostgreSQL, Pydantic, and Python:
+        1) **Pydantic (`backend_v2/models/`)**: Pure schema, contract, and validation layer (`ConfigDict(strict=True, extra="forbid", frozen=True)`); NEVER perform runtime imports from `asyncpg`, `backend_v2.database`, `backend_v2.services`, `backend_v2.hooks`, `backend_v2.api`, or `backend_v2.workers`.
+        2) **PostgreSQL (`backend_v2/database/`)**: Pure Zero-ORM storage, transaction, and graph engine (`asyncpg`, `$1, $2` parameterized SQL) implementing `backend_v2/database/interfaces.py` (`typing.Protocol`); NEVER import upward from `backend_v2.hooks`, `backend_v2.api`, `backend_v2.workers`, or `backend_v2.services` (excluding blob storage driver `backend_v2.services.storage`).
+        3) **Python Business Logic & Routing (`backend_v2/services/`, `backend_v2/hooks/`, `backend_v2/api/routers/`)**: Pure domain computation and orchestration; MUST interact with persistence exclusively via `backend_v2.database.interfaces` (`typing.Protocol`) and NEVER directly import `asyncpg` or concrete `backend_v2.database.(postgres|in_memory|repositories|repository|driver|factory)` modules.</mandate>
+    </rule_block>
 </architectural_invariants>
 
 <agentic_safety_guardrails>

@@ -2876,3 +2876,49 @@ def test_ast_guardrails_topological_synthesis_subsystems_zero_violations() -> No
     bad_fetcher = "import httpx\nclient = httpx.AsyncClient(timeout=15)\n"
     fetcher_violations = _scan_snippet(bad_fetcher, filepath="backend_v2/services/web_fetcher.py")
     assert any(v.rule_code == "QGR008" and v.severity == GuardrailSeverity.FATAL for v in fetcher_violations)
+
+
+def test_qgr017_tripartite_layer_and_protocol_firewall() -> None:
+    """Verify QGR017 enforces Tripartite PostgreSQL-Pydantic-Python layer & Protocol boundaries."""
+    # Positive 1: Services importing typing.Protocol interfaces from backend_v2.database.interfaces
+    valid_service = "from backend_v2.database.interfaces import IWorkflowRepository, QuorumUnitOfWork\n"
+    assert _scan_snippet(valid_service, filepath="backend_v2/services/studio/workflow_service.py") == []
+
+    # Positive 2: TYPE_CHECKING guard in models or services is exempt from runtime firewall
+    valid_type_checking = (
+        "from typing import TYPE_CHECKING\n"
+        "if TYPE_CHECKING:\n"
+        "    from backend_v2.database.postgres.uow import PostgresUnitOfWork\n"
+    )
+    assert _scan_snippet(valid_type_checking, filepath="backend_v2/models/domain/workflow.py") == []
+
+    # Positive 3: backend_v2/database/repositories/execution.py importing backend_v2.services.storage
+    valid_db_storage = "from backend_v2.services.storage import get_storage_driver\n"
+    assert _scan_snippet(valid_db_storage, filepath="backend_v2/database/repositories/execution.py") == []
+
+    # Negative 1: Pydantic models/ runtime-importing database, services, or asyncpg
+    bad_model_db = "from backend_v2.database.interfaces import QuorumUnitOfWork\n"
+    v_model_db = _scan_snippet(bad_model_db, filepath="backend_v2/models/domain/workflow.py")
+    assert any(v.rule_code == "QGR017" and v.severity == GuardrailSeverity.FATAL for v in v_model_db)
+
+    bad_model_asyncpg = "import asyncpg\n"
+    v_model_pg = _scan_snippet(bad_model_asyncpg, filepath="backend_v2/models/dtos/workflow_schema.py")
+    assert any(v.rule_code == "QGR017" and v.severity == GuardrailSeverity.FATAL for v in v_model_pg)
+
+    # Negative 2: PostgreSQL database/ importing upward from services, hooks, api, or workers
+    bad_db_upward = "from backend_v2.services.studio import WorkflowService\n"
+    v_db_upward = _scan_snippet(bad_db_upward, filepath="backend_v2/database/postgres/entity_adapter.py")
+    assert any(v.rule_code == "QGR017" and v.severity == GuardrailSeverity.FATAL for v in v_db_upward)
+
+    # Negative 3: Python services/, hooks/, or api/routers/ importing asyncpg or concrete database modules
+    bad_service_pg = "from backend_v2.database.postgres.uow import PostgresUnitOfWork\n"
+    v_svc_pg = _scan_snippet(bad_service_pg, filepath="backend_v2/services/studio/workflow_service.py")
+    assert any(v.rule_code == "QGR017" and v.severity == GuardrailSeverity.FATAL for v in v_svc_pg)
+
+    bad_router_repo = "from backend_v2.database import repositories\n"
+    v_router_repo = _scan_snippet(bad_router_repo, filepath="backend_v2/api/routers/studio/workflows.py")
+    assert any(v.rule_code == "QGR017" and v.severity == GuardrailSeverity.FATAL for v in v_router_repo)
+
+    bad_hook_asyncpg = "import asyncpg\n"
+    v_hook_pg = _scan_snippet(bad_hook_asyncpg, filepath="backend_v2/hooks/archival.py")
+    assert any(v.rule_code == "QGR017" and v.severity == GuardrailSeverity.FATAL for v in v_hook_pg)

@@ -103,8 +103,9 @@ DGR005_CODEC_EXEMPT_PATTERN = re.compile(
 # DGR006: Anonymous Map literals in HTTP request payloads
 DGR006_PATTERN = re.compile(r"\b(?:data|queryParameters):\s*\{")
 
-# DGR007: Banned hardcoded hex colors or direct Colors.* calls in feature widgets
+# DGR007: Banned hardcoded hex colors, direct Colors.* calls, or deprecated .withOpacity(...) in feature widgets
 DGR007_PATTERN = re.compile(r"\bColor\s*\(\s*0x[0-9a-fA-F]+\s*\)|\bColors\.[a-zA-Z]+")
+DGR007_WITH_OPACITY_PATTERN = re.compile(r"\.withOpacity\s*\(")
 
 # DGR008: Banned manual string clippings via .substring() and legacy Uuid().v4()
 DGR008_PATTERN = re.compile(r"\.substring\s*\(")
@@ -304,6 +305,22 @@ def _check_ui_and_feature_line_rules(
                 )
             )
 
+        # Phase 1, Step 1: Detect deprecated .withOpacity( calls under DGR007
+        opacity_match = DGR007_WITH_OPACITY_PATTERN.search(line)
+        if opacity_match:
+            violations.append(
+                DartViolation(
+                    filepath=filepath,
+                    lineno=lineno,
+                    col_offset=opacity_match.start(),
+                    rule_code="DGR007",
+                    message="Banned deprecated `.withOpacity(...)` call detected in feature widget.",
+                    remediation="Use .withValues(alpha: ...) instead of deprecated .withOpacity(...) for Impeller wide-gamut color precision.",
+                    severity=default_severity,
+                    is_suppressed=False,
+                )
+            )
+
     if not is_test_scope:
         dgr008_match = DGR008_PATTERN.search(line)
         if dgr008_match:
@@ -337,6 +354,7 @@ def _check_ui_and_feature_line_rules(
 
         dgr010_match = DGR010_PATTERN.search(line)
         if dgr010_match:
+            # Phase 1, Step 1: Mandate Dart 3 native switch pattern matching in DGR010 remediation
             violations.append(
                 DartViolation(
                     filepath=filepath,
@@ -344,7 +362,7 @@ def _check_ui_and_feature_line_rules(
                     col_offset=dgr010_match.start(),
                     rule_code="DGR010",
                     message="Missing AsyncValue guard: direct `.requireValue` access detected on dynamic AsyncValue consumer.",
-                    remediation="Use `.when()`, `.maybeWhen()`, or `.valueOrNull` to safely handle loading and error states instead of `.requireValue`.",
+                    remediation="Use Dart 3 native switch pattern matching (switch (asyncVal) { AsyncData(:final value) => ..., AsyncError(:final error) => ..., AsyncLoading() => ... }) or .valueOrNull instead of .requireValue.",
                     severity=default_severity,
                     is_suppressed=False,
                 )

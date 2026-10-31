@@ -804,6 +804,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._function_depth: int = 0
         self._in_finally: bool = False
         self._in_update_lock: bool = False
+        self._in_type_checking: bool = False
         self._repo_result_vars: set[str] = set()
 
     def _is_pytest_skip_or_xfail(self, expr: ast.AST) -> bool:
@@ -2112,14 +2113,37 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def _is_type_checking_guard(self, test: ast.AST) -> bool:
+        """Check whether an `if` condition is a static `TYPE_CHECKING` guard.
+
+        Args:
+            test: Condition AST expression node from an `ast.If` statement.
+
+        Returns:
+            True if the condition checks `TYPE_CHECKING` or `typing.TYPE_CHECKING`, False otherwise.
+        """
+        if isinstance(test, ast.Name) and test.id == "TYPE_CHECKING":
+            return True
+        return isinstance(test, ast.Attribute) and test.attr == "TYPE_CHECKING"
+
     def visit_If(self, node: ast.If) -> None:
-        """Records boolean condition expressions in `if` statements for QGR016 analysis.
+        """Records boolean condition expressions in `if` statements for QGR016 and tracks `TYPE_CHECKING` scope.
 
         Args:
             node: The `ast.If` statement node.
         """
         for sub_node in ast.walk(node.test):
             self._bool_condition_nodes.add(sub_node)
+        if self._is_type_checking_guard(node.test):
+            # Phase 1, Step 1: Track _in_type_checking scope so runtime layer firewall ignores static type hints
+            was_in_type_checking = self._in_type_checking
+            self._in_type_checking = True
+            for stmt in node.body:
+                self.visit(stmt)
+            self._in_type_checking = was_in_type_checking
+            for stmt in node.orelse:
+                self.visit(stmt)
+            return
         self.generic_visit(node)
 
     def visit_While(self, node: ast.While) -> None:
@@ -2616,14 +2640,90 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def _check_tripartite_layer_import(self, node: ast.Import | ast.ImportFrom, imported_target: str) -> bool:
+        """Enforce QGR017 Tripartite Layer & Protocol Firewall across PostgreSQL, Pydantic, and Python layers.
+
+        # Phase 1, Step 1: Enforce Tripartite Layer & Protocol Firewall in QGR017.
+
+        Args:
+            node: The `ast.Import` or `ast.ImportFrom` AST node.
+            imported_target: Fully qualified module path being imported.
+
+        Returns:
+            True if a violation was recorded, False otherwise.
+        """
+        if self._in_type_checking or self._is_test_file or self.is_guardrail_self:
+            return False
+
+        norm = self._normalized_path
+        if "backend_v2/models/" in norm:
+            models_forbidden = (
+                "asyncpg",
+                "backend_v2.database",
+                "backend_v2.services",
+                "backend_v2.hooks",
+                "backend_v2.api",
+                "backend_v2.workers",
+            )
+            if any(imported_target == p or imported_target.startswith(f"{p}.") for p in models_forbidden):
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Tripartite Layer Boundary Violation: Pydantic schema layer (`backend_v2/models/`) must not runtime-import `{imported_target}`.",
+                    "Keep `backend_v2/models/` as a pure Pydantic V2 schema layer with zero runtime imports from database, services, hooks, api, workers, or asyncpg.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+                return True
+        elif "backend_v2/database/" in norm:
+            if imported_target == "backend_v2.services.storage" or imported_target.startswith(
+                "backend_v2.services.storage."
+            ):
+                return False
+            db_forbidden = (
+                "backend_v2.hooks",
+                "backend_v2.api",
+                "backend_v2.workers",
+                "backend_v2.services",
+            )
+            if any(imported_target == p or imported_target.startswith(f"{p}.") for p in db_forbidden):
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Tripartite Layer Boundary Violation: PostgreSQL persistence layer (`backend_v2/database/`) must not import upward from `{imported_target}`.",
+                    "Keep `backend_v2/database/` decoupled from services, hooks, api, and workers; depend only on `backend_v2.models` and `backend_v2.database.interfaces`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+                return True
+        elif any(seg in norm for seg in ("backend_v2/services/", "backend_v2/hooks/", "backend_v2/api/routers/")):
+            concrete_db_forbidden = (
+                "asyncpg",
+                "backend_v2.database.postgres",
+                "backend_v2.database.in_memory",
+                "backend_v2.database.repositories",
+                "backend_v2.database.repository",
+                "backend_v2.database.driver",
+                "backend_v2.database.factory",
+            )
+            if any(imported_target == p or imported_target.startswith(f"{p}.") for p in concrete_db_forbidden):
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Tripartite Protocol Boundary Violation: Python domain/routing layer must not directly import concrete persistence module `{imported_target}`.",
+                    "Interact with persistence exclusively via `typing.Protocol` contracts in `backend_v2.database.interfaces`.",
+                    severity=GuardrailSeverity.FATAL,
+                )
+                return True
+        return False
+
     def visit_Import(self, node: ast.Import) -> None:
-        """Audits `import` statements for eradicated legacy modules and debug loggers (QGR017, QGR021).
+        """Audits `import` statements for eradicated legacy modules, tripartite layer boundaries, and debug loggers (QGR017, QGR021).
 
         Args:
             node: The `ast.Import` AST node.
         """
         # QGR017: Banned import from eradicated facade v2_core
         for alias in node.names:
+            self._check_tripartite_layer_import(node, alias.name)
             if alias.name == "backend_v2.models.v2_core" or alias.name.endswith(".v2_core") or alias.name == "v2_core":
                 self._add_violation(
                     node,
@@ -2775,8 +2875,12 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         severity=GuardrailSeverity.FATAL,
                     )
 
-        # QGR017: Banned import from eradicated facade v2_core
+        # QGR017: Banned import from eradicated facade v2_core and Tripartite Layer Firewall
         if node.module:
+            if not self._check_tripartite_layer_import(node, node.module):
+                for alias in node.names:
+                    if self._check_tripartite_layer_import(node, f"{node.module}.{alias.name}"):
+                        break
             if (
                 node.module == "backend_v2.models.v2_core"
                 or node.module.endswith(".v2_core")

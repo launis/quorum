@@ -643,6 +643,23 @@ Widget build(BuildContext context, WidgetRef ref) {
     assert dgr010[0].lineno == 3
     assert dgr010[0].col_offset > 0
     assert ".requireValue" in dgr010[0].message
+    assert "switch (asyncVal)" in dgr010[0].remediation
+    assert ".when()" not in dgr010[0].remediation
+
+
+def test_dgr007_with_opacity_detected_in_feature_widget() -> None:
+    code = """
+Widget build(BuildContext context) {
+  final color = Theme.of(context).colorScheme.primary.withOpacity(0.5);
+  return Container(color: color);
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/execution/widgets/card.dart")
+    dgr007 = [v for v in violations if v.rule_code == "DGR007"]
+    assert len(dgr007) == 1
+    assert dgr007[0].lineno == 3
+    assert ".withOpacity" in dgr007[0].message
+    assert ".withValues(alpha:" in dgr007[0].remediation
 
 
 def test_dgr010_direct_watch_require_value_detected() -> None:
