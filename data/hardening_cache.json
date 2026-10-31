@@ -2807,6 +2807,22 @@
       "rules_sha256": "912bfe288118baaf70932f17d98521837247670cf36730a1e1b5222aa8028e52",
       "composite_sha256": "3c0738f6b49c4022e8a17c39ebf5b49cd99a836967bca2497f139aa8af84494d",
       "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+    },
+    "backend_v2/database/postgres/graph_adapter.py": {
+      "target_file": "backend_v2/database/postgres/graph_adapter.py",
+      "target_sha256": "714d8209494c329a19249f38ce107b1f4376f89a6e5eb144054bbd2ae99890bf",
+      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rules_sha256": "d78327a9a772a484b99fa45bb959df2237c0b0062115fed54217e8f2c94aafc9",
+      "composite_sha256": "d0d22807105d2b8bd86275013d9eaacd972e30f1b24b1cf7f85b366b327a42c3",
+      "source_tracker": "docs/epic/EPIC_161_tracker.md"
+    },
+    "backend_v2/hooks/archival.py": {
+      "target_file": "backend_v2/hooks/archival.py",
+      "target_sha256": "1a7d590525d7a32239e1ce64cb4e4efe1d3dcc69d02d9023424ca23abf108de1",
+      "unit_test_sha256": "38d8c7522cce1c309b48dfea68a08abb2121705f2c04b5f2d48662c8b10c6c80",
+      "rules_sha256": "d78327a9a772a484b99fa45bb959df2237c0b0062115fed54217e8f2c94aafc9",
+      "composite_sha256": "629d4819f36e184098bf5330c23bac6e1f92612dbc0b611e25259cb2ac4632be",
+      "source_tracker": "docs/epic/EPIC_161_tracker.md"
     }
   }
 }
