@@ -63,7 +63,7 @@
   - [x] @[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]
   - [x] @[client_app_v2/lib/features/studio/controllers/model_registry_controller.dart]
   - [x] @[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]
-  - [ ] @[client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart]
+  - [x] @[client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart]
   - [ ] @[client_app_v2/lib/features/studio/controllers/studio_controller.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify unit test coverage across all 44 hardened Wave F2 Freezed models and Riverpod controllers.
