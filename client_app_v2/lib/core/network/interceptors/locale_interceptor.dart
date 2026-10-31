@@ -1,24 +1,21 @@
 import 'dart:ui';
 import 'package:dio/dio.dart';
 
-/// **Target Locale Interceptor**
-///
-/// Ensures every outgoing HTTP request includes the device's current locale.
-/// This fulfills the V2 Architecture "I18n Fallback" requirement by allowing
-/// the backend to default to the user's language if translations are missing.
+/// Attaches the current system language code to outgoing HTTP requests
+/// so the backend can resolve localized content when explicit overrides are absent.
 class TargetLocaleInterceptor extends Interceptor {
-  TargetLocaleInterceptor();
+  final Locale Function()? _localeResolver;
+
+  TargetLocaleInterceptor({Locale Function()? localeResolver})
+    : _localeResolver = localeResolver;
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    // 1. Get system locale from PlatformDispatcher (web-safe)
-    // For V2 we only need the primary language code (e.g., 'en', 'fi')
-    final String languageCode = PlatformDispatcher.instance.locale.languageCode;
+    final Locale activeLocale =
+        _localeResolver?.call() ?? PlatformDispatcher.instance.locale;
+    final String languageCode = activeLocale.languageCode;
 
-    // 2. Attach to headers
     options.headers['Accept-Language'] = languageCode;
-
-    // Optionally also as a custom header for explicit backend routing
     options.headers['X-Target-Locale'] = languageCode;
 
     super.onRequest(options, handler);
