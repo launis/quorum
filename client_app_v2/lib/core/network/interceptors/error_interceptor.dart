@@ -3,6 +3,7 @@ import 'package:client_app/core/logging/logger_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Normalizes Dio HTTP and transport failures into typed [AppException] instances.
 class ErrorInterceptor extends Interceptor {
   final Ref ref;
 
@@ -10,12 +11,11 @@ class ErrorInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    // Log failures
     final logger = ref.read(loggerServiceProvider);
     final path = err.requestOptions.path;
     final method = err.requestOptions.method;
 
-    // Log the error
+    // Downgrade 404 responses to warning to avoid false-positive error telemetry on probe lookups.
     if (err.response?.statusCode == 404) {
       logger.warning('HTTP', '404 Not Found: $method $path');
     } else {
@@ -27,12 +27,12 @@ class ErrorInterceptor extends Interceptor {
       );
     }
 
-    // Log Response Body (Critical for Debugging 422 etc)
+    // Preserve raw response payload in logs to diagnose 422/500 schema mismatches.
     if (err.response?.data != null) {
       logger.error('HTTP', 'Response Body: ${err.response?.data}');
     }
 
-    // Handle Gateway/Auth errors (401, 403) eagerly, regardless of payload format
+    // Intercept 401/403 gateway responses eagerly because upstream proxies may omit RFC 7807 bodies.
     if (err.response?.statusCode == 401 || err.response?.statusCode == 403) {
       handler.reject(
         DioException(
@@ -45,12 +45,11 @@ class ErrorInterceptor extends Interceptor {
       return;
     }
 
-    // Check if response contains RFC 7807 Problem Details or FastAPI standard responses
+    // Parse structured RFC 7807 Problem Details or FastAPI 422 validation payloads when present.
     if (err.response?.data != null &&
         err.response!.data is Map<String, Object?>) {
       final data = err.response!.data as Map<String, Object?>;
 
-      // RFC 7807 requires 'type' and 'status' fields
       if (data.containsKey('type') && data.containsKey('status')) {
         try {
           final appException = AppException.fromJson(data);
@@ -64,12 +63,17 @@ class ErrorInterceptor extends Interceptor {
             ),
           );
           return;
-        } catch (e) {
-          logger.warning('HTTP', 'Failed to parse AppException: $e');
+        } catch (e, stack) {
+          logger.error(
+            'HTTP',
+            'Failed to parse RFC 7807 AppException payload',
+            e,
+            stack,
+          );
         }
       } else if (err.response?.statusCode == 422 &&
           data.containsKey('detail')) {
-        // Fallback for FastAPI standard Validation Errors (HTTP 422)
+        // Translate raw FastAPI 422 validation payloads into AppException.validation.
         final detail = data['detail'];
         String parsedDetail = 'Validation failed';
         if (detail is List) {
@@ -90,7 +94,7 @@ class ErrorInterceptor extends Interceptor {
       }
     }
 
-    // Handle network errors without response
+    // Map transport-level timeouts and socket failures to AppException.network for graceful UI degradation.
     if (err.type == DioExceptionType.connectionError ||
         err.type == DioExceptionType.connectionTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
@@ -106,7 +110,7 @@ class ErrorInterceptor extends Interceptor {
       return;
     }
 
-    // Handle Proxy/Gateway failures (502, 503, 504) where payload is not RFC 7807
+    // Normalize non-RFC 7807 proxy/gateway failures (502, 503, 504) to network errors for graceful degradation.
     if (err.response != null &&
         (err.response!.statusCode == 502 ||
             err.response!.statusCode == 503 ||
@@ -122,7 +126,6 @@ class ErrorInterceptor extends Interceptor {
       return;
     }
 
-    // Handle cancel
     if (err.type == DioExceptionType.cancel) {
       handler.reject(
         DioException(
@@ -135,7 +138,6 @@ class ErrorInterceptor extends Interceptor {
       return;
     }
 
-    // Fallback: wrap in unknown error
     handler.reject(
       DioException(
         requestOptions: err.requestOptions,
