@@ -68,7 +68,7 @@
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Verify zero raw `if type(content) is dict:` checks in `blueprint.py` and zero bare claim-title deficit truncations remain across the codebase (`scripts/audit_epic_coverage.py --epic docs/epic/EPIC_161_topological_synthesis_cohesion.md`).
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_161_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"`
   - [x] @[backend_v2/database/postgres/graph_adapter.py]
-  - [ ] @[backend_v2/hooks/archival.py]
+  - [x] @[backend_v2/hooks/archival.py]
   - [ ] @[backend_v2/models/domain/proposition_graph.py]
   - [ ] @[backend_v2/models/domain/synthesis.py]
   - [ ] @[backend_v2/models/dtos/atom_evaluation.py]
