@@ -9,6 +9,12 @@ part 'hydrated_reference_provider.g.dart';
 /// in O(1) time without nested loops, enforcing the Topo-Graph rules.
 @riverpod
 HydratedAtomDTO? hydratedReference(Ref ref, String executionId, String tdaId) {
+  if (executionId.trim().isEmpty || tdaId.trim().isEmpty) {
+    throw AppException.validation(
+      'Fail-Fast: executionId and tdaId must not be empty.',
+    );
+  }
+
   final reportData = ref.watch(reportDataV2Provider(executionId));
 
   if (reportData == null) {

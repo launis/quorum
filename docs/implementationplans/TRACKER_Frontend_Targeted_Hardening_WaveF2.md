@@ -55,7 +55,7 @@
   - [x] @[client_app_v2/lib/features/studio/utils/workflow_cloner.dart]
   - [x] @[client_app_v2/lib/features/execution/controllers/execution_controller.dart]
   - [x] @[client_app_v2/lib/features/execution/providers/atom_result_provider.dart]
-  - [ ] @[client_app_v2/lib/features/execution/providers/hydrated_reference_provider.dart]
+  - [x] @[client_app_v2/lib/features/execution/providers/hydrated_reference_provider.dart]
   - [ ] @[client_app_v2/lib/features/execution/providers/report_data_v2_provider.dart]
   - [ ] @[client_app_v2/lib/features/reports/controllers/report_artifact_controller.dart]
   - [ ] @[client_app_v2/lib/features/settings/presentation/settings_controller.dart]
