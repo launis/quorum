@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/studio_client.dart';
+import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -13,19 +15,35 @@ import 'package:mocktail/mocktail.dart';
 
 class MockStudioClient extends Mock implements StudioClient {}
 
+class MockExecutionClient extends Mock implements ExecutionClient {}
+
+class FakeExecutionCreateRequestDto extends Fake
+    implements ExecutionCreateRequestDto {}
+
 void main() {
   late MockStudioClient mockStudioClient;
+  late MockExecutionClient mockExecutionClient;
+
+  setUpAll(() {
+    registerFallbackValue(FakeExecutionCreateRequestDto());
+  });
 
   setUp(() {
     mockStudioClient = MockStudioClient();
+    mockExecutionClient = MockExecutionClient();
   });
 
   Widget createTestWidget({
     required MockStudioClient studioClient,
+    MockExecutionClient? executionClient,
     Size screenSize = const Size(1920, 1080),
   }) {
     return ProviderScope(
-      overrides: [studioClientProvider.overrideWithValue(studioClient)],
+      overrides: [
+        studioClientProvider.overrideWithValue(studioClient),
+        if (executionClient != null)
+          executionClientProvider.overrideWithValue(executionClient),
+      ],
       child: MaterialApp(
         localizationsDelegates: const [
           AppLocalizations.delegate,
@@ -126,7 +144,6 @@ void main() {
 
         expect(find.text('Executive Coaching'), findsOneWidget);
 
-        // Select workflow
         await tester.tap(find.text('Executive Coaching'));
         await tester.pumpAndSettle();
 
@@ -136,12 +153,48 @@ void main() {
         );
         expect(find.byType(TextField), findsOneWidget);
 
-        // Click submit without entering text -> SnackBar validation failure
         await tester.tap(find.byType(FilledButton));
         await tester.pumpAndSettle();
 
         expect(find.byType(SnackBar), findsOneWidget);
         expect(find.text('Please fill in required inputs.'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'displays error SnackBar and ErrorView when startExecution fails on submit',
+      (tester) async {
+        final wf = createWorkflow(
+          id: 'wor_018f123456787abc8000000000000001',
+          name: 'Automated Benchmark',
+          expectedInputs: const [],
+        );
+
+        when(
+          () => mockStudioClient.getWorkflows(),
+        ).thenAnswer((_) async => [wf]);
+        when(
+          () => mockExecutionClient.startExecution(
+            request: any(named: 'request'),
+          ),
+        ).thenThrow(AppException.validation('Execution quota exceeded'));
+
+        await tester.pumpWidget(
+          createTestWidget(
+            studioClient: mockStudioClient,
+            executionClient: mockExecutionClient,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Automated Benchmark'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(FilledButton));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(find.textContaining('Execution quota exceeded'), findsOneWidget);
       },
     );
 
@@ -227,13 +280,11 @@ void main() {
         await tester.tap(find.text('AI Driving License'));
         await tester.pumpAndSettle();
 
-        // Must display human-readable localized labels
         expect(find.text('Conversation History (Chat) *'), findsOneWidget);
         expect(find.text('Product Deliverable *'), findsOneWidget);
         expect(find.text('Attach complete conversation'), findsOneWidget);
         expect(find.text('Attach resulting deliverable'), findsOneWidget);
 
-        // Must NOT display raw unlocalized slugs as field titles
         expect(find.text('Input: chat_log'), findsNothing);
         expect(find.text('Input: product_text'), findsNothing);
       },

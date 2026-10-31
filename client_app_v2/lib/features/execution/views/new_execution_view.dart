@@ -15,6 +15,7 @@ import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 
 import 'package:client_app/router/router.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
@@ -22,7 +23,6 @@ import 'package:client_app/core/error/app_error_ext.dart';
 
 part 'new_execution_view.g.dart';
 
-// 1. Provider to fetch available workflows
 @riverpod
 Future<List<Workflow>> availableWorkflows(Ref ref) async {
   final client = ref.watch(studioClientProvider);
@@ -57,7 +57,6 @@ class NewExecutionController extends _$NewExecutionController {
       final executionId = response.id;
       state = const AsyncValue.data(null);
 
-      // Return the ID properly instead of throwing an Error
       return executionId;
     } catch (e, stack) {
       ref
@@ -69,7 +68,6 @@ class NewExecutionController extends _$NewExecutionController {
   }
 }
 
-// 3. UI View
 class NewExecutionView extends ConsumerStatefulWidget {
   const NewExecutionView({super.key});
 
@@ -83,11 +81,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   bool _autoGenerateReport = true;
 
   final Map<String, Object?> _compiledInputs = {};
-
-  // To keep track of filename for UI
   final Map<String, String> _selectedFileNames = {};
-
-  // Controllers for text fields
   final Map<String, TextEditingController> _textControllers = {};
 
   @override
@@ -117,11 +111,12 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   }
 
   Future<void> _pickFile(String inputKey) async {
-    FilePickerResult? result = await FilePicker.pickFiles(
+    final FilePickerResult? result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'txt', 'docx'],
       withData: true,
     );
+    if (!mounted) return;
 
     if (result != null && result.files.isNotEmpty) {
       final platformFile = result.files.single;
@@ -131,8 +126,8 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       }
 
       if (fileBytes != null) {
-        String fileName = platformFile.name;
-        String base64String = base64Encode(fileBytes);
+        final String fileName = platformFile.name;
+        final String base64String = base64Encode(fileBytes);
 
         setState(() {
           _compiledInputs[inputKey] = {
@@ -148,7 +143,6 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   void _submit() async {
     if (_selectedWorkflow == null) return;
 
-    // Harvest text controller inputs
     _textControllers.forEach((key, controller) {
       if (controller.text.isNotEmpty) {
         if (key.contains('|||')) {
@@ -162,7 +156,6 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
           (_compiledInputs[semanticRole] as Map<String, Object?>)[qId] =
               controller.text;
         } else {
-          // Prioritize file upload if one is already selected
           final hasFile =
               _compiledInputs.containsKey(key) &&
               _compiledInputs[key] is Map &&
@@ -174,7 +167,6 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       }
     });
 
-    // Validate required inputs (Fail-Fast Client-Side)
     for (final item in _selectedWorkflow!.expectedInputs) {
       final key = item.inputKey;
       final isRequired = item.required;
@@ -200,7 +192,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
               ),
             );
           }
-          return; // Halt submission
+          return;
         }
       }
     }
@@ -218,7 +210,6 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             profileId: _selectedProfileId,
           );
 
-      // Safe context routing using GoRouter Codegen
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -259,10 +250,8 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       ),
       body: Row(
         children: [
-          // Sidebar: Workflow selector
           Expanded(flex: 1, child: _buildWorkflowSidebar()),
           const VerticalDivider(width: 1),
-          // Main content: Dynamic Form
           Expanded(flex: 2, child: _buildDynamicForm(state)),
         ],
       ),
@@ -291,7 +280,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                   return ListTile(
                     title: Text(
                       titleStr,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     subtitle: Text(
                       descStr,
@@ -338,13 +329,13 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
               size: 60,
               color: Theme.of(context).colorScheme.primary,
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             Text(
               AppLocalizations.of(context)!.noInputsRequired(id),
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18),
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 24),
+            AppSpacing.h24,
             _buildSubmitButton(state),
           ],
         ),
@@ -355,7 +346,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 1200),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
+          padding: AppSpacing.p24,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -363,15 +354,14 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 AppLocalizations.of(context)!.configureInputsFor(titleStr),
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
-              const SizedBox(height: 24),
+              AppSpacing.h24,
 
               ...expectedInputsList.map((item) {
                 final modes = item.inputModes;
 
-                // Handle questionnaire first
                 if (modes.contains('questionnaire')) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
+                    padding: const EdgeInsets.only(bottom: AppSpacing.s24),
                     child: _buildQuestionnaireWidget(item),
                   );
                 }
@@ -383,13 +373,13 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                     (!showFile && !modes.contains('questionnaire'));
 
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 24),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.s24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (showFile) ...[
                         _buildInputWidget(item, 'file'),
-                        if (showText) const SizedBox(height: 16),
+                        if (showText) AppSpacing.h16,
                       ],
                       if (showText) _buildInputWidget(item, 'text'),
                     ],
@@ -399,19 +389,13 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
               const Divider(height: 48),
 
-              // Epic 47 Phase 2: Orchestration decoupled these from ExecutionCreate.
-              // Now managed exclusively via OutputProfile.
-              // _buildStrictnessSelector(),
-              // const SizedBox(height: 24),
-              // _buildScoringStrategySelector(),
-              // const SizedBox(height: 24),
               _buildProfileSelector(),
 
-              const SizedBox(height: 24),
+              AppSpacing.h24,
 
               if (state.hasError) ...[
                 ErrorView(error: state.error!, compact: true),
-                const SizedBox(height: 16),
+                AppSpacing.h16,
               ],
 
               _buildSubmitButton(state),
@@ -436,10 +420,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       final theme = Theme.of(context);
 
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: AppSpacing.p16,
         decoration: BoxDecoration(
           border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppSpacing.s8),
         ),
         child: Row(
           children: [
@@ -449,23 +433,28 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                   ? theme.colorScheme.primary
                   : theme.colorScheme.onSurfaceVariant,
             ),
-            const SizedBox(width: 16),
+            AppSpacing.w16,
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   if (description.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 2, bottom: 4),
+                      padding: const EdgeInsets.only(
+                        top: AppSpacing.s2,
+                        bottom: AppSpacing.s4,
+                      ),
                       child: Text(
                         description,
-                        style: TextStyle(
+                        style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
-                          fontSize: 12,
                         ),
                       ),
                     ),
@@ -473,7 +462,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                     hasFile
                         ? AppLocalizations.of(context)!.selectedFile(fileName)
                         : AppLocalizations.of(context)!.noFileSelected,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -488,7 +480,6 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       );
     }
 
-    // Default: text
     if (!_textControllers.containsKey(inputKey)) {
       _textControllers[inputKey] = TextEditingController();
     }
@@ -523,10 +514,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -536,19 +527,18 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             ...defs.map((def) {
               final qId = def.questionId;
               final qLabel = def.question.get(locale);
 
-              // Use custom key with separator
               final mapKey = "$inputKey|||$qId";
               if (!_textControllers.containsKey(mapKey)) {
                 _textControllers[mapKey] = TextEditingController();
               }
 
               return Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
+                padding: const EdgeInsets.only(bottom: AppSpacing.s16),
                 child: TextField(
                   controller: _textControllers[mapKey],
                   decoration: InputDecoration(
@@ -590,10 +580,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       shape: RoundedRectangleBorder(
         side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -603,23 +593,26 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                   Icons.auto_awesome_mosaic,
                   color: Theme.of(context).colorScheme.primary,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  AppLocalizations.of(context)!.printVariantSelectorTitle,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                AppSpacing.w8,
+                Expanded(
+                  child: Text(
+                    AppLocalizations.of(context)!.printVariantSelectorTitle,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            AppSpacing.h8,
             Text(
               AppLocalizations.of(context)!.printVariantSelectorDescription,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             DropdownButtonFormField<String>(
               isExpanded: true,
               initialValue:
@@ -638,7 +631,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
               items: profiles.map((entry) {
                 return DropdownMenuItem<String>(
                   value: entry.key,
-                  child: Text(entry.value),
+                  child: Text(entry.value, overflow: TextOverflow.ellipsis),
                 );
               }).toList(),
               onChanged: (val) {
@@ -650,7 +643,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 }
               },
             ),
-            const SizedBox(height: 12),
+            AppSpacing.h12,
             CheckboxListTile(
               value: _autoGenerateReport,
               title: Text(
@@ -686,9 +679,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
                 if (descriptionText != null && descriptionText.isNotEmpty) {
                   return Padding(
-                    padding: const EdgeInsets.only(top: 16.0),
+                    padding: const EdgeInsets.only(top: AppSpacing.s16),
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: AppSpacing.p12,
                       decoration: BoxDecoration(
                         color: Theme.of(
                           context,
@@ -696,7 +689,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                         border: Border(
                           left: BorderSide(
                             color: Theme.of(context).colorScheme.tertiary,
-                            width: 4,
+                            width: AppSpacing.s4,
                           ),
                         ),
                       ),
@@ -708,7 +701,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                             color: Theme.of(context).colorScheme.tertiary,
                             size: 20,
                           ),
-                          const SizedBox(width: 12),
+                          AppSpacing.w12,
                           Expanded(
                             child: Text(
                               descriptionText,
@@ -748,7 +741,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
         icon: const Icon(Icons.rocket_launch),
         label: Text(
           AppLocalizations.of(context)!.startAiExecution,
-          style: const TextStyle(fontSize: 16),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
         ),
       ),
     );
