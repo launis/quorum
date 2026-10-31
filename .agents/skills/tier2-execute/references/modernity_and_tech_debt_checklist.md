@@ -11,7 +11,7 @@ Evaluate all proposed and inspected code against these mandatory Quorum 2026 rep
 | Raw `dict` state passing (`dict[str, Any]`, `list[dict]`, `TypedDict`, `cast(Any, ...)`, `match/case dict`, `isinstance(..., dict)`) | 100% Strict Pydantic V2 DTOs (`Model.model_validate()`) |
 | `# noqa: QGR` inline suppressions | Structural architecture fixes (Zero Suppressions) |
 | String concatenation for LLM prompts | `PromptBlock` assembly with Four-Layer Clean Stack isolation |
-| Hardcoded model strings (`"gpt-4"`) | `await LLMClient.from_strategy("strategy_name", repo)` |
+| Hardcoded model strings (`"gpt-4"`) or raw tier strings (`LLMClient.from_strategy("fast", repo)`) | `await LLMClient.from_tier(CognitiveTier.<TIER>, repository=repo)` (`CognitiveTier.FAST`, `BALANCED`, `DEEP`, `REASONING`) |
 | Dynamic variables in system prompt prefix | 100% static `_SYSTEM_INSTRUCTION` prefix; dynamic variables isolated at the `user` message tail |
 | `try ... except Exception:` catch-all or silent `pass` | Typed `AppException` preceded by structured `logger.error(..., exc_info=True)` (RFC 7807 Dual-Reporting) |
 | `Optional[T] = None` or `.get("key", default)` for required config/state | PEP 593 `Annotated[T, Field(...)]` with immediate Fail-Fast crash on missing state |

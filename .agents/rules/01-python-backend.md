@@ -219,7 +219,7 @@
     </rule_block>
 
     <rule_block id="llm_structured_execution_mandate">
-        <mandate>NEVER directly call OpenAI/Vertex SDKs, rely on raw text outputs, parse responses with Regex, or call `LLMClient` methods directly for business logic. ALWAYS initialize via `LLMClient.from_strategy("strategy_name", repo)` and pass to injected `LLMTaskExecutor`: use `executor.execute_structured_task()` for structured data and `executor.execute_chat_task()` for open-text generation.</mandate>
+        <mandate>NEVER directly call OpenAI/Vertex SDKs, rely on raw text outputs, parse responses with Regex, pass raw strategy strings via `from_strategy`, or call `LLMClient` methods directly for business logic. ALWAYS initialize via `LLMClient.from_tier(CognitiveTier.<TIER>, repository=repo)` and pass to injected `LLMTaskExecutor`: use `executor.execute_structured_task()` for structured data and `executor.execute_chat_task()` for open-text generation.</mandate>
     </rule_block>
 
     <rule_block id="ui_driven_synthesis_boundary">

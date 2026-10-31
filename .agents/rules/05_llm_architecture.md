@@ -16,7 +16,7 @@ description: Apply when working inside backend_v2/llm/, prompts, or services inv
 
 <catastrophic_system_bans>
     <rule_block id="direct_sdk_calls">
-        <mandate>NEVER use `openai.ChatCompletion.create()` directly, call Vertex AI SDK natively, or hardcode model strings ("gpt-4") inside services. ALL LLM requests MUST strictly utilize the Model Registry via `LLMClient.from_strategy("strategy_name", repo)` (Zero-Fallback rule).</mandate>
+        <mandate>NEVER use `openai.ChatCompletion.create()` directly, call Vertex AI SDK natively, hardcode model strings ("gpt-4") inside services, or pass raw tier strings via `LLMClient.from_strategy(...)`. ALL LLM requests MUST strictly utilize the Model Registry via `LLMClient.from_tier(CognitiveTier.<TIER>, repository=repo)` (Zero-Fallback rule).</mandate>
     </rule_block>
 
     <rule_block id="eager_llm_dependency_loading">
@@ -70,7 +70,7 @@ description: Apply when working inside backend_v2/llm/, prompts, or services inv
     </rule_block>
     
     <rule_block id="internal_utility_llm_execution">
-        <mandate>NEVER build ad-hoc LLM instances or place core parsing instructions in dynamic DB fields for backend utilities (`chat_parser.py`, `translation_hook.py`). Internal LLM Utilities MUST: 1) Load client via `await LLMClient.from_strategy("fast", repository=repo)`, 2) Define instructions as file-level `_SYSTEM_INSTRUCTION` constant, 3) Execute via `executor.execute_chat_task()` or `executor.execute_structured_task()`.</mandate>
+        <mandate>NEVER build ad-hoc LLM instances, pass raw `"fast"` string literals to `from_strategy`, or place core parsing instructions in dynamic DB fields for backend utilities (`chat_parser.py`, `translation_hook.py`). Internal LLM Utilities MUST: 1) Load client via `await LLMClient.from_tier(CognitiveTier.FAST, repository=repo)`, 2) Define instructions as file-level `_SYSTEM_INSTRUCTION` constant, 3) Execute via `executor.execute_chat_task()` or `executor.execute_structured_task()`.</mandate>
     </rule_block>
 
     <rule_block id="xml_structural_sovereignty_mandate">
