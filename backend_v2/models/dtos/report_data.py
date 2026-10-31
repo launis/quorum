@@ -6,7 +6,7 @@ SSOT for ReportDataDTO consumed by presentation adapters (SDUI, PDF, Excel).
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Annotated, Self
 
 if TYPE_CHECKING:
     from backend_v2.models.view.sdui import AnySduiBlock
@@ -25,69 +25,139 @@ __all__ = ["ReportDataDTO"]
 
 
 class ReportDataDTO(V2CoreBase):
-    """Immutable data envelope containing evaluated results, metrics, and SDUI blocks for rendering."""
+    """Immutable data envelope containing evaluated results, metrics, and SDUI blocks for rendering.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        workflow_id: The workflow's opaque Stripe ID.
+        execution_id: The execution's opaque Stripe ID.
+        scoring_strategy: The mathematical strategy used for scoring (e.g. WATERFALL).
+        user_name: Initiating user's name.
+        scoring_engine_name: Human readable name of the scoring engine.
+        strictness_level: Numeric strictness level (0-100).
+        local_time_str: Localized time string from the client.
+        custom_preface_md: Custom user preface rendered as Markdown.
+        profile_id: The output profile's opaque Stripe ID.
+        profile_name: Localized name of the output profile.
+        profile_description: Detailed profile context mapped from OutputProfile.
+        available_profiles: Mapping of profile IDs to localized names.
+        global_score: The mathematical average extracted from the scoring_result hook.
+        has_warning: Flag indicating if the report generation had non-fatal warnings.
+        global_metrics: Aggregate atom-level metrics for DAG execution.
+        inner_sdui_blocks: Final structured SDUI blocks for presentation.
+        results: Topologically sorted list of atom evaluation results.
+        hydrated_references: O(1) dictionary mapping tda_id to static HydratedAtomDTO text.
+        visible_metadata: Fields visible on the UI and PDF cover header.
+        created_at: Execution creation timestamp.
+        org_name: Organization display name.
+        cost_estimate: Estimated financial cost of the execution.
+        total_tokens: Total token count consumed across the execution.
+        prompt_tokens: Prompt token count consumed.
+        completion_tokens: Completion token count consumed.
+        reasoning_tokens: Reasoning token count consumed.
+        mcp_tool_audit: Serialized MCPAuditTrace entries for XAI Evidence Box rendering.
+    """
 
-    workflow_id: str
-    execution_id: str = Field(description="The execution's opaque Stripe ID.")
-    scoring_strategy: str | None = Field(
-        default=None, description="The mathematical strategy used for scoring (e.g. WATERFALL)"
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    workflow_id: Annotated[str, Field(description="The workflow's opaque Stripe ID.")]
+    execution_id: Annotated[str, Field(description="The execution's opaque Stripe ID.")]
+    scoring_strategy: Annotated[
+        str | None,
+        Field(default=None, description="The mathematical strategy used for scoring (e.g. WATERFALL)."),
+    ] = None
+    user_name: Annotated[str | None, Field(default=None, description="Initiating user's name.")] = None
+    scoring_engine_name: Annotated[
+        str | None, Field(default=None, description="Human readable name of the scoring engine.")
+    ] = None
+    strictness_level: Annotated[int | None, Field(default=None, description="Numeric strictness level (0-100).")] = None
+    local_time_str: Annotated[str | None, Field(default=None, description="Localized time string from the client.")] = (
+        None
     )
-    user_name: str | None = Field(default=None, description="Initiating user's name")
-    scoring_engine_name: str | None = Field(default=None, description="Human readable name of the scoring engine")
-    strictness_level: int | None = Field(default=None, description="Numeric strictness level (0-100)")
-    local_time_str: str | None = Field(default=None, description="Localized time string from the client")
-    custom_preface_md: str | None = Field(default=None, description="Custom user preface rendered as Markdown")
-    profile_id: str
-    profile_name: I18nText | None = Field(default=None)
-    profile_description: I18nText | None = Field(
-        default=None, description="Detailed profile context mapped from OutputProfile"
-    )
-    available_profiles: dict[str, I18nText] = Field(default_factory=dict)
-    global_score: float | None = Field(
-        default=None, description="The mathematical average extracted from the scoring_result hook."
-    )
-    has_warning: bool = Field(
-        default=False, description="Flag indicating if the report generation had non-fatal warnings."
-    )
+    custom_preface_md: Annotated[
+        str | None, Field(default=None, description="Custom user preface rendered as Markdown.")
+    ] = None
+    profile_id: Annotated[str, Field(description="The output profile's opaque Stripe ID.")]
+    profile_name: Annotated[
+        I18nText | None, Field(default=None, description="Localized name of the output profile.")
+    ] = None
+    profile_description: Annotated[
+        I18nText | None,
+        Field(default=None, description="Detailed profile context mapped from OutputProfile."),
+    ] = None
+    available_profiles: Annotated[
+        dict[str, I18nText],
+        Field(default_factory=dict, description="Mapping of profile IDs to localized names."),
+    ]
+    global_score: Annotated[
+        float | None,
+        Field(default=None, description="The mathematical average extracted from the scoring_result hook."),
+    ] = None
+    has_warning: Annotated[
+        bool,
+        Field(default=False, description="Flag indicating if the report generation had non-fatal warnings."),
+    ] = False
 
     # Strict Topological DAG Execution Model fields
-    global_metrics: ExecutionMetricsDTO | None = Field(default=None)
-    inner_sdui_blocks: list[AnySduiBlock] = Field(
-        default_factory=list, description="Stores the final structured SDUI blocks."
-    )
-    results: list[AtomResultDTO] = Field(
-        default_factory=list,
-        description=(
-            "SDUI-RULE: Backend must return this list strictly topologically sorted. Frontend does not compute the DAG."
+    global_metrics: Annotated[
+        ExecutionMetricsDTO | None,
+        Field(default=None, description="Aggregate atom-level metrics for DAG execution."),
+    ] = None
+    inner_sdui_blocks: Annotated[
+        list[AnySduiBlock],
+        Field(default_factory=list, description="Stores the final structured SDUI blocks."),
+    ]
+    results: Annotated[
+        list[AtomResultDTO],
+        Field(
+            default_factory=list,
+            description=(
+                "SDUI-RULE: Backend must return this list strictly topologically sorted. "
+                "Frontend does not compute the DAG."
+            ),
         ),
-    )
-    hydrated_references: dict[str, HydratedAtomDTO] = Field(
-        default_factory=dict, description="O(1) Dictionary: tda_id -> Static text."
-    )
+    ]
+    hydrated_references: Annotated[
+        dict[str, HydratedAtomDTO],
+        Field(default_factory=dict, description="O(1) Dictionary: tda_id -> Static text."),
+    ]
 
-    visible_metadata: list[str] = Field(
-        default_factory=list, description="Fields visible on the UI and PDF cover header."
-    )
+    visible_metadata: Annotated[
+        list[str],
+        Field(default_factory=list, description="Fields visible on the UI and PDF cover header."),
+    ]
 
     # Execution Diagnostic Metadata
-    created_at: datetime | None = None
-    org_name: str | None = None
-    cost_estimate: float | None = None
-    total_tokens: int | None = None
-    prompt_tokens: int | None = None
-    completion_tokens: int | None = None
-    reasoning_tokens: int | None = None
+    created_at: Annotated[datetime | None, Field(default=None, description="Execution creation timestamp.")] = None
+    org_name: Annotated[str | None, Field(default=None, description="Organization display name.")] = None
+    cost_estimate: Annotated[
+        float | None, Field(default=None, description="Estimated financial cost of the execution.")
+    ] = None
+    total_tokens: Annotated[
+        int | None, Field(default=None, description="Total token count consumed across the execution.")
+    ] = None
+    prompt_tokens: Annotated[int | None, Field(default=None, description="Prompt token count consumed.")] = None
+    completion_tokens: Annotated[int | None, Field(default=None, description="Completion token count consumed.")] = None
+    reasoning_tokens: Annotated[int | None, Field(default=None, description="Reasoning token count consumed.")] = None
 
     # MCP Tool Loop Audit Trail (XAI Evidence for Frontend)
-    mcp_tool_audit: list[MCPAuditTrace] = Field(
-        default_factory=list, description="Serialized MCPAuditTrace entries for XAI Evidence Box rendering."
-    )
+    mcp_tool_audit: Annotated[
+        list[MCPAuditTrace],
+        Field(
+            default_factory=list,
+            description="Serialized MCPAuditTrace entries for XAI Evidence Box rendering.",
+        ),
+    ]
 
     @model_validator(mode="after")
     def enforce_referential_integrity(self) -> Self:
-        """Ensure that every tda_id present exists in the hydrated_references dictionary."""
+        """Ensure that every tda_id present exists in the hydrated_references dictionary.
+
+        Returns:
+            The validated ReportDataDTO instance.
+
+        Raises:
+            ValueError: If any referenced tda_id is missing from hydrated_references.
+        """
         ref_keys = set(self.hydrated_references.keys())
 
         # Declarative Set Logic
