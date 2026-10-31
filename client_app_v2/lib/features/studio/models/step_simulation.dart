@@ -26,7 +26,7 @@ abstract class LlmMessageDto with _$LlmMessageDto {
   const factory LlmMessageDto({
     required String role,
     required String content,
-    @JsonKey(name: 'tool_calls') dynamic toolCalls,
+    @JsonKey(name: 'tool_calls') Object? toolCalls,
     @JsonKey(name: 'tool_call_id') String? toolCallId,
     String? name,
   }) = _LlmMessageDto;

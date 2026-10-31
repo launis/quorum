@@ -267,7 +267,7 @@ as int,
 /// @nodoc
 mixin _$LlmMessageDto {
 
- String get role; String get content;@JsonKey(name: 'tool_calls') dynamic get toolCalls;@JsonKey(name: 'tool_call_id') String? get toolCallId; String? get name;
+ String get role; String get content;@JsonKey(name: 'tool_calls') Object? get toolCalls;@JsonKey(name: 'tool_call_id') String? get toolCallId; String? get name;
 /// Create a copy of LlmMessageDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -293,7 +293,7 @@ abstract mixin class $LlmMessageDtoCopyWith<$Res>  {
   factory $LlmMessageDtoCopyWith(LlmMessageDto value, $Res Function(LlmMessageDto) _then) = _$LlmMessageDtoCopyWithImpl;
 @useResult
 $Res call({
- String role, String content,@JsonKey(name: 'tool_calls') dynamic toolCalls,@JsonKey(name: 'tool_call_id') String? toolCallId, String? name
+ String role, String content,@JsonKey(name: 'tool_calls') Object? toolCalls,@JsonKey(name: 'tool_call_id') String? toolCallId, String? name
 });
 
 
@@ -314,8 +314,7 @@ class _$LlmMessageDtoCopyWithImpl<$Res>
   return _then(_self.copyWith(
 role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
-as String,toolCalls: freezed == toolCalls ? _self.toolCalls : toolCalls // ignore: cast_nullable_to_non_nullable
-as dynamic,toolCallId: freezed == toolCallId ? _self.toolCallId : toolCallId // ignore: cast_nullable_to_non_nullable
+as String,toolCalls: freezed == toolCalls ? _self.toolCalls : toolCalls ,toolCallId: freezed == toolCallId ? _self.toolCallId : toolCallId // ignore: cast_nullable_to_non_nullable
 as String?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
@@ -402,7 +401,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String role,  String content, @JsonKey(name: 'tool_calls')  dynamic toolCalls, @JsonKey(name: 'tool_call_id')  String? toolCallId,  String? name)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String role,  String content, @JsonKey(name: 'tool_calls')  Object? toolCalls, @JsonKey(name: 'tool_call_id')  String? toolCallId,  String? name)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LlmMessageDto() when $default != null:
 return $default(_that.role,_that.content,_that.toolCalls,_that.toolCallId,_that.name);case _:
@@ -423,7 +422,7 @@ return $default(_that.role,_that.content,_that.toolCalls,_that.toolCallId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String role,  String content, @JsonKey(name: 'tool_calls')  dynamic toolCalls, @JsonKey(name: 'tool_call_id')  String? toolCallId,  String? name)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String role,  String content, @JsonKey(name: 'tool_calls')  Object? toolCalls, @JsonKey(name: 'tool_call_id')  String? toolCallId,  String? name)  $default,) {final _that = this;
 switch (_that) {
 case _LlmMessageDto():
 return $default(_that.role,_that.content,_that.toolCalls,_that.toolCallId,_that.name);case _:
@@ -443,7 +442,7 @@ return $default(_that.role,_that.content,_that.toolCalls,_that.toolCallId,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String role,  String content, @JsonKey(name: 'tool_calls')  dynamic toolCalls, @JsonKey(name: 'tool_call_id')  String? toolCallId,  String? name)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String role,  String content, @JsonKey(name: 'tool_calls')  Object? toolCalls, @JsonKey(name: 'tool_call_id')  String? toolCallId,  String? name)?  $default,) {final _that = this;
 switch (_that) {
 case _LlmMessageDto() when $default != null:
 return $default(_that.role,_that.content,_that.toolCalls,_that.toolCallId,_that.name);case _:
@@ -463,7 +462,7 @@ class _LlmMessageDto extends LlmMessageDto {
 
 @override final  String role;
 @override final  String content;
-@override@JsonKey(name: 'tool_calls') final  dynamic toolCalls;
+@override@JsonKey(name: 'tool_calls') final  Object? toolCalls;
 @override@JsonKey(name: 'tool_call_id') final  String? toolCallId;
 @override final  String? name;
 
@@ -493,7 +492,7 @@ abstract mixin class _$LlmMessageDtoCopyWith<$Res> implements $LlmMessageDtoCopy
   factory _$LlmMessageDtoCopyWith(_LlmMessageDto value, $Res Function(_LlmMessageDto) _then) = __$LlmMessageDtoCopyWithImpl;
 @override @useResult
 $Res call({
- String role, String content,@JsonKey(name: 'tool_calls') dynamic toolCalls,@JsonKey(name: 'tool_call_id') String? toolCallId, String? name
+ String role, String content,@JsonKey(name: 'tool_calls') Object? toolCalls,@JsonKey(name: 'tool_call_id') String? toolCallId, String? name
 });
 
 
@@ -514,8 +513,7 @@ class __$LlmMessageDtoCopyWithImpl<$Res>
   return _then(_LlmMessageDto(
 role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
-as String,toolCalls: freezed == toolCalls ? _self.toolCalls : toolCalls // ignore: cast_nullable_to_non_nullable
-as dynamic,toolCallId: freezed == toolCallId ? _self.toolCallId : toolCallId // ignore: cast_nullable_to_non_nullable
+as String,toolCalls: freezed == toolCalls ? _self.toolCalls : toolCalls ,toolCallId: freezed == toolCallId ? _self.toolCallId : toolCallId // ignore: cast_nullable_to_non_nullable
 as String?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
