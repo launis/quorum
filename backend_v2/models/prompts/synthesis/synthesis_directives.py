@@ -34,7 +34,7 @@ VARIANCE_SYSTEM_PROMPT: str = (
     "evaluation scores in concise, evidence-grounded prose."
 )
 
-# Phase 2, Step 2.3: Static XML reasoning mandates for causal chains, Toulmin rebuttals, and contrastive deficits
+# Ground synthesis narratives in causal fault chains, Toulmin rebuttals, and contrastive deficits.
 CAUSAL_TDA_DIAGNOSIS_MANDATE: str = (
     "<causal_tda_diagnosis_mandate>\n"
     "- CAUSAL & TOULMIN FALSIFICATION GROUNDING: When <causal_diagnosis> is provided in the dynamic context, "
