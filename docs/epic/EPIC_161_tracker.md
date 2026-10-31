@@ -91,7 +91,7 @@
   - [x] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
   - [x] @[backend_v2/services/pdf_generator.py]
   - [x] @[backend_v2/services/sdui/adapters/causal_graph_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]
   - [ ] @[backend_v2/services/sdui/sdui_mapper_service.py]
   - [ ] @[backend_v2/services/web_fetcher.py]
   - [ ] @[backend_v2/settings.py]
