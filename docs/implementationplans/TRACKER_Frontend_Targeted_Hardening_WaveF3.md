@@ -23,7 +23,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
   - [x] @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]
   - [x] @[client_app_v2/lib/features/execution/views/dashboard_view.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/execution_view.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]

@@ -28,7 +28,8 @@ void main() {
   late MockExecutionClient mockExecutionClient;
   late MockLoggerService mockLogger;
 
-  const testWorkflowId = 'wf_0123456789abcdef';
+  const testWorkflowId = 'wfl_0195f3a0000070008000000000000001';
+  const testExecutionId = 'exe_0195f3a0000070008000000000000002';
 
   final standardInput = const ExpectedInput(
     inputKey: 'transcription',
@@ -106,7 +107,7 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('renders ErrorView when schema loading fails (Negative Test)', (
+    testWidgets('Negative 1: renders ErrorView when schema loading fails', (
       tester,
     ) async {
       when(
@@ -120,7 +121,39 @@ void main() {
     });
 
     testWidgets(
-      'renders input fields, questionnaire, and executes start on click',
+      'Negative 2: blocks execution submission when required input field is empty (Boundary Validation)',
+      (tester) async {
+        final schema = WorkflowUiSchema(
+          expectedInputs: [standardInput, questionnaireInput],
+        );
+
+        when(
+          () => mockWorkflowClient.getWorkflowUiSchema(testWorkflowId),
+        ).thenAnswer((_) async => schema);
+
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        // Scroll to and tap start button without entering required text in OmniInputBox
+        final startButton = find.byType(FilledButton);
+        expect(startButton, findsOneWidget);
+        await tester.ensureVisible(startButton);
+        await tester.pumpAndSettle();
+        await tester.tap(startButton);
+        await tester.pumpAndSettle();
+
+        // Required field validation message is shown and startExecution is not called
+        expect(find.text('This field is required.'), findsOneWidget);
+        verifyNever(
+          () => mockExecutionClient.startExecution(
+            request: any(named: 'request'),
+          ),
+        );
+      },
+    );
+
+    testWidgets(
+      'Positive: renders input fields, questionnaire, and executes start on click when valid',
       (tester) async {
         final schema = WorkflowUiSchema(
           expectedInputs: [standardInput, questionnaireInput],
@@ -136,7 +169,7 @@ void main() {
           ),
         ).thenAnswer(
           (_) async => const ExecutionRecord(
-            id: 'exec_123',
+            id: testExecutionId,
             workflowId: testWorkflowId,
             targetLocale: 'en',
             status: 'PENDING',
@@ -152,13 +185,18 @@ void main() {
         expect(find.textContaining('Survey'), findsOneWidget);
         expect(find.text('Company name'), findsOneWidget);
 
-        // Fill in questionnaire
-        await tester.enterText(find.byType(TextFormField).first, 'Acme Corp');
+        // Fill in standard input and questionnaire
+        final textFields = find.byType(TextFormField);
+        expect(textFields, findsNWidgets(2));
+        await tester.enterText(textFields.first, 'Sample transcription text');
+        await tester.enterText(textFields.last, 'Acme Corp');
         await tester.pumpAndSettle();
 
-        // Tap start button
+        // Scroll to and tap start button
         final startButton = find.byType(FilledButton);
         expect(startButton, findsOneWidget);
+        await tester.ensureVisible(startButton);
+        await tester.pumpAndSettle();
         await tester.tap(startButton);
         await tester.pumpAndSettle();
 
