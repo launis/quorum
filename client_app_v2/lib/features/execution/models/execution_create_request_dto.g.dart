@@ -23,7 +23,10 @@ _ExecutionCreateRequestDto _$ExecutionCreateRequestDtoFromJson(
       ],
     );
     final val = _ExecutionCreateRequestDto(
-      workflowId: $checkedConvert('workflow_id', (v) => v as String),
+      workflowId: $checkedConvert(
+        'workflow_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       targetLocale: $checkedConvert('target_locale', (v) => v as String),
       rawInputs: $checkedConvert(
         'raw_inputs',
@@ -49,7 +52,7 @@ _ExecutionCreateRequestDto _$ExecutionCreateRequestDtoFromJson(
 Map<String, dynamic> _$ExecutionCreateRequestDtoToJson(
   _ExecutionCreateRequestDto instance,
 ) => <String, dynamic>{
-  'workflow_id': instance.workflowId,
+  'workflow_id': const StrictOpaqueIdConverter().toJson(instance.workflowId),
   'target_locale': instance.targetLocale,
   'raw_inputs': instance.rawInputs,
   'profile_id': instance.profileId,

@@ -24,7 +24,7 @@
   - [x] @[client_app_v2/lib/features/execution/models/atom_result_dto.dart]
   - [x] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
   - [x] @[client_app_v2/lib/features/execution/models/distilled_evaluation.dart]
-  - [ ] @[client_app_v2/lib/features/execution/models/execution_create_request_dto.dart]
+  - [x] @[client_app_v2/lib/features/execution/models/execution_create_request_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/execution_metadata.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/execution_metrics_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/execution_record.dart]
