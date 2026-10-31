@@ -21,7 +21,7 @@
 
 - [x] **[SKIPPED] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]" --gate backend --model gemini-4-argon-medium` (Zero backend targets in frontend targeted hardening).
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
-  - [ ] @[client_app_v2/lib/features/execution/models/atom_result_dto.dart]
+  - [x] @[client_app_v2/lib/features/execution/models/atom_result_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/distilled_evaluation.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/execution_create_request_dto.dart]
