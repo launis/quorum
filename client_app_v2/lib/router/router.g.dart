@@ -478,10 +478,7 @@ mixin $StepEditRoute on GoRouteData {
 
 mixin $ProfileEditorRoute on GoRouteData {
   static ProfileEditorRoute _fromState(GoRouterState state) =>
-      ProfileEditorRoute(
-        workflowId: state.pathParameters['workflowId']!,
-        $extra: state.extra as Map<String, Object?>?,
-      );
+      ProfileEditorRoute(workflowId: state.pathParameters['workflowId']!);
 
   ProfileEditorRoute get _self => this as ProfileEditorRoute;
 
@@ -491,19 +488,17 @@ mixin $ProfileEditorRoute on GoRouteData {
   );
 
   @override
-  void go(BuildContext context) => context.go(location, extra: _self.$extra);
+  void go(BuildContext context) => context.go(location);
 
   @override
-  Future<T?> push<T>(BuildContext context) =>
-      context.push<T>(location, extra: _self.$extra);
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
 
   @override
   void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location, extra: _self.$extra);
+      context.pushReplacement(location);
 
   @override
-  void replace(BuildContext context) =>
-      context.replace(location, extra: _self.$extra);
+  void replace(BuildContext context) => context.replace(location);
 }
 
 mixin $OutputProfileNewRoute on GoRouteData {
@@ -529,10 +524,7 @@ mixin $OutputProfileNewRoute on GoRouteData {
 
 mixin $OutputProfileEditRoute on GoRouteData {
   static OutputProfileEditRoute _fromState(GoRouterState state) =>
-      OutputProfileEditRoute(
-        id: state.pathParameters['id']!,
-        $extra: state.extra as Map<String, Object?>?,
-      );
+      OutputProfileEditRoute(id: state.pathParameters['id']!);
 
   OutputProfileEditRoute get _self => this as OutputProfileEditRoute;
 
@@ -542,19 +534,17 @@ mixin $OutputProfileEditRoute on GoRouteData {
   );
 
   @override
-  void go(BuildContext context) => context.go(location, extra: _self.$extra);
+  void go(BuildContext context) => context.go(location);
 
   @override
-  Future<T?> push<T>(BuildContext context) =>
-      context.push<T>(location, extra: _self.$extra);
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
 
   @override
   void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location, extra: _self.$extra);
+      context.pushReplacement(location);
 
   @override
-  void replace(BuildContext context) =>
-      context.replace(location, extra: _self.$extra);
+  void replace(BuildContext context) => context.replace(location);
 }
 
 mixin $ModelRegistryNewRoute on GoRouteData {
@@ -626,10 +616,7 @@ mixin $McpGatewayNewRoute on GoRouteData {
 
 mixin $McpGatewayEditRoute on GoRouteData {
   static McpGatewayEditRoute _fromState(GoRouterState state) =>
-      McpGatewayEditRoute(
-        id: state.pathParameters['id']!,
-        $extra: state.extra as Map<String, Object?>?,
-      );
+      McpGatewayEditRoute(id: state.pathParameters['id']!);
 
   McpGatewayEditRoute get _self => this as McpGatewayEditRoute;
 
@@ -639,19 +626,17 @@ mixin $McpGatewayEditRoute on GoRouteData {
   );
 
   @override
-  void go(BuildContext context) => context.go(location, extra: _self.$extra);
+  void go(BuildContext context) => context.go(location);
 
   @override
-  Future<T?> push<T>(BuildContext context) =>
-      context.push<T>(location, extra: _self.$extra);
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
 
   @override
   void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location, extra: _self.$extra);
+      context.pushReplacement(location);
 
   @override
-  void replace(BuildContext context) =>
-      context.replace(location, extra: _self.$extra);
+  void replace(BuildContext context) => context.replace(location);
 }
 
 mixin $MatrixNewRoute on GoRouteData {
@@ -676,10 +661,8 @@ mixin $MatrixNewRoute on GoRouteData {
 }
 
 mixin $MatrixEditRoute on GoRouteData {
-  static MatrixEditRoute _fromState(GoRouterState state) => MatrixEditRoute(
-    id: state.pathParameters['id']!,
-    $extra: state.extra as Map<String, Object?>?,
-  );
+  static MatrixEditRoute _fromState(GoRouterState state) =>
+      MatrixEditRoute(id: state.pathParameters['id']!);
 
   MatrixEditRoute get _self => this as MatrixEditRoute;
 
@@ -689,19 +672,17 @@ mixin $MatrixEditRoute on GoRouteData {
   );
 
   @override
-  void go(BuildContext context) => context.go(location, extra: _self.$extra);
+  void go(BuildContext context) => context.go(location);
 
   @override
-  Future<T?> push<T>(BuildContext context) =>
-      context.push<T>(location, extra: _self.$extra);
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
 
   @override
   void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location, extra: _self.$extra);
+      context.pushReplacement(location);
 
   @override
-  void replace(BuildContext context) =>
-      context.replace(location, extra: _self.$extra);
+  void replace(BuildContext context) => context.replace(location);
 }
 
 RouteBase get $rootRoute =>
@@ -825,4 +806,4 @@ final class RouterProvider
   }
 }
 
-String _$routerHash() => r'6ac56870262d8a4fc47224768b3f214c14378491';
+String _$routerHash() => r'5477c8cc12107dfaa398ed77d5eb72900a1c2325';

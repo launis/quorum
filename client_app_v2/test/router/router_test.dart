@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -7,6 +8,20 @@ import 'package:client_app/features/auth/domain/models/user.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
+  const adminUser = User(
+    id: 'usr_01960000000070008000000000000001',
+    email: 'admin@quorum.ai',
+    role: UserRole.admin,
+    organizationId: 'org_01960000000070008000000000000001',
+  );
+
+  const memberUser = User(
+    id: 'usr_01960000000070008000000000000002',
+    email: 'member@quorum.ai',
+    role: UserRole.member,
+    organizationId: 'org_01960000000070008000000000000001',
+  );
+
   group('targetRouteForUser Tests', () {
     test('returns /admin for root and admin roles', () {
       expect(targetRouteForUser(UserRole.root), '/admin');
@@ -20,6 +35,102 @@ void main() {
         expect(targetRouteForUser(UserRole.manager), '/dashboard');
         expect(targetRouteForUser(UserRole.viewer), '/dashboard');
         expect(targetRouteForUser(UserRole.unknown), '/dashboard');
+      },
+    );
+  });
+
+  group('resolveAuthRedirect Positive, Negative & Boundary Tests', () {
+    test('redirects loading state to /splash unless already on /splash', () {
+      const loadingState = AsyncLoading<User?>();
+      expect(
+        resolveAuthRedirect(authState: loadingState, location: '/dashboard'),
+        '/splash',
+      );
+      expect(
+        resolveAuthRedirect(authState: loadingState, location: '/splash'),
+        isNull,
+      );
+    });
+
+    test(
+      'negative: redirects error or unauthenticated state to /login unless already on /login',
+      () {
+        final errorState = AsyncError<User?>(
+          Exception('Session expired'),
+          StackTrace.empty,
+        );
+        expect(
+          resolveAuthRedirect(authState: errorState, location: '/dashboard'),
+          '/login',
+        );
+        expect(
+          resolveAuthRedirect(authState: errorState, location: '/login'),
+          isNull,
+        );
+
+        const unauthenticatedState = AsyncData<User?>(null);
+        expect(
+          resolveAuthRedirect(
+            authState: unauthenticatedState,
+            location: '/admin',
+          ),
+          '/login',
+        );
+        expect(
+          resolveAuthRedirect(
+            authState: unauthenticatedState,
+            location: '/login',
+          ),
+          isNull,
+        );
+      },
+    );
+
+    test(
+      'negative & boundary: blocks non-admin roles from /admin and /studio routes',
+      () {
+        const memberState = AsyncData<User?>(memberUser);
+        expect(
+          resolveAuthRedirect(authState: memberState, location: '/admin'),
+          '/dashboard',
+        );
+        expect(
+          resolveAuthRedirect(
+            authState: memberState,
+            location: '/admin/workflow/new',
+          ),
+          '/dashboard',
+        );
+        expect(
+          resolveAuthRedirect(authState: memberState, location: '/studio'),
+          '/dashboard',
+        );
+        expect(
+          resolveAuthRedirect(authState: memberState, location: '/dashboard'),
+          isNull,
+        );
+      },
+    );
+
+    test(
+      'positive: redirects authenticated users away from guest routes and permits admin access',
+      () {
+        const adminState = AsyncData<User?>(adminUser);
+        expect(
+          resolveAuthRedirect(authState: adminState, location: '/login'),
+          '/admin',
+        );
+        expect(
+          resolveAuthRedirect(authState: adminState, location: '/splash'),
+          '/admin',
+        );
+        expect(
+          resolveAuthRedirect(
+            authState: adminState,
+            location: '/admin/workflow/new',
+          ),
+          isNull,
+        );
       },
     );
   });

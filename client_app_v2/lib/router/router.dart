@@ -33,8 +33,6 @@ final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
 
-// Private keys for navigator state
-
 /// **Router Provider**
 ///
 /// The central nervous system of the application's navigation.
@@ -54,7 +52,6 @@ final RouteObserver<ModalRoute<void>> routeObserver =
 ///     - `/` redirects to `/dashboard` or `/admin` based on role.
 @Riverpod(keepAlive: true)
 GoRouter router(Ref ref) {
-  // Listen to Auth State (User Profile)
   final authState = ref.watch(authControllerProvider);
 
   return GoRouter(
@@ -63,48 +60,50 @@ GoRouter router(Ref ref) {
     debugLogDiagnostics: true,
     observers: [routeObserver],
     errorBuilder: (context, state) => SafeNavigationFallback(state: state),
-    redirect: (context, state) {
-      final isLoggingIn = state.uri.toString() == '/login';
-      final isSplash = state.uri.toString() == '/splash';
+    redirect: (context, state) => resolveAuthRedirect(
+      authState: authState,
+      location: state.uri.toString(),
+    ),
+    routes: $appRoutes,
+  );
+}
 
-      // 1. Loading State -> Splash
-      if (authState.isLoading) {
-        return isSplash ? null : '/splash';
-      }
+/// Evaluates authentication state and RBAC role guards to resolve deterministic route redirects.
+String? resolveAuthRedirect({
+  required AsyncValue<User?> authState,
+  required String location,
+}) {
+  final isLoggingIn = location == '/login';
+  final isSplash = location == '/splash';
 
-      // 2. Error State -> Login (Assume session lost or network error preventing auth)
-      if (authState.hasError) {
-        return isLoggingIn ? null : '/login';
-      }
-
-      final user = authState.asData?.value;
-
+  return switch (authState) {
+    AsyncLoading() => isSplash ? null : '/splash',
+    AsyncError() => isLoggingIn ? null : '/login',
+    AsyncData(:final value) => () {
       // 3. Unauthenticated -> Login
-      if (user == null) {
+      if (value == null) {
         return isLoggingIn ? null : '/login';
       }
 
       // 4. Authenticated -> Redirect from Guest routes (Login/Splash)
       if (isLoggingIn || isSplash) {
-        return targetRouteForUser(user.role);
+        return targetRouteForUser(value.role);
       }
 
       // 5. Role Guard
-      final isAdminRoute = state.uri.toString().startsWith('/admin');
-      final isStudioRoute = state.uri.toString().startsWith('/studio');
+      final isAdminRoute = location.startsWith('/admin');
+      final isStudioRoute = location.startsWith('/studio');
 
       // Strict RBAC: Only ROOT and ADMIN can access /admin or /studio routes
       if (isAdminRoute || isStudioRoute) {
-        if (user.role != UserRole.root && user.role != UserRole.admin) {
-          // Unauthorized access attempt -> Redirect to dashboard
+        if (value.role != UserRole.root && value.role != UserRole.admin) {
           return '/dashboard';
         }
       }
 
       return null;
-    },
-    routes: $appRoutes,
-  );
+    }(),
+  };
 }
 
 @TypedGoRoute<LoginRoute>(path: '/login')
@@ -222,7 +221,7 @@ class SettingsRoute extends GoRouteData with $SettingsRoute {
   @override
   Widget build(BuildContext context, GoRouterState state) {
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(body: Center(child: Text("${l10n.settings} (V2 WIP)")));
+    return Scaffold(body: Center(child: Text(l10n.settings)));
   }
 }
 
@@ -304,9 +303,8 @@ class StepEditRoute extends GoRouteData with $StepEditRoute {
 }
 
 class ProfileEditorRoute extends GoRouteData with $ProfileEditorRoute {
-  const ProfileEditorRoute({required this.workflowId, this.$extra});
+  const ProfileEditorRoute({required this.workflowId});
   final String workflowId;
-  final Map<String, Object?>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
@@ -321,9 +319,8 @@ class OutputProfileNewRoute extends GoRouteData with $OutputProfileNewRoute {
 }
 
 class OutputProfileEditRoute extends GoRouteData with $OutputProfileEditRoute {
-  const OutputProfileEditRoute({required this.id, this.$extra});
+  const OutputProfileEditRoute({required this.id});
   final String id;
-  final Map<String, Object?>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
@@ -354,9 +351,8 @@ class McpGatewayNewRoute extends GoRouteData with $McpGatewayNewRoute {
 }
 
 class McpGatewayEditRoute extends GoRouteData with $McpGatewayEditRoute {
-  const McpGatewayEditRoute({required this.id, this.$extra});
+  const McpGatewayEditRoute({required this.id});
   final String id;
-  final Map<String, Object?>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
@@ -371,13 +367,12 @@ class MatrixNewRoute extends GoRouteData with $MatrixNewRoute {
 }
 
 class MatrixEditRoute extends GoRouteData with $MatrixEditRoute {
-  const MatrixEditRoute({required this.id, this.$extra});
+  const MatrixEditRoute({required this.id});
   final String id;
-  final Map<String, Object?>? $extra;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      MatrixEditorView(id: id, initialData: $extra);
+      MatrixEditorView(id: id);
 }
 
 @TypedGoRoute<RootRoute>(path: '/')
@@ -389,15 +384,13 @@ class RootRoute extends GoRouteData with $RootRoute {
 }
 
 /// Helper to determine the default landing page based on role.
-String targetRouteForUser(UserRole role) {
-  switch (role) {
-    case UserRole.root:
-    case UserRole.admin:
-      return '/admin';
-    default:
-      return '/dashboard';
-  }
-}
+String targetRouteForUser(UserRole role) => switch (role) {
+  UserRole.root || UserRole.admin => '/admin',
+  UserRole.member ||
+  UserRole.manager ||
+  UserRole.viewer ||
+  UserRole.unknown => '/dashboard',
+};
 
 /// A Safe Navigation Fallback that kicks the user back to the dashboard with an ambient floating alert instead of a full-screen red dead-end.
 class SafeNavigationFallback extends StatefulWidget {
@@ -430,6 +423,6 @@ class _SafeNavigationFallbackState extends State<SafeNavigationFallback> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: SizedBox.shrink());
+    return const Scaffold();
   }
 }
