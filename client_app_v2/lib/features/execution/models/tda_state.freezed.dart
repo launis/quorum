@@ -48,14 +48,7 @@ mixin _$TDAState {
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TDAState);
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
@@ -152,7 +145,7 @@ return dlq(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  pending,TResult Function( bool passed,  String displayQuote,  String rawAnchor)?  evaluated,TResult Function( String userReason,  String backendTrace)?  dlq,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  pending,TResult Function( bool passed, @JsonKey(name: 'display_quote')  String displayQuote, @JsonKey(name: 'raw_anchor')  String rawAnchor)?  evaluated,TResult Function(@JsonKey(name: 'user_reason')  String userReason, @JsonKey(name: 'backend_trace')  String backendTrace)?  dlq,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case Pending() when pending != null:
 return pending();case Evaluated() when evaluated != null:
@@ -175,7 +168,7 @@ return dlq(_that.userReason,_that.backendTrace);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  pending,required TResult Function( bool passed,  String displayQuote,  String rawAnchor)  evaluated,required TResult Function( String userReason,  String backendTrace)  dlq,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  pending,required TResult Function( bool passed, @JsonKey(name: 'display_quote')  String displayQuote, @JsonKey(name: 'raw_anchor')  String rawAnchor)  evaluated,required TResult Function(@JsonKey(name: 'user_reason')  String userReason, @JsonKey(name: 'backend_trace')  String backendTrace)  dlq,}) {final _that = this;
 switch (_that) {
 case Pending():
 return pending();case Evaluated():
@@ -194,7 +187,7 @@ return dlq(_that.userReason,_that.backendTrace);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  pending,TResult? Function( bool passed,  String displayQuote,  String rawAnchor)?  evaluated,TResult? Function( String userReason,  String backendTrace)?  dlq,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  pending,TResult? Function( bool passed, @JsonKey(name: 'display_quote')  String displayQuote, @JsonKey(name: 'raw_anchor')  String rawAnchor)?  evaluated,TResult? Function(@JsonKey(name: 'user_reason')  String userReason, @JsonKey(name: 'backend_trace')  String backendTrace)?  dlq,}) {final _that = this;
 switch (_that) {
 case Pending() when pending != null:
 return pending();case Evaluated() when evaluated != null:
@@ -210,8 +203,8 @@ return dlq(_that.userReason,_that.backendTrace);case _:
 /// @nodoc
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
-class Pending implements TDAState {
-  const Pending({final  String? $type}): $type = $type ?? 'pending';
+class Pending extends TDAState {
+  const Pending({final  String? $type}): $type = $type ?? 'pending',super._();
   factory Pending.fromJson(Map<String, dynamic> json) => _$PendingFromJson(json);
 
 
@@ -226,14 +219,7 @@ Map<String, dynamic> toJson() {
   return _$PendingToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Pending);
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
@@ -249,13 +235,13 @@ String toString() {
 /// @nodoc
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
-class Evaluated implements TDAState {
-  const Evaluated({required this.passed, required this.displayQuote, required this.rawAnchor, final  String? $type}): $type = $type ?? 'evaluated';
+class Evaluated extends TDAState {
+  const Evaluated({required this.passed, @JsonKey(name: 'display_quote') required this.displayQuote, @JsonKey(name: 'raw_anchor') required this.rawAnchor, final  String? $type}): $type = $type ?? 'evaluated',super._();
   factory Evaluated.fromJson(Map<String, dynamic> json) => _$EvaluatedFromJson(json);
 
  final  bool passed;
- final  String displayQuote;
- final  String rawAnchor;
+@JsonKey(name: 'display_quote') final  String displayQuote;
+@JsonKey(name: 'raw_anchor') final  String rawAnchor;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -272,14 +258,7 @@ Map<String, dynamic> toJson() {
   return _$EvaluatedToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Evaluated&&(identical(other.passed, passed) || other.passed == passed)&&(identical(other.displayQuote, displayQuote) || other.displayQuote == displayQuote)&&(identical(other.rawAnchor, rawAnchor) || other.rawAnchor == rawAnchor));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,passed,displayQuote,rawAnchor);
 
 @override
 String toString() {
@@ -294,7 +273,7 @@ abstract mixin class $EvaluatedCopyWith<$Res> implements $TDAStateCopyWith<$Res>
   factory $EvaluatedCopyWith(Evaluated value, $Res Function(Evaluated) _then) = _$EvaluatedCopyWithImpl;
 @useResult
 $Res call({
- bool passed, String displayQuote, String rawAnchor
+ bool passed,@JsonKey(name: 'display_quote') String displayQuote,@JsonKey(name: 'raw_anchor') String rawAnchor
 });
 
 
@@ -326,12 +305,12 @@ as String,
 /// @nodoc
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
-class Dlq implements TDAState {
-  const Dlq({required this.userReason, required this.backendTrace, final  String? $type}): $type = $type ?? 'dlq';
+class Dlq extends TDAState {
+  const Dlq({@JsonKey(name: 'user_reason') required this.userReason, @JsonKey(name: 'backend_trace') required this.backendTrace, final  String? $type}): $type = $type ?? 'dlq',super._();
   factory Dlq.fromJson(Map<String, dynamic> json) => _$DlqFromJson(json);
 
- final  String userReason;
- final  String backendTrace;
+@JsonKey(name: 'user_reason') final  String userReason;
+@JsonKey(name: 'backend_trace') final  String backendTrace;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -348,14 +327,7 @@ Map<String, dynamic> toJson() {
   return _$DlqToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Dlq&&(identical(other.userReason, userReason) || other.userReason == userReason)&&(identical(other.backendTrace, backendTrace) || other.backendTrace == backendTrace));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,userReason,backendTrace);
 
 @override
 String toString() {
@@ -370,7 +342,7 @@ abstract mixin class $DlqCopyWith<$Res> implements $TDAStateCopyWith<$Res> {
   factory $DlqCopyWith(Dlq value, $Res Function(Dlq) _then) = _$DlqCopyWithImpl;
 @useResult
 $Res call({
- String userReason, String backendTrace
+@JsonKey(name: 'user_reason') String userReason,@JsonKey(name: 'backend_trace') String backendTrace
 });
 
 
