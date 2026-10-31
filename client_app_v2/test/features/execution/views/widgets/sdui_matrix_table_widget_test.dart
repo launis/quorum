@@ -855,4 +855,67 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.byType(SduiMatrixTableWidget), findsOneWidget);
   });
+
+  testWidgets(
+    'test_flutter_sdui_matrix_table_widget_renders_short_circuit_badge',
+    (WidgetTester tester) async {
+      const row = MatrixScorecardRowDto(
+        blockId: 'axis_sc_1',
+        name: 'Short-Circuited Dimension',
+        labelI18n: I18nText(translations: {'en': 'Short-Circuited Dimension'}),
+        rowExplanation: 'Prerequisite failed.',
+        scoreDisplayLabel: '0 / 10',
+        normalizedScore: 0.0,
+        uiPlotRatio: 0.0,
+        isEvaluative: true,
+        allowContextualOverride: false,
+      );
+
+      const block = SduiMatrixTableBlock(
+        matrixVisibleColumns: ['label', 'score'],
+        axes: [row],
+        shortCircuitedByClaims: ['Blocked by Parent Claim'],
+        falsifiedWarrantClaims: ['Rebuttal R1 -> Warrant W1 -> Claim C1'],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: const MediaQuery(
+            data: MediaQueryData(size: Size(1200, 800)),
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: SduiMatrixTableWidget(block: block),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Blocked by Parent Claim'), findsOneWidget);
+      expect(
+        find.text('Rebuttal R1 -> Warrant W1 -> Claim C1'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  test(
+    'test_flutter_sdui_block_dto_rejects_invalid_type_on_short_circuited_by_claims',
+    () {
+      expect(
+        () => SduiBlockDTO.fromJson(<String, dynamic>{
+          'block_type': 'matrix_summary',
+          'axes': <dynamic>[],
+          'short_circuited_by_claims': 12345,
+        }),
+        throwsA(isA<Object>()),
+      );
+    },
+  );
 }

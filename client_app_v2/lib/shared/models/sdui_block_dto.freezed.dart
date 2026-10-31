@@ -288,7 +288,7 @@ return causalGraph(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult Function( String? id,  String text)?  markdown,TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  metadata,TResult Function( String? id, @JsonKey(name: 'global_score')  double? globalScore)?  scoreCard,TResult Function( String? id)?  auditTrail,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  matrix3d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  compare2d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  quadrantMatrix,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  metrics1d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  matrixSummary,TResult Function( String? id, @JsonKey(name: 'critical_path_nodes')  List<CausalNodeDto> criticalPathNodes, @JsonKey(name: 'critical_edges')  List<CausalEdgeDto> criticalEdges, @JsonKey(name: 'root_cause_diagnoses')  List<CausalRootCauseDiagnosisDto> rootCauseDiagnoses, @JsonKey(name: 'anti_fluff_audit')  AntiFluffAuditDto antiFluffAudit, @JsonKey(name: 'prescriptive_remediations')  List<PrescriptiveRemediationDto> prescriptiveRemediations, @JsonKey(name: 'fair_scoring')  FairScoringBreakdownDto? fairScoring, @JsonKey(name: 'intact_claims_count')  int intactClaimsCount, @JsonKey(name: 'total_claims_count')  int totalClaimsCount,  I18nText summary)?  causalGraph,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult Function( String? id,  String text)?  markdown,TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  metadata,TResult Function( String? id, @JsonKey(name: 'global_score')  double? globalScore)?  scoreCard,TResult Function( String? id)?  auditTrail,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  matrix3d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  compare2d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  quadrantMatrix,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  metrics1d,TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns, @JsonKey(name: 'short_circuited_by_claims')  List<String> shortCircuitedByClaims, @JsonKey(name: 'falsified_warrant_claims')  List<String> falsifiedWarrantClaims)?  matrixSummary,TResult Function( String? id, @JsonKey(name: 'critical_path_nodes')  List<CausalNodeDto> criticalPathNodes, @JsonKey(name: 'critical_edges')  List<CausalEdgeDto> criticalEdges, @JsonKey(name: 'root_cause_diagnoses')  List<CausalRootCauseDiagnosisDto> rootCauseDiagnoses, @JsonKey(name: 'anti_fluff_audit')  AntiFluffAuditDto antiFluffAudit, @JsonKey(name: 'prescriptive_remediations')  List<PrescriptiveRemediationDto> prescriptiveRemediations, @JsonKey(name: 'fair_scoring')  FairScoringBreakdownDto? fairScoring, @JsonKey(name: 'intact_claims_count')  int intactClaimsCount, @JsonKey(name: 'total_claims_count')  int totalClaimsCount,  I18nText summary, @JsonKey(name: 'short_circuited_by_claims')  List<String> shortCircuitedByClaims, @JsonKey(name: 'falsified_warrant_claims')  List<String> falsifiedWarrantClaims)?  causalGraph,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
@@ -308,8 +308,8 @@ return matrix3d(_that.id,_that.title,_that.axes);case SduiScatterPlotBlock() whe
 return compare2d(_that.id,_that.title,_that.axes);case SduiQuadrantMatrixBlock() when quadrantMatrix != null:
 return quadrantMatrix(_that.id,_that.title,_that.axes);case SduiMetrics1DBlock() when metrics1d != null:
 return metrics1d(_that.id,_that.title,_that.axes);case SduiMatrixTableBlock() when matrixSummary != null:
-return matrixSummary(_that.id,_that.title,_that.axes,_that.matrixColumnLabels,_that.extensionLabels,_that.matrixVisibleColumns);case SduiCausalGraphBlock() when causalGraph != null:
-return causalGraph(_that.id,_that.criticalPathNodes,_that.criticalEdges,_that.rootCauseDiagnoses,_that.antiFluffAudit,_that.prescriptiveRemediations,_that.fairScoring,_that.intactClaimsCount,_that.totalClaimsCount,_that.summary);case _:
+return matrixSummary(_that.id,_that.title,_that.axes,_that.matrixColumnLabels,_that.extensionLabels,_that.matrixVisibleColumns,_that.shortCircuitedByClaims,_that.falsifiedWarrantClaims);case SduiCausalGraphBlock() when causalGraph != null:
+return causalGraph(_that.id,_that.criticalPathNodes,_that.criticalEdges,_that.rootCauseDiagnoses,_that.antiFluffAudit,_that.prescriptiveRemediations,_that.fairScoring,_that.intactClaimsCount,_that.totalClaimsCount,_that.summary,_that.shortCircuitedByClaims,_that.falsifiedWarrantClaims);case _:
   return orElse();
 
 }
@@ -327,7 +327,7 @@ return causalGraph(_that.id,_that.criticalPathNodes,_that.criticalEdges,_that.ro
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  paragraph,required TResult Function( String? id,  List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)  accordion,required TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  alertBox,required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  heroInsight,required TResult Function( String? id,  String text)  markdown,required TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)  quoteCard,required TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)  warningCard,required TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)  nACard,required TResult Function( String? id,  List<SduiBlockDTO> items)  grid,required TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)  metadata,required TResult Function( String? id, @JsonKey(name: 'global_score')  double? globalScore)  scoreCard,required TResult Function( String? id)  auditTrail,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  matrix3d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  compare2d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  quadrantMatrix,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  metrics1d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)  matrixSummary,required TResult Function( String? id, @JsonKey(name: 'critical_path_nodes')  List<CausalNodeDto> criticalPathNodes, @JsonKey(name: 'critical_edges')  List<CausalEdgeDto> criticalEdges, @JsonKey(name: 'root_cause_diagnoses')  List<CausalRootCauseDiagnosisDto> rootCauseDiagnoses, @JsonKey(name: 'anti_fluff_audit')  AntiFluffAuditDto antiFluffAudit, @JsonKey(name: 'prescriptive_remediations')  List<PrescriptiveRemediationDto> prescriptiveRemediations, @JsonKey(name: 'fair_scoring')  FairScoringBreakdownDto? fairScoring, @JsonKey(name: 'intact_claims_count')  int intactClaimsCount, @JsonKey(name: 'total_claims_count')  int totalClaimsCount,  I18nText summary)  causalGraph,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  paragraph,required TResult Function( String? id,  List<SduiBulletListItemDTO> items)  bulletList,required TResult Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)  accordion,required TResult Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  alertBox,required TResult Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)  heroInsight,required TResult Function( String? id,  String text)  markdown,required TResult Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)  quoteCard,required TResult Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)  warningCard,required TResult Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)  nACard,required TResult Function( String? id,  List<SduiBlockDTO> items)  grid,required TResult Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)  metadata,required TResult Function( String? id, @JsonKey(name: 'global_score')  double? globalScore)  scoreCard,required TResult Function( String? id)  auditTrail,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  matrix3d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  compare2d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  quadrantMatrix,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)  metrics1d,required TResult Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns, @JsonKey(name: 'short_circuited_by_claims')  List<String> shortCircuitedByClaims, @JsonKey(name: 'falsified_warrant_claims')  List<String> falsifiedWarrantClaims)  matrixSummary,required TResult Function( String? id, @JsonKey(name: 'critical_path_nodes')  List<CausalNodeDto> criticalPathNodes, @JsonKey(name: 'critical_edges')  List<CausalEdgeDto> criticalEdges, @JsonKey(name: 'root_cause_diagnoses')  List<CausalRootCauseDiagnosisDto> rootCauseDiagnoses, @JsonKey(name: 'anti_fluff_audit')  AntiFluffAuditDto antiFluffAudit, @JsonKey(name: 'prescriptive_remediations')  List<PrescriptiveRemediationDto> prescriptiveRemediations, @JsonKey(name: 'fair_scoring')  FairScoringBreakdownDto? fairScoring, @JsonKey(name: 'intact_claims_count')  int intactClaimsCount, @JsonKey(name: 'total_claims_count')  int totalClaimsCount,  I18nText summary, @JsonKey(name: 'short_circuited_by_claims')  List<String> shortCircuitedByClaims, @JsonKey(name: 'falsified_warrant_claims')  List<String> falsifiedWarrantClaims)  causalGraph,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock():
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock():
@@ -347,8 +347,8 @@ return matrix3d(_that.id,_that.title,_that.axes);case SduiScatterPlotBlock():
 return compare2d(_that.id,_that.title,_that.axes);case SduiQuadrantMatrixBlock():
 return quadrantMatrix(_that.id,_that.title,_that.axes);case SduiMetrics1DBlock():
 return metrics1d(_that.id,_that.title,_that.axes);case SduiMatrixTableBlock():
-return matrixSummary(_that.id,_that.title,_that.axes,_that.matrixColumnLabels,_that.extensionLabels,_that.matrixVisibleColumns);case SduiCausalGraphBlock():
-return causalGraph(_that.id,_that.criticalPathNodes,_that.criticalEdges,_that.rootCauseDiagnoses,_that.antiFluffAudit,_that.prescriptiveRemediations,_that.fairScoring,_that.intactClaimsCount,_that.totalClaimsCount,_that.summary);}
+return matrixSummary(_that.id,_that.title,_that.axes,_that.matrixColumnLabels,_that.extensionLabels,_that.matrixVisibleColumns,_that.shortCircuitedByClaims,_that.falsifiedWarrantClaims);case SduiCausalGraphBlock():
+return causalGraph(_that.id,_that.criticalPathNodes,_that.criticalEdges,_that.rootCauseDiagnoses,_that.antiFluffAudit,_that.prescriptiveRemediations,_that.fairScoring,_that.intactClaimsCount,_that.totalClaimsCount,_that.summary,_that.shortCircuitedByClaims,_that.falsifiedWarrantClaims);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -362,7 +362,7 @@ return causalGraph(_that.id,_that.criticalPathNodes,_that.criticalEdges,_that.ro
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult? Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult? Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult? Function( String? id,  String text)?  markdown,TResult? Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult? Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult? Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult? Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult? Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  metadata,TResult? Function( String? id, @JsonKey(name: 'global_score')  double? globalScore)?  scoreCard,TResult? Function( String? id)?  auditTrail,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  matrix3d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  compare2d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  quadrantMatrix,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  metrics1d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns)?  matrixSummary,TResult? Function( String? id, @JsonKey(name: 'critical_path_nodes')  List<CausalNodeDto> criticalPathNodes, @JsonKey(name: 'critical_edges')  List<CausalEdgeDto> criticalEdges, @JsonKey(name: 'root_cause_diagnoses')  List<CausalRootCauseDiagnosisDto> rootCauseDiagnoses, @JsonKey(name: 'anti_fluff_audit')  AntiFluffAuditDto antiFluffAudit, @JsonKey(name: 'prescriptive_remediations')  List<PrescriptiveRemediationDto> prescriptiveRemediations, @JsonKey(name: 'fair_scoring')  FairScoringBreakdownDto? fairScoring, @JsonKey(name: 'intact_claims_count')  int intactClaimsCount, @JsonKey(name: 'total_claims_count')  int totalClaimsCount,  I18nText summary)?  causalGraph,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  paragraph,TResult? Function( String? id,  List<SduiBulletListItemDTO> items)?  bulletList,TResult? Function( String? id,  String title,  String severity, @JsonKey(name: 'icon_name')  String? iconName,  List<SduiBlockDTO> children)?  accordion,TResult? Function( String? id,  String text,  AlertSeverity severity,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  alertBox,TResult? Function( String? id,  String text,  List<int> citations, @JsonKey(name: 'exact_quotes')  List<String> exactQuotes)?  heroInsight,TResult? Function( String? id,  String text)?  markdown,TResult? Function( String? id,  String quote, @JsonKey(name: 'source_aliases')  List<String> sourceAliases,  List<int> citations)?  quoteCard,TResult? Function( String? id,  String message, @JsonKey(name: 'quote_text')  String? quoteText)?  warningCard,TResult? Function( String? id, @JsonKey(name: 'short_circuit_reason_tda_ids')  List<String> shortCircuitReasonTdaIds,  String message)?  nACard,TResult? Function( String? id,  List<SduiBlockDTO> items)?  grid,TResult? Function( String? id,  String title,  List<String> badges, @JsonKey(name: 'metadata_lines')  List<String> metadataLines,  String? costs,  Map<String, String>? tokens, @JsonKey(name: 'custom_preface_md')  String? customPrefaceMd)?  metadata,TResult? Function( String? id, @JsonKey(name: 'global_score')  double? globalScore)?  scoreCard,TResult? Function( String? id)?  auditTrail,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  matrix3d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  compare2d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  quadrantMatrix,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes)?  metrics1d,TResult? Function( String? id,  I18nText? title,  List<MatrixScorecardRowDto> axes, @JsonKey(name: 'matrix_column_labels')  Map<String, I18nText> matrixColumnLabels, @JsonKey(name: 'extension_labels')  Map<XaiExtensionType, I18nText> extensionLabels, @JsonKey(name: 'matrix_visible_columns')  List<String> matrixVisibleColumns, @JsonKey(name: 'short_circuited_by_claims')  List<String> shortCircuitedByClaims, @JsonKey(name: 'falsified_warrant_claims')  List<String> falsifiedWarrantClaims)?  matrixSummary,TResult? Function( String? id, @JsonKey(name: 'critical_path_nodes')  List<CausalNodeDto> criticalPathNodes, @JsonKey(name: 'critical_edges')  List<CausalEdgeDto> criticalEdges, @JsonKey(name: 'root_cause_diagnoses')  List<CausalRootCauseDiagnosisDto> rootCauseDiagnoses, @JsonKey(name: 'anti_fluff_audit')  AntiFluffAuditDto antiFluffAudit, @JsonKey(name: 'prescriptive_remediations')  List<PrescriptiveRemediationDto> prescriptiveRemediations, @JsonKey(name: 'fair_scoring')  FairScoringBreakdownDto? fairScoring, @JsonKey(name: 'intact_claims_count')  int intactClaimsCount, @JsonKey(name: 'total_claims_count')  int totalClaimsCount,  I18nText summary, @JsonKey(name: 'short_circuited_by_claims')  List<String> shortCircuitedByClaims, @JsonKey(name: 'falsified_warrant_claims')  List<String> falsifiedWarrantClaims)?  causalGraph,}) {final _that = this;
 switch (_that) {
 case SduiParagraphBlock() when paragraph != null:
 return paragraph(_that.id,_that.text,_that.citations,_that.exactQuotes);case SduiBulletListBlock() when bulletList != null:
@@ -382,8 +382,8 @@ return matrix3d(_that.id,_that.title,_that.axes);case SduiScatterPlotBlock() whe
 return compare2d(_that.id,_that.title,_that.axes);case SduiQuadrantMatrixBlock() when quadrantMatrix != null:
 return quadrantMatrix(_that.id,_that.title,_that.axes);case SduiMetrics1DBlock() when metrics1d != null:
 return metrics1d(_that.id,_that.title,_that.axes);case SduiMatrixTableBlock() when matrixSummary != null:
-return matrixSummary(_that.id,_that.title,_that.axes,_that.matrixColumnLabels,_that.extensionLabels,_that.matrixVisibleColumns);case SduiCausalGraphBlock() when causalGraph != null:
-return causalGraph(_that.id,_that.criticalPathNodes,_that.criticalEdges,_that.rootCauseDiagnoses,_that.antiFluffAudit,_that.prescriptiveRemediations,_that.fairScoring,_that.intactClaimsCount,_that.totalClaimsCount,_that.summary);case _:
+return matrixSummary(_that.id,_that.title,_that.axes,_that.matrixColumnLabels,_that.extensionLabels,_that.matrixVisibleColumns,_that.shortCircuitedByClaims,_that.falsifiedWarrantClaims);case SduiCausalGraphBlock() when causalGraph != null:
+return causalGraph(_that.id,_that.criticalPathNodes,_that.criticalEdges,_that.rootCauseDiagnoses,_that.antiFluffAudit,_that.prescriptiveRemediations,_that.fairScoring,_that.intactClaimsCount,_that.totalClaimsCount,_that.summary,_that.shortCircuitedByClaims,_that.falsifiedWarrantClaims);case _:
   return null;
 
 }
@@ -1759,7 +1759,7 @@ $I18nTextCopyWith<$Res>? get title {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiMatrixTableBlock extends SduiBlockDTO {
-  const SduiMatrixTableBlock({this.id, this.title, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'matrix_column_labels') final  Map<String, I18nText> matrixColumnLabels = const {}, @JsonKey(name: 'extension_labels') final  Map<XaiExtensionType, I18nText> extensionLabels = const {}, @JsonKey(name: 'matrix_visible_columns') final  List<String> matrixVisibleColumns = const [], final  String? $type}): _axes = axes,_matrixColumnLabels = matrixColumnLabels,_extensionLabels = extensionLabels,_matrixVisibleColumns = matrixVisibleColumns,$type = $type ?? 'matrix_summary',super._();
+  const SduiMatrixTableBlock({this.id, this.title, final  List<MatrixScorecardRowDto> axes = const [], @JsonKey(name: 'matrix_column_labels') final  Map<String, I18nText> matrixColumnLabels = const {}, @JsonKey(name: 'extension_labels') final  Map<XaiExtensionType, I18nText> extensionLabels = const {}, @JsonKey(name: 'matrix_visible_columns') final  List<String> matrixVisibleColumns = const [], @JsonKey(name: 'short_circuited_by_claims') final  List<String> shortCircuitedByClaims = const <String>[], @JsonKey(name: 'falsified_warrant_claims') final  List<String> falsifiedWarrantClaims = const <String>[], final  String? $type}): _axes = axes,_matrixColumnLabels = matrixColumnLabels,_extensionLabels = extensionLabels,_matrixVisibleColumns = matrixVisibleColumns,_shortCircuitedByClaims = shortCircuitedByClaims,_falsifiedWarrantClaims = falsifiedWarrantClaims,$type = $type ?? 'matrix_summary',super._();
   factory SduiMatrixTableBlock.fromJson(Map<String, dynamic> json) => _$SduiMatrixTableBlockFromJson(json);
 
 @override final  String? id;
@@ -1792,6 +1792,22 @@ class SduiMatrixTableBlock extends SduiBlockDTO {
   return EqualUnmodifiableListView(_matrixVisibleColumns);
 }
 
+// Phase 3, Step 3.3: Inline topological short-circuit and Toulmin falsification lineage
+ final  List<String> _shortCircuitedByClaims;
+// Phase 3, Step 3.3: Inline topological short-circuit and Toulmin falsification lineage
+@JsonKey(name: 'short_circuited_by_claims') List<String> get shortCircuitedByClaims {
+  if (_shortCircuitedByClaims is EqualUnmodifiableListView) return _shortCircuitedByClaims;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_shortCircuitedByClaims);
+}
+
+ final  List<String> _falsifiedWarrantClaims;
+@JsonKey(name: 'falsified_warrant_claims') List<String> get falsifiedWarrantClaims {
+  if (_falsifiedWarrantClaims is EqualUnmodifiableListView) return _falsifiedWarrantClaims;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_falsifiedWarrantClaims);
+}
+
 
 @JsonKey(name: 'block_type')
 final String $type;
@@ -1812,7 +1828,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'SduiBlockDTO.matrixSummary(id: $id, title: $title, axes: $axes, matrixColumnLabels: $matrixColumnLabels, extensionLabels: $extensionLabels, matrixVisibleColumns: $matrixVisibleColumns)';
+  return 'SduiBlockDTO.matrixSummary(id: $id, title: $title, axes: $axes, matrixColumnLabels: $matrixColumnLabels, extensionLabels: $extensionLabels, matrixVisibleColumns: $matrixVisibleColumns, shortCircuitedByClaims: $shortCircuitedByClaims, falsifiedWarrantClaims: $falsifiedWarrantClaims)';
 }
 
 
@@ -1823,7 +1839,7 @@ abstract mixin class $SduiMatrixTableBlockCopyWith<$Res> implements $SduiBlockDT
   factory $SduiMatrixTableBlockCopyWith(SduiMatrixTableBlock value, $Res Function(SduiMatrixTableBlock) _then) = _$SduiMatrixTableBlockCopyWithImpl;
 @override @useResult
 $Res call({
- String? id, I18nText? title, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> matrixColumnLabels,@JsonKey(name: 'extension_labels') Map<XaiExtensionType, I18nText> extensionLabels,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns
+ String? id, I18nText? title, List<MatrixScorecardRowDto> axes,@JsonKey(name: 'matrix_column_labels') Map<String, I18nText> matrixColumnLabels,@JsonKey(name: 'extension_labels') Map<XaiExtensionType, I18nText> extensionLabels,@JsonKey(name: 'matrix_visible_columns') List<String> matrixVisibleColumns,@JsonKey(name: 'short_circuited_by_claims') List<String> shortCircuitedByClaims,@JsonKey(name: 'falsified_warrant_claims') List<String> falsifiedWarrantClaims
 });
 
 
@@ -1840,7 +1856,7 @@ class _$SduiMatrixTableBlockCopyWithImpl<$Res>
 
 /// Create a copy of SduiBlockDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? title = freezed,Object? axes = null,Object? matrixColumnLabels = null,Object? extensionLabels = null,Object? matrixVisibleColumns = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? title = freezed,Object? axes = null,Object? matrixColumnLabels = null,Object? extensionLabels = null,Object? matrixVisibleColumns = null,Object? shortCircuitedByClaims = null,Object? falsifiedWarrantClaims = null,}) {
   return _then(SduiMatrixTableBlock(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -1848,6 +1864,8 @@ as I18nText?,axes: null == axes ? _self._axes : axes // ignore: cast_nullable_to
 as List<MatrixScorecardRowDto>,matrixColumnLabels: null == matrixColumnLabels ? _self._matrixColumnLabels : matrixColumnLabels // ignore: cast_nullable_to_non_nullable
 as Map<String, I18nText>,extensionLabels: null == extensionLabels ? _self._extensionLabels : extensionLabels // ignore: cast_nullable_to_non_nullable
 as Map<XaiExtensionType, I18nText>,matrixVisibleColumns: null == matrixVisibleColumns ? _self._matrixVisibleColumns : matrixVisibleColumns // ignore: cast_nullable_to_non_nullable
+as List<String>,shortCircuitedByClaims: null == shortCircuitedByClaims ? _self._shortCircuitedByClaims : shortCircuitedByClaims // ignore: cast_nullable_to_non_nullable
+as List<String>,falsifiedWarrantClaims: null == falsifiedWarrantClaims ? _self._falsifiedWarrantClaims : falsifiedWarrantClaims // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
 }
@@ -1871,7 +1889,7 @@ $I18nTextCopyWith<$Res>? get title {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SduiCausalGraphBlock extends SduiBlockDTO {
-  const SduiCausalGraphBlock({this.id, @JsonKey(name: 'critical_path_nodes') final  List<CausalNodeDto> criticalPathNodes = const [], @JsonKey(name: 'critical_edges') final  List<CausalEdgeDto> criticalEdges = const [], @JsonKey(name: 'root_cause_diagnoses') final  List<CausalRootCauseDiagnosisDto> rootCauseDiagnoses = const [], @JsonKey(name: 'anti_fluff_audit') required this.antiFluffAudit, @JsonKey(name: 'prescriptive_remediations') final  List<PrescriptiveRemediationDto> prescriptiveRemediations = const [], @JsonKey(name: 'fair_scoring') this.fairScoring, @JsonKey(name: 'intact_claims_count') required this.intactClaimsCount, @JsonKey(name: 'total_claims_count') required this.totalClaimsCount, required this.summary, final  String? $type}): _criticalPathNodes = criticalPathNodes,_criticalEdges = criticalEdges,_rootCauseDiagnoses = rootCauseDiagnoses,_prescriptiveRemediations = prescriptiveRemediations,$type = $type ?? 'causal_graph',super._();
+  const SduiCausalGraphBlock({this.id, @JsonKey(name: 'critical_path_nodes') final  List<CausalNodeDto> criticalPathNodes = const [], @JsonKey(name: 'critical_edges') final  List<CausalEdgeDto> criticalEdges = const [], @JsonKey(name: 'root_cause_diagnoses') final  List<CausalRootCauseDiagnosisDto> rootCauseDiagnoses = const [], @JsonKey(name: 'anti_fluff_audit') required this.antiFluffAudit, @JsonKey(name: 'prescriptive_remediations') final  List<PrescriptiveRemediationDto> prescriptiveRemediations = const [], @JsonKey(name: 'fair_scoring') this.fairScoring, @JsonKey(name: 'intact_claims_count') required this.intactClaimsCount, @JsonKey(name: 'total_claims_count') required this.totalClaimsCount, required this.summary, @JsonKey(name: 'short_circuited_by_claims') final  List<String> shortCircuitedByClaims = const <String>[], @JsonKey(name: 'falsified_warrant_claims') final  List<String> falsifiedWarrantClaims = const <String>[], final  String? $type}): _criticalPathNodes = criticalPathNodes,_criticalEdges = criticalEdges,_rootCauseDiagnoses = rootCauseDiagnoses,_prescriptiveRemediations = prescriptiveRemediations,_shortCircuitedByClaims = shortCircuitedByClaims,_falsifiedWarrantClaims = falsifiedWarrantClaims,$type = $type ?? 'causal_graph',super._();
   factory SduiCausalGraphBlock.fromJson(Map<String, dynamic> json) => _$SduiCausalGraphBlockFromJson(json);
 
 @override final  String? id;
@@ -1908,6 +1926,22 @@ class SduiCausalGraphBlock extends SduiBlockDTO {
 @JsonKey(name: 'intact_claims_count') final  int intactClaimsCount;
 @JsonKey(name: 'total_claims_count') final  int totalClaimsCount;
  final  I18nText summary;
+// Phase 3, Step 3.3: Inline topological short-circuit and Toulmin falsification lineage
+ final  List<String> _shortCircuitedByClaims;
+// Phase 3, Step 3.3: Inline topological short-circuit and Toulmin falsification lineage
+@JsonKey(name: 'short_circuited_by_claims') List<String> get shortCircuitedByClaims {
+  if (_shortCircuitedByClaims is EqualUnmodifiableListView) return _shortCircuitedByClaims;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_shortCircuitedByClaims);
+}
+
+ final  List<String> _falsifiedWarrantClaims;
+@JsonKey(name: 'falsified_warrant_claims') List<String> get falsifiedWarrantClaims {
+  if (_falsifiedWarrantClaims is EqualUnmodifiableListView) return _falsifiedWarrantClaims;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_falsifiedWarrantClaims);
+}
+
 
 @JsonKey(name: 'block_type')
 final String $type;
@@ -1928,7 +1962,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'SduiBlockDTO.causalGraph(id: $id, criticalPathNodes: $criticalPathNodes, criticalEdges: $criticalEdges, rootCauseDiagnoses: $rootCauseDiagnoses, antiFluffAudit: $antiFluffAudit, prescriptiveRemediations: $prescriptiveRemediations, fairScoring: $fairScoring, intactClaimsCount: $intactClaimsCount, totalClaimsCount: $totalClaimsCount, summary: $summary)';
+  return 'SduiBlockDTO.causalGraph(id: $id, criticalPathNodes: $criticalPathNodes, criticalEdges: $criticalEdges, rootCauseDiagnoses: $rootCauseDiagnoses, antiFluffAudit: $antiFluffAudit, prescriptiveRemediations: $prescriptiveRemediations, fairScoring: $fairScoring, intactClaimsCount: $intactClaimsCount, totalClaimsCount: $totalClaimsCount, summary: $summary, shortCircuitedByClaims: $shortCircuitedByClaims, falsifiedWarrantClaims: $falsifiedWarrantClaims)';
 }
 
 
@@ -1939,7 +1973,7 @@ abstract mixin class $SduiCausalGraphBlockCopyWith<$Res> implements $SduiBlockDT
   factory $SduiCausalGraphBlockCopyWith(SduiCausalGraphBlock value, $Res Function(SduiCausalGraphBlock) _then) = _$SduiCausalGraphBlockCopyWithImpl;
 @override @useResult
 $Res call({
- String? id,@JsonKey(name: 'critical_path_nodes') List<CausalNodeDto> criticalPathNodes,@JsonKey(name: 'critical_edges') List<CausalEdgeDto> criticalEdges,@JsonKey(name: 'root_cause_diagnoses') List<CausalRootCauseDiagnosisDto> rootCauseDiagnoses,@JsonKey(name: 'anti_fluff_audit') AntiFluffAuditDto antiFluffAudit,@JsonKey(name: 'prescriptive_remediations') List<PrescriptiveRemediationDto> prescriptiveRemediations,@JsonKey(name: 'fair_scoring') FairScoringBreakdownDto? fairScoring,@JsonKey(name: 'intact_claims_count') int intactClaimsCount,@JsonKey(name: 'total_claims_count') int totalClaimsCount, I18nText summary
+ String? id,@JsonKey(name: 'critical_path_nodes') List<CausalNodeDto> criticalPathNodes,@JsonKey(name: 'critical_edges') List<CausalEdgeDto> criticalEdges,@JsonKey(name: 'root_cause_diagnoses') List<CausalRootCauseDiagnosisDto> rootCauseDiagnoses,@JsonKey(name: 'anti_fluff_audit') AntiFluffAuditDto antiFluffAudit,@JsonKey(name: 'prescriptive_remediations') List<PrescriptiveRemediationDto> prescriptiveRemediations,@JsonKey(name: 'fair_scoring') FairScoringBreakdownDto? fairScoring,@JsonKey(name: 'intact_claims_count') int intactClaimsCount,@JsonKey(name: 'total_claims_count') int totalClaimsCount, I18nText summary,@JsonKey(name: 'short_circuited_by_claims') List<String> shortCircuitedByClaims,@JsonKey(name: 'falsified_warrant_claims') List<String> falsifiedWarrantClaims
 });
 
 
@@ -1956,7 +1990,7 @@ class _$SduiCausalGraphBlockCopyWithImpl<$Res>
 
 /// Create a copy of SduiBlockDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? criticalPathNodes = null,Object? criticalEdges = null,Object? rootCauseDiagnoses = null,Object? antiFluffAudit = null,Object? prescriptiveRemediations = null,Object? fairScoring = freezed,Object? intactClaimsCount = null,Object? totalClaimsCount = null,Object? summary = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? criticalPathNodes = null,Object? criticalEdges = null,Object? rootCauseDiagnoses = null,Object? antiFluffAudit = null,Object? prescriptiveRemediations = null,Object? fairScoring = freezed,Object? intactClaimsCount = null,Object? totalClaimsCount = null,Object? summary = null,Object? shortCircuitedByClaims = null,Object? falsifiedWarrantClaims = null,}) {
   return _then(SduiCausalGraphBlock(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,criticalPathNodes: null == criticalPathNodes ? _self._criticalPathNodes : criticalPathNodes // ignore: cast_nullable_to_non_nullable
@@ -1968,7 +2002,9 @@ as List<PrescriptiveRemediationDto>,fairScoring: freezed == fairScoring ? _self.
 as FairScoringBreakdownDto?,intactClaimsCount: null == intactClaimsCount ? _self.intactClaimsCount : intactClaimsCount // ignore: cast_nullable_to_non_nullable
 as int,totalClaimsCount: null == totalClaimsCount ? _self.totalClaimsCount : totalClaimsCount // ignore: cast_nullable_to_non_nullable
 as int,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
-as I18nText,
+as I18nText,shortCircuitedByClaims: null == shortCircuitedByClaims ? _self._shortCircuitedByClaims : shortCircuitedByClaims // ignore: cast_nullable_to_non_nullable
+as List<String>,falsifiedWarrantClaims: null == falsifiedWarrantClaims ? _self._falsifiedWarrantClaims : falsifiedWarrantClaims // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 

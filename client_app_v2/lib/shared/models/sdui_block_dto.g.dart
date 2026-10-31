@@ -649,6 +649,8 @@ SduiMatrixTableBlock _$SduiMatrixTableBlockFromJson(
         'matrix_column_labels',
         'extension_labels',
         'matrix_visible_columns',
+        'short_circuited_by_claims',
+        'falsified_warrant_claims',
         'block_type',
       ],
     );
@@ -694,6 +696,18 @@ SduiMatrixTableBlock _$SduiMatrixTableBlockFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
+      shortCircuitedByClaims: $checkedConvert(
+        'short_circuited_by_claims',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const <String>[],
+      ),
+      falsifiedWarrantClaims: $checkedConvert(
+        'falsified_warrant_claims',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const <String>[],
+      ),
       $type: $checkedConvert('block_type', (v) => v as String?),
     );
     return val;
@@ -702,6 +716,8 @@ SduiMatrixTableBlock _$SduiMatrixTableBlockFromJson(
     'matrixColumnLabels': 'matrix_column_labels',
     'extensionLabels': 'extension_labels',
     'matrixVisibleColumns': 'matrix_visible_columns',
+    'shortCircuitedByClaims': 'short_circuited_by_claims',
+    'falsifiedWarrantClaims': 'falsified_warrant_claims',
     r'$type': 'block_type',
   },
 );
@@ -719,6 +735,8 @@ Map<String, dynamic> _$SduiMatrixTableBlockToJson(
     (k, e) => MapEntry(_$XaiExtensionTypeEnumMap[k]!, e.toJson()),
   ),
   'matrix_visible_columns': instance.matrixVisibleColumns,
+  'short_circuited_by_claims': instance.shortCircuitedByClaims,
+  'falsified_warrant_claims': instance.falsifiedWarrantClaims,
   'block_type': instance.$type,
 };
 
@@ -758,6 +776,8 @@ SduiCausalGraphBlock _$SduiCausalGraphBlockFromJson(
         'intact_claims_count',
         'total_claims_count',
         'summary',
+        'short_circuited_by_claims',
+        'falsified_warrant_claims',
         'block_type',
       ],
     );
@@ -825,6 +845,18 @@ SduiCausalGraphBlock _$SduiCausalGraphBlockFromJson(
         'summary',
         (v) => I18nText.fromJson(v as Map<String, dynamic>),
       ),
+      shortCircuitedByClaims: $checkedConvert(
+        'short_circuited_by_claims',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const <String>[],
+      ),
+      falsifiedWarrantClaims: $checkedConvert(
+        'falsified_warrant_claims',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const <String>[],
+      ),
       $type: $checkedConvert('block_type', (v) => v as String?),
     );
     return val;
@@ -838,6 +870,8 @@ SduiCausalGraphBlock _$SduiCausalGraphBlockFromJson(
     'fairScoring': 'fair_scoring',
     'intactClaimsCount': 'intact_claims_count',
     'totalClaimsCount': 'total_claims_count',
+    'shortCircuitedByClaims': 'short_circuited_by_claims',
+    'falsifiedWarrantClaims': 'falsified_warrant_claims',
     r'$type': 'block_type',
   },
 );
@@ -861,6 +895,8 @@ Map<String, dynamic> _$SduiCausalGraphBlockToJson(
   'intact_claims_count': instance.intactClaimsCount,
   'total_claims_count': instance.totalClaimsCount,
   'summary': instance.summary.toJson(),
+  'short_circuited_by_claims': instance.shortCircuitedByClaims,
+  'falsified_warrant_claims': instance.falsifiedWarrantClaims,
   'block_type': instance.$type,
 };
 

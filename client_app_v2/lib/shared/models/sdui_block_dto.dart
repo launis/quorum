@@ -164,6 +164,13 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
     @JsonKey(name: 'matrix_visible_columns')
     @Default([])
     List<String> matrixVisibleColumns,
+    // Phase 3, Step 3.3: Inline topological short-circuit and Toulmin falsification lineage
+    @JsonKey(name: 'short_circuited_by_claims')
+    @Default(<String>[])
+    List<String> shortCircuitedByClaims,
+    @JsonKey(name: 'falsified_warrant_claims')
+    @Default(<String>[])
+    List<String> falsifiedWarrantClaims,
   }) = SduiMatrixTableBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -188,11 +195,20 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
     @JsonKey(name: 'intact_claims_count') required int intactClaimsCount,
     @JsonKey(name: 'total_claims_count') required int totalClaimsCount,
     required I18nText summary,
+    // Phase 3, Step 3.3: Inline topological short-circuit and Toulmin falsification lineage
+    @JsonKey(name: 'short_circuited_by_claims')
+    @Default(<String>[])
+    List<String> shortCircuitedByClaims,
+    @JsonKey(name: 'falsified_warrant_claims')
+    @Default(<String>[])
+    List<String> falsifiedWarrantClaims,
   }) = SduiCausalGraphBlock;
 
   factory SduiBlockDTO.fromJson(Map<String, dynamic> json) =>
       _$SduiBlockDTOFromJson(json);
 }
+
+typedef SduiMatrixSummaryTableBlock = SduiMatrixTableBlock;
 
 @Freezed(equal: false)
 abstract class SduiBulletListItemDTO with _$SduiBulletListItemDTO {

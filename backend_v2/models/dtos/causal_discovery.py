@@ -76,7 +76,6 @@ class CausalNodeDTO(V2CoreBase):
         list[str],
         Field(
             default_factory=list,
-            exclude=True,
             description="Human-readable prerequisite claims that short-circuited this causal node.",
         ),
     ]
@@ -84,7 +83,6 @@ class CausalNodeDTO(V2CoreBase):
         list[str],
         Field(
             default_factory=list,
-            exclude=True,
             description="Formatted Toulmin rebuttal-warrant-claim falsification entries for this node.",
         ),
     ]

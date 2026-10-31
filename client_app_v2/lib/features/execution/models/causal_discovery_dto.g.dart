@@ -25,6 +25,8 @@ _CausalNodeDto _$CausalNodeDtoFromJson(
         'tda_score',
         'tda_level_key',
         'source_input_key',
+        'short_circuited_by_claims',
+        'falsified_warrant_claims',
       ],
     );
     final val = _CausalNodeDto(
@@ -55,6 +57,18 @@ _CausalNodeDto _$CausalNodeDtoFromJson(
         'source_input_key',
         (v) => v as String? ?? null,
       ),
+      shortCircuitedByClaims: $checkedConvert(
+        'short_circuited_by_claims',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const <String>[],
+      ),
+      falsifiedWarrantClaims: $checkedConvert(
+        'falsified_warrant_claims',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
+            const <String>[],
+      ),
     );
     return val;
   },
@@ -67,6 +81,8 @@ _CausalNodeDto _$CausalNodeDtoFromJson(
     'tdaScore': 'tda_score',
     'tdaLevelKey': 'tda_level_key',
     'sourceInputKey': 'source_input_key',
+    'shortCircuitedByClaims': 'short_circuited_by_claims',
+    'falsifiedWarrantClaims': 'falsified_warrant_claims',
   },
 );
 
@@ -82,6 +98,8 @@ Map<String, dynamic> _$CausalNodeDtoToJson(_CausalNodeDto instance) =>
       'tda_score': instance.tdaScore,
       'tda_level_key': instance.tdaLevelKey,
       'source_input_key': instance.sourceInputKey,
+      'short_circuited_by_claims': instance.shortCircuitedByClaims,
+      'falsified_warrant_claims': instance.falsifiedWarrantClaims,
     };
 
 const _$ExecutionStatusEnumMap = {

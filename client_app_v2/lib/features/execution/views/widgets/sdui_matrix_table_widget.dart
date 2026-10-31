@@ -362,6 +362,103 @@ class SduiMatrixTableWidget extends StatelessWidget {
               ),
             ),
         ],
+        // Phase 3, Step 3.3: Render inline short-circuit blocker chips and Toulmin falsification badges
+        if (block.shortCircuitedByClaims.any((c) => c.trim().isNotEmpty)) ...[
+          AppSpacing.h8,
+          ...block.shortCircuitedByClaims
+              .map((c) => c.trim())
+              .where((c) => c.isNotEmpty)
+              .toSet()
+              .map(
+                (claim) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.s4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s8,
+                      vertical: AppSpacing.s4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(AppSpacing.s4),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.block,
+                          size: AppSpacing.s16,
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                        ),
+                        AppSpacing.w8,
+                        Expanded(
+                          child: Text(
+                            claim,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onErrorContainer,
+                                ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+        ],
+        if (block.falsifiedWarrantClaims.any((c) => c.trim().isNotEmpty)) ...[
+          AppSpacing.h8,
+          ...block.falsifiedWarrantClaims
+              .map((c) => c.trim())
+              .where((c) => c.isNotEmpty)
+              .toSet()
+              .map(
+                (claim) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.s4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s8,
+                      vertical: AppSpacing.s4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.tertiaryContainer,
+                      borderRadius: BorderRadius.circular(AppSpacing.s4),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.tertiary,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.gavel,
+                          size: AppSpacing.s16,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onTertiaryContainer,
+                        ),
+                        AppSpacing.w8,
+                        Expanded(
+                          child: Text(
+                            claim,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onTertiaryContainer,
+                                ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+        ],
       ],
     );
 
