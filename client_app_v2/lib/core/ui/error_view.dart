@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// A consistent full-screen or sectional error view that mimics the backend's "Critical Failure" style.
@@ -38,16 +39,17 @@ class ErrorView extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    // "Red Banner" Style (Now fully dynamic via FlexColorScheme)
     final backgroundColor = theme.colorScheme.errorContainer;
     final textColor = theme.colorScheme.onErrorContainer;
     final iconColor = theme.colorScheme.error;
+    final currentActionLabel = actionLabel;
+    final technicalDetails = _getTechnicalDetails(error);
 
     final content = Container(
-      padding: const EdgeInsets.all(16),
+      padding: AppSpacing.p16,
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
         border: Border.all(color: iconColor.withValues(alpha: 0.3)),
       ),
       child: Column(
@@ -55,11 +57,13 @@ class ErrorView extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.error_outline, color: iconColor, size: 24),
-              const SizedBox(width: 12),
+              Icon(Icons.error_outline, color: iconColor, size: AppSpacing.s24),
+              AppSpacing.w12,
               Expanded(
                 child: Text(
-                  _formatError(error, AppLocalizations.of(context)!),
+                  _formatError(error, l10n),
+                  maxLines: 6,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: textColor,
                     fontWeight: FontWeight.w600,
@@ -68,17 +72,19 @@ class ErrorView extends StatelessWidget {
               ),
             ],
           ),
-          if (onAction != null && actionLabel != null) ...[
-            const SizedBox(height: 12),
+          if (onAction != null && currentActionLabel != null) ...[
+            AppSpacing.h12,
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton.icon(
                 onPressed: onAction,
-                icon: const Icon(Icons.arrow_forward, size: 16),
-                label: Text(actionLabel!),
+                icon: const Icon(Icons.arrow_forward, size: AppSpacing.s16),
+                label: Text(
+                  currentActionLabel,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 style: FilledButton.styleFrom(
-                  backgroundColor:
-                      theme.colorScheme.primary, // Distinct from Error Color
+                  backgroundColor: theme.colorScheme.primary,
                   foregroundColor: theme.colorScheme.onPrimary,
                   visualDensity: VisualDensity.compact,
                 ),
@@ -86,14 +92,16 @@ class ErrorView extends StatelessWidget {
             ),
           ],
           if (onRetry != null) ...[
-            const SizedBox(height: 12),
+            AppSpacing.h12,
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
-                // Downgrade Retry to TextButton if Action is present? Or keep both?
                 onPressed: onRetry,
-                icon: const Icon(Icons.refresh, size: 16),
-                label: Text(retryLabel ?? l10n.retry),
+                icon: const Icon(Icons.refresh, size: AppSpacing.s16),
+                label: Text(
+                  retryLabel ?? l10n.retry,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 style: TextButton.styleFrom(
                   foregroundColor: iconColor,
                   visualDensity: VisualDensity.compact,
@@ -101,32 +109,32 @@ class ErrorView extends StatelessWidget {
               ),
             ),
           ],
-          if (kDebugMode && _getTechnicalDetails(error) != null) ...[
-            const SizedBox(height: 16),
+          if (kDebugMode && technicalDetails != null) ...[
+            AppSpacing.h16,
             Theme(
-              data: Theme.of(
-                context,
-              ).copyWith(dividerColor: Colors.transparent),
+              data: theme.copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
                 title: Text(
                   l10n.technicalDetails,
-                  style: TextStyle(color: iconColor, fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: iconColor,
+                  ),
                 ),
                 tilePadding: EdgeInsets.zero,
-                childrenPadding: const EdgeInsets.all(8),
+                childrenPadding: AppSpacing.p8,
                 children: [
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(8),
+                    padding: AppSpacing.p8,
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(AppSpacing.s4),
                     ),
                     child: SelectableText(
-                      _getTechnicalDetails(error)!,
-                      style: TextStyle(
+                      technicalDetails,
+                      style: theme.textTheme.labelSmall?.copyWith(
                         fontFamily: 'monospace',
-                        fontSize: 10,
                         color: textColor,
                       ),
                     ),
@@ -146,20 +154,23 @@ class ErrorView extends StatelessWidget {
     return Center(
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: AppSpacing.p24,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
+            constraints: const BoxConstraints(
+              maxWidth: AppSpacing.s300 + AppSpacing.s300,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  title ?? l10n.systemError, // Or localized "System Error"
+                  title ?? l10n.systemError,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: iconColor,
                   ),
                 ),
-                const SizedBox(height: 24),
+                AppSpacing.h24,
                 content,
               ],
             ),

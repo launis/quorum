@@ -54,7 +54,7 @@
   - [x] @[client_app_v2/lib/core/models/prompt_block_category.dart]
   - [x] @[client_app_v2/lib/core/state/mutation.dart]
   - [x] @[client_app_v2/lib/core/theme/app_spacing.dart]
-  - [ ] @[client_app_v2/lib/core/ui/error_view.dart]
+  - [x] @[client_app_v2/lib/core/ui/error_view.dart]
   - [ ] @[client_app_v2/lib/core/ui/splash_screen.dart]
   - [ ] @[client_app_v2/lib/core/utils/safe_isolate.dart]
   - [ ] @[client_app_v2/lib/utils/json_converters.dart]
