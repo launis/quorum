@@ -52,7 +52,7 @@
   - [x] @[client_app_v2/lib/features/studio/models/workflow.dart]
   - [x] @[client_app_v2/lib/features/studio/models/workflow_simulation.dart]
   - [x] @[client_app_v2/lib/features/studio/models/workflow_ui_schema.dart]
-  - [ ] @[client_app_v2/lib/features/studio/utils/workflow_cloner.dart]
+  - [x] @[client_app_v2/lib/features/studio/utils/workflow_cloner.dart]
   - [ ] @[client_app_v2/lib/features/execution/controllers/execution_controller.dart]
   - [ ] @[client_app_v2/lib/features/execution/providers/atom_result_provider.dart]
   - [ ] @[client_app_v2/lib/features/execution/providers/hydrated_reference_provider.dart]
