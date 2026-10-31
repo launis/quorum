@@ -51,7 +51,7 @@
     
     <module path="backend_v2/workers/">
         <responsibility>DECOUPLED ASYNC BACKGROUND WORKERS (PILLARS 3 & 4)</responsibility>
-        <key_domains>execution_worker.py (Phase 1 heavy DAG execution), report_worker.py (Phase 2 & 3 synthesis, PDF & export artifact compilation), synthesis_worker.py, synthesis_tasks.py, variance_synthesis.py</key_domains>
+        <key_domains>execution_worker.py (Phase 1 heavy DAG execution), report_worker.py (Phase 2 & 3 synthesis, PDF & export artifact compilation), synthesis_worker.py, synthesis_tasks.py, synthesis_reducers.py, variance_synthesis.py</key_domains>
     </module>
 
     <module path="backend_v2/worker.py">
@@ -62,7 +62,7 @@
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
         <key_domains>
-          - Schemas & DTOs: core_base.py (I18nText SSOT, PrefixedUUID7 bridge, generate_uuid7 & generate_opaque_id 32-hex RFC 9562 UUIDv7 SSOT), domain/ (Pure Business Models, NO ORM shapes, proposition_graph.py [PropositionPayloadDTO, NodeDraft, EdgeDraft, PropositionNode, DependencyEdge, FalsifiedClaimMatch, ReportBinaryPayloadDTO, CycleDetectedError], mcp.py [MCPAuditTrace, MCPRetrievalResultDTO]), dtos/ (API boundaries, quote_evidence.py [QuoteEvidenceDTO, GateMatchResultDTO], ingress.py, theory_manifest.py, schema_manifest.py, global_context.py, hook_delta.py, node_execution.py, context_variables.py, prompt.py, sensor.py, finops.py, mcp.py [MCPIconDTO, MCPServerInfoDTO, MCPInitializeResultDTO, MCPToolInputSchemaDTO, MCPToolSchemaPropertyDTO], sdui_rules.py, export.py, report_artifact.py, report_data.py, step_telemetry.py, telemetry.py, matrix_parser.py, lightweight_matrix.py, synthesis.py [MatrixFailureDeficitDTO, CausalSynthesisBriefDTO], engine.py [pure decoupled request/result contracts], workflow_schema.py, trace.py, step_output.py, causal_discovery.py [CounterfactualSimulationResultDTO]), view/ (SDUI Blocks), state.py, enums.py (CausalRootCauseType, LaxCausalRootCauseType, StepFilterScope, LaxStepFilterScope, ToolCapability, LaxToolCapability, StorageBackend, PropositionNodeType, DependencyRelationType)
+          - Schemas & DTOs: core_base.py (I18nText SSOT, PrefixedUUID7 bridge, generate_uuid7 & generate_opaque_id 32-hex RFC 9562 UUIDv7 SSOT), domain/ (Pure Business Models, NO ORM shapes, proposition_graph.py [PropositionPayloadDTO, NodeDraft, EdgeDraft, PropositionNode, DependencyEdge, FalsifiedClaimMatch, ReportBinaryPayloadDTO, CycleDetectedError], mcp.py [MCPAuditTrace, MCPRetrievalResultDTO], synthesis.py [DistilledEvaluation, DistilledMatrixPayloadDTO, RenderedSynthesisCache]), dtos/ (API boundaries, atom_evaluation.py [ReducedAtomDTO, LightweightMatrixDTO, RawXAIExtensionDTO], atom_result.py [AtomResultDTO, EvaluatedAtomDTO, HydratedAtomDTO], quote_evidence.py [QuoteEvidenceDTO, GateMatchResultDTO], ingress.py, theory_manifest.py, schema_manifest.py, global_context.py, hook_delta.py, node_execution.py, context_variables.py, prompt.py, sensor.py, finops.py, mcp.py [MCPIconDTO, MCPServerInfoDTO, MCPInitializeResultDTO, MCPToolInputSchemaDTO, MCPToolSchemaPropertyDTO], sdui_rules.py, export.py, report_artifact.py, report_data.py, step_telemetry.py, telemetry.py, matrix_parser.py, lightweight_matrix.py, synthesis.py [MatrixFailureDeficitDTO, CausalSynthesisBriefDTO], engine.py [pure decoupled request/result contracts], workflow_schema.py, trace.py, step_output.py, causal_discovery.py [CounterfactualSimulationResultDTO, CausalRootCauseDiagnosisDTO, CausalTdaFusionResultDTO, CausalNodeDTO]), view/ (SDUI Blocks), state.py, enums.py (CausalRootCauseType, LaxCausalRootCauseType, StepFilterScope, LaxStepFilterScope, ToolCapability, LaxToolCapability, StorageBackend, PropositionNodeType, DependencyRelationType)
           - Prompts SSOT (Tripartite Separation):
             * prompts/common/: Cross-phase linguistic and schema purity directives (linguistic_directives.py, re-export shim for execution/ symbols)
             * prompts/execution/: Phase 1 DAG, sensor evaluation, micro-evaluator, and quote extraction mandates (global_mandates.py, field_prompts.py, matrix_evaluation.py, hook_prompts.py, mcp_prompts.py [MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION])
@@ -87,7 +87,7 @@
 
     <module path="backend_v2/hooks/">
         <responsibility>DETERMINISTIC & HYBRID LLM MODIFIERS (PILLAR 1/3)</responsibility>
-        <key_domains>scoring/ (falsifier_hook.py, matrix_hook.py, normalization_hook.py, passivity_hook.py), interaction_hook.py, validation.py, pre/post processing hooks</key_domains>
+        <key_domains>scoring/ (falsifier_hook.py, matrix_hook.py, normalization_hook.py, passivity_hook.py), archival.py, interaction_hook.py, validation.py, pre/post processing hooks</key_domains>
     </module>
 
     <module path="backend_v2/llm/">

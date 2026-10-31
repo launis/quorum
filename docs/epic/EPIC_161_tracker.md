@@ -108,7 +108,7 @@
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for all modified orchestrator, synthesis worker, and SDUI service modules.
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/epic/EPIC_161_tracker.md] @[docs/epic/EPIC_161_topological_synthesis_cohesion.md] @[ki_god_code_prevention.md] @[ki_sdui_matrix_synthesis.md]
   ```
@@ -170,6 +170,7 @@
   - **Step 4.3 (`8f838d834`)**: Implemented `test_integration_real_llm_preserves_topological_deficits_and_causal_brief` (positive) and `test_integration_real_llm_topological_deficit_and_brief_validation_negative` (negative) in `@[backend_v2/tests/integration/test_integration_real_llm.py]`, stripped synthetic `conftest.py` mock API keys from subprocess environment variables in `test_real_llm_pdf_execution`, and verified 100% pass rate across the Global Backend Audit Loop (`backend_audit_loop.py backend_v2/ --test`, 6,673 passed, 97.23% coverage), Global Flutter Audit Loop (`flutter_audit_loop.py client_app_v2/ --build`), and Live E2E REST API Verification Gate (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`, 6 passed in 415.33s).
 - Completed **Post-Implementation Backend Hardening (`31/31` targets, `100%` first-attempt pass rate)** via `scripts/auto_hardening_runner.py --gate backend` and passed the **Final Macro-Audit Completion Gate**, plus verified `Golden Master & Test Restoration Audit`, `Proxy Sunset & Consumer Migration` (`scripts/audit_epic_coverage.py --epic docs/epic/EPIC_161_topological_synthesis_cohesion.md`), `Pre-Delete Audit`, and `Semantic Coverage & Zero-Loss Audit` (`97.23%` > `90%`).
 - Delegated the 5 Frontend SDUI hardening targets (`sdui_block_dto.dart`, `causal_discovery_dto.dart`, `report_data_v2_dto.dart`, `sdui_causal_graph_widget.dart`, `sdui_matrix_table_widget.dart`) directly into the comprehensive 185-file Flutter Hardening Waves F1–F4 (`@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]`, `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]`, `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]`, and `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]`).
+- Completed **As-Built Architectural Sync (`/tier7-describe-architecture`)**: synchronized `@[ki_sdui_matrix_synthesis.md]` (`metadata.json` + 5-Pillar Zero-Loss Epistemic Distillation Architecture), `@[ki_god_code_prevention.md]` (`metadata.json` + `StepOutputDTO` / `TypeAdapter` envelope projection and SSOT clipper/threshold segregation), `@[.agents/rules/04_directory_reference.md]`, and timeless present-tense narratives across `@[docs/architecture/03_cognitive_orchestration_engine.md]`, `@[docs/architecture/04_server_driven_ui_and_presentation.md]`, `@[docs/architecture/06_enriched_atom_graph_engine.md]`, and `@[docs/architecture/08_matrix_explanations.md]`.
 
 ## Learned
 - `synthesis_worker.py` invokes `create_executive_summary_task`, `create_matrix_sections_tasks`, `create_xai_highlights_task`, and `create_row_explanations_task` exclusively with keyword arguments (`client=client`, `base_dynamic_parts=base_dynamic_parts`, `causal_diagnosis=causal_diagnosis_text`), so unit tests spying on task constructors must inspect `await_args.kwargs`.
@@ -178,10 +179,10 @@
 - `conftest.py` sets `os.environ.setdefault("GOOGLE_API_KEY", "mock-google-key")` and `os.environ.setdefault("GEMINI_API_KEY", "mock-gemini-key")` during Pytest initialization; subprocess E2E tests (`test_real_llm_pdf_execution`) must strip synthetic `"mock-*-key"` env vars before spawning `uvicorn` and `backend_v2.run_worker` so `.env` credentials load cleanly.
 
 ## Remaining
-- Execute As-Built Architectural Sync (`/tier7-describe-architecture @[docs/epic/EPIC_161_tracker.md] @[docs/epic/EPIC_161_topological_synthesis_cohesion.md] @[ki_god_code_prevention.md] @[ki_sdui_matrix_synthesis.md]`), Phase 1–4 Plan Audits (`/tier8-audit-plan`), and System 2 Reverse Epic Analysis (`/tier8-audit-epic @[docs/epic/EPIC_161_topological_synthesis_cohesion.md]`).
+- Execute Phase 1–4 Plan Audits (`/tier8-audit-plan`) and System 2 Reverse Epic Analysis (`/tier8-audit-epic @[docs/epic/EPIC_161_topological_synthesis_cohesion.md]`).
 - Execute the 5 Frontend SDUI hardening targets as part of the comprehensive 185-file Flutter Hardening Waves F1–F4 (`@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]` – `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]`).
 
 ## Resume Command
 ```powershell
-/tier7-describe-architecture @[docs/epic/EPIC_161_tracker.md] @[docs/epic/EPIC_161_topological_synthesis_cohesion.md] @[ki_god_code_prevention.md] @[ki_sdui_matrix_synthesis.md]
+/tier8-audit-epic @[docs/epic/EPIC_161_topological_synthesis_cohesion.md]
 ```

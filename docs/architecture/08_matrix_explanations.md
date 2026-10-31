@@ -418,17 +418,17 @@ Upstream execution states contain heterogeneous polymorphic step outputs. The ma
 
 ### 4.2. Ranked Round-Robin Supporting Evidence Curation
 To substantiate achieved scores with empirical proof, supporting evidence quotes are curated from passing atom evaluations (`ExecutionStatus.PASSED`):
-- **Candidate Pre-Deduplication:** Duplicate quotes across multiple atoms within the same matrix are eliminated to prevent quote repetition.
+- **Candidate Pre-Deduplication & Minimum Length Floor:** Duplicate quotes across multiple atoms within the same matrix are eliminated to prevent quote repetition, and candidate quotes shorter than `min_synthesis_quote_length` (default `15` characters) are excluded.
 - **Claim Grouping:** Quotes are partitioned into pools keyed by their localized behavioral claim label.
-- **Length-Ranked Round-Robin:** Selection cycles through claim pools in round-robin fashion, selecting the longest quote from each pool per cycle up to the configured limit (`max_quotes_per_matrix`). This eliminates two systemic biases:
+- **Length-Ranked Round-Robin:** Selection cycles through claim pools in round-robin fashion, selecting the longest quote from each pool per cycle up to the configured limit (`max_quotes_per_matrix`, where `0` retains all valid quotes without truncation). This eliminates two systemic biases:
   - *Single-Claim Domination:* Prevents a single verbose claim from consuming the entire evidence quota.
   - *Quote Starvation:* Guarantees broad evidentiary representation across multiple behavioral dimensions of the matrix.
 
 ### 4.3. Deterministic Deficit Curation
-When evaluations reveal compliance gaps or missed levels (`ExecutionStatus.FAILED`), the system isolates actionable deficits:
-- **Minimum Scale Score Tracking:** For each unmet claim, the lowest scale level at which it failed is recorded (`unmet_claim_to_min_scale`).
-- **Ascending Scale Score Ordering:** Deficit claims are sorted deterministically in ascending order of their scale score (`scale_score`), with alphabetical tie-breaking on claim label. Foundational, lower-level deficits are presented first, ensuring remediation addresses root-level gaps before addressing advanced criteria.
-- **Budget Truncation:** The deficit list is bounded by `max_unmet_criteria`.
+When a matrix has not achieved its maximum scale score (`raw_score < float(computed_max)`) and evaluations reveal compliance gaps or short-circuited dependencies (`ExecutionStatus.FAILED` or `ExecutionStatus.N_A`), the system isolates structured diagnostic deficits (`MatrixFailureDeficitDTO`):
+- **Full Cognitive & Rubric Context:** Each `MatrixFailureDeficitDTO` captures the localized `claim`, `status` (`"FAILED"` or `"N_A"`), `scale_score`, cognitive `evaluation_reasoning`, `is_inverse_evidence` poison-hit flag, `anti_patterns`, and `ContrastivePairDTO` bounds (`contrastive_rejected` and `contrastive_acceptable`).
+- **Transitive Parent-to-Child Short-Circuit Hydration:** For `ExecutionStatus.N_A` evaluations, the service traverses `short_circuit_reason_tda_ids` and `depends_on_tda_ids` across the global evaluation state (`global_atom_evals_map`) to format human-readable upstream blame chains (`[Blocked Claim] <-- SHORT-CIRCUITED BY PREREQUISITE FAILURE: [Parent Claim: <parent evaluation_reasoning>]`) in `short_circuited_by_claims`, sanitizing any unmapped fallback identifiers through `AliasEngine`. Deficits are sorted deterministically in ascending order of `(scale_score, claim, status)` so foundational lower-level gaps and root-cause blockers appear first.
+- **Unbounded Default Retention & Budget Truncation:** The deficit list defaults to unbounded retention (`max_synthesis_unmet_criteria_per_matrix = 0`) and is sliced only when a positive `max_unmet_criteria > 0` override is configured.
 
 ### 4.4. Distribution Context
 When level breakdown statistics exist in the matrix payload, the service compiles an explicit distribution summary:
@@ -438,12 +438,12 @@ This contextual string provides executive readers with instant transparency into
 ### 4.5. Tripartite Configuration Resolution
 Operational quotas are resolved hierarchically across three configuration tiers without hardcoded constants:
 1. **Tier 1 (Output Profile Override):** Per-profile limits defined on `OutputProfile` (`SynthesisConfigDTO`).
-2. **Tier 2 (Global Settings SSOT):** Authoritative defaults from central configuration (`max_synthesis_quotes_per_matrix`, `max_synthesis_unmet_criteria_per_matrix`, `max_synthesis_quote_length`).
+2. **Tier 2 (Global Settings SSOT):** Authoritative defaults from central configuration (`max_synthesis_quotes_per_matrix = 0`, `max_synthesis_unmet_criteria_per_matrix = 0`, `max_synthesis_quote_length = 0`, `min_synthesis_quote_length = 15`), where `0` denotes unbounded zero-loss retention.
 3. **Tier 3 (Zero Fallback):** If configuration is missing, validation terminates with an explicit error.
 
 ### 4.6. Single-Sentence Matrix Row Explanations
 In Server-Driven UI scorecard tables, each evaluated matrix axis displays a concise qualitative explanation (`Selite`):
-- Matrix row explanations are strictly constrained to **one complete sentence**.
+- Matrix row explanations are strictly constrained to **one complete sentence** and execute on the shared `CognitiveTier.BALANCED` `LLMClient` instance alongside the other synthesis tasks, receiving both `MatrixExplanationContextDTO` (`unmet_deficits: list[MatrixFailureDeficitDTO]`) and the unified `<causal_diagnosis>` block (`CausalSynthesisBriefDTO`).
 - Multi-item extension constraints (`max_extension_items`) are isolated exclusively to deep XAI highlights, preventing cross-contamination into compact scorecard rows.
 
 ---
@@ -505,7 +505,7 @@ flowchart TD
     E -- PASSED --> F[Candidate Quote Extraction & De-duplication]
     F --> G[Ranked Round-Robin Quote Curation by Claim & Length]
     
-    E -- FAILED --> H[Deficit Extraction & Minimum Scale Tracking]
+    E -- FAILED / N_A --> H[Contrastive Deficit & Transitive Blame Extraction]
     H --> I[Deterministic Ascending Scale Score Sorter]
     
     G & I --> J[Distribution Context Builder]
