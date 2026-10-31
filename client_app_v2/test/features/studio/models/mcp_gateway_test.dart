@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
 
@@ -119,5 +120,49 @@ void main() {
         throwsA(anyOf(isA<FormatException>(), isA<CheckedFromJsonException>())),
       );
     });
+
+    test('test_mcp_gateway_invalid_opaque_id_fails_fast', () {
+      final invalidIdJson = {
+        'id': 'gw_short_id', // Fails 32-hex UUIDv7 boundary check
+        'type': 'mcp_gateways',
+        'slug': 'filesystem_gateway',
+        'tools': [],
+      };
+
+      expect(
+        () => McpGateway.fromJson(invalidIdJson),
+        throwsA(
+          anyOf(
+            isA<AppException>(),
+            isA<CheckedFromJsonException>(),
+            isA<FormatException>(),
+          ),
+        ),
+      );
+    });
+
+    test('test_allowed_mcp_tool_missing_required_fields_fails_fast', () {
+      final missingRequiredJson = {
+        'id': 'gw_0195f3a0000070008000000000000001',
+        'tools': [
+          {
+            // Missing required 'tool_id', 'name', and 'description'
+            'capability': 'search',
+          },
+        ],
+      };
+
+      expect(
+        () => McpGateway.fromJson(missingRequiredJson),
+        throwsA(
+          anyOf(
+            isA<TypeError>(),
+            isA<CheckedFromJsonException>(),
+            isA<FormatException>(),
+          ),
+        ),
+      );
+    });
   });
 }
+
