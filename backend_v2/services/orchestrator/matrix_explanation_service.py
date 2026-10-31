@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
@@ -16,7 +16,6 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO
-from backend_v2.models.dtos.hook_delta import HookDeltaDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import MatrixExplanationContextDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
@@ -83,6 +82,7 @@ class MatrixExplanationService:
 
         # Hoist limits via Tripartite Configuration Resolution SSOT
         settings_obj = get_settings()
+        min_quote_len = settings_obj.min_synthesis_quote_length
         max_quote_len = settings_obj.max_synthesis_quote_length
         if max_quotes_per_matrix is not None:
             effective_max_quotes = max_quotes_per_matrix
@@ -106,13 +106,11 @@ class MatrixExplanationService:
             if dto.block_id in ("evaluated_matrices", "raw_extensions"):
                 continue
 
-            results_list: Sequence[Any] | None = None
+            results_list: Sequence[object] | None = None
             if isinstance(dto.payload, (AtomResultDTO, ReducedAtomDTO)):
                 results_list = [dto.payload]
             elif isinstance(dto.payload, list):
                 results_list = dto.payload
-            elif isinstance(dto.payload, HookDeltaDTO):
-                results_list = dto.payload.results
             else:
                 continue
 
@@ -129,14 +127,16 @@ class MatrixExplanationService:
                     if atom_res.source_quotes:
                         for q in atom_res.source_quotes:
                             cleaned = q.strip()
-                            if len(cleaned) >= 15:
-                                global_quotes_map.setdefault(atom_res.tda_id, []).append(cleaned[:max_quote_len])
+                            if len(cleaned) >= min_quote_len:
+                                clipped_quote = cleaned[:max_quote_len] if max_quote_len > 0 else cleaned
+                                global_quotes_map.setdefault(atom_res.tda_id, []).append(clipped_quote)
                 except (ValidationError, ValueError) as e:
                     logger.error(
                         "[MatrixExplanationService] %s: Malformed atom result in results list: %s",
                         ErrorCodes.VALIDATION_FAILED.name,
                         e,
                         extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "details": str(e)},
+                        exc_info=True,
                     )
                     raise AppException(
                         message=f"Malformed atom result in results list: {e}",
@@ -184,6 +184,7 @@ class MatrixExplanationService:
                     block_id,
                     type(payload),
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.name},
+                    exc_info=True,
                 )
                 raise AppException(
                     message=(
@@ -222,6 +223,7 @@ class MatrixExplanationService:
                                 tda_id,
                                 block_id,
                                 extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tda_id": tda_id},
+                                exc_info=True,
                             )
                             raise AppException(
                                 message=f"TDA atom '{tda_id}' missing from claim mapping in matrix '{block_id}'.",
@@ -253,12 +255,13 @@ class MatrixExplanationService:
             if block_id not in matrices_to_explain_map:
                 matrix_alias = alias_engine.register(block_id, prefix="MX-")
 
-                # Curate quotes via Ranked Round-Robin selection
+                # Curate quotes via Ranked Round-Robin selection (0 = unbounded)
+                quote_budget = effective_max_quotes if effective_max_quotes > 0 else len(quote_candidates)
                 selected_quote_items = ranked_round_robin_select(
                     quote_candidates,
                     group_key=lambda item: item.claim_label,
                     rank_key=lambda item: item.quote_length,
-                    max_items=effective_max_quotes,
+                    max_items=quote_budget,
                     reverse_rank=True,
                 )
                 selected_quotes = [item.quote for item in selected_quote_items]
@@ -267,7 +270,9 @@ class MatrixExplanationService:
                 sorted_unmet_claims = sorted(
                     unmet_claim_to_min_scale.keys(),
                     key=lambda c: (unmet_claim_to_min_scale[c], c),
-                )[:effective_max_unmet]
+                )
+                if effective_max_unmet > 0:
+                    sorted_unmet_claims = sorted_unmet_claims[:effective_max_unmet]
 
                 distribution_str = ""
                 if lw_matrix.level_breakdown:

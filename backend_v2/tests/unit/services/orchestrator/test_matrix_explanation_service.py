@@ -4,6 +4,7 @@ Tests for matrix explanation context generation, Status-Aware Dual Reporting,
 and Ranked Round-Robin quote and unmet criteria curation.
 """
 
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -16,6 +17,7 @@ from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBloc
 from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
+from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.matrix_explanation_service import (
@@ -347,7 +349,7 @@ def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
 
 
 def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
-    """Verify alternating quote selection across claims up to max synthesis quotes per matrix (5)."""
+    """Verify alternating quote selection across claims under unbounded default and explicit limit."""
     block_id = "blk_0195f3a0000070068666666666666666"
 
     scale = MatrixScale(
@@ -418,8 +420,16 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id, scales=[scale])}
 
-    result = MatrixExplanationService.assemble_matrices_to_explain(
+    # Unbounded default (0) retains all 8 quotes
+    unbounded_result = MatrixExplanationService.assemble_matrices_to_explain(
         dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+    )
+    assert len(unbounded_result) == 1
+    assert unbounded_result[0].justification.count('- "') == 8
+
+    # Explicit limit (5) interleaves across claims up to 5 quotes
+    result = MatrixExplanationService.assemble_matrices_to_explain(
+        dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en", max_quotes_per_matrix=5
     )
 
     assert len(result) == 1
@@ -505,8 +515,16 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id, scales=[scale])}
 
-    result = MatrixExplanationService.assemble_matrices_to_explain(
+    # Unbounded default retains all 8 unique quotes (2 shared + 6 unique)
+    unbounded_result = MatrixExplanationService.assemble_matrices_to_explain(
         dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+    )
+    assert len(unbounded_result) == 1
+    assert unbounded_result[0].justification.count('- "') == 8
+
+    # Explicit budget of 5 returns full quota of 5 unique quotes
+    result = MatrixExplanationService.assemble_matrices_to_explain(
+        dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en", max_quotes_per_matrix=5
     )
 
     assert len(result) == 1
@@ -601,8 +619,16 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id, scales=scales)}
 
-    result = MatrixExplanationService.assemble_matrices_to_explain(
+    # Unbounded default (0) retains all 9 unmet claims ordered by severity
+    unbounded_result = MatrixExplanationService.assemble_matrices_to_explain(
         dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+    )
+    assert len(unbounded_result) == 1
+    assert unbounded_result[0].justification.count("- Deficit Level") == 9
+
+    # Explicit max_unmet_criteria=5 retains top 5 highest-severity deficits
+    result = MatrixExplanationService.assemble_matrices_to_explain(
+        dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en", max_unmet_criteria=5
     )
 
     assert len(result) == 1
@@ -1090,3 +1116,80 @@ def test_assemble_matrices_to_explain_with_matrix_reducer_output_does_not_crash(
     )
     assert len(result) == 1
     assert result[0].real_matrix_id == matrix_block_id
+
+
+def test_assemble_matrices_to_explain_trace_matrix_payload_and_reduced_atom_and_title_map(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify TraceMatrixPayloadDTO hydration, single AtomResultDTO, single ReducedAtomDTO, and title_map resolution."""
+    block_id = "blk_0195f3a00000700c8ccccccccccccccc"
+    tda_1 = "tda_00000000000000000000000000000001"
+    tda_2 = "tda_00000000000000000000000000000002"
+    matrix_block = _create_matrix_block(block_id=block_id, tda_ids=[tda_1, tda_2])
+    blocks_by_id = {block_id: matrix_block}
+
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.matrix_explanation_service.get_settings",
+        lambda: SimpleNamespace(
+            min_synthesis_quote_length=15,
+            max_synthesis_quote_length=25,
+            max_synthesis_quotes_per_matrix=0,
+            max_synthesis_unmet_criteria_per_matrix=0,
+        ),
+    )
+
+    atom_1 = AtomResultDTO(
+        tda_id=tda_1,
+        status=ExecutionStatus.PASSED,
+        evaluation_reasoning="Reasoning 1",
+        source_quotes=("1234567890123456789012345_EXTRA_CLIPPED",),
+    )
+    atom_2 = ReducedAtomDTO(
+        tda_id=tda_2,
+        status=ExecutionStatus.PASSED,
+        reasoning="Reasoning 2",
+        source_quotes=("Second valid quote from ReducedAtomDTO",),
+    )
+
+    dtos = [
+        # Single AtomResultDTO payload
+        StepOutputDTO(
+            step_id="step_single_atom",
+            block_id="blk_single",
+            data_type="unknown",
+            payload=atom_1,
+        ),
+        # Single ReducedAtomDTO payload
+        StepOutputDTO(
+            step_id="step_reduced_atom",
+            block_id="blk_reduced",
+            data_type="unknown",
+            payload=atom_2,
+        ),
+        # TraceMatrixPayloadDTO payload
+        StepOutputDTO(
+            step_id="step_trace_matrix",
+            block_id=block_id,
+            data_type="matrix",
+            payload=TraceMatrixPayloadDTO(
+                raw_score=3.5,
+                normalized_score=70.0,
+                justification="Initial trace justification",
+                level_breakdown={"1": LevelStatsDTO(hits=2, total=2)},
+                evaluated_atoms={tda_1: ExecutionStatus.PASSED, tda_2: ExecutionStatus.PASSED},
+            ),
+        ),
+    ]
+
+    result = MatrixExplanationService.assemble_matrices_to_explain(
+        dtos,
+        title_map={block_id.lower(): "Resolved Matrix Title"},
+        blocks_by_id=blocks_by_id,
+        target_locale="en",
+    )
+
+    assert len(result) == 1
+    assert result[0].matrix_label == "Resolved Matrix Title"
+    assert '"1234567890123456789012345"' in result[0].justification
+    assert "EXTRA_CLIPPED" not in result[0].justification
+    assert '"Second valid quote from R"' in result[0].justification
