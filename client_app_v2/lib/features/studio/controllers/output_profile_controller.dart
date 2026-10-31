@@ -1,16 +1,15 @@
-import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
-import 'package:client_app/utils/riverpod_extensions.dart';
-
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/core/utils/safe_isolate.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/theme/app_durations.dart';
+import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:client_app/theme/app_durations.dart';
 
 part 'output_profile_controller.g.dart';
 
@@ -48,20 +47,22 @@ class OutputProfilesController extends _$OutputProfilesController {
   /// Saves a profile utilizing Optimistic Updates.
   Future<OutputProfile> saveProfile(String id, OutputProfile payload) async {
     final previousState = state;
-    OutputProfile returnData =
-        payload; // Assuming payload already has ID initialized or preserved
+    OutputProfile returnData = payload;
 
     // 1. Optimistic Update
-    if (state.hasValue && state.value != null) {
-      final currentList = List<OutputProfile>.from(state.value!);
-      final index = currentList.indexWhere((m) => m.id == id);
+    switch (state) {
+      case AsyncData(:final value):
+        final currentList = List<OutputProfile>.from(value);
+        final index = currentList.indexWhere((m) => m.id == id);
 
-      if (index >= 0) {
-        currentList[index] = payload;
-      } else {
-        currentList.add(payload);
-      }
-      state = AsyncValue.data(currentList);
+        if (index >= 0) {
+          currentList[index] = payload;
+        } else {
+          currentList.add(payload);
+        }
+        state = AsyncValue.data(currentList);
+      case AsyncError() || AsyncLoading():
+        break;
     }
 
     try {
@@ -70,14 +71,17 @@ class OutputProfilesController extends _$OutputProfilesController {
       final verifiedProfile = await client.saveOutputProfile(id, payload);
 
       // 3. Confirm with Actual Data
-      if (state.hasValue && state.value != null) {
-        final currentList = List<OutputProfile>.from(state.value!);
-        final index = currentList.indexWhere((m) => m.id == id);
-        if (index >= 0) {
-          currentList[index] = verifiedProfile;
-          state = AsyncValue.data(currentList);
-        }
-        returnData = verifiedProfile;
+      switch (state) {
+        case AsyncData(:final value):
+          final currentList = List<OutputProfile>.from(value);
+          final index = currentList.indexWhere((m) => m.id == id);
+          if (index >= 0) {
+            currentList[index] = verifiedProfile;
+            state = AsyncValue.data(currentList);
+          }
+          returnData = verifiedProfile;
+        case AsyncError() || AsyncLoading():
+          break;
       }
       return returnData;
     } catch (e, st) {
@@ -99,10 +103,13 @@ class OutputProfilesController extends _$OutputProfilesController {
       final client = ref.read(studioClientProvider);
       await client.deleteOutputProfile(id);
 
-      if (state.hasValue && state.value != null) {
-        final currentList = List<OutputProfile>.from(state.value!);
-        currentList.removeWhere((m) => m.id == id);
-        state = AsyncValue.data(currentList);
+      switch (state) {
+        case AsyncData(:final value):
+          final currentList = List<OutputProfile>.from(value);
+          currentList.removeWhere((m) => m.id == id);
+          state = AsyncValue.data(currentList);
+        case AsyncError() || AsyncLoading():
+          break;
       }
     } catch (e, st) {
       ref
@@ -124,10 +131,13 @@ class OutputProfilesController extends _$OutputProfilesController {
       final clonedProfile = await client.cloneOutputProfile(id);
 
       // 2. Update State
-      if (state.hasValue && state.value != null) {
-        final currentList = List<OutputProfile>.from(state.value!);
-        currentList.insert(0, clonedProfile); // prepend for visibility
-        state = AsyncValue.data(currentList);
+      switch (state) {
+        case AsyncData(:final value):
+          final currentList = List<OutputProfile>.from(value);
+          currentList.insert(0, clonedProfile);
+          state = AsyncValue.data(currentList);
+        case AsyncError() || AsyncLoading():
+          break;
       }
       return clonedProfile;
     } catch (e, st) {
@@ -149,10 +159,13 @@ class OutputProfilesController extends _$OutputProfilesController {
       final client = ref.read(studioClientProvider);
       final draftProfile = await client.createOutputProfileDraft();
 
-      if (state.hasValue && state.value != null) {
-        final currentList = List<OutputProfile>.from(state.value!);
-        currentList.insert(0, draftProfile);
-        state = AsyncValue.data(currentList);
+      switch (state) {
+        case AsyncData(:final value):
+          final currentList = List<OutputProfile>.from(value);
+          currentList.insert(0, draftProfile);
+          state = AsyncValue.data(currentList);
+        case AsyncError() || AsyncLoading():
+          break;
       }
       return draftProfile;
     } catch (e, st) {
@@ -160,13 +173,15 @@ class OutputProfilesController extends _$OutputProfilesController {
       ref
           .read(loggerServiceProvider)
           .error('OutputProfilesController', 'Create draft failed', e, st);
-      if (e is DioException && e.error is AppException) throw e.error!;
+      if (e is DioException && e.error is AppException) {
+        throw e.error!;
+      }
       throw AppException.unknown(e);
     }
   }
 }
 
-/// Fetches a single Output Profile natively by ID
+/// Fetches a single Output Profile natively by ID.
 @riverpod
 Future<OutputProfile> outputProfileById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
@@ -181,14 +196,18 @@ class OutputProfileForm extends _$OutputProfileForm {
   FutureOr<OutputProfile> build(String configId) async {
     final profile = await ref.watch(outputProfileByIdProvider(configId).future);
     final str = jsonEncode(profile.toJson());
-    return safeIsolateRun(() => OutputProfile.fromJson(jsonDecode(str)));
+    return safeIsolateRun(
+      () => OutputProfile.fromJson(jsonDecode(str) as Map<String, Object?>),
+    );
   }
 
   void forceRebuild() {
-    final payload = state.value;
-    if (payload != null) {
-      // Deep copy is handled by Freezed copyWith inherently, but we trigger notify
-      state = AsyncData(payload.copyWith());
+    switch (state) {
+      case AsyncData(:final value):
+        // Deep copy is handled by Freezed copyWith inherently, triggering notify.
+        state = AsyncData(value.copyWith());
+      case AsyncError() || AsyncLoading():
+        break;
     }
   }
 
@@ -202,45 +221,81 @@ class OutputProfileForm extends _$OutputProfileForm {
     state = await AsyncValue.guard(() async {
       final idToSave = updatedData.id.isNotEmpty ? updatedData.id : configId;
       if (idToSave.isEmpty || idToSave == 'new') {
-        throw AppException.validation("Profile ID is required");
+        final error = AppException.validation('Profile ID is required');
+        ref
+            .read(loggerServiceProvider)
+            .error(
+              'OutputProfileForm',
+              'Validation failed: Profile ID is required',
+              error,
+              StackTrace.current,
+            );
+        throw error;
       }
 
       final profileWithId = updatedData.copyWith(id: idToSave);
 
       // CUSTOM SCALE FAIL-FAST VALIDATION
       if (profileWithId.displayScale == DisplayScale.custom) {
-        if (profileWithId.customScaleMin == null ||
-            profileWithId.customScaleMax == null) {
-          throw AppException.validation(
-            "Custom Scale Min and Custom Scale Max are required when Display Scale is Custom.",
+        final minScale = profileWithId.customScaleMin;
+        final maxScale = profileWithId.customScaleMax;
+        if (minScale == null || maxScale == null) {
+          final error = AppException.validation(
+            'Custom Scale Min and Custom Scale Max are required when Display Scale is Custom.',
           );
+          ref
+              .read(loggerServiceProvider)
+              .error(
+                'OutputProfileForm',
+                'Validation failed: missing custom scale bounds',
+                error,
+                StackTrace.current,
+              );
+          throw error;
         }
-        if (profileWithId.customScaleMax! <= profileWithId.customScaleMin!) {
-          throw AppException.validation(
-            "Custom Scale Max must be strictly greater than Custom Scale Min.",
+        if (maxScale <= minScale) {
+          final error = AppException.validation(
+            'Custom Scale Max must be strictly greater than Custom Scale Min.',
           );
+          ref
+              .read(loggerServiceProvider)
+              .error(
+                'OutputProfileForm',
+                'Validation failed: customScaleMax ($maxScale) <= customScaleMin ($minScale)',
+                error,
+                StackTrace.current,
+              );
+          throw error;
         }
       }
 
       if (profileWithId.name.isEmpty) {
-        throw AppException.validation(
-          "Profile Name (English) is required due to the English-Only Mandate.",
+        final error = AppException.validation(
+          'Profile Name (English) is required due to the English-Only Mandate.',
         );
+        ref
+            .read(loggerServiceProvider)
+            .error(
+              'OutputProfileForm',
+              'Validation failed: empty profile name',
+              error,
+              StackTrace.current,
+            );
+        throw error;
       }
 
+      final desc = profileWithId.description;
+      final roleLabel = profileWithId.userRoleLabel;
+      final preface = profileWithId.customPreface;
+      final tone = profileWithId.toneInstruction;
+
       final sanitized = profileWithId.copyWith(
-        description: (profileWithId.description?.isEmpty ?? true)
+        description: (desc == null || desc.isEmpty) ? null : desc,
+        userRoleLabel: (roleLabel == null || roleLabel.isEmpty)
             ? null
-            : profileWithId.description,
-        userRoleLabel: (profileWithId.userRoleLabel?.isEmpty ?? true)
-            ? null
-            : profileWithId.userRoleLabel,
-        customPreface: (profileWithId.customPreface?.isEmpty ?? true)
-            ? null
-            : profileWithId.customPreface,
-        toneInstruction: (profileWithId.toneInstruction?.isEmpty ?? true)
-            ? null
-            : profileWithId.toneInstruction,
+            : roleLabel,
+        customPreface: (preface == null || preface.isEmpty) ? null : preface,
+        toneInstruction: (tone == null || tone.isEmpty) ? null : tone,
       );
 
       await ref
@@ -248,8 +303,12 @@ class OutputProfileForm extends _$OutputProfileForm {
           .saveProfile(idToSave, sanitized);
       return sanitized;
     });
-    if (state.hasError) {
-      throw state.error!;
+
+    switch (state) {
+      case AsyncError(:final error):
+        throw error;
+      case AsyncData() || AsyncLoading():
+        break;
     }
   }
 }

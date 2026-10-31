@@ -41,7 +41,7 @@ final class OutputProfilesControllerProvider
 }
 
 String _$outputProfilesControllerHash() =>
-    r'3fe1f233131bef40fdf608520bb90d7d1ee3b513';
+    r'91dffb950938b7f73e6f663daabe730fe7371e23';
 
 /// Controller managing Studio Output Profiles using Strict Freezed models.
 /// Implements Optimistic UI principles where possible.
@@ -66,12 +66,12 @@ abstract class _$OutputProfilesController
   }
 }
 
-/// Fetches a single Output Profile natively by ID
+/// Fetches a single Output Profile natively by ID.
 
 @ProviderFor(outputProfileById)
 final outputProfileByIdProvider = OutputProfileByIdFamily._();
 
-/// Fetches a single Output Profile natively by ID
+/// Fetches a single Output Profile natively by ID.
 
 final class OutputProfileByIdProvider
     extends
@@ -81,7 +81,7 @@ final class OutputProfileByIdProvider
           FutureOr<OutputProfile>
         >
     with $FutureModifier<OutputProfile>, $FutureProvider<OutputProfile> {
-  /// Fetches a single Output Profile natively by ID
+  /// Fetches a single Output Profile natively by ID.
   OutputProfileByIdProvider._({
     required OutputProfileByIdFamily super.from,
     required String super.argument,
@@ -128,7 +128,7 @@ final class OutputProfileByIdProvider
 
 String _$outputProfileByIdHash() => r'08d71642d9ffcee6a66ea66cdaafe0193e0aa463';
 
-/// Fetches a single Output Profile natively by ID
+/// Fetches a single Output Profile natively by ID.
 
 final class OutputProfileByIdFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<OutputProfile>, String> {
@@ -141,7 +141,7 @@ final class OutputProfileByIdFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Fetches a single Output Profile natively by ID
+  /// Fetches a single Output Profile natively by ID.
 
   OutputProfileByIdProvider call(String id) =>
       OutputProfileByIdProvider._(argument: id, from: this);
@@ -191,7 +191,7 @@ final class OutputProfileFormProvider
   }
 }
 
-String _$outputProfileFormHash() => r'cf125a6096d7a4fb6851392534e11fca21a27557';
+String _$outputProfileFormHash() => r'ddee3535a3898be9a2789558e7ad0cef3ad0ddf1';
 
 final class OutputProfileFormFamily extends $Family
     with

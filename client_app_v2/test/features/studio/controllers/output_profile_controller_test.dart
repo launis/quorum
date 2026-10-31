@@ -1,16 +1,15 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:riverpod/riverpod.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
-import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/utils/json_converters.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:riverpod/riverpod.dart';
 
-// Mock controller to intercept saveProfile and prevent API calls
 class MockOutputProfilesController extends OutputProfilesController {
   @override
   Future<OutputProfile> saveProfile(String id, OutputProfile payload) async {
-    // Just return the payload without making network calls
     return payload;
   }
 }
@@ -23,6 +22,9 @@ class MockOutputProfilesFailingController extends OutputProfilesController {
 }
 
 void main() {
+  final validProfileId = generateOpaqueUuid7('prf');
+  final validWorkflowId = generateOpaqueUuid7('wkf');
+
   group('OutputProfileForm Sanitization Tests', () {
     test(
       'submit sanitizes empty I18nText fields across all optional properties',
@@ -30,15 +32,16 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             outputProfilesControllerProvider.overrideWith(
-              () => MockOutputProfilesController(),
+              MockOutputProfilesController.new,
             ),
           ],
         );
+        addTearDown(container.dispose);
 
-        final emptyI18n = const I18nText(translations: {'en': ''});
+        const emptyI18n = I18nText(translations: {'en': ''});
         final profile = OutputProfile(
-          id: 'test_id',
-          workflowId: 'wf_1',
+          id: validProfileId,
+          workflowId: validWorkflowId,
           name: const I18nText(translations: {'en': 'Valid Name'}),
           description: emptyI18n,
           userRoleLabel: emptyI18n,
@@ -49,7 +52,7 @@ void main() {
           matrixSynthesisGroups: const [],
         );
 
-        final formProvider = outputProfileFormProvider('test_id');
+        final formProvider = outputProfileFormProvider(validProfileId);
         final formNotifier = container.read(formProvider.notifier);
 
         await formNotifier.submit(profile);
@@ -94,21 +97,22 @@ void main() {
           final container = ProviderContainer(
             overrides: [
               outputProfilesControllerProvider.overrideWith(
-                () => MockOutputProfilesController(),
+                MockOutputProfilesController.new,
               ),
             ],
           );
+          addTearDown(container.dispose);
 
           final profileMissingBounds = OutputProfile(
-            id: 'test_id',
-            workflowId: 'wf_1',
+            id: validProfileId,
+            workflowId: validWorkflowId,
             name: const I18nText(translations: {'en': 'Valid Name'}),
             displayScale: DisplayScale.custom,
             customScaleMin: null,
             customScaleMax: null,
           );
 
-          final formProvider = outputProfileFormProvider('test_id');
+          final formProvider = outputProfileFormProvider(validProfileId);
           final formNotifier = container.read(formProvider.notifier);
 
           await expectLater(
@@ -141,21 +145,22 @@ void main() {
           final container = ProviderContainer(
             overrides: [
               outputProfilesControllerProvider.overrideWith(
-                () => MockOutputProfilesController(),
+                MockOutputProfilesController.new,
               ),
             ],
           );
+          addTearDown(container.dispose);
 
           final profileInvertedBounds = OutputProfile(
-            id: 'test_id',
-            workflowId: 'wf_1',
+            id: validProfileId,
+            workflowId: validWorkflowId,
             name: const I18nText(translations: {'en': 'Valid Name'}),
             displayScale: DisplayScale.custom,
             customScaleMin: 10.0,
             customScaleMax: 4.0,
           );
 
-          final formProvider = outputProfileFormProvider('test_id');
+          final formProvider = outputProfileFormProvider(validProfileId);
           final formNotifier = container.read(formProvider.notifier);
 
           await expectLater(
@@ -188,21 +193,22 @@ void main() {
           final container = ProviderContainer(
             overrides: [
               outputProfilesControllerProvider.overrideWith(
-                () => MockOutputProfilesController(),
+                MockOutputProfilesController.new,
               ),
             ],
           );
+          addTearDown(container.dispose);
 
           final profileEqualBounds = OutputProfile(
-            id: 'test_id',
-            workflowId: 'wf_1',
+            id: validProfileId,
+            workflowId: validWorkflowId,
             name: const I18nText(translations: {'en': 'Valid Name'}),
             displayScale: DisplayScale.custom,
             customScaleMin: 5.0,
             customScaleMax: 5.0,
           );
 
-          final formProvider = outputProfileFormProvider('test_id');
+          final formProvider = outputProfileFormProvider(validProfileId);
           final formNotifier = container.read(formProvider.notifier);
 
           await expectLater(
@@ -235,21 +241,22 @@ void main() {
           final container = ProviderContainer(
             overrides: [
               outputProfilesControllerProvider.overrideWith(
-                () => MockOutputProfilesController(),
+                MockOutputProfilesController.new,
               ),
             ],
           );
+          addTearDown(container.dispose);
 
           final validCustomProfile = OutputProfile(
-            id: 'test_id',
-            workflowId: 'wf_1',
+            id: validProfileId,
+            workflowId: validWorkflowId,
             name: const I18nText(translations: {'en': 'Valid Name'}),
             displayScale: DisplayScale.custom,
             customScaleMin: 4.0,
             customScaleMax: 10.0,
           );
 
-          final formProvider = outputProfileFormProvider('test_id');
+          final formProvider = outputProfileFormProvider(validProfileId);
           final formNotifier = container.read(formProvider.notifier);
 
           await formNotifier.submit(validCustomProfile);
@@ -268,7 +275,10 @@ void main() {
       'SelectedOutputProfileConfigSection selects and updates target section',
       () {
         final container = ProviderContainer();
-        final provider = selectedOutputProfileConfigSectionProvider('prf_123');
+        addTearDown(container.dispose);
+        final provider = selectedOutputProfileConfigSectionProvider(
+          validProfileId,
+        );
 
         expect(container.read(provider), isNull);
 
@@ -286,14 +296,15 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             outputProfilesControllerProvider.overrideWith(
-              () => MockOutputProfilesController(),
+              MockOutputProfilesController.new,
             ),
           ],
         );
+        addTearDown(container.dispose);
 
         final invalidProfile = OutputProfile(
           id: '',
-          workflowId: 'wf_1',
+          workflowId: validWorkflowId,
           name: const I18nText(translations: {'en': 'Test'}),
         );
 
@@ -317,18 +328,19 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             outputProfilesControllerProvider.overrideWith(
-              () => MockOutputProfilesController(),
+              MockOutputProfilesController.new,
             ),
           ],
         );
+        addTearDown(container.dispose);
 
         final noNameProfile = OutputProfile(
-          id: 'prf_123',
-          workflowId: 'wf_1',
+          id: validProfileId,
+          workflowId: validWorkflowId,
           name: const I18nText(translations: {}),
         );
 
-        final formProvider = outputProfileFormProvider('prf_123');
+        final formProvider = outputProfileFormProvider(validProfileId);
         final formNotifier = container.read(formProvider.notifier);
 
         await expectLater(
@@ -348,18 +360,19 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             outputProfilesControllerProvider.overrideWith(
-              () => MockOutputProfilesFailingController(),
+              MockOutputProfilesFailingController.new,
             ),
           ],
         );
+        addTearDown(container.dispose);
 
         final validProfile = OutputProfile(
-          id: 'prf_123',
-          workflowId: 'wf_1',
+          id: validProfileId,
+          workflowId: validWorkflowId,
           name: const I18nText(translations: {'en': 'Test'}),
         );
 
-        final formProvider = outputProfileFormProvider('prf_123');
+        final formProvider = outputProfileFormProvider(validProfileId);
         final formNotifier = container.read(formProvider.notifier);
 
         await expectLater(
