@@ -29,11 +29,17 @@ from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope, TraceScoringPayloadDTO
 from backend_v2.models.enums import (
+    ExecutionStatus,
     TargetBlockType,
     VirtualSystemStepID,
 )
 from backend_v2.models.state import EvidenceOverrideDTO, StateProjector
-from backend_v2.models.view.sdui import AnySduiBlock, SduiRadarChartBlock
+from backend_v2.models.view.sdui import (
+    AnySduiBlock,
+    SduiCausalGraphBlock,
+    SduiMatrixTableBlock,
+    SduiRadarChartBlock,
+)
 from backend_v2.services.matrix_parser import MatrixDomainParser
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.executive_summary_adapter import ExecutiveSummaryAdapter
@@ -656,6 +662,33 @@ class BlueprintTransformer:
             if not inner_sdui_blocks and not adapter_context.is_data_starved:
                 inner_sdui_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]
 
+            # Phase 3, Step 3.1: Populate topological short-circuit and Toulmin falsification lineage
+            report_short_circuited_claims = list(
+                dict.fromkeys(
+                    [
+                        v2_hydrated_refs[sc_id].resolved_claim.strip()
+                        for res_item in v2_results
+                        if res_item.status == ExecutionStatus.N_A
+                        for sc_id in res_item.short_circuit_reason_tda_ids
+                        if sc_id in v2_hydrated_refs and v2_hydrated_refs[sc_id].resolved_claim.strip()
+                    ]
+                    + [
+                        sc
+                        for b in inner_sdui_blocks
+                        if isinstance(b, (SduiMatrixTableBlock, SduiCausalGraphBlock))
+                        for sc in b.short_circuited_by_claims
+                    ]
+                )
+            )
+            report_falsified_warrant_claims = list(
+                dict.fromkeys(
+                    fw
+                    for b in inner_sdui_blocks
+                    if isinstance(b, (SduiMatrixTableBlock, SduiCausalGraphBlock))
+                    for fw in b.falsified_warrant_claims
+                )
+            )
+
             report_dto = ReportDataDTO(
                 strictness_level=strictness_level,
                 scoring_strategy=scoring_engine_val,
@@ -683,6 +716,8 @@ class BlueprintTransformer:
                 mcp_tool_audit=mcp_audit_data,
                 results=v2_results,
                 hydrated_references=v2_hydrated_refs,
+                short_circuited_by_claims=report_short_circuited_claims,
+                falsified_warrant_claims=report_falsified_warrant_claims,
             )
             return report_dto
         except AppException:

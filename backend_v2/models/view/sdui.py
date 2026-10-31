@@ -59,6 +59,7 @@ __all__ = [
     "SduiBlockBase",
     "SduiCausalGraphBlock",
     "SduiGridBlock",
+    "SduiMatrixSummaryTableBlock",
     "SduiMatrixTableBlock",
     "SduiMetadataBlock",
     "SduiMetrics1DBlock",
@@ -775,13 +776,31 @@ class SduiQuadrantMatrixBlock(SduiBlockBase):
 class SduiMatrixTableBlock(SduiBlockBase):
     """Specific block for Matrix Summary Table visualization."""
 
-    model_config = ConfigDict(title="matrix_summary", strict=True, extra="forbid")
+    model_config = ConfigDict(title="matrix_summary", strict=True, extra="forbid", frozen=True)
     block_type: Literal["matrix_summary"] = "matrix_summary"
     title: I18nText | None = None
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
     matrix_column_labels: dict[str, I18nText] = Field(default_factory=dict)
     extension_labels: dict[LaxXaiExtensionType, I18nText] = Field(default_factory=dict)
     matrix_visible_columns: list[str] = Field(default_factory=list)
+    # Phase 3, Step 3.1: Inline topological short-circuit and Toulmin falsification lineage
+    short_circuited_by_claims: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Human-readable prerequisite claims that short-circuited downstream evaluations.",
+        ),
+    ]
+    falsified_warrant_claims: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Formatted Toulmin rebuttal-warrant-claim falsification lineage entries.",
+        ),
+    ]
+
+
+SduiMatrixSummaryTableBlock = SduiMatrixTableBlock
 
 
 class SduiMetrics1DBlock(SduiBlockBase):
@@ -796,7 +815,7 @@ class SduiMetrics1DBlock(SduiBlockBase):
 class SduiCausalGraphBlock(SduiBlockBase):
     """Specific block for Unified Causal Action Card and argument graph visualization."""
 
-    model_config = ConfigDict(title="causal_graph", strict=True, extra="forbid")
+    model_config = ConfigDict(title="causal_graph", strict=True, extra="forbid", frozen=True)
     block_type: Literal["causal_graph"] = "causal_graph"
     critical_path_nodes: list[CausalNodeDTO] = Field(default_factory=list)
     critical_edges: list[CausalEdgeDTO] = Field(default_factory=list)
@@ -807,6 +826,21 @@ class SduiCausalGraphBlock(SduiBlockBase):
     intact_claims_count: int
     total_claims_count: int
     summary: I18nText
+    # Phase 3, Step 3.1: Inline topological short-circuit and Toulmin falsification lineage
+    short_circuited_by_claims: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Human-readable prerequisite claims that short-circuited downstream evaluations.",
+        ),
+    ]
+    falsified_warrant_claims: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Formatted Toulmin rebuttal-warrant-claim falsification lineage entries.",
+        ),
+    ]
 
 
 AnySduiBlock = Annotated[

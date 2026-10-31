@@ -78,6 +78,7 @@ class CausalGraphAdapter:
             )
 
         fair_scoring: FairScoringBreakdownDTO | None
+        falsified_claims_list = []
         match causal:
             case CausalTdaFusionResultDTO():
                 graph = causal.graph
@@ -85,6 +86,7 @@ class CausalGraphAdapter:
                 anti_fluff_audit = causal.anti_fluff_audit
                 prescriptive_remediations = list(causal.prescriptive_remediations)
                 fair_scoring = causal.fair_scoring
+                falsified_claims_list = list(causal.falsified_claims)
             case CausalGraphPayloadDTO():
                 graph = causal
                 root_cause_diagnoses = []
@@ -98,7 +100,73 @@ class CausalGraphAdapter:
                 prescriptive_remediations = []
                 fair_scoring = None
 
-        critical_path_nodes = CausalGraphAdapter._resolve_critical_nodes(graph)
+        raw_critical_nodes = CausalGraphAdapter._resolve_critical_nodes(
+            graph,
+            extra_node_ids={fc.falsified_claim_id for fc in falsified_claims_list if fc.falsified_claim_id},
+        )
+        node_by_id = {n.node_id: n for n in graph.nodes}
+
+        # Phase 3, Step 3.1: Bind short_circuited_by_claims and falsified_warrant_claims to nodes and block
+        block_short_circuited_claims: list[str] = []
+        block_falsified_warrant_claims: list[str] = []
+        for fc in falsified_claims_list:
+            rebuttal_label = fc.rebuttal_id
+            if fc.rebuttal_id in node_by_id:
+                rebuttal_label = node_by_id[fc.rebuttal_id].claim.strip()
+            warrant_label = fc.invalidated_warrant_id
+            if fc.invalidated_warrant_id in node_by_id:
+                warrant_label = node_by_id[fc.invalidated_warrant_id].claim.strip()
+            formatted_fc = f"{rebuttal_label} -> {warrant_label} -> {fc.claim_statement}"
+            if formatted_fc not in block_falsified_warrant_claims:
+                block_falsified_warrant_claims.append(formatted_fc)
+
+        for diag in root_cause_diagnoses:
+            root_claim = diag.root_cause_claim.strip()
+            if root_claim and root_claim not in block_short_circuited_claims:
+                block_short_circuited_claims.append(root_claim)
+
+        critical_path_nodes: list[CausalNodeDTO] = []
+        for node in raw_critical_nodes:
+            node_sc_claims: list[str] = list(node.short_circuited_by_claims)
+            for parent_id in node.blame_parent_ids:
+                if parent_id in node_by_id:
+                    parent_claim = node_by_id[parent_id].claim.strip()
+                    if parent_claim and parent_claim not in node_sc_claims:
+                        node_sc_claims.append(parent_claim)
+            for diag in root_cause_diagnoses:
+                if diag.failing_node_id == node.node_id:
+                    diag_claim = diag.root_cause_claim.strip()
+                    if diag_claim and diag_claim not in node_sc_claims:
+                        node_sc_claims.append(diag_claim)
+            for sc_claim in node_sc_claims:
+                if sc_claim not in block_short_circuited_claims:
+                    block_short_circuited_claims.append(sc_claim)
+
+            node_fw_claims: list[str] = list(node.falsified_warrant_claims)
+            for fc in falsified_claims_list:
+                rebuttal_label = fc.rebuttal_id
+                if fc.rebuttal_id in node_by_id:
+                    rebuttal_label = node_by_id[fc.rebuttal_id].claim.strip()
+                warrant_label = fc.invalidated_warrant_id
+                if fc.invalidated_warrant_id in node_by_id:
+                    warrant_label = node_by_id[fc.invalidated_warrant_id].claim.strip()
+                formatted_fc = f"{rebuttal_label} -> {warrant_label} -> {fc.claim_statement}"
+                if fc.falsified_claim_id == node.node_id or fc.claim_statement == node.claim:
+                    if formatted_fc not in node_fw_claims:
+                        node_fw_claims.append(formatted_fc)
+            for fw_claim in node_fw_claims:
+                if fw_claim not in block_falsified_warrant_claims:
+                    block_falsified_warrant_claims.append(fw_claim)
+
+            critical_path_nodes.append(
+                node.model_copy(
+                    update={
+                        "short_circuited_by_claims": node_sc_claims,
+                        "falsified_warrant_claims": node_fw_claims,
+                    }
+                )
+            )
+
         critical_edges = CausalGraphAdapter._resolve_critical_edges(graph, critical_path_nodes)
 
         total_claims_count = len(graph.nodes)
@@ -119,19 +187,27 @@ class CausalGraphAdapter:
             intact_claims_count=intact_claims_count,
             total_claims_count=total_claims_count,
             summary=summary,
+            short_circuited_by_claims=block_short_circuited_claims,
+            falsified_warrant_claims=block_falsified_warrant_claims,
         )
 
     @staticmethod
-    def _resolve_critical_nodes(graph: CausalGraphPayloadDTO) -> list[CausalNodeDTO]:
+    def _resolve_critical_nodes(
+        graph: CausalGraphPayloadDTO,
+        extra_node_ids: set[str] | None = None,
+    ) -> list[CausalNodeDTO]:
         """Selects critical path nodes from the causal graph.
 
         Args:
             graph: Evaluated causal graph payload.
+            extra_node_ids: Optional additional node IDs (such as falsified claim nodes) to include.
 
         Returns:
             Ordered list of critical path nodes, or all graph nodes if no faults exist.
         """
         critical_node_ids: set[str] = set(graph.root_cause_node_ids)
+        if extra_node_ids:
+            critical_node_ids.update(extra_node_ids)
         for node in graph.nodes:
             if node.blame_parent_ids or node.status == ExecutionStatus.FAILED:
                 critical_node_ids.add(node.node_id)

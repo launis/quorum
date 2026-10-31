@@ -55,6 +55,8 @@ class ReportDataDTO(V2CoreBase):
         completion_tokens: Completion token count consumed.
         reasoning_tokens: Reasoning token count consumed.
         mcp_tool_audit: Serialized MCPAuditTrace entries for XAI Evidence Box rendering.
+        short_circuited_by_claims: Human-readable prerequisite claims that short-circuited downstream evaluations.
+        falsified_warrant_claims: Formatted Toulmin rebuttal-warrant-claim falsification lineage entries.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
@@ -145,6 +147,24 @@ class ReportDataDTO(V2CoreBase):
         Field(
             default_factory=list,
             description="Serialized MCPAuditTrace entries for XAI Evidence Box rendering.",
+        ),
+    ]
+
+    # Phase 3, Step 3.1: Inline topological short-circuit and Toulmin falsification lineage
+    short_circuited_by_claims: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            exclude=True,
+            description="Human-readable prerequisite claims that short-circuited downstream evaluations.",
+        ),
+    ]
+    falsified_warrant_claims: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            exclude=True,
+            description="Formatted Toulmin rebuttal-warrant-claim falsification lineage entries.",
         ),
     ]
 

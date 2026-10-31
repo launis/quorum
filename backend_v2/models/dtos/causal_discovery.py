@@ -41,6 +41,8 @@ class CausalNodeDTO(V2CoreBase):
         tda_score: Evaluated TDA cognitive score.
         tda_level_key: TDA qualitative level key.
         source_input_key: Dynamic input key indicating source document provenance.
+        short_circuited_by_claims: Human-readable prerequisite claims that short-circuited this causal node.
+        falsified_warrant_claims: Formatted Toulmin rebuttal-warrant-claim falsification entries for this node.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
@@ -69,6 +71,23 @@ class CausalNodeDTO(V2CoreBase):
     source_input_key: Annotated[
         str | None, Field(default=None, description="Dynamic input key indicating source document provenance.")
     ] = None
+    # Phase 3, Step 3.1: Node-level topological short-circuit and Toulmin falsification lineage
+    short_circuited_by_claims: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            exclude=True,
+            description="Human-readable prerequisite claims that short-circuited this causal node.",
+        ),
+    ]
+    falsified_warrant_claims: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            exclude=True,
+            description="Formatted Toulmin rebuttal-warrant-claim falsification entries for this node.",
+        ),
+    ]
 
 
 class CausalEdgeDTO(V2CoreBase):

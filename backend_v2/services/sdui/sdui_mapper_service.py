@@ -19,7 +19,8 @@ from backend_v2.models.view.sdui import (
     AnySduiBlock,
     ReportView,
     ReportViewMetricsDTO,
-    SduiNACard,
+    SduiCausalGraphBlock,
+    SduiMatrixTableBlock,
     SduiQuoteCard,
     SduiWarningCard,
 )
@@ -135,14 +136,14 @@ class SduiMapperService:
         else:
             status_theme = VisualIntent.SUCCESS
 
-        inner_blocks: list[AnySduiBlock] = list(report.inner_sdui_blocks)
-
-        # Map N_A evaluation outcomes to dedicated SDUI N_A cards with prerequisite explanations
+        # Phase 3, Step 3.1: Anchor N_A short-circuit and Toulmin falsification lineage contextually
+        # within parent SduiMatrixTableBlock and SduiCausalGraphBlock blocks instead of bottom-of-report orphans.
         na_default_msg = I18nText(translations={"fi": "Ei sovelleta (N/A)", "en": "Not applicable (N/A)"}).resolve(lang)
         na_rule_prefix = I18nText(
             translations={"fi": "Ohitettu säännön perusteella:", "en": "Skipped based on rule:"}
         ).resolve(lang)
 
+        resolved_short_circuits: list[str] = list(report.short_circuited_by_claims)
         for result in report.results:
             if result.status == ExecutionStatus.N_A:
                 reason_msg = na_default_msg
@@ -151,13 +152,33 @@ class SduiMapperService:
                     if tda_id in report.hydrated_references:
                         hydrated = report.hydrated_references[tda_id]
                         reason_msg = f"{na_rule_prefix} {hydrated.resolved_claim}"
+                if reason_msg not in resolved_short_circuits:
+                    resolved_short_circuits.append(reason_msg)
 
-                inner_blocks.append(
-                    SduiNACard(
-                        short_circuit_reason_tda_ids=result.short_circuit_reason_tda_ids,
-                        message=reason_msg,
+        resolved_falsified_claims: list[str] = list(report.falsified_warrant_claims)
+
+        inner_blocks: list[AnySduiBlock] = []
+        for block in report.inner_sdui_blocks:
+            match block:
+                case SduiMatrixTableBlock() | SduiCausalGraphBlock():
+                    merged_sc = list(block.short_circuited_by_claims)
+                    for sc in resolved_short_circuits:
+                        if sc not in merged_sc:
+                            merged_sc.append(sc)
+                    merged_fw = list(block.falsified_warrant_claims)
+                    for fw in resolved_falsified_claims:
+                        if fw not in merged_fw:
+                            merged_fw.append(fw)
+                    inner_blocks.append(
+                        block.model_copy(
+                            update={
+                                "short_circuited_by_claims": merged_sc,
+                                "falsified_warrant_claims": merged_fw,
+                            }
+                        )
                     )
-                )
+                case _:
+                    inner_blocks.append(block)
 
         return ReportView(
             view_id=resolved_execution_id,
