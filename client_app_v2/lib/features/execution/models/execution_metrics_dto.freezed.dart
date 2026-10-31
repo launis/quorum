@@ -26,14 +26,7 @@ $ExecutionMetricsDTOCopyWith<ExecutionMetricsDTO> get copyWith => _$ExecutionMet
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionMetricsDTO&&(identical(other.totalAtoms, totalAtoms) || other.totalAtoms == totalAtoms)&&(identical(other.evaluated, evaluated) || other.evaluated == evaluated)&&(identical(other.shortCircuitedNa, shortCircuitedNa) || other.shortCircuitedNa == shortCircuitedNa)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,totalAtoms,evaluated,shortCircuitedNa,durationMs);
 
 @override
 String toString() {
@@ -211,8 +204,8 @@ return $default(_that.totalAtoms,_that.evaluated,_that.shortCircuitedNa,_that.du
 /// @nodoc
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
-class _ExecutionMetricsDTO implements ExecutionMetricsDTO {
-  const _ExecutionMetricsDTO({@JsonKey(name: 'total_atoms') required this.totalAtoms, required this.evaluated, @JsonKey(name: 'short_circuited_na') required this.shortCircuitedNa, @JsonKey(name: 'duration_ms') this.durationMs = 0});
+class _ExecutionMetricsDTO extends ExecutionMetricsDTO {
+  const _ExecutionMetricsDTO({@JsonKey(name: 'total_atoms') required this.totalAtoms, required this.evaluated, @JsonKey(name: 'short_circuited_na') required this.shortCircuitedNa, @JsonKey(name: 'duration_ms') this.durationMs = 0}): super._();
   factory _ExecutionMetricsDTO.fromJson(Map<String, dynamic> json) => _$ExecutionMetricsDTOFromJson(json);
 
 @override@JsonKey(name: 'total_atoms') final  int totalAtoms;
@@ -231,14 +224,7 @@ Map<String, dynamic> toJson() {
   return _$ExecutionMetricsDTOToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExecutionMetricsDTO&&(identical(other.totalAtoms, totalAtoms) || other.totalAtoms == totalAtoms)&&(identical(other.evaluated, evaluated) || other.evaluated == evaluated)&&(identical(other.shortCircuitedNa, shortCircuitedNa) || other.shortCircuitedNa == shortCircuitedNa)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,totalAtoms,evaluated,shortCircuitedNa,durationMs);
 
 @override
 String toString() {

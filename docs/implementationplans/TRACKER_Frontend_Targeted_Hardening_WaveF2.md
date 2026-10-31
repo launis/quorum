@@ -26,7 +26,7 @@
   - [x] @[client_app_v2/lib/features/execution/models/distilled_evaluation.dart]
   - [x] @[client_app_v2/lib/features/execution/models/execution_create_request_dto.dart]
   - [x] @[client_app_v2/lib/features/execution/models/execution_metadata.dart]
-  - [ ] @[client_app_v2/lib/features/execution/models/execution_metrics_dto.dart]
+  - [x] @[client_app_v2/lib/features/execution/models/execution_metrics_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/execution_record.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/execution_step.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/execution_summary_snapshot.dart]
