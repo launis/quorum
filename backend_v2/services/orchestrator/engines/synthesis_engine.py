@@ -17,7 +17,7 @@ from pydantic import BaseModel, ValidationError
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, RawXAIExtensionDTO
+from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, RawXAIExtensionDTO, ReducedAtomDTO
 from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
@@ -32,6 +32,131 @@ from backend_v2.utils.alias_engine import AliasEngine
 logger = logging.getLogger(__name__)
 
 __all__ = ["SynthesisEngine"]
+
+
+def _register_safe_atom_alias(alias_engine: AliasEngine, raw_id: str) -> str:
+    """Register an atom identifier in AliasEngine without colliding with pre-populated keys.
+
+    Args:
+        alias_engine: Request-scoped AliasEngine instance.
+        raw_id: Authoritative atom ID or blackboard draft ID.
+
+    Returns:
+        Deterministic short alias string with zero raw tda_ prefix.
+    """
+    while f"a{alias_engine._counters['a']}" in alias_engine.alias_map:
+        alias_engine._counters["a"] += 1
+    return alias_engine.register(raw_id, prefix="a")
+
+
+def _serialize_reduced_atoms(
+    reduced_atoms: list[ReducedAtomDTO],
+    alias_engine: AliasEngine,
+) -> str:
+    """Serialize ReducedAtomDTO items with deterministic AliasEngine aliases.
+
+    Args:
+        reduced_atoms: Reduced matrix evaluation atoms to serialize.
+        alias_engine: Request-scoped AliasEngine translating Opaque TDA IDs to short aliases.
+
+    Returns:
+        XML-wrapped JSON string of aliased reduced atoms, or empty string if none exist.
+    """
+    if not reduced_atoms:
+        return ""
+
+    # Phase 2, Step 2.2: Translate all TDA identifiers via AliasEngine (zero raw tda_ UUIDs)
+    aliased_dtos: list[ReducedAtomDTO] = []
+    for atom in reduced_atoms:
+        atom_alias = _register_safe_atom_alias(alias_engine, atom.tda_id)
+        depends_aliases = [_register_safe_atom_alias(alias_engine, dep_id) for dep_id in atom.depends_on_tda_ids]
+        short_circuit_aliases = [
+            _register_safe_atom_alias(alias_engine, sc_id) for sc_id in atom.short_circuit_reason_tda_ids
+        ]
+        reasoning_text = atom.reasoning
+        if reasoning_text is not None:
+            for alias_key, real_id in alias_engine.alias_map.items():
+                if real_id != alias_key and real_id in reasoning_text:
+                    reasoning_text = reasoning_text.replace(real_id, alias_key)
+
+        aliased_dtos.append(
+            atom.model_copy(
+                update={
+                    "tda_id": atom_alias,
+                    "reasoning": reasoning_text,
+                    "depends_on_tda_ids": depends_aliases,
+                    "short_circuit_reason_tda_ids": short_circuit_aliases,
+                }
+            )
+        )
+
+    reduced_list = [item.model_dump(mode="json", exclude_none=True) for item in aliased_dtos]
+    reduced_json = json.dumps(reduced_list, indent=2)
+    return f"\n<reduced_matrix_atoms>\n{reduced_json}\n</reduced_matrix_atoms>"
+
+
+def _append_matrix_reducer_parts(
+    user_content_parts: list[str],
+    matrix_reducer_output: LightweightMatrixDTO | LightweightMatrixOutput | None,
+    alias_engine: AliasEngine,
+) -> None:
+    """Append aliased reduced atoms and XAI extensions from matrix_reducer_output into user_content_parts.
+
+    Args:
+        user_content_parts: Mutable list of user message sections to append to.
+        matrix_reducer_output: Optional matrix reducer output container.
+        alias_engine: Request-scoped AliasEngine instance.
+
+    Raises:
+        AppException: If raw_extensions or reduced_atoms cannot be serialized (VALIDATION_FAILED).
+    """
+    if matrix_reducer_output is None:
+        return
+
+    try:
+        if isinstance(matrix_reducer_output, LightweightMatrixDTO):
+            reduced_atoms_str = _serialize_reduced_atoms(matrix_reducer_output.reduced_atoms, alias_engine)
+            if reduced_atoms_str:
+                user_content_parts.append(reduced_atoms_str)
+
+            if matrix_reducer_output.raw_extensions:
+                raw_list = [
+                    ext.model_dump(mode="json", exclude_none=True)
+                    if isinstance(ext, (RawXAIExtensionDTO, BaseModel))
+                    else ext
+                    for ext in matrix_reducer_output.raw_extensions
+                ]
+                extensions_json = json.dumps(raw_list, indent=2)
+                user_content_parts.append(f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>")
+        elif isinstance(matrix_reducer_output, LightweightMatrixOutput):
+            if matrix_reducer_output.evaluated_atoms:
+                synthesized_reduced = [
+                    ReducedAtomDTO(
+                        tda_id=tda_id,
+                        status=status_val,
+                        depends_on_tda_ids=[],
+                        short_circuit_reason_tda_ids=[],
+                    )
+                    for tda_id, status_val in matrix_reducer_output.evaluated_atoms.items()
+                ]
+                reduced_atoms_str = _serialize_reduced_atoms(synthesized_reduced, alias_engine)
+                if reduced_atoms_str:
+                    user_content_parts.append(reduced_atoms_str)
+
+            if matrix_reducer_output.extensions:
+                ext_dict = {
+                    (k.value if isinstance(k, Enum) else str(k)): v for k, v in matrix_reducer_output.extensions.items()
+                }
+                extensions_json = json.dumps(ext_dict, indent=2)
+                user_content_parts.append(f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>")
+    except (TypeError, KeyError) as err:
+        msg = f"Corrupted raw_extensions in __MATRIX_REDUCER_OUTPUT__: {err}"
+        logger.error("[SynthesisEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        ) from err
 
 
 class SynthesisEngine(ExecutionEngine):
@@ -119,10 +244,7 @@ class SynthesisEngine(ExecutionEngine):
 
             if total_atoms <= settings.synthesis_starvation_threshold:
                 is_starved = True
-                starvation_reason = (
-                    f"Data starvation: zero atoms extracted "
-                    f"({total_atoms} <= {settings.synthesis_starvation_threshold})"
-                )
+                starvation_reason = f"Data starvation: zero atoms extracted ({total_atoms} <= {settings.synthesis_starvation_threshold})"
             elif total_atoms < settings.synthesis_sparse_threshold and not has_matrix_evidence:
                 is_starved = True
                 starvation_reason = (
@@ -164,35 +286,12 @@ class SynthesisEngine(ExecutionEngine):
 
             local_messages = list(request.hydrated_messages)
 
-            raw_xai_extensions_str = ""
-            if matrix_reducer_output is not None:
-                try:
-                    if isinstance(matrix_reducer_output, LightweightMatrixDTO):
-                        if matrix_reducer_output.raw_extensions:
-                            raw_list = [
-                                ext.model_dump(mode="json", exclude_none=True)
-                                if isinstance(ext, (RawXAIExtensionDTO, BaseModel))
-                                else ext
-                                for ext in matrix_reducer_output.raw_extensions
-                            ]
-                            extensions_json = json.dumps(raw_list, indent=2)
-                            raw_xai_extensions_str = f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>"
-                    elif isinstance(matrix_reducer_output, LightweightMatrixOutput):
-                        if matrix_reducer_output.extensions:
-                            ext_dict = {
-                                (k.value if isinstance(k, Enum) else str(k)): v
-                                for k, v in matrix_reducer_output.extensions.items()
-                            }
-                            extensions_json = json.dumps(ext_dict, indent=2)
-                            raw_xai_extensions_str = f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>"
-                except (TypeError, KeyError) as err:
-                    msg = f"Corrupted raw_extensions in __MATRIX_REDUCER_OUTPUT__: {err}"
-                    logger.error("[SynthesisEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                    raise AppException(
-                        message=msg,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    ) from err
+            # Phase 2, Step 2.2: Initialize request-scoped AliasEngine before serializing reduced_atoms
+            alias_engine = AliasEngine()
+            for atom_id in all_atom_ids:
+                alias_engine.alias_map[atom_id] = atom_id
+            for doc_id in doc_aliases:
+                alias_engine.alias_map[doc_id] = doc_id
 
             raw_blackboard_markdown = blackboard.to_markdown_synthesis_injection()
             user_payload_xml = TemplateProcessor.render_prompt(
@@ -203,9 +302,7 @@ class SynthesisEngine(ExecutionEngine):
             )
 
             user_content_parts = [user_payload_xml]
-
-            if raw_xai_extensions_str:
-                user_content_parts.append(raw_xai_extensions_str)
+            _append_matrix_reducer_parts(user_content_parts, matrix_reducer_output, alias_engine)
 
             if total_atoms < settings.synthesis_sparse_threshold:
                 user_content_parts.append(SPARSE_DATA_SYNTHESIS_MANDATE)
@@ -241,13 +338,6 @@ class SynthesisEngine(ExecutionEngine):
                 await request.progress_callback(90, 100)
 
             output_dict = validated_model.model_dump()
-
-            # Alias hydration and hallucinated UUID filtering
-            alias_engine = AliasEngine()
-            for atom_id in all_atom_ids:
-                alias_engine.alias_map[atom_id] = atom_id
-            for doc_id in doc_aliases:
-                alias_engine.alias_map[doc_id] = doc_id
 
             # Hydrate and strictly DROP hallucinated opaque UUIDs
             alias_engine.hydrate_and_filter_aliases(output_dict, {"atom_id", "source_id"})

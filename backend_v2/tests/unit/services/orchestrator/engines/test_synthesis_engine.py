@@ -1,6 +1,8 @@
 """Unit tests for SynthesisEngine."""
 
-from unittest.mock import AsyncMock, MagicMock
+import re
+from typing import Annotated
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from pydantic import BaseModel, ConfigDict, Field
@@ -45,8 +47,8 @@ def make_atom(
 class MockSynthesisOutput(BaseModel):
     """Mock structured output for synthesis."""
 
-    title: str = Field(...)
-    content: str = Field(...)
+    title: Annotated[str, Field(description="Title")]
+    content: Annotated[str, Field(description="Content")]
     model_config = ConfigDict(strict=True, extra="forbid")
 
 
@@ -266,7 +268,7 @@ async def test_synthesis_engine_data_starvation_circuit_breaker(
 @pytest.mark.asyncio
 async def test_synthesis_engine_sparse_data_rule_injected(
     engine: SynthesisEngine, mock_executor: AsyncMock, base_request: EngineExecutionRequest
-):
+) -> None:
     """Tests that 1-7 atoms with matrix evidence injects SPARSE_DATA_SYNTHESIS_MANDATE."""
     req = base_request.model_copy(
         update={
@@ -488,7 +490,110 @@ async def test_synthesis_engine_with_lightweight_matrix_output(
     call_kwargs = mock_executor.execute_structured_task.call_args.kwargs
     messages = call_kwargs["messages"]
     user_msg = messages[-1]
+    assert "<reduced_matrix_atoms>" in user_msg.content
     assert "<raw_xai_extensions>" in user_msg.content
+
+
+@pytest.mark.asyncio
+async def test_synthesis_engine_execute_injects_aliased_reduced_atoms_into_user_message(
+    engine: SynthesisEngine, mock_executor: AsyncMock, base_request: EngineExecutionRequest
+) -> None:
+    """Verify PASSED, FAILED, and N_A ReducedAtomDTO entries are serialized with AliasEngine aliases and zero raw tda_ UUIDs."""
+    tda_passed = "tda_0195f3a0000070018111111111111111"
+    tda_failed = "tda_0195f3a0000070028222222222222222"
+    tda_na = "tda_0195f3a0000070038333333333333333"
+
+    req = base_request.model_copy(
+        update={
+            "context": base_request.context.model_copy(
+                update={
+                    "context_variables": ContextVariablesDTO(
+                        global_atom_blackboard=GlobalAtomBlackboard(
+                            atoms_by_input={
+                                "doc_0": {
+                                    "atoms": [
+                                        make_atom("a0", claim="First draft atom"),
+                                        make_atom("a1", claim="Second draft atom"),
+                                    ]
+                                }
+                            },
+                        ),
+                        matrix_reducer_output=LightweightMatrixDTO(
+                            execution_id="exec_1",
+                            reduced_atoms=[
+                                ReducedAtomDTO(
+                                    tda_id=tda_passed,
+                                    status=LaxExecutionStatus.PASSED,
+                                    reasoning="Passed verification check.",
+                                    source_quotes=("Verbatim quote for passed check.",),
+                                    depends_on_tda_ids=[],
+                                    short_circuit_reason_tda_ids=[],
+                                ),
+                                ReducedAtomDTO(
+                                    tda_id=tda_failed,
+                                    status=LaxExecutionStatus.FAILED,
+                                    reasoning=f"Failed verification of {tda_passed} prerequisite.",
+                                    is_inverse_evidence=True,
+                                    depends_on_tda_ids=[tda_passed],
+                                    short_circuit_reason_tda_ids=[],
+                                ),
+                                ReducedAtomDTO(
+                                    tda_id=tda_na,
+                                    status=LaxExecutionStatus.N_A,
+                                    reasoning="Short-circuited due to upstream failure.",
+                                    depends_on_tda_ids=[tda_failed],
+                                    short_circuit_reason_tda_ids=[tda_failed],
+                                ),
+                            ],
+                            global_metrics={},
+                            evaluated_matrices=[{"matrix_id": "mat_1"}],
+                            raw_extensions=[],
+                        ),
+                    )
+                }
+            )
+        }
+    )
+
+    mock_output = MockSynthesisOutput(title="Converged", content="Synthesized")
+    mock_usage = TokenUsage(prompt_tokens=15, completion_tokens=25, total_tokens=40, cost_usd=0.01)
+    mock_executor.execute_structured_task.return_value = (mock_output, mock_usage)
+
+    await engine.execute(req)
+
+    call_kwargs = mock_executor.execute_structured_task.call_args.kwargs
+    messages = call_kwargs["messages"]
+    user_message = messages[-1]
+    assert user_message.role == "user"
+    assert "<reduced_matrix_atoms>" in user_message.content
+    assert "Passed verification check." in user_message.content
+    assert "Short-circuited due to upstream failure." in user_message.content
+    assert '"a2"' in user_message.content
+    assert '"a3"' in user_message.content
+    assert '"a4"' in user_message.content
+    assert tda_passed not in user_message.content
+    assert tda_failed not in user_message.content
+    assert tda_na not in user_message.content
+    assert re.search(r"tda_[a-fA-F0-9]{8,32}", user_message.content) is None
+
+
+@pytest.mark.asyncio
+async def test_synthesis_engine_corrupted_matrix_reducer_serialization_raises(
+    engine: SynthesisEngine, base_request: EngineExecutionRequest
+) -> None:
+    """Verify TypeError during matrix_reducer_output JSON serialization raises AppException(VALIDATION_FAILED)."""
+    with (
+        patch(
+            "backend_v2.services.orchestrator.engines.synthesis_engine.json.dumps",
+            side_effect=TypeError("Unserializable object"),
+        ),
+        pytest.raises(AppException) as exc_info,
+    ):
+        await engine.execute(base_request)
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 def test_synthesis_engine_implements_protocol(mock_executor: AsyncMock) -> None:
