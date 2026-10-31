@@ -8,24 +8,18 @@ part of 'blueprint_editor_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// **Blueprint Editor Controller (Phase 9 Rebuild)**
-///
-/// Stripped of the massive SDUI canvas logic. Now strictly manages the
-/// `BlueprintConfig` ensuring seamless binding with Pydantic V2 schemas.
+/// Manages [BlueprintConfig] state for the Studio Blueprint Editor,
+/// enforcing strict schema binding with backend Pydantic V2 models.
 
 @ProviderFor(BlueprintEditorController)
 final blueprintEditorControllerProvider = BlueprintEditorControllerProvider._();
 
-/// **Blueprint Editor Controller (Phase 9 Rebuild)**
-///
-/// Stripped of the massive SDUI canvas logic. Now strictly manages the
-/// `BlueprintConfig` ensuring seamless binding with Pydantic V2 schemas.
+/// Manages [BlueprintConfig] state for the Studio Blueprint Editor,
+/// enforcing strict schema binding with backend Pydantic V2 models.
 final class BlueprintEditorControllerProvider
     extends $NotifierProvider<BlueprintEditorController, BlueprintConfig> {
-  /// **Blueprint Editor Controller (Phase 9 Rebuild)**
-  ///
-  /// Stripped of the massive SDUI canvas logic. Now strictly manages the
-  /// `BlueprintConfig` ensuring seamless binding with Pydantic V2 schemas.
+  /// Manages [BlueprintConfig] state for the Studio Blueprint Editor,
+  /// enforcing strict schema binding with backend Pydantic V2 models.
   BlueprintEditorControllerProvider._()
     : super(
         from: null,
@@ -54,12 +48,10 @@ final class BlueprintEditorControllerProvider
 }
 
 String _$blueprintEditorControllerHash() =>
-    r'd9327f80445e23adcc415f3e53a301e596e199bc';
+    r'8dd6bb97a64f2ad14b27c66ba565e84d7ba86b74';
 
-/// **Blueprint Editor Controller (Phase 9 Rebuild)**
-///
-/// Stripped of the massive SDUI canvas logic. Now strictly manages the
-/// `BlueprintConfig` ensuring seamless binding with Pydantic V2 schemas.
+/// Manages [BlueprintConfig] state for the Studio Blueprint Editor,
+/// enforcing strict schema binding with backend Pydantic V2 models.
 
 abstract class _$BlueprintEditorController extends $Notifier<BlueprintConfig> {
   BlueprintConfig build();
