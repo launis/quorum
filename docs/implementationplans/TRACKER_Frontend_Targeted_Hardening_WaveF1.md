@@ -23,7 +23,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
   - [x] @[client_app_v2/lib/main.dart]
   - [x] @[client_app_v2/lib/app.dart]
-  - [ ] @[client_app_v2/lib/app_config.dart]
+  - [x] @[client_app_v2/lib/app_config.dart]
   - [ ] @[client_app_v2/lib/firebase_options.dart]
   - [ ] @[client_app_v2/lib/router/router.dart]
   - [ ] @[client_app_v2/lib/router/scaffold_with_nav.dart]
