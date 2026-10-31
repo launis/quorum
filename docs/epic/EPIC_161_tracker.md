@@ -51,17 +51,17 @@
 ### Phase 4: Verification & E2E Integration Gate
 **Plan:** @[docs/epic/tasks_EPIC_161/04_phase4_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_161/04_phase4_plan.md`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_161/04_phase4_plan.md] @[docs/epic/EPIC_161_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_161/04_phase4_plan.md] @[docs/epic/EPIC_161_tracker.md]`
-  - [ ] Step 4.1: Cross-Domain SDUI Semantic Parity & Heterogeneous Payload Verification
-  - [ ] Step 4.2: AST Guardrail & Touched-Scope Technical Debt Verification
-  - [ ] Step 4.3: Mandatory Live E2E REST API Verification Gate
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_161/04_phase4_plan.md] @[docs/epic/EPIC_161_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_161/04_phase4_plan.md] @[docs/epic/EPIC_161_tracker.md]`
+  - [x] Step 4.1: Cross-Domain SDUI Semantic Parity & Heterogeneous Payload Verification
+  - [x] Step 4.2: AST Guardrail & Touched-Scope Technical Debt Verification
+  - [x] Step 4.3: Mandatory Live E2E REST API Verification Gate
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_161/04_phase4_plan.md] @[docs/epic/EPIC_161_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
-- [ ] **[NOK] Backend Integration Suite**: Run `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py backend_v2/tests/unit/scripts/test_ast_guardrails.py`
-- [ ] **[NOK] Frontend Compilation & Build Runner Gate**: Run `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`
+- [x] **[OK] Backend Integration Suite**: Run `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py backend_v2/tests/unit/scripts/test_ast_guardrails.py`
+- [x] **[OK] Frontend Compilation & Build Runner Gate**: Run `uv run python scripts/flutter_audit_loop.py client_app_v2/ --build`
 
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Verify zero skipped (`@pytest.mark.skip`) or commented-out tests exist across modified domains.
@@ -164,16 +164,21 @@
   - **Step 3.1 (`32e3ccf3d`)**: Added `short_circuited_by_claims: list[str]` and `falsified_warrant_claims: list[str]` (`ConfigDict(strict=True, extra="forbid", frozen=True)`) to `@[backend_v2/models/dtos/report_data.py]`, `@[backend_v2/models/view/sdui.py]` (`SduiMatrixTableBlock`, `SduiCausalGraphBlock`, and `SduiMatrixSummaryTableBlock` alias), and `@[backend_v2/models/dtos/causal_discovery.py]` (`CausalNodeDTO`). Populated topological short-circuit and Toulmin falsification lineage in `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`, `@[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]`, `@[backend_v2/services/sdui/adapters/causal_graph_adapter.py#L32-L185]`, and `@[backend_v2/services/blueprint.py#L127-L698]`. Refactored `SduiMapperService.map_report_to_sdui` (`@[backend_v2/services/sdui/sdui_mapper_service.py#L91-L167]`) so `N_A` short-circuit lineage is anchored inline onto `SduiMatrixTableBlock` and `SduiCausalGraphBlock` without appending disembodied `SduiNACard` orphans at the bottom of `inner_sdui_blocks`.
   - **Step 3.2 (`566aa2773`)**: Added `_normalize_lineage_claims` Jinja2 filter in `@[backend_v2/services/pdf_generator.py]` and rendered `short_circuited_by_claims` and `falsified_warrant_claims` deterministically on `matrix_summary` and `causal_graph` blocks in `@[backend_v2/templates/report_template.jinja2]`.
   - **Step 3.3 (`bc78c2c80`)**: Synchronized `@JsonKey(name: 'short_circuited_by_claims')` and `@JsonKey(name: 'falsified_warrant_claims')` on `SduiMatrixTableBlock`, `SduiCausalGraphBlock`, and `CausalNodeDto` in `@[client_app_v2/lib/shared/models/sdui_block_dto.dart]` and `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`. Rendered inline short-circuit blocker chips and Toulmin falsification badges in `@[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]` and `@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`. Verified all 6 Phase 3 `<test_contracts>`, `flutter_audit_loop.py client_app_v2/ --build`, `audit_flutter_theme_sovereignty.py`, `audit_dto_parity.py --fail-on-mismatch`, and `test_sdui_semantic_parity.py` with 100% pass rate.
+- Completed Phase 4 Execution (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_161/04_phase4_plan.md] @[docs/epic/EPIC_161_tracker.md]`):
+  - **Step 4.1 (`6409a3953`)**: Implemented `test_sdui_semantic_parity_short_circuit_and_toulmin_fields_match_across_python_jinja_dart` (positive), `test_sdui_semantic_parity_missing_template_binding_fails_fast` (negative), and `test_sdui_heterogeneous_payload_equivalence_partitions` (all 4 ISTQB Equivalence Partitions across `SynthesisPayloadCompressor` and `SduiMapperService`) in `@[backend_v2/tests/integration/test_sdui_semantic_parity.py]`.
+  - **Step 4.2 (`204c4e529`)**: Implemented `test_ast_guardrails_rejects_raw_type_is_dict_in_blueprint` (negative) and `test_ast_guardrails_topological_synthesis_subsystems_zero_violations` (positive) in `@[backend_v2/tests/unit/scripts/test_ast_guardrails.py]`, and verified `scripts/audit_technical_debt.py --targets backend_v2/services/orchestrator/ backend_v2/services/sdui/ backend_v2/services/blueprint.py backend_v2/services/web_fetcher.py backend_v2/hooks/archival.py backend_v2/workers/ --include-one-hop` (`0 findings, PASSED`).
+  - **Step 4.3**: Implemented `test_integration_real_llm_preserves_topological_deficits_and_causal_brief` (positive) and `test_integration_real_llm_topological_deficit_and_brief_validation_negative` (negative) in `@[backend_v2/tests/integration/test_integration_real_llm.py]`, stripped synthetic `conftest.py` mock API keys from subprocess environment variables in `test_real_llm_pdf_execution`, and verified 100% pass rate across the Global Backend Audit Loop (`backend_audit_loop.py backend_v2/ --test`, 6,673 passed, 97.23% coverage), Global Flutter Audit Loop (`flutter_audit_loop.py client_app_v2/ --build`), and Live E2E REST API Verification Gate (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`, 6 passed in 415.33s).
 
 ## Learned
 - `synthesis_worker.py` invokes `create_executive_summary_task`, `create_matrix_sections_tasks`, `create_xai_highlights_task`, and `create_row_explanations_task` exclusively with keyword arguments (`client=client`, `base_dynamic_parts=base_dynamic_parts`, `causal_diagnosis=causal_diagnosis_text`), so unit tests spying on task constructors must inspect `await_args.kwargs`.
 - `CausalGraphPayloadDTO` validates that all `root_cause_node_ids` exist in `nodes`; tests exercising empty-claim fallback on `CausalSynthesisBriefDTO.from_causal_payload` must include a matching `CausalNodeDTO` with whitespace-only `claim`.
 - `test_sdui_semantic_parity.py` generates random `SduiMatrixTableBlock` instances via Polyfactory and compares extracted Flutter `Text` tokens against PDF Markdown; normalizing lineage claims consistently via `.trim()` and deduplication in both `SduiMatrixTableWidget` and `pdf_generator.py` (`normalize_lineage_claims`) with unbolded body text styling guarantees 1:1 semantic parity.
+- `conftest.py` sets `os.environ.setdefault("GOOGLE_API_KEY", "mock-google-key")` and `os.environ.setdefault("GEMINI_API_KEY", "mock-gemini-key")` during Pytest initialization; subprocess E2E tests (`test_real_llm_pdf_execution`) must strip synthetic `"mock-*-key"` env vars before spawning `uvicorn` and `backend_v2.run_worker` so `.env` credentials load cleanly.
 
 ## Remaining
-- Run System 2 Red-Team Plan Audit on Phase 3 (`/tier8-audit-plan @[docs/epic/tasks_EPIC_161/03_phase3_plan.md] @[docs/epic/EPIC_161_tracker.md]`), then proceed to Phase 4 (`@[docs/epic/tasks_EPIC_161/04_phase4_plan.md]`).
+- Run System 2 Red-Team Plan Audit on Phase 4 (`/tier8-audit-plan @[docs/epic/tasks_EPIC_161/04_phase4_plan.md] @[docs/epic/EPIC_161_tracker.md]`), then proceed through Post-Implementation Gates (`auto_hardening_runner.py`, `/tier7-describe-architecture`, and `/tier8-audit-epic`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_161/03_phase3_plan.md] @[docs/epic/EPIC_161_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_161/04_phase4_plan.md] @[docs/epic/EPIC_161_tracker.md]
 ```
