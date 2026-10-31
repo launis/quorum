@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SynthesisConfigDto {
 
-@JsonKey(name: 'system_prompt') String? get systemPrompt;@JsonKey(name: 'synthesis_block_id') String? get synthesisBlockId;@JsonKey(name: 'row_explanations_block_id') String? get rowExplanationsBlockId;@JsonKey(name: 'length_constraint') int? get lengthConstraint;@JsonKey(name: 'preamble_text') I18nText? get preambleText;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction;
+@JsonKey(name: 'system_prompt') String? get systemPrompt;@StrictOpaqueIdConverter()@JsonKey(name: 'synthesis_block_id') String? get synthesisBlockId;@StrictOpaqueIdConverter()@JsonKey(name: 'row_explanations_block_id') String? get rowExplanationsBlockId;@JsonKey(name: 'length_constraint') int? get lengthConstraint;@JsonKey(name: 'preamble_text') I18nText? get preambleText;@JsonKey(name: 'tone_instruction') I18nText? get toneInstruction;
 /// Create a copy of SynthesisConfigDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,7 +41,7 @@ abstract mixin class $SynthesisConfigDtoCopyWith<$Res>  {
   factory $SynthesisConfigDtoCopyWith(SynthesisConfigDto value, $Res Function(SynthesisConfigDto) _then) = _$SynthesisConfigDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'system_prompt') String? systemPrompt,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'preamble_text') I18nText? preambleText,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction
+@JsonKey(name: 'system_prompt') String? systemPrompt,@StrictOpaqueIdConverter()@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@StrictOpaqueIdConverter()@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'preamble_text') I18nText? preambleText,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction
 });
 
 
@@ -175,7 +175,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @StrictOpaqueIdConverter()@JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @StrictOpaqueIdConverter()@JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDto() when $default != null:
 return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction);case _:
@@ -196,7 +196,7 @@ return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsB
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @StrictOpaqueIdConverter()@JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @StrictOpaqueIdConverter()@JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)  $default,) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDto():
 return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction);case _:
@@ -216,7 +216,7 @@ return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsB
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'system_prompt')  String? systemPrompt, @StrictOpaqueIdConverter()@JsonKey(name: 'synthesis_block_id')  String? synthesisBlockId, @StrictOpaqueIdConverter()@JsonKey(name: 'row_explanations_block_id')  String? rowExplanationsBlockId, @JsonKey(name: 'length_constraint')  int? lengthConstraint, @JsonKey(name: 'preamble_text')  I18nText? preambleText, @JsonKey(name: 'tone_instruction')  I18nText? toneInstruction)?  $default,) {final _that = this;
 switch (_that) {
 case _SynthesisConfigDto() when $default != null:
 return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsBlockId,_that.lengthConstraint,_that.preambleText,_that.toneInstruction);case _:
@@ -229,14 +229,14 @@ return $default(_that.systemPrompt,_that.synthesisBlockId,_that.rowExplanationsB
 
 /// @nodoc
 
-@JsonSerializable(disallowUnrecognizedKeys: false)
+@JsonSerializable(disallowUnrecognizedKeys: true, explicitToJson: true)
 class _SynthesisConfigDto extends SynthesisConfigDto {
-  const _SynthesisConfigDto({@JsonKey(name: 'system_prompt') this.systemPrompt, @JsonKey(name: 'synthesis_block_id') this.synthesisBlockId, @JsonKey(name: 'row_explanations_block_id') this.rowExplanationsBlockId, @JsonKey(name: 'length_constraint') this.lengthConstraint, @JsonKey(name: 'preamble_text') this.preambleText, @JsonKey(name: 'tone_instruction') this.toneInstruction}): super._();
+  const _SynthesisConfigDto({@JsonKey(name: 'system_prompt') this.systemPrompt, @StrictOpaqueIdConverter()@JsonKey(name: 'synthesis_block_id') this.synthesisBlockId, @StrictOpaqueIdConverter()@JsonKey(name: 'row_explanations_block_id') this.rowExplanationsBlockId, @JsonKey(name: 'length_constraint') this.lengthConstraint, @JsonKey(name: 'preamble_text') this.preambleText, @JsonKey(name: 'tone_instruction') this.toneInstruction}): super._();
   factory _SynthesisConfigDto.fromJson(Map<String, dynamic> json) => _$SynthesisConfigDtoFromJson(json);
 
 @override@JsonKey(name: 'system_prompt') final  String? systemPrompt;
-@override@JsonKey(name: 'synthesis_block_id') final  String? synthesisBlockId;
-@override@JsonKey(name: 'row_explanations_block_id') final  String? rowExplanationsBlockId;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'synthesis_block_id') final  String? synthesisBlockId;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'row_explanations_block_id') final  String? rowExplanationsBlockId;
 @override@JsonKey(name: 'length_constraint') final  int? lengthConstraint;
 @override@JsonKey(name: 'preamble_text') final  I18nText? preambleText;
 @override@JsonKey(name: 'tone_instruction') final  I18nText? toneInstruction;
@@ -267,7 +267,7 @@ abstract mixin class _$SynthesisConfigDtoCopyWith<$Res> implements $SynthesisCon
   factory _$SynthesisConfigDtoCopyWith(_SynthesisConfigDto value, $Res Function(_SynthesisConfigDto) _then) = __$SynthesisConfigDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'system_prompt') String? systemPrompt,@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'preamble_text') I18nText? preambleText,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction
+@JsonKey(name: 'system_prompt') String? systemPrompt,@StrictOpaqueIdConverter()@JsonKey(name: 'synthesis_block_id') String? synthesisBlockId,@StrictOpaqueIdConverter()@JsonKey(name: 'row_explanations_block_id') String? rowExplanationsBlockId,@JsonKey(name: 'length_constraint') int? lengthConstraint,@JsonKey(name: 'preamble_text') I18nText? preambleText,@JsonKey(name: 'tone_instruction') I18nText? toneInstruction
 });
 
 

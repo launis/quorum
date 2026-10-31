@@ -11,15 +11,32 @@ _SynthesisConfigDto _$SynthesisConfigDtoFromJson(Map<String, dynamic> json) =>
       '_SynthesisConfigDto',
       json,
       ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'system_prompt',
+            'synthesis_block_id',
+            'row_explanations_block_id',
+            'length_constraint',
+            'preamble_text',
+            'tone_instruction',
+          ],
+        );
         final val = _SynthesisConfigDto(
           systemPrompt: $checkedConvert('system_prompt', (v) => v as String?),
           synthesisBlockId: $checkedConvert(
             'synthesis_block_id',
-            (v) => v as String?,
+            (v) => _$JsonConverterFromJson<String, String>(
+              v,
+              const StrictOpaqueIdConverter().fromJson,
+            ),
           ),
           rowExplanationsBlockId: $checkedConvert(
             'row_explanations_block_id',
-            (v) => v as String?,
+            (v) => _$JsonConverterFromJson<String, String>(
+              v,
+              const StrictOpaqueIdConverter().fromJson,
+            ),
           ),
           lengthConstraint: $checkedConvert(
             'length_constraint',
@@ -51,9 +68,25 @@ _SynthesisConfigDto _$SynthesisConfigDtoFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$SynthesisConfigDtoToJson(_SynthesisConfigDto instance) =>
     <String, dynamic>{
       'system_prompt': instance.systemPrompt,
-      'synthesis_block_id': instance.synthesisBlockId,
-      'row_explanations_block_id': instance.rowExplanationsBlockId,
+      'synthesis_block_id': _$JsonConverterToJson<String, String>(
+        instance.synthesisBlockId,
+        const StrictOpaqueIdConverter().toJson,
+      ),
+      'row_explanations_block_id': _$JsonConverterToJson<String, String>(
+        instance.rowExplanationsBlockId,
+        const StrictOpaqueIdConverter().toJson,
+      ),
       'length_constraint': instance.lengthConstraint,
       'preamble_text': instance.preambleText?.toJson(),
       'tone_instruction': instance.toneInstruction?.toJson(),
     };
+
+Value? _$JsonConverterFromJson<Json, Value>(
+  Object? json,
+  Value? Function(Json json) fromJson,
+) => json == null ? null : fromJson(json as Json);
+
+Json? _$JsonConverterToJson<Json, Value>(
+  Value? value,
+  Json? Function(Value value) toJson,
+) => value == null ? null : toJson(value);

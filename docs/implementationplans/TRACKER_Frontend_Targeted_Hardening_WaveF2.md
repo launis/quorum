@@ -35,7 +35,7 @@
   - [x] @[client_app_v2/lib/features/execution/models/hydrated_atom_dto.dart]
   - [x] @[client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart]
   - [x] @[client_app_v2/lib/features/execution/models/report_data_v2_dto.dart]
-  - [ ] @[client_app_v2/lib/features/execution/models/synthesis_config_dto.dart]
+  - [x] @[client_app_v2/lib/features/execution/models/synthesis_config_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/tda_state.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/trace_context_carrier.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/workflow_inputs.dart]
