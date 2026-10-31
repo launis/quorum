@@ -42,20 +42,39 @@ _DAG_EXECUTOR_MODULE = "backend_v2.services.orchestrator.dag_executor"
 
 
 def _resolve_matrix_reducer() -> Any:
-    """Resolve MatrixReducer dynamically from dag_executor module when loaded for test patch compatibility."""
+    """Resolve MatrixReducer dynamically from dag_executor module when loaded for test patch compatibility.
+
+    Returns:
+        MatrixReducer class reference from the loaded dag_executor facade or direct import.
+    """
     if _DAG_EXECUTOR_MODULE in sys.modules:
         return sys.modules[_DAG_EXECUTOR_MODULE].MatrixReducer
     return MatrixReducer
 
 
 def _resolve_settings() -> Any:
-    """Resolve settings dynamically from dag_executor.get_settings when loaded for test patch compatibility."""
+    """Resolve settings dynamically from dag_executor.get_settings when loaded for test patch compatibility.
+
+    Returns:
+        Active application Settings instance.
+    """
     getter = sys.modules[_DAG_EXECUTOR_MODULE].get_settings if _DAG_EXECUTOR_MODULE in sys.modules else get_settings
     return getter()
 
 
 def _parse_causal_graph_candidate(raw_candidate: Any, err_prefix: str) -> CausalGraphPayloadDTO:
-    """Validate and hydrate a CausalGraphPayloadDTO from trace output or snapshot payload."""
+    """Validate and hydrate a CausalGraphPayloadDTO from trace output or snapshot payload.
+
+    Args:
+        raw_candidate: Raw trace event content or snapshot payload candidate.
+        err_prefix: Contextual prefix prepended to validation error messages.
+
+    Returns:
+        Validated CausalGraphPayloadDTO instance.
+
+    Raises:
+        AppException: Triggered with VALIDATION_FAILED when candidate fails schema validation.
+    """
     try:
         unwrapped = raw_candidate.data if isinstance(raw_candidate, StepOutputContentDTO) else raw_candidate
         payload = unwrapped["graph"] if type(unwrapped) is dict and "graph" in unwrapped else unwrapped
@@ -191,7 +210,14 @@ async def prepare_step_strategy_context(
 
 
 def _extract_app_exception_error_code(exc: BaseException) -> str:
-    """Resolve canonical error_code string from an exception instance."""
+    """Resolve canonical error_code string from an exception instance.
+
+    Args:
+        exc: Raised exception instance to inspect.
+
+    Returns:
+        Canonical error code string name or UNKNOWN_ERROR fallback.
+    """
     err_code = "UNKNOWN_ERROR"
     if isinstance(exc, AppException):
         if isinstance(exc.error_code, ErrorCodes):
@@ -332,7 +358,7 @@ async def execute_dag_step_wrapper(
         await finalize_step_output_and_commit(
             state, step_id, events, committer, upstream_graph, causal_cohesion_evaluator
         )
-        # Phase 1, Step 1.1: Wire PostgreSQL 19 3-way Toulmin falsification join into causal fusion state
+        # Enrich causal TDA fusion state with 3-way Toulmin falsification join from PostgreSQL 19 port
         if upstream_graph is not None and isinstance(committer.exec_repo, CausalReasoningPort):
             falsified_claims = list(await committer.exec_repo.find_falsified_claims(run_id=state.execution_id))
             if falsified_claims:

@@ -192,6 +192,7 @@ async def test_execute_dag_step_wrapper_reduces_matrix_and_commits_trace() -> No
                 organization_id,
             )
             if progress_callback is not None:
+                await progress_callback(0, 0)
                 await progress_callback(1, 2)
                 repo.inject_fault("update_execution", OSError("transient progress error"))
                 try:
@@ -513,6 +514,23 @@ async def test_execute_dag_step_wrapper_resumption_skip_blocked_dependency_and_e
     snap_resolved, _ = await prepare_step_strategy_context(state=state_snap_raw, step_id=tda_step_snap.id)
     assert snap_resolved is not None
     assert len(snap_resolved.nodes) == 1
+
+    # Verify snapshot malformed payload raises AppException (VALIDATION_FAILED)
+    state_snap_invalid = _build_state(
+        steps=[causal_step_snap, tda_step_snap],
+        step_definitions={},
+        step_statuses={causal_step_snap.id: ExecutionStatus.PASSED},
+    )
+    state_snap_invalid.projector.apply_delta(
+        TraceEvent(
+            step_name=causal_step_snap.id,
+            event_type="output",
+            content=StepOutputContentDTO(data={"graph": {"nodes": "malformed_nodes"}}),
+        )
+    )
+    with pytest.raises(AppException) as exc_snap_invalid:
+        await prepare_step_strategy_context(state=state_snap_invalid, step_id=tda_step_snap.id)
+    assert exc_snap_invalid.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
 
     # Verify _resolve_matrix_reducer fallback when facade module is not in sys.modules
     with patch(
