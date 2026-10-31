@@ -95,7 +95,7 @@
   - [x] @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]
   - [x] @[backend_v2/services/sdui/sdui_mapper_service.py]
   - [x] @[backend_v2/services/web_fetcher.py]
-  - [ ] @[backend_v2/settings.py]
+  - [x] @[backend_v2/settings.py]
   - [ ] @[backend_v2/workers/synthesis_tasks.py]
   - [ ] @[backend_v2/workers/synthesis_worker.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_161_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
