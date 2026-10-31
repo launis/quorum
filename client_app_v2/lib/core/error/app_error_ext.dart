@@ -9,39 +9,39 @@ extension AppExceptionX on AppException {
   /// **NEVER show raw backend messages to users.**
   /// Always map error_code to localized strings.
   String toLocalizedHint(AppLocalizations l10n) {
-    if (this.errorCode == 'NETWORK_FATAL') return l10n.errorNetwork;
-    if (this.errorCode == 'UNAUTHORIZED' || this.status == 401) {
+    if (errorCode == 'NETWORK_FATAL') return l10n.errorNetwork;
+    if (errorCode == 'UNAUTHORIZED' || status == 401) {
       return l10n.errorUnauthorized;
     }
-    if (this.errorCode == 'CANCELLED') return l10n.cancel;
-    if (this.errorCode == 'TIMEOUT' && this.detail.isNotEmpty)
-      return this.detail;
+    if (errorCode == 'CANCELLED') return l10n.cancel;
+    if (errorCode == 'TIMEOUT' && detail.isNotEmpty) {
+      return detail;
+    }
 
     // Map specific structured payloads or error codes
-    final locCode = _localizeErrorCode(this.errorCode, l10n);
+    final locCode = _localizeErrorCode(errorCode, l10n);
     if (locCode != l10n.errorUnknown) {
       // For validation errors, the backend provides highly specific 'detail' strings (e.g. which fields failed)
-      if (this.errorCode == 'VALIDATION_FAILED') {
-        final ambiguousMatch = this.extensions['ambiguous_match'];
+      if (errorCode == 'VALIDATION_FAILED') {
+        final ambiguousMatch = extensions['ambiguous_match'];
         if (ambiguousMatch is Map && ambiguousMatch['filename'] != null) {
-          final detailText =
-              (this.detail.isNotEmpty && this.detail != 'Unknown error')
-              ? this.detail
+          final detailText = (detail.isNotEmpty && detail != 'Unknown error')
+              ? detail
               : '${l10n.actionHintCheckInput} (${ambiguousMatch['filename']})';
           return '${l10n.errValidationFailed}\n\n$detailText';
         }
-        if (this.detail.isNotEmpty && this.detail != 'Unknown error') {
-          return '$locCode\n\n${this.detail}';
+        if (detail.isNotEmpty && detail != 'Unknown error') {
+          return '$locCode\n\n$detail';
         }
       }
       return locCode;
     }
 
     // Fallback status code mapping
-    if (this.status == 404) {
+    if (status == 404) {
       return '${l10n.errorNotFound}\n\n${l10n.actionHintContactSupport}';
     }
-    if (this.status >= 500) return l10n.errorServer;
+    if (status >= 500) return l10n.errorServer;
 
     return l10n.errorUnknown;
   }

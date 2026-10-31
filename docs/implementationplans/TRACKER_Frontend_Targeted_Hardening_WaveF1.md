@@ -44,7 +44,7 @@
   - [x] @[client_app_v2/lib/core/network/interceptors/locale_interceptor.dart]
   - [x] @[client_app_v2/lib/core/environment/env.dart]
   - [x] @[client_app_v2/lib/core/error/app_error_boundary.dart]
-  - [ ] @[client_app_v2/lib/core/error/app_error_ext.dart]
+  - [x] @[client_app_v2/lib/core/error/app_error_ext.dart]
   - [ ] @[client_app_v2/lib/core/error/app_exception.dart]
   - [ ] @[client_app_v2/lib/core/error/validation_error_reason.dart]
   - [ ] @[client_app_v2/lib/core/logging/app_logger_observer.dart]
