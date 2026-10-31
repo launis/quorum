@@ -77,7 +77,7 @@ abstract class ExecutionRecord with _$ExecutionRecord {
   /// to prevent Main Thread Jank when handling large payloads.
   static Future<ExecutionRecord> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
-      final dynamic decoded = jsonDecode(rawJson);
+      final decoded = jsonDecode(rawJson) as Map<String, Object?>;
       return ExecutionRecord.fromJson(decoded);
     });
   }
