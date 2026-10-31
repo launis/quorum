@@ -98,7 +98,7 @@
   - [x] @[backend_v2/workers/synthesis_tasks.py]
   - [x] @[backend_v2/workers/synthesis_worker.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_161_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
-  - [ ] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
+  - [x] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]
   - [ ] @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
