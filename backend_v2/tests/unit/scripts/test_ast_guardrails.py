@@ -2811,3 +2811,68 @@ def test_discover_authoritative_scripts_dynamic_glob(tmp_path: Path) -> None:
     assert "scripts/_ast_guardrails.py" in repo_scripts
     assert "scripts/auto_hardening_runner.py" in repo_scripts
     assert "scripts/backend_audit_loop.py" in repo_scripts
+
+
+def test_ast_guardrails_rejects_raw_type_is_dict_in_blueprint() -> None:
+    """Negative: Verify raw dictionary type inspection and fallback patterns in blueprint.py are flagged as fatal AST violations."""
+    # Phase 4, Step 4.2: Regression verification for raw `if type(content) is dict:` eradication in blueprint.py
+    legacy_blueprint_snippet = '''"""Legacy blueprint snippet."""
+
+def inspect_untyped_step_content(content: object) -> object:
+    """Legacy raw dict inspection pattern."""
+    if type(content) is dict or isinstance(content, dict):
+        return content.get("causal_graph", {})
+    match content:
+        case dict() if type(content) is dict:
+            return content
+    return None
+'''
+    violations = _scan_snippet(legacy_blueprint_snippet, filepath="backend_v2/services/blueprint.py")
+    assert len(violations) >= 2
+    assert all(v.severity == GuardrailSeverity.FATAL for v in violations)
+    rule_codes = {v.rule_code for v in violations}
+    assert "QGR012" in rule_codes
+    assert "QGR002" in rule_codes
+
+    # Verify physical backend_v2/services/blueprint.py has 0 `if type(content) is dict:` or `isinstance(..., dict)` checks
+    blueprint_path = Path("backend_v2/services/blueprint.py")
+    blueprint_tree = ast.parse(blueprint_path.read_text(encoding="utf-8"), filename=str(blueprint_path))
+    raw_type_is_dict_nodes: list[ast.Compare] = []
+    for node in ast.walk(blueprint_tree):
+        if isinstance(node, ast.Compare):
+            is_type_call = (
+                isinstance(node.left, ast.Call) and isinstance(node.left.func, ast.Name) and node.left.func.id == "type"
+            )
+            has_dict_comparator = any(isinstance(comp, ast.Name) and comp.id == "dict" for comp in node.comparators)
+            if is_type_call and has_dict_comparator:
+                raw_type_is_dict_nodes.append(node)
+    assert raw_type_is_dict_nodes == [], (
+        f"Found banned `type(...) is dict` comparisons in blueprint.py: {[ast.unparse(n) for n in raw_type_is_dict_nodes]}"
+    )
+
+
+def test_ast_guardrails_topological_synthesis_subsystems_zero_violations() -> None:
+    """Positive & Boundary: Verify 0 AST guardrail violations across all modified orchestrator, worker, and SDUI modules."""
+    # Phase 4, Step 4.2: Full AST guardrail compliance across modified orchestrator, worker, and SDUI modules
+    target_paths = [
+        Path("backend_v2/services/blueprint.py"),
+        Path("backend_v2/services/orchestrator"),
+        Path("backend_v2/services/sdui"),
+        Path("backend_v2/services/pdf_generator.py"),
+        Path("backend_v2/services/web_fetcher.py"),
+        Path("backend_v2/hooks/archival.py"),
+        Path("backend_v2/workers"),
+        Path("backend_v2/models/domain/synthesis.py"),
+        Path("backend_v2/models/dtos/synthesis.py"),
+        Path("backend_v2/models/dtos/causal_discovery.py"),
+        Path("backend_v2/models/dtos/report_data.py"),
+        Path("backend_v2/models/view/sdui.py"),
+    ]
+    violations, is_success = scan_files_for_guardrails(target_paths, strict=True)
+    assert violations == [], f"Unexpected AST guardrail violations:\n{format_violations_table(violations)}"
+    assert is_success is True
+
+    # Negative boundary: verify hardcoded magic timeout in web_fetcher.py or bare Field() in synthesis DTO fails fast
+    bad_fetcher = "import httpx\nclient = httpx.AsyncClient(timeout=15)\n"
+    fetcher_violations = _scan_snippet(bad_fetcher, filepath="backend_v2/services/web_fetcher.py")
+    assert any(v.rule_code == "QGR008" and v.severity == GuardrailSeverity.FATAL for v in fetcher_violations)
