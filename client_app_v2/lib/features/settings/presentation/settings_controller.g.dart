@@ -8,24 +8,15 @@ part of 'settings_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// **Settings Controller**
-///
-/// Adheres to V2 Flutter Mandates (5.3 Concurrency):
-/// Uses `SharedPreferencesAsync` to avoid blocking the main UI thread during I/O.
+/// Manages application theme and locale preferences via non-blocking `SharedPreferencesAsync`.
 
 @ProviderFor(SettingsController)
 final settingsControllerProvider = SettingsControllerProvider._();
 
-/// **Settings Controller**
-///
-/// Adheres to V2 Flutter Mandates (5.3 Concurrency):
-/// Uses `SharedPreferencesAsync` to avoid blocking the main UI thread during I/O.
+/// Manages application theme and locale preferences via non-blocking `SharedPreferencesAsync`.
 final class SettingsControllerProvider
     extends $AsyncNotifierProvider<SettingsController, AppSettingsState> {
-  /// **Settings Controller**
-  ///
-  /// Adheres to V2 Flutter Mandates (5.3 Concurrency):
-  /// Uses `SharedPreferencesAsync` to avoid blocking the main UI thread during I/O.
+  /// Manages application theme and locale preferences via non-blocking `SharedPreferencesAsync`.
   SettingsControllerProvider._()
     : super(
         from: null,
@@ -46,12 +37,9 @@ final class SettingsControllerProvider
 }
 
 String _$settingsControllerHash() =>
-    r'a87502b6937bfb4a70546a059d4174b47e147554';
+    r'c91372836b2da89e3aa88eb1861274ea4b1760e4';
 
-/// **Settings Controller**
-///
-/// Adheres to V2 Flutter Mandates (5.3 Concurrency):
-/// Uses `SharedPreferencesAsync` to avoid blocking the main UI thread during I/O.
+/// Manages application theme and locale preferences via non-blocking `SharedPreferencesAsync`.
 
 abstract class _$SettingsController extends $AsyncNotifier<AppSettingsState> {
   FutureOr<AppSettingsState> build();

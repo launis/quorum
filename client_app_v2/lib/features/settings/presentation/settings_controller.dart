@@ -1,83 +1,134 @@
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/features/settings/domain/models/app_settings_state.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:client_app/features/settings/domain/models/app_settings_state.dart';
-import 'package:client_app/core/logging/logger_service.dart';
 
 part 'settings_controller.g.dart';
 
-/// **Settings Controller**
-///
-/// Adheres to V2 Flutter Mandates (5.3 Concurrency):
-/// Uses `SharedPreferencesAsync` to avoid blocking the main UI thread during I/O.
+/// Manages application theme and locale preferences via non-blocking `SharedPreferencesAsync`.
 @riverpod
 class SettingsController extends _$SettingsController {
-  final _prefs = SharedPreferencesAsync();
+  SettingsController({SharedPreferencesAsync? prefs})
+    : _prefs = prefs ?? SharedPreferencesAsync();
+
+  final SharedPreferencesAsync _prefs;
 
   static const _themeModeKey = 'app_theme_mode';
   static const _localeKey = 'app_locale';
 
   @override
   FutureOr<AppSettingsState> build() async {
-    // Read from SharedPreferencesAsync (Non-blocking I/O)
+    const defaultState = AppSettingsState();
     final themeStr = await _prefs.getString(_themeModeKey);
     final localeStr = await _prefs.getString(_localeKey);
 
     return AppSettingsState(
-      themeMode: _parseThemeMode(themeStr),
-      locale: Locale(localeStr ?? 'fi'),
+      themeMode: _parseThemeMode(themeStr, defaultState.themeMode),
+      locale: _parseLocale(localeStr, defaultState.locale),
     );
   }
 
-  /// Implements Optimistic Update pattern
+  /// Updates theme mode optimistically and rolls back state on persistence failure.
   Future<void> updateThemeMode(ThemeMode newMode) async {
-    // 1. Optimistic UI update
-    final previousState = state.value;
+    final previousState = switch (state) {
+      AsyncData(:final value) => value,
+      _ => null,
+    };
     if (previousState != null) {
       state = AsyncData(previousState.copyWith(themeMode: newMode));
     }
 
-    // 2. Persist to storage
     try {
       await _prefs.setString(_themeModeKey, newMode.name);
     } catch (e, st) {
-      ref
-          .read(loggerServiceProvider)
-          .error('SettingsController', 'Failed to update theme mode', e, st);
-      // 3. Rollback on failure
-      if (previousState != null) {
-        state = AsyncData(previousState);
+      if (ref.mounted) {
+        ref
+            .read(loggerServiceProvider)
+            .error('SettingsController', 'Failed to update theme mode', e, st);
+        if (previousState != null) {
+          state = AsyncData(previousState);
+        } else {
+          state = AsyncError(e, st);
+        }
       }
-      state = AsyncError(e, st);
+      rethrow;
     }
   }
 
-  /// Implements Optimistic Update pattern
+  /// Validates and updates locale optimistically, rolling back state on persistence failure.
   Future<void> updateLocale(Locale newLocale) async {
-    // 1. Optimistic UI update
-    final previousState = state.value;
+    final isSupported = AppLocalizations.supportedLocales.any(
+      (locale) => locale.languageCode == newLocale.languageCode,
+    );
+    if (!isSupported) {
+      _failValidation(
+        'SETTINGS_INVALID_LOCALE',
+        'Unsupported locale "${newLocale.languageCode}".',
+      );
+    }
+
+    final previousState = switch (state) {
+      AsyncData(:final value) => value,
+      _ => null,
+    };
     if (previousState != null) {
       state = AsyncData(previousState.copyWith(locale: newLocale));
     }
 
-    // 2. Persist to storage
     try {
       await _prefs.setString(_localeKey, newLocale.languageCode);
     } catch (e, st) {
-      ref
-          .read(loggerServiceProvider)
-          .error('SettingsController', 'Failed to update locale', e, st);
-      // 3. Rollback on failure
-      if (previousState != null) {
-        state = AsyncData(previousState);
+      if (ref.mounted) {
+        ref
+            .read(loggerServiceProvider)
+            .error('SettingsController', 'Failed to update locale', e, st);
+        if (previousState != null) {
+          state = AsyncData(previousState);
+        } else {
+          state = AsyncError(e, st);
+        }
       }
-      state = AsyncError(e, st);
+      rethrow;
     }
   }
 
-  ThemeMode _parseThemeMode(String? val) {
-    if (val == ThemeMode.light.name) return ThemeMode.light;
-    if (val == ThemeMode.dark.name) return ThemeMode.dark;
-    return ThemeMode.system; // Default
+  ThemeMode _parseThemeMode(String? val, ThemeMode uninitializedDefault) {
+    return switch (val) {
+      null => uninitializedDefault,
+      'system' => ThemeMode.system,
+      'light' => ThemeMode.light,
+      'dark' => ThemeMode.dark,
+      _ => _failValidation(
+        'SETTINGS_INVALID_THEME_MODE',
+        'Unrecognized persisted theme mode "$val".',
+      ),
+    };
+  }
+
+  Locale _parseLocale(String? val, Locale uninitializedDefault) {
+    if (val == null) {
+      return uninitializedDefault;
+    }
+    final isSupported = AppLocalizations.supportedLocales.any(
+      (locale) => locale.languageCode == val,
+    );
+    if (!isSupported) {
+      _failValidation(
+        'SETTINGS_INVALID_LOCALE',
+        'Unsupported persisted locale "$val".',
+      );
+    }
+    return Locale(val);
+  }
+
+  Never _failValidation(String code, String message) {
+    final exception = AppException.validation('$code: $message');
+    ref
+        .read(loggerServiceProvider)
+        .error('SettingsController', '$code: $message', exception);
+    throw exception;
   }
 }
