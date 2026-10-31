@@ -86,7 +86,7 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
       </constraint>
 
       <constraint name="DETERMINISTIC_AUDIT_GATE">
-        For EVERY audited file, run the Frontend Quality Gate: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path>`. Print ONLY the substantive code evidence summary for the 7 Architecture Invariants to the user.
+        For EVERY audited file, run the Frontend Quality Gate in fast single-file micro mode: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build --strict --micro` (which automatically skips `build_runner` when codegen directives are absent and runs the target's isolated unit test). Print ONLY the substantive code evidence summary for the 7 Architecture Invariants to the user.
       </constraint>
 
       <constraint name="DTO_SDUI_PARITY_GATE">
@@ -113,7 +113,7 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
       </constraint>
 
       <action name="STATE PERSISTENCE &amp; TRACKER UPDATE">
-        Stage only the verified target file, its test file, and any generated `.freezed.dart`/`.g.dart` files (`git commit -m "chore(hardening): audit and fix [target_name]"`). Update `<appDataDir>\brain\<conversation-id>\scratch\hardening_state.json` and check off `  - [x] @[completed_file.dart]` in the Tracker.
+        When invoked for a single target file without a Tracker argument (such as inside `auto_hardening_runner.py`), do NOT execute `git commit` yourself — leave modified files on disk so `auto_hardening_runner.py` can run its outer verification gate, update the Tracker, and create the atomic checkpoint commit. When running interactively across a directory or with an explicit Tracker argument, stage only the verified target file, its test file, and any generated `.freezed.dart`/`.g.dart` files (`git commit -m "chore(hardening): audit and fix [target_name]"`), update `<appDataDir>\brain\<conversation-id>\scratch\hardening_state.json`, and check off `  - [x] @[completed_file.dart]` in the Tracker.
       </action>
 
       <action name="SESSION LIMIT &amp; HANDOVER">

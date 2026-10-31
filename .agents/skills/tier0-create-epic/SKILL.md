@@ -36,6 +36,10 @@ agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier0-create
       <mandatory_pattern>If directory inspection or state verification fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`. If research requires inspecting more than 8 files, you MUST first compile your findings into a temporary Markdown file (specifically: `docs/epic/EPIC_[num]_research.md`), and THEN schedule a `/tier5-session-handover` explicitly providing the `@-reference` to this file so the next session can resume drafting without context loss.</mandatory_pattern>
       <catastrophic_reason>Prevent infinite retry loops and context amnesia degradation during complex Epic scoping.</catastrophic_reason>
     </rule_block>
+    <rule_block id="subagent_context_offloading">
+      <mandatory_pattern>To preserve the primary System 2 architectural context window, whenever Epic scouting or `audit_technical_debt.py` sweeps require inspecting more than 3 files, offload the reconnaissance to the read-only `research` subagent via `invoke_subagent` (`TypeName="research"`), requesting a structured summary of module boundaries, schemas, and technical debt. When referencing Python symbols in the Epic, you may author symbolic `@[path/to/file.py#SymbolName]` anchors and auto-bind exact `#Lnn-mm` spans via `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_epic> --fix`.</mandatory_pattern>
+      <catastrophic_reason>Consuming the primary architect context window with raw multi-file dumps and manual AST line counting degrades multi-phase Epic synthesis.</catastrophic_reason>
+    </rule_block>
     <rule_block id="english_language_mandate">
       <mandatory_pattern>You MUST write the ENTIRE Epic document EXCLUSIVELY in English (as mandated by `00-antigravity-core.md`). Never use Finnish or non-English terms in Epic titles, headings, descriptions, or inline documentation.</mandatory_pattern>
       <catastrophic_reason>Mixing languages in system architectural documents destroys readability for international developers and breaks automated tooling analysis.</catastrophic_reason>
@@ -108,7 +112,7 @@ agy --model gemini-4-argon-high --dangerously-skip-permissions -i "/tier0-create
       <action>Save the Epic document to `docs/epic/EPIC_[num]_[descriptive_name].md` using `write_to_file` (resolve the absolute path dynamically based on the workspace).</action>
       <constraint>Wrap all referenced file paths in `@-reference` syntax.</constraint>
       <action>IF updating an existing Epic, use `multi_replace_file_content` for surgical edits.</action>
-      <action name="SELF HEALING BOUNDARY AUDIT">After creating or updating the Epic document, you MUST physically run the boundaries audit script on it: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_epic>`. If it fails, you MUST correct the Epic and re-run. If it fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`.</action>
+      <action name="SELF HEALING BOUNDARY AUDIT">After creating or updating the Epic document, you MUST physically run the boundaries audit script on it: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_markdown_boundaries.py --file <path_to_epic> --fix`. If it fails, you MUST correct the Epic and re-run. If it fails 3 times sequentially, STOP and output `<circuit_breaker_tripped>`.</action>
       <action name="EPIC_COVERAGE_AUDIT">After creating or updating the Epic document, you MUST physically run the epic coverage audit script: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_epic_coverage.py --epic <path_to_epic>`. Verify that all required sections, headings, compliance matrices, and DoD elements are fully populated without gaps.</action>
     </step>
 

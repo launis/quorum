@@ -221,6 +221,51 @@ def test_markdown_auditor_ast_bounds_mismatch(tmp_path: Path) -> None:
     assert "AST Bound mismatch" in auditor.findings[0].message
 
 
+def test_markdown_auditor_auto_fix_ast_bounds_symbolic_and_drifted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test auto_fix_ast_bounds and --fix CLI flag for symbolic @[module.py#SymbolName] and drifted #Lnn-mm bounds."""
+    py_file = tmp_path / "module.py"
+    py_file.write_text(
+        "# Module header\n"
+        "@override\n"
+        "def compute(x: int) -> int:\n"
+        "    return x * 2\n"
+        "\n"
+        "class WorkerNode:\n"
+        "    def run(self) -> None:\n"
+        "        pass\n",
+        encoding="utf-8",
+    )
+
+    md_file = tmp_path / "doc.md"
+    md_file.write_text(
+        "Symbolic: @[module.py#compute]\n"
+        "Drifted with backtick `WorkerNode`: @[module.py#L1-L20]\n"
+        "Drifted overlap: @[module.py#L2-L5]\n"
+        "Missing file: @[nonexistent.py#missing]\n"
+        "Unknown symbol: @[module.py#DoesNotExist]\n",
+        encoding="utf-8",
+    )
+
+    auditor = MarkdownAuditor(str(md_file), str(tmp_path))
+    fixed = auditor.auto_fix_ast_bounds()
+    assert fixed == 3
+    updated_text = md_file.read_text(encoding="utf-8")
+    assert "@[module.py#L2-L4]" in updated_text
+    assert "@[module.py#L6-L8]" in updated_text
+    assert "@[module.py#DoesNotExist]" in updated_text
+
+    # Test CLI --fix execution
+    clean_fix_md = tmp_path / "fix_cli.md"
+    clean_fix_md.write_text("Target: @[scripts/flutter_audit_loop.py#requires_dart_codegen]\n", encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["audit_markdown_boundaries.py", "--file", str(clean_fix_md), "--fix"])
+    with pytest.raises(SystemExit) as exc_info:
+        main()
+    assert exc_info.value.code == 0
+    assert "#L" in clean_fix_md.read_text(encoding="utf-8")
+
+
 def test_markdown_auditor_ast_syntax_error_resilience(tmp_path: Path) -> None:
     """Test that referenced Python file with syntax error emits MBD004 without crashing."""
     py_file = tmp_path / "broken.py"

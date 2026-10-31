@@ -14,10 +14,10 @@
 
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Symmetric_Flutter_Hardening_Pipeline.md]
 
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Symmetric_Flutter_Hardening_Pipeline.md] @[docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Symmetric_Flutter_Hardening_Pipeline.md] @[docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md]`
   - [x] Step 1: Phase 1: Add --micro Mode to flutter_audit_loop.py, Update DGR010/DGR007 in _dart_guardrails.py, Enable Strict Modes in analysis_options.yaml & Enforce Tripartite Layer Guardrails in _ast_guardrails.py
   - [x] Step 2: Phase 2: Symmetric Frontend Micro/Macro Dispatch, Retry Feedback Loop, Process Tree Cleanup, Atomic Staging & Wake-Lock in auto_hardening_runner.py
-  - [ ] Step 3: Phase 3: Symbolic AST Auto-Binding (--fix) in audit_markdown_boundaries.py & Creative Skill Context Offloading
+  - [x] Step 3: Phase 3: Symbolic AST Auto-Binding (--fix) in audit_markdown_boundaries.py & Creative Skill Context Offloading
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Symmetric_Flutter_Hardening_Pipeline.md] @[docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md]`
 
 ### Post-Implementation Gates
@@ -79,26 +79,27 @@
 | REQ-012 | Update `mark_tracker_and_checkpoint` (`@[scripts/auto_hardening_runner.py#L1250-L1313]`) to atomically stage resolved unit test files and sibling `.g.dart`/`.freezed.dart` artifacts alongside `target_file` and `cleaned_tracker` | Step 2 | [x] Completed |
 | REQ-013 | Add `acquire_windows_wake_lock` and `release_windows_wake_lock` using Win32 `SetThreadExecutionState` and invoke `run_frontend_macro_quality_gate` in `run_hardening_pipeline` (`@[scripts/auto_hardening_runner.py#L1417-L1562]`) | Step 2 | [x] Completed |
 | REQ-014 | Expand unit tests in `@[backend_v2/tests/unit/scripts/test_auto_hardening_runner.py#L183-L208]`, `@[backend_v2/tests/unit/scripts/test_auto_hardening_runner.py#L1044-L1084]`, and `@[backend_v2/tests/unit/scripts/test_auto_hardening_runner.py#L1087-L1154]` for all Phase 2 capabilities | Step 2 | [x] Completed |
-| REQ-015 | Implement `auto_fix_ast_bounds(self) -> int` on `MarkdownAuditor` (`@[scripts/audit_markdown_boundaries.py#L68-L540]`) and `--fix` CLI flag in `main` (`@[scripts/audit_markdown_boundaries.py#L543-L580]`) using `get_ast_definition_bounds` | Step 3 | [ ] Pending |
-| REQ-016 | Add unit tests in `@[backend_v2/tests/unit/scripts/test_audit_markdown_boundaries.py#L204-L221]` verifying `auto_fix_ast_bounds` and `--fix` CLI execution on symbolic `@[module.py#SymbolName]` and drifted `#Lnn-mm` references | Step 3 | [ ] Pending |
-| REQ-017 | Update `@[.agents/skills/tier0-create-plan/SKILL.md]`, `@[.agents/skills/tier0-create-epic/SKILL.md]`, and `@[.agents/skills/tier8-audit-feature/SKILL.md]` with `subagent_context_offloading` (`research` subagent delegation and `--fix` symbolic AST auto-binding) | Step 3 | [ ] Pending |
-| REQ-018 | Update `@[.agents/skills/tier2-hardening-frontend/SKILL.md]` and `@[.agents/skills/tier2-hardening-backend/SKILL.md]` to use `--micro` on single-file targets and skip duplicate internal `git commit` calls inside `auto_hardening_runner.py` | Step 3 | [ ] Pending |
+| REQ-015 | Implement `auto_fix_ast_bounds(self) -> int` on `MarkdownAuditor` (`@[scripts/audit_markdown_boundaries.py#L68-L540]`) and `--fix` CLI flag in `main` (`@[scripts/audit_markdown_boundaries.py#L543-L580]`) using `get_ast_definition_bounds` | Step 3 | [x] Completed |
+| REQ-016 | Add unit tests in `@[backend_v2/tests/unit/scripts/test_audit_markdown_boundaries.py#L204-L221]` verifying `auto_fix_ast_bounds` and `--fix` CLI execution on symbolic `@[module.py#SymbolName]` and drifted `#Lnn-mm` references | Step 3 | [x] Completed |
+| REQ-017 | Update `@[.agents/skills/tier0-create-plan/SKILL.md]`, `@[.agents/skills/tier0-create-epic/SKILL.md]`, and `@[.agents/skills/tier8-audit-feature/SKILL.md]` with `subagent_context_offloading` (`research` subagent delegation and `--fix` symbolic AST auto-binding) | Step 3 | [x] Completed |
+| REQ-018 | Update `@[.agents/skills/tier2-hardening-frontend/SKILL.md]` and `@[.agents/skills/tier2-hardening-backend/SKILL.md]` to use `--micro` on single-file targets and skip duplicate internal `git commit` calls inside `auto_hardening_runner.py` | Step 3 | [x] Completed |
 
 # Session Handover Context
 
 ## Achieved
-- Promoted implementation plan to `@[docs/implementationplans/IMPLEMENTATION_PLAN_Symmetric_Flutter_Hardening_Pipeline.md]` and normalized all file references to workspace-relative POSIX paths.
-- Generated full standalone execution tracker `@[docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md]` with 18 granular requirements (`REQ-001` through `REQ-018`) mapped across Step 1, Step 2, and Step 3, plus 5 surviving production `.py` files in the `Tier 2 Hardening (Backend)` checklist.
+- Completed Step 1 (`8048621fb`): Added `requires_dart_codegen`, `resolve_flutter_unit_test_files`, and `--micro` mode to `@[scripts/flutter_audit_loop.py]`; updated `DGR010` Dart 3 `switch` remediation and `DGR007` `.withOpacity(` detection in `@[scripts/_dart_guardrails.py]`; enabled `strict-casts`, `strict-inference`, and `strict-raw-types` in `@[client_app_v2/analysis_options.yaml]`; added `<rule_block id="tripartite_postgres_pydantic_python_boundary">` to `@[.agents/rules/01-python-backend.md]`; enforced `QGR017` Tripartite Layer & Protocol Firewall in `@[scripts/_ast_guardrails.py]`.
+- Completed Step 2 (`2621101d0`): Updated `@[scripts/auto_hardening_runner.py]` with symmetric frontend `--micro` dispatch, `run_frontend_macro_quality_gate`, `head_sha` capture/rollback in `WorkspaceSnapshotDTO` and `execute_circuit_breaker_rollback`, post-exit `taskkill /F /T /PID` child MCP process cleanup on Windows, `previous_error` retry diagnostic injection in `execute_subagent_pass`, atomic staging of unit tests and `.g.dart`/`.freezed.dart` siblings in `mark_tracker_and_checkpoint`, and Win32 `SetThreadExecutionState` wake-lock helpers (`acquire_windows_wake_lock` / `release_windows_wake_lock`).
+- Completed Step 3: Added `auto_fix_ast_bounds` and `--fix` CLI flag to `@[scripts/audit_markdown_boundaries.py]`; updated `@[.agents/skills/tier0-create-plan/SKILL.md]`, `@[.agents/skills/tier0-create-epic/SKILL.md]`, `@[.agents/skills/tier8-audit-feature/SKILL.md]`, `@[.agents/skills/tier2-hardening-frontend/SKILL.md]`, `@[.agents/skills/tier2-hardening-backend/SKILL.md]`, and `@[.agents/rules/04_directory_reference.md]`.
 
 ## Learned
-- Pre-flight technical debt audit (`scripts/audit_technical_debt.py --include-one-hop`) across all 10 Python scripts and unit test files in scope passed with 0 findings.
-- Codebase AST verification across `backend_v2/` confirmed zero existing runtime Tripartite Layer & Protocol Firewall violations once `backend_v2.services.storage` in `backend_v2/database/repositories/execution.py` and `if TYPE_CHECKING:` blocks are accounted for.
+- Checking `re.fullmatch(r"[0-9a-fA-F]{7,40}", raw_head)` in `capture_workspace_snapshot` ensures unit tests mocking `subprocess.run` with multiline `git status --porcelain` output resolve `head_sha=None` while real or SHA-mocked calls capture the exact commit SHA.
+- `auto_fix_ast_bounds` deterministically resolves both symbolic `@[path/to/file.py#SymbolName]` anchors and drifted `#Lnn-mm` bounds using `get_ast_definition_bounds` as the single source of truth.
 
 ## Remaining
-- Execute Step 1, Step 2, and Step 3 via `/tier2-execute --full-auto` (or optionally run `/tier0-research-plan` first).
-- Complete Post-Implementation Gates (`Tier 2 Hardening (Backend)` across all 5 production scripts, `Pre-Delete Audit`, `Semantic Coverage & Zero-Loss Audit`), `Tier 7 As-Built Architectural Sync`, and `Tier 8 Final Plan Audit`.
+- Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Symmetric_Flutter_Hardening_Pipeline.md] @[docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md]` to perform the System 2 Red-Team Audit.
+- Complete Post-Implementation Gates (`Tier 2 Hardening (Backend)` across all 5 production scripts via `auto_hardening_runner.py`, `Pre-Delete Audit`, `Semantic Coverage & Zero-Loss Audit`) and `Tier 7 As-Built Architectural Sync`.
 
 ## Resume Command
 ```powershell
-/tier2-execute --full-auto @[docs/implementationplans/IMPLEMENTATION_PLAN_Symmetric_Flutter_Hardening_Pipeline.md] @[docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md]
+/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Symmetric_Flutter_Hardening_Pipeline.md] @[docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md]
 ```

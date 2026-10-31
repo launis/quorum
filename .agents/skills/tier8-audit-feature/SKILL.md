@@ -55,12 +55,16 @@ description: Tier 8 (Audit Feature) - System 2 deep-dive analysis, first princip
     <rule_block id="touched_scope_tech_debt_mandate">
       <mandatory_pattern>Execute `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets <target_paths> --include-one-hop` and inspect TARGET files and 1-hop callers per `@[.agents/skills/tier2-execute/references/modernity_and_tech_debt_checklist.md]`.</mandatory_pattern>
     </rule_block>
+
+    <rule_block id="subagent_context_offloading">
+      <mandatory_pattern>When codebase exploration requires inspecting more than 3 files, delegate file reading, symbol discovery, and `audit_technical_debt.py` sweeps to a `research` subagent via `invoke_subagent` (`TypeName="research"`) so the primary context window remains 100% dedicated to First Principles analysis, Panel of Experts synthesis, and Red-Team falsification.</mandatory_pattern>
+    </rule_block>
   </architectural_invariants>
 
   <execution_protocol level="8_audit_feature">
     <step id="1">DYNAMIC CONTEXT ACQUISITION &amp; REPOSITORY EXPLORATION:
       - Extract and internalize the proposed feature description, user idea, or concept text provided in the prompt.
-      - Use `grep_search` and `view_file` to inspect the relevant parts of the active codebase (`backend_v2`, `client_app_v2`, `seed_data.json`).
+      - Use `grep_search` and `view_file` (or delegate to the `research` subagent via `invoke_subagent` when scouting >3 files) to inspect the relevant parts of the active codebase (`backend_v2`, `client_app_v2`, `seed_data.json`).
     </step>
 
     <step id="2">SYSTEM 2 ANALYSIS &amp; CHAIN-OF-THOUGHT:

@@ -73,7 +73,7 @@ description: Tier 2 (Backend Hardening) - Step-by-step auditing loop for Python 
         7. SUBSYSTEM KI INVARIANT PARITY: Quote the applicable Knowledge Item and cite exact line evidence proving compliance with its specific domain contract. If the target file is a generic service/utility/router with no subsystem KI, explicitly state: "NA - Generic Service/Utility (No Subsystem KI applies)".
       </constraint>
 
-      <constraint name="DETERMINISTIC_AUDIT_GATE">For EVERY audited file, run the Universal 10-Stage Backend Quality Gate: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py <target_file> --test --ast-strict`. Print ONLY the substantive code evidence summary for the 7 Architecture Invariants to the user.</constraint>
+      <constraint name="DETERMINISTIC_AUDIT_GATE">For EVERY audited single file, run the Universal Backend Quality Gate in fast micro mode: `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py <target_file> --test --ast-strict --micro --no-logfire`. Print ONLY the substantive code evidence summary for the 7 Architecture Invariants to the user.</constraint>
 
       <constraint name="DTO_SDUI_PARITY_GATE">
         If the target file is located within `backend_v2/models/` (specifically `backend_v2/models/dtos/` or `backend_v2/models/view/`) or defines DTO/view schemas shared with the Flutter frontend, you MUST run the Cross-Domain DTO Parity Gate:
@@ -103,7 +103,7 @@ description: Tier 2 (Backend Hardening) - Step-by-step auditing loop for Python 
       <constraint name="DOCUMENTATION &amp; KI AUDIT">If the refactoring caused significant architectural changes, file deletions, or the creation of new directories, create or update a Knowledge Item (KI) documenting the new pattern and update `@[.agents/rules/04_directory_reference.md]`. Do NOT manually edit `docs/architecture/01_` through `06_`.</constraint>
       
       <action name="STATE PERSISTENCE &amp; TRACKER UPDATE">
-        When the target file and tests pass 100% of quality gates, immediately create an atomic commit for the successful changes using `run_command`:
+        When invoked for a single target file without a Tracker argument (such as inside `auto_hardening_runner.py`), do NOT execute `git commit` yourself — leave modified files on disk so `auto_hardening_runner.py` can run its outer verification gate, update the Tracker, and create the atomic checkpoint commit. When running interactively across a directory or with an explicit Tracker argument, immediately create an atomic commit for the successful changes using `run_command`:
         - Explicitly stage only the verified target file, its corresponding unit test file, and any directly modified 1-hop dependencies (never use `git add .`).
         - Commit with strict Conventional Commits syntax: `git commit -m "chore(hardening): audit and fix [target_name]"`.
         - Update `<appDataDir>\brain\<conversation-id>\scratch\hardening_state.json` by appending the audited file to the `DONE` array.

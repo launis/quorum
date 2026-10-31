@@ -41,9 +41,27 @@ GREEN = ANSIColors.GREEN
 YELLOW = ANSIColors.YELLOW
 RESET = ANSIColors.RESET
 
+__all__ = [
+    "GuardrailSeverity",
+    "MarkdownAuditFinding",
+    "MarkdownAuditor",
+    "main",
+    "print_error",
+    "print_success",
+]
+
 
 class MarkdownAuditFinding(BaseModel):
-    """Pydantic V2 DTO representing an architectural markdown boundary violation."""
+    """Pydantic V2 DTO representing an architectural markdown boundary violation.
+
+    Attributes:
+        line_number: 1-indexed line number where violation occurred.
+        rule_code: Rule code identifier.
+        category: Category of finding.
+        message: Descriptive message.
+        severity: Severity tier.
+        remediation: Deterministic remediation guidance.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -56,17 +74,102 @@ class MarkdownAuditFinding(BaseModel):
 
 
 def print_error(msg: str) -> None:
-    """Print an error message in red."""
+    """Print an error message in red.
+
+    Args:
+        msg: Error message string to print.
+    """
     print(f"{RED}ERROR: {msg}{RESET}")
 
 
 def print_success(msg: str) -> None:
-    """Print a success message in green."""
+    """Print a success message in green.
+
+    Args:
+        msg: Success message string to print.
+    """
     print(f"{GREEN}SUCCESS: {msg}{RESET}")
 
 
+def _resolve_symbol_ast_span(
+    file_path: Path, symbol_name: str, valid_bounds: set[tuple[int, int]]
+) -> tuple[int, int] | None:
+    """Resolve the decorator-inclusive AST line span for a named class or function in a Python file.
+
+    Args:
+        file_path: Path to the Python source file.
+        symbol_name: Name of the class, function, or async function to resolve.
+        valid_bounds: Authoritative set of (start_line, end_line) spans from get_ast_definition_bounds.
+
+    Returns:
+        Tuple of (start_line, end_line) if found and valid, or None.
+    """
+    try:
+        tree = ast.parse(file_path.read_text(encoding="utf-8"), filename=file_path.as_posix())
+    except SyntaxError, OSError, UnicodeDecodeError:
+        return None
+
+    for node in ast.walk(tree):
+        match node:
+            case ast.ClassDef(name=node_name) | ast.FunctionDef(name=node_name) | ast.AsyncFunctionDef(name=node_name):
+                if node_name == symbol_name:
+                    dec_start = min((d.lineno for d in node.decorator_list), default=node.lineno)
+                    node_end = node.end_lineno if node.end_lineno is not None else node.lineno
+                    if (dec_start, node_end) in valid_bounds:
+                        return (dec_start, node_end)
+                    if (node.lineno, node_end) in valid_bounds:
+                        return (node.lineno, node_end)
+            case _:
+                pass
+    return None
+
+
+def _resolve_drifted_ast_span(
+    file_path: Path, line_text: str, start_line: int, end_line: int
+) -> tuple[int, int] | None:
+    """Resolve an updated AST line span when a #Lstart-Lend reference has drifted.
+
+    Args:
+        file_path: Path to the referenced Python file.
+        line_text: Full Markdown line containing the reference.
+        start_line: Current 1-indexed start line in the Markdown reference.
+        end_line: Current 1-indexed end line in the Markdown reference.
+
+    Returns:
+        Updated (start_line, end_line) tuple if a replacement span is resolved, or None.
+    """
+    try:
+        bounds = get_ast_definition_bounds(file_path)
+    except SyntaxError, OSError, UnicodeDecodeError:
+        return None
+
+    valid_bounds = {(b.start_line, b.end_line) for b in bounds}
+    if (start_line, end_line) in valid_bounds:
+        return None
+
+    for candidate_sym in re.findall(r"`([A-Za-z_][A-Za-z0-9_]*)", line_text):
+        sym_span = _resolve_symbol_ast_span(file_path, candidate_sym, valid_bounds)
+        if sym_span is not None:
+            return sym_span
+
+    overlapping = [b for b in bounds if b.start_line <= end_line and b.end_line >= start_line]
+    if overlapping:
+        best = min(overlapping, key=lambda b: abs(b.start_line - start_line) + abs(b.end_line - end_line))
+        return (best.start_line, best.end_line)
+
+    return None
+
+
 class MarkdownAuditor:
-    """Auditor for analyzing architectural boundaries in Markdown."""
+    """Auditor for analyzing architectural boundaries in Markdown.
+
+    Attributes:
+        file_path: String path to the markdown file being audited.
+        repo_root: Path to the repository root directory.
+        content: Raw markdown content string.
+        lines: List of individual lines from the markdown file.
+        findings: Accumulated list of MarkdownAuditFinding instances.
+    """
 
     def __init__(self, file_path: str, repo_root: str) -> None:
         """Initialize the auditor.
@@ -84,7 +187,7 @@ class MarkdownAuditor:
 
     @property
     def errors(self) -> list[str]:
-        """Backward-compatible list of error message strings."""
+        """Return list of formatted error message strings."""
         result: list[str] = []
         for f in self.findings:
             if f.line_number > 0:
@@ -102,7 +205,16 @@ class MarkdownAuditor:
         severity: GuardrailSeverity,
         remediation: str,
     ) -> None:
-        """Add a structured finding to accumulated findings."""
+        """Add a structured finding to accumulated findings.
+
+        Args:
+            line_number: 1-indexed line number where violation occurred.
+            rule_code: Rule identifier code.
+            category: Finding category label.
+            message: Detailed diagnostic message.
+            severity: Severity level of the violation.
+            remediation: Actionable remediation instruction.
+        """
         self.findings.append(
             MarkdownAuditFinding(
                 line_number=line_number,
@@ -113,6 +225,61 @@ class MarkdownAuditor:
                 remediation=remediation,
             )
         )
+
+    def auto_fix_ast_bounds(self) -> int:
+        """Deterministically resolve and rewrite symbolic @[file.py#SymbolName] and drifted #Lnn-mm bounds in-place.
+
+        Phase 3, Step 3: Reuse get_ast_definition_bounds from scripts/_ast_boundary_utils.py as SSOT.
+
+        Returns:
+            Number of AST boundary references rewritten across the document.
+        """
+        symbolic_pattern = re.compile(r"@\[([^#\]]+\.py)#([A-Za-z_][A-Za-z0-9_]*)\]")
+        drifted_pattern = re.compile(r"@\[([^#\]]+\.py)#L(\d+)-L?(\d+)\]")
+        fixed_count = 0
+        updated_lines: list[str] = []
+
+        for line in self.lines:
+            new_line = line
+            for sym_match in list(symbolic_pattern.finditer(new_line)):
+                rel_path = sym_match.group(1).strip()
+                symbol_name = sym_match.group(2).strip()
+                full_path = self.repo_root / rel_path
+                if not full_path.exists() or full_path.suffix != ".py":
+                    continue
+                try:
+                    bounds = get_ast_definition_bounds(full_path)
+                except SyntaxError, OSError, UnicodeDecodeError:
+                    continue
+                valid_bounds = {(b.start_line, b.end_line) for b in bounds}
+                span = _resolve_symbol_ast_span(full_path, symbol_name, valid_bounds)
+                if span is not None:
+                    replacement = f"@[{rel_path}#L{span[0]}-L{span[1]}]"
+                    new_line = new_line.replace(sym_match.group(0), replacement, 1)
+                    fixed_count += 1
+
+            for drift_match in list(drifted_pattern.finditer(new_line)):
+                rel_path = drift_match.group(1).strip()
+                start_l = int(drift_match.group(2))
+                end_l = int(drift_match.group(3))
+                full_path = self.repo_root / rel_path
+                if not full_path.exists() or full_path.suffix != ".py":
+                    continue
+                resolved = _resolve_drifted_ast_span(full_path, new_line, start_l, end_l)
+                if resolved is not None:
+                    replacement = f"@[{rel_path}#L{resolved[0]}-L{resolved[1]}]"
+                    new_line = new_line.replace(drift_match.group(0), replacement, 1)
+                    fixed_count += 1
+
+            updated_lines.append(new_line)
+
+        if fixed_count > 0:
+            trailing_newline = "\n" if self.content.endswith("\n") else ""
+            self.content = "\n".join(updated_lines) + trailing_newline
+            self.lines = updated_lines
+            Path(self.file_path).write_text(self.content, encoding="utf-8")
+
+        return fixed_count
 
     def run_all_checks(self, exit_on_completion: bool = True) -> list[MarkdownAuditFinding]:
         """Run all verification checks on the markdown content.
@@ -242,7 +409,15 @@ class MarkdownAuditor:
     def verify_ast_bounds(
         self, file_path: Path, start_line: int, end_line: int, md_line_num: int, rel_path: str
     ) -> None:
-        """Verify that line ranges match a class or function definition exactly without reflection."""
+        """Verify that line ranges match a class or function definition exactly without reflection.
+
+        Args:
+            file_path: Full path to the referenced Python file.
+            start_line: 1-indexed start line number.
+            end_line: 1-indexed end line number.
+            md_line_num: 1-indexed line number in the markdown document.
+            rel_path: Relative file path string used in diagnostic messages.
+        """
         try:
             bounds = get_ast_definition_bounds(file_path)
         except SyntaxError:
@@ -541,7 +716,11 @@ class MarkdownAuditor:
 
 
 def main(argv: list[str] | None = None) -> None:
-    """CLI entrypoint for markdown boundaries auditor."""
+    """CLI entrypoint for markdown boundaries auditor.
+
+    Args:
+        argv: Optional list of CLI argument strings.
+    """
     parser = argparse.ArgumentParser(
         description="""Architectural Markdown Boundary & Implementation Plan Gate (MBD001-MBD009).
 
@@ -559,6 +738,7 @@ Statically audits Markdown implementation plans and Epics against physical codeb
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples (PowerShell):
   uv run python scripts/audit_markdown_boundaries.py --file docs/implementationplans/MY_PLAN.md
+  uv run python scripts/audit_markdown_boundaries.py --file docs/implementationplans/MY_PLAN.md --fix
   uv run python scripts/audit_markdown_boundaries.py --file docs/epic/EPIC_XXX.md
 """,
     )
@@ -567,6 +747,11 @@ Statically audits Markdown implementation plans and Epics against physical codeb
         type=str,
         required=True,
         help="Path to the Markdown file (plan, tracker, or Epic) to audit.",
+    )
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Automatically resolve and rewrite symbolic @[file.py#SymbolName] and drifted AST line bounds in-place before auditing.",
     )
     args = parser.parse_args(argv)
 
@@ -577,6 +762,10 @@ Statically audits Markdown implementation plans and Epics against physical codeb
 
     repo_root = Path(__file__).resolve().parent.parent
     auditor = MarkdownAuditor(str(file_path), str(repo_root))
+    if args.fix:
+        fixed = auditor.auto_fix_ast_bounds()
+        if fixed > 0:
+            print_success(f"Auto-fixed {fixed} AST line bound reference(s) in {file_path}")
     auditor.run_all_checks(exit_on_completion=True)
 
 
