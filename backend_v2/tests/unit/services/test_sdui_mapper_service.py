@@ -118,10 +118,7 @@ def test_map_report_to_sdui_na_outcomes() -> None:
     assert not any(isinstance(b, SduiNACard) for b in view.inner_sdui_blocks)
     table_block = view.inner_sdui_blocks[0]
     assert isinstance(table_block, SduiMatrixTableBlock)
-    assert any(
-        "Requirement not applicable for this sector" in claim
-        for claim in table_block.short_circuited_by_claims
-    )
+    assert any("Requirement not applicable for this sector" in claim for claim in table_block.short_circuited_by_claims)
 
 
 def test_map_report_alias_and_fallback_execution_id() -> None:

@@ -226,3 +226,29 @@ $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scri
 # 3. 28 kohdetiedoston automaattinen Tier 2 Hardening:
 $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_161_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"
 ```
+
+---
+
+## Luku 6: Studio-käyttöliittymän ja `OutputProfile`-profiilin vanhentuneiden matriisiviittausten (`target_blocks`) synkronointi steppiä poistettaessa
+> **STATUS: AVOIN PARANNUSKOHDE (Studio UI & Backend `OutputProfile` / `Workflow` -synkronointi)**
+> *Selite: Estää näkymättömän "haamuvalinnan" (`ghost ID`) jäämisen `OutputProfile`-profiilin `matrix_synthesis_groups[*].target_blocks`-, `variance_target_block`- ja `user_role_target_block`-kenttiin silloin, kun työnkulusta (`Workflow`) irrotetaan steppi ja siihen kytketty matriisi.*
+
+### 6.1 Tunnistettu ongelma ja nykytilan käyttäytyminen
+
+1. **Työnkulun sisäinen steppisiivous toimii oikein (`@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart#L91-L124]`):**
+   * Kun käyttäjä poistaa stepin työnkulusta metodissa `WorkflowStepsTab._deleteStep`, käyttöliittymä siivoaa automaattisesti muiden steppien `dependsOn`-riippuvuudet, `$steps.<deletedId>`-syötekartoitukset (`inputMappings`) sekä `causalSourceStepId`-viittaukset.
+2. **Työnkulun tallennus ei synkronoi kytkettyä `OutputProfile`-profiilia (`@[backend_v2/services/studio/workflow_service.py#L283-L321]`):**
+   * Kun päivitetty työnkulku tallennetaan metodilla `StudioWorkflowService.save_workflow`, tietokantaan jäävät ennalleen työnkulkuun liitetyn `OutputProfile`-profiilin vanhat matriisiviittaukset (nimenomaan ja tyhjentävästi: `matrix_synthesis_groups[*].target_blocks`, `variance_target_block` ja `user_role_target_block`), vaikka kyseinen matriisi (`blk_...`) ei enää kuulu mihinkään työnkulun steppiin.
+3. **Näkymätön haamuvalinta käyttöliittymässä ja `400 VALIDATION_FAILED` tallennettaessa (`@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart#L53-L70]`, `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graph_item_editor.dart#L43-L52]` & `@[backend_v2/services/studio/output_profile_service.py#L122-L138]`):**
+   * `ProfileSectionConfigTab` muodostaa `allowedBlockIds`-joukon työnkulun nykyisten steppien `criteriaBlockIds`-listoista, ja `MatrixGraphItemEditor` suodattaa näkyvät `FilterChip`-valintanapit ehdolla `allowedBlockIds.contains(b.id)`.
+   * Koska poistetun stepin matriisi-ID (`blk_...`) ei ole enää `allowedBlockIds`-joukossa, sen `FilterChip`-siru piilotetaan käyttöliittymästä, mutta vanha ID jää silti `group.targetBlocks`-listan sisään.
+   * Kun käyttäjä yrittää myöhemmin muokata ja tallentaa `OutputProfile`-profiilia, `StudioOutputProfileService.save_output_profile` hylkää tallennuksen virheellä `400 VALIDATION_FAILED: Target Component 'blk_...' does not exist in the context of Workflow 'wor_...'`, eikä käyttäjä pysty ruksimaan piilotettua valintaa suoraan pois poistamatta koko kuvaajaryhmää tai vaihtamatta `PresetView`-tyyppiä.
+
+### 6.2 Toteutettava ratkaisu
+
+Parannus on yksinkertainen toteuttaa joko automaattisena siivouksena tai visuaalisena virhesiruna (tai molempien yhdistelmänä):
+1. **Vaihtoehto A — Automaattinen synkronointi tallennuksessa ja UI:ssa (`@[backend_v2/services/studio/workflow_service.py]` & `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart]`):**
+   * `StudioWorkflowService.save_workflow` (ja/tai UI:n tallennuspolku) siivoaa `allowed_blocks`- / `allowedBlockIds`-joukon ulkopuoliset vanhentuneet matriisi-ID:t automaattisesti pois työnkulkuun kytkettyjen `OutputProfile`-profiilien `target_blocks`-listoista sekä `variance_target_block`- ja `user_role_target_block`-kentistä.
+2. **Vaihtoehto B — Näkyvä punainen poistettava `FilterChip`-siru (`@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graph_item_editor.dart]`):**
+   * `MatrixGraphItemEditor` renderöi `group.targetBlocks`-listassa olevat `allowedBlockIds`-joukon ulkopuoliset vanhentuneet ID:t punaisena, varoitusmerkillä varustettuna `FilterChip`-siruna, josta käyttäjä näkee välittömästi vanhentuneen viittauksen ja voi poistaa sen yhdellä klikkauksella.
+

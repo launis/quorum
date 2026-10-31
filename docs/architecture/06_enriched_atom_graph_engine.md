@@ -125,6 +125,18 @@ The graph engine enforces strict structural, mathematical, and semantic decoupli
   - *Zero Point Accumulation Invariant*: Dynamic causal graph propositions verified as factual truth in the source text evaluate to `result_status = 1`, but carry strictly `points_awarded: 0.0`. They participate in topological dependency tracking and root cause attribution without altering matrix scoring totals.
   - *Cross-Surface Scoring Identity*: The 22-column rectangular streaming export (`export_flat_csv`), corporate multi-tab Excel export, and Server-Driven UI forensic breakdown enforce this mathematical scoring identity: `points_awarded = 1.0 if (atom.status == PASSED and not is_inverse_claim) else 0.0`. This prevents unmapped dynamic propositions and diagnostic error detections from leaking into total capability scores in automated machine-learning and analytics pipelines.
 
+### 2.15. Tripartite Separation of Toulmin Rubric Matrices, Dynamic Causal Graph Mining, and Topological Cohesion Scoring
+To prevent conceptual and operational conflation, the platform enforces three-way architectural isolation across its argumentation and causal analysis capabilities:
+1. **Micro-Level Static Toulmin Argumentation Rubric (`matrix_toulmin`, `blk_0195f3a000007004840a5fef9331451b`)**:
+   - Operates as a standard predefined Behaviorally Anchored Rating Scale (BARS) matrix evaluated by `TDAEngine` (`engine_type: "tda"`) within dedicated specialist rubric steps (`stp_0195f3a0000070088daee218c6b14f02`).
+   - Audits individual sentences and paragraphs against fixed Level 1–5 TDA assertions verifying whether claims are supported by empirical grounds, explicit warrants, modal qualifiers, and rebuttal boundaries. It does not construct a dynamic proposition graph or invoke `CausalDiscoveryEngine`.
+2. **Macro-Level Dynamic Causal Graph Discovery (`CausalDiscoveryEngine`, `stp_0195f3a00000700c84a5a1d15c00438a`)**:
+   - Operates as an autonomous graph-mining engine (`engine_type: "causal_discovery"`) orchestrated via `TwoPassAtomizer` and `SlidingWindowLinker`.
+   - Extracts dynamic propositions (`CausalNodeDTO`) across the document and links them into a directed acyclic graph (`CausalGraphPayloadDTO`). It borrows Toulmin terminology strictly for structural graph primitives: directed edges (`CausalEdgeDTO`) store verbatim `warrant_quotes` representing the inferential warrant connecting premise node A to conclusion node B, and the relational graph engine (`CteReasoningStrategy.find_falsified_claims`) executes a three-way SQL join (`SUPPORTS`, `REBUTS`, `UNDERCUTS`) to identify falsified warrants.
+3. **Zero-Token Topological Causal Cohesion Scorecard (`matrix_causal_cohesion`, `blk_0195f3a00000700c80a1e50000000001`)**:
+   - Operates as a deterministic 1–5 BARS scorecard container attached to causal discovery steps and evaluated in Python by `CausalCohesionEvaluator` with zero LLM token consumption.
+   - Three isolation firewalls prevent `matrix_causal_cohesion` from entering `TDAEngine` prompts, instead translating the mathematical topology of the mined graph (`logical_cohesion_score`, `cycle_detected`, `isolated_concept_count`, `largest_component_ratio`, `branch_convergence_ratio`) into a standard matrix scorecard. Workflows can include `matrix_toulmin` and `step_causal_discovery` either together (measuring both micro-level claim backing and macro-level network cohesion) or independently.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

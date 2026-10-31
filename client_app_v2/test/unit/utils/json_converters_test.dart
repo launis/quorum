@@ -130,10 +130,7 @@ void main() {
       'Negative 1: StrictEnumConverter throws AppException on unrecognized enum string',
       () {
         const converter = StrictEnumConverter(_TestEnum.values);
-        expect(
-          () => converter.fromJson('gamma'),
-          throwsA(isA<AppException>()),
-        );
+        expect(() => converter.fromJson('gamma'), throwsA(isA<AppException>()));
       },
     );
 
@@ -142,10 +139,7 @@ void main() {
       () {
         const converter = StrictEnumConverter(_TestEnum.values);
         expect(() => converter.fromJson(''), throwsA(isA<AppException>()));
-        expect(
-          () => converter.fromJson('ALPHA'),
-          throwsA(isA<AppException>()),
-        );
+        expect(() => converter.fromJson('ALPHA'), throwsA(isA<AppException>()));
       },
     );
   });
