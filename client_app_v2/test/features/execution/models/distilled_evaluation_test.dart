@@ -6,7 +6,7 @@ void main() {
     test(
       'MUST fail to parse if exact_quotes is missing (strict fallback ban)',
       () {
-        final Map<String, dynamic> json = {
+        final json = <String, Object?>{
           'atom_id': 'blk_123',
           // 'exact_quotes' is explicitly missing
           'semantic_reasoning': 'Because reasons',
@@ -16,8 +16,33 @@ void main() {
       },
     );
 
+    test(
+      'MUST fail to parse when unrecognized keys are present (disallowUnrecognizedKeys: true)',
+      () {
+        final json = <String, Object?>{
+          'atom_id': 'blk_123',
+          'exact_quotes': ['Quote 1'],
+          'unexpected_legacy_field': 'forbidden',
+        };
+
+        expect(() => DistilledEvaluation.fromJson(json), throwsA(anything));
+      },
+    );
+
+    test(
+      'MUST fail to parse when exact_quotes violates type boundary (non-list primitive)',
+      () {
+        final json = <String, Object?>{
+          'atom_id': 'blk_123',
+          'exact_quotes': 42,
+        };
+
+        expect(() => DistilledEvaluation.fromJson(json), throwsA(anything));
+      },
+    );
+
     test('MUST successfully parse when exact_quotes is provided', () {
-      final Map<String, dynamic> json = {
+      final json = <String, Object?>{
         'atom_id': 'blk_123',
         'exact_quotes': ['Quote 1'],
         'semantic_reasoning': 'Because reasons',
