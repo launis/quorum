@@ -39,7 +39,22 @@ class WorkflowClient {
       rethrow;
     }
 
-    final response = await _dio.get('studio/workflows/$workflowId/ui_schema');
-    return WorkflowUiSchema.fromJson(response.data);
+    final response = await _dio.get<Map<String, Object?>>(
+      'studio/workflows/$workflowId/ui_schema',
+    );
+    final data = response.data;
+    if (data == null) {
+      final error = AppException.validation(
+        'Null response payload received in WorkflowClient.getWorkflowUiSchema',
+      );
+      _logger?.error(
+        'WorkflowClient',
+        'Null response data for getWorkflowUiSchema',
+        error,
+        StackTrace.current,
+      );
+      throw error;
+    }
+    return WorkflowUiSchema.fromJson(data);
   }
 }

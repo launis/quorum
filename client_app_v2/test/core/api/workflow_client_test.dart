@@ -56,9 +56,11 @@ void main() {
         };
 
         when(
-          () => mockDio.get('studio/workflows/$validWorkflowId/ui_schema'),
+          () => mockDio.get<Map<String, Object?>>(
+            'studio/workflows/$validWorkflowId/ui_schema',
+          ),
         ).thenAnswer(
-          (_) async => Response(
+          (_) async => Response<Map<String, Object?>>(
             requestOptions: RequestOptions(
               path: 'studio/workflows/$validWorkflowId/ui_schema',
             ),
@@ -79,7 +81,9 @@ void main() {
         expect(input.description.get('fi'), 'Johtamisen valmennustehtävä');
 
         verify(
-          () => mockDio.get('studio/workflows/$validWorkflowId/ui_schema'),
+          () => mockDio.get<Map<String, Object?>>(
+            'studio/workflows/$validWorkflowId/ui_schema',
+          ),
         ).called(1);
       },
     );
@@ -109,12 +113,12 @@ void main() {
         verify(
           () => mockLogger.error('WorkflowClient', any(), any(), any()),
         ).called(5);
-        verifyNever(() => mockDio.get(any()));
+        verifyNever(() => mockDio.get<Map<String, Object?>>(any()));
       },
     );
 
     test(
-      'Negative Test 2: getWorkflowUiSchema fails fast with CheckedFromJsonException on unrecognized keys',
+      'Negative Test 2: getWorkflowUiSchema fails fast with CheckedFromJsonException on unrecognized keys or AppException on null payload',
       () async {
         final corruptPayload = <String, Object?>{
           'expected_inputs': <Map<String, Object?>>[],
@@ -122,9 +126,11 @@ void main() {
         };
 
         when(
-          () => mockDio.get('studio/workflows/$validWorkflowId/ui_schema'),
+          () => mockDio.get<Map<String, Object?>>(
+            'studio/workflows/$validWorkflowId/ui_schema',
+          ),
         ).thenAnswer(
-          (_) async => Response(
+          (_) async => Response<Map<String, Object?>>(
             requestOptions: RequestOptions(
               path: 'studio/workflows/$validWorkflowId/ui_schema',
             ),
@@ -143,6 +149,31 @@ void main() {
             ),
           ),
         );
+
+        when(
+          () => mockDio.get<Map<String, Object?>>(
+            'studio/workflows/$validWorkflowId/ui_schema',
+          ),
+        ).thenAnswer(
+          (_) async => Response<Map<String, Object?>>(
+            requestOptions: RequestOptions(
+              path: 'studio/workflows/$validWorkflowId/ui_schema',
+            ),
+            data: null,
+            statusCode: 200,
+          ),
+        );
+
+        expect(
+          () => client.getWorkflowUiSchema(validWorkflowId),
+          throwsA(
+            isA<AppException>().having(
+              (e) => e.errorCode,
+              'errorCode',
+              'VALIDATION_FAILED',
+            ),
+          ),
+        );
       },
     );
 
@@ -150,7 +181,9 @@ void main() {
       'Negative Test 3: getWorkflowUiSchema rethrows DioException on network or HTTP 404 failure',
       () async {
         when(
-          () => mockDio.get('studio/workflows/$validWorkflowId/ui_schema'),
+          () => mockDio.get<Map<String, Object?>>(
+            'studio/workflows/$validWorkflowId/ui_schema',
+          ),
         ).thenThrow(
           DioException(
             requestOptions: RequestOptions(
@@ -193,9 +226,11 @@ void main() {
         };
 
         when(
-          () => mockDio.get('studio/workflows/$validWorkflowId/ui_schema'),
+          () => mockDio.get<Map<String, Object?>>(
+            'studio/workflows/$validWorkflowId/ui_schema',
+          ),
         ).thenAnswer(
-          (_) async => Response(
+          (_) async => Response<Map<String, Object?>>(
             requestOptions: RequestOptions(
               path: 'studio/workflows/$validWorkflowId/ui_schema',
             ),
