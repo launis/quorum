@@ -8,9 +8,10 @@ from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ResourceNotFoundError
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
 from backend_v2.models.domain.output_profile import MatrixSynthesisGroup, OutputProfile
+from backend_v2.models.domain.proposition_graph import FalsifiedClaimMatch
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
@@ -28,6 +29,7 @@ from backend_v2.models.dtos.causal_discovery import (
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.synthesis import (
+    CausalSynthesisBriefDTO,
     ExecutiveSummarySectionResult,
     MatrixExplanationContextDTO,
     MatrixExplanationsResult,
@@ -37,6 +39,8 @@ from backend_v2.models.dtos.synthesis import (
     XaiHighlightsResult,
 )
 from backend_v2.models.enums import (
+    DependencyRelationType,
+    EntityPrefix,
     ExecutionStatus,
     LaxHistoricalContextMode,
     PresetView,
@@ -573,7 +577,230 @@ async def test_synthesis_worker_with_causal_graph_payload_in_step_states() -> No
                                             assert causal_diag is not None
                                             assert "Total Propositions: 1" in causal_diag
                                             assert "Cycle Detected: False" in causal_diag
-                                            assert "Root Cause Node IDs: node_0" in causal_diag
+                                            assert "Root Cause Proposition: Premise 0" in causal_diag
+
+
+@pytest.mark.asyncio
+async def test_synthesis_worker_fans_out_causal_synthesis_brief_to_all_four_tasks() -> None:
+    """Test generate_profile_synthesis_and_pdf_task fans out CausalSynthesisBriefDTO and shared BALANCED client to all 4 tasks."""
+    prof_id = "pro_0195f3a00000700283456789abcdef01"
+    wf_id = "wor_0195f3a00000700283456789abcdef01"
+    exec_id = "exe_0195f3a00000700283456789abcdef01"
+    claim_id = generate_opaque_id(EntityPrefix.NODE)
+    warrant_id = generate_opaque_id(EntityPrefix.NODE)
+    rebuttal_id = generate_opaque_id(EntityPrefix.NODE)
+
+    fusion_result = CausalTdaFusionResultDTO(
+        graph=CausalGraphPayloadDTO(
+            nodes=[
+                CausalNodeDTO(
+                    node_id=warrant_id,
+                    claim="Warrant Premise Claim",
+                    status=ExecutionStatus.FAILED,
+                    blame_parent_ids=[],
+                    dependent_child_ids=[claim_id],
+                ),
+                CausalNodeDTO(
+                    node_id=claim_id,
+                    claim="Downstream Target Claim",
+                    status=ExecutionStatus.FAILED,
+                    blame_parent_ids=[warrant_id],
+                    dependent_child_ids=[],
+                ),
+                CausalNodeDTO(
+                    node_id=rebuttal_id,
+                    claim="Counter-Evidence Rebuttal Claim",
+                    status=ExecutionStatus.PASSED,
+                    blame_parent_ids=[],
+                    dependent_child_ids=[],
+                ),
+            ],
+            edges=[],
+            root_cause_node_ids=[warrant_id],
+            cycle_detected=False,
+        ),
+        root_cause_diagnoses=[
+            CausalRootCauseDiagnosisDTO(
+                root_cause_parent_id=warrant_id,
+                root_cause_claim="Warrant Premise Claim",
+                failing_node_id=claim_id,
+                failing_node_claim="Downstream Target Claim",
+                warrant_relation=DependencyRelationType.WARRANTS,
+                paragraph_ref="p1",
+                explanation="Warrant failed empirically.",
+                penalty_points=1.5,
+            )
+        ],
+        falsified_claims=[
+            FalsifiedClaimMatch(
+                falsified_claim_id=claim_id,
+                claim_statement="Downstream Target Claim",
+                invalidated_warrant_id=warrant_id,
+                rebuttal_id=rebuttal_id,
+                rebuttal_confidence=0.92,
+            )
+        ],
+        prescriptive_remediations=[
+            PrescriptiveRemediationDTO(
+                target_node_id=claim_id,
+                required_action="Establish empirical warrant.",
+                unlocks_node_ids=[],
+                potential_score_impact=1.5,
+            )
+        ],
+        anti_fluff_audit=AntiFluffAuditDTO(
+            isolated_concept_count=0,
+            cycle_detected=False,
+            unsupported_claims_count=0,
+            logical_cohesion_score=0.80,
+        ),
+        fair_scoring=FairScoringBreakdownDTO(
+            independent_error_count=1,
+            cascading_fault_count=1,
+            raw_penalty_points=2.0,
+            deduplicated_penalty_points=1.5,
+            dampened_savings_points=0.5,
+        ),
+    )
+
+    rec = ExecutionRecord(
+        id=exec_id,
+        workflow_id=wf_id,
+        output_profile_id=prof_id,
+        status=ExecutionStatus.PASSED,
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        execution_trace=[
+            TraceEvent(
+                v=1,
+                timestamp=datetime.now(timezone.utc),
+                event_type="progress",
+                step_name="causal_discovery",
+                content=fusion_result,
+            )
+        ],
+    )
+    prof = _make_base_profile(prof_id, wf_id)
+    wf = _make_base_workflow(wf_id, prof_id)
+
+    mock_repo = InMemoryUnifiedWorkflowRepository()
+    await mock_repo.save_execution(rec)
+    await mock_repo.save_output_profile(prof)
+    await mock_repo.save_workflow(wf)
+
+    distilled_dto = SynthesisDistillationDTO(
+        distilled_inputs="Distilled inputs text",
+        target_locale="en",
+        title_map={"blk_0195f3a00000700283456789abcdef01": "Matrix 1"},
+        matrices_to_explain=[
+            MatrixExplanationContextDTO(
+                real_matrix_id="blk_0195f3a00000700283456789abcdef01",
+                matrix_id="m0",
+                matrix_label="Matrix 1",
+                score=2.0,
+                justification="Justification",
+            )
+        ],
+    )
+    token_usage = TokenUsage(prompt_tokens=10, completion_tokens=10, total_tokens=20, cost_usd=0.001)
+    shared_balanced_client = AsyncMock()
+
+    import backend_v2.workers.synthesis_worker as synthesis_worker_mod
+
+    with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
+        with patch.object(synthesis_worker_mod, "UnifiedWorkflowRepository", return_value=mock_repo):
+            with patch(
+                "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
+                new_callable=AsyncMock,
+                return_value=HookResult(
+                    success=True, state_delta=HookDeltaDTO(delta=distilled_dto.model_dump(mode="json"))
+                ),
+            ):
+                with patch(
+                    "backend_v2.workers.synthesis_worker.LLMClient.from_tier",
+                    new_callable=AsyncMock,
+                    return_value=shared_balanced_client,
+                ):
+                    with patch(
+                        "backend_v2.workers.synthesis_worker.create_executive_summary_task",
+                        new_callable=AsyncMock,
+                        return_value=(
+                            ExecutiveSummarySectionResult(
+                                executive_summary=[ParagraphBlock(text="Exec", exact_quotes=[], citations=[])],
+                                user_role=None,
+                                user_role_justification=None,
+                                cited_sources=[],
+                            ),
+                            token_usage,
+                        ),
+                    ) as mock_exec_task:
+                        with patch(
+                            "backend_v2.workers.synthesis_worker.create_matrix_sections_tasks",
+                            new_callable=AsyncMock,
+                            return_value=[],
+                        ) as mock_matrix_task:
+                            with patch(
+                                "backend_v2.workers.synthesis_worker.create_xai_highlights_task",
+                                new_callable=AsyncMock,
+                                return_value=None,
+                            ) as mock_xai_task:
+                                with patch(
+                                    "backend_v2.workers.synthesis_worker.create_row_explanations_task",
+                                    new_callable=AsyncMock,
+                                    return_value=None,
+                                ) as mock_row_task:
+                                    with patch(
+                                        "backend_v2.workers.synthesis_worker.build_variance_metrics_and_task",
+                                        new_callable=AsyncMock,
+                                        return_value=(None, None),
+                                    ):
+                                        with patch(
+                                            "backend_v2.workers.synthesis_worker.ReportService"
+                                        ) as mock_report_service_cls:
+                                            mock_svc = mock_report_service_cls.return_value
+                                            mock_svc.get_or_create_default_artifact = AsyncMock()
+
+                                            await generate_profile_synthesis_and_pdf_task(
+                                                execution_id=exec_id,
+                                                accept_language="en",
+                                                profile_id=prof_id,
+                                            )
+
+                                            for task_mock in (
+                                                mock_exec_task,
+                                                mock_matrix_task,
+                                                mock_xai_task,
+                                                mock_row_task,
+                                            ):
+                                                task_mock.assert_awaited_once()
+                                                assert task_mock.await_args.kwargs["client"] is shared_balanced_client
+                                                diag = task_mock.await_args.kwargs["causal_diagnosis"]
+                                                assert diag is not None
+                                                assert (
+                                                    "Warrant Premise Claim -> Downstream Target Claim (warrants)"
+                                                    in diag
+                                                )
+                                                assert (
+                                                    "Counter-Evidence Rebuttal Claim -> Warrant Premise Claim -> Downstream Target Claim"
+                                                    in diag
+                                                )
+                                                assert "Post-Hoc Fidelity Penalties:" in diag
+
+                                            base_dynamic_parts = mock_exec_task.await_args.kwargs["base_dynamic_parts"]
+                                            for part in base_dynamic_parts:
+                                                assert "<global_length_constraint_chars>" not in part
+
+
+def test_causal_synthesis_brief_dto_extra_fields_raises_validation_error() -> None:
+    """Test CausalSynthesisBriefDTO.model_validate raises ValidationError on unknown extra attribute."""
+    with pytest.raises(ValidationError):
+        CausalSynthesisBriefDTO.model_validate(
+            {
+                "intact_propositions": 1,
+                "total_propositions": 2,
+                "unknown_extra_field": "forbidden",
+            }
+        )
 
 
 @pytest.mark.asyncio

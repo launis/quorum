@@ -31,6 +31,7 @@ from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalTdaFusionResultDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.synthesis import (
+    CausalSynthesisBriefDTO,
     MatrixExplanationContextDTO,
     MatrixExplanationContextList,
     SynthesisDistillationDTO,
@@ -44,6 +45,8 @@ from backend_v2.models.enums import (
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
+    CAUSAL_TDA_DIAGNOSIS_MANDATE,
+    CONTRASTIVE_FRONTIER_MANDATE,
     STATIC_LINGUISTIC_PROTOCOL,
     SYNTHESIS_CITATION_RULES_HARVARD,
     SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE,
@@ -304,14 +307,11 @@ async def generate_profile_synthesis_and_pdf_task(
         )
         citation_rules = SYNTHESIS_CITATION_RULES_HARVARD if has_sources_block else SYNTHESIS_NO_CITATION_RULES
 
+        # Phase 2, Step 2.3: Remove <global_length_constraint_chars> from base_dynamic_parts so each task obeys only its own <section_budget>
         base_dynamic_parts: list[str] = [
             citation_rules,
             build_linguistic_parameters(source_language="Unknown", target_locale=accept_language),
         ]
-        if active_profile_dto and active_profile_dto.synthesis_length_constraint:
-            base_dynamic_parts.append(
-                f"<global_length_constraint_chars>{active_profile_dto.synthesis_length_constraint}</global_length_constraint_chars>"
-            )
         if active_profile_dto and active_profile_dto.tone_instruction and active_profile_dto.tone_instruction.strip():
             base_dynamic_parts.append(
                 f"<tone_instruction>{active_profile_dto.tone_instruction.strip()}</tone_instruction>"
@@ -343,6 +343,8 @@ async def generate_profile_synthesis_and_pdf_task(
         sys_prompt = (
             f"{SYNTHESIS_SYSTEM_PROMPT}\n\n"
             f"{SYNTHESIS_SDUI_MANDATES}\n\n"
+            f"{CAUSAL_TDA_DIAGNOSIS_MANDATE}\n\n"
+            f"{CONTRASTIVE_FRONTIER_MANDATE}\n\n"
             f"{ANTI_JARGON_MANDATE_BLOCK}\n\n"
             f"{SYNTHESIS_EXTERNAL_EVIDENCE_MANDATE}\n\n"
             f"{STATIC_LINGUISTIC_PROTOCOL}"
@@ -368,7 +370,7 @@ async def generate_profile_synthesis_and_pdf_task(
         t_row = None
         ext_metrics = None
 
-        # Resolve empirical causal diagnosis from execution step_states or execution_trace if present
+        # Phase 2, Step 2.3: Build unified CausalSynthesisBriefDTO and fan out across all 4 tasks
         causal_diagnosis_text: str | None = None
         causal_payload: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None
         for evt in reversed(execution.execution_trace):
@@ -391,36 +393,9 @@ async def generate_profile_synthesis_and_pdf_task(
                     case _:
                         continue
 
-        match causal_payload:
-            case CausalTdaFusionResultDTO():
-                intact = sum(1 for n in causal_payload.graph.nodes if n.status == ExecutionStatus.PASSED)
-                total = len(causal_payload.graph.nodes)
-                diag_lines = [
-                    f"Intact Propositions: {intact}/{total}",
-                    f"Logical Cohesion: {causal_payload.anti_fluff_audit.logical_cohesion_score:.2f}",
-                ]
-                if causal_payload.root_cause_diagnoses:
-                    diag_lines.append("Root Cause Fault Chains:")
-                    for diag in causal_payload.root_cause_diagnoses:
-                        diag_lines.append(
-                            f"- Root Parent {diag.root_cause_parent_id} -> Failing Node "
-                            f"{diag.failing_node_id}: {diag.explanation}"
-                        )
-                if causal_payload.prescriptive_remediations:
-                    diag_lines.append("Prescriptive Remediations:")
-                    for rem in causal_payload.prescriptive_remediations:
-                        diag_lines.append(f"- Node {rem.target_node_id}: {rem.required_action}")
-                causal_diagnosis_text = "\n".join(diag_lines)
-            case CausalGraphPayloadDTO():
-                diag_lines = [
-                    f"Total Propositions: {len(causal_payload.nodes)}",
-                    f"Cycle Detected: {causal_payload.cycle_detected}",
-                ]
-                if causal_payload.root_cause_node_ids:
-                    diag_lines.append(f"Root Cause Node IDs: {', '.join(causal_payload.root_cause_node_ids)}")
-                causal_diagnosis_text = "\n".join(diag_lines)
-            case None:
-                pass
+        if causal_payload is not None:
+            causal_brief = CausalSynthesisBriefDTO.from_causal_payload(causal_payload)
+            causal_diagnosis_text = causal_brief.format_for_prompt()
 
         async with asyncio.TaskGroup() as tg:
             if is_synthesis_expected:
@@ -446,6 +421,7 @@ async def generate_profile_synthesis_and_pdf_task(
                         active_profile_dto=active_profile_dto,
                         distilled_data=distilled_dto,
                         sem_runner=_run_with_sem,
+                        causal_diagnosis=causal_diagnosis_text,
                     )
                 )
                 t_xai = tg.create_task(
@@ -457,18 +433,18 @@ async def generate_profile_synthesis_and_pdf_task(
                         matrix_context=matrix_context,
                         active_profile_dto=active_profile_dto,
                         sem_runner=_run_with_sem,
+                        causal_diagnosis=causal_diagnosis_text,
                     )
                 )
 
             t_row = tg.create_task(
                 create_row_explanations_task(
-                    repo=repo,
+                    client=client,
                     matrices_to_explain=matrices_to_explain,
                     active_profile_dto=active_profile_dto,
                     accept_language=accept_language,
-                    execution=execution,
-                    workflow_registry_id=workflow_def.model_registry_id,
                     sem_runner=_run_with_sem,
+                    causal_diagnosis=causal_diagnosis_text,
                 )
             )
 

@@ -5,11 +5,24 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.domain.proposition_graph import FalsifiedClaimMatch
+from backend_v2.models.dtos.causal_discovery import (
+    AntiFluffAuditDTO,
+    CausalGraphPayloadDTO,
+    CausalNodeDTO,
+    CausalRootCauseDiagnosisDTO,
+    CausalTdaFusionResultDTO,
+    FairScoringBreakdownDTO,
+    PrescriptiveRemediationDTO,
+)
 from backend_v2.models.dtos.synthesis import (
+    CausalSynthesisBriefDTO,
     ExecutiveSummarySectionResult,
     MatrixExplanationContextDTO,
     MatrixExplanationContextList,
     MatrixExplanationsResult,
+    MatrixFailureDeficitDTO,
     MatrixSectionSynthesesResult,
     SynthesisDistillationDTO,
     SynthesisOutputDTO,
@@ -18,7 +31,7 @@ from backend_v2.models.dtos.synthesis import (
     XaiHighlightItem,
     XaiHighlightsResult,
 )
-from backend_v2.models.enums import RoleClassification
+from backend_v2.models.enums import DependencyRelationType, EntityPrefix, ExecutionStatus, RoleClassification
 from backend_v2.models.view.sdui import ParagraphBlock
 
 
@@ -296,3 +309,149 @@ def test_row_explanation_and_matrix_explanations_result_strictness() -> None:
 
     with pytest.raises(ValidationError):
         MatrixExplanationsResult.model_validate({"explanations": "not_a_list"})
+
+
+def test_matrix_failure_deficit_dto_and_causal_synthesis_brief_dto() -> None:
+    """Test MatrixFailureDeficitDTO and CausalSynthesisBriefDTO positive, boundary, and negative cases."""
+    deficit = MatrixFailureDeficitDTO(
+        claim="Quantified ROI Metric",
+        status="FAILED",
+        scale_score=3,
+        evaluation_reasoning="Step 4: Missing ROI calculation.",
+        is_inverse_evidence=True,
+        short_circuited_by_claims=[],
+        anti_patterns=["Vague benefit statements"],
+        contrastive_rejected="ROI will be good.",
+        contrastive_acceptable="NPV is 1.2M EUR over 36 months.",
+    )
+    assert deficit.status == "FAILED"
+    assert deficit.scale_score == 3
+
+    with pytest.raises(ValidationError):
+        MatrixFailureDeficitDTO.model_validate(
+            {
+                "claim": "Valid claim",
+                "status": "PASSED",
+                "scale_score": 2,
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        MatrixFailureDeficitDTO.model_validate(
+            {
+                "claim": "Valid claim",
+                "status": "FAILED",
+                "scale_score": 2,
+                "extra_field": "forbidden",
+            }
+        )
+
+    claim_id = generate_opaque_id(EntityPrefix.NODE)
+    warrant_id = generate_opaque_id(EntityPrefix.NODE)
+    rebuttal_id = generate_opaque_id(EntityPrefix.NODE)
+
+    fusion_payload = CausalTdaFusionResultDTO(
+        graph=CausalGraphPayloadDTO(
+            nodes=[
+                CausalNodeDTO(
+                    node_id=warrant_id,
+                    claim="Warrant Claim",
+                    status=ExecutionStatus.FAILED,
+                ),
+                CausalNodeDTO(
+                    node_id=claim_id,
+                    claim="Target Claim",
+                    status=ExecutionStatus.FAILED,
+                ),
+                CausalNodeDTO(
+                    node_id=rebuttal_id,
+                    claim="Rebuttal Claim",
+                    status=ExecutionStatus.PASSED,
+                ),
+            ],
+            edges=[],
+            root_cause_node_ids=[warrant_id],
+            cycle_detected=False,
+        ),
+        root_cause_diagnoses=[
+            CausalRootCauseDiagnosisDTO(
+                root_cause_parent_id=warrant_id,
+                root_cause_claim="",
+                failing_node_id=claim_id,
+                failing_node_claim="",
+                warrant_relation=DependencyRelationType.WARRANTS,
+                paragraph_ref="p1",
+                explanation="Warrant missing.",
+                penalty_points=1.25,
+            )
+        ],
+        falsified_claims=[
+            FalsifiedClaimMatch(
+                falsified_claim_id=claim_id,
+                claim_statement="Target Claim",
+                invalidated_warrant_id=warrant_id,
+                rebuttal_id=rebuttal_id,
+                rebuttal_confidence=0.95,
+            )
+        ],
+        prescriptive_remediations=[
+            PrescriptiveRemediationDTO(
+                target_node_id=claim_id,
+                required_action="Fix warrant.",
+                unlocks_node_ids=[],
+                potential_score_impact=1.25,
+            )
+        ],
+        anti_fluff_audit=AntiFluffAuditDTO(
+            isolated_concept_count=0,
+            cycle_detected=False,
+            unsupported_claims_count=0,
+            logical_cohesion_score=0.75,
+        ),
+        fair_scoring=FairScoringBreakdownDTO(
+            independent_error_count=1,
+            cascading_fault_count=1,
+            raw_penalty_points=2.0,
+            deduplicated_penalty_points=1.25,
+            dampened_savings_points=0.75,
+        ),
+    )
+
+    brief = CausalSynthesisBriefDTO.from_causal_payload(fusion_payload)
+    formatted = brief.format_for_prompt()
+    assert "Intact Propositions: 1/3" in formatted
+    assert "Logical Cohesion: 0.75" in formatted
+    assert "Warrant Claim -> Target Claim (warrants): Warrant missing." in formatted
+    assert "Rebuttal Claim -> Warrant Claim -> Target Claim (confidence: 0.95)" in formatted
+    assert "Target Claim: Fix warrant. (impact: +1.25)" in formatted
+    assert "Fair Scoring Summary:" in formatted
+
+    graph_only = CausalGraphPayloadDTO(
+        nodes=[
+            CausalNodeDTO(
+                node_id="node_a",
+                claim="Standalone Premise",
+                status=ExecutionStatus.PASSED,
+            ),
+            CausalNodeDTO(
+                node_id="node_b",
+                claim="   ",
+                status=ExecutionStatus.FAILED,
+            ),
+        ],
+        edges=[],
+        root_cause_node_ids=["node_a", "node_b"],
+        cycle_detected=True,
+    )
+    brief_graph = CausalSynthesisBriefDTO.from_causal_payload(graph_only)
+    formatted_graph = brief_graph.format_for_prompt()
+    assert "Total Propositions: 2" in formatted_graph
+    assert "Cycle Detected: True" in formatted_graph
+    assert "Root Cause Proposition: Standalone Premise" in formatted_graph
+    assert "Root Cause Proposition: node_b" in formatted_graph
+
+    with pytest.raises(ValidationError):
+        CausalSynthesisBriefDTO(intact_propositions=-1, total_propositions=1)
+
+    with pytest.raises(ValidationError):
+        CausalSynthesisBriefDTO.model_validate({"intact_propositions": 1, "extra_unknown": "forbidden"})

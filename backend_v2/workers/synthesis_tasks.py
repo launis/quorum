@@ -9,10 +9,8 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
-from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.system_config import ChatMessageDTO
 from backend_v2.models.domain.usage import TokenUsage
@@ -25,11 +23,10 @@ from backend_v2.models.dtos.synthesis import (
     SynthesisDistillationDTO,
     XaiHighlightsResult,
 )
-from backend_v2.models.enums import (
-    CognitiveTier,
-    PresetView,
-)
+from backend_v2.models.enums import PresetView
 from backend_v2.models.prompts import (
+    CAUSAL_TDA_DIAGNOSIS_MANDATE,
+    CONTRASTIVE_FRONTIER_MANDATE,
     EXECUTIVE_SUMMARY_SECTION_ID,
     EXECUTIVE_SUMMARY_SECTION_RULES_PREFIX,
     ROW_EXPLANATION_SYSTEM_PROMPT,
@@ -105,7 +102,12 @@ async def create_executive_summary_task(
         return None
 
     exec_dynamic_parts = list(base_dynamic_parts)
-    if active_profile_dto and active_profile_dto.synthesis_length_constraint:
+    # Phase 2, Step 2.3: Inject <section_budget> only when > 0; unbounded when 0 or None
+    if (
+        active_profile_dto
+        and active_profile_dto.synthesis_length_constraint is not None
+        and active_profile_dto.synthesis_length_constraint > 0
+    ):
         exec_dynamic_parts.append(f"<section_budget>{active_profile_dto.synthesis_length_constraint}</section_budget>")
     exec_section_rule = (
         f"{EXECUTIVE_SUMMARY_SECTION_RULES_PREFIX}\n"
@@ -146,6 +148,7 @@ async def create_matrix_sections_tasks(
     active_profile_dto: OutputProfile | None,
     distilled_data: SynthesisDistillationDTO,
     sem_runner: Callable[[Awaitable[Any]], Awaitable[Any]],
+    causal_diagnosis: str | None = None,
 ) -> list[tuple[str, Any]]:
     """Build and execute matrix synthesis group structured tasks.
 
@@ -158,6 +161,7 @@ async def create_matrix_sections_tasks(
         active_profile_dto: Active profile containing group configurations.
         distilled_data: Distillation DTO containing locale and title map.
         sem_runner: Concurrency runner executing coroutines under semaphore.
+        causal_diagnosis: Optional formatted CausalSynthesisBriefDTO to inject into dynamic tail.
 
     Returns:
         List of tuples mapping group ID to (MatrixSectionSynthesesResult, TokenUsage).
@@ -207,7 +211,11 @@ async def create_matrix_sections_tasks(
             target_str = f' targets="{", ".join(target_titles)}"'
 
         grp_dynamic_parts = list(base_dynamic_parts)
-        if active_profile_dto.matrix_graph_length_constraint:
+        # Phase 2, Step 2.3: Inject <section_budget> only when > 0; unbounded when 0 or None
+        if (
+            active_profile_dto.matrix_graph_length_constraint is not None
+            and active_profile_dto.matrix_graph_length_constraint > 0
+        ):
             grp_dynamic_parts.append(
                 f"<section_budget>{active_profile_dto.matrix_graph_length_constraint}</section_budget>"
             )
@@ -217,6 +225,8 @@ async def create_matrix_sections_tasks(
             f"</section_instruction>\n\n{SECTION_SYNTHESIS_DIRECTIVE_BLOCK}"
         )
         grp_dynamic_parts.append(grp_section_rule)
+        if causal_diagnosis and causal_diagnosis.strip():
+            grp_dynamic_parts.append(f"<causal_diagnosis>\n{causal_diagnosis.strip()}\n</causal_diagnosis>")
         grp_dynamic_context = "\n\n".join(grp_dynamic_parts)
 
         grp_messages: list[ChatMessageDTO] = [
@@ -249,6 +259,7 @@ async def create_xai_highlights_task(
     matrix_context: str,
     active_profile_dto: OutputProfile | None,
     sem_runner: Callable[[Awaitable[Any]], Awaitable[Any]],
+    causal_diagnosis: str | None = None,
 ) -> Any | None:
     """Build and execute the XAI highlights structured task.
 
@@ -260,6 +271,7 @@ async def create_xai_highlights_task(
         matrix_context: Formatted matrix evaluation context.
         active_profile_dto: Active profile containing XAI configuration.
         sem_runner: Concurrency runner executing coroutines under semaphore.
+        causal_diagnosis: Optional formatted CausalSynthesisBriefDTO to inject into dynamic tail.
 
     Returns:
         A tuple of (XaiHighlightsResult, TokenUsage) if generated, or None if skipped.
@@ -309,9 +321,12 @@ async def create_xai_highlights_task(
     xai_cur = f"{xai_directive_str}\n\n{curation_prompt}"
 
     xai_dynamic_parts = list(base_dynamic_parts)
-    if active_profile_dto.xai_length_constraint:
+    # Phase 2, Step 2.3: Inject <section_budget> only when > 0; unbounded when 0 or None
+    if active_profile_dto.xai_length_constraint is not None and active_profile_dto.xai_length_constraint > 0:
         xai_dynamic_parts.append(f"<section_budget>{active_profile_dto.xai_length_constraint}</section_budget>")
     xai_dynamic_parts.append(xai_cur)
+    if causal_diagnosis and causal_diagnosis.strip():
+        xai_dynamic_parts.append(f"<causal_diagnosis>\n{causal_diagnosis.strip()}\n</causal_diagnosis>")
     xai_dynamic_context = "\n\n".join(xai_dynamic_parts)
 
     xai_messages: list[ChatMessageDTO] = [
@@ -334,24 +349,22 @@ async def create_xai_highlights_task(
 
 
 async def create_row_explanations_task(
-    repo: UnifiedWorkflowRepository,
+    client: LLMClient,
     matrices_to_explain: list[MatrixExplanationContextDTO],
     active_profile_dto: OutputProfile | None,
     accept_language: str,
-    execution: ExecutionRecord,
-    workflow_registry_id: str | None,
     sem_runner: Callable[[Awaitable[Any]], Awaitable[Any]],
+    causal_diagnosis: str | None = None,
 ) -> Any | None:
-    """Build and execute row explanations structured task using FAST cognitive tier.
+    """Build and execute row explanations structured task using the shared BALANCED cognitive tier client.
 
     Args:
-        repo: Repository for resolving model configurations and credentials.
+        client: Shared CognitiveTier.BALANCED LLMClient instance.
         matrices_to_explain: List of matrix explanation context DTOs.
         active_profile_dto: Active output profile with row explanation rules.
         accept_language: Target locale string for output translation.
-        execution: Current execution record for metadata resolution.
-        workflow_registry_id: Optional fallback model registry identifier.
         sem_runner: Concurrency runner executing coroutines under semaphore.
+        causal_diagnosis: Optional formatted CausalSynthesisBriefDTO to inject into dynamic tail.
 
     Returns:
         A tuple of (MatrixExplanationsResult, TokenUsage) if successful, or None if skipped.
@@ -359,21 +372,13 @@ async def create_row_explanations_task(
     if not matrices_to_explain or (active_profile_dto is not None and not active_profile_dto.requires_row_explanations):
         return None
 
-    row_provider_override = None
-    row_reg_id = None
-    if execution.metadata:
-        row_provider_override = execution.metadata.provider_override
-        row_reg_id = execution.metadata.model_registry_id
-    if not row_reg_id:
-        row_reg_id = workflow_registry_id
-
-    client = await LLMClient.from_tier(
-        CognitiveTier.FAST,
-        repository=repo,
-        provider=row_provider_override,
-        registry_id=row_reg_id,
+    # Phase 2, Step 2.3: Use shared CognitiveTier.BALANCED client and static reasoning mandates
+    row_sys_prompt = (
+        f"{ROW_EXPLANATION_SYSTEM_PROMPT}\n\n"
+        f"{CAUSAL_TDA_DIAGNOSIS_MANDATE}\n\n"
+        f"{CONTRASTIVE_FRONTIER_MANDATE}\n\n"
+        f"{STATIC_LINGUISTIC_PROTOCOL}"
     )
-    row_sys_prompt = f"{ROW_EXPLANATION_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
     row_lang_params = build_linguistic_parameters(source_language="Unknown", target_locale=accept_language)
 
     row_directive_str = None
@@ -397,10 +402,17 @@ async def create_row_explanations_task(
         if tone:
             row_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
     row_dynamic_parts.append(row_directive_str)
-    if active_profile_dto and active_profile_dto.row_explanation_length_constraint:
+    # Phase 2, Step 2.3: Inject <section_budget> only when > 0; unbounded when 0 or None
+    if (
+        active_profile_dto
+        and active_profile_dto.row_explanation_length_constraint is not None
+        and active_profile_dto.row_explanation_length_constraint > 0
+    ):
         row_dynamic_parts.append(
             f"<section_budget>{active_profile_dto.row_explanation_length_constraint}</section_budget>"
         )
+    if causal_diagnosis and causal_diagnosis.strip():
+        row_dynamic_parts.append(f"<causal_diagnosis>\n{causal_diagnosis.strip()}\n</causal_diagnosis>")
     row_dynamic_ctx = "\n\n".join(row_dynamic_parts)
 
     matrices_json = ""

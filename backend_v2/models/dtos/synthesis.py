@@ -6,12 +6,13 @@ outputs of the reporting synthesis pipeline.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
 from pydantic import ConfigDict, Field, TypeAdapter
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import LaxRoleClassification
+from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalTdaFusionResultDTO
+from backend_v2.models.enums import ExecutionStatus, LaxRoleClassification
 from backend_v2.models.view.sdui import (
     AlertBlock,
     BulletListBlock,
@@ -21,6 +22,7 @@ from backend_v2.models.view.sdui import (
 )
 
 __all__ = [
+    "CausalSynthesisBriefDTO",
     "ExecutiveSummarySectionResult",
     "LlmSduiBlock",
     "MatrixExplanationContextDTO",
@@ -127,6 +129,211 @@ class MatrixFailureDeficitDTO(V2CoreBase):
         str | None,
         Field(default=None, description="Contrastive acceptable exemplar satisfying the assertion."),
     ] = None
+
+
+# Phase 2, Step 2.3: Unified CausalSynthesisBriefDTO for 4-Task Synthesis Fan-Out
+class CausalSynthesisBriefDTO(V2CoreBase):
+    """Structured causal and Toulmin falsification synthesis brief for prompt tail injection.
+
+    Attributes:
+        intact_propositions: Count of intact (PASSED) propositions in the causal graph.
+        total_propositions: Total number of propositions in the causal graph.
+        logical_cohesion_score: Overall structural cohesion score in [0.0, 1.0].
+        cycle_detected: Flag indicating whether circular reasoning was detected.
+        root_cause_fault_chains: Resolved human-readable fault chains (root_cause_claim -> failing_node_claim).
+        toulmin_rebuttals: Resolved 3-way Toulmin falsifications (rebuttal_claim -> invalidated_warrant -> falsified_claim).
+        prescriptive_remediations: Resolved prescriptive remediation actions targeting failing claims.
+        post_hoc_fidelity_penalties: Post-hoc fidelity and fair-scoring penalty deductions across causal chains.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    intact_propositions: Annotated[
+        int,
+        Field(ge=0, default=0, description="Count of intact (PASSED) propositions in the causal graph."),
+    ] = 0
+    total_propositions: Annotated[
+        int,
+        Field(ge=0, default=0, description="Total number of propositions in the causal graph."),
+    ] = 0
+    logical_cohesion_score: Annotated[
+        float | None,
+        Field(default=None, description="Overall structural cohesion score in [0.0, 1.0]."),
+    ] = None
+    cycle_detected: Annotated[
+        bool,
+        Field(default=False, description="Flag indicating whether circular reasoning was detected."),
+    ] = False
+    root_cause_fault_chains: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Resolved human-readable fault chains (root_cause_claim -> failing_node_claim).",
+        ),
+    ]
+    toulmin_rebuttals: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description=(
+                "Resolved 3-way Toulmin falsifications (rebuttal_claim -> invalidated_warrant -> falsified_claim)."
+            ),
+        ),
+    ]
+    prescriptive_remediations: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Resolved prescriptive remediation actions targeting failing claims.",
+        ),
+    ]
+    post_hoc_fidelity_penalties: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Post-hoc fidelity and fair-scoring penalty deductions across causal chains.",
+        ),
+    ]
+
+    @classmethod
+    def from_causal_payload(
+        cls,
+        causal_payload: CausalTdaFusionResultDTO | CausalGraphPayloadDTO,
+    ) -> Self:
+        """Construct a CausalSynthesisBriefDTO from a causal fusion result or causal graph payload.
+
+        Args:
+            causal_payload: Evaluated CausalTdaFusionResultDTO or CausalGraphPayloadDTO instance.
+
+        Returns:
+            Populated CausalSynthesisBriefDTO with human-readable claims, Toulmin rebuttals, and penalties.
+        """
+        match causal_payload:
+            case CausalTdaFusionResultDTO():
+                node_claim_by_id: dict[str, str] = {
+                    n.node_id: n.claim.strip() for n in causal_payload.graph.nodes if n.claim.strip()
+                }
+                intact = sum(1 for n in causal_payload.graph.nodes if n.status == ExecutionStatus.PASSED)
+                total = len(causal_payload.graph.nodes)
+
+                fault_chains: list[str] = []
+                penalties: list[str] = []
+                for diag in causal_payload.root_cause_diagnoses:
+                    root_label = diag.root_cause_claim.strip()
+                    if not root_label and diag.root_cause_parent_id in node_claim_by_id:
+                        root_label = node_claim_by_id[diag.root_cause_parent_id]
+                    if not root_label:
+                        root_label = diag.root_cause_parent_id
+
+                    failing_label = diag.failing_node_claim.strip()
+                    if not failing_label and diag.failing_node_id in node_claim_by_id:
+                        failing_label = node_claim_by_id[diag.failing_node_id]
+                    if not failing_label:
+                        failing_label = diag.failing_node_id
+
+                    fault_chains.append(
+                        f"{root_label} -> {failing_label} ({diag.warrant_relation}): {diag.explanation}"
+                    )
+                    if diag.penalty_points > 0.0:
+                        penalties.append(f"{failing_label}: -{diag.penalty_points:.2f} ({diag.root_cause_type})")
+
+                rebuttals: list[str] = []
+                for match_item in causal_payload.falsified_claims:
+                    rebuttal_label = "Rebuttal"
+                    if match_item.rebuttal_id in node_claim_by_id:
+                        rebuttal_label = node_claim_by_id[match_item.rebuttal_id]
+                    warrant_label = "Invalidated Warrant"
+                    if match_item.invalidated_warrant_id in node_claim_by_id:
+                        warrant_label = node_claim_by_id[match_item.invalidated_warrant_id]
+                    rebuttals.append(
+                        f"{rebuttal_label} -> {warrant_label} -> {match_item.claim_statement} "
+                        f"(confidence: {match_item.rebuttal_confidence:.2f})"
+                    )
+
+                remediations: list[str] = []
+                for rem in causal_payload.prescriptive_remediations:
+                    target_label = rem.target_node_id
+                    if rem.target_node_id in node_claim_by_id:
+                        target_label = node_claim_by_id[rem.target_node_id]
+                    remediations.append(
+                        f"{target_label}: {rem.required_action} (impact: +{rem.potential_score_impact:.2f})"
+                    )
+
+                fs = causal_payload.fair_scoring
+                if fs.raw_penalty_points > 0.0 or fs.deduplicated_penalty_points > 0.0:
+                    penalties.append(
+                        f"Fair Scoring Summary: raw=-{fs.raw_penalty_points:.2f}, "
+                        f"deduplicated=-{fs.deduplicated_penalty_points:.2f}, "
+                        f"dampened_savings=+{fs.dampened_savings_points:.2f} "
+                        f"(independent_errors={fs.independent_error_count}, "
+                        f"cascading_faults={fs.cascading_fault_count})"
+                    )
+
+                return cls(
+                    intact_propositions=intact,
+                    total_propositions=total,
+                    logical_cohesion_score=causal_payload.anti_fluff_audit.logical_cohesion_score,
+                    cycle_detected=causal_payload.graph.cycle_detected,
+                    root_cause_fault_chains=fault_chains,
+                    toulmin_rebuttals=rebuttals,
+                    prescriptive_remediations=remediations,
+                    post_hoc_fidelity_penalties=penalties,
+                )
+            case CausalGraphPayloadDTO():
+                node_claim_by_id = {n.node_id: n.claim.strip() for n in causal_payload.nodes if n.claim.strip()}
+                intact = sum(1 for n in causal_payload.nodes if n.status == ExecutionStatus.PASSED)
+                root_chains: list[str] = []
+                for root_id in causal_payload.root_cause_node_ids:
+                    resolved_root = root_id
+                    if root_id in node_claim_by_id:
+                        resolved_root = node_claim_by_id[root_id]
+                    root_chains.append(f"Root Cause Proposition: {resolved_root}")
+                return cls(
+                    intact_propositions=intact,
+                    total_propositions=len(causal_payload.nodes),
+                    logical_cohesion_score=None,
+                    cycle_detected=causal_payload.cycle_detected,
+                    root_cause_fault_chains=root_chains,
+                    toulmin_rebuttals=[],
+                    prescriptive_remediations=[],
+                    post_hoc_fidelity_penalties=[],
+                )
+
+    def format_for_prompt(self) -> str:
+        """Serialize the causal synthesis brief into a deterministic markdown block for prompt tail injection.
+
+        Returns:
+            Formatted markdown string summarizing causal fault chains, Toulmin rebuttals, and penalties.
+        """
+        lines: list[str] = []
+        if self.logical_cohesion_score is not None:
+            lines.append(f"Intact Propositions: {self.intact_propositions}/{self.total_propositions}")
+            lines.append(f"Logical Cohesion: {self.logical_cohesion_score:.2f}")
+        else:
+            lines.append(f"Total Propositions: {self.total_propositions}")
+            lines.append(f"Cycle Detected: {self.cycle_detected}")
+
+        if self.root_cause_fault_chains:
+            lines.append("Root Cause Fault Chains:")
+            for chain in self.root_cause_fault_chains:
+                lines.append(f"- {chain}")
+
+        if self.toulmin_rebuttals:
+            lines.append("Toulmin Falsified Claims (Rebuttal -> Invalidated Warrant -> Falsified Claim):")
+            for rebuttal in self.toulmin_rebuttals:
+                lines.append(f"- {rebuttal}")
+
+        if self.prescriptive_remediations:
+            lines.append("Prescriptive Remediations:")
+            for rem in self.prescriptive_remediations:
+                lines.append(f"- {rem}")
+
+        if self.post_hoc_fidelity_penalties:
+            lines.append("Post-Hoc Fidelity Penalties:")
+            for penalty in self.post_hoc_fidelity_penalties:
+                lines.append(f"- {penalty}")
+
+        return "\n".join(lines)
 
 
 class MatrixExplanationContextDTO(V2CoreBase):

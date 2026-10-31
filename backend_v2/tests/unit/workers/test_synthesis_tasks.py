@@ -334,13 +334,13 @@ async def test_create_row_explanations_task_skips_when_empty_matrices() -> None:
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
-    task = await create_row_explanations_task(AsyncMock(), [], prof, "en", _make_execution(), None, dummy_sem)
+    task = await create_row_explanations_task(AsyncMock(), [], prof, "en", dummy_sem)
     assert task is None
 
 
 @pytest.mark.asyncio
 async def test_create_row_explanations_task_happy_path() -> None:
-    """Test create_row_explanations_task executes FAST tier LLM client with tone and budget."""
+    """Test create_row_explanations_task executes shared BALANCED tier LLM client with tone, budget, and causal diagnosis."""
     prof = _make_profile(
         requires_rows=True,
         row_directive="Explain causal row findings.",
@@ -361,13 +361,22 @@ async def test_create_row_explanations_task_happy_path() -> None:
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
-    with patch("backend_v2.workers.synthesis_tasks.LLMClient.from_tier", return_value=mock_client):
-        res = await create_row_explanations_task(
-            AsyncMock(), [ctx_dto], prof, "en", _make_execution(), "reg_123", dummy_sem
-        )
-        assert isinstance(res, MatrixExplanationsResult)
-        assert len(res.explanations) == 1
-        assert res.explanations[0].row_explanation == "Short explanation."
+    res = await create_row_explanations_task(
+        mock_client,
+        [ctx_dto],
+        prof,
+        "en",
+        dummy_sem,
+        causal_diagnosis="Root Cause Fault Chains:\n- Premise A -> Claim B",
+    )
+    assert isinstance(res, MatrixExplanationsResult)
+    assert len(res.explanations) == 1
+    assert res.explanations[0].row_explanation == "Short explanation."
+    call_args = mock_client.run_structured_task.call_args
+    user_content = call_args.kwargs["messages"][1].content
+    assert "<section_budget>60</section_budget>" in user_content
+    assert "<causal_diagnosis>" in user_content
+    assert "Premise A -> Claim B" in user_content
 
 
 @pytest.mark.asyncio
@@ -385,9 +394,8 @@ async def test_create_row_explanations_task_missing_directive_returns_none() -> 
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
-    with patch("backend_v2.workers.synthesis_tasks.LLMClient.from_tier", return_value=AsyncMock()):
-        res = await create_row_explanations_task(AsyncMock(), [ctx_dto], prof, "en", _make_execution(), None, dummy_sem)
-        assert res is None
+    res = await create_row_explanations_task(AsyncMock(), [ctx_dto], prof, "en", dummy_sem)
+    assert res is None
 
 
 @pytest.mark.asyncio
@@ -404,9 +412,8 @@ async def test_create_row_explanations_task_none_profile_returns_none() -> None:
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
-    with patch("backend_v2.workers.synthesis_tasks.LLMClient.from_tier", return_value=AsyncMock()):
-        res = await create_row_explanations_task(AsyncMock(), [ctx_dto], None, "en", _make_execution(), None, dummy_sem)
-        assert res is None
+    res = await create_row_explanations_task(AsyncMock(), [ctx_dto], None, "en", dummy_sem)
+    assert res is None
 
 
 @pytest.mark.asyncio
@@ -522,3 +529,67 @@ async def test_create_executive_summary_task_with_causal_diagnosis() -> None:
     user_content = messages[1].content
     assert "<causal_diagnosis>" in user_content
     assert "Empirical bottleneck: root cause in Node 0" in user_content
+
+
+@pytest.mark.asyncio
+async def test_create_matrix_sections_and_xai_tasks_inject_causal_diagnosis() -> None:
+    """Test create_matrix_sections_tasks and create_xai_highlights_task inject <causal_diagnosis> when provided."""
+    grp1 = MatrixSynthesisGroup(
+        id="grp_0195f3a00000700283456789abcdef01",
+        title=I18nText(translations={"en": "1D Metrics"}),
+        view_type=PresetView.METRICS_1D,
+        target_blocks=["blk_1"],
+    )
+    prof = _make_profile(
+        requires_groups=True,
+        groups=[grp1],
+        extensions=[XaiExtensionType.VARIANCE_VALIDATION],
+        xai_directive="Curate highlights.",
+    )
+    distilled = SynthesisDistillationDTO(
+        distilled_inputs="inputs",
+        title_map={"blk_1": "Block 1 Title"},
+        target_locale="en",
+    )
+    mock_client = AsyncMock()
+    sec = SynthesisSectionDTO(
+        layout_id="sec_1",
+        content_blocks=[ParagraphBlock(text="Group text", exact_quotes=[], citations=[])],
+    )
+    mock_client.run_structured_task.return_value = MatrixSectionSynthesesResult(sections=[sec])
+
+    async def dummy_sem(coro: Any) -> Any:
+        return await coro
+
+    await create_matrix_sections_tasks(
+        mock_client,
+        "sys",
+        ["<part>"],
+        "distilled",
+        "matrix",
+        prof,
+        distilled,
+        dummy_sem,
+        causal_diagnosis="Fault Chain: Warrant -> Claim",
+    )
+    matrix_user_content = mock_client.run_structured_task.call_args.kwargs["messages"][1].content
+    assert "<causal_diagnosis>" in matrix_user_content
+    assert "Fault Chain: Warrant -> Claim" in matrix_user_content
+
+    mock_client.reset_mock()
+    mock_client.run_structured_task.return_value = XaiHighlightsResult(
+        xai_highlights=[XaiHighlightItem(extension_type="variance_validation", content="Insight")]
+    )
+    await create_xai_highlights_task(
+        mock_client,
+        "sys",
+        ["<part>"],
+        "distilled",
+        "matrix",
+        prof,
+        dummy_sem,
+        causal_diagnosis="Toulmin Rebuttal: Counter -> Warrant -> Claim",
+    )
+    xai_user_content = mock_client.run_structured_task.call_args.kwargs["messages"][1].content
+    assert "<causal_diagnosis>" in xai_user_content
+    assert "Toulmin Rebuttal: Counter -> Warrant -> Claim" in xai_user_content

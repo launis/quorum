@@ -14,6 +14,8 @@ from backend_v2.models.prompts.synthesis.style_directives import (
     SYNTHESIS_NO_CITATION_RULES,
 )
 from backend_v2.models.prompts.synthesis.synthesis_directives import (
+    CAUSAL_TDA_DIAGNOSIS_MANDATE,
+    CONTRASTIVE_FRONTIER_MANDATE,
     EXECUTIVE_SUMMARY_SECTION_ID,
     EXECUTIVE_SUMMARY_SECTION_RULES_PREFIX,
     ROW_EXPLANATION_SYSTEM_PROMPT,
@@ -25,6 +27,8 @@ from backend_v2.models.prompts.synthesis.synthesis_directives import (
 
 __all__ = [
     "ANTI_JARGON_MANDATE_BLOCK",
+    "CAUSAL_TDA_DIAGNOSIS_MANDATE",
+    "CONTRASTIVE_FRONTIER_MANDATE",
     "EXECUTIVE_SUMMARY_SECTION_ID",
     "EXECUTIVE_SUMMARY_SECTION_RULES_PREFIX",
     "ROW_EXPLANATION_SYSTEM_PROMPT",
