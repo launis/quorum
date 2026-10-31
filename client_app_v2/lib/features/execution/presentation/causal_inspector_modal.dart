@@ -37,68 +37,72 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-    final semanticColors = context.semanticColors;
-    final langCode = Localizations.localeOf(context).languageCode;
-    final summaryText = widget.block.summary.get(langCode);
-
-    final selectedNode = _findNode(_selectedNodeId);
-
     return AppErrorBoundary(
-      child: Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.s12),
-        ),
-        backgroundColor: colorScheme.surface,
-        surfaceTintColor: colorScheme.surfaceTint,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 1100, maxHeight: 750),
-          padding: const EdgeInsets.all(AppSpacing.s16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeader(
-                context,
-                summaryText,
-                colorScheme,
-                textTheme,
-                semanticColors,
-              ),
-              AppSpacing.h12,
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      flex: 6,
-                      child: _buildGraphCanvas(
-                        context,
-                        colorScheme,
-                        textTheme,
-                        semanticColors,
-                      ),
+      child: Builder(
+        builder: (context) {
+          final theme = Theme.of(context);
+          final colorScheme = theme.colorScheme;
+          final textTheme = theme.textTheme;
+          final semanticColors = context.semanticColors;
+          final langCode = Localizations.localeOf(context).languageCode;
+          final summaryText = widget.block.summary.get(langCode);
+
+          final selectedNode = _findNode(_selectedNodeId);
+
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.s12),
+            ),
+            backgroundColor: colorScheme.surface,
+            surfaceTintColor: colorScheme.surfaceTint,
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 1100, maxHeight: 750),
+              padding: const EdgeInsets.all(AppSpacing.s16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildHeader(
+                    context,
+                    summaryText,
+                    colorScheme,
+                    textTheme,
+                    semanticColors,
+                  ),
+                  AppSpacing.h12,
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          flex: 6,
+                          child: _buildGraphCanvas(
+                            context,
+                            colorScheme,
+                            textTheme,
+                            semanticColors,
+                          ),
+                        ),
+                        AppSpacing.w16,
+                        Expanded(
+                          flex: 4,
+                          child: _buildDetailPanel(
+                            context,
+                            selectedNode,
+                            colorScheme,
+                            textTheme,
+                            semanticColors,
+                          ),
+                        ),
+                      ],
                     ),
-                    AppSpacing.w16,
-                    Expanded(
-                      flex: 4,
-                      child: _buildDetailPanel(
-                        context,
-                        selectedNode,
-                        colorScheme,
-                        textTheme,
-                        semanticColors,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  AppSpacing.h12,
+                  _buildFooter(context, colorScheme, textTheme, semanticColors),
+                ],
               ),
-              AppSpacing.h12,
-              _buildFooter(context, colorScheme, textTheme, semanticColors),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -118,9 +122,14 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
     TextTheme textTheme,
     AppSemanticColors semanticColors,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
-        Icon(Icons.hub_outlined, color: colorScheme.primary, size: 24),
+        Icon(
+          Icons.hub_outlined,
+          color: colorScheme.primary,
+          size: AppSpacing.s24,
+        ),
         AppSpacing.w8,
         Expanded(
           child: Column(
@@ -128,11 +137,13 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                AppLocalizations.of(context)!.causalInspectorTitle,
+                l10n.causalInspectorTitle,
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               if (summaryText.isNotEmpty)
                 Text(
@@ -147,23 +158,27 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
           ),
         ),
         AppSpacing.w8,
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.s8,
-            vertical: AppSpacing.s4,
-          ),
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(AppSpacing.s12),
-            border: Border.all(
-              color: colorScheme.primary.withValues(alpha: 0.3),
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.s8,
+              vertical: AppSpacing.s4,
             ),
-          ),
-          child: Text(
-            '${widget.block.intactClaimsCount} / ${widget.block.totalClaimsCount} Intact',
-            style: textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onPrimaryContainer,
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(AppSpacing.s12),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Text(
+              '${widget.block.intactClaimsCount} / ${widget.block.totalClaimsCount} Intact',
+              style: textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onPrimaryContainer,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
@@ -171,7 +186,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
         IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
-          tooltip: 'Close',
+          tooltip: l10n.close,
         ),
       ],
     );
@@ -267,31 +282,36 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: AppSpacing.s6,
-                                      vertical: AppSpacing.s2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isPassed
-                                          ? colorScheme.primaryContainer
-                                          : colorScheme.errorContainer,
-                                      borderRadius: BorderRadius.circular(
-                                        AppSpacing.s4,
+                                  Flexible(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.s6,
+                                        vertical: AppSpacing.s2,
                                       ),
-                                    ),
-                                    child: Text(
-                                      node.nodeId,
-                                      style: textTheme.labelSmall?.copyWith(
-                                        fontWeight: FontWeight.bold,
+                                      decoration: BoxDecoration(
                                         color: isPassed
-                                            ? colorScheme.onPrimaryContainer
-                                            : colorScheme.onErrorContainer,
+                                            ? colorScheme.primaryContainer
+                                            : colorScheme.errorContainer,
+                                        borderRadius: BorderRadius.circular(
+                                          AppSpacing.s4,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        node.nodeId,
+                                        style: textTheme.labelSmall?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: isPassed
+                                              ? colorScheme.onPrimaryContainer
+                                              : colorScheme.onErrorContainer,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ),
                                   AppSpacing.w8,
                                   Expanded(
+                                    flex: 2,
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
@@ -319,28 +339,32 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                                     ),
                                   ),
                                   AppSpacing.w8,
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: AppSpacing.s6,
-                                      vertical: AppSpacing.s2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isPassed
-                                          ? colorScheme.primaryContainer
-                                                .withValues(alpha: 0.5)
-                                          : colorScheme.errorContainer
-                                                .withValues(alpha: 0.5),
-                                      borderRadius: BorderRadius.circular(
-                                        AppSpacing.s4,
+                                  Flexible(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.s6,
+                                        vertical: AppSpacing.s2,
                                       ),
-                                    ),
-                                    child: Text(
-                                      isPassed ? 'PASSED' : 'FAULT',
-                                      style: textTheme.labelSmall?.copyWith(
-                                        fontWeight: FontWeight.bold,
+                                      decoration: BoxDecoration(
                                         color: isPassed
-                                            ? colorScheme.primary
-                                            : colorScheme.error,
+                                            ? colorScheme.primaryContainer
+                                                  .withValues(alpha: 0.5)
+                                            : colorScheme.errorContainer
+                                                  .withValues(alpha: 0.5),
+                                        borderRadius: BorderRadius.circular(
+                                          AppSpacing.s4,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        isPassed ? 'PASSED' : 'FAULT',
+                                        style: textTheme.labelSmall?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: isPassed
+                                              ? colorScheme.primary
+                                              : colorScheme.error,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ),
@@ -360,15 +384,19 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                               children: [
                                 Icon(
                                   Icons.arrow_downward,
-                                  size: 16,
+                                  size: AppSpacing.s16,
                                   color: colorScheme.outline,
                                 ),
                                 AppSpacing.w8,
-                                Text(
-                                  'causal fault propagation',
-                                  style: textTheme.labelSmall?.copyWith(
-                                    color: colorScheme.outline,
-                                    fontStyle: FontStyle.italic,
+                                Flexible(
+                                  child: Text(
+                                    'causal fault propagation',
+                                    style: textTheme.labelSmall?.copyWith(
+                                      color: colorScheme.outline,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
@@ -401,11 +429,15 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '${edge.sourceId} → ${edge.targetId}',
-                            style: textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.primary,
+                          Flexible(
+                            child: Text(
+                              '${edge.sourceId} → ${edge.targetId}',
+                              style: textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           AppSpacing.w8,
@@ -460,20 +492,24 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.s6,
-                          vertical: AppSpacing.s2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(AppSpacing.s4),
-                        ),
-                        child: Text(
-                          node.nodeId,
-                          style: textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onPrimaryContainer,
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.s6,
+                            vertical: AppSpacing.s2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(AppSpacing.s4),
+                          ),
+                          child: Text(
+                            node.nodeId,
+                            style: textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onPrimaryContainer,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ),
@@ -485,6 +521,8 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                             fontWeight: FontWeight.bold,
                             color: colorScheme.onSurface,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -723,7 +761,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
       ),
       child: Row(
         children: [
-          Icon(Icons.balance, size: 16, color: colorScheme.primary),
+          Icon(Icons.balance, size: AppSpacing.s16, color: colorScheme.primary),
           AppSpacing.w8,
           Expanded(
             child: fairScoring != null

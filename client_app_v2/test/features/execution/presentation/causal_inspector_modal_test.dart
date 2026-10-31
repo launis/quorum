@@ -261,5 +261,88 @@ void main() {
 
       expect(find.byType(CausalInspectorModal), findsNothing);
     });
+
+    testWidgets(
+      'negative: empty I18nText summary triggers Fail-Fast AppErrorBoundary diagnostic node',
+      (tester) async {
+        final originalOnError = FlutterError.onError;
+        FlutterError.onError = (FlutterErrorDetails details) {};
+
+        try {
+          const invalidBlock = SduiCausalGraphBlock(
+            id: 'blk_invalid_summary',
+            summary: I18nText(translations: {}),
+            intactClaimsCount: 0,
+            totalClaimsCount: 0,
+            criticalPathNodes: [],
+            criticalEdges: [],
+            rootCauseDiagnoses: [],
+            antiFluffAudit: AntiFluffAuditDto(
+              isolatedConceptCount: 0,
+              cycleDetected: false,
+              unsupportedClaimsCount: 0,
+              logicalCohesionScore: 0.0,
+              detectedHollowTerms: [],
+            ),
+            prescriptiveRemediations: [],
+            fairScoring: null,
+          );
+
+          await tester.pumpWidget(createWidgetUnderTest(invalidBlock));
+          await tester.pumpAndSettle();
+
+          expect(find.byIcon(Icons.report_problem), findsOneWidget);
+          expect(
+            find.textContaining('Fail-Fast: Missing required translation'),
+            findsOneWidget,
+          );
+        } finally {
+          FlutterError.onError = originalOnError;
+        }
+      },
+    );
+
+    testWidgets(
+      'boundary: Finnish locale and long summary text in constrained width contain overflow via ellipsis',
+      (tester) async {
+        final longSummary = 'K' * 300;
+        final boundaryBlock = SduiCausalGraphBlock(
+          id: 'blk_boundary_modal',
+          summary: I18nText(
+            translations: {'fi': longSummary, 'en': longSummary},
+          ),
+          intactClaimsCount: 0,
+          totalClaimsCount: 0,
+          criticalPathNodes: fullBlock.criticalPathNodes,
+          criticalEdges: fullBlock.criticalEdges,
+          rootCauseDiagnoses: fullBlock.rootCauseDiagnoses,
+          antiFluffAudit: fullBlock.antiFluffAudit,
+          prescriptiveRemediations: fullBlock.prescriptiveRemediations,
+          fairScoring: fullBlock.fairScoring,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('fi'),
+            home: Scaffold(
+              body: SizedBox(
+                width: 520,
+                height: 600,
+                child: CausalInspectorModal(block: boundaryBlock),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        final summaryTextWidget = tester.widget<Text>(find.text(longSummary));
+        expect(summaryTextWidget.overflow, TextOverflow.ellipsis);
+        expect(summaryTextWidget.maxLines, 1);
+      },
+    );
   });
 }
