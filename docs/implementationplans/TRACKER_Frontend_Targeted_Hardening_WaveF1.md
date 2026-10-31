@@ -37,7 +37,7 @@
   - [x] @[client_app_v2/lib/core/api/sse_client.dart]
   - [x] @[client_app_v2/lib/core/api/studio_client.dart]
   - [x] @[client_app_v2/lib/core/api/workflow_client.dart]
-  - [ ] @[client_app_v2/lib/core/network/api_client.dart]
+  - [x] @[client_app_v2/lib/core/network/api_client.dart]
   - [ ] @[client_app_v2/lib/core/network/interceptors/auth_interceptor.dart]
   - [ ] @[client_app_v2/lib/core/network/interceptors/dio_logger_interceptor.dart]
   - [ ] @[client_app_v2/lib/core/network/interceptors/error_interceptor.dart]
