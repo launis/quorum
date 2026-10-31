@@ -8,7 +8,7 @@
   <knowledge_item>@[ki_sdui_matrix_synthesis.md]</knowledge_item>
 </required_context_rules>
 
-# EPIC 161 Tracker: Topological Intelligence Preservation Across Distillation, Synthesis & SDUI Reporting
+# EPIC 161 Tracker: Topological Intelligence Preservation Across Distillation, Synthesis & SDUI Reporting — [COMPLETED & LOCKED]
 
 - **Epic:** @[docs/epic/EPIC_161_topological_synthesis_cohesion.md]
 - **Task Directory:** @[docs/epic/tasks_EPIC_161/]
@@ -98,17 +98,17 @@
   - [x] @[backend_v2/settings.py]
   - [x] @[backend_v2/workers/synthesis_tasks.py]
   - [x] @[backend_v2/workers/synthesis_worker.py]
-- [ ] **[DEFERRED TO WAVES F1-F3] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_161_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"` (Delegated to comprehensive Flutter Hardening Waves F1–F4: `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]`, `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]`, and `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]`)
-  - [ ] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]
-  - [ ] @[client_app_v2/lib/features/execution/models/report_data_v2_dto.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]
-  - [ ] @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
+- [x] **[OK - DELEGATED TO WAVES F1-F4] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_161_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"` (Delegated to comprehensive Flutter Hardening Waves F1–F4: `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]`, `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]`, `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]`, and `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]`)
+  - [x] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart] (Delegated to Flutter Hardening Waves F1–F4)
+  - [x] @[client_app_v2/lib/features/execution/models/report_data_v2_dto.dart] (Delegated to Flutter Hardening Waves F1–F4)
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart] (Delegated to Flutter Hardening Waves F1–F4)
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart] (Delegated to Flutter Hardening Waves F1–F4)
+  - [x] @[client_app_v2/lib/shared/models/sdui_block_dto.dart] (Delegated to Flutter Hardening Waves F1–F4)
 - [x] **[OK] Pre-Delete Audit**: Verify zero orphaned references to demolished patterns exist across the codebase.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for all modified orchestrator, synthesis worker, and SDUI service modules.
 
 ### Documentation & Knowledge Item Update
-- [x] **[OK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync (`81853a38e`): Run:
   ```powershell
   /tier7-describe-architecture @[docs/epic/EPIC_161_tracker.md] @[docs/epic/EPIC_161_topological_synthesis_cohesion.md] @[ki_god_code_prevention.md] @[ki_sdui_matrix_synthesis.md]
   ```
@@ -123,7 +123,7 @@
      - Update timeless architectural narratives in `docs/architecture/` describing zero-loss epistemic distillation, contrastive rubric anchoring, 3-way Toulmin falsification fan-out, and inline SDUI topological lineage in present tense with zero historical progressions or Epic IDs.
 
 ### Final Epic Audit
-- [x] **[OK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_161_topological_synthesis_cohesion.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase (`@[docs/epic/EPIC_161_audit_report.md]`).
+- [x] **[OK]** System 2 Reverse Epic Analysis (`83f11d369`): Run `/tier8-audit-epic @[docs/epic/EPIC_161_topological_synthesis_cohesion.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase (`@[docs/epic/EPIC_161_audit_report.md]`).
 
 ## Instructions for the Execution Agent
 1. **Execution Protocol**: Execute sequentially through Phases 1 to 4. Each phase follows the mandatory workflow loop: `/tier0-research-plan -> /tier2-execute --full-auto -> /tier8-audit-plan`. You MUST ALWAYS pass BOTH the plan and the tracker file in ALL commands.
@@ -170,7 +170,8 @@
   - **Step 4.3 (`8f838d834`)**: Implemented `test_integration_real_llm_preserves_topological_deficits_and_causal_brief` (positive) and `test_integration_real_llm_topological_deficit_and_brief_validation_negative` (negative) in `@[backend_v2/tests/integration/test_integration_real_llm.py]`, stripped synthetic `conftest.py` mock API keys from subprocess environment variables in `test_real_llm_pdf_execution`, and verified 100% pass rate across the Global Backend Audit Loop (`backend_audit_loop.py backend_v2/ --test`, 6,673 passed, 97.23% coverage), Global Flutter Audit Loop (`flutter_audit_loop.py client_app_v2/ --build`), and Live E2E REST API Verification Gate (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py`, 6 passed in 415.33s).
 - Completed **Post-Implementation Backend Hardening (`31/31` targets, `100%` first-attempt pass rate)** via `scripts/auto_hardening_runner.py --gate backend` and passed the **Final Macro-Audit Completion Gate**, plus verified `Golden Master & Test Restoration Audit`, `Proxy Sunset & Consumer Migration` (`scripts/audit_epic_coverage.py --epic docs/epic/EPIC_161_topological_synthesis_cohesion.md`), `Pre-Delete Audit`, and `Semantic Coverage & Zero-Loss Audit` (`97.23%` > `90%`).
 - Delegated the 5 Frontend SDUI hardening targets (`sdui_block_dto.dart`, `causal_discovery_dto.dart`, `report_data_v2_dto.dart`, `sdui_causal_graph_widget.dart`, `sdui_matrix_table_widget.dart`) directly into the comprehensive 185-file Flutter Hardening Waves F1–F4 (`@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]`, `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]`, `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]`, and `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]`).
-- Completed **As-Built Architectural Sync (`/tier7-describe-architecture`)**: synchronized `@[ki_sdui_matrix_synthesis.md]` (`metadata.json` + 5-Pillar Zero-Loss Epistemic Distillation Architecture), `@[ki_god_code_prevention.md]` (`metadata.json` + `StepOutputDTO` / `TypeAdapter` envelope projection and SSOT clipper/threshold segregation), `@[.agents/rules/04_directory_reference.md]`, and timeless present-tense narratives across `@[docs/architecture/03_cognitive_orchestration_engine.md]`, `@[docs/architecture/04_server_driven_ui_and_presentation.md]`, `@[docs/architecture/06_enriched_atom_graph_engine.md]`, and `@[docs/architecture/08_matrix_explanations.md]`.
+- Completed **As-Built Architectural Sync (`/tier7-describe-architecture`, `81853a38e`)**: synchronized `@[ki_sdui_matrix_synthesis.md]` (`metadata.json` + 5-Pillar Zero-Loss Epistemic Distillation Architecture), `@[ki_god_code_prevention.md]` (`metadata.json` + `StepOutputDTO` / `TypeAdapter` envelope projection and SSOT clipper/threshold segregation), `@[.agents/rules/04_directory_reference.md]`, and timeless present-tense narratives across `@[docs/architecture/03_cognitive_orchestration_engine.md]`, `@[docs/architecture/04_server_driven_ui_and_presentation.md]`, `@[docs/architecture/06_enriched_atom_graph_engine.md]`, and `@[docs/architecture/08_matrix_explanations.md]`.
+- Completed **System 2 Reverse Epic Analysis (`/tier8-audit-epic @[docs/epic/EPIC_161_topological_synthesis_cohesion.md]`, `83f11d369`)**: verified 100% implementation parity across Phases 1–4 (`REQ-161-001` through `REQ-161-012`), 7/7 sunset anti-pattern eradications, 0 orphan requirements, 0 technical debt findings across touched scope and 1-hop callers, 318/318 Epic 161 unit and integration tests passed, synchronized post-hardening AST line bounds in `@[docs/epic/EPIC_161_topological_synthesis_cohesion.md]` and `@[docs/epic/EPIC_161_tracker.md]`, and generated `@[docs/epic/EPIC_161_audit_report.md]`.
 
 ## Learned
 - `synthesis_worker.py` invokes `create_executive_summary_task`, `create_matrix_sections_tasks`, `create_xai_highlights_task`, and `create_row_explanations_task` exclusively with keyword arguments (`client=client`, `base_dynamic_parts=base_dynamic_parts`, `causal_diagnosis=causal_diagnosis_text`), so unit tests spying on task constructors must inspect `await_args.kwargs`.
@@ -179,10 +180,10 @@
 - `conftest.py` sets `os.environ.setdefault("GOOGLE_API_KEY", "mock-google-key")` and `os.environ.setdefault("GEMINI_API_KEY", "mock-gemini-key")` during Pytest initialization; subprocess E2E tests (`test_real_llm_pdf_execution`) must strip synthetic `"mock-*-key"` env vars before spawning `uvicorn` and `backend_v2.run_worker` so `.env` credentials load cleanly.
 
 ## Remaining
-- Completed **System 2 Reverse Epic Analysis (`/tier8-audit-epic @[docs/epic/EPIC_161_topological_synthesis_cohesion.md]`)**: verified 100% implementation parity across Phases 1–4 (`REQ-161-001` through `REQ-161-012`), 7/7 sunset anti-pattern eradications, 0 orphan requirements, 0 technical debt findings across touched scope and 1-hop callers, 318/318 Epic 161 unit and integration tests passed, synchronized post-hardening AST line bounds in `@[docs/epic/EPIC_161_topological_synthesis_cohesion.md]` and `@[docs/epic/EPIC_161_tracker.md]`, and generated `@[docs/epic/EPIC_161_audit_report.md]`.
-- Execute the 5 Frontend SDUI hardening targets as part of the comprehensive 185-file Flutter Hardening Waves F1–F4 (`@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]` – `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]`).
+- None — EPIC 161 is 100% completed, hardened (`31/31` Backend targets via `auto_hardening_runner.py --gate backend`; `5/5` Frontend SDUI targets delegated to comprehensive Flutter Hardening Waves F1–F4), synchronized (`/tier7-describe-architecture`, `81853a38e`), audited (`/tier8-audit-epic`, `83f11d369`), and locked.
+- Next roadmap step: Askel 3.5 (`PostgresEntityAdapter` God Code decomposition).
 
 ## Resume Command
 ```powershell
-/tier8-audit-epic @[docs/epic/EPIC_161_topological_synthesis_cohesion.md]
+/tier3-god-code-decomposition @[backend_v2/database/postgres/entity_adapter.py]
 ```
