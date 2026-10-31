@@ -52,4 +52,4 @@ final class StudioClientProvider
   }
 }
 
-String _$studioClientHash() => r'e1a37783d61e279b0fa80fee6d4e41fd316d21a9';
+String _$studioClientHash() => r'acb62e8728e52e81f8c5f52f5b2b7348ee5c8d30';
