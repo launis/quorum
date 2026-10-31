@@ -50,7 +50,7 @@
   - [x] @[client_app_v2/lib/core/logging/app_logger_observer.dart]
   - [x] @[client_app_v2/lib/core/logging/logger_service.dart]
   - [x] @[client_app_v2/lib/core/models/enums.dart]
-  - [ ] @[client_app_v2/lib/core/models/generic_status_response_dto.dart]
+  - [x] @[client_app_v2/lib/core/models/generic_status_response_dto.dart]
   - [ ] @[client_app_v2/lib/core/models/prompt_block_category.dart]
   - [ ] @[client_app_v2/lib/core/state/mutation.dart]
   - [ ] @[client_app_v2/lib/core/theme/app_spacing.dart]
