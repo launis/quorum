@@ -85,7 +85,7 @@
   - [x] @[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]
   - [x] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]
   - [x] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]
-  - [ ] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
+  - [x] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
   - [ ] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
   - [ ] @[backend_v2/services/orchestrator/matrix_reducer.py]
   - [ ] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
