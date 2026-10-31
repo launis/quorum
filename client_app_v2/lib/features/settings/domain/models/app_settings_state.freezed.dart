@@ -23,14 +23,7 @@ $AppSettingsStateCopyWith<AppSettingsState> get copyWith => _$AppSettingsStateCo
 
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppSettingsState&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.locale, locale) || other.locale == locale));
-}
 
-
-@override
-int get hashCode => Object.hash(runtimeType,themeMode,locale);
 
 @override
 String toString() {
@@ -221,14 +214,7 @@ _$AppSettingsStateCopyWith<_AppSettingsState> get copyWith => __$AppSettingsStat
 
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppSettingsState&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.locale, locale) || other.locale == locale));
-}
 
-
-@override
-int get hashCode => Object.hash(runtimeType,themeMode,locale);
 
 @override
 String toString() {

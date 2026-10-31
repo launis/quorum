@@ -4,7 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'app_settings_state.freezed.dart';
 
 /// App Settings state model.
-@freezed
+@Freezed(equal: false)
 abstract class AppSettingsState with _$AppSettingsState {
   const factory AppSettingsState({
     @Default(ThemeMode.system) ThemeMode themeMode,

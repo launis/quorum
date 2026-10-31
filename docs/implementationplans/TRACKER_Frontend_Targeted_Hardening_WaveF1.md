@@ -20,7 +20,7 @@
 ### Post-Implementation Gates
 
 - [x] **[SKIPPED] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]" --gate backend --model gemini-4-argon-medium` (Zero backend targets in frontend targeted hardening).
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
   - [x] @[client_app_v2/lib/main.dart]
   - [x] @[client_app_v2/lib/app.dart]
   - [x] @[client_app_v2/lib/app_config.dart]
@@ -61,7 +61,7 @@
   - [x] @[client_app_v2/lib/utils/riverpod_extensions.dart]
   - [x] @[client_app_v2/lib/shared/models/i18n_text.dart]
   - [x] @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
-  - [ ] @[client_app_v2/lib/features/settings/domain/models/app_settings_state.dart]
+  - [x] @[client_app_v2/lib/features/settings/domain/models/app_settings_state.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify unit and widget test coverage across all 41 hardened Wave F1 modules.
 
