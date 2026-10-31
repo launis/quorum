@@ -22,7 +22,7 @@ from backend_v2.models.dtos.causal_discovery import (
     CausalRootCauseDiagnosisDTO,
     FairScoringBreakdownDTO,
 )
-from backend_v2.models.enums import DependencyRelationType, ExecutionStatus
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.dag_executor.causal_tda_fusion import (
     compute_causal_tda_fusion_result,
     transform_causal_nodes_to_atoms,

@@ -82,9 +82,7 @@ def test_start_execution_null_matrix_sampling_strategy_regression(
     assert response.status_code == 202
 
 
-def test_start_execution_invalid_payload_422(
-    override_dependencies: Any, mock_execution_service: Any
-) -> None:
+def test_start_execution_invalid_payload_422(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Negative test: POST /api/v2/execution/executions/ rejects invalid schema payload with 422."""
     client = TestClient(app)
     response = client.post("/api/v2/execution/executions/", json={"unexpected_field": "invalid"})
@@ -127,9 +125,7 @@ def test_get_execution_status(override_dependencies: Any, mock_execution_service
     assert response.json()["id"] == MOCK_EXE_ID
 
 
-def test_get_execution_status_not_found_404(
-    override_dependencies: Any, mock_execution_service: Any
-) -> None:
+def test_get_execution_status_not_found_404(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Negative test: GET /api/v2/execution/executions/{execution_id} returns 404 when missing."""
     client = TestClient(app)
     mock_execution_service.get_execution.side_effect = ResourceNotFoundError(
@@ -141,9 +137,7 @@ def test_get_execution_status_not_found_404(
     assert response.json()["extensions"]["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
 
-def test_get_execution_status_permission_denied_403(
-    override_dependencies: Any, mock_execution_service: Any
-) -> None:
+def test_get_execution_status_permission_denied_403(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Negative test: GET /api/v2/execution/executions/{execution_id} returns 403 when forbidden."""
     client = TestClient(app)
     mock_execution_service.get_execution.side_effect = PermissionDeniedError("Access denied")
@@ -170,9 +164,7 @@ def test_resume_execution(override_dependencies: Any, mock_execution_service: An
     assert response.json()["id"] == MOCK_EXE_ID
 
 
-def test_resume_execution_unresumable_state_409(
-    override_dependencies: Any, mock_execution_service: Any
-) -> None:
+def test_resume_execution_unresumable_state_409(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Negative test: POST /api/v2/execution/executions/{execution_id}/resume returns 409 when unresumable."""
     client = TestClient(app)
     mock_execution_service.resume_execution.side_effect = AppException(

@@ -619,4 +619,3 @@ def test_deleted_target_included_in_hardening_checklist_triggers_fatal_tpr004(tm
     messages = " ".join(f.message for f in fatal_findings)
     assert "Deleted file `backend_v2/services/dead_router.py` in Tier 2 Hardening (Backend)" in messages
     assert "Deleted file `client_app_v2/lib/dead_view.dart` in Tier 2 Hardening (Frontend)" in messages
-

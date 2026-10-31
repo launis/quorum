@@ -848,9 +848,9 @@ def test_check_hardening_targets_unified_gate_all_command() -> None:
     """Verify check_hardening_targets passes TRK008 when unified --gate all command is used on Frontend header."""
     unified_gate_all = (
         "### Post-Implementation Gates\n"
-        '- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `scripts/auto_hardening_runner.py --gate all --agent-cmd "agy --model {model} --dangerously-skip-permissions --print \'/tier2-hardening-backend @[{target}]\'"`\n'
+        "- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `scripts/auto_hardening_runner.py --gate all --agent-cmd \"agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'\"`\n"
         "  - [ ] @[backend_v2/services/foo.py]\n"
-        '- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `scripts/auto_hardening_runner.py --gate all --agent-cmd "agy --model {model} --dangerously-skip-permissions --print \'/tier2-hardening-backend @[{target}]\'"`\n'
+        "- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `scripts/auto_hardening_runner.py --gate all --agent-cmd \"agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'\"`\n"
         "  - [ ] @[client_app_v2/lib/view.dart]\n"
     )
     assert check_hardening_targets(unified_gate_all) == []

@@ -258,7 +258,9 @@ async def test_simulate_step_with_null_context_text_and_locale(
 async def test_get_step_not_found_error(mock_studio_services: tuple[AsyncMock, AsyncMock]) -> None:
     """Test GET /steps/{id} returns 404 when step is not found."""
     mock_workflow, _ = mock_studio_services
-    mock_workflow.get_step.side_effect = ResourceNotFoundError(resource_type="step", resource_id="sp_0195f3a0000070008000000000000000")
+    mock_workflow.get_step.side_effect = ResourceNotFoundError(
+        resource_type="step", resource_id="sp_0195f3a0000070008000000000000000"
+    )
 
     response = client.get("/steps/sp_0195f3a0000070008000000000000000")
     assert response.status_code == 404

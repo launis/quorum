@@ -437,7 +437,6 @@ class TestPhase1Phase2Integration:
                 f"ORPHANED TEST FILES: {[str(f) for f in orphans]}. These tests reference the deleted synthesis.py."
             )
 
-
     def test_compress_synthesis_preserves_unbounded_evaluations_by_default(self) -> None:
         """Verify default Settings(max_synthesis_evaluations=0) retains all evaluations without 40-eval capping."""
         from backend_v2.services.orchestrator.synthesis_payload_compressor import (

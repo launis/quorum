@@ -1003,7 +1003,6 @@ def test_causal_tda_fusion_full_duplex_serialization_parity() -> None:
     """Verifies full-duplex serialization parity for CausalTdaFusionResultDTO with claim texts and falsified_claims."""
     from backend_v2.models.domain.proposition_graph import FalsifiedClaimMatch
     from backend_v2.models.dtos.causal_discovery import CausalTdaFusionResultDTO
-    from backend_v2.models.enums import DependencyRelationType
 
     n1 = CausalNodeDTO(
         node_id="tda_0195f3a0000070008000000000000001",

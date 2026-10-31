@@ -223,9 +223,7 @@ async def test_get_workflow_not_found_raises_app_exception(
     """Negative test: get_workflow propagates ResourceNotFoundError (AppException) on missing ID."""
     mock_workflow, _ = mock_studio_services
     missing_id = "wor_0195f3a0000070018000000000000000"
-    mock_workflow.get_workflow.side_effect = ResourceNotFoundError(
-        resource_type="workflow", resource_id=missing_id
-    )
+    mock_workflow.get_workflow.side_effect = ResourceNotFoundError(resource_type="workflow", resource_id=missing_id)
 
     with pytest.raises(AppException) as exc_info:
         await get_workflow(
