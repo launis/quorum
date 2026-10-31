@@ -28,15 +28,23 @@ def _validate_quote_segment_bounds(quotes: tuple[str, ...]) -> None:
 
     Raises:
         SemanticEvidenceError: If any segment is empty/whitespace, exceeds max_citation_span_chars,
-            or falls below min_multi_segment_floor_chars when multiple segments are provided.
+            or falls below min_multi_segment_floor_chars when multiple segments are provided
+            (ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED).
     """
     settings = get_settings()
     max_span_chars = settings.max_citation_span_chars
     min_floor_chars = settings.min_multi_segment_floor_chars
+    err_code = ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.value
     for quote in quotes:
         if not quote or not quote.strip():
+            logger.error("Quote segment is empty or whitespace.", exc_info=True, extra={"error_code": err_code})
             raise SemanticEvidenceError(message="Lexical validation failed: a quote normalized to empty string.")
         if max_span_chars > 0 and len(quote) > max_span_chars:
+            logger.error(
+                "Quote segment exceeds maximum citation span ceiling.",
+                exc_info=True,
+                extra={"error_code": err_code, "quote_length": len(quote), "max_span_chars": max_span_chars},
+            )
             raise SemanticEvidenceError(
                 message=f"Quote length exceeds safety limit ({len(quote)} > {max_span_chars} chars)."
             )
@@ -44,6 +52,11 @@ def _validate_quote_segment_bounds(quotes: tuple[str, ...]) -> None:
     if len(quotes) > 1:
         for quote in quotes:
             if len(quote) < min_floor_chars:
+                logger.error(
+                    "Multi-segment quote segment falls below minimum character floor.",
+                    exc_info=True,
+                    extra={"error_code": err_code, "quote_length": len(quote), "min_floor_chars": min_floor_chars},
+                )
                 raise SemanticEvidenceError(
                     message=(
                         f"Multi-segment quote segment under floor: segment length {len(quote)} "
@@ -69,7 +82,8 @@ def _validate_directive_boundaries(
         lexical_strictness_level: Sovereign workflow lexical strictness level (0-100).
 
     Raises:
-        SemanticEvidenceError: If quote segments span across discrete <ai_context_directive> blocks.
+        SemanticEvidenceError: If quote segments span across discrete <ai_context_directive> blocks
+            (ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED).
     """
     directive_matches = list(
         re.finditer(r"<ai_context_directive[^>]*>(.*?)</ai_context_directive>", pdf_text, re.DOTALL | re.IGNORECASE)
@@ -113,6 +127,14 @@ def _validate_directive_boundaries(
                 if norm_d.find(norm_q) != -1:
                     found_in_blocks.add(idx)
         if len(found_in_blocks) > 1:
+            logger.error(
+                "Cross-document chimera detected across <ai_context_directive> boundaries.",
+                exc_info=True,
+                extra={
+                    "error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.value,
+                    "directive_block_count": len(found_in_blocks),
+                },
+            )
             raise SemanticEvidenceError(
                 message=(
                     "Cross-document chimera: quote segments span across discrete "
@@ -140,7 +162,8 @@ def _validate_speaker_provenance(
         lexical_strictness_level: Sovereign workflow lexical strictness level (0-100).
 
     Raises:
-        SemanticEvidenceError: If a quote breaches structured speaker or assignment provenance boundaries.
+        SemanticEvidenceError: If a quote breaches structured speaker or assignment provenance boundaries
+            (ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED).
     """
     user_payload_matches = re.findall(r"<user_payload>(.*?)</user_payload>", pdf_text, re.IGNORECASE | re.DOTALL)
     ai_draft_matches = re.findall(r"<ai_draft_context>(.*?)</ai_draft_context>", pdf_text, re.IGNORECASE | re.DOTALL)
@@ -150,10 +173,16 @@ def _validate_speaker_provenance(
     if not (user_payload_matches or ai_draft_matches or assignment_matches):
         return
 
+    err_code = ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.value
     allowed_source_text = (
         "\n\n".join(user_payload_matches) if target_speaker == TargetSpeaker.USER else "\n\n".join(ai_draft_matches)
     )
     if not allowed_source_text:
+        logger.error(
+            "Provenance violation: target speaker stream is empty.",
+            exc_info=True,
+            extra={"error_code": err_code, "target_speaker": target_speaker.value},
+        )
         raise SemanticEvidenceError(message="PROVENANCE_VIOLATION: Quote breached structured provenance boundary")
 
     norm_allowed_source, _ = normalize_text_with_mapping(allowed_source_text)
@@ -168,6 +197,11 @@ def _validate_speaker_provenance(
             source_text=allowed_source_text,
             lexical_strictness_level=lexical_strictness_level,
         ).is_valid:
+            logger.error(
+                "Provenance violation: quote segment not found in target speaker stream.",
+                exc_info=True,
+                extra={"error_code": err_code, "target_speaker": target_speaker.value, "quote_length": len(quote)},
+            )
             raise SemanticEvidenceError(message="PROVENANCE_VIOLATION: Quote breached structured provenance boundary")
 
 
@@ -181,14 +215,17 @@ def _validate_reasoning_trace(pdf_text: str, reasoning_trace: str, quotes_count:
 
     Raises:
         SemanticEvidenceError: If the trace contradicts positive extraction, declares an empty anchor,
-            or references a hallucinated syntactic anchor absent from pdf_text.
+            or references a hallucinated syntactic anchor absent from pdf_text
+            (ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED).
     """
     trace_lower = reasoning_trace.lower()
+    err_code = ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.value
 
     if "[5. validation decision: fail]" in trace_lower or "condition not met" in trace_lower:
         logger.error(
             "Lexical Verifier failed: Trace Contradiction.",
-            extra={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.value, "quote_count": quotes_count},
+            exc_info=True,
+            extra={"error_code": err_code, "quote_count": quotes_count},
         )
         raise SemanticEvidenceError(
             message="Logical contradiction: Trace concluded Fail, but exact_quotes was populated."
@@ -197,7 +234,8 @@ def _validate_reasoning_trace(pdf_text: str, reasoning_trace: str, quotes_count:
     if "[2. syntactic anchor: none]" in trace_lower or "[2. syntactic anchor: n/a]" in trace_lower:
         logger.error(
             "Lexical Verifier failed: Empty Anchor.",
-            extra={"error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.value, "quote_count": quotes_count},
+            exc_info=True,
+            extra={"error_code": err_code, "quote_count": quotes_count},
         )
         raise SemanticEvidenceError(
             message="Anchorless Extraction: Cannot pass validation without a physical syntactic anchor."
@@ -210,10 +248,8 @@ def _validate_reasoning_trace(pdf_text: str, reasoning_trace: str, quotes_count:
         if parsed_anchor.lower() not in ("none", "n/a") and not strict_match(pdf_text, [parsed_anchor]).is_valid:
             logger.error(
                 "Lexical Verifier failed: Hallucinated Anchor.",
-                extra={
-                    "error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.value,
-                    "anchor_length": len(parsed_anchor),
-                },
+                exc_info=True,
+                extra={"error_code": err_code, "anchor_length": len(parsed_anchor)},
             )
             raise SemanticEvidenceError(
                 message=f"Hallucinated Anchor: The anchor '{parsed_anchor}' does not exist in the source text."
@@ -228,9 +264,11 @@ def _validate_multi_segment_monotonic_spans(norm_pdf: str, norm_quotes: Sequence
         norm_quotes: Sequence of normalized quote segments (len > 1).
 
     Raises:
-        SemanticEvidenceError: If segments appear only in inverted order or exceed MAX_CITATION_SPAN_CHARS.
+        SemanticEvidenceError: If segments appear only in inverted order or exceed max_citation_span_chars
+            (ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED).
     """
     m = len(norm_quotes)
+    err_code = ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.value
     occurrences: list[list[int]] = []
     for nq in norm_quotes:
         occ: list[int] = []
@@ -252,6 +290,11 @@ def _validate_multi_segment_monotonic_spans(norm_pdf: str, norm_quotes: Sequence
         len_k = len(norm_quotes[k])
         valid_forward_pair = any(o_next > o_k + len_k - 1 for o_k in occ_k for o_next in occ_next)
         if not valid_forward_pair:
+            logger.error(
+                "Inverted multi-segment order detected.",
+                exc_info=True,
+                extra={"error_code": err_code, "segment_index": k + 1},
+            )
             raise SemanticEvidenceError(
                 message=f"Inverted segment order: segment {k + 2} precedes segment {k + 1} in source text."
             )
@@ -273,6 +316,11 @@ def _validate_multi_segment_monotonic_spans(norm_pdf: str, norm_quotes: Sequence
 
     max_span_chars = get_settings().max_citation_span_chars
     if max_span_chars > 0 and min_chain_span is not None and min_chain_span > max_span_chars:
+        logger.error(
+            "Multi-segment bounding span exceeds configured limit.",
+            exc_info=True,
+            extra={"error_code": err_code, "min_chain_span": min_chain_span, "max_span_chars": max_span_chars},
+        )
         raise SemanticEvidenceError(
             message=(f"Bounding span exceeds limit: span distance ({min_chain_span} chars) > {max_span_chars} chars.")
         )
@@ -348,7 +396,8 @@ def _slice_physical_quotes(
         Tuple of physical quote substrings sliced from pdf_text.
 
     Raises:
-        SemanticEvidenceError: If fallback lexical validation fails for any segment.
+        SemanticEvidenceError: If fallback lexical validation fails for any segment
+            (ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED).
     """
     extracted_quotes: list[str] = []
     if matched_segments is not None:
@@ -370,6 +419,15 @@ def _slice_physical_quotes(
             lexical_strictness_level=lexical_strictness_level,
         )
         if not match_result.is_valid:
+            logger.error(
+                "Lexical validation failed for quote segment.",
+                exc_info=True,
+                extra={
+                    "error_code": ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.value,
+                    "segment_index": idx,
+                    "quote_length": len(quote),
+                },
+            )
             raise SemanticEvidenceError(
                 message=(
                     f"Lexical validation failed: exact_quote '{quote[:50]}...' not found. "
@@ -397,8 +455,9 @@ def validate_evidence(
     """Validate evidence strictly and extract the exact physical string segments.
 
     Enforces candidate s_1 anchor iteration, monotonic ordering (s_k < e_k < s_{k+1}),
-    single-document buffer boundary isolation, individual segment floor of 30 characters when m > 1,
-    and global bounding span ceiling (e_m - s_1 <= 1000 characters).
+    single-document buffer boundary isolation, configured multi-segment character floor
+    (settings.min_multi_segment_floor_chars) when m > 1, and configured bounding span
+    ceiling (settings.max_citation_span_chars).
 
     Args:
         pdf_text: The source text context.
@@ -416,14 +475,19 @@ def validate_evidence(
 
     Raises:
         SemanticEvidenceError: If lexical validation, single-document buffer boundary isolation,
-            monotonic ordering, span ceiling, or logical Trace consistency fails.
+            monotonic ordering, span ceiling, or logical Trace consistency fails
+            (ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED).
     """
     _ = syntactic_anchors
     if contextual_override:
         logger.info("Lexical Verifier skipped: cognitive override (contextual_override) is active.")
         return None
 
+    err_code = ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED.value
     if not exact_quotes:
+        logger.error(
+            "Missing exact_quotes when contextual_override is False.", exc_info=True, extra={"error_code": err_code}
+        )
         raise SemanticEvidenceError(
             message="Lexical validation failed: exact_quotes is required when contextual_override is False."
         )
@@ -438,6 +502,7 @@ def validate_evidence(
 
     norm_pdf, pdf_map = normalize_text_with_mapping(pdf_text)
     if not norm_pdf:
+        logger.error("Source pdf_text normalized to empty string.", exc_info=True, extra={"error_code": err_code})
         raise SemanticEvidenceError(message="Lexical validation failed: source text normalized to empty string.")
 
     norm_quotes: list[str] = []
@@ -445,6 +510,7 @@ def validate_evidence(
         clean_q = unicodedata.normalize("NFKC", re.sub(r"[\u200b-\u200d\ufeff]", "", quote))
         norm_q, _ = normalize_text_with_mapping(clean_q)
         if not norm_q:
+            logger.error("Quote segment normalized to empty string.", exc_info=True, extra={"error_code": err_code})
             raise SemanticEvidenceError(message="Lexical validation failed: a quote normalized to empty string.")
         norm_quotes.append(norm_q)
 

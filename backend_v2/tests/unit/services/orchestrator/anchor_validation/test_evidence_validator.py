@@ -436,8 +436,12 @@ def test_anchor_validation_directive_morphological_fallback_and_s1_retries() -> 
     pdf_s1_span = f"{seg1} {long_gap} {seg1} {seg2}"
     bounded = Settings(max_citation_span_chars=1000)
     with (
-        patch("backend_v2.services.orchestrator.anchor_validation.evidence_validator.get_settings", return_value=bounded),
-        patch("backend_v2.services.orchestrator.anchor_validation.lexical_normalizer.get_settings", return_value=bounded),
+        patch(
+            "backend_v2.services.orchestrator.anchor_validation.evidence_validator.get_settings", return_value=bounded
+        ),
+        patch(
+            "backend_v2.services.orchestrator.anchor_validation.lexical_normalizer.get_settings", return_value=bounded
+        ),
         patch("backend_v2.services.orchestrator.anchor_validation.lexical_matcher.get_settings", return_value=bounded),
     ):
         res_span_retry = validate_evidence(pdf_s1_span, (seg1, seg2))
@@ -451,3 +455,21 @@ def test_anchor_validation_directive_morphological_fallback_and_s1_retries() -> 
     res_broken_3 = validate_evidence(pdf_broken_3, (seg1, seg2, seg3))
     assert res_broken_3 is not None
     assert len(res_broken_3) == 3
+
+    # 4. Multi-segment quote where one segment requires morphological matching (no exact occurrence in norm_pdf)
+    pdf_multi_morph = (
+        "Ensimmäinen lause esiintyy dokumentissa sanasta sanaan tarkasti. "
+        "Työryhmä sitoutui johtajuudessaan selkeisiin tavoitteisiin ja strategiaan."
+    )
+    seg_exact = "Ensimmäinen lause esiintyy dokumentissa sanasta sanaan tarkasti."
+    seg_inflected = "johtajuus ja selkeät tavoitteet ja strategia"
+    res_multi_morph = validate_evidence(
+        pdf_text=pdf_multi_morph,
+        exact_quotes=(seg_exact, seg_inflected),
+        locale="fi",
+        strictness_level=50,
+        lexical_strictness_level=50,
+    )
+    assert res_multi_morph is not None
+    assert len(res_multi_morph) == 2
+
