@@ -49,7 +49,7 @@ class SynthesisSectionDTO(V2CoreBase):
         content_blocks: Structured SDUI content blocks for this section.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     layout_id: Annotated[str, Field(description="The EXACT layout ID provided in the section instructions")]
     content_blocks: Annotated[
@@ -66,7 +66,7 @@ class XaiHighlightItem(V2CoreBase):
         content: The synthesized, deduplicated insight or tip. Max 2 sentences.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     extension_type: Annotated[
         str,
@@ -89,7 +89,7 @@ class MatrixExplanationContextDTO(V2CoreBase):
         justification: The structured justification text including quotes.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     real_matrix_id: Annotated[str, Field(description="The original PromptBlock ID")]
     matrix_id: Annotated[str, Field(description="The alias for the LLM")]
@@ -151,7 +151,7 @@ class SynthesisRowExplanationDTO(V2CoreBase):
         curated_quotes: Curated verbatim quotes by the LLM.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     matrix_id: Annotated[str, Field(description="The ID of the matrix")]
     row_explanation: Annotated[
@@ -171,7 +171,7 @@ class MatrixExplanationsResult(V2CoreBase):
         explanations: List containing EXACTLY ONE explanation for EACH matrix_id provided.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     explanations: Annotated[
         list[SynthesisRowExplanationDTO],
@@ -193,7 +193,7 @@ class ExecutiveSummarySectionResult(V2CoreBase):
         executive_summary: High-level synthesized summary content blocks.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     user_role: Annotated[
         LaxRoleClassification | None,
@@ -230,7 +230,7 @@ class MatrixSectionSynthesesResult(V2CoreBase):
         sections: List of synthesized sections mapped to layout IDs.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     sections: Annotated[
         list[SynthesisSectionDTO],
@@ -248,7 +248,7 @@ class XaiHighlightsResult(V2CoreBase):
         xai_highlights: The deduplicated insight items per extension category.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     xai_highlights: Annotated[
         list[XaiHighlightItem],
@@ -270,7 +270,7 @@ class SynthesisOutputDTO(V2CoreBase):
         xai_highlights: The deduplicated insight items per extension category.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     user_role: Annotated[
         str | None,

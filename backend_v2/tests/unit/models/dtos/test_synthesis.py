@@ -1,3 +1,7 @@
+"""Unit tests for synthesis DTO models."""
+
+from __future__ import annotations
+
 import pytest
 from pydantic import ValidationError
 
@@ -19,6 +23,7 @@ from backend_v2.models.view.sdui import ParagraphBlock
 
 
 def test_synthesis_section_strictness() -> None:
+    """Test SynthesisSectionDTO positive instantiation, min_length boundary, extra forbid, and frozen immutability."""
     dto = SynthesisSectionDTO(
         layout_id="lay_1",
         content_blocks=[ParagraphBlock(block_type="paragraph", text="content", exact_quotes=[], citations=[])],
@@ -36,16 +41,24 @@ def test_synthesis_section_strictness() -> None:
             }
         )
 
+    with pytest.raises(ValidationError):
+        SynthesisSectionDTO(layout_id="lay_1", content_blocks=[])
+
 
 def test_xai_highlight_strictness() -> None:
+    """Test XaiHighlightItem positive instantiation, extra forbid, and type violation."""
     dto = XaiHighlightItem(extension_type="risk_flag", content="High risk detected.")
     assert dto.extension_type == "risk_flag"
 
     with pytest.raises(ValidationError):
         XaiHighlightItem.model_validate({"extension_type": "risk", "content": "text", "extra": "fail"})
 
+    with pytest.raises(ValidationError):
+        XaiHighlightItem.model_validate({"extension_type": 123, "content": "text"})
+
 
 def test_executive_summary_section_result_strictness() -> None:
+    """Test ExecutiveSummarySectionResult positive instantiation and negative validation cases."""
     dto = ExecutiveSummarySectionResult(
         user_role=RoleClassification.ARCHITECT,
         user_role_justification="High maturity",
@@ -82,6 +95,7 @@ def test_executive_summary_section_result_strictness() -> None:
 
 
 def test_matrix_section_syntheses_result_strictness() -> None:
+    """Test MatrixSectionSynthesesResult positive instantiation, extra forbid, and type violation."""
     dto = MatrixSectionSynthesesResult(
         sections=[
             SynthesisSectionDTO(
@@ -102,8 +116,12 @@ def test_matrix_section_syntheses_result_strictness() -> None:
             }
         )
 
+    with pytest.raises(ValidationError):
+        MatrixSectionSynthesesResult.model_validate({"sections": "invalid_not_a_list"})
+
 
 def test_xai_highlights_result_strictness() -> None:
+    """Test XaiHighlightsResult positive instantiation, extra forbid, and type violation."""
     dto = XaiHighlightsResult(
         xai_highlights=[
             XaiHighlightItem(extension_type="authenticity_evaluation", content="Authentic communication verified.")
@@ -119,8 +137,12 @@ def test_xai_highlights_result_strictness() -> None:
             }
         )
 
+    with pytest.raises(ValidationError):
+        XaiHighlightsResult.model_validate({"xai_highlights": "not_a_list"})
+
 
 def test_synthesis_output_strictness() -> None:
+    """Test SynthesisOutputDTO positive instantiation, extra forbid, and frozen immutability."""
     dto = SynthesisOutputDTO(
         user_role="ROLE_ARCHITECT",
         user_role_justification="Test",
@@ -143,6 +165,9 @@ def test_synthesis_output_strictness() -> None:
                 "extra": "fail",
             }
         )
+
+    with pytest.raises(ValidationError):
+        SynthesisOutputDTO.model_validate({"user_role": 999})
 
 
 def test_executive_summary_section_result_role_optional() -> None:
@@ -190,7 +215,6 @@ def test_matrix_explanation_context_strictness() -> None:
     assert dto.real_matrix_id == "blk_0195f3a00000700283456789abcdef01"
     assert dto.score == 4.5
 
-    # Test TypeAdapter validation
     validated_list = MatrixExplanationContextList.validate_python([dto])
     assert len(validated_list) == 1
     assert validated_list[0].matrix_id == "m0"
@@ -206,16 +230,27 @@ def test_matrix_explanation_context_strictness() -> None:
             }
         )
 
+    with pytest.raises(ValidationError):
+        MatrixExplanationContextDTO.model_validate(
+            {
+                "real_matrix_id": "blk_0195f3a00000700283456789abcdef01",
+                "matrix_id": "m0",
+                "matrix_label": "Strategic Alignment",
+                "score": "not_a_float",
+                "justification": "Justification",
+            }
+        )
+
 
 def test_synthesis_distillation_strictness() -> None:
-    """Test SynthesisDistillationDTO defaults, frozen immutability, and strict extra forbid."""
+    """Test SynthesisDistillationDTO defaults, strict validation, and extra forbid."""
     dto = SynthesisDistillationDTO(distilled_inputs="Concatenated input text.")
     assert dto.distilled_inputs == "Concatenated input text."
     assert dto.max_extensions == 5
     assert dto.target_locale == "en"
 
     with pytest.raises(ValidationError):
-        dto.distilled_inputs = "mutated"
+        SynthesisDistillationDTO.model_validate({"distilled_inputs": 123})
 
     with pytest.raises(ValidationError):
         SynthesisDistillationDTO.model_validate({"distilled_inputs": "test", "unknown_field": "fail"})
@@ -244,9 +279,20 @@ def test_row_explanation_and_matrix_explanations_result_strictness() -> None:
         )
 
     with pytest.raises(ValidationError):
+        SynthesisRowExplanationDTO.model_validate(
+            {
+                "matrix_id": 123,
+                "row_explanation": "Explanation",
+            }
+        )
+
+    with pytest.raises(ValidationError):
         MatrixExplanationsResult.model_validate(
             {
                 "explanations": [row],
                 "extra": "forbidden",
             }
         )
+
+    with pytest.raises(ValidationError):
+        MatrixExplanationsResult.model_validate({"explanations": "not_a_list"})
