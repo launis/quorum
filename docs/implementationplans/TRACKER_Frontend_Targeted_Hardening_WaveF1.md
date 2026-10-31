@@ -27,7 +27,7 @@
   - [x] @[client_app_v2/lib/firebase_options.dart]
   - [x] @[client_app_v2/lib/router/router.dart]
   - [x] @[client_app_v2/lib/router/scaffold_with_nav.dart]
-  - [ ] @[client_app_v2/lib/features/shell/presentation/scaffold_with_nav.dart]
+  - [x] @[client_app_v2/lib/features/shell/presentation/scaffold_with_nav.dart]
   - [ ] @[client_app_v2/lib/features/shell/presentation/widgets/admin_sidebar.dart]
   - [ ] @[client_app_v2/lib/theme/app_colors.dart]
   - [ ] @[client_app_v2/lib/theme/app_durations.dart]
