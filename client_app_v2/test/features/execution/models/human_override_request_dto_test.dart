@@ -84,6 +84,44 @@ void main() {
             isA<FormatException>(),
             isA<TypeError>(),
             isA<CheckedFromJsonException>(),
+            isA<UnrecognizedKeysException>(),
+          ),
+        ),
+      );
+    });
+
+    test('test_human_override_request_dto_missing_required_reason_fails_fast', () {
+      final missingReasonJson = {
+        'new_status': 'PASSED',
+        'evidence_quotes': [],
+      };
+
+      expect(
+        () => HumanOverrideRequestDto.fromJson(missingReasonJson),
+        throwsA(
+          anyOf(
+            isA<TypeError>(),
+            isA<CheckedFromJsonException>(),
+            isA<MissingRequiredKeysException>(),
+          ),
+        ),
+      );
+    });
+
+    test('test_human_override_request_dto_invalid_enum_status_fails_fast', () {
+      final invalidEnumJson = {
+        'new_status': 'INVALID_STATUS_VALUE',
+        'reason': 'Audit check',
+        'evidence_quotes': [],
+      };
+
+      expect(
+        () => HumanOverrideRequestDto.fromJson(invalidEnumJson),
+        throwsA(
+          anyOf(
+            isA<ArgumentError>(),
+            isA<FormatException>(),
+            isA<CheckedFromJsonException>(),
           ),
         ),
       );
