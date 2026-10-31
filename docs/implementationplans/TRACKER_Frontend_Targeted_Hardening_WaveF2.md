@@ -41,7 +41,7 @@
   - [x] @[client_app_v2/lib/features/execution/models/workflow_inputs.dart]
   - [x] @[client_app_v2/lib/features/reports/models/report_artifact.dart]
   - [x] @[client_app_v2/lib/features/studio/models/blueprint_config.dart]
-  - [ ] @[client_app_v2/lib/features/studio/models/gcp_location.dart]
+  - [x] @[client_app_v2/lib/features/studio/models/gcp_location.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/llm_platform.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/model_config.dart]
