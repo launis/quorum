@@ -28,7 +28,7 @@
   - [x] @[client_app_v2/lib/features/execution/models/execution_metadata.dart]
   - [x] @[client_app_v2/lib/features/execution/models/execution_metrics_dto.dart]
   - [x] @[client_app_v2/lib/features/execution/models/execution_record.dart]
-  - [ ] @[client_app_v2/lib/features/execution/models/execution_step.dart]
+  - [x] @[client_app_v2/lib/features/execution/models/execution_step.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/execution_summary_snapshot.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/human_override_request_dto.dart]
