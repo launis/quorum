@@ -30,11 +30,26 @@ Future<List<ExecutionRecord>> executionList(Ref ref) async {
   ref.onDispose(timer.cancel);
 
   final dio = ref.watch(apiClientProvider);
-  final response = await dio.get('/execution/executions');
+  final response = await dio.get<List<Object?>>('/execution/executions');
+  final data = response.data;
+  if (data == null) {
+    final error = AppException.validation(
+      'Null response payload received in executionList.',
+    );
+    ref
+        .read(loggerServiceProvider)
+        .error(
+          'ExecutionController',
+          'EXECUTION_LIST_NULL_PAYLOAD: Null response data for executionList',
+          error,
+          StackTrace.current,
+        );
+    throw error;
+  }
 
-  final List<dynamic> data = response.data as List;
-
-  return data.map((e) => ExecutionRecord.fromJson(e)).toList();
+  return data
+      .map((e) => ExecutionRecord.fromJson(e as Map<String, Object?>))
+      .toList();
 }
 
 /// Controller managing the lifecycle of a V2 DAG Execution.
@@ -45,7 +60,7 @@ Future<List<ExecutionRecord>> executionList(Ref ref) async {
 /// - Uses strictly typed `ExecutionRecord` models.
 @riverpod
 class ExecutionController extends _$ExecutionController {
-  StreamSubscription? _sseSubscription;
+  StreamSubscription<Map<String, Object?>>? _sseSubscription;
   int _retryCount = 0;
 
   @override
@@ -123,7 +138,7 @@ class ExecutionController extends _$ExecutionController {
       state = AsyncValue.data(resumedRecord);
 
       // Wait a tiny bit for the backend to transition state before we hook SSE again
-      await Future.delayed(
+      await Future<void>.delayed(
         Duration(milliseconds: SystemConcurrency.rehydrationDelayMs.value),
       );
       _connectToStream(executionId);
@@ -144,9 +159,11 @@ class ExecutionController extends _$ExecutionController {
 
   /// Manually refreshes the current status by reconnecting the stream
   void refreshStatus() {
-    if (state.hasValue && state.value != null) {
-      final id = state.value!.id;
-      resumeExecution(id);
+    switch (state) {
+      case AsyncData(value: final record?):
+        resumeExecution(record.id);
+      default:
+        break;
     }
   }
 
@@ -159,24 +176,30 @@ class ExecutionController extends _$ExecutionController {
         .listen(
           (update) {
             _retryCount = 0;
-            final currentState = state.value;
+            final currentState = switch (state) {
+              AsyncData(:final value) => value,
+              _ => null,
+            };
 
-            // Phase 2 Step 2.1 & 2.2: SSE Error Defense
+            final rawErrorCode = update['error_code'];
             final hasExplicitErrorCode =
-                update['error_code'] != null &&
-                update['error_code'].toString().trim().isNotEmpty;
+                rawErrorCode is String && rawErrorCode.trim().isNotEmpty;
+            final rawError = update['error'];
             final isSseErrorPayload =
-                update['error'] != null &&
-                update['error'].toString().trim().isNotEmpty &&
+                rawError is String &&
+                rawError.trim().isNotEmpty &&
                 !update.containsKey('id');
 
             if (hasExplicitErrorCode || isSseErrorPayload) {
-              final errorMessage =
-                  update['error']?.toString() ??
-                  update['message']?.toString() ??
-                  'SSE Stream error';
-              final errorCode =
-                  update['error_code']?.toString() ?? 'SSE_STREAM_INTERRUPTED';
+              final rawMessage = update['message'];
+              final errorMessage = switch ((rawError, rawMessage)) {
+                (final String err, _) when err.trim().isNotEmpty => err,
+                (_, final String msg) when msg.trim().isNotEmpty => msg,
+                _ => 'SSE Stream error',
+              };
+              final errorCode = hasExplicitErrorCode
+                  ? rawErrorCode
+                  : 'SSE_STREAM_INTERRUPTED';
               final explicitError = AppException.server(
                 errorMessage,
                 statusCode: 500,
@@ -237,8 +260,11 @@ class ExecutionController extends _$ExecutionController {
               _sseSubscription?.cancel();
             }
           },
-          onError: (e, stack) {
-            final currentState = state.value;
+          onError: (Object e, StackTrace stack) {
+            final currentState = switch (state) {
+              AsyncData(:final value) => value,
+              _ => null,
+            };
             final status = currentState?.status.toLowerCase();
             final isTerminal =
                 status == ExecutionStatus.passed.name.toLowerCase() ||
@@ -253,9 +279,12 @@ class ExecutionController extends _$ExecutionController {
                     'SSE connection lost abruptly for execution $executionId. Reconnecting (attempt $_retryCount/5)... Error: $e',
                   );
               _sseSubscription?.cancel();
-              Future.delayed(const Duration(seconds: 2), () {
+              Future<void>.delayed(const Duration(seconds: 2), () {
                 if (!ref.mounted) return;
-                final currentId = state.value?.id;
+                final currentId = switch (state) {
+                  AsyncData(value: final record?) => record.id,
+                  _ => null,
+                };
                 if (currentId == executionId) {
                   _connectToStream(executionId);
                 }

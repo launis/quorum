@@ -1,22 +1,40 @@
 import 'dart:async';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/sse_client.dart';
-import 'package:client_app/features/execution/controllers/execution_controller.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/models/generic_status_response_dto.dart';
+import 'package:client_app/core/network/api_client.dart';
+import 'package:client_app/features/execution/controllers/execution_controller.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
 import 'package:client_app/features/execution/models/human_override_request_dto.dart';
-import 'package:client_app/core/logging/logger_service.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+const String _validExecId = 'exe_0195f2c4e8a97d3b9a1c2e3f4a5b6c7d';
+const String _validWfId = 'wfl_0195f2c4e8a97d3b9a1c2e3f4a5b6c7d';
 
 class MockExecutionClient implements ExecutionClient {
+  final bool shouldFailStart;
+  final bool shouldFailResume;
+
+  MockExecutionClient({
+    this.shouldFailStart = false,
+    this.shouldFailResume = false,
+  });
+
   @override
   Future<ExecutionRecord> startExecution({
     required ExecutionCreateRequestDto request,
   }) async {
+    if (shouldFailStart) {
+      throw AppException.server('Start execution failed', statusCode: 500);
+    }
     return ExecutionRecord(
-      id: 'test_exec',
+      id: _validExecId,
       workflowId: request.workflowId,
       targetLocale: request.targetLocale,
       status: 'RUNNING',
@@ -25,9 +43,12 @@ class MockExecutionClient implements ExecutionClient {
 
   @override
   Future<ExecutionRecord> resumeExecution(String executionId) async {
+    if (shouldFailResume) {
+      throw AppException.server('Resume execution failed', statusCode: 500);
+    }
     return ExecutionRecord(
       id: executionId,
-      workflowId: 'test_wf',
+      workflowId: _validWfId,
       targetLocale: 'fi',
       status: 'RUNNING',
     );
@@ -37,14 +58,10 @@ class MockExecutionClient implements ExecutionClient {
   Future<ExecutionRecord> getExecutionStatus(String executionId) async {
     return ExecutionRecord(
       id: executionId,
-      workflowId: 'test_wf',
+      workflowId: _validWfId,
       targetLocale: 'fi',
       status: 'PASSED',
     );
-  }
-
-  Future<Map<String, dynamic>> getScorecard(String executionId) async {
-    return {};
   }
 
   @override
@@ -59,10 +76,10 @@ class MockExecutionClient implements ExecutionClient {
 
 class MockSseClient implements SseClient {
   @override
-  Stream<Map<String, dynamic>> subscribeToExecution(String executionId) async* {
+  Stream<Map<String, Object?>> subscribeToExecution(String executionId) async* {
     yield {
       'id': executionId,
-      'workflow_id': 'test_wf',
+      'workflow_id': _validWfId,
       'target_locale': 'fi',
       'status': 'passed',
     };
@@ -71,10 +88,10 @@ class MockSseClient implements SseClient {
 
 class MockErrorSseClient implements SseClient {
   @override
-  Stream<Map<String, dynamic>> subscribeToExecution(String executionId) async* {
+  Stream<Map<String, Object?>> subscribeToExecution(String executionId) async* {
     yield {
       'id': executionId,
-      'workflow_id': 'test_wf',
+      'workflow_id': _validWfId,
       'target_locale': 'fi',
       'status': 'running',
     };
@@ -85,12 +102,32 @@ class MockErrorSseClient implements SseClient {
   }
 }
 
-class MockSseClientWithErrorNull implements SseClient {
+class MockExplicitErrorCodeSseClient implements SseClient {
   @override
-  Stream<Map<String, dynamic>> subscribeToExecution(String executionId) async* {
+  Stream<Map<String, Object?>> subscribeToExecution(String executionId) async* {
+    yield {
+      'error_code': 'QUOTA_EXCEEDED',
+      'message': 'Token quota limit reached',
+    };
+  }
+}
+
+class MockMalformedPayloadSseClient implements SseClient {
+  @override
+  Stream<Map<String, Object?>> subscribeToExecution(String executionId) async* {
     yield {
       'id': executionId,
-      'workflow_id': 'test_wf',
+      'unrecognized_illegal_field': 'boom',
+    };
+  }
+}
+
+class MockSseClientWithErrorNull implements SseClient {
+  @override
+  Stream<Map<String, Object?>> subscribeToExecution(String executionId) async* {
+    yield {
+      'id': executionId,
+      'workflow_id': _validWfId,
       'target_locale': 'fi',
       'status': 'passed',
       'error': null,
@@ -100,10 +137,10 @@ class MockSseClientWithErrorNull implements SseClient {
 
 class MockSseClientWithFailedExecutionRecord implements SseClient {
   @override
-  Stream<Map<String, dynamic>> subscribeToExecution(String executionId) async* {
+  Stream<Map<String, Object?>> subscribeToExecution(String executionId) async* {
     yield {
       'id': executionId,
-      'workflow_id': 'test_wf',
+      'workflow_id': _validWfId,
       'target_locale': 'fi',
       'status': 'failed',
       'error': 'Step computation failed',
@@ -111,37 +148,66 @@ class MockSseClientWithFailedExecutionRecord implements SseClient {
   }
 }
 
+class MockAbruptDropTerminalSseClient implements SseClient {
+  @override
+  Stream<Map<String, Object?>> subscribeToExecution(String executionId) async* {
+    throw Exception('Socket closed abruptly');
+  }
+}
+
 class MockLoggerService implements LoggerService {
+  final List<String> errors = [];
+  final List<String> warnings = [];
+
   @override
-  Future<void> init() async {}
+  Future<void> init({File? logFile}) async {}
   @override
-  void debug(
-    String module,
-    String message, [
-    Object? error,
-    StackTrace? stack,
-  ]) {}
+  void debug(String context, String message) {}
   @override
-  void info(
-    String module,
-    String message, [
-    Object? error,
-    StackTrace? stack,
-  ]) {}
+  void info(String context, String message) {}
   @override
   void warning(
-    String module,
+    String context,
     String message, [
     Object? error,
     StackTrace? stack,
-  ]) {}
+  ]) {
+    warnings.add('$context: $message');
+  }
+
   @override
   void error(
-    String module,
+    String context,
     String message, [
     Object? error,
     StackTrace? stack,
-  ]) {}
+  ]) {
+    errors.add('$context: $message');
+  }
+}
+
+class _StubDioAdapter implements HttpClientAdapter {
+  final List<Object?>? responseData;
+
+  _StubDioAdapter(this.responseData);
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<List<int>>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    return ResponseBody.fromString(
+      '[]',
+      200,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
 }
 
 void main() {
@@ -155,57 +221,168 @@ void main() {
           loggerServiceProvider.overrideWithValue(MockLoggerService()),
         ],
       );
+      addTearDown(container.dispose);
 
-      final sub = container.listen(executionControllerProvider, (_, __) {});
+      final sub = container.listen(executionControllerProvider, (_, _) {});
+      addTearDown(sub.close);
 
       final controller = container.read(executionControllerProvider.notifier);
 
-      await controller.startExecution('test_wf', {});
-
-      // Wait for the stream update to complete
-      await Future.delayed(const Duration(milliseconds: 200));
+      await controller.startExecution(_validWfId, {});
+      await Future<void>.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(executionControllerProvider);
-      if (state.hasError) {
-        print('STATE ERROR: ' + state.error.toString());
-        print('STATE STACK: ' + state.stackTrace.toString());
-      }
-      expect(state.hasValue, true);
-      // Wait, state.value is an ExecutionRecord.
-      expect(state.value?.id, 'test_exec');
+      expect(state.hasValue, isTrue);
+      expect(state.value?.id, _validExecId);
       expect(state.value?.status, 'PASSED');
-
-      sub.close();
     },
   );
 
   test(
-    'ExecutionController handles SSE error update gracefully without crashing with CheckedFromJsonException',
+    'ExecutionController handles SSE error update gracefully without CheckedFromJsonException',
     () async {
+      final logger = MockLoggerService();
       final container = ProviderContainer(
         overrides: [
           executionClientProvider.overrideWithValue(MockExecutionClient()),
           sseClientProvider.overrideWithValue(MockErrorSseClient()),
-          loggerServiceProvider.overrideWithValue(MockLoggerService()),
+          loggerServiceProvider.overrideWithValue(logger),
         ],
       );
+      addTearDown(container.dispose);
 
-      final sub = container.listen(executionControllerProvider, (_, __) {});
+      final sub = container.listen(executionControllerProvider, (_, _) {});
+      addTearDown(sub.close);
+
       final controller = container.read(executionControllerProvider.notifier);
 
-      await controller.startExecution('test_wf', {});
-      await Future.delayed(const Duration(milliseconds: 200));
+      await controller.startExecution(_validWfId, {});
+      await Future<void>.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(executionControllerProvider);
-      expect(state.hasError, true);
+      expect(state.hasError, isTrue);
       expect(
         state.error.toString().contains('CheckedFromJsonException'),
         isFalse,
-        reason:
-            'SSE error update must not crash through CheckedFromJsonException',
       );
+      expect(logger.errors, isNotEmpty);
+    },
+  );
 
-      sub.close();
+  test(
+    'ExecutionController handles explicit error_code SSE payload as AppException',
+    () async {
+      final logger = MockLoggerService();
+      final container = ProviderContainer(
+        overrides: [
+          executionClientProvider.overrideWithValue(MockExecutionClient()),
+          sseClientProvider.overrideWithValue(
+            MockExplicitErrorCodeSseClient(),
+          ),
+          loggerServiceProvider.overrideWithValue(logger),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sub = container.listen(executionControllerProvider, (_, _) {});
+      addTearDown(sub.close);
+
+      final controller = container.read(executionControllerProvider.notifier);
+
+      await controller.startExecution(_validWfId, {});
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final state = container.read(executionControllerProvider);
+      expect(state.hasError, isTrue);
+      expect(state.error, isA<AppException>());
+      final appErr = state.error as AppException;
+      expect(appErr.extensions?['error_code'], 'QUOTA_EXCEEDED');
+    },
+  );
+
+  test(
+    'ExecutionController fails fast on malformed SSE payload with SSE_DESERIALIZATION_FAILED',
+    () async {
+      final logger = MockLoggerService();
+      final container = ProviderContainer(
+        overrides: [
+          executionClientProvider.overrideWithValue(MockExecutionClient()),
+          sseClientProvider.overrideWithValue(MockMalformedPayloadSseClient()),
+          loggerServiceProvider.overrideWithValue(logger),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sub = container.listen(executionControllerProvider, (_, _) {});
+      addTearDown(sub.close);
+
+      final controller = container.read(executionControllerProvider.notifier);
+
+      await controller.startExecution(_validWfId, {});
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final state = container.read(executionControllerProvider);
+      expect(state.hasError, isTrue);
+      expect(state.error, isA<AppException>());
+      final appErr = state.error as AppException;
+      expect(appErr.extensions?['error_code'], 'SSE_DESERIALIZATION_FAILED');
+    },
+  );
+
+  test(
+    'ExecutionController transitions to error state when startExecution fails',
+    () async {
+      final logger = MockLoggerService();
+      final container = ProviderContainer(
+        overrides: [
+          executionClientProvider.overrideWithValue(
+            MockExecutionClient(shouldFailStart: true),
+          ),
+          sseClientProvider.overrideWithValue(MockSseClient()),
+          loggerServiceProvider.overrideWithValue(logger),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sub = container.listen(executionControllerProvider, (_, _) {});
+      addTearDown(sub.close);
+
+      final controller = container.read(executionControllerProvider.notifier);
+
+      await controller.startExecution(_validWfId, {});
+
+      final state = container.read(executionControllerProvider);
+      expect(state.hasError, isTrue);
+      expect(logger.errors, isNotEmpty);
+    },
+  );
+
+  test(
+    'ExecutionController submitRehydration rethrows error and logs on failure',
+    () async {
+      final logger = MockLoggerService();
+      final container = ProviderContainer(
+        overrides: [
+          executionClientProvider.overrideWithValue(
+            MockExecutionClient(shouldFailResume: true),
+          ),
+          sseClientProvider.overrideWithValue(MockSseClient()),
+          loggerServiceProvider.overrideWithValue(logger),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sub = container.listen(executionControllerProvider, (_, _) {});
+      addTearDown(sub.close);
+
+      final controller = container.read(executionControllerProvider.notifier);
+
+      await expectLater(
+        () => controller.submitRehydration(_validExecId),
+        throwsA(isA<AppException>()),
+      );
+      expect(container.read(executionControllerProvider).hasError, isTrue);
+      expect(logger.errors, isNotEmpty);
     },
   );
 
@@ -219,25 +396,21 @@ void main() {
           loggerServiceProvider.overrideWithValue(MockLoggerService()),
         ],
       );
+      addTearDown(container.dispose);
 
-      final sub = container.listen(executionControllerProvider, (_, __) {});
+      final sub = container.listen(executionControllerProvider, (_, _) {});
+      addTearDown(sub.close);
+
       final controller = container.read(executionControllerProvider.notifier);
 
-      await controller.startExecution('test_wf', {});
-      await Future.delayed(const Duration(milliseconds: 200));
+      await controller.startExecution(_validWfId, {});
+      await Future<void>.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(executionControllerProvider);
-      expect(
-        state.hasError,
-        isFalse,
-        reason:
-            'ExecutionRecord with error: null must not trigger SSE stream error defense',
-      );
+      expect(state.hasError, isFalse);
       expect(state.hasValue, isTrue);
-      expect(state.value?.id, 'test_exec');
+      expect(state.value?.id, _validExecId);
       expect(state.value?.status, 'PASSED');
-
-      sub.close();
     },
   );
 
@@ -253,26 +426,67 @@ void main() {
           loggerServiceProvider.overrideWithValue(MockLoggerService()),
         ],
       );
+      addTearDown(container.dispose);
 
-      final sub = container.listen(executionControllerProvider, (_, __) {});
+      final sub = container.listen(executionControllerProvider, (_, _) {});
+      addTearDown(sub.close);
+
       final controller = container.read(executionControllerProvider.notifier);
 
-      await controller.startExecution('test_wf', {});
-      await Future.delayed(const Duration(milliseconds: 200));
+      await controller.startExecution(_validWfId, {});
+      await Future<void>.delayed(const Duration(milliseconds: 50));
 
       final state = container.read(executionControllerProvider);
-      expect(
-        state.hasError,
-        isFalse,
-        reason:
-            'Failed ExecutionRecord with domain error must deserialize normally',
-      );
+      expect(state.hasError, isFalse);
       expect(state.hasValue, isTrue);
-      expect(state.value?.id, 'test_exec');
+      expect(state.value?.id, _validExecId);
       expect(state.value?.status, 'FAILED');
       expect(state.value?.error, 'Step computation failed');
-
-      sub.close();
     },
   );
+
+  test(
+    'ExecutionController resumeExecution with abrupt stream error sets SSE_CONNECTION_ABORTED when state is null',
+    () async {
+      final logger = MockLoggerService();
+      final container = ProviderContainer(
+        overrides: [
+          executionClientProvider.overrideWithValue(MockExecutionClient()),
+          sseClientProvider.overrideWithValue(
+            MockAbruptDropTerminalSseClient(),
+          ),
+          loggerServiceProvider.overrideWithValue(logger),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sub = container.listen(executionControllerProvider, (_, _) {});
+      addTearDown(sub.close);
+
+      final controller = container.read(executionControllerProvider.notifier);
+      await controller.resumeExecution(_validExecId);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final state = container.read(executionControllerProvider);
+      expect(state.hasError, isTrue);
+      final appErr = state.error as AppException;
+      expect(appErr.extensions?['error_code'], 'SSE_CONNECTION_ABORTED');
+    },
+  );
+
+  test('executionListProvider parses empty list cleanly', () async {
+    final dio = Dio();
+    dio.httpClientAdapter = _StubDioAdapter(const []);
+
+    final container = ProviderContainer(
+      overrides: [
+        apiClientProvider.overrideWithValue(dio),
+        loggerServiceProvider.overrideWithValue(MockLoggerService()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final list = await container.read(executionListProvider.future);
+    expect(list, isEmpty);
+  });
 }
