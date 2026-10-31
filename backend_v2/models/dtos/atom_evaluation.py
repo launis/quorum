@@ -54,7 +54,6 @@ class ReducedAtomDTO(V2CoreBase):
         is_inverse_evidence: Whether this atom represents an inverse evidence check.
     """
 
-    # Phase 1, Step 1.2: Enrich ReducedAtomDTO with topological and short-circuit lineage fields
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     tda_id: Annotated[str, Field(description="Authoritative atom identifier.")]

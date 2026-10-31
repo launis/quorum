@@ -77,6 +77,12 @@ def test_evaluated_matrix_ref_dto_rejects_extra() -> None:
         EvaluatedMatrixRefDTO.model_validate({"matrix_id": "mat_1", "extra_field": "bad"})
 
 
+def test_evaluated_matrix_ref_dto_rejects_missing_matrix_id() -> None:
+    """Verify EvaluatedMatrixRefDTO rejects missing required matrix_id."""
+    with pytest.raises(ValidationError):
+        EvaluatedMatrixRefDTO.model_validate({"score": 4.5})
+
+
 def test_raw_xai_extension_dto_validation() -> None:
     """Verify RawXAIExtensionDTO serialization and validation."""
     ext = RawXAIExtensionDTO(
@@ -97,6 +103,12 @@ def test_raw_xai_extension_dto_rejects_extra() -> None:
     """Verify RawXAIExtensionDTO extra fields are forbidden."""
     with pytest.raises(ValidationError):
         RawXAIExtensionDTO.model_validate({"id": "ext_1", "forbidden_prop": 999})
+
+
+def test_raw_xai_extension_dto_rejects_invalid_confidence_type() -> None:
+    """Verify RawXAIExtensionDTO strict validation rejects non-float confidence."""
+    with pytest.raises(ValidationError):
+        RawXAIExtensionDTO.model_validate({"id": "ext_1", "confidence": "not-a-float"})
 
 
 def test_reasoning_step_dto_rejects_extra() -> None:

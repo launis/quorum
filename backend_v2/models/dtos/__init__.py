@@ -1,6 +1,7 @@
 """Data Transfer Objects (DTOs) for strict API contracts."""
 
 __all__ = [
+    "atom_evaluation",
     "base",
     "dag_models",
     "engine",
