@@ -75,7 +75,7 @@
   - [x] @[backend_v2/models/dtos/causal_discovery.py]
   - [x] @[backend_v2/models/dtos/lightweight_matrix.py]
   - [x] @[backend_v2/models/dtos/report_data.py]
-  - [ ] @[backend_v2/models/dtos/synthesis.py]
+  - [x] @[backend_v2/models/dtos/synthesis.py]
   - [ ] @[backend_v2/models/prompts/synthesis/synthesis_directives.py]
   - [ ] @[backend_v2/models/view/sdui.py]
   - [ ] @[backend_v2/services/blueprint.py]
