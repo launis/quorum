@@ -30,7 +30,7 @@
   - [x] @[client_app_v2/lib/features/shell/presentation/scaffold_with_nav.dart]
   - [x] @[client_app_v2/lib/features/shell/presentation/widgets/admin_sidebar.dart]
   - [x] @[client_app_v2/lib/theme/app_colors.dart]
-  - [ ] @[client_app_v2/lib/theme/app_durations.dart]
+  - [x] @[client_app_v2/lib/theme/app_durations.dart]
   - [ ] @[client_app_v2/lib/theme/app_theme.dart]
   - [ ] @[client_app_v2/lib/core/api/execution_client.dart]
   - [ ] @[client_app_v2/lib/core/api/reports_client.dart]
