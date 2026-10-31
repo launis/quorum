@@ -6843,6 +6843,22 @@
             ],
             "title": "Source Input Key",
             "description": "Dynamic input key indicating source document provenance."
+          },
+          "short_circuited_by_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Short Circuited By Claims",
+            "description": "Human-readable prerequisite claims that short-circuited this causal node."
+          },
+          "falsified_warrant_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Falsified Warrant Claims",
+            "description": "Formatted Toulmin rebuttal-warrant-claim falsification entries for this node."
           }
         },
         "additionalProperties": false,
@@ -6853,7 +6869,7 @@
           "status"
         ],
         "title": "CausalNodeDTO",
-        "description": "Node representation in an argument causal graph.\n\nAttributes:\n    node_id: Unique identifier for the causal node.\n    claim: Textual claim statement evaluated in the node.\n    source_quotes: Exact verbatim source quote segments from document.\n    paragraph_ref: Paragraph or block reference in source text.\n    status: Execution and verification status.\n    blame_parent_ids: IDs of upstream parent nodes contributing to failure.\n    dependent_child_ids: IDs of downstream nodes affected by this node.\n    tda_score: Evaluated TDA cognitive score.\n    tda_level_key: TDA qualitative level key.\n    source_input_key: Dynamic input key indicating source document provenance."
+        "description": "Node representation in an argument causal graph.\n\nAttributes:\n    node_id: Unique identifier for the causal node.\n    claim: Textual claim statement evaluated in the node.\n    source_quotes: Exact verbatim source quote segments from document.\n    paragraph_ref: Paragraph or block reference in source text.\n    status: Execution and verification status.\n    blame_parent_ids: IDs of upstream parent nodes contributing to failure.\n    dependent_child_ids: IDs of downstream nodes affected by this node.\n    tda_score: Evaluated TDA cognitive score.\n    tda_level_key: TDA qualitative level key.\n    source_input_key: Dynamic input key indicating source document provenance.\n    short_circuited_by_claims: Human-readable prerequisite claims that short-circuited this causal node.\n    falsified_warrant_claims: Formatted Toulmin rebuttal-warrant-claim falsification entries for this node."
       },
       "CausalRootCauseDiagnosisDTO": {
         "properties": {
@@ -6885,6 +6901,29 @@
           "root_cause_type": {
             "$ref": "#/components/schemas/CausalRootCauseType",
             "default": "node_failure"
+          },
+          "root_cause_claim": {
+            "type": "string",
+            "title": "Root Cause Claim",
+            "description": "Human-readable claim statement of the upstream root cause parent node.",
+            "default": ""
+          },
+          "failing_node_claim": {
+            "type": "string",
+            "title": "Failing Node Claim",
+            "description": "Human-readable claim statement of the failing dependent node.",
+            "default": ""
+          },
+          "warrant_relation": {
+            "type": "string",
+            "enum": [
+              "supports",
+              "rebuts",
+              "warrants"
+            ],
+            "title": "Warrant Relation",
+            "description": "Toulmin inferential relation type on the dependency edge.",
+            "default": "warrants"
           }
         },
         "additionalProperties": false,
@@ -6897,7 +6936,7 @@
           "penalty_points"
         ],
         "title": "CausalRootCauseDiagnosisDTO",
-        "description": "Root cause diagnostic detail for an argument failure.\n\nAttributes:\n    failing_node_id: ID of the failing dependent node.\n    root_cause_parent_id: ID of the upstream root cause parent.\n    paragraph_ref: Source paragraph reference.\n    explanation: Causal chain explanation of why the root cause led to failure.\n    penalty_points: Attributed penalty points.\n    root_cause_type: Categorization of failure as node, warrant, or precondition failure."
+        "description": "Root cause diagnostic detail for an argument failure.\n\nAttributes:\n    failing_node_id: ID of the failing dependent node.\n    root_cause_parent_id: ID of the upstream root cause parent.\n    paragraph_ref: Source paragraph reference.\n    explanation: Causal chain explanation of why the root cause led to failure.\n    penalty_points: Attributed penalty points.\n    root_cause_type: Categorization of failure as node, warrant, or precondition failure.\n    root_cause_claim: Human-readable claim statement of the upstream root cause parent.\n    failing_node_claim: Human-readable claim statement of the failing dependent node.\n    warrant_relation: Toulmin inferential relation type on the dependency edge."
       },
       "CausalRootCauseType": {
         "type": "string",
@@ -6945,6 +6984,14 @@
             "title": "Total Deliverable Nodes",
             "description": "Total node count in deliverable subgraph.",
             "default": 0
+          },
+          "falsified_claims": {
+            "items": {
+              "$ref": "#/components/schemas/FalsifiedClaimMatch"
+            },
+            "type": "array",
+            "title": "Falsified Claims",
+            "description": "Toulmin falsified claims resolved via 3-way rebuttal-warrant-claim join."
           }
         },
         "additionalProperties": false,
@@ -6955,7 +7002,7 @@
           "fair_scoring"
         ],
         "title": "CausalTdaFusionResultDTO",
-        "description": "Composite fusion result combining causal graph discovery and TDA evaluation.\n\nAttributes:\n    graph: Complete causal argument graph.\n    root_cause_diagnoses: Root cause diagnostics for all cascade failures.\n    anti_fluff_audit: Anti-fluff and cohesion audit metrics.\n    prescriptive_remediations: Prescriptive remediation steps to unlock performance.\n    fair_scoring: Fair scoring arithmetic breakdown.\n    total_deliverable_nodes: Total node count in deliverable subgraph."
+        "description": "Composite fusion result combining causal graph discovery and TDA evaluation.\n\nAttributes:\n    graph: Complete causal argument graph.\n    root_cause_diagnoses: Root cause diagnostics for all cascade failures.\n    anti_fluff_audit: Anti-fluff and cohesion audit metrics.\n    prescriptive_remediations: Prescriptive remediation steps to unlock performance.\n    fair_scoring: Fair scoring arithmetic breakdown.\n    total_deliverable_nodes: Total node count in deliverable subgraph.\n    falsified_claims: Toulmin falsified claims resolved via 3-way rebuttal-warrant-claim join."
       },
       "CitationAudit": {
         "properties": {
@@ -9709,6 +9756,50 @@
         ],
         "title": "FairScoringBreakdownDTO",
         "description": "Fair scoring breakdown attributing penalties and savings across causal chains.\n\nAttributes:\n    independent_error_count: Count of independent, non-cascading errors.\n    cascading_fault_count: Count of secondary cascading faults.\n    raw_penalty_points: Raw unpenalized deduction points.\n    deduplicated_penalty_points: Penalty points after deduplicating cascading faults.\n    dampened_savings_points: Points saved via secondary fault dampening."
+      },
+      "FalsifiedClaimMatch": {
+        "properties": {
+          "rebuttal_id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
+            "title": "Rebuttal Id",
+            "description": "Rebuttal nod_<uuid7_hex>."
+          },
+          "invalidated_warrant_id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
+            "title": "Invalidated Warrant Id",
+            "description": "Invalidated warrant nod_<uuid7_hex>."
+          },
+          "falsified_claim_id": {
+            "type": "string",
+            "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$",
+            "title": "Falsified Claim Id",
+            "description": "Falsified claim nod_<uuid7_hex>."
+          },
+          "rebuttal_confidence": {
+            "type": "number",
+            "title": "Rebuttal Confidence",
+            "description": "Confidence of the rebuttal node."
+          },
+          "claim_statement": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Claim Statement",
+            "description": "Statement text of the falsified claim."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rebuttal_id",
+          "invalidated_warrant_id",
+          "falsified_claim_id",
+          "rebuttal_confidence",
+          "claim_statement"
+        ],
+        "title": "FalsifiedClaimMatch",
+        "description": "Result DTO representing a claim falsified by a high-confidence rebuttal of its warrant.\n\nAttributes:\n    rebuttal_id: Rebuttal nod_<uuid7_hex> identifier.\n    invalidated_warrant_id: Invalidated warrant nod_<uuid7_hex> identifier.\n    falsified_claim_id: Falsified claim nod_<uuid7_hex> identifier.\n    rebuttal_confidence: Confidence of the rebuttal node in [0.0, 1.0].\n    claim_statement: Statement text of the falsified claim."
       },
       "FlattenedAtom": {
         "properties": {
@@ -12712,7 +12803,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "MatrixAggregationStateDTO",
-        "description": "Encapsulates aggregated evaluation state and metrics for a single matrix block.\n\nAttributes:\n    scale_stats: Map of scale threshold to LevelStatsDTO.\n    evaluated_atoms: Map of atom ID to ExecutionStatus.\n    extensions: Map of extension key to list of extension strings.\n    missing_atoms: List of descriptions for unscored or failed atoms.\n    atom_quotes: List of QuoteEvidenceDTO instances."
+        "description": "Encapsulates aggregated evaluation state and metrics for a single matrix block.\n\nAttributes:\n    scale_stats: Map of scale threshold to LevelStatsDTO.\n    evaluated_atoms: Map of atom ID to ExecutionStatus.\n    extensions: Map of extension key to list of extension strings.\n    missing_atoms: List of descriptions for unscored or failed atoms.\n    atom_quotes: List of QuoteEvidenceDTO instances.\n    display_stats: Map of level key to empirical LevelStatsDTO."
       },
       "MatrixAggregationStateDTO-Output": {
         "properties": {
@@ -12771,7 +12862,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "MatrixAggregationStateDTO",
-        "description": "Encapsulates aggregated evaluation state and metrics for a single matrix block.\n\nAttributes:\n    scale_stats: Map of scale threshold to LevelStatsDTO.\n    evaluated_atoms: Map of atom ID to ExecutionStatus.\n    extensions: Map of extension key to list of extension strings.\n    missing_atoms: List of descriptions for unscored or failed atoms.\n    atom_quotes: List of QuoteEvidenceDTO instances."
+        "description": "Encapsulates aggregated evaluation state and metrics for a single matrix block.\n\nAttributes:\n    scale_stats: Map of scale threshold to LevelStatsDTO.\n    evaluated_atoms: Map of atom ID to ExecutionStatus.\n    extensions: Map of extension key to list of extension strings.\n    missing_atoms: List of descriptions for unscored or failed atoms.\n    atom_quotes: List of QuoteEvidenceDTO instances.\n    display_stats: Map of level key to empirical LevelStatsDTO."
       },
       "MatrixClaim": {
         "properties": {
@@ -12831,6 +12922,14 @@
             "type": "string",
             "title": "Justification",
             "description": "The structured justification text including quotes"
+          },
+          "unmet_deficits": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixFailureDeficitDTO"
+            },
+            "type": "array",
+            "title": "Unmet Deficits",
+            "description": "Structured failure and short-circuit deficits for this matrix."
           }
         },
         "additionalProperties": false,
@@ -12842,7 +12941,97 @@
           "justification"
         ],
         "title": "MatrixExplanationContextDTO",
-        "description": "DTO representing the evaluated state of a matrix for synthesis explanation.\n\nAttributes:\n    real_matrix_id: The original PromptBlock ID.\n    matrix_id: The alias for the LLM.\n    matrix_label: The localized matrix title.\n    score: The normalized score.\n    justification: The structured justification text including quotes."
+        "description": "DTO representing the evaluated state of a matrix for synthesis explanation.\n\nAttributes:\n    real_matrix_id: The original PromptBlock ID.\n    matrix_id: The alias for the LLM.\n    matrix_label: The localized matrix title.\n    score: The normalized score.\n    justification: The structured justification text including quotes.\n    unmet_deficits: Structured failure and short-circuit deficits for this matrix."
+      },
+      "MatrixFailureDeficitDTO": {
+        "properties": {
+          "claim": {
+            "type": "string",
+            "title": "Claim",
+            "description": "Localized claim label for the unmet or short-circuited criterion."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "FAILED",
+              "N_A"
+            ],
+            "title": "Status",
+            "description": "Evaluation status of the deficit (FAILED or N_A)."
+          },
+          "scale_score": {
+            "type": "integer",
+            "title": "Scale Score",
+            "description": "Numerical scale score tier of the unmet criterion."
+          },
+          "evaluation_reasoning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluation Reasoning",
+            "description": "Cognitive evaluation reasoning explaining the failure."
+          },
+          "is_inverse_evidence": {
+            "type": "boolean",
+            "title": "Is Inverse Evidence",
+            "description": "True if assertion evaluates absence of negative evidence.",
+            "default": false
+          },
+          "short_circuited_by_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Short Circuited By Claims",
+            "description": "Transitively resolved upstream blocker claims and reasoning for N_A deficits."
+          },
+          "anti_patterns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Anti Patterns",
+            "description": "Known anti-pattern descriptions associated with this assertion."
+          },
+          "contrastive_rejected": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrastive Rejected",
+            "description": "Contrastive rejected exemplar demonstrating boundary failure."
+          },
+          "contrastive_acceptable": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contrastive Acceptable",
+            "description": "Contrastive acceptable exemplar satisfying the assertion."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "claim",
+          "status",
+          "scale_score"
+        ],
+        "title": "MatrixFailureDeficitDTO",
+        "description": "Structured failure or short-circuited deficit entry for a matrix criterion.\n\nAttributes:\n    claim: Localized claim label for the unmet or short-circuited criterion.\n    status: Evaluation status of the deficit (FAILED or N_A).\n    scale_score: Numerical scale score tier of the unmet criterion.\n    evaluation_reasoning: Cognitive evaluation reasoning explaining the failure.\n    is_inverse_evidence: True if assertion evaluates absence of negative evidence.\n    short_circuited_by_claims: Transitively resolved upstream blocker claims and reasoning for N_A deficits.\n    anti_patterns: Known anti-pattern descriptions associated with this assertion.\n    contrastive_rejected: Contrastive rejected exemplar demonstrating boundary failure.\n    contrastive_acceptable: Contrastive acceptable exemplar satisfying the assertion."
       },
       "MatrixPromptBlock": {
         "properties": {
@@ -17482,6 +17671,28 @@
             ],
             "title": "Extracted Data",
             "description": "Optional extracted key-value pairs."
+          },
+          "depends_on_tda_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Depends On Tda Ids",
+            "description": "Upstream TDA assertion IDs this atom depends on."
+          },
+          "short_circuit_reason_tda_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Short Circuit Reason Tda Ids",
+            "description": "Upstream TDA assertion IDs that short-circuited this atom."
+          },
+          "is_inverse_evidence": {
+            "type": "boolean",
+            "title": "Is Inverse Evidence",
+            "description": "Whether this atom represents an inverse evidence check.",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -17491,7 +17702,7 @@
           "status"
         ],
         "title": "ReducedAtomDTO",
-        "description": "Reduced atom data for synthesis, containing only what is strictly necessary.\n\nAttributes:\n    tda_id: Authoritative atom identifier.\n    status: Execution status of the evaluated atom.\n    reasoning: Optional textual rationale for the atom outcome.\n    source_quotes: Verbatim source quote segments as a validated tuple.\n    extracted_data: Optional structured extraction key-value payload."
+        "description": "Reduced atom data for synthesis, containing only what is strictly necessary.\n\nAttributes:\n    tda_id: Authoritative atom identifier.\n    status: Execution status of the evaluated atom.\n    reasoning: Optional textual rationale for the atom outcome.\n    source_quotes: Verbatim source quote segments as a validated tuple.\n    extracted_data: Optional structured extraction key-value payload.\n    depends_on_tda_ids: Upstream TDA assertion IDs this atom depends on.\n    short_circuit_reason_tda_ids: Upstream TDA assertion IDs that short-circuited this atom.\n    is_inverse_evidence: Whether this atom represents an inverse evidence check."
       },
       "ReferenceDTO": {
         "properties": {
@@ -17902,7 +18113,8 @@
         "properties": {
           "workflow_id": {
             "type": "string",
-            "title": "Workflow Id"
+            "title": "Workflow Id",
+            "description": "The workflow's opaque Stripe ID."
           },
           "execution_id": {
             "type": "string",
@@ -17919,7 +18131,7 @@
               }
             ],
             "title": "Scoring Strategy",
-            "description": "The mathematical strategy used for scoring (e.g. WATERFALL)"
+            "description": "The mathematical strategy used for scoring (e.g. WATERFALL)."
           },
           "user_name": {
             "anyOf": [
@@ -17931,7 +18143,7 @@
               }
             ],
             "title": "User Name",
-            "description": "Initiating user's name"
+            "description": "Initiating user's name."
           },
           "scoring_engine_name": {
             "anyOf": [
@@ -17943,7 +18155,7 @@
               }
             ],
             "title": "Scoring Engine Name",
-            "description": "Human readable name of the scoring engine"
+            "description": "Human readable name of the scoring engine."
           },
           "strictness_level": {
             "anyOf": [
@@ -17955,7 +18167,7 @@
               }
             ],
             "title": "Strictness Level",
-            "description": "Numeric strictness level (0-100)"
+            "description": "Numeric strictness level (0-100)."
           },
           "local_time_str": {
             "anyOf": [
@@ -17967,7 +18179,7 @@
               }
             ],
             "title": "Local Time Str",
-            "description": "Localized time string from the client"
+            "description": "Localized time string from the client."
           },
           "custom_preface_md": {
             "anyOf": [
@@ -17979,11 +18191,12 @@
               }
             ],
             "title": "Custom Preface Md",
-            "description": "Custom user preface rendered as Markdown"
+            "description": "Custom user preface rendered as Markdown."
           },
           "profile_id": {
             "type": "string",
-            "title": "Profile Id"
+            "title": "Profile Id",
+            "description": "The output profile's opaque Stripe ID."
           },
           "profile_name": {
             "anyOf": [
@@ -17993,7 +18206,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Localized name of the output profile."
           },
           "profile_description": {
             "anyOf": [
@@ -18004,14 +18218,15 @@
                 "type": "null"
               }
             ],
-            "description": "Detailed profile context mapped from OutputProfile"
+            "description": "Detailed profile context mapped from OutputProfile."
           },
           "available_profiles": {
             "additionalProperties": {
               "$ref": "#/components/schemas/I18nText"
             },
             "type": "object",
-            "title": "Available Profiles"
+            "title": "Available Profiles",
+            "description": "Mapping of profile IDs to localized names."
           },
           "global_score": {
             "anyOf": [
@@ -18039,7 +18254,8 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Aggregate atom-level metrics for DAG execution."
           },
           "inner_sdui_blocks": {
             "items": {
@@ -18165,7 +18381,8 @@
                 "type": "null"
               }
             ],
-            "title": "Created At"
+            "title": "Created At",
+            "description": "Execution creation timestamp."
           },
           "org_name": {
             "anyOf": [
@@ -18176,7 +18393,8 @@
                 "type": "null"
               }
             ],
-            "title": "Org Name"
+            "title": "Org Name",
+            "description": "Organization display name."
           },
           "cost_estimate": {
             "anyOf": [
@@ -18187,7 +18405,8 @@
                 "type": "null"
               }
             ],
-            "title": "Cost Estimate"
+            "title": "Cost Estimate",
+            "description": "Estimated financial cost of the execution."
           },
           "total_tokens": {
             "anyOf": [
@@ -18198,7 +18417,8 @@
                 "type": "null"
               }
             ],
-            "title": "Total Tokens"
+            "title": "Total Tokens",
+            "description": "Total token count consumed across the execution."
           },
           "prompt_tokens": {
             "anyOf": [
@@ -18209,7 +18429,8 @@
                 "type": "null"
               }
             ],
-            "title": "Prompt Tokens"
+            "title": "Prompt Tokens",
+            "description": "Prompt token count consumed."
           },
           "completion_tokens": {
             "anyOf": [
@@ -18220,7 +18441,8 @@
                 "type": "null"
               }
             ],
-            "title": "Completion Tokens"
+            "title": "Completion Tokens",
+            "description": "Completion token count consumed."
           },
           "reasoning_tokens": {
             "anyOf": [
@@ -18231,7 +18453,8 @@
                 "type": "null"
               }
             ],
-            "title": "Reasoning Tokens"
+            "title": "Reasoning Tokens",
+            "description": "Reasoning token count consumed."
           },
           "mcp_tool_audit": {
             "items": {
@@ -18240,6 +18463,22 @@
             "type": "array",
             "title": "Mcp Tool Audit",
             "description": "Serialized MCPAuditTrace entries for XAI Evidence Box rendering."
+          },
+          "short_circuited_by_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Short Circuited By Claims",
+            "description": "Human-readable prerequisite claims that short-circuited downstream evaluations."
+          },
+          "falsified_warrant_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Falsified Warrant Claims",
+            "description": "Formatted Toulmin rebuttal-warrant-claim falsification lineage entries."
           }
         },
         "additionalProperties": false,
@@ -18250,7 +18489,7 @@
           "profile_id"
         ],
         "title": "ReportDataDTO",
-        "description": "Immutable data envelope containing evaluated results, metrics, and SDUI blocks for rendering."
+        "description": "Immutable data envelope containing evaluated results, metrics, and SDUI blocks for rendering.\n\nAttributes:\n    workflow_id: The workflow's opaque Stripe ID.\n    execution_id: The execution's opaque Stripe ID.\n    scoring_strategy: The mathematical strategy used for scoring (e.g. WATERFALL).\n    user_name: Initiating user's name.\n    scoring_engine_name: Human readable name of the scoring engine.\n    strictness_level: Numeric strictness level (0-100).\n    local_time_str: Localized time string from the client.\n    custom_preface_md: Custom user preface rendered as Markdown.\n    profile_id: The output profile's opaque Stripe ID.\n    profile_name: Localized name of the output profile.\n    profile_description: Detailed profile context mapped from OutputProfile.\n    available_profiles: Mapping of profile IDs to localized names.\n    global_score: The mathematical average extracted from the scoring_result hook.\n    has_warning: Flag indicating if the report generation had non-fatal warnings.\n    global_metrics: Aggregate atom-level metrics for DAG execution.\n    inner_sdui_blocks: Final structured SDUI blocks for presentation.\n    results: Topologically sorted list of atom evaluation results.\n    hydrated_references: O(1) dictionary mapping tda_id to static HydratedAtomDTO text.\n    visible_metadata: Fields visible on the UI and PDF cover header.\n    created_at: Execution creation timestamp.\n    org_name: Organization display name.\n    cost_estimate: Estimated financial cost of the execution.\n    total_tokens: Total token count consumed across the execution.\n    prompt_tokens: Prompt token count consumed.\n    completion_tokens: Completion token count consumed.\n    reasoning_tokens: Reasoning token count consumed.\n    mcp_tool_audit: Serialized MCPAuditTrace entries for XAI Evidence Box rendering.\n    short_circuited_by_claims: Human-readable prerequisite claims that short-circuited downstream evaluations.\n    falsified_warrant_claims: Formatted Toulmin rebuttal-warrant-claim falsification lineage entries."
       },
       "ReportMetadataDTO": {
         "properties": {
@@ -18907,6 +19146,22 @@
           },
           "summary": {
             "$ref": "#/components/schemas/I18nText"
+          },
+          "short_circuited_by_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Short Circuited By Claims",
+            "description": "Human-readable prerequisite claims that short-circuited downstream evaluations."
+          },
+          "falsified_warrant_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Falsified Warrant Claims",
+            "description": "Formatted Toulmin rebuttal-warrant-claim falsification lineage entries."
           }
         },
         "additionalProperties": false,
@@ -19212,6 +19467,22 @@
             },
             "type": "array",
             "title": "Matrix Visible Columns"
+          },
+          "short_circuited_by_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Short Circuited By Claims",
+            "description": "Human-readable prerequisite claims that short-circuited downstream evaluations."
+          },
+          "falsified_warrant_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Falsified Warrant Claims",
+            "description": "Formatted Toulmin rebuttal-warrant-claim falsification lineage entries."
           }
         },
         "additionalProperties": false,
@@ -19279,6 +19550,22 @@
             },
             "type": "array",
             "title": "Matrix Visible Columns"
+          },
+          "short_circuited_by_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Short Circuited By Claims",
+            "description": "Human-readable prerequisite claims that short-circuited downstream evaluations."
+          },
+          "falsified_warrant_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Falsified Warrant Claims",
+            "description": "Formatted Toulmin rebuttal-warrant-claim falsification lineage entries."
           }
         },
         "additionalProperties": false,
