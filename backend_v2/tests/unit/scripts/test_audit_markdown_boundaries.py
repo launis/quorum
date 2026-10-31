@@ -619,11 +619,7 @@ def test_markdown_auditor_embedded_python_code_blocks(tmp_path: Path) -> None:
     """Test scanning embedded Python code blocks for QGR AST guardrail violations."""
     md_file = tmp_path / "codeblock_violation.md"
     md_file.write_text(
-        "# Plan\n"
-        "```python\n"
-        "def bad_func(x: dict[str, object]) -> object:\n"
-        "    return getattr(x, 'foo', None)\n"
-        "```\n",
+        "# Plan\n```python\ndef bad_func(x: object) -> object:\n    return getattr(x, 'foo', None)\n```\n",
         encoding="utf-8",
     )
 

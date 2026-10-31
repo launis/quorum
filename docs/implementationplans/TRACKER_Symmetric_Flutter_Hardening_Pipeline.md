@@ -29,7 +29,7 @@
   - [x] @[scripts/audit_markdown_boundaries.py]
   - [x] @[scripts/auto_hardening_runner.py]
   - [x] @[scripts/flutter_audit_loop.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`.
 - [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
@@ -90,17 +90,16 @@
 - Completed Step 1 (`8048621fb`): Added `requires_dart_codegen`, `resolve_flutter_unit_test_files`, and `--micro` mode to `@[scripts/flutter_audit_loop.py]`; updated `DGR010` Dart 3 `switch` remediation and `DGR007` `.withOpacity(` detection in `@[scripts/_dart_guardrails.py]`; enabled `strict-casts`, `strict-inference`, and `strict-raw-types` in `@[client_app_v2/analysis_options.yaml]`; added `<rule_block id="tripartite_postgres_pydantic_python_boundary">` to `@[.agents/rules/01-python-backend.md]`; enforced `QGR017` Tripartite Layer & Protocol Firewall in `@[scripts/_ast_guardrails.py]`.
 - Completed Step 2 (`2621101d0`): Updated `@[scripts/auto_hardening_runner.py]` with symmetric frontend `--micro` dispatch, `run_frontend_macro_quality_gate`, `head_sha` capture/rollback in `WorkspaceSnapshotDTO` and `execute_circuit_breaker_rollback`, post-exit `taskkill /F /T /PID` child MCP process cleanup on Windows, `previous_error` retry diagnostic injection in `execute_subagent_pass`, atomic staging of unit tests and `.g.dart`/`.freezed.dart` siblings in `mark_tracker_and_checkpoint`, and Win32 `SetThreadExecutionState` wake-lock helpers (`acquire_windows_wake_lock` / `release_windows_wake_lock`).
 - Completed Step 3 (`5d609ee44`): Added `auto_fix_ast_bounds` and `--fix` CLI flag to `@[scripts/audit_markdown_boundaries.py]`; updated `@[.agents/skills/tier0-create-plan/SKILL.md]`, `@[.agents/skills/tier0-create-epic/SKILL.md]`, `@[.agents/skills/tier8-audit-feature/SKILL.md]`, `@[.agents/skills/tier2-hardening-frontend/SKILL.md]`, `@[.agents/skills/tier2-hardening-backend/SKILL.md]`, and `@[.agents/rules/04_directory_reference.md]`.
-- Completed Tier 8 System 2 Red-Team Plan Audit: Verified 100% implementation fidelity across all 18 requirements (`REQ-001`–`REQ-018`) and 27 directives, 0 technical debt findings, >90% strict unit test coverage, 100% plan-tracker parity, and passing backend/frontend quality gates.
+- Completed Tier 8 System 2 Red-Team Plan Audit (`b8cc74b9d`) and Tier 2 Hardening across all 5 backend scripts (`scripts/_ast_guardrails.py`, `scripts/_dart_guardrails.py`, `scripts/audit_markdown_boundaries.py`, `scripts/auto_hardening_runner.py`, `scripts/flutter_audit_loop.py`), resolving the Census P test string in `backend_v2/tests/unit/scripts/test_audit_markdown_boundaries.py`.
 
 ## Learned
 - Checking `re.fullmatch(r"[0-9a-fA-F]{7,40}", raw_head)` in `capture_workspace_snapshot` ensures unit tests mocking `subprocess.run` with multiline `git status --porcelain` output resolve `head_sha=None` while real or SHA-mocked calls capture the exact commit SHA.
 - `auto_fix_ast_bounds` deterministically resolves both symbolic `@[path/to/file.py#SymbolName]` anchors and drifted `#Lnn-mm` bounds using `get_ast_definition_bounds` as the single source of truth.
 
 ## Remaining
-- Execute `Tier 2 Hardening (Backend)` across the 5 modified scripts via `scripts/auto_hardening_runner.py`.
 - Run `/tier7-describe-architecture @[docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Symmetric_Flutter_Hardening_Pipeline.md] @[ki_god_code_prevention.md]`.
 
 ## Resume Command
 ```powershell
-$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"
+/tier7-describe-architecture @[docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md] @[docs/implementationplans/IMPLEMENTATION_PLAN_Symmetric_Flutter_Hardening_Pipeline.md] @[ki_god_code_prevention.md]
 ```

@@ -2682,11 +2682,11 @@
     },
     "scripts/_ast_guardrails.py": {
       "target_file": "scripts/_ast_guardrails.py",
-      "target_sha256": "fed0704f2925f556d9f16445817c836c8c2cd4c363c9ba4c8f55839c4f2cdbb1",
-      "unit_test_sha256": "f02bdf6ddc6fdece04ddc00cfe1a32732aa879e21c0aacc7f7d56578add325cf",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "b8ac70100ec459c27ae51a6de8347712d2f098fc4e97fd467a1c8354c7aaf95b",
-      "source_tracker": "docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md"
+      "target_sha256": "552c179872032d17a7f492d11ec985a0d598810cf6bfb8b74036673593282f36",
+      "unit_test_sha256": "580cefc107e0570224848aec2c5ab751a0bd7f92718487e6ac9da04a72d50c6b",
+      "rules_sha256": "65fbdb903cb43c8e49aab07b29c170742ee0446680e3e0e0d9b5add1e93a4f38",
+      "composite_sha256": "6c049ba8972652d1a01365d8638fe377be79c40429c9992b828fde89c9b68dd6",
+      "source_tracker": "docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md"
     },
     "scripts/backend_audit_loop.py": {
       "target_file": "scripts/backend_audit_loop.py",
@@ -2698,11 +2698,11 @@
     },
     "scripts/auto_hardening_runner.py": {
       "target_file": "scripts/auto_hardening_runner.py",
-      "target_sha256": "4efb890cf95f14745e73f4a8267aa53dd83ff1cae747e47b6a9298dacf556b9f",
-      "unit_test_sha256": "2928c44a99841b7419557544fb0edf204d74116404bf99b5be3642165668a2ef",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "ac01787157cd571b685e5d6c393da2d7cddc8cec579b4d3443af5047a0544faa",
-      "source_tracker": "docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md"
+      "target_sha256": "cfc2d0f5e7b360d8c65ddc653905b45bd9a87bc08475b03eb56ad544433dff7e",
+      "unit_test_sha256": "ff2521c13c9ecd0349dc4270054e73f8f88f10f73959eb2151cc03281b87138b",
+      "rules_sha256": "65fbdb903cb43c8e49aab07b29c170742ee0446680e3e0e0d9b5add1e93a4f38",
+      "composite_sha256": "9c1f8f64dcf72bba5c3afdefa67483028a0ec1e3dfcb0c4b31711e7215464174",
+      "source_tracker": "docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md"
     },
     "backend_v2/api/routers/studio/__init__.py": {
       "target_file": "backend_v2/api/routers/studio/__init__.py",
@@ -2903,6 +2903,62 @@
       "rules_sha256": "b2d32ca7555648b5e74a34f7cab02b33270fd7dbad4462424d76aa92484517cb",
       "composite_sha256": "0dcdc5ea8a97dadc52b44fc2c58896edcf428766be869af4592d02c590381c66",
       "source_tracker": "docs/epic/EPIC_161_tracker.md"
+    },
+    "client_app_v2/lib/main.dart": {
+      "target_file": "client_app_v2/lib/main.dart",
+      "target_sha256": "af75933d93dcd4727b9e0b685d2ae5ebdb7cde52c47cdfb1f2feb7c723a0e870",
+      "unit_test_sha256": "21e32dcb4f43f1a9c3844f5763ad33bfb081c8b1eaea9d402eb42ddf71fa8885",
+      "rules_sha256": "65fbdb903cb43c8e49aab07b29c170742ee0446680e3e0e0d9b5add1e93a4f38",
+      "composite_sha256": "47b82957b51f556879bb91bb9f15e736a591c22cd237287642f432b233422fc6",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/app.dart": {
+      "target_file": "client_app_v2/lib/app.dart",
+      "target_sha256": "5092b9392ad581f41adafd437fdbbcd9cb7d3c9fded0d1b9ac57dae351680681",
+      "unit_test_sha256": "bd3b38be3684769894d345cef34d7d0030d744843c973fd7a0513bc5b4ec05a1",
+      "rules_sha256": "65fbdb903cb43c8e49aab07b29c170742ee0446680e3e0e0d9b5add1e93a4f38",
+      "composite_sha256": "9042240547c6f0a232d0a625529f595a1ede6b3112c00a53331147f64018f78c",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/app_config.dart": {
+      "target_file": "client_app_v2/lib/app_config.dart",
+      "target_sha256": "4aa74651b0d8003ab1d3d03d5b4329d67bfb1da96917d97ed03d923670d32f2c",
+      "unit_test_sha256": "e98e0a077c30bb53ef82f77ba36a2fe83221080aa687dc46d88cacbe6409323b",
+      "rules_sha256": "65fbdb903cb43c8e49aab07b29c170742ee0446680e3e0e0d9b5add1e93a4f38",
+      "composite_sha256": "0926b6a3071265adefcc90cb293ad4b3fd6b67d14e5ba005bed166bf8922b3a6",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/firebase_options.dart": {
+      "target_file": "client_app_v2/lib/firebase_options.dart",
+      "target_sha256": "b49f70f63fde417007b9895da2d064e88abf5323003ea6809c2547e5a4a81dc8",
+      "unit_test_sha256": "d6fb3007237dfcb99f46c6910b93d0fbc5141f32e1df412750c46b524d095ef9",
+      "rules_sha256": "65fbdb903cb43c8e49aab07b29c170742ee0446680e3e0e0d9b5add1e93a4f38",
+      "composite_sha256": "e5eb8129cd7ab4f4134ab2b3da9c5bbeb5d005f83c1ee55197805014a5eeb442",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "scripts/_dart_guardrails.py": {
+      "target_file": "scripts/_dart_guardrails.py",
+      "target_sha256": "11f3985c55a1135c235f34c946fbc1ad7a5ce5fd5c868976a42eeb0e147fb37a",
+      "unit_test_sha256": "bcd5b3441ad1c164724d80de3a1161a6281e88bb08c65ced58c1c37df216cdd4",
+      "rules_sha256": "65fbdb903cb43c8e49aab07b29c170742ee0446680e3e0e0d9b5add1e93a4f38",
+      "composite_sha256": "47f225b07594315d2ee4f46a044402ad915d66264c7077b62db2b4fc99d7aa76",
+      "source_tracker": "docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md"
+    },
+    "scripts/audit_markdown_boundaries.py": {
+      "target_file": "scripts/audit_markdown_boundaries.py",
+      "target_sha256": "68e6f860cb8116ab7e1424767e64064af71c596e33753118bab55b337847256e",
+      "unit_test_sha256": "417896412af11cf0dc09ac3f41b7f0f7393bad4fbfaa41cf4ccc3ebd3e608b2f",
+      "rules_sha256": "65fbdb903cb43c8e49aab07b29c170742ee0446680e3e0e0d9b5add1e93a4f38",
+      "composite_sha256": "b950009d59c39244f56413d0f240092bde600a01271a90a9ed077d66ef48ccd2",
+      "source_tracker": "docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md"
+    },
+    "scripts/flutter_audit_loop.py": {
+      "target_file": "scripts/flutter_audit_loop.py",
+      "target_sha256": "e48d99a20cdbca45751a9ccc02e47f165a06fbf09fd912da6c9fd01b0fa94092",
+      "unit_test_sha256": "171811541edf30c2c5799c933c8eb74846b0a7163a0328dffb5be3389de766b0",
+      "rules_sha256": "65fbdb903cb43c8e49aab07b29c170742ee0446680e3e0e0d9b5add1e93a4f38",
+      "composite_sha256": "3eadda26034fea999d68f644900b62ef64480051c5cdc46c59f98ce68407d2bc",
+      "source_tracker": "docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md"
     }
   }
 }
