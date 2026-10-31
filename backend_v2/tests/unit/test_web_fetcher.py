@@ -144,11 +144,14 @@ def test_fetch_text_truncates_at_5000_chars_boundary() -> None:
         assert len(unbounded_result) == 5001
 
         # Explicit positive web_fetcher_max_extracted_chars = 5000 truncates at 5000 characters
-        from backend_v2.settings import Settings
+        mock_settings_5000 = MagicMock()
+        mock_settings_5000.mcp_discovery_timeout_seconds = 12
+        mock_settings_5000.web_fetcher_max_extracted_chars = 5000
+        mock_settings_5000.web_fetcher_min_extracted_chars = 150
 
         with patch(
             "backend_v2.services.web_fetcher.get_settings",
-            return_value=Settings(web_fetcher_max_extracted_chars=5000),
+            return_value=mock_settings_5000,
         ):
             result = WebFetcher.fetch_text("https://example.com")
             assert len(result) == 5000

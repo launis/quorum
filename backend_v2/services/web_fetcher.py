@@ -95,7 +95,7 @@ class WebFetcher:
         text = re.sub(r"<.*?>", " ", text)
         text = re.sub(r"\s+", " ", text).strip()
 
-        # Phase 1, Step 1.3: Truncate extracted text only when web_fetcher_max_extracted_chars > 0
+        # Truncate extracted text only when web_fetcher_max_extracted_chars > 0.
         max_chars = get_settings().web_fetcher_max_extracted_chars
         if max_chars > 0:
             return text[:max_chars]
@@ -112,7 +112,7 @@ class WebFetcher:
         Returns:
             None
         """
-        # Phase 1, Step 1.3: Resolve minimum extracted text length from settings SSOT
+        # Resolve minimum extracted text length from settings SSOT.
         min_chars = get_settings().web_fetcher_min_extracted_chars
         if len(final_text) < min_chars:
             logger.warning(
@@ -137,7 +137,8 @@ class WebFetcher:
     def fetch_text(url: str, timeout: int | None = None) -> str:
         """Fetch the content of a URL synchronously using httpx and extract visible plain text.
 
-        Useful for quick checkups or reference validation. Limits output to first 5000 characters.
+        Useful for quick checkups or reference validation. Truncates output when configured via
+        settings.web_fetcher_max_extracted_chars.
 
         Args:
             url: The target HTTP or HTTPS URL.
