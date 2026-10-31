@@ -92,6 +92,7 @@ class MatrixAggregationStateDTO(V2CoreBase):
         extensions: Map of extension key to list of extension strings.
         missing_atoms: List of descriptions for unscored or failed atoms.
         atom_quotes: List of QuoteEvidenceDTO instances.
+        display_stats: Map of level key to empirical LevelStatsDTO.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
@@ -172,6 +173,17 @@ class LightweightMatrixOutput(V2CoreBase):
     @field_validator("normalized_score")
     @classmethod
     def _validate_normalized_score(cls, v: float | None) -> float | None:
+        """Validate that normalized_score falls within the [0.0, 100.0] percentage range.
+
+        Args:
+            v: Optional normalized score value to validate.
+
+        Returns:
+            Validated normalized score or None.
+
+        Raises:
+            ValueError: If normalized_score is outside the [0.0, 100.0] range.
+        """
         if v is not None and not (0.0 <= v <= 100.0):
             raise ValueError("normalized_score must be between 0.0 and 100.0")
         return v
@@ -181,7 +193,7 @@ class MergedFactsDTO(V2CoreBase):
     """Holds global aggregation results safely with ConfigDict(strict=True, extra="forbid").
 
     Attributes:
-        model_config: Pydantic configuration allowing extra attributes.
+        model_config: Strict frozen Pydantic configuration forbidding extra attributes.
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
