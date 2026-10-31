@@ -1,5 +1,7 @@
 """Unit tests for the AnchorValidationService package facade and QGR017 guardrail lockdown."""
 
+from unittest.mock import patch
+
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
@@ -18,12 +20,13 @@ from backend_v2.services.orchestrator.anchor_validation import (
     strict_match,
     validate_evidence,
 )
+from backend_v2.settings import Settings
 from scripts._ast_guardrails import GuardrailSeverity, scan_source_code_for_guardrails
 
 
 def test_anchor_validation_facade_full_parity() -> None:
     """Contract test: Verify AnchorValidationService facade preserves 100% parity across all 6 static methods."""
-    assert AnchorValidationService.MAX_CITATION_SPAN_CHARS == MAX_CITATION_SPAN_CHARS == 1000
+    assert AnchorValidationService.MAX_CITATION_SPAN_CHARS == MAX_CITATION_SPAN_CHARS == 0
     assert AnchorValidationService.MIN_MULTI_SEGMENT_FLOOR_CHARS == MIN_MULTI_SEGMENT_FLOOR_CHARS == 30
     assert AnchorValidationService.MIN_ENTROPY_GATE_CHARS == MIN_ENTROPY_GATE_CHARS == 10
 
@@ -168,14 +171,32 @@ def test_anchor_validation_facade_validate_evidence_negative_boundary_violations
     """Negative boundary test (ISTQB BVA): Verify max+1 span ceiling, min-1 segment floor, and trace contradiction."""
     sample_text = "A" * 1200
 
-    # Boundary max+1: single quote segment of MAX_CITATION_SPAN_CHARS + 1 (1001 chars)
-    over_max_quote = "A" * (AnchorValidationService.MAX_CITATION_SPAN_CHARS + 1)
-    with pytest.raises(SemanticEvidenceError) as exc_max:
+    # Default max_citation_span_chars = 0 is unbounded; explicit max_citation_span_chars = 1000 enforces 1000-char ceiling
+    over_max_quote = "A" * 1001
+    assert AnchorValidationService.validate_evidence(
+        pdf_text=sample_text,
+        exact_quotes=[over_max_quote],
+    ) == (over_max_quote,)
+    with (
+        patch(
+            "backend_v2.services.orchestrator.anchor_validation.evidence_validator.get_settings",
+            return_value=Settings(max_citation_span_chars=1000),
+        ),
+        patch(
+            "backend_v2.services.orchestrator.anchor_validation.lexical_normalizer.get_settings",
+            return_value=Settings(max_citation_span_chars=1000),
+        ),
+        patch(
+            "backend_v2.services.orchestrator.anchor_validation.lexical_matcher.get_settings",
+            return_value=Settings(max_citation_span_chars=1000),
+        ),
+        pytest.raises(SemanticEvidenceError) as exc_max,
+    ):
         AnchorValidationService.validate_evidence(
             pdf_text=sample_text,
             exact_quotes=[over_max_quote],
         )
-    assert f"({len(over_max_quote)} > {MAX_CITATION_SPAN_CHARS} chars)" in exc_max.value.message
+    assert f"({len(over_max_quote)} > 1000 chars)" in exc_max.value.message
 
     # Boundary min-1: multi-segment quote with segment of MIN_MULTI_SEGMENT_FLOOR_CHARS - 1 (29 chars)
     under_floor_seg = "A" * (AnchorValidationService.MIN_MULTI_SEGMENT_FLOOR_CHARS - 1)

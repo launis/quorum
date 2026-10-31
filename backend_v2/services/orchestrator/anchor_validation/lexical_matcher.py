@@ -10,13 +10,10 @@ from typing import TypeIs
 from backend_v2.models.dtos.quote_evidence import GateMatchResultDTO
 from backend_v2.models.enums import ValidationThresholdRatio
 from backend_v2.services.orchestrator.anchor_validation.lexical_normalizer import (
-    MAX_CITATION_SPAN_CHARS,
-    MIN_ENTROPY_GATE_CHARS,
-    MIN_MULTI_SEGMENT_FLOOR_CHARS,
     calculate_fuzzy_score,
     normalize_text_with_mapping,
 )
-from backend_v2.settings import get_lexical_fuzz_threshold
+from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
 from backend_v2.utils.linguistics.stemmer import StemmerService
 
 logger = logging.getLogger(__name__)
@@ -113,9 +110,12 @@ def is_lexically_valid(
             )
 
         # Multi-segment citation (m > 1):
+        settings = get_settings()
+        min_floor_chars = settings.min_multi_segment_floor_chars
+        max_span_chars = settings.max_citation_span_chars
         m = len(quotes)
         for q in quotes:
-            if len(q) < MIN_MULTI_SEGMENT_FLOOR_CHARS:
+            if len(q) < min_floor_chars:
                 return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
 
         norm_quotes_list: list[str] = []
@@ -151,7 +151,7 @@ def is_lexically_valid(
                     chain_valid = False
                     break
                 end_k = next_pos + len(qk) - 1
-                if end_k - s1 > MAX_CITATION_SPAN_CHARS:
+                if max_span_chars > 0 and end_k - s1 > max_span_chars:
                     chain_valid = False
                     break
                 prev_end = end_k
@@ -189,9 +189,10 @@ def is_lexically_valid(
                 end_idx=clean_norm_idx + len(clean_norm_quote) - 1,
             )
 
-    if len(single_quote_str) < MIN_ENTROPY_GATE_CHARS:
+    min_entropy_chars = get_settings().min_entropy_gate_chars
+    if len(single_quote_str) < min_entropy_chars:
         logger.warning(
-            f"Entropy Gate Failure: Quote '{single_quote_str}' is under {MIN_ENTROPY_GATE_CHARS} chars. "
+            f"Entropy Gate Failure: Quote '{single_quote_str}' is under {min_entropy_chars} chars. "
             "Fuzzy match is forbidden. 100% exact match required."
         )
         return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)

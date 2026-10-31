@@ -177,7 +177,13 @@ def test_anchor_validation_contextual_override() -> None:
     assert validate_evidence("text", [], contextual_override=True) is None
 
 
-def test_anchor_validation_too_long_quote() -> None:
+def test_anchor_validation_too_long_quote(monkeypatch: pytest.MonkeyPatch) -> None:
+    from backend_v2.settings import Settings
+
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.anchor_validation.evidence_validator.get_settings",
+        lambda: Settings(max_citation_span_chars=1000),
+    )
     with pytest.raises(SemanticEvidenceError, match="Quote length exceeds safety limit"):
         validate_evidence("text", ["A" * 1001])
 
@@ -261,8 +267,21 @@ def test_anchor_validation_inverted_segment_order_raises_semantic_error() -> Non
     assert match_res.is_valid is False
 
 
-def test_anchor_validation_span_exceeding_1000_chars_raises_semantic_error() -> None:
-    """Boundary ISTQB test: tuple of 2 segments where (e2 - s1) exceeds 1 000 characters."""
+def test_anchor_validation_span_exceeding_1000_chars_raises_semantic_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Boundary ISTQB test: tuple of 2 segments where (e2 - s1) exceeds 1 000 characters when max_citation_span_chars=1000."""
+    from backend_v2.settings import Settings
+
+    bounded_settings = Settings(max_citation_span_chars=1000)
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.anchor_validation.evidence_validator.get_settings",
+        lambda: bounded_settings,
+    )
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.anchor_validation.lexical_normalizer.get_settings",
+        lambda: bounded_settings,
+    )
     seg1 = "Tämä on ensimmäinen riittävän pitkä lause alussa."
     intervening = "a" * 1005
     seg2 = "Tämä on toinen riittävän pitkä lause lopussa."
@@ -407,11 +426,21 @@ def test_anchor_validation_directive_morphological_fallback_and_s1_retries() -> 
     assert len(res_morph) == 1
 
     # 2. Candidate s_1 where first s_1 exceeds MAX_CITATION_SPAN_CHARS (1000) and second s_1 succeeds
+    from unittest.mock import patch
+
+    from backend_v2.settings import Settings
+
     seg1 = "Ensimmäinen lause esiintyy sekä kaukana alussa että lopussa."
     seg2 = "Toinen lause seuraa vasta toista esiintymää lähellä lopussa."
     long_gap = "x" * 1050
     pdf_s1_span = f"{seg1} {long_gap} {seg1} {seg2}"
-    res_span_retry = validate_evidence(pdf_s1_span, (seg1, seg2))
+    bounded = Settings(max_citation_span_chars=1000)
+    with (
+        patch("backend_v2.services.orchestrator.anchor_validation.evidence_validator.get_settings", return_value=bounded),
+        patch("backend_v2.services.orchestrator.anchor_validation.lexical_normalizer.get_settings", return_value=bounded),
+        patch("backend_v2.services.orchestrator.anchor_validation.lexical_matcher.get_settings", return_value=bounded),
+    ):
+        res_span_retry = validate_evidence(pdf_s1_span, (seg1, seg2))
     assert res_span_retry is not None
     assert len(res_span_retry) == 2
 

@@ -139,18 +139,35 @@ def test_anchor_validation_is_lexically_valid_multi_segment_direct() -> None:
     )
     assert res_not_found.is_valid is False
 
-    # Span > 1000 chars
+    # Span > 1000 chars: passes under default unbounded (0), fails when max_citation_span_chars=1000
+    from unittest.mock import patch
+
+    from backend_v2.settings import Settings
+
     filler = "Täytetekstiä analyyttisessä testissä. " * 35
     text_long = f"{seg1} {filler} {seg2}"
     norm_long, _ = normalize_text_with_mapping(text_long)
-    res_long = is_lexically_valid(
+    res_unbounded = is_lexically_valid(
         quote=(seg1, seg2),
         norm_quote=(norm_q1, norm_q2),
         norm_text=norm_long,
         strictness_level=100,
         locale="fi",
     )
-    assert res_long.is_valid is False
+    assert res_unbounded.is_valid is True
+
+    with patch(
+        "backend_v2.services.orchestrator.anchor_validation.lexical_matcher.get_settings",
+        return_value=Settings(max_citation_span_chars=1000),
+    ):
+        res_long = is_lexically_valid(
+            quote=(seg1, seg2),
+            norm_quote=(norm_q1, norm_q2),
+            norm_text=norm_long,
+            strictness_level=100,
+            locale="fi",
+        )
+        assert res_long.is_valid is False
 
     # Gate 2: Fuzzy alignment branch (encoding resilience) and Gate 3: Morphological stemming branch
     corrupted_text = "Johtoryhma paatti etta tee t\ufffdt\ufffd muistio tasta kokouksesta."

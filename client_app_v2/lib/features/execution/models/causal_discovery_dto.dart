@@ -52,6 +52,11 @@ abstract class CausalRootCauseDiagnosisDto with _$CausalRootCauseDiagnosisDto {
     @JsonKey(name: 'root_cause_type')
     @Default(CausalRootCauseType.nodeFailure)
     CausalRootCauseType rootCauseType,
+    @JsonKey(name: 'root_cause_claim') @Default('') String rootCauseClaim,
+    @JsonKey(name: 'failing_node_claim') @Default('') String failingNodeClaim,
+    @JsonKey(name: 'warrant_relation')
+    @Default('warrants')
+    String warrantRelation,
   }) = _CausalRootCauseDiagnosisDto;
 
   factory CausalRootCauseDiagnosisDto.fromJson(Map<String, dynamic> json) =>

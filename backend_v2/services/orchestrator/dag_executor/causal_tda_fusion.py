@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import logging
 from collections import deque
+from collections.abc import Sequence
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.matrix import FlattenedAtom
+from backend_v2.models.domain.proposition_graph import FalsifiedClaimMatch
 from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.causal_discovery import (
@@ -395,6 +397,7 @@ def compute_causal_tda_fusion_result(
     evaluated_atoms: list[AtomResultDTO] | None = None,
     dampening_factor: float | None = None,
     expected_inputs: list[ExpectedInput] | None = None,
+    falsified_claims: Sequence[FalsifiedClaimMatch] | None = None,
 ) -> CausalTdaFusionResultDTO:
     """Compute composite fusion result executing five stakeholder benefit pipelines.
 
@@ -411,6 +414,7 @@ def compute_causal_tda_fusion_result(
         evaluated_atoms: Optional list of evaluated AtomResultDTO instances.
         dampening_factor: Optional penalty dampening factor in [0.0, 1.0] (defaults to settings value).
         expected_inputs: Optional list of ExpectedInput configurations to induce deliverable subgraph.
+        falsified_claims: Optional sequence of 3-way Toulmin falsified claim matches from PostgreSQL 19.
 
     Returns:
         CausalTdaFusionResultDTO combining graph and all five analytical facets.
@@ -443,7 +447,27 @@ def compute_causal_tda_fusion_result(
         evaluative_matrices=evaluative_matrices,
         evaluated_atoms=evaluated_atoms,
     )
-    root_cause_diagnoses = CausalCohesionEvaluator().diagnose_root_causes(projected_graph)
+    # Phase 1, Step 1.1 & Step 1.2: Resolve human-readable claim texts onto root cause diagnoses
+    raw_diagnoses = CausalCohesionEvaluator().diagnose_root_causes(projected_graph)
+    node_claim_by_id = {n.node_id: n.claim for n in projected_graph.nodes}
+    root_cause_diagnoses = [
+        diag.model_copy(
+            update={
+                "root_cause_claim": (
+                    node_claim_by_id[diag.root_cause_parent_id]
+                    if diag.root_cause_parent_id in node_claim_by_id
+                    else diag.root_cause_claim
+                ),
+                "failing_node_claim": (
+                    node_claim_by_id[diag.failing_node_id]
+                    if diag.failing_node_id in node_claim_by_id
+                    else diag.failing_node_claim
+                ),
+                "warrant_relation": diag.warrant_relation,
+            }
+        )
+        for diag in raw_diagnoses
+    ]
     anti_fluff_audit, total_deliverable_nodes = _compute_anti_fluff_audit(
         projected_graph=projected_graph,
         expected_inputs=expected_inputs,
@@ -455,6 +479,10 @@ def compute_causal_tda_fusion_result(
         effective_dampening=effective_dampening,
     )
 
+    resolved_falsified_claims: list[FalsifiedClaimMatch] = []
+    if falsified_claims is not None:
+        resolved_falsified_claims = list(falsified_claims)
+
     return CausalTdaFusionResultDTO(
         graph=projected_graph,
         root_cause_diagnoses=root_cause_diagnoses,
@@ -462,4 +490,5 @@ def compute_causal_tda_fusion_result(
         prescriptive_remediations=prescriptive_remediations,
         fair_scoring=fair_scoring,
         total_deliverable_nodes=total_deliverable_nodes,
+        falsified_claims=resolved_falsified_claims,
     )

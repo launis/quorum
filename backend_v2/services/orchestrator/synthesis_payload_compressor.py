@@ -7,14 +7,16 @@ from __future__ import annotations
 
 import json
 import logging
+from collections import Counter
 from typing import Any
 
 from pydantic import BaseModel, JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.synthesis import DistilledEvaluation, DistilledMatrixPayloadDTO
-from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
+from backend_v2.models.dtos.atom_result import AtomResultDTO, EvaluatedAtomDTO
 from backend_v2.models.dtos.step_output import StepPayloadValue
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -125,24 +127,36 @@ class SynthesisPayloadCompressor:
         deficits: list[DistilledEvaluation] = []
         strengths: list[DistilledEvaluation] = []
 
+        # Phase 1, Step 1.3: Include N_A in deficits and sort deficits by topological priority
         for item in evals:
             status = item.status
-            if status in ("FAILED", "UNMET", "NON_COMPLIANT"):
+            if status in ("FAILED", "UNMET", "NON_COMPLIANT", "N_A", ExecutionStatus.FAILED, ExecutionStatus.N_A):
                 deficits.append(item)
             else:
                 strengths.append(item)
 
-        def sort_key(item: DistilledEvaluation) -> tuple[int, str]:
-            quotes_count = len(item.exact_quotes)
-            atom_id = ""
+        def _resolve_atom_id(item: DistilledEvaluation) -> str:
             if item.atom_id is not None:
-                atom_id = item.atom_id
-            return (-quotes_count, atom_id)
+                return item.atom_id
+            return ""
 
-        deficits.sort(key=sort_key)
-        strengths.sort(key=sort_key)
+        deficits.sort(
+            key=lambda item: (
+                -int(item.is_inverse_evidence),
+                -item.topological_out_degree,
+                len(item.short_circuit_reason_tda_ids),
+                _resolve_atom_id(item),
+            )
+        )
+        strengths.sort(
+            key=lambda item: (
+                -len(item.exact_quotes),
+                _resolve_atom_id(item),
+            )
+        )
 
-        deficit_budget = int(limit * 0.7)
+        settings = get_settings()
+        deficit_budget = int(limit * settings.synthesis_deficit_stratification_ratio)
 
         if len(deficits) <= deficit_budget:
             selected_deficits = deficits
@@ -250,10 +264,17 @@ class SynthesisPayloadCompressor:
 
                 if isinstance(ev, DistilledEvaluation):
                     distilled_evals.append(ev)
-                elif isinstance(ev, EvaluatedAtomDTO):
-                    atom_id = ev.atom_id or ev.tda_id
-                    raw_quotes = list(ev.exact_quotes)
-                    if not raw_quotes and ev.source_quotes:
+                elif isinstance(ev, (EvaluatedAtomDTO, AtomResultDTO)):
+                    if isinstance(ev, EvaluatedAtomDTO) and ev.atom_id is not None and ev.atom_id != "":
+                        atom_id = ev.atom_id
+                    else:
+                        atom_id = ev.tda_id
+                    raw_quotes: list[str] = []
+                    if isinstance(ev, EvaluatedAtomDTO):
+                        raw_quotes = list(ev.exact_quotes)
+                        if not raw_quotes and ev.source_quotes is not None:
+                            raw_quotes = list(ev.source_quotes)
+                    elif ev.source_quotes is not None:
                         raw_quotes = list(ev.source_quotes)
                     valid_quotes = [
                         q.strip()
@@ -262,18 +283,46 @@ class SynthesisPayloadCompressor:
                         and q.strip() not in ("None", "null", "N/A", "N/A - insufficient data")
                         and not (q.strip().startswith("[") and q.strip().endswith("]"))
                     ]
-                    if (ev.exact_quotes or ev.source_quotes) and not valid_quotes and not ev.evaluation_reasoning:
+                    # Phase 1, Step 1.3: Bypass empty-quote dropout for FAILED, N_A, and inverse evidence
+                    is_exempt_status = (
+                        ev.status in ("FAILED", "N_A", ExecutionStatus.FAILED, ExecutionStatus.N_A)
+                        or ev.is_inverse_evidence
+                    )
+                    if not is_exempt_status and not valid_quotes and not ev.evaluation_reasoning:
                         continue
 
                     reasoning: str | None = None
                     if ev.evaluation_reasoning:
-                        reasoning = str(ev.evaluation_reasoning)[: settings.max_synthesis_reasoning_length]
+                        raw_reasoning_str = str(ev.evaluation_reasoning)
+                        if settings.max_synthesis_reasoning_length > 0:
+                            reasoning = raw_reasoning_str[: settings.max_synthesis_reasoning_length]
+                        else:
+                            reasoning = raw_reasoning_str
+                    if settings.max_synthesis_quote_length > 0:
+                        sliced_quotes = [q[: settings.max_synthesis_quote_length] for q in valid_quotes]
+                    else:
+                        sliced_quotes = list(valid_quotes)
+                    depends_on_ids: list[str] = []
+                    short_circuit_ids: list[str] = []
+                    extensions_val: dict[str, str | int | float | bool | list[str]] | None = None
+                    if isinstance(ev, AtomResultDTO):
+                        depends_on_ids = list(ev.depends_on_tda_ids)
+                        short_circuit_ids = list(ev.short_circuit_reason_tda_ids)
+                        if ev.extensions:
+                            extensions_val = dict(ev.extensions)
+                    status_str: str | None = None
+                    if ev.status is not None:
+                        status_str = str(ev.status)
                     distilled_evals.append(
                         DistilledEvaluation(
                             atom_id=atom_id,
-                            status=ev.status,
-                            exact_quotes=[q[: settings.max_synthesis_quote_length] for q in valid_quotes],
+                            status=status_str,
+                            exact_quotes=sliced_quotes,
                             semantic_reasoning=reasoning,
+                            extensions=extensions_val,
+                            depends_on_tda_ids=depends_on_ids,
+                            short_circuit_reason_tda_ids=short_circuit_ids,
+                            is_inverse_evidence=ev.is_inverse_evidence,
                         )
                     )
                 else:
@@ -304,12 +353,22 @@ class SynthesisPayloadCompressor:
                             eval_dict["exact_quotes"] = [raw_sq.strip()]
                     if "semantic_reasoning" in ev:
                         eval_dict["semantic_reasoning"] = ev["semantic_reasoning"]
+                    elif "evaluation_reasoning" in ev:
+                        eval_dict["semantic_reasoning"] = ev["evaluation_reasoning"]
                     elif "output_text" in ev:
                         eval_dict["semantic_reasoning"] = ev["output_text"]
                     if "status" in ev:
                         eval_dict["status"] = ev["status"]
                     if "extensions" in ev:
                         eval_dict["extensions"] = ev["extensions"]
+                    if "depends_on_tda_ids" in ev and ev["depends_on_tda_ids"] is not None:
+                        eval_dict["depends_on_tda_ids"] = ev["depends_on_tda_ids"]
+                    if "short_circuit_reason_tda_ids" in ev and ev["short_circuit_reason_tda_ids"] is not None:
+                        eval_dict["short_circuit_reason_tda_ids"] = ev["short_circuit_reason_tda_ids"]
+                    if "is_inverse_evidence" in ev and ev["is_inverse_evidence"] is not None:
+                        eval_dict["is_inverse_evidence"] = ev["is_inverse_evidence"]
+                    if "topological_out_degree" in ev and ev["topological_out_degree"] is not None:
+                        eval_dict["topological_out_degree"] = ev["topological_out_degree"]
 
                     try:
                         parsed_ev = DistilledEvaluation.model_validate(eval_dict)
@@ -333,20 +392,41 @@ class SynthesisPayloadCompressor:
                         and not (q.strip().startswith("[") and q.strip().endswith("]"))
                     ]
 
-                    has_quotes_in_source = "exact_quotes" in ev
-                    if has_quotes_in_source and not valid_quotes and not parsed_ev.semantic_reasoning:
+                    is_exempt_dict = (
+                        parsed_ev.status in ("FAILED", "N_A", ExecutionStatus.FAILED, ExecutionStatus.N_A)
+                        or parsed_ev.is_inverse_evidence
+                    )
+                    has_quotes_in_source = "exact_quotes" in ev or "source_quotes" in ev
+                    if (
+                        not is_exempt_dict
+                        and has_quotes_in_source
+                        and not valid_quotes
+                        and not parsed_ev.semantic_reasoning
+                    ):
                         continue
 
                     sem_reasoning: str | None = None
                     if parsed_ev.semantic_reasoning:
-                        sem_reasoning = str(parsed_ev.semantic_reasoning)[: settings.max_synthesis_reasoning_length]
+                        raw_sem_reasoning = str(parsed_ev.semantic_reasoning)
+                        if settings.max_synthesis_reasoning_length > 0:
+                            sem_reasoning = raw_sem_reasoning[: settings.max_synthesis_reasoning_length]
+                        else:
+                            sem_reasoning = raw_sem_reasoning
+                    if settings.max_synthesis_quote_length > 0:
+                        sliced_dict_quotes = [q[: settings.max_synthesis_quote_length] for q in valid_quotes]
+                    else:
+                        sliced_dict_quotes = list(valid_quotes)
                     distilled_evals.append(
                         DistilledEvaluation(
                             atom_id=parsed_ev.atom_id,
                             status=parsed_ev.status,
-                            exact_quotes=[q[: settings.max_synthesis_quote_length] for q in valid_quotes],
+                            exact_quotes=sliced_dict_quotes,
                             semantic_reasoning=sem_reasoning,
                             extensions=parsed_ev.extensions,
+                            depends_on_tda_ids=parsed_ev.depends_on_tda_ids,
+                            short_circuit_reason_tda_ids=parsed_ev.short_circuit_reason_tda_ids,
+                            is_inverse_evidence=parsed_ev.is_inverse_evidence,
+                            topological_out_degree=parsed_ev.topological_out_degree,
                         )
                     )
 
@@ -360,6 +440,24 @@ class SynthesisPayloadCompressor:
                     status_code=400,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
+
+            # Phase 1, Step 1.3: Compute topological_out_degree across downstream evaluations
+            out_degree_counts: Counter[str] = Counter()
+            for item in distilled_evals:
+                parent_ids = set(item.depends_on_tda_ids) | set(item.short_circuit_reason_tda_ids)
+                for parent_id in parent_ids:
+                    out_degree_counts[parent_id] += 1
+
+            enriched_evals: list[DistilledEvaluation] = []
+            for item in distilled_evals:
+                computed_degree = item.topological_out_degree
+                if item.atom_id is not None and item.atom_id in out_degree_counts:
+                    computed_degree = max(computed_degree, out_degree_counts[item.atom_id])
+                if computed_degree != item.topological_out_degree:
+                    enriched_evals.append(item.model_copy(update={"topological_out_degree": computed_degree}))
+                else:
+                    enriched_evals.append(item)
+            distilled_evals = enriched_evals
 
             stratified = cls._prune_and_stratify_evaluations(distilled_evals, settings.max_synthesis_evaluations)
 

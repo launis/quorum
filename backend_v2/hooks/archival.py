@@ -21,16 +21,12 @@ from backend_v2.models.domain.judge import JudgeOutput
 from backend_v2.models.dtos.hook_delta import ArchivistPrecedentsResultDTO
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.storage import get_storage_driver
+from backend_v2.settings import get_settings
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["retrieve_precedent_hook"]
-
-_RECENT_EXECUTIONS_SCAN_LIMIT: int = 5
-_MAX_PRECEDENTS_RETURNED: int = 3
-_VERDICT_PART_MAX_CHARS: int = 50
-_VERDICT_SUMMARY_MAX_CHARS: int = 150
 
 
 async def _load_trace_events(res: ExecutionRecord) -> list[TraceEvent]:
@@ -130,6 +126,9 @@ def _build_precedent_dto(res: ExecutionRecord, judge_outputs: dict[str, JudgeOut
     """
     score_parts: list[str] = []
     verdict_parts: list[str] = []
+    settings = get_settings()
+    part_max_chars = settings.archival_verdict_part_max_chars
+    summary_max_chars = settings.archival_verdict_summary_max_chars
 
     for label, judge_model in judge_outputs.items():
         score_card = judge_model.score_card
@@ -137,10 +136,16 @@ def _build_precedent_dto(res: ExecutionRecord, judge_outputs: dict[str, JudgeOut
         verdict_str = score_card.verdict
 
         score_parts.append(f"{label}: {avg:.2f}")
-        verdict_parts.append(f"{label}: {verdict_str[:_VERDICT_PART_MAX_CHARS]}...")
+        # Phase 1, Step 1.3: Slice verdict part only when archival_verdict_part_max_chars > 0
+        if part_max_chars > 0:
+            verdict_parts.append(f"{label}: {verdict_str[:part_max_chars]}...")
+        else:
+            verdict_parts.append(f"{label}: {verdict_str}")
 
     score_summary = " | ".join(score_parts)
     verdict_text = " || ".join(verdict_parts)
+    if summary_max_chars > 0:
+        verdict_text = verdict_text[:summary_max_chars]
 
     completed_date = ""
     if res.completed_at:
@@ -150,7 +155,7 @@ def _build_precedent_dto(res: ExecutionRecord, judge_outputs: dict[str, JudgeOut
         id=res.id,
         date=completed_date,
         scores=score_summary,
-        verdict=verdict_text[:_VERDICT_SUMMARY_MAX_CHARS],
+        verdict=verdict_text,
     )
 
 
@@ -190,7 +195,8 @@ async def retrieve_precedent_hook(state: HookState | None, deps: HookDependencie
         )
 
     try:
-        raw_recent = await repository.get_recent_completed_executions(limit=_RECENT_EXECUTIONS_SCAN_LIMIT)
+        settings = get_settings()
+        raw_recent = await repository.get_recent_completed_executions(limit=settings.max_precedent_scan_depth)
         recent_executions: list[ExecutionRecord] = TypeAdapter(list[ExecutionRecord]).validate_python(raw_recent)
 
         for res in recent_executions:
@@ -213,7 +219,9 @@ async def retrieve_precedent_hook(state: HookState | None, deps: HookDependencie
             if judge_outputs:
                 precedents.append(_build_precedent_dto(res, judge_outputs))
 
-        precedents = precedents[-_MAX_PRECEDENTS_RETURNED:]
+        max_return_count = settings.max_precedent_return_count
+        if max_return_count > 0:
+            precedents = precedents[-max_return_count:]
         logger.debug("[ArchivalHook] Found %d precedents.", len(precedents))
 
         return HookResult(

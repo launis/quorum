@@ -16,6 +16,10 @@ abstract class DistilledEvaluation with _$DistilledEvaluation {
     String? semanticReasoning,
     String? status,
     Map<String, Object?>? extensions,
+    @Default([]) List<String> dependsOnTdaIds,
+    @Default([]) List<String> shortCircuitReasonTdaIds,
+    @Default(false) bool isInverseEvidence,
+    @Default(0) int topologicalOutDegree,
   }) = _DistilledEvaluation;
 
   factory DistilledEvaluation.fromJson(Map<String, dynamic> json) =>

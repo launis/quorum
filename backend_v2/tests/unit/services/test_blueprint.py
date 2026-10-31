@@ -4215,3 +4215,139 @@ async def test_blueprint_transformer_causal_result_hydration_from_step_states() 
     causal_blocks = [b for b in report.inner_sdui_blocks if isinstance(b, SduiCausalGraphBlock)]
     assert len(causal_blocks) == 1
     assert causal_blocks[0].critical_path_nodes[0].node_id == "claim_1"
+
+
+@pytest.mark.asyncio
+async def test_blueprint_transformer_causal_result_hydration_from_step_output_dto_envelope() -> None:
+    """Verify BlueprintTransformer hydrates CausalTdaFusionResultDTO from StepOutputDTO envelopes."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.execution import ExecutionRecord
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.models.dtos.causal_discovery import (
+        AntiFluffAuditDTO,
+        CausalGraphPayloadDTO,
+        CausalNodeDTO,
+        CausalTdaFusionResultDTO,
+        FairScoringBreakdownDTO,
+    )
+    from backend_v2.models.dtos.node_execution import StepOutputContentDTO
+    from backend_v2.models.enums import ExecutionStatus, TargetBlockType
+    from backend_v2.models.execution_core import ExecutionMetadata
+    from backend_v2.models.state import TraceEvent
+    from backend_v2.models.view.sdui import SduiCausalGraphBlock
+    from backend_v2.services.blueprint import BlueprintTransformer
+    from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+    repo = InMemoryUnifiedWorkflowRepository()
+    profile = OutputProfile(
+        id="prf_0195f3a00000700080000000000000c3",
+        slug="profile-causal-3",
+        workflow_id="wf_0195f3a00000700080000000000000c3",
+        name=I18nText(translations={"en": "Profile Causal Envelope"}),
+        target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],
+    )
+    wf = Workflow(
+        id="wf_0195f3a00000700080000000000000c3",
+        slug="wf-causal-3",
+        name=I18nText(translations={"en": "WF Causal 3"}),
+        description=I18nText(translations={"en": "Desc"}),
+        status="published",
+        version=1,
+        model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+        historical_context_mode="DISABLED",
+        default_profile_id=profile.id,
+        steps=[],
+    )
+    repo.set_output_profiles([profile])
+    repo.set_workflow(wf)
+    repo.set_prompt_blocks([])
+
+    transformer = BlueprintTransformer(
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
+    )
+
+    fusion_dto = CausalTdaFusionResultDTO(
+        graph=CausalGraphPayloadDTO(
+            nodes=[
+                CausalNodeDTO(
+                    node_id="claim_envelope_0",
+                    claim="Root cause envelope claim",
+                    status=ExecutionStatus.FAILED,
+                    blame_parent_ids=[],
+                    dependent_child_ids=[],
+                )
+            ],
+            edges=[],
+            root_cause_node_ids=["claim_envelope_0"],
+        ),
+        root_cause_diagnoses=[],
+        anti_fluff_audit=AntiFluffAuditDTO(
+            isolated_concept_count=0,
+            cycle_detected=False,
+            unsupported_claims_count=0,
+            logical_cohesion_score=1.0,
+        ),
+        prescriptive_remediations=[],
+        fair_scoring=FairScoringBreakdownDTO(
+            independent_error_count=1,
+            cascading_fault_count=0,
+            raw_penalty_points=1.0,
+            deduplicated_penalty_points=1.0,
+            dampened_savings_points=0.0,
+        ),
+        total_deliverable_nodes=1,
+    )
+
+    exec_record = ExecutionRecord(
+        id="exe_0195f3a00000700080000000000000c3",
+        workflow_id=wf.id,
+        organization_id="org_0195f3a0000070008000000000000001",
+        output_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        prompt_tokens=10,
+        completion_tokens=10,
+        reasoning_tokens=0,
+        dag_cost_usd=0.01,
+        execution_trace=[
+            TraceEvent(
+                step_name="stp_0195f3a00000700080000000000000c3",
+                event_type="output",
+                content=StepOutputContentDTO(data={"fusion": fusion_dto}),
+            ),
+        ],
+        metadata=ExecutionMetadata(),
+        target_locale="en",
+    )
+    repo.set_execution(exec_record)
+
+    report = await transformer.build_report_dto("exe_0195f3a00000700080000000000000c3")
+    assert report is not None
+    causal_blocks = [b for b in report.inner_sdui_blocks if isinstance(b, SduiCausalGraphBlock)]
+    assert len(causal_blocks) == 1
+    assert causal_blocks[0].critical_path_nodes[0].node_id == "claim_envelope_0"
+
+    # Also verify TypeAdapter projection when payload is serialized JSON inside StepOutputContentDTO
+    exec_record_serialized = exec_record.model_copy(
+        update={
+            "id": "exe_0195f3a00000700080000000000000c4",
+            "execution_trace": [
+                TraceEvent(
+                    step_name="stp_0195f3a00000700080000000000000c3",
+                    event_type="output",
+                    content=StepOutputContentDTO(data={"fusion": fusion_dto.model_dump(mode="json")}),
+                ),
+            ],
+        }
+    )
+    repo.set_execution(exec_record_serialized)
+    report_serialized = await transformer.build_report_dto("exe_0195f3a00000700080000000000000c4")
+    causal_blocks_serialized = [b for b in report_serialized.inner_sdui_blocks if isinstance(b, SduiCausalGraphBlock)]
+    assert len(causal_blocks_serialized) == 1
+    assert causal_blocks_serialized[0].critical_path_nodes[0].node_id == "claim_envelope_0"

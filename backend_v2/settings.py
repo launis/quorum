@@ -280,22 +280,86 @@ class Settings(BaseSettings):
     semaphore_rpm_divisor: Annotated[int, Field(ge=1, description="Divisor applied to requested RPM constraint")] = 10
     max_safe_tokens: Annotated[int, Field(description="Maximum token shield limit per context window")] = 2000000
     schema_max_evaluations: Annotated[int, Field(description="Max boolean metrics evaluation per prompt")] = 7
-    max_synthesis_evaluations: Annotated[int, Field(ge=0, description="Max evaluations for synthesis token shield")] = (
-        40
-    )
+    max_synthesis_evaluations: Annotated[int, Field(ge=0, description="Max evaluations for synthesis token shield")] = 0
     max_synthesis_quote_length: Annotated[
-        int, Field(description="Maximum character length for evidence quotes in synthesis payloads")
-    ] = 300
+        int, Field(ge=0, description="Maximum character length for evidence quotes in synthesis payloads")
+    ] = 0
     max_synthesis_quotes_per_matrix: Annotated[
-        int, Field(description="Maximum number of evidence quotes per matrix in synthesis explanation context")
-    ] = 5
+        int, Field(ge=0, description="Maximum number of evidence quotes per matrix in synthesis explanation context")
+    ] = 0
     max_synthesis_unmet_criteria_per_matrix: Annotated[
         int,
-        Field(description="Maximum number of unmet criteria descriptions per matrix in synthesis explanation context"),
-    ] = 5
+        Field(
+            ge=0,
+            description="Maximum number of unmet criteria descriptions per matrix in synthesis explanation context",
+        ),
+    ] = 0
     max_synthesis_reasoning_length: Annotated[
-        int, Field(description="Maximum character length for semantic reasoning in synthesis payloads")
-    ] = 300
+        int, Field(ge=0, description="Maximum character length for semantic reasoning in synthesis payloads")
+    ] = 0
+    # Phase 1, Step 1.3: Centralized clipper and lexical threshold settings (0 = unbounded for text clippers)
+    max_citation_span_chars: Annotated[
+        int,
+        Field(
+            ge=0,
+            description="Maximum character span allowed for verbatim evidence quotes (0 = unbounded)",
+        ),
+    ] = 0
+    min_multi_segment_floor_chars: Annotated[
+        int,
+        Field(
+            ge=1,
+            description="Minimum character length per ellipsis-separated quote segment in lexical validation",
+        ),
+    ] = 30
+    min_entropy_gate_chars: Annotated[
+        int,
+        Field(
+            ge=1,
+            description="Minimum character length below which fuzzy matching is prohibited and 100% exact match is required",
+        ),
+    ] = 10
+    synthesis_deficit_stratification_ratio: Annotated[
+        float,
+        Field(
+            description="Fraction of pruned synthesis evaluation slots allocated to deficits when positive evaluation limit is active",
+        ),
+    ] = 0.7
+    min_synthesis_quote_length: Annotated[
+        int,
+        Field(
+            ge=0,
+            description="Minimum character length for valid evidence quotes in matrix explanation assembly",
+        ),
+    ] = 15
+    web_fetcher_max_extracted_chars: Annotated[
+        int,
+        Field(
+            ge=0,
+            description="Maximum character limit for extracted external web page text (0 = unbounded)",
+        ),
+    ] = 0
+    web_fetcher_min_extracted_chars: Annotated[
+        int,
+        Field(
+            ge=0,
+            description="Minimum character count required before triggering Playwright SPA fallback in web fetcher",
+        ),
+    ] = 150
+    archival_verdict_part_max_chars: Annotated[
+        int,
+        Field(
+            ge=0,
+            description="Maximum character length per intermediate step verdict in archival precedent extraction (0 = unbounded)",
+        ),
+    ] = 0
+    archival_verdict_summary_max_chars: Annotated[
+        int,
+        Field(
+            ge=0,
+            description="Maximum character length for combined archival precedent summary (0 = unbounded)",
+        ),
+    ] = 0
     synthesis_starvation_threshold: Annotated[
         int,
         Field(

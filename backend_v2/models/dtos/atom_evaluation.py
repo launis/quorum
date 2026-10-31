@@ -49,8 +49,12 @@ class ReducedAtomDTO(V2CoreBase):
         reasoning: Optional textual rationale for the atom outcome.
         source_quotes: Verbatim source quote segments as a validated tuple.
         extracted_data: Optional structured extraction key-value payload.
+        depends_on_tda_ids: Upstream TDA assertion IDs this atom depends on.
+        short_circuit_reason_tda_ids: Upstream TDA assertion IDs that short-circuited this atom.
+        is_inverse_evidence: Whether this atom represents an inverse evidence check.
     """
 
+    # Phase 1, Step 1.2: Enrich ReducedAtomDTO with topological and short-circuit lineage fields
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     tda_id: Annotated[str, Field(description="Authoritative atom identifier.")]
@@ -65,6 +69,18 @@ class ReducedAtomDTO(V2CoreBase):
         dict[str, JsonValue] | None,
         Field(default=None, description="Optional extracted key-value pairs."),
     ] = None
+    depends_on_tda_ids: Annotated[
+        list[str],
+        Field(default_factory=list, description="Upstream TDA assertion IDs this atom depends on."),
+    ]
+    short_circuit_reason_tda_ids: Annotated[
+        list[str],
+        Field(default_factory=list, description="Upstream TDA assertion IDs that short-circuited this atom."),
+    ]
+    is_inverse_evidence: Annotated[
+        bool,
+        Field(default=False, description="Whether this atom represents an inverse evidence check."),
+    ] = False
 
 
 class EvaluatedMatrixRefDTO(V2CoreBase):

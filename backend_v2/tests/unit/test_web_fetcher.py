@@ -68,6 +68,8 @@ def test_fetch_text_success_strips_scripts_styles_and_tags() -> None:
 
     mock_settings = MagicMock()
     mock_settings.mcp_discovery_timeout_seconds = 12
+    mock_settings.web_fetcher_max_extracted_chars = 0
+    mock_settings.web_fetcher_min_extracted_chars = 150
 
     with (
         patch("backend_v2.services.web_fetcher.get_settings", return_value=mock_settings),
@@ -137,8 +139,19 @@ def test_fetch_text_truncates_at_5000_chars_boundary() -> None:
             return _MockResponse(payload_5001)
 
     with patch("backend_v2.services.web_fetcher.httpx.Client", side_effect=MockClient):
-        result = WebFetcher.fetch_text("https://example.com")
-        assert len(result) == 5000
+        # Default web_fetcher_max_extracted_chars = 0 preserves full 5001 characters unbounded
+        unbounded_result = WebFetcher.fetch_text("https://example.com")
+        assert len(unbounded_result) == 5001
+
+        # Explicit positive web_fetcher_max_extracted_chars = 5000 truncates at 5000 characters
+        from backend_v2.settings import Settings
+
+        with patch(
+            "backend_v2.services.web_fetcher.get_settings",
+            return_value=Settings(web_fetcher_max_extracted_chars=5000),
+        ):
+            result = WebFetcher.fetch_text("https://example.com")
+            assert len(result) == 5000
 
 
 def test_fetch_text_short_content_warning_boundary(caplog: pytest.LogCaptureFixture) -> None:

@@ -12,8 +12,6 @@ from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
-_MAX_EXTRACTED_TEXT_CHARS = 5000
-_MIN_EXTRACTED_TEXT_CHARS = 150
 _USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) CognitiveQuorum/1.0"
 _PAYWALL_CUES: tuple[str, ...] = (
     "access denied",
@@ -97,8 +95,11 @@ class WebFetcher:
         text = re.sub(r"<.*?>", " ", text)
         text = re.sub(r"\s+", " ", text).strip()
 
-        # Truncate extracted text to prevent downstream context window bloat.
-        return text[:_MAX_EXTRACTED_TEXT_CHARS]
+        # Phase 1, Step 1.3: Truncate extracted text only when web_fetcher_max_extracted_chars > 0
+        max_chars = get_settings().web_fetcher_max_extracted_chars
+        if max_chars > 0:
+            return text[:max_chars]
+        return text
 
     @staticmethod
     def _warn_if_compromised_content(final_text: str, url: str) -> None:
@@ -111,8 +112,9 @@ class WebFetcher:
         Returns:
             None
         """
-        # Warn when extracted payload is too short or matches anti-bot/paywall patterns to surface grounding risks.
-        if len(final_text) < _MIN_EXTRACTED_TEXT_CHARS:
+        # Phase 1, Step 1.3: Resolve minimum extracted text length from settings SSOT
+        min_chars = get_settings().web_fetcher_min_extracted_chars
+        if len(final_text) < min_chars:
             logger.warning(
                 "[WebFetcher] %s: Fetched content from '%s' is suspiciously short (%d chars). "
                 "It may be an empty page, bot-protection, or a paywall. RAG Grounding may be compromised.",

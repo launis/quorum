@@ -997,3 +997,54 @@ def test_compute_causal_tda_fusion_result_invalid_dampening_raises_app_exception
         compute_causal_tda_fusion_result(graph=graph, dampening_factor=invalid_dampening)
     assert exc_info.value.details is not None
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_causal_tda_fusion_full_duplex_serialization_parity() -> None:
+    """Verifies full-duplex serialization parity for CausalTdaFusionResultDTO with claim texts and falsified_claims."""
+    from backend_v2.models.domain.proposition_graph import FalsifiedClaimMatch
+    from backend_v2.models.dtos.causal_discovery import CausalTdaFusionResultDTO
+    from backend_v2.models.enums import DependencyRelationType
+
+    n1 = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000001",
+        claim="Root premise statement.",
+        source_quotes=("Quote 1",),
+        paragraph_ref="P1",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
+    )
+    n2 = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000002",
+        claim="Dependent conclusion statement.",
+        source_quotes=("Quote 2",),
+        paragraph_ref="P2",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
+        dependent_child_ids=[],
+    )
+    e1 = CausalEdgeDTO(
+        source_id="tda_0195f3a0000070008000000000000001",
+        target_id="tda_0195f3a0000070008000000000000002",
+        reasoning="Root premise supports conclusion.",
+    )
+    falsified = FalsifiedClaimMatch(
+        rebuttal_id="nod_0195f3a0000070008000000000000021",
+        invalidated_warrant_id="nod_0195f3a0000070008000000000000022",
+        falsified_claim_id="nod_0195f3a0000070008000000000000023",
+        rebuttal_confidence=0.88,
+        claim_statement="Conclusion claim text.",
+    )
+    graph = _create_test_graph(
+        nodes=[n1, n2],
+        edges=[e1],
+        root_cause_node_ids=["tda_0195f3a0000070008000000000000001"],
+    )
+    fusion = compute_causal_tda_fusion_result(graph=graph, falsified_claims=[falsified])
+    dumped = fusion.model_dump(mode="json", exclude_none=True)
+    rehydrated = CausalTdaFusionResultDTO.model_validate(dumped, strict=False)
+    assert rehydrated == fusion
+    assert rehydrated.root_cause_diagnoses[0].root_cause_claim == "Root premise statement."
+    assert rehydrated.root_cause_diagnoses[0].failing_node_claim == "Dependent conclusion statement."
+    assert len(rehydrated.falsified_claims) == 1
+    assert rehydrated.falsified_claims[0].claim_statement == "Conclusion claim text."

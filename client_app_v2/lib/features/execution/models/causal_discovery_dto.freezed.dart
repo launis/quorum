@@ -577,7 +577,7 @@ as List<String>?,
 /// @nodoc
 mixin _$CausalRootCauseDiagnosisDto {
 
-@JsonKey(name: 'failing_node_id') String get failingNodeId;@JsonKey(name: 'root_cause_parent_id') String get rootCauseParentId;@JsonKey(name: 'paragraph_ref') String get paragraphRef; String get explanation;@JsonKey(name: 'penalty_points') double get penaltyPoints;@JsonKey(name: 'root_cause_type') CausalRootCauseType get rootCauseType;
+@JsonKey(name: 'failing_node_id') String get failingNodeId;@JsonKey(name: 'root_cause_parent_id') String get rootCauseParentId;@JsonKey(name: 'paragraph_ref') String get paragraphRef; String get explanation;@JsonKey(name: 'penalty_points') double get penaltyPoints;@JsonKey(name: 'root_cause_type') CausalRootCauseType get rootCauseType;@JsonKey(name: 'root_cause_claim') String get rootCauseClaim;@JsonKey(name: 'failing_node_claim') String get failingNodeClaim;@JsonKey(name: 'warrant_relation') String get warrantRelation;
 /// Create a copy of CausalRootCauseDiagnosisDto
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -592,7 +592,7 @@ $CausalRootCauseDiagnosisDtoCopyWith<CausalRootCauseDiagnosisDto> get copyWith =
 
 @override
 String toString() {
-  return 'CausalRootCauseDiagnosisDto(failingNodeId: $failingNodeId, rootCauseParentId: $rootCauseParentId, paragraphRef: $paragraphRef, explanation: $explanation, penaltyPoints: $penaltyPoints, rootCauseType: $rootCauseType)';
+  return 'CausalRootCauseDiagnosisDto(failingNodeId: $failingNodeId, rootCauseParentId: $rootCauseParentId, paragraphRef: $paragraphRef, explanation: $explanation, penaltyPoints: $penaltyPoints, rootCauseType: $rootCauseType, rootCauseClaim: $rootCauseClaim, failingNodeClaim: $failingNodeClaim, warrantRelation: $warrantRelation)';
 }
 
 
@@ -603,7 +603,7 @@ abstract mixin class $CausalRootCauseDiagnosisDtoCopyWith<$Res>  {
   factory $CausalRootCauseDiagnosisDtoCopyWith(CausalRootCauseDiagnosisDto value, $Res Function(CausalRootCauseDiagnosisDto) _then) = _$CausalRootCauseDiagnosisDtoCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'failing_node_id') String failingNodeId,@JsonKey(name: 'root_cause_parent_id') String rootCauseParentId,@JsonKey(name: 'paragraph_ref') String paragraphRef, String explanation,@JsonKey(name: 'penalty_points') double penaltyPoints,@JsonKey(name: 'root_cause_type') CausalRootCauseType rootCauseType
+@JsonKey(name: 'failing_node_id') String failingNodeId,@JsonKey(name: 'root_cause_parent_id') String rootCauseParentId,@JsonKey(name: 'paragraph_ref') String paragraphRef, String explanation,@JsonKey(name: 'penalty_points') double penaltyPoints,@JsonKey(name: 'root_cause_type') CausalRootCauseType rootCauseType,@JsonKey(name: 'root_cause_claim') String rootCauseClaim,@JsonKey(name: 'failing_node_claim') String failingNodeClaim,@JsonKey(name: 'warrant_relation') String warrantRelation
 });
 
 
@@ -620,7 +620,7 @@ class _$CausalRootCauseDiagnosisDtoCopyWithImpl<$Res>
 
 /// Create a copy of CausalRootCauseDiagnosisDto
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? failingNodeId = null,Object? rootCauseParentId = null,Object? paragraphRef = null,Object? explanation = null,Object? penaltyPoints = null,Object? rootCauseType = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? failingNodeId = null,Object? rootCauseParentId = null,Object? paragraphRef = null,Object? explanation = null,Object? penaltyPoints = null,Object? rootCauseType = null,Object? rootCauseClaim = null,Object? failingNodeClaim = null,Object? warrantRelation = null,}) {
   return _then(_self.copyWith(
 failingNodeId: null == failingNodeId ? _self.failingNodeId : failingNodeId // ignore: cast_nullable_to_non_nullable
 as String,rootCauseParentId: null == rootCauseParentId ? _self.rootCauseParentId : rootCauseParentId // ignore: cast_nullable_to_non_nullable
@@ -628,7 +628,10 @@ as String,paragraphRef: null == paragraphRef ? _self.paragraphRef : paragraphRef
 as String,explanation: null == explanation ? _self.explanation : explanation // ignore: cast_nullable_to_non_nullable
 as String,penaltyPoints: null == penaltyPoints ? _self.penaltyPoints : penaltyPoints // ignore: cast_nullable_to_non_nullable
 as double,rootCauseType: null == rootCauseType ? _self.rootCauseType : rootCauseType // ignore: cast_nullable_to_non_nullable
-as CausalRootCauseType,
+as CausalRootCauseType,rootCauseClaim: null == rootCauseClaim ? _self.rootCauseClaim : rootCauseClaim // ignore: cast_nullable_to_non_nullable
+as String,failingNodeClaim: null == failingNodeClaim ? _self.failingNodeClaim : failingNodeClaim // ignore: cast_nullable_to_non_nullable
+as String,warrantRelation: null == warrantRelation ? _self.warrantRelation : warrantRelation // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
@@ -713,10 +716,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'failing_node_id')  String failingNodeId, @JsonKey(name: 'root_cause_parent_id')  String rootCauseParentId, @JsonKey(name: 'paragraph_ref')  String paragraphRef,  String explanation, @JsonKey(name: 'penalty_points')  double penaltyPoints, @JsonKey(name: 'root_cause_type')  CausalRootCauseType rootCauseType)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'failing_node_id')  String failingNodeId, @JsonKey(name: 'root_cause_parent_id')  String rootCauseParentId, @JsonKey(name: 'paragraph_ref')  String paragraphRef,  String explanation, @JsonKey(name: 'penalty_points')  double penaltyPoints, @JsonKey(name: 'root_cause_type')  CausalRootCauseType rootCauseType, @JsonKey(name: 'root_cause_claim')  String rootCauseClaim, @JsonKey(name: 'failing_node_claim')  String failingNodeClaim, @JsonKey(name: 'warrant_relation')  String warrantRelation)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CausalRootCauseDiagnosisDto() when $default != null:
-return $default(_that.failingNodeId,_that.rootCauseParentId,_that.paragraphRef,_that.explanation,_that.penaltyPoints,_that.rootCauseType);case _:
+return $default(_that.failingNodeId,_that.rootCauseParentId,_that.paragraphRef,_that.explanation,_that.penaltyPoints,_that.rootCauseType,_that.rootCauseClaim,_that.failingNodeClaim,_that.warrantRelation);case _:
   return orElse();
 
 }
@@ -734,10 +737,10 @@ return $default(_that.failingNodeId,_that.rootCauseParentId,_that.paragraphRef,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'failing_node_id')  String failingNodeId, @JsonKey(name: 'root_cause_parent_id')  String rootCauseParentId, @JsonKey(name: 'paragraph_ref')  String paragraphRef,  String explanation, @JsonKey(name: 'penalty_points')  double penaltyPoints, @JsonKey(name: 'root_cause_type')  CausalRootCauseType rootCauseType)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'failing_node_id')  String failingNodeId, @JsonKey(name: 'root_cause_parent_id')  String rootCauseParentId, @JsonKey(name: 'paragraph_ref')  String paragraphRef,  String explanation, @JsonKey(name: 'penalty_points')  double penaltyPoints, @JsonKey(name: 'root_cause_type')  CausalRootCauseType rootCauseType, @JsonKey(name: 'root_cause_claim')  String rootCauseClaim, @JsonKey(name: 'failing_node_claim')  String failingNodeClaim, @JsonKey(name: 'warrant_relation')  String warrantRelation)  $default,) {final _that = this;
 switch (_that) {
 case _CausalRootCauseDiagnosisDto():
-return $default(_that.failingNodeId,_that.rootCauseParentId,_that.paragraphRef,_that.explanation,_that.penaltyPoints,_that.rootCauseType);case _:
+return $default(_that.failingNodeId,_that.rootCauseParentId,_that.paragraphRef,_that.explanation,_that.penaltyPoints,_that.rootCauseType,_that.rootCauseClaim,_that.failingNodeClaim,_that.warrantRelation);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -754,10 +757,10 @@ return $default(_that.failingNodeId,_that.rootCauseParentId,_that.paragraphRef,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'failing_node_id')  String failingNodeId, @JsonKey(name: 'root_cause_parent_id')  String rootCauseParentId, @JsonKey(name: 'paragraph_ref')  String paragraphRef,  String explanation, @JsonKey(name: 'penalty_points')  double penaltyPoints, @JsonKey(name: 'root_cause_type')  CausalRootCauseType rootCauseType)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'failing_node_id')  String failingNodeId, @JsonKey(name: 'root_cause_parent_id')  String rootCauseParentId, @JsonKey(name: 'paragraph_ref')  String paragraphRef,  String explanation, @JsonKey(name: 'penalty_points')  double penaltyPoints, @JsonKey(name: 'root_cause_type')  CausalRootCauseType rootCauseType, @JsonKey(name: 'root_cause_claim')  String rootCauseClaim, @JsonKey(name: 'failing_node_claim')  String failingNodeClaim, @JsonKey(name: 'warrant_relation')  String warrantRelation)?  $default,) {final _that = this;
 switch (_that) {
 case _CausalRootCauseDiagnosisDto() when $default != null:
-return $default(_that.failingNodeId,_that.rootCauseParentId,_that.paragraphRef,_that.explanation,_that.penaltyPoints,_that.rootCauseType);case _:
+return $default(_that.failingNodeId,_that.rootCauseParentId,_that.paragraphRef,_that.explanation,_that.penaltyPoints,_that.rootCauseType,_that.rootCauseClaim,_that.failingNodeClaim,_that.warrantRelation);case _:
   return null;
 
 }
@@ -769,7 +772,7 @@ return $default(_that.failingNodeId,_that.rootCauseParentId,_that.paragraphRef,_
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _CausalRootCauseDiagnosisDto implements CausalRootCauseDiagnosisDto {
-  const _CausalRootCauseDiagnosisDto({@JsonKey(name: 'failing_node_id') required this.failingNodeId, @JsonKey(name: 'root_cause_parent_id') required this.rootCauseParentId, @JsonKey(name: 'paragraph_ref') required this.paragraphRef, required this.explanation, @JsonKey(name: 'penalty_points') required this.penaltyPoints, @JsonKey(name: 'root_cause_type') this.rootCauseType = CausalRootCauseType.nodeFailure});
+  const _CausalRootCauseDiagnosisDto({@JsonKey(name: 'failing_node_id') required this.failingNodeId, @JsonKey(name: 'root_cause_parent_id') required this.rootCauseParentId, @JsonKey(name: 'paragraph_ref') required this.paragraphRef, required this.explanation, @JsonKey(name: 'penalty_points') required this.penaltyPoints, @JsonKey(name: 'root_cause_type') this.rootCauseType = CausalRootCauseType.nodeFailure, @JsonKey(name: 'root_cause_claim') this.rootCauseClaim = '', @JsonKey(name: 'failing_node_claim') this.failingNodeClaim = '', @JsonKey(name: 'warrant_relation') this.warrantRelation = 'warrants'});
   factory _CausalRootCauseDiagnosisDto.fromJson(Map<String, dynamic> json) => _$CausalRootCauseDiagnosisDtoFromJson(json);
 
 @override@JsonKey(name: 'failing_node_id') final  String failingNodeId;
@@ -778,6 +781,9 @@ class _CausalRootCauseDiagnosisDto implements CausalRootCauseDiagnosisDto {
 @override final  String explanation;
 @override@JsonKey(name: 'penalty_points') final  double penaltyPoints;
 @override@JsonKey(name: 'root_cause_type') final  CausalRootCauseType rootCauseType;
+@override@JsonKey(name: 'root_cause_claim') final  String rootCauseClaim;
+@override@JsonKey(name: 'failing_node_claim') final  String failingNodeClaim;
+@override@JsonKey(name: 'warrant_relation') final  String warrantRelation;
 
 /// Create a copy of CausalRootCauseDiagnosisDto
 /// with the given fields replaced by the non-null parameter values.
@@ -794,7 +800,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'CausalRootCauseDiagnosisDto(failingNodeId: $failingNodeId, rootCauseParentId: $rootCauseParentId, paragraphRef: $paragraphRef, explanation: $explanation, penaltyPoints: $penaltyPoints, rootCauseType: $rootCauseType)';
+  return 'CausalRootCauseDiagnosisDto(failingNodeId: $failingNodeId, rootCauseParentId: $rootCauseParentId, paragraphRef: $paragraphRef, explanation: $explanation, penaltyPoints: $penaltyPoints, rootCauseType: $rootCauseType, rootCauseClaim: $rootCauseClaim, failingNodeClaim: $failingNodeClaim, warrantRelation: $warrantRelation)';
 }
 
 
@@ -805,7 +811,7 @@ abstract mixin class _$CausalRootCauseDiagnosisDtoCopyWith<$Res> implements $Cau
   factory _$CausalRootCauseDiagnosisDtoCopyWith(_CausalRootCauseDiagnosisDto value, $Res Function(_CausalRootCauseDiagnosisDto) _then) = __$CausalRootCauseDiagnosisDtoCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'failing_node_id') String failingNodeId,@JsonKey(name: 'root_cause_parent_id') String rootCauseParentId,@JsonKey(name: 'paragraph_ref') String paragraphRef, String explanation,@JsonKey(name: 'penalty_points') double penaltyPoints,@JsonKey(name: 'root_cause_type') CausalRootCauseType rootCauseType
+@JsonKey(name: 'failing_node_id') String failingNodeId,@JsonKey(name: 'root_cause_parent_id') String rootCauseParentId,@JsonKey(name: 'paragraph_ref') String paragraphRef, String explanation,@JsonKey(name: 'penalty_points') double penaltyPoints,@JsonKey(name: 'root_cause_type') CausalRootCauseType rootCauseType,@JsonKey(name: 'root_cause_claim') String rootCauseClaim,@JsonKey(name: 'failing_node_claim') String failingNodeClaim,@JsonKey(name: 'warrant_relation') String warrantRelation
 });
 
 
@@ -822,7 +828,7 @@ class __$CausalRootCauseDiagnosisDtoCopyWithImpl<$Res>
 
 /// Create a copy of CausalRootCauseDiagnosisDto
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? failingNodeId = null,Object? rootCauseParentId = null,Object? paragraphRef = null,Object? explanation = null,Object? penaltyPoints = null,Object? rootCauseType = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? failingNodeId = null,Object? rootCauseParentId = null,Object? paragraphRef = null,Object? explanation = null,Object? penaltyPoints = null,Object? rootCauseType = null,Object? rootCauseClaim = null,Object? failingNodeClaim = null,Object? warrantRelation = null,}) {
   return _then(_CausalRootCauseDiagnosisDto(
 failingNodeId: null == failingNodeId ? _self.failingNodeId : failingNodeId // ignore: cast_nullable_to_non_nullable
 as String,rootCauseParentId: null == rootCauseParentId ? _self.rootCauseParentId : rootCauseParentId // ignore: cast_nullable_to_non_nullable
@@ -830,7 +836,10 @@ as String,paragraphRef: null == paragraphRef ? _self.paragraphRef : paragraphRef
 as String,explanation: null == explanation ? _self.explanation : explanation // ignore: cast_nullable_to_non_nullable
 as String,penaltyPoints: null == penaltyPoints ? _self.penaltyPoints : penaltyPoints // ignore: cast_nullable_to_non_nullable
 as double,rootCauseType: null == rootCauseType ? _self.rootCauseType : rootCauseType // ignore: cast_nullable_to_non_nullable
-as CausalRootCauseType,
+as CausalRootCauseType,rootCauseClaim: null == rootCauseClaim ? _self.rootCauseClaim : rootCauseClaim // ignore: cast_nullable_to_non_nullable
+as String,failingNodeClaim: null == failingNodeClaim ? _self.failingNodeClaim : failingNodeClaim // ignore: cast_nullable_to_non_nullable
+as String,warrantRelation: null == warrantRelation ? _self.warrantRelation : warrantRelation // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

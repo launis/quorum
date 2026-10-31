@@ -332,14 +332,16 @@ class TwoPassAtomizer:
                     continue
 
                 exact_quote = local_alias_map[clean_id]
-                # Step 3: Bound hydrated anchor text to Gate 2 safety ceiling (1,000 chars)
-                if len(exact_quote) > 1000:
+                # Phase 1, Step 1.3: Bound hydrated anchor text only when max_citation_span_chars > 0
+                max_span_chars = get_settings().max_citation_span_chars
+                if max_span_chars > 0 and len(exact_quote) > max_span_chars:
                     logger.debug(
-                        "Bounding anchor quote exceeding 1000 chars Gate 2 ceiling: block_id=%s, len=%d",
+                        "Bounding anchor quote exceeding %d chars Gate 2 ceiling: block_id=%s, len=%d",
+                        max_span_chars,
                         clean_id,
                         len(exact_quote),
                     )
-                    exact_quote = exact_quote[:1000]
+                    exact_quote = exact_quote[:max_span_chars]
 
             atom_quotes: tuple[str, ...] | None = None
             if exact_quote:

@@ -9,11 +9,12 @@ from unittest.mock import patch
 
 import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
-from pydantic import JsonValue
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.synthesis import DistilledEvaluation
-from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO, HydratedAtomDTO
+from backend_v2.models.dtos.atom_result import AtomResultDTO, EvaluatedAtomDTO, HydratedAtomDTO
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 from backend_v2.settings import Settings
 
@@ -24,8 +25,8 @@ class DistilledEvaluationFactory(ModelFactory[DistilledEvaluation]):
 
 
 def test_compress_synthesis_payload_strips_atom_quotes() -> None:
-    """PROMISE: Prove that _compress_synthesis_payload strips results and massive atom_quotes."""
-    massive_string = "A" * 1000000
+    """PROMISE: Prove that _compress_synthesis_payload strips atom_quotes, preserves unbounded by default, and slices when positive limits are configured."""
+    massive_string = "A" * 1000
 
     eval_mock = DistilledEvaluationFactory.build(
         atom_id="tda_123",
@@ -38,8 +39,19 @@ def test_compress_synthesis_payload_strips_atom_quotes() -> None:
         "atom_quotes": {"blk_123": [{"level": 5, "level_name": "High", "quote": massive_string}]},
     }
 
-    compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
-    compressed_dict = json.loads(compressed_str)
+    # Default unbounded settings (max_synthesis_quote_length=0, max_synthesis_reasoning_length=0)
+    compressed_unbounded = json.loads(SynthesisPayloadCompressor.compress_synthesis_payload(payload))
+    assert "atom_quotes" not in compressed_unbounded
+    assert len(compressed_unbounded["results"][0]["exact_quotes"][0]) == 1000
+    assert len(compressed_unbounded["results"][0]["semantic_reasoning"]) == 1000
+
+    # Explicit positive bounds slice quotes and reasoning
+    with patch(
+        "backend_v2.services.orchestrator.synthesis_payload_compressor.get_settings",
+        return_value=Settings(max_synthesis_quote_length=300, max_synthesis_reasoning_length=300),
+    ):
+        compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+        compressed_dict = json.loads(compressed_str)
 
     pruned_evals = compressed_dict["results"]
     assert len(pruned_evals) == 1
@@ -443,3 +455,177 @@ def test_compress_payload_results_item_missing_atom_id_fails_fast() -> None:
     with pytest.raises(AppException) as exc_info:
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+
+
+def test_clean_and_distill_payload_retains_failed_and_na_without_quotes_or_character_slicing() -> None:
+    """Verify FAILED and N_A evaluations without quotes retain full 1800-char 4-step Micro-CoT reasoning and topological lineage."""
+    micro_cot_1800 = (
+        "1. step_1_identify_premise: Anchor premise identified in section 2.\n"
+        "2. step_2_literal_scan: Performed literal scan across source segments.\n"
+        + ("Detailed forensic scan notes. " * 55)
+        + "\n3. step_3_evaluate_anti_patterns: Explicit anti-pattern rubric failure confirmed.\n"
+        "4. step_4_final_conclusion: Assertion fails due to missing quantitative governance threshold."
+    )
+    assert len(micro_cot_1800) >= 1800
+
+    failed_dto = EvaluatedAtomDTO(
+        tda_id="tda_parent",
+        atom_id="tda_parent",
+        status=ExecutionStatus.FAILED,
+        exact_quotes=[],
+        evaluation_reasoning=micro_cot_1800,
+    )
+    na_atom = AtomResultDTO(
+        tda_id="tda_child",
+        status=ExecutionStatus.N_A,
+        evaluation_reasoning=micro_cot_1800,
+        depends_on_tda_ids=["tda_parent"],
+        short_circuit_reason_tda_ids=["tda_parent"],
+    )
+
+    compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload({"results": [failed_dto, na_atom]})
+    compressed_dict = json.loads(compressed_str)
+    results = compressed_dict["results"]
+    assert len(results) == 2
+
+    parent_res = next(r for r in results if r["atom_id"] == "tda_parent")
+    child_res = next(r for r in results if r["atom_id"] == "tda_child")
+
+    assert parent_res["semantic_reasoning"] == micro_cot_1800
+    assert "step_3_evaluate_anti_patterns" in parent_res["semantic_reasoning"]
+    assert "step_4_final_conclusion" in parent_res["semantic_reasoning"]
+    assert parent_res["topological_out_degree"] == 1
+
+    assert child_res["semantic_reasoning"] == micro_cot_1800
+    assert child_res["short_circuit_reason_tda_ids"] == ["tda_parent"]
+    assert child_res["depends_on_tda_ids"] == ["tda_parent"]
+
+
+def test_clean_and_distill_payload_explicit_positive_bound_slices_at_boundary() -> None:
+    """ISTQB BVA: Verify evaluation_reasoning lengths 1499, 1500, and 1501 when max_synthesis_reasoning_length=1500."""
+    dto_1499 = EvaluatedAtomDTO(
+        tda_id="tda_1499",
+        atom_id="tda_1499",
+        status=ExecutionStatus.FAILED,
+        exact_quotes=[],
+        evaluation_reasoning="A" * 1499,
+    )
+    dto_1500 = EvaluatedAtomDTO(
+        tda_id="tda_1500",
+        atom_id="tda_1500",
+        status=ExecutionStatus.FAILED,
+        exact_quotes=[],
+        evaluation_reasoning="B" * 1500,
+    )
+    dto_1501 = EvaluatedAtomDTO(
+        tda_id="tda_1501",
+        atom_id="tda_1501",
+        status=ExecutionStatus.FAILED,
+        exact_quotes=[],
+        evaluation_reasoning="C" * 1501,
+    )
+
+    with patch(
+        "backend_v2.services.orchestrator.synthesis_payload_compressor.get_settings",
+        return_value=Settings(max_synthesis_reasoning_length=1500),
+    ):
+        compressed_dict = json.loads(
+            SynthesisPayloadCompressor.compress_synthesis_payload({"results": [dto_1499, dto_1500, dto_1501]})
+        )
+
+    by_id = {r["atom_id"]: r["semantic_reasoning"] for r in compressed_dict["results"]}
+    assert len(by_id["tda_1499"]) == 1499
+    assert len(by_id["tda_1500"]) == 1500
+    assert len(by_id["tda_1501"]) == 1500
+    assert by_id["tda_1501"] == "C" * 1500
+
+
+def test_clean_and_distill_payload_drops_passed_atom_with_empty_quotes_and_no_reasoning() -> None:
+    """Negative test: PASSED atom with empty quotes, no reasoning, and is_inverse_evidence=False is dropped."""
+    empty_passed = EvaluatedAtomDTO(
+        tda_id="tda_empty_pass",
+        atom_id="tda_empty_pass",
+        status=ExecutionStatus.PASSED,
+        exact_quotes=[],
+        evaluation_reasoning=None,
+        is_inverse_evidence=False,
+    )
+    valid_failed = EvaluatedAtomDTO(
+        tda_id="tda_valid_fail",
+        atom_id="tda_valid_fail",
+        status=ExecutionStatus.FAILED,
+        exact_quotes=[],
+        evaluation_reasoning="Failed due to missing evidence.",
+    )
+    compressed_dict = json.loads(
+        SynthesisPayloadCompressor.compress_synthesis_payload({"results": [empty_passed, valid_failed]})
+    )
+    atom_ids = [r["atom_id"] for r in compressed_dict["results"]]
+    assert "tda_empty_pass" not in atom_ids
+    assert atom_ids == ["tda_valid_fail"]
+
+
+def test_prune_and_stratify_evaluations_prioritizes_inverse_evidence_and_out_degree_when_limit_positive() -> None:
+    """Verify deficit priority sorting places inverse evidence first, highest out_degree second, and includes N_A."""
+    eval_a0 = DistilledEvaluation(
+        atom_id="a0",
+        status="FAILED",
+        semantic_reasoning="Alphabetical leaf failure",
+        topological_out_degree=0,
+        is_inverse_evidence=False,
+    )
+    eval_z9 = DistilledEvaluation(
+        atom_id="z9",
+        status="FAILED",
+        semantic_reasoning="Root causal blocker",
+        topological_out_degree=4,
+        is_inverse_evidence=False,
+    )
+    eval_n1 = DistilledEvaluation(
+        atom_id="n1",
+        status="N_A",
+        semantic_reasoning="Short-circuited child",
+        short_circuit_reason_tda_ids=["z9"],
+        topological_out_degree=0,
+        is_inverse_evidence=False,
+    )
+    eval_m5 = DistilledEvaluation(
+        atom_id="m5",
+        status="FAILED",
+        semantic_reasoning="Poison anti-pattern hit",
+        topological_out_degree=1,
+        is_inverse_evidence=True,
+    )
+
+    # Under limit=2 (with all 4 items in deficits and 0 strengths), only top 2 priority deficits survive: m5 and z9
+    top_two = SynthesisPayloadCompressor._prune_and_stratify_evaluations(
+        [eval_a0, eval_z9, eval_n1, eval_m5],
+        limit=2,
+    )
+    assert {e.atom_id for e in top_two} == {"m5", "z9"}
+
+    # Under limit=3, top 3 priority deficits survive: m5 (inverse=True), z9 (out_degree=4), a0 (short_circuit_len=0)
+    top_three = SynthesisPayloadCompressor._prune_and_stratify_evaluations(
+        [eval_a0, eval_z9, eval_n1, eval_m5],
+        limit=3,
+    )
+    assert {e.atom_id for e in top_three} == {"m5", "z9", "a0"}
+
+    # Under limit=4, n1 is also retained in deficits
+    all_four = SynthesisPayloadCompressor._prune_and_stratify_evaluations(
+        [eval_a0, eval_z9, eval_n1, eval_m5],
+        limit=4,
+    )
+    assert {e.atom_id for e in all_four} == {"a0", "m5", "n1", "z9"}
+
+
+def test_distilled_evaluation_extra_field_raises_validation_error() -> None:
+    """Error-path test: DistilledEvaluation.model_validate rejects unpermitted extra keys (extra='forbid')."""
+    with pytest.raises(ValidationError):
+        DistilledEvaluation.model_validate(
+            {
+                "atom_id": "tda_0195f3a0000070008000000000000001",
+                "status": "FAILED",
+                "unpermitted_extra_key": "forbidden",
+            }
+        )

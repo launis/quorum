@@ -436,3 +436,24 @@ class TestPhase1Phase2Integration:
             assert orphans == [], (
                 f"ORPHANED TEST FILES: {[str(f) for f in orphans]}. These tests reference the deleted synthesis.py."
             )
+
+
+    def test_compress_synthesis_preserves_unbounded_evaluations_by_default(self) -> None:
+        """Verify default Settings(max_synthesis_evaluations=0) retains all evaluations without 40-eval capping."""
+        from backend_v2.services.orchestrator.synthesis_payload_compressor import (
+            SynthesisPayloadCompressor,
+        )
+
+        evals = [
+            {
+                "atom_id": f"a{i}",
+                "exact_quotes": [f"Quote {i} with sufficient length for validation"],
+                "semantic_reasoning": f"Reason {i} " * 40,
+            }
+            for i in range(50)
+        ]
+        compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload({"results": evals})
+        compressed_dict = json.loads(compressed_str)
+
+        pruned = compressed_dict["results"]
+        assert len(pruned) == 50

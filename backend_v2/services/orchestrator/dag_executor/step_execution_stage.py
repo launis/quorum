@@ -13,10 +13,11 @@ from pydantic import TypeAdapter, ValidationError
 from tenacity import AsyncRetrying, before_sleep_log, retry_if_exception, stop_after_attempt, wait_exponential
 
 from backend_v2.core.telemetry import get_tracer
+from backend_v2.database.interfaces import CausalReasoningPort
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
 from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.domain.step import Step
-from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO
+from backend_v2.models.dtos.causal_discovery import CausalGraphPayloadDTO, CausalTdaFusionResultDTO
 from backend_v2.models.dtos.node_execution import StepOutputContentDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -331,6 +332,19 @@ async def execute_dag_step_wrapper(
         await finalize_step_output_and_commit(
             state, step_id, events, committer, upstream_graph, causal_cohesion_evaluator
         )
+        # Phase 1, Step 1.1: Wire PostgreSQL 19 3-way Toulmin falsification join into causal fusion state
+        if upstream_graph is not None and isinstance(committer.exec_repo, CausalReasoningPort):
+            falsified_claims = list(await committer.exec_repo.find_falsified_claims(run_id=state.execution_id))
+            if falsified_claims:
+                for snap_dto in reversed(state.projector.snapshot):
+                    if snap_dto.step_id == step_id and isinstance(snap_dto.payload, CausalTdaFusionResultDTO):
+                        enriched_fusion = snap_dto.payload.model_copy(update={"falsified_claims": falsified_claims})
+                        fusion_evt = TraceEvent(step_name=step_id, event_type="output", content=enriched_fusion)
+                        async with _update_lock:
+                            state.exec_record.execution_trace.append(fusion_evt)
+                            state.projector.apply_delta(fusion_evt)
+                        await safe_commit_execution_state(state=state, committer=committer)
+                        break
 
     except state.step_exceptions as e:
         node_span.record_exception(e)

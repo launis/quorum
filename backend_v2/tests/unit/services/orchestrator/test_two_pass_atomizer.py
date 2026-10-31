@@ -37,6 +37,7 @@ def settings_mock(monkeypatch):
     mock.llm_retry_min_seconds = 0.01
     mock.llm_retry_max_seconds = 0.05
     mock.two_pass_atomizer_packet_size = 50
+    mock.max_citation_span_chars = 0
     monkeypatch.setattr("backend_v2.services.orchestrator.two_pass_atomizer.get_settings", lambda: mock)
     return mock
 
@@ -506,7 +507,25 @@ async def test_extract_atoms_from_chunk_bounds_anchor_quote_over_1000_chars(
         TokenUsage(prompt_tokens=50, completion_tokens=10, total_tokens=60),
     )
 
+    block_text_800 = "X" * 800
+    # Default max_citation_span_chars = 0 preserves full 800 chars unbounded
+    settings_mock.max_citation_span_chars = 0
+    unbounded_result, _ = await atomizer._extract_atoms_from_chunk(
+        client=mock_client,
+        compiled_prompt=compiled_prompt,
+        start_b="B0",
+        end_b="B0",
+        packet_keys=["B0"],
+        chunk_index=0,
+        hydrated_text=f"[B0] {block_text_800}",
+    )
+    assert len(unbounded_result) == 1
+    assert unbounded_result[0].source_quotes is not None
+    assert len(unbounded_result[0].source_quotes[0]) == 800
+
     oversized_block_text = "X" * 1250
+    # Explicit positive max_citation_span_chars = 1000 slices to 1,000 chars
+    settings_mock.max_citation_span_chars = 1000
     result, usage = await atomizer._extract_atoms_from_chunk(
         client=mock_client,
         compiled_prompt=compiled_prompt,

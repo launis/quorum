@@ -3,9 +3,11 @@
 from unittest.mock import MagicMock
 
 import pytest
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel, JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.domain.synthesis import DistilledEvaluation
+from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ExtractedValueDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
@@ -48,17 +50,23 @@ def test_reduce_dispatcher() -> None:
 
 
 def test_reduce_matrix() -> None:
-    """Tests reduce_matrix filters PASS atoms without data and keeps FAIL/data atoms.
-
-    Uses MagicMock to simulate ExecutionRecord → step_states → scorecard_atoms,
-    mirroring the real ScorecardAtomDTO interface.
-    """
-    # Build typed atoms
+    """Tests reduce_matrix retains all evaluated PASSED, FAILED, N_A, and DLQ atoms and drops PENDING atoms."""
     atom_passed = AtomResultDTO(
         tda_id="tda_11111111111111111111111111111111",
         status=ExecutionStatus.PASSED,
         source_quotes=("Passed quote",),
         evaluation_reasoning="Passed without data",
+        depends_on_tda_ids=["tda_00000000000000000000000000000009"],
+        is_inverse_evidence=False,
+    )
+
+    atom_inverse = AtomResultDTO(
+        tda_id="tda_44444444444444444444444444444444",
+        status=ExecutionStatus.PASSED,
+        source_quotes=None,
+        evaluation_reasoning="Inverse evidence hit",
+        depends_on_tda_ids=["tda_00000000000000000000000000000009"],
+        is_inverse_evidence=True,
     )
 
     atom_failed = AtomResultDTO(
@@ -81,14 +89,12 @@ def test_reduce_matrix() -> None:
         evaluation_reasoning="Unstarted atom",
     )
 
-    # Build mock ExecutionRecord
     record = MagicMock()
     record.id = "exe_12345678901234567890123456789012"
     record.duration_ms = 100
     record.steps = []
     record.step_states = {}
 
-    # Populate execution_trace with various event types
     class MockOutputModel(BaseModel):
         step_2: dict[str, JsonValue]
 
@@ -100,7 +106,7 @@ def test_reduce_matrix() -> None:
     evt_error_items = MagicMock(event_type="output", content={"bad_item": "non_dict_val"})
     evt_atoms = MagicMock(
         event_type="output",
-        content={"results": [atom_unstarted, atom_passed, atom_failed, atom_pass_with_data]},
+        content={"results": [atom_unstarted, atom_passed, atom_inverse, atom_failed, atom_pass_with_data]},
     )
     record.execution_trace = [
         evt_output_dict,
@@ -114,24 +120,34 @@ def test_reduce_matrix() -> None:
 
     reduced = MatrixReducer.reduce_matrix(record)
 
-    # PASS without extracted_facts should be dropped to save token space
-    # FAIL and PASS-with-data should be kept
-    assert len(reduced.reduced_atoms) == 2
+    # Phase 1, Step 1.2: Boolean PASSED, inverse PASSED, FAILED, and PASSED-with-data atoms are all retained
+    assert len(reduced.reduced_atoms) == 4
 
     tda_ids = {atom.tda_id for atom in reduced.reduced_atoms}
+    assert "tda_11111111111111111111111111111111" in tda_ids
+    assert "tda_44444444444444444444444444444444" in tda_ids
     assert "tda_22222222222222222222222222222222" in tda_ids
     assert "tda_33333333333333333333333333333333" in tda_ids
-    assert "tda_11111111111111111111111111111111" not in tda_ids
     assert "tda_00000000000000000000000000000000" not in tda_ids
 
-    # Verify source_quote extraction
+    passed_bool_atom = next(a for a in reduced.reduced_atoms if a.tda_id == "tda_11111111111111111111111111111111")
+    assert passed_bool_atom.source_quotes == ("Passed quote",)
+    assert passed_bool_atom.depends_on_tda_ids == ["tda_00000000000000000000000000000009"]
+    assert passed_bool_atom.is_inverse_evidence is False
+
+    inverse_atom = next(a for a in reduced.reduced_atoms if a.tda_id == "tda_44444444444444444444444444444444")
+    assert inverse_atom.source_quotes is None
+    assert inverse_atom.depends_on_tda_ids == ["tda_00000000000000000000000000000009"]
+    assert inverse_atom.is_inverse_evidence is True
+
     passed_data_atom = next(a for a in reduced.reduced_atoms if a.tda_id == "tda_33333333333333333333333333333333")
     assert passed_data_atom.source_quotes == ("Data quote",)
     failed_atom = next(a for a in reduced.reduced_atoms if a.tda_id == "tda_22222222222222222222222222222222")
     assert failed_atom.source_quotes is None
+    assert failed_atom.is_inverse_evidence is False
 
     assert reduced.execution_id == "exe_12345678901234567890123456789012"
-    assert reduced.global_metrics["total_atoms"] == 4
+    assert reduced.global_metrics["total_atoms"] == 5
     assert reduced.global_metrics["duration_ms"] == 100
     assert len(reduced.raw_extensions) == 2
 
@@ -153,14 +169,7 @@ def test_reduce_matrix_empty_step_states() -> None:
 
 
 def test_reduce_matrix_from_execution_trace_runtime_parity() -> None:
-    """Regression test proving failure when reduce_matrix runs during real DAG execution.
-
-    During real runtime, record.step_states has empty scorecard_atoms={}.
-    The evaluated atoms exist exclusively as AtomResultDTOs inside record.execution_trace output events.
-    """
-    from backend_v2.models.dtos.atom_result import AtomResultDTO, ExtractedValueDTO
-    from backend_v2.models.enums import ExecutionStatus
-
+    """Regression test proving reduce_matrix extracts and retains all evaluated atoms from execution_trace."""
     atom_1 = AtomResultDTO(
         tda_id="tda_11111111111111111111111111111111",
         status=ExecutionStatus.PASSED,
@@ -179,11 +188,17 @@ def test_reduce_matrix_from_execution_trace_runtime_parity() -> None:
         evaluation_reasoning="Passed with quantitative data",
         extracted_data=ExtractedValueDTO(value="100", unit="EUR"),
     )
+    atom_na = AtomResultDTO(
+        tda_id="tda_44444444444444444444444444444444",
+        status=ExecutionStatus.N_A,
+        evaluation_reasoning="Short-circuited due to parent failure",
+        depends_on_tda_ids=["tda_22222222222222222222222222222222"],
+        short_circuit_reason_tda_ids=["tda_22222222222222222222222222222222"],
+    )
 
     record = MagicMock()
     record.id = "exe_0195f3a0000070068900000000000000"
     record.duration_ms = 250
-    # In real DAG execution, step_states has empty scorecard_atoms
     empty_state = MagicMock()
     empty_state.scorecard_atoms = {}
     record.step_states = {
@@ -192,25 +207,28 @@ def test_reduce_matrix_from_execution_trace_runtime_parity() -> None:
     }
     record.steps = []
 
-    # Real execution trace containing output events with results
     evt_step_1 = MagicMock(
         event_type="output",
         content={"results": [atom_1.model_dump(), atom_2.model_dump()]},
     )
     evt_step_2 = MagicMock(
         event_type="output",
-        content={"results": [atom_3.model_dump()]},
+        content={"results": [atom_3.model_dump(), atom_na.model_dump()]},
     )
     record.execution_trace = [evt_step_1, evt_step_2]
 
     reduced = MatrixReducer.reduce_matrix(record)
 
-    # Must extract all 3 atoms from execution trace and reduce them
-    assert reduced.global_metrics["total_atoms"] == 3
-    assert len(reduced.reduced_atoms) == 2  # atom_2 (FAILED) and atom_3 (PASSED with data)
+    assert reduced.global_metrics["total_atoms"] == 4
+    assert len(reduced.reduced_atoms) == 4
     reduced_ids = {a.tda_id for a in reduced.reduced_atoms}
+    assert "tda_11111111111111111111111111111111" in reduced_ids
     assert "tda_22222222222222222222222222222222" in reduced_ids
     assert "tda_33333333333333333333333333333333" in reduced_ids
+    assert "tda_44444444444444444444444444444444" in reduced_ids
+    na_reduced = next(a for a in reduced.reduced_atoms if a.tda_id == "tda_44444444444444444444444444444444")
+    assert na_reduced.short_circuit_reason_tda_ids == ["tda_22222222222222222222222222222222"]
+    assert na_reduced.depends_on_tda_ids == ["tda_22222222222222222222222222222222"]
 
 
 def test_reduce_matrix_from_step_output_dto_in_execution_trace() -> None:
@@ -273,8 +291,6 @@ def test_reduce_matrix_from_step_output_dto_in_execution_trace() -> None:
 
 def test_reduce_matrix_invalid_atom_raises_app_exception() -> None:
     """Test reduce_matrix raises AppException(ErrorCodes.VALIDATION_FAILED) on malformed atom results."""
-    from backend_v2.exceptions import AppException
-
     record = MagicMock()
     record.id = "exe_22222222222222222222222222222222"
     record.duration_ms = 100
@@ -291,3 +307,40 @@ def test_reduce_matrix_invalid_atom_raises_app_exception() -> None:
         MatrixReducer.reduce_matrix(record)
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+
+
+def test_distilled_evaluation_and_reduced_atom_full_duplex_serialization_parity() -> None:
+    """Verify full-duplex serialization and extra='forbid' validation on DistilledEvaluation and ReducedAtomDTO."""
+    distilled = DistilledEvaluation(
+        atom_id="tda_0195f3a0000070008000000000000001",
+        status="FAILED",
+        exact_quotes=[],
+        semantic_reasoning="1. Premise\n2. Scan\n3. Anti-patterns\n4. Conclusion",
+        depends_on_tda_ids=["tda_0195f3a0000070008000000000000000"],
+        short_circuit_reason_tda_ids=[],
+        is_inverse_evidence=True,
+        topological_out_degree=3,
+    )
+    dumped = distilled.model_dump(mode="json", exclude_none=True)
+    rehydrated = DistilledEvaluation.model_validate(dumped)
+    assert rehydrated == distilled
+
+    with pytest.raises(ValidationError):
+        DistilledEvaluation.model_validate({**dumped, "unpermitted_extra_key": "value"})
+
+    with pytest.raises(ValidationError):
+        DistilledEvaluation(topological_out_degree=-1)
+
+    reduced = ReducedAtomDTO(
+        tda_id="tda_0195f3a0000070008000000000000001",
+        status=ExecutionStatus.N_A,
+        reasoning="Short-circuited by root failure",
+        depends_on_tda_ids=["tda_0195f3a0000070008000000000000000"],
+        short_circuit_reason_tda_ids=["tda_0195f3a0000070008000000000000000"],
+        is_inverse_evidence=False,
+    )
+    reduced_dumped = reduced.model_dump(mode="json", exclude_none=True)
+    reduced_rehydrated = ReducedAtomDTO.model_validate(reduced_dumped)
+    assert reduced_rehydrated == reduced
+    with pytest.raises(ValidationError):
+        ReducedAtomDTO.model_validate({**reduced_dumped, "unknown_key": 1})

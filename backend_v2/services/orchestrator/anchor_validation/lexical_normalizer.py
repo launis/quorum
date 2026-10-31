@@ -7,11 +7,12 @@ from collections.abc import Sequence
 from rapidfuzz import fuzz
 
 from backend_v2.models.dtos.quote_evidence import GateMatchResultDTO
+from backend_v2.settings import get_settings
 
-# Phase 1, Step 1: Extract leaf forensic citation constants
-MAX_CITATION_SPAN_CHARS: int = 1000
-MIN_MULTI_SEGMENT_FLOOR_CHARS: int = 30
-MIN_ENTROPY_GATE_CHARS: int = 10
+# Phase 1, Step 1.3: Resolve leaf forensic citation thresholds from settings SSOT
+MAX_CITATION_SPAN_CHARS: int = get_settings().max_citation_span_chars
+MIN_MULTI_SEGMENT_FLOOR_CHARS: int = get_settings().min_multi_segment_floor_chars
+MIN_ENTROPY_GATE_CHARS: int = get_settings().min_entropy_gate_chars
 
 __all__ = [
     "MAX_CITATION_SPAN_CHARS",
@@ -99,10 +100,13 @@ def strict_match(
 
     quotes = tuple(exact_quotes)
     m = len(quotes)
-    # Enforce individual segment floor of 30 characters when m > 1
+    settings = get_settings()
+    min_floor_chars = settings.min_multi_segment_floor_chars
+    max_span_chars = settings.max_citation_span_chars
+    # Phase 1, Step 1.3: Enforce individual segment floor from settings when m > 1
     if m > 1:
         for q in quotes:
-            if len(q) < MIN_MULTI_SEGMENT_FLOOR_CHARS:
+            if len(q) < min_floor_chars:
                 return GateMatchResultDTO(is_valid=False, start_idx=-1, end_idx=-1)
 
     clean_pdf = unicodedata.normalize("NFKC", re.sub(r"[\u200b-\u200d\ufeff]", "", pdf_text))
@@ -137,7 +141,7 @@ def strict_match(
                 chain_valid = False
                 break
             end_k = next_pos + len(qk) - 1
-            if end_k - s1 > MAX_CITATION_SPAN_CHARS:
+            if max_span_chars > 0 and end_k - s1 > max_span_chars:
                 chain_valid = False
                 break
             prev_end = end_k
@@ -159,8 +163,8 @@ def calculate_fuzzy_score(norm_quote: str, norm_text: str) -> float:
     Returns:
         The fuzzy similarity score (0.0 to 100.0).
     """
-    # Phase 4: Component: Anchor Validation Service - Length-weighted hybrid validation logic
-    if len(norm_quote) < MIN_MULTI_SEGMENT_FLOOR_CHARS:
+    # Phase 1, Step 1.3: Resolve multi-segment floor from settings SSOT
+    if len(norm_quote) < get_settings().min_multi_segment_floor_chars:
         # Short quotes: enforce strict partial_ratio for contiguous matches (contiguity-guard)
         return float(fuzz.partial_ratio(norm_quote, norm_text))
     else:

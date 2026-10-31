@@ -541,3 +541,23 @@ __all__ = [
     "test_synthesis_distiller_wiring_whitespace_target_locale_raises_app_exception",
     "test_synthesis_distiller_wiring_workflow_not_found_raises_resource_not_found",
 ]
+
+
+def test_compress_synthesis_payload_preserves_all_evaluations_by_default() -> None:
+    """Verify default Settings(max_synthesis_evaluations=0) retains all evaluations and full reasoning."""
+    long_reasoning = "Detailed four-step Micro-CoT reasoning trace. " * 40
+    evals: list[JsonValue] = [
+        {
+            "atom_id": f"a{i}",
+            "exact_quotes": [f"Quote {i} with sufficient length for validation"],
+            "semantic_reasoning": long_reasoning,
+        }
+        for i in range(50)
+    ]
+    payload: dict[str, JsonValue] = {"results": evals}
+    compressed_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+    compressed_dict = json.loads(compressed_str)
+
+    pruned = compressed_dict["results"]
+    assert len(pruned) == 50
+    assert pruned[0]["semantic_reasoning"] == long_reasoning.strip()

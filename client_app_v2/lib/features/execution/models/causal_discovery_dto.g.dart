@@ -150,6 +150,9 @@ _CausalRootCauseDiagnosisDto _$CausalRootCauseDiagnosisDtoFromJson(
         'explanation',
         'penalty_points',
         'root_cause_type',
+        'root_cause_claim',
+        'failing_node_claim',
+        'warrant_relation',
       ],
     );
     final val = _CausalRootCauseDiagnosisDto(
@@ -170,6 +173,18 @@ _CausalRootCauseDiagnosisDto _$CausalRootCauseDiagnosisDtoFromJson(
             $enumDecodeNullable(_$CausalRootCauseTypeEnumMap, v) ??
             CausalRootCauseType.nodeFailure,
       ),
+      rootCauseClaim: $checkedConvert(
+        'root_cause_claim',
+        (v) => v as String? ?? '',
+      ),
+      failingNodeClaim: $checkedConvert(
+        'failing_node_claim',
+        (v) => v as String? ?? '',
+      ),
+      warrantRelation: $checkedConvert(
+        'warrant_relation',
+        (v) => v as String? ?? 'warrants',
+      ),
     );
     return val;
   },
@@ -179,6 +194,9 @@ _CausalRootCauseDiagnosisDto _$CausalRootCauseDiagnosisDtoFromJson(
     'paragraphRef': 'paragraph_ref',
     'penaltyPoints': 'penalty_points',
     'rootCauseType': 'root_cause_type',
+    'rootCauseClaim': 'root_cause_claim',
+    'failingNodeClaim': 'failing_node_claim',
+    'warrantRelation': 'warrant_relation',
   },
 );
 
@@ -191,6 +209,9 @@ Map<String, dynamic> _$CausalRootCauseDiagnosisDtoToJson(
   'explanation': instance.explanation,
   'penalty_points': instance.penaltyPoints,
   'root_cause_type': _$CausalRootCauseTypeEnumMap[instance.rootCauseType]!,
+  'root_cause_claim': instance.rootCauseClaim,
+  'failing_node_claim': instance.failingNodeClaim,
+  'warrant_relation': instance.warrantRelation,
 };
 
 const _$CausalRootCauseTypeEnumMap = {

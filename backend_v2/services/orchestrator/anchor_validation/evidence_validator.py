@@ -10,11 +10,10 @@ from backend_v2.models.dtos.quote_evidence import GateMatchResultDTO
 from backend_v2.models.enums import TargetSpeaker
 from backend_v2.services.orchestrator.anchor_validation.lexical_matcher import is_lexically_valid
 from backend_v2.services.orchestrator.anchor_validation.lexical_normalizer import (
-    MAX_CITATION_SPAN_CHARS,
-    MIN_MULTI_SEGMENT_FLOOR_CHARS,
     normalize_text_with_mapping,
     strict_match,
 )
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -28,24 +27,27 @@ def _validate_quote_segment_bounds(quotes: tuple[str, ...]) -> None:
         quotes: Non-empty tuple of extracted quote segments.
 
     Raises:
-        SemanticEvidenceError: If any segment is empty/whitespace, exceeds MAX_CITATION_SPAN_CHARS,
-            or falls below MIN_MULTI_SEGMENT_FLOOR_CHARS when multiple segments are provided.
+        SemanticEvidenceError: If any segment is empty/whitespace, exceeds max_citation_span_chars,
+            or falls below min_multi_segment_floor_chars when multiple segments are provided.
     """
+    settings = get_settings()
+    max_span_chars = settings.max_citation_span_chars
+    min_floor_chars = settings.min_multi_segment_floor_chars
     for quote in quotes:
         if not quote or not quote.strip():
             raise SemanticEvidenceError(message="Lexical validation failed: a quote normalized to empty string.")
-        if len(quote) > MAX_CITATION_SPAN_CHARS:
+        if max_span_chars > 0 and len(quote) > max_span_chars:
             raise SemanticEvidenceError(
-                message=f"Quote length exceeds safety limit ({len(quote)} > {MAX_CITATION_SPAN_CHARS} chars)."
+                message=f"Quote length exceeds safety limit ({len(quote)} > {max_span_chars} chars)."
             )
 
     if len(quotes) > 1:
         for quote in quotes:
-            if len(quote) < MIN_MULTI_SEGMENT_FLOOR_CHARS:
+            if len(quote) < min_floor_chars:
                 raise SemanticEvidenceError(
                     message=(
                         f"Multi-segment quote segment under floor: segment length {len(quote)} "
-                        f"< {MIN_MULTI_SEGMENT_FLOOR_CHARS} chars."
+                        f"< {min_floor_chars} chars."
                     )
                 )
 
@@ -269,12 +271,10 @@ def _validate_multi_segment_monotonic_spans(norm_pdf: str, norm_quotes: Sequence
             if min_chain_span is None or span_len < min_chain_span:
                 min_chain_span = span_len
 
-    if min_chain_span is not None and min_chain_span > MAX_CITATION_SPAN_CHARS:
+    max_span_chars = get_settings().max_citation_span_chars
+    if max_span_chars > 0 and min_chain_span is not None and min_chain_span > max_span_chars:
         raise SemanticEvidenceError(
-            message=(
-                f"Bounding span exceeds limit: span distance ({min_chain_span} chars) "
-                f"> {MAX_CITATION_SPAN_CHARS} chars."
-            )
+            message=(f"Bounding span exceeds limit: span distance ({min_chain_span} chars) > {max_span_chars} chars.")
         )
 
 
@@ -288,6 +288,7 @@ def _match_candidate_s1_chain(norm_pdf: str, norm_quotes: Sequence[str]) -> list
     Returns:
         List of GateMatchResultDTO instances for the matched chain, or None if no exact chain matches.
     """
+    max_span_chars = get_settings().max_citation_span_chars
     m = len(norm_quotes)
     q0 = norm_quotes[0]
     search_offset = 0
@@ -307,7 +308,7 @@ def _match_candidate_s1_chain(norm_pdf: str, norm_quotes: Sequence[str]) -> list
                 chain_valid = False
                 break
             end_k = next_pos + len(qk) - 1
-            if end_k - s1 > MAX_CITATION_SPAN_CHARS:
+            if max_span_chars > 0 and end_k - s1 > max_span_chars:
                 chain_valid = False
                 break
             segments.append(GateMatchResultDTO(is_valid=True, start_idx=next_pos, end_idx=end_k))

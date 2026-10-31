@@ -570,26 +570,25 @@ class BlueprintTransformer:
             if mcp_audit_data:
                 adapter_mcp_audit_map = {t.id: t for t in mcp_audit_data if t.id}
 
-            # Hydrate causal_result from execution traces or step_states
+            # Phase 1, Step 1.1: Hydrate causal_result via strict StepOutputDTO and TypeAdapter validation
             causal_result: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None
-            if execution is not None:
-                causal_adapter: TypeAdapter[CausalTdaFusionResultDTO | CausalGraphPayloadDTO] = TypeAdapter(
-                    CausalTdaFusionResultDTO | CausalGraphPayloadDTO
-                )
+            causal_adapter: TypeAdapter[CausalTdaFusionResultDTO | CausalGraphPayloadDTO] = TypeAdapter(
+                CausalTdaFusionResultDTO | CausalGraphPayloadDTO
+            )
+            for dto in reversed(results):
+                if isinstance(dto.payload, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
+                    causal_result = dto.payload
+                    break
+                if dto.block_id in ("fusion", "graph") and dto.payload is not None:
+                    causal_result = causal_adapter.validate_python(dto.payload, strict=False)
+                    break
+
+            if causal_result is None and execution is not None:
                 for evt in reversed(execution.execution_trace):
                     content = evt.content
                     if isinstance(content, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
                         causal_result = content
                         break
-                    if type(content) is dict:
-                        candidate = content
-                        if "fusion" in candidate and type(candidate["fusion"]) is dict:
-                            candidate = candidate["fusion"]
-                        elif "graph" in candidate and type(candidate["graph"]) is dict:
-                            candidate = candidate["graph"]
-                        if "anti_fluff_audit" in candidate or "nodes" in candidate:
-                            causal_result = causal_adapter.validate_python(candidate)
-                            break
 
                 if causal_result is None and execution.step_states:
                     for state_val in execution.step_states.values():
@@ -598,8 +597,6 @@ class BlueprintTransformer:
                                 case CausalTdaFusionResultDTO() | CausalGraphPayloadDTO():
                                     causal_result = state_val.payload
                                     break
-                                case _:
-                                    continue
                         elif isinstance(state_val, (CausalTdaFusionResultDTO, CausalGraphPayloadDTO)):
                             causal_result = state_val
                             break

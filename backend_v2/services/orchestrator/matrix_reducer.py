@@ -119,16 +119,17 @@ class MatrixReducer:
 
     @staticmethod
     def reduce_matrix(record: ExecutionRecord) -> LightweightMatrixDTO:
-        """Filters out PASSED atoms to save Context Window space for Synthesis LLM.
+        """Extracts evaluated atoms from ExecutionRecord for Synthesis LLM consumption.
 
         Primary extraction reads evaluated atoms from ExecutionRecord.execution_trace
-        events with event_type="output" and "results" list.
+        events with event_type="output" and "results" list, retaining all evaluated
+        PASSED, FAILED, N_A, and DLQ atoms with topological lineage.
 
         Args:
             record: The modern ExecutionRecord containing execution_trace.
 
         Returns:
-            A token-compressed LightweightMatrixDTO for the synthesis phase.
+            A LightweightMatrixDTO for the synthesis phase.
 
         Raises:
             AppException: If an atom result in the execution trace fails validation (ErrorCodes.VALIDATION_FAILED).
@@ -195,13 +196,9 @@ class MatrixReducer:
                     if atom.extensions:
                         raw_extensions.append(_parse_raw_extension(atom.extensions))
 
-                    # Token-compression cascade: Drop unstarted/pending atoms and boolean PASSED atoms
-                    # to save context window, unless they have extracted quantitative data
+                    # Phase 1, Step 1.2: Drop only unstarted/pending atoms; retain all PASSED, FAILED, N_A, and DLQ
+                    # atoms with full topological lineage.
                     if atom.status in (ExecutionStatus.PENDING, ExecutionStatus.QUEUED, ExecutionStatus.RUNNING):
-                        continue
-
-                    has_extracted_data = atom.extracted_data is not None
-                    if atom.status == ExecutionStatus.PASSED and not has_extracted_data:
                         continue
 
                     extracted_data_dict: dict[str, JsonValue] | None = None
@@ -215,6 +212,9 @@ class MatrixReducer:
                             reasoning=atom.evaluation_reasoning,
                             source_quotes=atom.source_quotes,
                             extracted_data=extracted_data_dict,
+                            depends_on_tda_ids=list(atom.depends_on_tda_ids),
+                            short_circuit_reason_tda_ids=list(atom.short_circuit_reason_tda_ids),
+                            is_inverse_evidence=atom.is_inverse_evidence,
                         )
                     )
 

@@ -18,12 +18,12 @@
 ### Phase 1: Pre-Implementation Technical Debt Cleanups, Zero-Truncation Settings & Typed Topological Envelope Foundation
 **Plan:** @[docs/epic/tasks_EPIC_161/01_phase1_plan.md]
 - [x] **[OK] Create Plan:** `docs/epic/tasks_EPIC_161/01_phase1_plan.md`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_161/01_phase1_plan.md] @[docs/epic/EPIC_161_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_161/01_phase1_plan.md] @[docs/epic/EPIC_161_tracker.md]`
-  - [ ] Step 1.1: Scoped Boy Scout Technical Debt Cleanups & Toulmin Falsification Wiring
-  - [ ] Step 1.2: DTO & Schema Enrichment & Zero-Loss MatrixReducer Retention (Full-Duplex Serialization Parity)
-  - [ ] Step 1.3: Zero-Truncation Synthesis Settings, SSOT Clipper Segregation, Full Micro-CoT & Quote Preservation & Topological Deficit Stratification
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_161/01_phase1_plan.md] @[docs/epic/EPIC_161_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_161/01_phase1_plan.md] @[docs/epic/EPIC_161_tracker.md]`
+  - [x] Step 1.1: Scoped Boy Scout Technical Debt Cleanups & Toulmin Falsification Wiring
+  - [x] Step 1.2: DTO & Schema Enrichment & Zero-Loss MatrixReducer Retention (Full-Duplex Serialization Parity)
+  - [x] Step 1.3: Zero-Truncation Synthesis Settings, SSOT Clipper Segregation, Full Micro-CoT & Quote Preservation & Topological Deficit Stratification
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_161/01_phase1_plan.md] @[docs/epic/EPIC_161_tracker.md]`
 
 ### Phase 2: Orchestration, Contrastive Deficit Injection & Synthesis Convergence
@@ -149,23 +149,20 @@
 # Session Handover Context
 
 ## Achieved
-- Completed Tier 1 Epic Planning & Zero-Truncation Hardening (`/tier1-planner @[docs/epic/EPIC_161_topological_synthesis_cohesion.md]`):
-  - Ingested `@[docs/epic/EPIC_161_topological_synthesis_cohesion.md]` and `@[docs/epic/EPIC_161_audit_report.md]`.
-  - Verified that all 1-atom `development` mode fast-profile clamps in `Settings._enforce_environment_limits` (`@[backend_v2/settings.py#L901-L962]`) are 100% isolated from synthesis/distillation truncations and protected by explicit `<anti_target>` rules.
-  - Updated Epic 161, its Audit Report, and all four phased implementation plans in `@[docs/epic/tasks_EPIC_161/]` to eradicate all artificial token-saving truncations (`max_synthesis_evaluations = 0`, `max_synthesis_reasoning_length = 0`, `max_synthesis_quote_length = 0`, `max_synthesis_quotes_per_matrix = 0`, `max_synthesis_unmet_criteria_per_matrix = 0`, full `PASSED` atom retention in `MatrixReducer.reduce_matrix`, and full `ContrastivePairDTO` / `anti_patterns` retention across all `FAILED` and `N_A` deficits):
-    - `@[docs/epic/tasks_EPIC_161/01_phase1_plan.md]` (Phase 1: Pre-Implementation Technical Debt Cleanups, Zero-Truncation Settings & Typed Topological Envelope Foundation)
-    - `@[docs/epic/tasks_EPIC_161/02_phase2_plan.md]` (Phase 2: Orchestration, Contrastive Deficit Injection & Synthesis Convergence)
-    - `@[docs/epic/tasks_EPIC_161/03_phase3_plan.md]` (Phase 3: Frontend Flutter UI, Jinja PDF & Freezed SDUI DTO Synchronization)
-    - `@[docs/epic/tasks_EPIC_161/04_phase4_plan.md]` (Phase 4: Verification & E2E Integration Gate)
-  - Synchronized `@[docs/epic/EPIC_161_tracker.md]` with 1:1 Requirement Traceability (`REQ-161-001` through `REQ-161-012`), unified `--gate all` hardening commands, and parameterized `/tier7-describe-architecture` directives.
+- Completed Phase 1 Execution (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_161/01_phase1_plan.md] @[docs/epic/EPIC_161_tracker.md]`):
+  - **Step 1.1**: Eradicated the raw `if type(content) is dict:` loop in `@[backend_v2/services/blueprint.py#L127-L698]` in favor of strict `StepOutputDTO` and `TypeAdapter(CausalTdaFusionResultDTO | CausalGraphPayloadDTO)` projection, and wired the PostgreSQL 19 3-way Toulmin SQL join `CteReasoningStrategy.find_falsified_claims` (`@[backend_v2/database/postgres/graph_adapter.py#L347-L431]`) returning `list[FalsifiedClaimMatch]` (`@[backend_v2/models/domain/proposition_graph.py#L343-L391]`) into `@[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py#L392-L465]` and `@[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py#L211-L363]`.
+  - **Step 1.2**: Enriched `DistilledEvaluation` (`@[backend_v2/models/domain/synthesis.py#L131-L155]`), `ReducedAtomDTO` (`@[backend_v2/models/dtos/atom_evaluation.py#L43-L67]`), `CausalRootCauseDiagnosisDTO`, and `CausalTdaFusionResultDTO` (`@[backend_v2/models/dtos/causal_discovery.py]`) with topological lineage, human-readable claim texts (`root_cause_claim`, `failing_node_claim`), `warrant_relation`, and `falsified_claims` (synchronized with Freezed models in `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]` and `@[client_app_v2/lib/features/execution/models/distilled_evaluation.dart]` for 100% Stage 8 DTO parity), and removed the boolean `ExecutionStatus.PASSED` token-compression drop in `MatrixReducer.reduce_matrix` (`@[backend_v2/services/orchestrator/matrix_reducer.py#L121-L239]`).
+  - **Step 1.3**: Set `max_synthesis_evaluations = 0`, `max_synthesis_quote_length = 0`, `max_synthesis_quotes_per_matrix = 0`, `max_synthesis_unmet_criteria_per_matrix = 0`, and `max_synthesis_reasoning_length = 0` in `@[backend_v2/settings.py]` while leaving `Settings._enforce_environment_limits` (`@[backend_v2/settings.py#L901-L962]`) 100% untouched; centralized all remaining hardcoded clipper and threshold constants from `two_pass_atomizer.py`, `anchor_validation/`, `web_fetcher.py`, and `archival.py` into `@[backend_v2/settings.py]`; and updated `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L105-L393]` for zero-loss retention of quote-less `FAILED`/`N_A`/`is_inverse_evidence` evaluations, conditional positive-bound slicing (`> 0`), and topological deficit priority sorting `(-int(item.is_inverse_evidence), -item.topological_out_degree, len(item.short_circuit_reason_tda_ids), _resolve_atom_id(item))`.
+  - Verified all Phase 1 `<test_contracts>`, `backend_audit_loop.py --test --ast-strict` (100% pass across all 10 stages and >90% coverage), and `flutter_audit_loop.py --build` on updated Freezed DTOs.
 
 ## Learned
-- All `#Lnn-Lmm` AST boundaries from `@[docs/epic/EPIC_161_topological_synthesis_cohesion.md]` and the 5-Pillar Zero-Loss Epistemic Distillation Architecture (unbounded `0` defaults for synthesis truncation settings, zero-loss retention of `PASSED`/`FAILED`/`N_A`/`is_inverse_evidence` evaluations, topological deficit sorting when `limit > 0`, transitive parent-to-child `N_A` hydration, full contrastive injection across all failed/short-circuited scales, and 4-task `CausalSynthesisBriefDTO` fan-out) are locked across Phases 1–4.
+- `QGR023` (`ban_anonymous_state_tuples`) inspects explicit `tuple[...]` return type annotations with 3+ elements on named helper functions, and `QGR016` flags inline ternary string fallbacks (`x if x is not None else ""`). Using a helper `_resolve_atom_id(item: DistilledEvaluation) -> str` inside `deficits.sort(key=lambda item: ...)` satisfies both `mypy --strict` and `QGR016`/`QGR023` cleanly.
+- In `development` mode, `Settings._enforce_environment_limits` clamps `max_precedent_scan_depth = 0` and `max_precedent_return_count = 0` unless explicitly passed to `Settings(...)`; unit tests in `@[backend_v2/tests/unit/hooks/test_archival.py]` configure explicit positive bounds in a fixture to test archival precedent scanning.
 
 ## Remaining
-- Execute Tier 0 Research & Red-Teaming on Phase 1 (`@[docs/epic/tasks_EPIC_161/01_phase1_plan.md]`), followed by sequential execution of Phases 1 through 4 and Post-Implementation Gates. The next agent must run `/tier0-research-plan` to analyze the Phase 1 plan first before any code execution.
+- Run System 2 Red-Team Plan Audit on Phase 1 (`/tier8-audit-plan @[docs/epic/tasks_EPIC_161/01_phase1_plan.md] @[docs/epic/EPIC_161_tracker.md]`), then proceed to Phase 2 (`@[docs/epic/tasks_EPIC_161/02_phase2_plan.md]`).
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_161/01_phase1_plan.md] @[docs/epic/EPIC_161_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_161/01_phase1_plan.md] @[docs/epic/EPIC_161_tracker.md]
 ```

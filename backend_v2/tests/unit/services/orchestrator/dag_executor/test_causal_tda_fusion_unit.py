@@ -12,15 +12,17 @@ from pydantic import ValidationError
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import FlattenedAtom
+from backend_v2.models.domain.proposition_graph import FalsifiedClaimMatch
 from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ExtractedValueDTO
 from backend_v2.models.dtos.causal_discovery import (
     CausalEdgeDTO,
     CausalGraphPayloadDTO,
     CausalNodeDTO,
+    CausalRootCauseDiagnosisDTO,
     FairScoringBreakdownDTO,
 )
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import DependencyRelationType, ExecutionStatus
 from backend_v2.services.orchestrator.dag_executor.causal_tda_fusion import (
     compute_causal_tda_fusion_result,
     transform_causal_nodes_to_atoms,
@@ -441,3 +443,68 @@ def test_compute_causal_tda_fusion_result_out_of_bounds_dampening_raises_app_exc
         compute_causal_tda_fusion_result(graph=graph, dampening_factor=invalid_dampening)
     assert exc_info.value.details is not None
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_causal_tda_fusion_resolves_claim_texts_and_falsified_claims() -> None:
+    """Verify compute_causal_tda_fusion_result populates root_cause_claim, failing_node_claim, and falsified_claims."""
+    root_node = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000001",
+        claim="Foundational parent premise is unsubstantiated.",
+        source_quotes=("Quote 1",),
+        paragraph_ref="P1",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=[],
+        dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
+    )
+    child_node = CausalNodeDTO(
+        node_id="tda_0195f3a0000070008000000000000002",
+        claim="Downstream architectural conclusion collapses.",
+        source_quotes=("Quote 2",),
+        paragraph_ref="P2",
+        status=ExecutionStatus.FAILED,
+        blame_parent_ids=["tda_0195f3a0000070008000000000000001"],
+        dependent_child_ids=[],
+    )
+    edge = CausalEdgeDTO(
+        source_id="tda_0195f3a0000070008000000000000001",
+        target_id="tda_0195f3a0000070008000000000000002",
+        reasoning="Parent premise warrants child conclusion.",
+    )
+    falsified_match = FalsifiedClaimMatch(
+        rebuttal_id="nod_0195f3a0000070008000000000000011",
+        invalidated_warrant_id="nod_0195f3a0000070008000000000000012",
+        falsified_claim_id="nod_0195f3a0000070008000000000000013",
+        rebuttal_confidence=0.92,
+        claim_statement="In-memory serialization adds zero overhead.",
+    )
+    graph = _make_graph(
+        nodes=[root_node, child_node],
+        edges=[edge],
+        root_cause_node_ids=["tda_0195f3a0000070008000000000000001"],
+    )
+    result = compute_causal_tda_fusion_result(
+        graph=graph,
+        falsified_claims=[falsified_match],
+    )
+    assert len(result.root_cause_diagnoses) == 1
+    diag = result.root_cause_diagnoses[0]
+    assert diag.root_cause_claim == "Foundational parent premise is unsubstantiated."
+    assert diag.failing_node_claim == "Downstream architectural conclusion collapses."
+    assert diag.warrant_relation == "warrants"
+    assert len(result.falsified_claims) == 1
+    assert result.falsified_claims[0].claim_statement == "In-memory serialization adds zero overhead."
+
+
+def test_causal_root_cause_diagnosis_invalid_warrant_relation_raises_validation_error() -> None:
+    """Verify CausalRootCauseDiagnosisDTO rejects invalid warrant_relation literal values."""
+    with pytest.raises(ValidationError):
+        CausalRootCauseDiagnosisDTO.model_validate(
+            {
+                "failing_node_id": "tda_0195f3a0000070008000000000000002",
+                "root_cause_parent_id": "tda_0195f3a0000070008000000000000001",
+                "paragraph_ref": "P2",
+                "explanation": "Cascading failure.",
+                "penalty_points": 1.0,
+                "warrant_relation": "invalid_relation",
+            }
+        )

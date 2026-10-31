@@ -6,11 +6,12 @@ topological causal graphs, root-cause fault attribution, and fair scoring arithm
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BeforeValidator, ConfigDict, Field, field_validator, model_validator
 
 from backend_v2.models.core_base import V2CoreBase, coerce_source_quotes_tuple
+from backend_v2.models.domain.proposition_graph import FalsifiedClaimMatch
 from backend_v2.models.enums import CausalRootCauseType, LaxCausalRootCauseType, LaxExecutionStatus
 
 __all__ = [
@@ -186,6 +187,9 @@ class CausalRootCauseDiagnosisDTO(V2CoreBase):
         explanation: Causal chain explanation of why the root cause led to failure.
         penalty_points: Attributed penalty points.
         root_cause_type: Categorization of failure as node, warrant, or precondition failure.
+        root_cause_claim: Human-readable claim statement of the upstream root cause parent.
+        failing_node_claim: Human-readable claim statement of the failing dependent node.
+        warrant_relation: Toulmin inferential relation type on the dependency edge.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
@@ -204,6 +208,28 @@ class CausalRootCauseDiagnosisDTO(V2CoreBase):
             ),
         ),
     ] = CausalRootCauseType.NODE_FAILURE
+    # Phase 1, Step 1.2: Enrich CausalRootCauseDiagnosisDTO with resolved claim texts and warrant relation
+    root_cause_claim: Annotated[
+        str,
+        Field(
+            default="",
+            description="Human-readable claim statement of the upstream root cause parent node.",
+        ),
+    ] = ""
+    failing_node_claim: Annotated[
+        str,
+        Field(
+            default="",
+            description="Human-readable claim statement of the failing dependent node.",
+        ),
+    ] = ""
+    warrant_relation: Annotated[
+        Literal["supports", "rebuts", "warrants"],
+        Field(
+            default="warrants",
+            description="Toulmin inferential relation type on the dependency edge.",
+        ),
+    ] = "warrants"
 
 
 class AntiFluffAuditDTO(V2CoreBase):
@@ -349,6 +375,7 @@ class CausalTdaFusionResultDTO(V2CoreBase):
         prescriptive_remediations: Prescriptive remediation steps to unlock performance.
         fair_scoring: Fair scoring arithmetic breakdown.
         total_deliverable_nodes: Total node count in deliverable subgraph.
+        falsified_claims: Toulmin falsified claims resolved via 3-way rebuttal-warrant-claim join.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
@@ -367,6 +394,14 @@ class CausalTdaFusionResultDTO(V2CoreBase):
     total_deliverable_nodes: Annotated[
         int, Field(ge=0, default=0, description="Total node count in deliverable subgraph.")
     ] = 0
+    # Phase 1, Step 1.1 & Step 1.2: Carry 3-way Toulmin falsified claims in CausalTdaFusionResultDTO
+    falsified_claims: Annotated[
+        list[FalsifiedClaimMatch],
+        Field(
+            default_factory=list,
+            description="Toulmin falsified claims resolved via 3-way rebuttal-warrant-claim join.",
+        ),
+    ]
 
 
 class CounterfactualSimulationResultDTO(V2CoreBase):

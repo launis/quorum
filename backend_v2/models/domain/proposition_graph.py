@@ -340,6 +340,7 @@ class DependencyEdge(V2CoreBase):
         return self
 
 
+# Phase 1, Step 1.1: Toulmin 3-way falsification match contract for CausalTdaFusionResultDTO
 class FalsifiedClaimMatch(V2CoreBase):
     """Result DTO representing a claim falsified by a high-confidence rebuttal of its warrant.
 

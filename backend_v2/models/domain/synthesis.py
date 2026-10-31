@@ -133,17 +133,22 @@ class DistilledEvaluation(V2CoreBase):
 
     Attributes:
         atom_id: Opaque atom identifier.
-        status: Evaluation status, specifically: PASSED, FAILED.
+        status: Evaluation status, specifically: PASSED, FAILED, N_A.
         exact_quotes: Extracted verbatim quotes.
         semantic_reasoning: Semantic reasoning for evaluation.
         extensions: Qualitative evaluation extensions.
+        depends_on_tda_ids: Upstream TDA assertion IDs this atom depends on.
+        short_circuit_reason_tda_ids: Upstream TDA assertion IDs that short-circuited this atom.
+        is_inverse_evidence: Whether this evaluation represents an inverse/anti-pattern assertion.
+        topological_out_degree: Number of downstream evaluations depending on or short-circuited by this atom.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    # Phase 1, Step 1.2: Enrich DistilledEvaluation with topological lineage fields under strict frozen ConfigDict
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     atom_id: Annotated[str | None, Field(default=None, description="Opaque atom identifier")] = None
     status: Annotated[
-        str | None, Field(default=None, description="Evaluation status, specifically: PASSED, FAILED")
+        str | None, Field(default=None, description="Evaluation status, specifically: PASSED, FAILED, N_A")
     ] = None
     exact_quotes: Annotated[list[str], Field(default_factory=list, description="Extracted verbatim quotes")]
     semantic_reasoning: Annotated[str | None, Field(default=None, description="Semantic reasoning for evaluation")] = (
@@ -153,6 +158,26 @@ class DistilledEvaluation(V2CoreBase):
         dict[str, str | int | float | bool | list[str]] | None,
         Field(default=None, description="Qualitative evaluation extensions"),
     ] = None
+    depends_on_tda_ids: Annotated[
+        list[str],
+        Field(default_factory=list, description="Upstream TDA assertion IDs this atom depends on"),
+    ]
+    short_circuit_reason_tda_ids: Annotated[
+        list[str],
+        Field(default_factory=list, description="Upstream TDA assertion IDs that short-circuited this atom"),
+    ]
+    is_inverse_evidence: Annotated[
+        bool,
+        Field(default=False, description="Whether this evaluation represents an inverse/anti-pattern assertion"),
+    ] = False
+    topological_out_degree: Annotated[
+        int,
+        Field(
+            default=0,
+            ge=0,
+            description="Number of downstream evaluations depending on or short-circuited by this atom",
+        ),
+    ] = 0
 
 
 class DistilledMatrixPayloadDTO(V2CoreBase):

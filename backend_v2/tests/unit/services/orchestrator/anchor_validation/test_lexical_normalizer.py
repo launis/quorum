@@ -43,7 +43,7 @@ def test_anchor_validation_calculate_fuzzy_score_long_quote() -> None:
     short_quote = "shortquote"
     short_score = calculate_fuzzy_score(short_quote, "prefix shortquote suffix")
     assert short_score == 100.0
-    assert MAX_CITATION_SPAN_CHARS == 1000
+    assert MAX_CITATION_SPAN_CHARS == 0
     assert MIN_MULTI_SEGMENT_FLOOR_CHARS == 30
     assert MIN_ENTROPY_GATE_CHARS == 10
 
@@ -106,8 +106,26 @@ def test_anchor_validation_multi_segment_ordered_monotonic_success() -> None:
     assert extracted[1] == "Toiminnan tuloksellisuus varmistetaan säännöllisellä seurannalla"
 
 
-def test_anchor_validation_candidate_s1_iteration_repeated_phrase_success() -> None:
-    """Positive ISTQB test: segment 1 repeats in preamble; first occurrence span exceeds 1000 chars, second succeeds."""
+def test_anchor_validation_candidate_s1_iteration_repeated_phrase_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Positive ISTQB test: segment 1 repeats in preamble; when max_citation_span_chars=1000, first occurrence span exceeds 1000 chars and second succeeds."""
+    from backend_v2.settings import Settings
+
+    bounded_settings = Settings(max_citation_span_chars=1000)
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.anchor_validation.lexical_normalizer.get_settings",
+        lambda: bounded_settings,
+    )
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.anchor_validation.evidence_validator.get_settings",
+        lambda: bounded_settings,
+    )
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.anchor_validation.lexical_matcher.get_settings",
+        lambda: bounded_settings,
+    )
+
     seg1 = "Toistuva johdantolause esiintyy tässä dokumentin alussa useasti."
     seg2 = "Vasta toisen esiintymän jälkeen saavutetaan toinen tärkeä lause."
     intervening_filler = "Pitkää analyyttistä väliosaa tekstiä. " * 35
