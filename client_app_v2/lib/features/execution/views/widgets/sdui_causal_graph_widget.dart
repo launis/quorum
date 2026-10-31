@@ -18,77 +18,93 @@ class SduiCausalGraphWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-    final langCode = Localizations.localeOf(context).languageCode;
-    final summaryText = block.summary.get(langCode);
-
     return AppErrorBoundary(
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
-        padding: const EdgeInsets.all(AppSpacing.s12),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(AppSpacing.s8),
-          border: Border.all(color: colorScheme.outlineVariant),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.hub_outlined, color: colorScheme.primary, size: 20),
-            AppSpacing.w8,
-            Expanded(
-              child: Text(
-                summaryText.isNotEmpty
-                    ? summaryText
-                    : 'Causal Discovery & Fault Analysis',
-                style: textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+      child: Builder(
+        builder: (context) {
+          final theme = Theme.of(context);
+          final colorScheme = theme.colorScheme;
+          final textTheme = theme.textTheme;
+          final langCode = Localizations.localeOf(context).languageCode;
+          final summaryText = block.summary.get(langCode);
+
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+            padding: AppSpacing.p12,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(AppSpacing.s8),
+              border: Border.all(color: colorScheme.outlineVariant),
             ),
-            AppSpacing.w8,
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.s8,
-                vertical: AppSpacing.s4,
-              ),
-              decoration: BoxDecoration(
-                color: colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(AppSpacing.s12),
-                border: Border.all(
-                  color: colorScheme.primary.withValues(alpha: 0.2),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.hub_outlined,
+                  color: colorScheme.primary,
+                  size: AppSpacing.s24,
                 ),
-              ),
-              child: Text(
-                '${block.intactClaimsCount} / ${block.totalClaimsCount} Intact',
-                style: textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onPrimaryContainer,
+                AppSpacing.w8,
+                Expanded(
+                  child: Text(
+                    summaryText,
+                    style: textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
+                AppSpacing.w8,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s8,
+                      vertical: AppSpacing.s4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(AppSpacing.s12),
+                      border: Border.all(
+                        color: colorScheme.primary.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Text(
+                      '${block.intactClaimsCount} / ${block.totalClaimsCount} Intact',
+                      style: textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                AppSpacing.w8,
+                Flexible(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.s8,
+                        vertical: AppSpacing.s4,
+                      ),
+                    ),
+                    icon: const Icon(Icons.fullscreen, size: AppSpacing.s16),
+                    label: Text(
+                      AppLocalizations.of(context)!.causalInspectorTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onPressed: () => showDialog<void>(
+                      context: context,
+                      builder: (ctx) => CausalInspectorModal(block: block),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            AppSpacing.w8,
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.s8,
-                  vertical: AppSpacing.s4,
-                ),
-              ),
-              icon: const Icon(Icons.fullscreen, size: 16),
-              label: Text(AppLocalizations.of(context)!.causalInspectorTitle),
-              onPressed: () => showDialog<void>(
-                context: context,
-                builder: (ctx) => CausalInspectorModal(block: block),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

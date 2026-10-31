@@ -210,5 +210,92 @@ void main() {
         expect(find.text('PRESCRIPTIVE REMEDIATIONS'), findsNothing);
       },
     );
+
+    testWidgets(
+      'negative: empty I18nText summary triggers Fail-Fast AppErrorBoundary diagnostic node',
+      (tester) async {
+        final originalOnError = FlutterError.onError;
+        FlutterError.onError = (FlutterErrorDetails details) {};
+
+        try {
+          const invalidBlock = SduiCausalGraphBlock(
+            id: 'blk_invalid_summary',
+            summary: I18nText(translations: {}),
+            intactClaimsCount: 0,
+            totalClaimsCount: 0,
+            criticalPathNodes: [],
+            criticalEdges: [],
+            rootCauseDiagnoses: [],
+            antiFluffAudit: AntiFluffAuditDto(
+              isolatedConceptCount: 0,
+              cycleDetected: false,
+              unsupportedClaimsCount: 0,
+              logicalCohesionScore: 0.0,
+              detectedHollowTerms: [],
+            ),
+            prescriptiveRemediations: [],
+            fairScoring: null,
+          );
+
+          await tester.pumpWidget(createWidgetUnderTest(invalidBlock));
+          await tester.pumpAndSettle();
+
+          expect(find.byIcon(Icons.report_problem), findsOneWidget);
+          expect(
+            find.textContaining('Fail-Fast: Missing required translation'),
+            findsOneWidget,
+          );
+        } finally {
+          FlutterError.onError = originalOnError;
+        }
+      },
+    );
+
+    testWidgets(
+      'boundary: zero claims count and long summary text in constrained width contain overflow via ellipsis',
+      (tester) async {
+        final longSummary = 'A' * 300;
+        final boundaryBlock = SduiCausalGraphBlock(
+          id: 'blk_boundary_zero',
+          summary: I18nText(translations: {'en': longSummary}),
+          intactClaimsCount: 0,
+          totalClaimsCount: 0,
+          criticalPathNodes: const [],
+          criticalEdges: const [],
+          rootCauseDiagnoses: const [],
+          antiFluffAudit: const AntiFluffAuditDto(
+            isolatedConceptCount: 0,
+            cycleDetected: false,
+            unsupportedClaimsCount: 0,
+            logicalCohesionScore: 0.0,
+            detectedHollowTerms: [],
+          ),
+          prescriptiveRemediations: const [],
+          fairScoring: null,
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('en'),
+            home: Scaffold(
+              body: SizedBox(
+                width: 420,
+                child: SduiCausalGraphWidget(block: boundaryBlock),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('0 / 0 Intact'), findsOneWidget);
+        final summaryTextWidget = tester.widget<Text>(find.text(longSummary));
+        expect(summaryTextWidget.overflow, TextOverflow.ellipsis);
+        expect(summaryTextWidget.maxLines, 2);
+      },
+    );
   });
 }
