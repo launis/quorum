@@ -12,11 +12,13 @@ from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.proposition_graph import FalsifiedClaimMatch
 from backend_v2.models.dtos.causal_discovery import (
     AntiFluffAuditDTO,
     CausalEdgeDTO,
     CausalGraphPayloadDTO,
     CausalNodeDTO,
+    CausalRootCauseDiagnosisDTO,
     CausalTdaFusionResultDTO,
     FairScoringBreakdownDTO,
 )
@@ -45,6 +47,9 @@ class CausalGraphAdapter:
 
         Returns:
             Ordered list containing SduiCausalGraphBlock if causal results exist and not data starved.
+
+        Raises:
+            AppException: If causal action card construction fails (VALIDATION_FAILED).
         """
         blocks: list[AnySduiBlock] = []
         if context.is_data_starved or context.causal_result is None:
@@ -78,7 +83,7 @@ class CausalGraphAdapter:
             )
 
         fair_scoring: FairScoringBreakdownDTO | None
-        falsified_claims_list = []
+        falsified_claims_list: list[FalsifiedClaimMatch] = []
         match causal:
             case CausalTdaFusionResultDTO():
                 graph = causal.graph
@@ -105,68 +110,21 @@ class CausalGraphAdapter:
             extra_node_ids={fc.falsified_claim_id for fc in falsified_claims_list if fc.falsified_claim_id},
         )
         node_by_id = {n.node_id: n for n in graph.nodes}
-
-        # Phase 3, Step 3.1: Bind short_circuited_by_claims and falsified_warrant_claims to nodes and block
-        block_short_circuited_claims: list[str] = []
-        block_falsified_warrant_claims: list[str] = []
-        for fc in falsified_claims_list:
-            rebuttal_label = fc.rebuttal_id
-            if fc.rebuttal_id in node_by_id:
-                rebuttal_label = node_by_id[fc.rebuttal_id].claim.strip()
-            warrant_label = fc.invalidated_warrant_id
-            if fc.invalidated_warrant_id in node_by_id:
-                warrant_label = node_by_id[fc.invalidated_warrant_id].claim.strip()
-            formatted_fc = f"{rebuttal_label} -> {warrant_label} -> {fc.claim_statement}"
-            if formatted_fc not in block_falsified_warrant_claims:
-                block_falsified_warrant_claims.append(formatted_fc)
-
-        for diag in root_cause_diagnoses:
-            root_claim = diag.root_cause_claim.strip()
-            if root_claim and root_claim not in block_short_circuited_claims:
-                block_short_circuited_claims.append(root_claim)
-
-        critical_path_nodes: list[CausalNodeDTO] = []
-        for node in raw_critical_nodes:
-            node_sc_claims: list[str] = list(node.short_circuited_by_claims)
-            for parent_id in node.blame_parent_ids:
-                if parent_id in node_by_id:
-                    parent_claim = node_by_id[parent_id].claim.strip()
-                    if parent_claim and parent_claim not in node_sc_claims:
-                        node_sc_claims.append(parent_claim)
-            for diag in root_cause_diagnoses:
-                if diag.failing_node_id == node.node_id:
-                    diag_claim = diag.root_cause_claim.strip()
-                    if diag_claim and diag_claim not in node_sc_claims:
-                        node_sc_claims.append(diag_claim)
-            for sc_claim in node_sc_claims:
-                if sc_claim not in block_short_circuited_claims:
-                    block_short_circuited_claims.append(sc_claim)
-
-            node_fw_claims: list[str] = list(node.falsified_warrant_claims)
-            for fc in falsified_claims_list:
-                rebuttal_label = fc.rebuttal_id
-                if fc.rebuttal_id in node_by_id:
-                    rebuttal_label = node_by_id[fc.rebuttal_id].claim.strip()
-                warrant_label = fc.invalidated_warrant_id
-                if fc.invalidated_warrant_id in node_by_id:
-                    warrant_label = node_by_id[fc.invalidated_warrant_id].claim.strip()
-                formatted_fc = f"{rebuttal_label} -> {warrant_label} -> {fc.claim_statement}"
-                if fc.falsified_claim_id == node.node_id or fc.claim_statement == node.claim:
-                    if formatted_fc not in node_fw_claims:
-                        node_fw_claims.append(formatted_fc)
-            for fw_claim in node_fw_claims:
-                if fw_claim not in block_falsified_warrant_claims:
-                    block_falsified_warrant_claims.append(fw_claim)
-
-            critical_path_nodes.append(
-                node.model_copy(
-                    update={
-                        "short_circuited_by_claims": node_sc_claims,
-                        "falsified_warrant_claims": node_fw_claims,
-                    }
-                )
-            )
-
+        critical_path_nodes = CausalGraphAdapter._enrich_critical_nodes(
+            raw_critical_nodes=raw_critical_nodes,
+            node_by_id=node_by_id,
+            root_cause_diagnoses=root_cause_diagnoses,
+            falsified_claims_list=falsified_claims_list,
+        )
+        block_short_circuited_claims = CausalGraphAdapter._collect_block_short_circuited_claims(
+            critical_path_nodes=critical_path_nodes,
+            root_cause_diagnoses=root_cause_diagnoses,
+        )
+        block_falsified_warrant_claims = CausalGraphAdapter._collect_block_falsified_warrant_claims(
+            critical_path_nodes=critical_path_nodes,
+            falsified_claims_list=falsified_claims_list,
+            node_by_id=node_by_id,
+        )
         critical_edges = CausalGraphAdapter._resolve_critical_edges(graph, critical_path_nodes)
 
         total_claims_count = len(graph.nodes)
@@ -190,6 +148,118 @@ class CausalGraphAdapter:
             short_circuited_by_claims=block_short_circuited_claims,
             falsified_warrant_claims=block_falsified_warrant_claims,
         )
+
+    @staticmethod
+    def _format_falsified_claim(fc: FalsifiedClaimMatch, node_by_id: dict[str, CausalNodeDTO]) -> str:
+        """Formats a single Toulmin falsified claim match into a lineage string.
+
+        Args:
+            fc: Falsified claim match DTO.
+            node_by_id: Lookup dictionary mapping node_id to CausalNodeDTO.
+
+        Returns:
+            Formatted string 'rebuttal -> warrant -> claim_statement'.
+        """
+        rebuttal_label = node_by_id[fc.rebuttal_id].claim.strip() if fc.rebuttal_id in node_by_id else fc.rebuttal_id
+        warrant_label = (
+            node_by_id[fc.invalidated_warrant_id].claim.strip()
+            if fc.invalidated_warrant_id in node_by_id
+            else fc.invalidated_warrant_id
+        )
+        return f"{rebuttal_label} -> {warrant_label} -> {fc.claim_statement}"
+
+    @staticmethod
+    def _enrich_critical_nodes(
+        raw_critical_nodes: list[CausalNodeDTO],
+        node_by_id: dict[str, CausalNodeDTO],
+        root_cause_diagnoses: list[CausalRootCauseDiagnosisDTO],
+        falsified_claims_list: list[FalsifiedClaimMatch],
+    ) -> list[CausalNodeDTO]:
+        """Enriches critical path nodes with short-circuited and falsified warrant claims.
+
+        Args:
+            raw_critical_nodes: Unenriched critical path nodes.
+            node_by_id: Lookup mapping from node_id to CausalNodeDTO.
+            root_cause_diagnoses: Evaluated root cause diagnoses.
+            falsified_claims_list: Toulmin falsified claim matches.
+
+        Returns:
+            List of enriched CausalNodeDTO instances.
+        """
+        critical_path_nodes: list[CausalNodeDTO] = []
+        for node in raw_critical_nodes:
+            parent_claims = {
+                node_by_id[pid].claim.strip()
+                for pid in node.blame_parent_ids
+                if pid in node_by_id and node_by_id[pid].claim.strip()
+            }
+            diag_claims = {
+                diag.root_cause_claim.strip()
+                for diag in root_cause_diagnoses
+                if diag.failing_node_id == node.node_id and diag.root_cause_claim.strip()
+            }
+            node_sc_set: set[str] = set(node.short_circuited_by_claims) | parent_claims | diag_claims
+
+            matched_fc_claims = {
+                CausalGraphAdapter._format_falsified_claim(fc, node_by_id)
+                for fc in falsified_claims_list
+                if fc.falsified_claim_id == node.node_id or fc.claim_statement == node.claim
+            }
+            node_fw_set: set[str] = set(node.falsified_warrant_claims) | matched_fc_claims
+
+            critical_path_nodes.append(
+                node.model_copy(
+                    update={
+                        "short_circuited_by_claims": sorted(list(node_sc_set)),
+                        "falsified_warrant_claims": sorted(list(node_fw_set)),
+                    }
+                )
+            )
+        return critical_path_nodes
+
+    @staticmethod
+    def _collect_block_short_circuited_claims(
+        critical_path_nodes: list[CausalNodeDTO],
+        root_cause_diagnoses: list[CausalRootCauseDiagnosisDTO],
+    ) -> list[str]:
+        """Collects deduplicated short-circuited claims for the block header.
+
+        Args:
+            critical_path_nodes: Enriched critical path nodes.
+            root_cause_diagnoses: Evaluated root cause diagnoses.
+
+        Returns:
+            Sorted list of unique short-circuited claim strings.
+        """
+        block_sc_set: set[str] = {
+            diag.root_cause_claim.strip() for diag in root_cause_diagnoses if diag.root_cause_claim.strip()
+        }
+        for node in critical_path_nodes:
+            block_sc_set.update(node.short_circuited_by_claims)
+        return sorted(list(block_sc_set))
+
+    @staticmethod
+    def _collect_block_falsified_warrant_claims(
+        critical_path_nodes: list[CausalNodeDTO],
+        falsified_claims_list: list[FalsifiedClaimMatch],
+        node_by_id: dict[str, CausalNodeDTO],
+    ) -> list[str]:
+        """Collects deduplicated falsified warrant lineage strings for the block header.
+
+        Args:
+            critical_path_nodes: Enriched critical path nodes.
+            falsified_claims_list: Toulmin falsified claim matches.
+            node_by_id: Lookup mapping from node_id to CausalNodeDTO.
+
+        Returns:
+            Sorted list of unique falsified warrant lineage strings.
+        """
+        block_fw_set: set[str] = {
+            CausalGraphAdapter._format_falsified_claim(fc, node_by_id) for fc in falsified_claims_list
+        }
+        for node in critical_path_nodes:
+            block_fw_set.update(node.falsified_warrant_claims)
+        return sorted(list(block_fw_set))
 
     @staticmethod
     def _resolve_critical_nodes(
