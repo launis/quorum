@@ -8,24 +8,24 @@ part of 'logger_service.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Global Logger Provider (Singleton)
+/// Global Logger Provider (Singleton).
 
 @ProviderFor(loggerService)
 final loggerServiceProvider = LoggerServiceProvider._();
 
-/// Global Logger Provider (Singleton)
+/// Global Logger Provider (Singleton).
 
 final class LoggerServiceProvider
     extends $FunctionalProvider<LoggerService, LoggerService, LoggerService>
     with $Provider<LoggerService> {
-  /// Global Logger Provider (Singleton)
+  /// Global Logger Provider (Singleton).
   LoggerServiceProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'loggerServiceProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -52,4 +52,4 @@ final class LoggerServiceProvider
   }
 }
 
-String _$loggerServiceHash() => r'cc104855ec00db54237f00c80f82442b048c579c';
+String _$loggerServiceHash() => r'3dcedfa04198ae6c72361f6201ffe685347afbd1';

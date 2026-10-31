@@ -1,17 +1,18 @@
-import 'dart:io';
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:client_app/core/environment/env.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:dio/dio.dart';
-import 'package:client_app/core/environment/env.dart';
 
 part 'logger_service.g.dart';
 
-/// Global Logger Provider (Singleton)
-@riverpod
+/// Global Logger Provider (Singleton).
+@Riverpod(keepAlive: true)
 LoggerService loggerService(Ref ref) {
   return LoggerService();
 }
@@ -20,43 +21,37 @@ class LoggerService {
   late Logger _logger;
   late final Dio _telemetryDio;
 
-  LoggerService() {
-    // Initialize with buffer and console output
+  LoggerService({Dio? telemetryDio, Logger? logger}) {
     const useJson = bool.fromEnvironment(
       'USE_JSON_LOGGING',
       defaultValue: false,
     );
 
-    _logger = Logger(
-      printer: useJson ? JsonPrinter() : CustomPrinter(),
-      output: DevNullOutput(),
-      filter: ProductionFilter(),
-    );
+    _logger =
+        logger ??
+        Logger(
+          printer: useJson ? JsonPrinter() : CustomPrinter(),
+          output: DevNullOutput(),
+          filter: ProductionFilter(),
+        );
 
-    // Setup isolated Dio for telemetry to avoid circular dependencies
-    _telemetryDio = Dio(
-      BaseOptions(
-        baseUrl: Env.apiUrl,
-        connectTimeout: const Duration(seconds: 5),
-        sendTimeout: const Duration(seconds: 5),
-        receiveTimeout: const Duration(seconds: 5),
-      ),
-    );
+    _telemetryDio =
+        telemetryDio ??
+        Dio(
+          BaseOptions(
+            connectTimeout: const Duration(seconds: 5),
+            sendTimeout: const Duration(seconds: 5),
+            receiveTimeout: const Duration(seconds: 5),
+          ),
+        );
   }
 
-  Future<void> init() async {
+  Future<void> init({File? logFile}) async {
     if (kIsWeb) return;
 
     try {
-      // Use CWD (root) -> Parent for shared visibility
-      // Verify absolute path
-      var file = File('../client_debug.log');
-      // If we are in Debug mode, sometimes we are deep in build folders?
-      // But typically flutter run keeps CWD.
+      final file = logFile ?? File('../client_debug.log');
 
-      // debugPrint("LoggerService: Attempting to write to ${file.absolute.path}");
-
-      // Re-initialize
       const useJson = bool.fromEnvironment(
         'USE_JSON_LOGGING',
         defaultValue: false,
@@ -65,12 +60,12 @@ class LoggerService {
       _logger = Logger(
         filter: ProductionFilter(),
         printer: useJson ? JsonPrinter() : CustomPrinter(),
-        output: FileOutput(file), // ONLY file output, no console
+        output: FileOutput(file),
       );
 
       info('SYSTEM', 'Logging initialized. Writing to: ${file.absolute.path}');
     } catch (e) {
-      debugPrint("Failed to initialize file logging: $e");
+      debugPrint('Failed to initialize file logging: $e');
     }
   }
 
@@ -100,7 +95,6 @@ class LoggerService {
       stackTrace: stack,
     );
 
-    // Dual-Reporting Telemetry Sync
     _sendTelemetry(context, message, error, stack);
   }
 
@@ -110,31 +104,28 @@ class LoggerService {
     Object? error,
     StackTrace? stack,
   ) async {
-    // Prevent spamming in debug mode unless strictly needed, but RFC wants it on
-    // In dev, maybe skip to avoid noise if API is down, but we wrap in try-catch.
     try {
-      final payload = {
+      final payload = <String, Object?>{
         'platform': kIsWeb ? 'web' : Platform.operatingSystem,
-        'app_version': '1.0.0', // Could be fetched via package_info_plus later
+        'app_version': '1.0.0',
         'session_id': 'flutter_client',
         'error_message':
             '[$context] $message ${error != null ? "- $error" : ""}',
         'stack_trace': stack?.toString(),
         'severity': 'error',
       };
-      // Added leading slash since Env.apiUrl doesn't guarantee a trailing slash.
-      await _telemetryDio.post(
-        '/api/v2/system/telemetry/client-error',
+      final baseUrl = _telemetryDio.options.baseUrl.isNotEmpty
+          ? _telemetryDio.options.baseUrl
+          : Env.apiUrl;
+      await _telemetryDio.post<Object?>(
+        '$baseUrl/api/v2/system/telemetry/client-error',
         data: payload,
       );
     } catch (e) {
-      // Silently fail telemetry to prevent infinite error loops
       debugPrint('Telemetry sync failed: $e');
     }
   }
 }
-
-// --- Custom Components ---
 
 class CustomPrinter extends LogPrinter {
   final DateFormat _formatter = DateFormat('yyyy-MM-dd HH:mm:ss');
@@ -143,19 +134,11 @@ class CustomPrinter extends LogPrinter {
   List<String> log(LogEvent event) {
     final time = _formatter.format(event.time);
     final levelStr = event.level.name.toUpperCase();
-
-    // Message already contains [CONTEXT] from helper
     final message = event.message;
-
-    // Check if error/stacktrace
-    if (event.error != null) {
-      // Intentionally left blank as result list handles it
-    }
-
     final output = '$time | $levelStr | $message';
 
     final result = <String>[output];
-    if (event.error != null) result.add("ERROR: ${event.error}");
+    if (event.error != null) result.add('ERROR: ${event.error}');
     if (event.stackTrace != null) result.add(event.stackTrace.toString());
 
     return result;
@@ -163,41 +146,38 @@ class CustomPrinter extends LogPrinter {
 }
 
 class JsonPrinter extends LogPrinter {
+  static final RegExp _contextPattern = RegExp(
+    r'^\[([^\]]+)\]\s*\|\s*client\s*\|\s*(.*)$',
+    dotAll: true,
+  );
+
   @override
   List<String> log(LogEvent event) {
     final timestamp = DateTime.now().toIso8601String();
     final level = event.level.name.toUpperCase();
     var message = event.message.toString();
-    String context = "UNKNOWN";
+    var context = 'UNKNOWN';
 
-    // Try to parse context from standard format "[$context] | client | $msg"
-    // Format defined in LoggerService methods: '[$context] | client | $message'
-    if (message.startsWith("[")) {
-      final endIndex = message.indexOf("]");
-      if (endIndex != -1) {
-        context = message.substring(1, endIndex);
-        // Strip the prefix "[$context] | client | "
-        final prefixEnd = message.indexOf("| client | ");
-        if (prefixEnd != -1) {
-          message = message.substring(prefixEnd + 11);
-        }
-      }
+    final match = _contextPattern.firstMatch(message);
+    if (match != null) {
+      context = match.group(1) ?? 'UNKNOWN';
+      message = match.group(2) ?? message;
     }
 
-    final logRecord = <String, dynamic>{
-      "timestamp": timestamp,
-      "level": level,
-      "logger": "client",
-      "context_id": context,
-      "execution_id": context, // Map context to execution_id for parity
-      "message": message,
+    final logRecord = <String, Object?>{
+      'timestamp': timestamp,
+      'level': level,
+      'logger': 'client',
+      'context_id': context,
+      'execution_id': context,
+      'message': message,
     };
 
     if (event.error != null) {
-      logRecord["error"] = event.error.toString();
+      logRecord['error'] = event.error.toString();
     }
     if (event.stackTrace != null) {
-      logRecord["stack_trace"] = event.stackTrace.toString();
+      logRecord['stack_trace'] = event.stackTrace.toString();
     }
 
     final jsonStr = jsonEncode(logRecord);
@@ -215,7 +195,7 @@ class FileOutput extends LogOutput {
     if (event.lines.isEmpty) return;
 
     try {
-      for (var line in event.lines) {
+      for (final line in event.lines) {
         file.writeAsStringSync('$line\n', mode: FileMode.append);
       }
     } catch (e) {

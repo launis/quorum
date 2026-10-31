@@ -48,7 +48,7 @@
   - [x] @[client_app_v2/lib/core/error/app_exception.dart]
   - [x] @[client_app_v2/lib/core/error/validation_error_reason.dart]
   - [x] @[client_app_v2/lib/core/logging/app_logger_observer.dart]
-  - [ ] @[client_app_v2/lib/core/logging/logger_service.dart]
+  - [x] @[client_app_v2/lib/core/logging/logger_service.dart]
   - [ ] @[client_app_v2/lib/core/models/enums.dart]
   - [ ] @[client_app_v2/lib/core/models/generic_status_response_dto.dart]
   - [ ] @[client_app_v2/lib/core/models/prompt_block_category.dart]
