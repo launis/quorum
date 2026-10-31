@@ -55,6 +55,12 @@ abstract class ReportDataDto with _$ReportDataDto {
     @JsonKey(name: 'mcp_tool_audit')
     @Default([])
     List<McpAuditTraceDto> mcpToolAudit,
+    @JsonKey(name: 'short_circuited_by_claims')
+    @Default([])
+    List<String> shortCircuitedByClaims,
+    @JsonKey(name: 'falsified_warrant_claims')
+    @Default([])
+    List<String> falsifiedWarrantClaims,
   }) = _ReportDataDto;
 
   factory ReportDataDto.fromJson(Map<String, dynamic> json) =>

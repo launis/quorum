@@ -15,9 +15,11 @@
 **Source:** @[docs/epic/EPIC_161_topological_synthesis_cohesion.md#L198-L204] Phase 3: Frontend Flutter UI, Jinja PDF & Freezed SDUI DTO Synchronization
 
 **Target Files:**
+- `[MODIFY] @[backend_v2/models/dtos/causal_discovery.py]`
 - `[MODIFY] @[backend_v2/models/dtos/report_data.py]`
 - `[MODIFY] @[backend_v2/models/view/sdui.py]`
 - `[MODIFY] @[backend_v2/services/blueprint.py#L127-L698]`
+- `[MODIFY] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`
 - `[MODIFY] @[backend_v2/services/sdui/sdui_mapper_service.py#L91-L167]`
 - `[MODIFY] @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]`
 - `[MODIFY] @[backend_v2/services/sdui/adapters/causal_graph_adapter.py#L32-L185]`
@@ -25,9 +27,12 @@
 - `[MODIFY] @[backend_v2/services/pdf_generator.py]`
 - `[MODIFY] @[client_app_v2/lib/shared/models/sdui_block_dto.dart]`
 - `[MODIFY] @[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`
+- `[MODIFY] @[client_app_v2/lib/features/execution/models/report_data_v2_dto.dart]`
 - `[MODIFY] @[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]`
 - `[MODIFY] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`
+- `[MODIFY] @[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py]`
 - `[MODIFY] @[backend_v2/tests/unit/services/sdui/test_sdui_mapper_service.py]`
+- `[MODIFY] @[backend_v2/tests/unit/services/test_sdui_mapper_service.py]`
 - `[MODIFY] @[client_app_v2/test/features/execution/views/widgets/sdui_matrix_table_widget_test.dart]`
 
 ## 5-Column Architectural Directives Table
@@ -48,17 +53,22 @@
   </step>
 
   <touched_artifacts>
+    <backend>@[backend_v2/models/dtos/causal_discovery.py]</backend>
     <backend>@[backend_v2/models/dtos/report_data.py]</backend>
     <backend>@[backend_v2/models/view/sdui.py]</backend>
     <backend>@[backend_v2/services/blueprint.py]</backend>
+    <backend>@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]</backend>
     <backend>@[backend_v2/services/sdui/sdui_mapper_service.py]</backend>
     <backend>@[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]</backend>
     <backend>@[backend_v2/services/sdui/adapters/causal_graph_adapter.py]</backend>
     <backend>@[backend_v2/templates/report_template.jinja2]</backend>
     <backend>@[backend_v2/services/pdf_generator.py]</backend>
+    <backend>@[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py]</backend>
     <backend>@[backend_v2/tests/unit/services/sdui/test_sdui_mapper_service.py]</backend>
+    <backend>@[backend_v2/tests/unit/services/test_sdui_mapper_service.py]</backend>
     <frontend>@[client_app_v2/lib/shared/models/sdui_block_dto.dart]</frontend>
     <frontend>@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]</frontend>
+    <frontend>@[client_app_v2/lib/features/execution/models/report_data_v2_dto.dart]</frontend>
     <frontend>@[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]</frontend>
     <frontend>@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]</frontend>
     <frontend>@[client_app_v2/test/features/execution/views/widgets/sdui_matrix_table_widget_test.dart]</frontend>
@@ -92,12 +102,12 @@
   </demolish>
 
   <step id="3.1" name="Inline Topological &amp; Short-Circuit Lineage in SDUI Blocks &amp; Report DTOs">
-    <action>In @[backend_v2/models/dtos/report_data.py] and @[backend_v2/models/view/sdui.py], add `short_circuited_by_claims: list[str]` and `falsified_warrant_claims: list[str]` (`ConfigDict(strict=True, extra="forbid", frozen=True)`) onto the matrix row item and causal graph node DTOs.</action>
-    <action>In @[backend_v2/services/blueprint.py#L127-L698] (lines 574-658), @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py], and @[backend_v2/services/sdui/adapters/causal_graph_adapter.py#L32-L185], populate `short_circuited_by_claims` and `falsified_warrant_claims` directly from the topological evaluation lineage and `CausalTdaFusionResultDTO`.</action>
+    <action>In @[backend_v2/models/dtos/causal_discovery.py], @[backend_v2/models/dtos/report_data.py], and @[backend_v2/models/view/sdui.py], add `short_circuited_by_claims: list[str]` and `falsified_warrant_claims: list[str]` (`ConfigDict(strict=True, extra="forbid", frozen=True)`) onto the matrix row item and causal graph node DTOs.</action>
+    <action>In @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py], @[backend_v2/services/blueprint.py#L127-L698] (lines 574-658), @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py], and @[backend_v2/services/sdui/adapters/causal_graph_adapter.py#L32-L185], populate `short_circuited_by_claims` and `falsified_warrant_claims` directly from the topological evaluation lineage and `CausalTdaFusionResultDTO`.</action>
     <action>In @[backend_v2/services/sdui/sdui_mapper_service.py#L91-L167] (lines 110-165 and 146-160), refactor `map_report_to_sdui` so short-circuit (`N_A`) lineage is anchored contextually within its parent matrix summary table and causal graph block rather than orphaned at the bottom of the report.</action>
-    <action>In @[backend_v2/tests/unit/services/sdui/test_sdui_mapper_service.py], add positive, boundary, and negative unit tests verifying contextual short-circuit lineage and Toulmin rebuttal mapping in `SduiMatrixSummaryTableBlock` and `SduiCausalGraphBlock`.</action>
+    <action>In @[backend_v2/tests/unit/services/sdui/test_sdui_mapper_service.py] and @[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py], add positive, boundary, and negative unit tests verifying contextual short-circuit lineage and Toulmin rebuttal mapping in `SduiMatrixSummaryTableBlock`, `SduiCausalGraphBlock`, and `CausalNodeDTO`.</action>
     <constraint invariant="tripartite_rendering_boundary">SDUI adapters must remain pure synchronous data mappers returning strictly typed Pydantic V2 DTOs.</constraint>
-    <audit_command>uv run python scripts/backend_audit_loop.py backend_v2/models/dtos/report_data.py backend_v2/models/view/sdui.py backend_v2/services/blueprint.py backend_v2/services/sdui/ --test --ast-strict</audit_command>
+    <audit_command>uv run python scripts/backend_audit_loop.py backend_v2/models/dtos/causal_discovery.py backend_v2/models/dtos/report_data.py backend_v2/models/view/sdui.py backend_v2/services/blueprint.py backend_v2/services/orchestrator/engines/causal_discovery_engine.py backend_v2/services/sdui/ --test --ast-strict</audit_command>
   </step>
 
   <step id="3.2" name="Jinja2 PDF Template &amp; PDF Generator Parity">

@@ -700,6 +700,8 @@ async def test_causal_discovery_multi_hop_blame_propagation(
     assert "tda_11111111" in node_map["tda_44444444"].blame_parent_ids
     assert "tda_22222222" in node_map["tda_44444444"].blame_parent_ids
     assert "tda_33333333" in node_map["tda_44444444"].blame_parent_ids
+    assert set(node_map["tda_44444444"].short_circuited_by_claims) == {"Claim 1", "Claim 2", "Claim 3"}
+    assert node_map["tda_44444444"].falsified_warrant_claims == []
 
 
 @pytest.mark.asyncio

@@ -4,7 +4,9 @@ from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.view.sdui import (
+    SduiMatrixTableBlock,
     SduiMetrics1DBlock,
+    SduiNACard,
     SduiQuoteCard,
     SduiWarningCard,
 )
@@ -91,7 +93,6 @@ def test_map_report_to_sdui_complete() -> None:
 def test_map_report_to_sdui_na_outcomes() -> None:
     from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
     from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
-    from backend_v2.models.view.sdui import SduiNACard
 
     mapper = SduiMapperService()
     na_result = AtomResultDTO(
@@ -103,6 +104,7 @@ def test_map_report_to_sdui_na_outcomes() -> None:
         execution_id="exe_na",
         workflow_id="wf_na",
         profile_id="prof_na",
+        inner_sdui_blocks=[SduiMatrixTableBlock(axes=[])],
         results=[na_result],
         hydrated_references={
             "tda_1": HydratedAtomDTO(
@@ -111,11 +113,15 @@ def test_map_report_to_sdui_na_outcomes() -> None:
             )
         },
     )
-    view = mapper.map_report_to_sdui(report, execution_id="exe_na")
+    view = mapper.map_report_to_sdui(report, execution_id="exe_na", lang="en")
     assert len(view.inner_sdui_blocks) == 1
-    assert isinstance(view.inner_sdui_blocks[0], SduiNACard)
-    assert view.inner_sdui_blocks[0].short_circuit_reason_tda_ids == ["tda_1"]
-    assert "Requirement not applicable for this sector" in view.inner_sdui_blocks[0].message
+    assert not any(isinstance(b, SduiNACard) for b in view.inner_sdui_blocks)
+    table_block = view.inner_sdui_blocks[0]
+    assert isinstance(table_block, SduiMatrixTableBlock)
+    assert any(
+        "Requirement not applicable for this sector" in claim
+        for claim in table_block.short_circuited_by_claims
+    )
 
 
 def test_map_report_alias_and_fallback_execution_id() -> None:
@@ -134,7 +140,6 @@ def test_map_report_alias_and_fallback_execution_id() -> None:
 def test_map_report_to_sdui_na_unhydrated_reference() -> None:
     from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
     from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
-    from backend_v2.models.view.sdui import SduiNACard
 
     mapper = SduiMapperService()
     na_result = AtomResultDTO(
@@ -146,6 +151,7 @@ def test_map_report_to_sdui_na_unhydrated_reference() -> None:
         execution_id="exe_unhydrated",
         workflow_id="wf_na",
         profile_id="prof_na",
+        inner_sdui_blocks=[SduiMatrixTableBlock(axes=[])],
         results=[na_result],
         hydrated_references={
             "tda_1": HydratedAtomDTO(
@@ -156,5 +162,7 @@ def test_map_report_to_sdui_na_unhydrated_reference() -> None:
     )
     view = mapper.map_report_to_sdui(report, execution_id="exe_unhydrated", lang="en")
     assert len(view.inner_sdui_blocks) == 1
-    assert isinstance(view.inner_sdui_blocks[0], SduiNACard)
-    assert view.inner_sdui_blocks[0].message == "Not applicable (N/A)"
+    assert not any(isinstance(b, SduiNACard) for b in view.inner_sdui_blocks)
+    table_block = view.inner_sdui_blocks[0]
+    assert isinstance(table_block, SduiMatrixTableBlock)
+    assert table_block.short_circuited_by_claims == ["Not applicable (N/A)"]

@@ -42,6 +42,8 @@ _ReportDataDto _$ReportDataDtoFromJson(
         'completion_tokens',
         'reasoning_tokens',
         'mcp_tool_audit',
+        'short_circuited_by_claims',
+        'falsified_warrant_claims',
       ],
     );
     final val = _ReportDataDto(
@@ -152,6 +154,16 @@ _ReportDataDto _$ReportDataDtoFromJson(
                 .toList() ??
             const [],
       ),
+      shortCircuitedByClaims: $checkedConvert(
+        'short_circuited_by_claims',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
+      falsifiedWarrantClaims: $checkedConvert(
+        'falsified_warrant_claims',
+        (v) =>
+            (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
+      ),
     );
     return val;
   },
@@ -182,6 +194,8 @@ _ReportDataDto _$ReportDataDtoFromJson(
     'completionTokens': 'completion_tokens',
     'reasoningTokens': 'reasoning_tokens',
     'mcpToolAudit': 'mcp_tool_audit',
+    'shortCircuitedByClaims': 'short_circuited_by_claims',
+    'falsifiedWarrantClaims': 'falsified_warrant_claims',
   },
 );
 
@@ -219,4 +233,6 @@ Map<String, dynamic> _$ReportDataDtoToJson(
   'completion_tokens': instance.completionTokens,
   'reasoning_tokens': instance.reasoningTokens,
   'mcp_tool_audit': instance.mcpToolAudit.map((e) => e.toJson()).toList(),
+  'short_circuited_by_claims': instance.shortCircuitedByClaims,
+  'falsified_warrant_claims': instance.falsifiedWarrantClaims,
 };

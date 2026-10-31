@@ -9,6 +9,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.proposition_graph import FalsifiedClaimMatch
+from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.causal_discovery import (
     AntiFluffAuditDTO,
@@ -19,14 +20,12 @@ from backend_v2.models.dtos.causal_discovery import (
     CausalTdaFusionResultDTO,
     FairScoringBreakdownDTO,
 )
-from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import (
     EntityPrefix,
     ExecutionStatus,
-    ReportMatrixColumn,
     SDUIComponentType,
     VisualIntent,
 )

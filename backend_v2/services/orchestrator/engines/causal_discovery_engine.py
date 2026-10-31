@@ -317,6 +317,7 @@ class CausalDiscoveryEngine(ExecutionEngine):
                 )
             ]
 
+            atom_claim_map: dict[str, str] = {a.tda_id: a.resolved_claim.strip() for a in valid_atoms}
             causal_nodes: list[CausalNodeDTO] = []
             for node in linked_nodes:
                 nid = node.atom.tda_id
@@ -351,6 +352,10 @@ class CausalDiscoveryEngine(ExecutionEngine):
                 if resolved_key is None and nid in atom_key_map:
                     resolved_key = atom_key_map[nid]
 
+                short_circuited_claims = [
+                    atom_claim_map[b] for b in blame_parents if b in atom_claim_map and atom_claim_map[b]
+                ]
+
                 causal_nodes.append(
                     CausalNodeDTO(
                         node_id=nid,
@@ -361,6 +366,8 @@ class CausalDiscoveryEngine(ExecutionEngine):
                         blame_parent_ids=blame_parents,
                         dependent_child_ids=out_deps[nid],
                         source_input_key=resolved_key,
+                        short_circuited_by_claims=short_circuited_claims,
+                        falsified_warrant_claims=[],
                     )
                 )
 

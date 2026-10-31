@@ -155,7 +155,6 @@ class ReportDataDTO(V2CoreBase):
         list[str],
         Field(
             default_factory=list,
-            exclude=True,
             description="Human-readable prerequisite claims that short-circuited downstream evaluations.",
         ),
     ]
@@ -163,7 +162,6 @@ class ReportDataDTO(V2CoreBase):
         list[str],
         Field(
             default_factory=list,
-            exclude=True,
             description="Formatted Toulmin rebuttal-warrant-claim falsification lineage entries.",
         ),
     ]
