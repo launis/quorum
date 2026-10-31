@@ -208,7 +208,7 @@ class CausalRootCauseDiagnosisDTO(V2CoreBase):
             ),
         ),
     ] = CausalRootCauseType.NODE_FAILURE
-    # Phase 1, Step 1.2: Enrich CausalRootCauseDiagnosisDTO with resolved claim texts and warrant relation
+    # Resolved claim texts and warrant relation for self-contained root-cause diagnostics
     root_cause_claim: Annotated[
         str,
         Field(
@@ -394,7 +394,7 @@ class CausalTdaFusionResultDTO(V2CoreBase):
     total_deliverable_nodes: Annotated[
         int, Field(ge=0, default=0, description="Total node count in deliverable subgraph.")
     ] = 0
-    # Phase 1, Step 1.1 & Step 1.2: Carry 3-way Toulmin falsified claims in CausalTdaFusionResultDTO
+    # Toulmin 3-way rebuttal-warrant-claim falsified claim matches
     falsified_claims: Annotated[
         list[FalsifiedClaimMatch],
         Field(
