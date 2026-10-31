@@ -53,4 +53,4 @@ final class ExecutionClientProvider
   }
 }
 
-String _$executionClientHash() => r'4a525361bde7e206b0c9864764d0a0188e63a9b5';
+String _$executionClientHash() => r'f854886ceb5b20dd17b27d3ce5dded5836fee3c2';
