@@ -70,7 +70,7 @@
   - [x] @[backend_v2/database/postgres/graph_adapter.py]
   - [x] @[backend_v2/hooks/archival.py]
   - [x] @[backend_v2/models/domain/proposition_graph.py]
-  - [ ] @[backend_v2/models/domain/synthesis.py]
+  - [x] @[backend_v2/models/domain/synthesis.py]
   - [ ] @[backend_v2/models/dtos/atom_evaluation.py]
   - [ ] @[backend_v2/models/dtos/causal_discovery.py]
   - [ ] @[backend_v2/models/dtos/lightweight_matrix.py]
