@@ -447,7 +447,7 @@ def compute_causal_tda_fusion_result(
         evaluative_matrices=evaluative_matrices,
         evaluated_atoms=evaluated_atoms,
     )
-    # Phase 1, Step 1.1 & Step 1.2: Resolve human-readable claim texts onto root cause diagnoses
+    # Resolve human-readable claim texts onto root cause diagnoses
     raw_diagnoses = CausalCohesionEvaluator().diagnose_root_causes(projected_graph)
     node_claim_by_id = {n.node_id: n.claim for n in projected_graph.nodes}
     root_cause_diagnoses = [
