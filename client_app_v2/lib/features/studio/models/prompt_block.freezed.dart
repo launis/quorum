@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TheoryGrounding {
 
- String get sourceUrl; String? get citationReference;
+@JsonKey(name: 'source_url') String get sourceUrl;@JsonKey(name: 'citation_reference') String? get citationReference;
 /// Create a copy of TheoryGrounding
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -41,7 +41,7 @@ abstract mixin class $TheoryGroundingCopyWith<$Res>  {
   factory $TheoryGroundingCopyWith(TheoryGrounding value, $Res Function(TheoryGrounding) _then) = _$TheoryGroundingCopyWithImpl;
 @useResult
 $Res call({
- String sourceUrl, String? citationReference
+@JsonKey(name: 'source_url') String sourceUrl,@JsonKey(name: 'citation_reference') String? citationReference
 });
 
 
@@ -147,7 +147,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String sourceUrl,  String? citationReference)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'source_url')  String sourceUrl, @JsonKey(name: 'citation_reference')  String? citationReference)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TheoryGrounding() when $default != null:
 return $default(_that.sourceUrl,_that.citationReference);case _:
@@ -168,7 +168,7 @@ return $default(_that.sourceUrl,_that.citationReference);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String sourceUrl,  String? citationReference)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'source_url')  String sourceUrl, @JsonKey(name: 'citation_reference')  String? citationReference)  $default,) {final _that = this;
 switch (_that) {
 case _TheoryGrounding():
 return $default(_that.sourceUrl,_that.citationReference);case _:
@@ -188,7 +188,7 @@ return $default(_that.sourceUrl,_that.citationReference);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String sourceUrl,  String? citationReference)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'source_url')  String sourceUrl, @JsonKey(name: 'citation_reference')  String? citationReference)?  $default,) {final _that = this;
 switch (_that) {
 case _TheoryGrounding() when $default != null:
 return $default(_that.sourceUrl,_that.citationReference);case _:
@@ -203,11 +203,11 @@ return $default(_that.sourceUrl,_that.citationReference);case _:
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _TheoryGrounding extends TheoryGrounding {
-  const _TheoryGrounding({required this.sourceUrl, this.citationReference}): super._();
+  const _TheoryGrounding({@JsonKey(name: 'source_url') required this.sourceUrl, @JsonKey(name: 'citation_reference') this.citationReference}): super._();
   factory _TheoryGrounding.fromJson(Map<String, dynamic> json) => _$TheoryGroundingFromJson(json);
 
-@override final  String sourceUrl;
-@override final  String? citationReference;
+@override@JsonKey(name: 'source_url') final  String sourceUrl;
+@override@JsonKey(name: 'citation_reference') final  String? citationReference;
 
 /// Create a copy of TheoryGrounding
 /// with the given fields replaced by the non-null parameter values.
@@ -235,7 +235,7 @@ abstract mixin class _$TheoryGroundingCopyWith<$Res> implements $TheoryGrounding
   factory _$TheoryGroundingCopyWith(_TheoryGrounding value, $Res Function(_TheoryGrounding) _then) = __$TheoryGroundingCopyWithImpl;
 @override @useResult
 $Res call({
- String sourceUrl, String? citationReference
+@JsonKey(name: 'source_url') String sourceUrl,@JsonKey(name: 'citation_reference') String? citationReference
 });
 
 
@@ -771,7 +771,7 @@ as bool,
 /// @nodoc
 mixin _$CausalEdgeDTO {
 
-@JsonKey(name: 'edge_reasoning') String get edgeReasoning;@StrictOpaqueIdConverter()@JsonKey(name: 'tda_id') String get tdaId;@JsonKey(name: 'source_id') String get sourceId;@JsonKey(name: 'expected_status') ExecutionStatus get expectedStatus;
+@JsonKey(name: 'edge_reasoning') String get edgeReasoning;@StrictOpaqueIdConverter()@JsonKey(name: 'tda_id') String get tdaId;@JsonKey(name: 'source_id') String get sourceId;@JsonKey(name: 'expected_status') ExecutionStatus get expectedStatus;@JsonKey(name: 'warrant_quotes') List<String>? get warrantQuotes;
 /// Create a copy of CausalEdgeDTO
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -786,7 +786,7 @@ $CausalEdgeDTOCopyWith<CausalEdgeDTO> get copyWith => _$CausalEdgeDTOCopyWithImp
 
 @override
 String toString() {
-  return 'CausalEdgeDTO(edgeReasoning: $edgeReasoning, tdaId: $tdaId, sourceId: $sourceId, expectedStatus: $expectedStatus)';
+  return 'CausalEdgeDTO(edgeReasoning: $edgeReasoning, tdaId: $tdaId, sourceId: $sourceId, expectedStatus: $expectedStatus, warrantQuotes: $warrantQuotes)';
 }
 
 
@@ -797,7 +797,7 @@ abstract mixin class $CausalEdgeDTOCopyWith<$Res>  {
   factory $CausalEdgeDTOCopyWith(CausalEdgeDTO value, $Res Function(CausalEdgeDTO) _then) = _$CausalEdgeDTOCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'edge_reasoning') String edgeReasoning,@StrictOpaqueIdConverter()@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'source_id') String sourceId,@JsonKey(name: 'expected_status') ExecutionStatus expectedStatus
+@JsonKey(name: 'edge_reasoning') String edgeReasoning,@StrictOpaqueIdConverter()@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'source_id') String sourceId,@JsonKey(name: 'expected_status') ExecutionStatus expectedStatus,@JsonKey(name: 'warrant_quotes') List<String>? warrantQuotes
 });
 
 
@@ -814,13 +814,14 @@ class _$CausalEdgeDTOCopyWithImpl<$Res>
 
 /// Create a copy of CausalEdgeDTO
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? edgeReasoning = null,Object? tdaId = null,Object? sourceId = null,Object? expectedStatus = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? edgeReasoning = null,Object? tdaId = null,Object? sourceId = null,Object? expectedStatus = null,Object? warrantQuotes = freezed,}) {
   return _then(_self.copyWith(
 edgeReasoning: null == edgeReasoning ? _self.edgeReasoning : edgeReasoning // ignore: cast_nullable_to_non_nullable
 as String,tdaId: null == tdaId ? _self.tdaId : tdaId // ignore: cast_nullable_to_non_nullable
 as String,sourceId: null == sourceId ? _self.sourceId : sourceId // ignore: cast_nullable_to_non_nullable
 as String,expectedStatus: null == expectedStatus ? _self.expectedStatus : expectedStatus // ignore: cast_nullable_to_non_nullable
-as ExecutionStatus,
+as ExecutionStatus,warrantQuotes: freezed == warrantQuotes ? _self.warrantQuotes : warrantQuotes // ignore: cast_nullable_to_non_nullable
+as List<String>?,
   ));
 }
 
@@ -905,10 +906,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'edge_reasoning')  String edgeReasoning, @StrictOpaqueIdConverter()@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'source_id')  String sourceId, @JsonKey(name: 'expected_status')  ExecutionStatus expectedStatus)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'edge_reasoning')  String edgeReasoning, @StrictOpaqueIdConverter()@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'source_id')  String sourceId, @JsonKey(name: 'expected_status')  ExecutionStatus expectedStatus, @JsonKey(name: 'warrant_quotes')  List<String>? warrantQuotes)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CausalEdgeDTO() when $default != null:
-return $default(_that.edgeReasoning,_that.tdaId,_that.sourceId,_that.expectedStatus);case _:
+return $default(_that.edgeReasoning,_that.tdaId,_that.sourceId,_that.expectedStatus,_that.warrantQuotes);case _:
   return orElse();
 
 }
@@ -926,10 +927,10 @@ return $default(_that.edgeReasoning,_that.tdaId,_that.sourceId,_that.expectedSta
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'edge_reasoning')  String edgeReasoning, @StrictOpaqueIdConverter()@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'source_id')  String sourceId, @JsonKey(name: 'expected_status')  ExecutionStatus expectedStatus)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'edge_reasoning')  String edgeReasoning, @StrictOpaqueIdConverter()@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'source_id')  String sourceId, @JsonKey(name: 'expected_status')  ExecutionStatus expectedStatus, @JsonKey(name: 'warrant_quotes')  List<String>? warrantQuotes)  $default,) {final _that = this;
 switch (_that) {
 case _CausalEdgeDTO():
-return $default(_that.edgeReasoning,_that.tdaId,_that.sourceId,_that.expectedStatus);case _:
+return $default(_that.edgeReasoning,_that.tdaId,_that.sourceId,_that.expectedStatus,_that.warrantQuotes);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -946,10 +947,10 @@ return $default(_that.edgeReasoning,_that.tdaId,_that.sourceId,_that.expectedSta
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'edge_reasoning')  String edgeReasoning, @StrictOpaqueIdConverter()@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'source_id')  String sourceId, @JsonKey(name: 'expected_status')  ExecutionStatus expectedStatus)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'edge_reasoning')  String edgeReasoning, @StrictOpaqueIdConverter()@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'source_id')  String sourceId, @JsonKey(name: 'expected_status')  ExecutionStatus expectedStatus, @JsonKey(name: 'warrant_quotes')  List<String>? warrantQuotes)?  $default,) {final _that = this;
 switch (_that) {
 case _CausalEdgeDTO() when $default != null:
-return $default(_that.edgeReasoning,_that.tdaId,_that.sourceId,_that.expectedStatus);case _:
+return $default(_that.edgeReasoning,_that.tdaId,_that.sourceId,_that.expectedStatus,_that.warrantQuotes);case _:
   return null;
 
 }
@@ -961,13 +962,22 @@ return $default(_that.edgeReasoning,_that.tdaId,_that.sourceId,_that.expectedSta
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _CausalEdgeDTO extends CausalEdgeDTO {
-  const _CausalEdgeDTO({@JsonKey(name: 'edge_reasoning') required this.edgeReasoning, @StrictOpaqueIdConverter()@JsonKey(name: 'tda_id') required this.tdaId, @JsonKey(name: 'source_id') required this.sourceId, @JsonKey(name: 'expected_status') this.expectedStatus = ExecutionStatus.passed}): super._();
+  const _CausalEdgeDTO({@JsonKey(name: 'edge_reasoning') required this.edgeReasoning, @StrictOpaqueIdConverter()@JsonKey(name: 'tda_id') required this.tdaId, @JsonKey(name: 'source_id') required this.sourceId, @JsonKey(name: 'expected_status') this.expectedStatus = ExecutionStatus.passed, @JsonKey(name: 'warrant_quotes') final  List<String>? warrantQuotes}): _warrantQuotes = warrantQuotes,super._();
   factory _CausalEdgeDTO.fromJson(Map<String, dynamic> json) => _$CausalEdgeDTOFromJson(json);
 
 @override@JsonKey(name: 'edge_reasoning') final  String edgeReasoning;
 @override@StrictOpaqueIdConverter()@JsonKey(name: 'tda_id') final  String tdaId;
 @override@JsonKey(name: 'source_id') final  String sourceId;
 @override@JsonKey(name: 'expected_status') final  ExecutionStatus expectedStatus;
+ final  List<String>? _warrantQuotes;
+@override@JsonKey(name: 'warrant_quotes') List<String>? get warrantQuotes {
+  final value = _warrantQuotes;
+  if (value == null) return null;
+  if (_warrantQuotes is EqualUnmodifiableListView) return _warrantQuotes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
 
 /// Create a copy of CausalEdgeDTO
 /// with the given fields replaced by the non-null parameter values.
@@ -984,7 +994,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'CausalEdgeDTO(edgeReasoning: $edgeReasoning, tdaId: $tdaId, sourceId: $sourceId, expectedStatus: $expectedStatus)';
+  return 'CausalEdgeDTO(edgeReasoning: $edgeReasoning, tdaId: $tdaId, sourceId: $sourceId, expectedStatus: $expectedStatus, warrantQuotes: $warrantQuotes)';
 }
 
 
@@ -995,7 +1005,7 @@ abstract mixin class _$CausalEdgeDTOCopyWith<$Res> implements $CausalEdgeDTOCopy
   factory _$CausalEdgeDTOCopyWith(_CausalEdgeDTO value, $Res Function(_CausalEdgeDTO) _then) = __$CausalEdgeDTOCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'edge_reasoning') String edgeReasoning,@StrictOpaqueIdConverter()@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'source_id') String sourceId,@JsonKey(name: 'expected_status') ExecutionStatus expectedStatus
+@JsonKey(name: 'edge_reasoning') String edgeReasoning,@StrictOpaqueIdConverter()@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'source_id') String sourceId,@JsonKey(name: 'expected_status') ExecutionStatus expectedStatus,@JsonKey(name: 'warrant_quotes') List<String>? warrantQuotes
 });
 
 
@@ -1012,13 +1022,14 @@ class __$CausalEdgeDTOCopyWithImpl<$Res>
 
 /// Create a copy of CausalEdgeDTO
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? edgeReasoning = null,Object? tdaId = null,Object? sourceId = null,Object? expectedStatus = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? edgeReasoning = null,Object? tdaId = null,Object? sourceId = null,Object? expectedStatus = null,Object? warrantQuotes = freezed,}) {
   return _then(_CausalEdgeDTO(
 edgeReasoning: null == edgeReasoning ? _self.edgeReasoning : edgeReasoning // ignore: cast_nullable_to_non_nullable
 as String,tdaId: null == tdaId ? _self.tdaId : tdaId // ignore: cast_nullable_to_non_nullable
 as String,sourceId: null == sourceId ? _self.sourceId : sourceId // ignore: cast_nullable_to_non_nullable
 as String,expectedStatus: null == expectedStatus ? _self.expectedStatus : expectedStatus // ignore: cast_nullable_to_non_nullable
-as ExecutionStatus,
+as ExecutionStatus,warrantQuotes: freezed == warrantQuotes ? _self._warrantQuotes : warrantQuotes // ignore: cast_nullable_to_non_nullable
+as List<String>?,
   ));
 }
 
@@ -1911,7 +1922,7 @@ $I18nTextCopyWith<$Res> get label {
 /// @nodoc
 mixin _$MatrixRow {
 
- I18nText get label; String get aiDescription;
+ I18nText get label;@JsonKey(name: 'ai_description') String get aiDescription;
 /// Create a copy of MatrixRow
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1937,7 +1948,7 @@ abstract mixin class $MatrixRowCopyWith<$Res>  {
   factory $MatrixRowCopyWith(MatrixRow value, $Res Function(MatrixRow) _then) = _$MatrixRowCopyWithImpl;
 @useResult
 $Res call({
- I18nText label, String aiDescription
+ I18nText label,@JsonKey(name: 'ai_description') String aiDescription
 });
 
 
@@ -2052,7 +2063,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText label,  String aiDescription)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( I18nText label, @JsonKey(name: 'ai_description')  String aiDescription)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MatrixRow() when $default != null:
 return $default(_that.label,_that.aiDescription);case _:
@@ -2073,7 +2084,7 @@ return $default(_that.label,_that.aiDescription);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText label,  String aiDescription)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( I18nText label, @JsonKey(name: 'ai_description')  String aiDescription)  $default,) {final _that = this;
 switch (_that) {
 case _MatrixRow():
 return $default(_that.label,_that.aiDescription);case _:
@@ -2093,7 +2104,7 @@ return $default(_that.label,_that.aiDescription);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText label,  String aiDescription)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( I18nText label, @JsonKey(name: 'ai_description')  String aiDescription)?  $default,) {final _that = this;
 switch (_that) {
 case _MatrixRow() when $default != null:
 return $default(_that.label,_that.aiDescription);case _:
@@ -2108,11 +2119,11 @@ return $default(_that.label,_that.aiDescription);case _:
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _MatrixRow extends MatrixRow {
-  const _MatrixRow({required this.label, required this.aiDescription}): super._();
+  const _MatrixRow({required this.label, @JsonKey(name: 'ai_description') required this.aiDescription}): super._();
   factory _MatrixRow.fromJson(Map<String, dynamic> json) => _$MatrixRowFromJson(json);
 
 @override final  I18nText label;
-@override final  String aiDescription;
+@override@JsonKey(name: 'ai_description') final  String aiDescription;
 
 /// Create a copy of MatrixRow
 /// with the given fields replaced by the non-null parameter values.
@@ -2140,7 +2151,7 @@ abstract mixin class _$MatrixRowCopyWith<$Res> implements $MatrixRowCopyWith<$Re
   factory _$MatrixRowCopyWith(_MatrixRow value, $Res Function(_MatrixRow) _then) = __$MatrixRowCopyWithImpl;
 @override @useResult
 $Res call({
- I18nText label, String aiDescription
+ I18nText label,@JsonKey(name: 'ai_description') String aiDescription
 });
 
 
@@ -2181,7 +2192,7 @@ $I18nTextCopyWith<$Res> get label {
 /// @nodoc
 mixin _$MatrixScale {
 
- int get score; I18nText? get name; String get aiLabel; List<MatrixClaim> get claims;
+ int get score; I18nText? get name;@JsonKey(name: 'ai_label') String get aiLabel; List<MatrixClaim> get claims;
 /// Create a copy of MatrixScale
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2207,7 +2218,7 @@ abstract mixin class $MatrixScaleCopyWith<$Res>  {
   factory $MatrixScaleCopyWith(MatrixScale value, $Res Function(MatrixScale) _then) = _$MatrixScaleCopyWithImpl;
 @useResult
 $Res call({
- int score, I18nText? name, String aiLabel, List<MatrixClaim> claims
+ int score, I18nText? name,@JsonKey(name: 'ai_label') String aiLabel, List<MatrixClaim> claims
 });
 
 
@@ -2327,7 +2338,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int score,  I18nText? name,  String aiLabel,  List<MatrixClaim> claims)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int score,  I18nText? name, @JsonKey(name: 'ai_label')  String aiLabel,  List<MatrixClaim> claims)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MatrixScale() when $default != null:
 return $default(_that.score,_that.name,_that.aiLabel,_that.claims);case _:
@@ -2348,7 +2359,7 @@ return $default(_that.score,_that.name,_that.aiLabel,_that.claims);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int score,  I18nText? name,  String aiLabel,  List<MatrixClaim> claims)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int score,  I18nText? name, @JsonKey(name: 'ai_label')  String aiLabel,  List<MatrixClaim> claims)  $default,) {final _that = this;
 switch (_that) {
 case _MatrixScale():
 return $default(_that.score,_that.name,_that.aiLabel,_that.claims);case _:
@@ -2368,7 +2379,7 @@ return $default(_that.score,_that.name,_that.aiLabel,_that.claims);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int score,  I18nText? name,  String aiLabel,  List<MatrixClaim> claims)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int score,  I18nText? name, @JsonKey(name: 'ai_label')  String aiLabel,  List<MatrixClaim> claims)?  $default,) {final _that = this;
 switch (_that) {
 case _MatrixScale() when $default != null:
 return $default(_that.score,_that.name,_that.aiLabel,_that.claims);case _:
@@ -2383,12 +2394,12 @@ return $default(_that.score,_that.name,_that.aiLabel,_that.claims);case _:
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _MatrixScale extends MatrixScale {
-  const _MatrixScale({required this.score, this.name, required this.aiLabel, required final  List<MatrixClaim> claims}): _claims = claims,super._();
+  const _MatrixScale({required this.score, this.name, @JsonKey(name: 'ai_label') required this.aiLabel, required final  List<MatrixClaim> claims}): _claims = claims,super._();
   factory _MatrixScale.fromJson(Map<String, dynamic> json) => _$MatrixScaleFromJson(json);
 
 @override final  int score;
 @override final  I18nText? name;
-@override final  String aiLabel;
+@override@JsonKey(name: 'ai_label') final  String aiLabel;
  final  List<MatrixClaim> _claims;
 @override List<MatrixClaim> get claims {
   if (_claims is EqualUnmodifiableListView) return _claims;
@@ -2423,7 +2434,7 @@ abstract mixin class _$MatrixScaleCopyWith<$Res> implements $MatrixScaleCopyWith
   factory _$MatrixScaleCopyWith(_MatrixScale value, $Res Function(_MatrixScale) _then) = __$MatrixScaleCopyWithImpl;
 @override @useResult
 $Res call({
- int score, I18nText? name, String aiLabel, List<MatrixClaim> claims
+ int score, I18nText? name,@JsonKey(name: 'ai_label') String aiLabel, List<MatrixClaim> claims
 });
 
 
@@ -2512,7 +2523,7 @@ PromptBlock _$PromptBlockFromJson(
 /// @nodoc
 mixin _$PromptBlock {
 
-@StrictOpaqueIdConverter() String get id; String get slug; String? get organizationId; I18nText get label; I18nText get description; bool get isEvaluative; BlockDataType get type; bool get allowDecimals; List<String> get outputExtensions; TheoryGrounding? get theoryGrounding;@JsonKey(name: 'is_lightweight_protocol') bool get isLightweightProtocol;
+@StrictOpaqueIdConverter() String get id; String get slug;@JsonKey(name: 'organization_id') String? get organizationId; I18nText get label; I18nText get description;@JsonKey(name: 'is_evaluative') bool get isEvaluative; BlockDataType get type;@JsonKey(name: 'allow_decimals') bool get allowDecimals;@JsonKey(name: 'output_extensions') List<String> get outputExtensions;@JsonKey(name: 'theory_grounding') TheoryGrounding? get theoryGrounding;@JsonKey(name: 'is_lightweight_protocol') bool get isLightweightProtocol;
 /// Create a copy of PromptBlock
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2538,7 +2549,7 @@ abstract mixin class $PromptBlockCopyWith<$Res>  {
   factory $PromptBlockCopyWith(PromptBlock value, $Res Function(PromptBlock) _then) = _$PromptBlockCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol
+@StrictOpaqueIdConverter() String id, String slug,@JsonKey(name: 'organization_id') String? organizationId, I18nText label, I18nText description,@JsonKey(name: 'is_evaluative') bool isEvaluative, BlockDataType type,@JsonKey(name: 'allow_decimals') bool allowDecimals,@JsonKey(name: 'output_extensions') List<String> outputExtensions,@JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol
 });
 
 
@@ -2698,7 +2709,7 @@ return taskDefinition(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  List<MatrixScale> scales,  List<MatrixRow>? rows,  List<I18nText>? columns, @JsonKey(name: 'computed_min')  int? computedMin, @JsonKey(name: 'computed_max')  int? computedMax, @JsonKey(name: 'target_input_key')  String? targetInputKey)?  matrix,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  systemRule,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)?  executionPersona,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)?  agentRole,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? protocolInstructions)?  protocol,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  runtimeVariables,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  taskDefinition,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'ai_description')  String? aiDescription, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  List<MatrixScale> scales,  List<MatrixRow>? rows,  List<I18nText>? columns, @JsonKey(name: 'computed_min')  int? computedMin, @JsonKey(name: 'computed_max')  int? computedMax, @JsonKey(name: 'target_input_key')  String? targetInputKey)?  matrix,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'instruction_text')  String? instructionText)?  systemRule,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'role_enforcement')  String? roleEnforcement, @JsonKey(name: 'tone_directives')  List<String> toneDirectives)?  executionPersona,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'role_enforcement')  String? roleEnforcement, @JsonKey(name: 'tone_directives')  List<String> toneDirectives)?  agentRole,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'protocol_instructions')  String? protocolInstructions)?  protocol,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'instruction_text')  String? instructionText)?  runtimeVariables,TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'instruction_text')  String? instructionText)?  taskDefinition,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case MatrixPromptBlock() when matrix != null:
 return matrix(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.allowContextualOverride,_that.isLightweightProtocol,_that.scales,_that.rows,_that.columns,_that.computedMin,_that.computedMax,_that.targetInputKey);case SystemRulePromptBlock() when systemRule != null:
@@ -2725,7 +2736,7 @@ return taskDefinition(_that.id,_that.slug,_that.organizationId,_that.label,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  List<MatrixScale> scales,  List<MatrixRow>? rows,  List<I18nText>? columns, @JsonKey(name: 'computed_min')  int? computedMin, @JsonKey(name: 'computed_max')  int? computedMax, @JsonKey(name: 'target_input_key')  String? targetInputKey)  matrix,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)  systemRule,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)  executionPersona,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)  agentRole,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? protocolInstructions)  protocol,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)  runtimeVariables,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)  taskDefinition,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'ai_description')  String? aiDescription, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  List<MatrixScale> scales,  List<MatrixRow>? rows,  List<I18nText>? columns, @JsonKey(name: 'computed_min')  int? computedMin, @JsonKey(name: 'computed_max')  int? computedMax, @JsonKey(name: 'target_input_key')  String? targetInputKey)  matrix,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'instruction_text')  String? instructionText)  systemRule,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'role_enforcement')  String? roleEnforcement, @JsonKey(name: 'tone_directives')  List<String> toneDirectives)  executionPersona,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'role_enforcement')  String? roleEnforcement, @JsonKey(name: 'tone_directives')  List<String> toneDirectives)  agentRole,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'protocol_instructions')  String? protocolInstructions)  protocol,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'instruction_text')  String? instructionText)  runtimeVariables,required TResult Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'instruction_text')  String? instructionText)  taskDefinition,}) {final _that = this;
 switch (_that) {
 case MatrixPromptBlock():
 return matrix(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.allowContextualOverride,_that.isLightweightProtocol,_that.scales,_that.rows,_that.columns,_that.computedMin,_that.computedMax,_that.targetInputKey);case SystemRulePromptBlock():
@@ -2748,7 +2759,7 @@ return taskDefinition(_that.id,_that.slug,_that.organizationId,_that.label,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  String? aiDescription,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  List<MatrixScale> scales,  List<MatrixRow>? rows,  List<I18nText>? columns, @JsonKey(name: 'computed_min')  int? computedMin, @JsonKey(name: 'computed_max')  int? computedMax, @JsonKey(name: 'target_input_key')  String? targetInputKey)?  matrix,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  systemRule,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)?  executionPersona,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? roleEnforcement,  List<String> toneDirectives)?  agentRole,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? protocolInstructions)?  protocol,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  runtimeVariables,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug,  String? organizationId,  I18nText label,  I18nText description,  bool isEvaluative,  BlockDataType type,  bool allowDecimals,  List<String> outputExtensions,  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  String? instructionText)?  taskDefinition,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'ai_description')  String? aiDescription, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'allow_contextual_override')  bool allowContextualOverride, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol,  List<MatrixScale> scales,  List<MatrixRow>? rows,  List<I18nText>? columns, @JsonKey(name: 'computed_min')  int? computedMin, @JsonKey(name: 'computed_max')  int? computedMax, @JsonKey(name: 'target_input_key')  String? targetInputKey)?  matrix,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'instruction_text')  String? instructionText)?  systemRule,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'role_enforcement')  String? roleEnforcement, @JsonKey(name: 'tone_directives')  List<String> toneDirectives)?  executionPersona,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'role_enforcement')  String? roleEnforcement, @JsonKey(name: 'tone_directives')  List<String> toneDirectives)?  agentRole,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'protocol_instructions')  String? protocolInstructions)?  protocol,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'instruction_text')  String? instructionText)?  runtimeVariables,TResult? Function(@StrictOpaqueIdConverter()  String id,  String slug, @JsonKey(name: 'organization_id')  String? organizationId,  I18nText label,  I18nText description, @JsonKey(name: 'is_evaluative')  bool isEvaluative,  BlockDataType type, @JsonKey(name: 'allow_decimals')  bool allowDecimals, @JsonKey(name: 'output_extensions')  List<String> outputExtensions, @JsonKey(name: 'theory_grounding')  TheoryGrounding? theoryGrounding, @JsonKey(name: 'is_lightweight_protocol')  bool isLightweightProtocol, @JsonKey(name: 'instruction_text')  String? instructionText)?  taskDefinition,}) {final _that = this;
 switch (_that) {
 case MatrixPromptBlock() when matrix != null:
 return matrix(_that.id,_that.slug,_that.organizationId,_that.label,_that.description,_that.aiDescription,_that.isEvaluative,_that.type,_that.allowDecimals,_that.outputExtensions,_that.theoryGrounding,_that.allowContextualOverride,_that.isLightweightProtocol,_that.scales,_that.rows,_that.columns,_that.computedMin,_that.computedMax,_that.targetInputKey);case SystemRulePromptBlock() when systemRule != null:
@@ -2769,26 +2780,26 @@ return taskDefinition(_that.id,_that.slug,_that.organizationId,_that.label,_that
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class MatrixPromptBlock extends PromptBlock {
-  const MatrixPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.aiDescription, this.isEvaluative = true, this.type = BlockDataType.floatType, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'allow_contextual_override') this.allowContextualOverride = false, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, required final  List<MatrixScale> scales, final  List<MatrixRow>? rows, final  List<I18nText>? columns, @JsonKey(name: 'computed_min') this.computedMin, @JsonKey(name: 'computed_max') this.computedMax, @JsonKey(name: 'target_input_key') this.targetInputKey, final  String? $type}): _outputExtensions = outputExtensions,_scales = scales,_rows = rows,_columns = columns,$type = $type ?? 'matrix',super._();
+  const MatrixPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, @JsonKey(name: 'organization_id') this.organizationId, required this.label, required this.description, @JsonKey(name: 'ai_description') this.aiDescription, @JsonKey(name: 'is_evaluative') this.isEvaluative = true, this.type = BlockDataType.floatType, @JsonKey(name: 'allow_decimals') this.allowDecimals = false, @JsonKey(name: 'output_extensions') final  List<String> outputExtensions = const [], @JsonKey(name: 'theory_grounding') this.theoryGrounding, @JsonKey(name: 'allow_contextual_override') this.allowContextualOverride = false, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, required final  List<MatrixScale> scales, final  List<MatrixRow>? rows, final  List<I18nText>? columns, @JsonKey(name: 'computed_min') this.computedMin, @JsonKey(name: 'computed_max') this.computedMax, @JsonKey(name: 'target_input_key') this.targetInputKey, final  String? $type}): _outputExtensions = outputExtensions,_scales = scales,_rows = rows,_columns = columns,$type = $type ?? 'matrix',super._();
   factory MatrixPromptBlock.fromJson(Map<String, dynamic> json) => _$MatrixPromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
 @override final  String slug;
-@override final  String? organizationId;
+@override@JsonKey(name: 'organization_id') final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
- final  String? aiDescription;
-@override@JsonKey() final  bool isEvaluative;
+@JsonKey(name: 'ai_description') final  String? aiDescription;
+@override@JsonKey(name: 'is_evaluative') final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
-@override@JsonKey() final  bool allowDecimals;
+@override@JsonKey(name: 'allow_decimals') final  bool allowDecimals;
  final  List<String> _outputExtensions;
-@override@JsonKey() List<String> get outputExtensions {
+@override@JsonKey(name: 'output_extensions') List<String> get outputExtensions {
   if (_outputExtensions is EqualUnmodifiableListView) return _outputExtensions;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_outputExtensions);
 }
 
-@override final  TheoryGrounding? theoryGrounding;
+@override@JsonKey(name: 'theory_grounding') final  TheoryGrounding? theoryGrounding;
 @JsonKey(name: 'allow_contextual_override') final  bool allowContextualOverride;
 @override@JsonKey(name: 'is_lightweight_protocol') final  bool isLightweightProtocol;
  final  List<MatrixScale> _scales;
@@ -2850,7 +2861,7 @@ abstract mixin class $MatrixPromptBlockCopyWith<$Res> implements $PromptBlockCop
   factory $MatrixPromptBlockCopyWith(MatrixPromptBlock value, $Res Function(MatrixPromptBlock) _then) = _$MatrixPromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, String? aiDescription, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'allow_contextual_override') bool allowContextualOverride,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, List<MatrixScale> scales, List<MatrixRow>? rows, List<I18nText>? columns,@JsonKey(name: 'computed_min') int? computedMin,@JsonKey(name: 'computed_max') int? computedMax,@JsonKey(name: 'target_input_key') String? targetInputKey
+@StrictOpaqueIdConverter() String id, String slug,@JsonKey(name: 'organization_id') String? organizationId, I18nText label, I18nText description,@JsonKey(name: 'ai_description') String? aiDescription,@JsonKey(name: 'is_evaluative') bool isEvaluative, BlockDataType type,@JsonKey(name: 'allow_decimals') bool allowDecimals,@JsonKey(name: 'output_extensions') List<String> outputExtensions,@JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,@JsonKey(name: 'allow_contextual_override') bool allowContextualOverride,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, List<MatrixScale> scales, List<MatrixRow>? rows, List<I18nText>? columns,@JsonKey(name: 'computed_min') int? computedMin,@JsonKey(name: 'computed_max') int? computedMax,@JsonKey(name: 'target_input_key') String? targetInputKey
 });
 
 
@@ -2929,27 +2940,27 @@ $TheoryGroundingCopyWith<$Res>? get theoryGrounding {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class SystemRulePromptBlock extends PromptBlock {
-  const SystemRulePromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.instructionText, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'system_rule',super._();
+  const SystemRulePromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, @JsonKey(name: 'organization_id') this.organizationId, required this.label, required this.description, @JsonKey(name: 'is_evaluative') this.isEvaluative = false, this.type = BlockDataType.instruction, @JsonKey(name: 'allow_decimals') this.allowDecimals = false, @JsonKey(name: 'output_extensions') final  List<String> outputExtensions = const [], @JsonKey(name: 'theory_grounding') this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, @JsonKey(name: 'instruction_text') this.instructionText, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'system_rule',super._();
   factory SystemRulePromptBlock.fromJson(Map<String, dynamic> json) => _$SystemRulePromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
 @override final  String slug;
-@override final  String? organizationId;
+@override@JsonKey(name: 'organization_id') final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
-@override@JsonKey() final  bool isEvaluative;
+@override@JsonKey(name: 'is_evaluative') final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
-@override@JsonKey() final  bool allowDecimals;
+@override@JsonKey(name: 'allow_decimals') final  bool allowDecimals;
  final  List<String> _outputExtensions;
-@override@JsonKey() List<String> get outputExtensions {
+@override@JsonKey(name: 'output_extensions') List<String> get outputExtensions {
   if (_outputExtensions is EqualUnmodifiableListView) return _outputExtensions;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_outputExtensions);
 }
 
-@override final  TheoryGrounding? theoryGrounding;
+@override@JsonKey(name: 'theory_grounding') final  TheoryGrounding? theoryGrounding;
 @override@JsonKey(name: 'is_lightweight_protocol') final  bool isLightweightProtocol;
- final  String? instructionText;
+@JsonKey(name: 'instruction_text') final  String? instructionText;
 
 @JsonKey(name: 'category_id')
 final String $type;
@@ -2981,7 +2992,7 @@ abstract mixin class $SystemRulePromptBlockCopyWith<$Res> implements $PromptBloc
   factory $SystemRulePromptBlockCopyWith(SystemRulePromptBlock value, $Res Function(SystemRulePromptBlock) _then) = _$SystemRulePromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? instructionText
+@StrictOpaqueIdConverter() String id, String slug,@JsonKey(name: 'organization_id') String? organizationId, I18nText label, I18nText description,@JsonKey(name: 'is_evaluative') bool isEvaluative, BlockDataType type,@JsonKey(name: 'allow_decimals') bool allowDecimals,@JsonKey(name: 'output_extensions') List<String> outputExtensions,@JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol,@JsonKey(name: 'instruction_text') String? instructionText
 });
 
 
@@ -3053,29 +3064,29 @@ $TheoryGroundingCopyWith<$Res>? get theoryGrounding {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class ExecutionPersonaPromptBlock extends PromptBlock {
-  const ExecutionPersonaPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.roleEnforcement, final  List<String> toneDirectives = const [], final  String? $type}): _outputExtensions = outputExtensions,_toneDirectives = toneDirectives,$type = $type ?? 'execution_persona',super._();
+  const ExecutionPersonaPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, @JsonKey(name: 'organization_id') this.organizationId, required this.label, required this.description, @JsonKey(name: 'is_evaluative') this.isEvaluative = false, this.type = BlockDataType.instruction, @JsonKey(name: 'allow_decimals') this.allowDecimals = false, @JsonKey(name: 'output_extensions') final  List<String> outputExtensions = const [], @JsonKey(name: 'theory_grounding') this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, @JsonKey(name: 'role_enforcement') this.roleEnforcement, @JsonKey(name: 'tone_directives') final  List<String> toneDirectives = const [], final  String? $type}): _outputExtensions = outputExtensions,_toneDirectives = toneDirectives,$type = $type ?? 'execution_persona',super._();
   factory ExecutionPersonaPromptBlock.fromJson(Map<String, dynamic> json) => _$ExecutionPersonaPromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
 @override final  String slug;
-@override final  String? organizationId;
+@override@JsonKey(name: 'organization_id') final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
-@override@JsonKey() final  bool isEvaluative;
+@override@JsonKey(name: 'is_evaluative') final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
-@override@JsonKey() final  bool allowDecimals;
+@override@JsonKey(name: 'allow_decimals') final  bool allowDecimals;
  final  List<String> _outputExtensions;
-@override@JsonKey() List<String> get outputExtensions {
+@override@JsonKey(name: 'output_extensions') List<String> get outputExtensions {
   if (_outputExtensions is EqualUnmodifiableListView) return _outputExtensions;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_outputExtensions);
 }
 
-@override final  TheoryGrounding? theoryGrounding;
+@override@JsonKey(name: 'theory_grounding') final  TheoryGrounding? theoryGrounding;
 @override@JsonKey(name: 'is_lightweight_protocol') final  bool isLightweightProtocol;
- final  String? roleEnforcement;
+@JsonKey(name: 'role_enforcement') final  String? roleEnforcement;
  final  List<String> _toneDirectives;
-@JsonKey() List<String> get toneDirectives {
+@JsonKey(name: 'tone_directives') List<String> get toneDirectives {
   if (_toneDirectives is EqualUnmodifiableListView) return _toneDirectives;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_toneDirectives);
@@ -3112,7 +3123,7 @@ abstract mixin class $ExecutionPersonaPromptBlockCopyWith<$Res> implements $Prom
   factory $ExecutionPersonaPromptBlockCopyWith(ExecutionPersonaPromptBlock value, $Res Function(ExecutionPersonaPromptBlock) _then) = _$ExecutionPersonaPromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? roleEnforcement, List<String> toneDirectives
+@StrictOpaqueIdConverter() String id, String slug,@JsonKey(name: 'organization_id') String? organizationId, I18nText label, I18nText description,@JsonKey(name: 'is_evaluative') bool isEvaluative, BlockDataType type,@JsonKey(name: 'allow_decimals') bool allowDecimals,@JsonKey(name: 'output_extensions') List<String> outputExtensions,@JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol,@JsonKey(name: 'role_enforcement') String? roleEnforcement,@JsonKey(name: 'tone_directives') List<String> toneDirectives
 });
 
 
@@ -3185,29 +3196,29 @@ $TheoryGroundingCopyWith<$Res>? get theoryGrounding {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class AgentRolePromptBlock extends PromptBlock {
-  const AgentRolePromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.roleEnforcement, final  List<String> toneDirectives = const [], final  String? $type}): _outputExtensions = outputExtensions,_toneDirectives = toneDirectives,$type = $type ?? 'agent_role',super._();
+  const AgentRolePromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, @JsonKey(name: 'organization_id') this.organizationId, required this.label, required this.description, @JsonKey(name: 'is_evaluative') this.isEvaluative = false, this.type = BlockDataType.instruction, @JsonKey(name: 'allow_decimals') this.allowDecimals = false, @JsonKey(name: 'output_extensions') final  List<String> outputExtensions = const [], @JsonKey(name: 'theory_grounding') this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, @JsonKey(name: 'role_enforcement') this.roleEnforcement, @JsonKey(name: 'tone_directives') final  List<String> toneDirectives = const [], final  String? $type}): _outputExtensions = outputExtensions,_toneDirectives = toneDirectives,$type = $type ?? 'agent_role',super._();
   factory AgentRolePromptBlock.fromJson(Map<String, dynamic> json) => _$AgentRolePromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
 @override final  String slug;
-@override final  String? organizationId;
+@override@JsonKey(name: 'organization_id') final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
-@override@JsonKey() final  bool isEvaluative;
+@override@JsonKey(name: 'is_evaluative') final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
-@override@JsonKey() final  bool allowDecimals;
+@override@JsonKey(name: 'allow_decimals') final  bool allowDecimals;
  final  List<String> _outputExtensions;
-@override@JsonKey() List<String> get outputExtensions {
+@override@JsonKey(name: 'output_extensions') List<String> get outputExtensions {
   if (_outputExtensions is EqualUnmodifiableListView) return _outputExtensions;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_outputExtensions);
 }
 
-@override final  TheoryGrounding? theoryGrounding;
+@override@JsonKey(name: 'theory_grounding') final  TheoryGrounding? theoryGrounding;
 @override@JsonKey(name: 'is_lightweight_protocol') final  bool isLightweightProtocol;
- final  String? roleEnforcement;
+@JsonKey(name: 'role_enforcement') final  String? roleEnforcement;
  final  List<String> _toneDirectives;
-@JsonKey() List<String> get toneDirectives {
+@JsonKey(name: 'tone_directives') List<String> get toneDirectives {
   if (_toneDirectives is EqualUnmodifiableListView) return _toneDirectives;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_toneDirectives);
@@ -3244,7 +3255,7 @@ abstract mixin class $AgentRolePromptBlockCopyWith<$Res> implements $PromptBlock
   factory $AgentRolePromptBlockCopyWith(AgentRolePromptBlock value, $Res Function(AgentRolePromptBlock) _then) = _$AgentRolePromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? roleEnforcement, List<String> toneDirectives
+@StrictOpaqueIdConverter() String id, String slug,@JsonKey(name: 'organization_id') String? organizationId, I18nText label, I18nText description,@JsonKey(name: 'is_evaluative') bool isEvaluative, BlockDataType type,@JsonKey(name: 'allow_decimals') bool allowDecimals,@JsonKey(name: 'output_extensions') List<String> outputExtensions,@JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol,@JsonKey(name: 'role_enforcement') String? roleEnforcement,@JsonKey(name: 'tone_directives') List<String> toneDirectives
 });
 
 
@@ -3317,27 +3328,27 @@ $TheoryGroundingCopyWith<$Res>? get theoryGrounding {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class ProtocolPromptBlock extends PromptBlock {
-  const ProtocolPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.protocolInstructions, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'protocol',super._();
+  const ProtocolPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, @JsonKey(name: 'organization_id') this.organizationId, required this.label, required this.description, @JsonKey(name: 'is_evaluative') this.isEvaluative = false, this.type = BlockDataType.instruction, @JsonKey(name: 'allow_decimals') this.allowDecimals = false, @JsonKey(name: 'output_extensions') final  List<String> outputExtensions = const [], @JsonKey(name: 'theory_grounding') this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, @JsonKey(name: 'protocol_instructions') this.protocolInstructions, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'protocol',super._();
   factory ProtocolPromptBlock.fromJson(Map<String, dynamic> json) => _$ProtocolPromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
 @override final  String slug;
-@override final  String? organizationId;
+@override@JsonKey(name: 'organization_id') final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
-@override@JsonKey() final  bool isEvaluative;
+@override@JsonKey(name: 'is_evaluative') final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
-@override@JsonKey() final  bool allowDecimals;
+@override@JsonKey(name: 'allow_decimals') final  bool allowDecimals;
  final  List<String> _outputExtensions;
-@override@JsonKey() List<String> get outputExtensions {
+@override@JsonKey(name: 'output_extensions') List<String> get outputExtensions {
   if (_outputExtensions is EqualUnmodifiableListView) return _outputExtensions;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_outputExtensions);
 }
 
-@override final  TheoryGrounding? theoryGrounding;
+@override@JsonKey(name: 'theory_grounding') final  TheoryGrounding? theoryGrounding;
 @override@JsonKey(name: 'is_lightweight_protocol') final  bool isLightweightProtocol;
- final  String? protocolInstructions;
+@JsonKey(name: 'protocol_instructions') final  String? protocolInstructions;
 
 @JsonKey(name: 'category_id')
 final String $type;
@@ -3369,7 +3380,7 @@ abstract mixin class $ProtocolPromptBlockCopyWith<$Res> implements $PromptBlockC
   factory $ProtocolPromptBlockCopyWith(ProtocolPromptBlock value, $Res Function(ProtocolPromptBlock) _then) = _$ProtocolPromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? protocolInstructions
+@StrictOpaqueIdConverter() String id, String slug,@JsonKey(name: 'organization_id') String? organizationId, I18nText label, I18nText description,@JsonKey(name: 'is_evaluative') bool isEvaluative, BlockDataType type,@JsonKey(name: 'allow_decimals') bool allowDecimals,@JsonKey(name: 'output_extensions') List<String> outputExtensions,@JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol,@JsonKey(name: 'protocol_instructions') String? protocolInstructions
 });
 
 
@@ -3441,27 +3452,27 @@ $TheoryGroundingCopyWith<$Res>? get theoryGrounding {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class RuntimeVariablesPromptBlock extends PromptBlock {
-  const RuntimeVariablesPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.instructionText, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'runtime_variables',super._();
+  const RuntimeVariablesPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, @JsonKey(name: 'organization_id') this.organizationId, required this.label, required this.description, @JsonKey(name: 'is_evaluative') this.isEvaluative = false, this.type = BlockDataType.instruction, @JsonKey(name: 'allow_decimals') this.allowDecimals = false, @JsonKey(name: 'output_extensions') final  List<String> outputExtensions = const [], @JsonKey(name: 'theory_grounding') this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, @JsonKey(name: 'instruction_text') this.instructionText, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'runtime_variables',super._();
   factory RuntimeVariablesPromptBlock.fromJson(Map<String, dynamic> json) => _$RuntimeVariablesPromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
 @override final  String slug;
-@override final  String? organizationId;
+@override@JsonKey(name: 'organization_id') final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
-@override@JsonKey() final  bool isEvaluative;
+@override@JsonKey(name: 'is_evaluative') final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
-@override@JsonKey() final  bool allowDecimals;
+@override@JsonKey(name: 'allow_decimals') final  bool allowDecimals;
  final  List<String> _outputExtensions;
-@override@JsonKey() List<String> get outputExtensions {
+@override@JsonKey(name: 'output_extensions') List<String> get outputExtensions {
   if (_outputExtensions is EqualUnmodifiableListView) return _outputExtensions;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_outputExtensions);
 }
 
-@override final  TheoryGrounding? theoryGrounding;
+@override@JsonKey(name: 'theory_grounding') final  TheoryGrounding? theoryGrounding;
 @override@JsonKey(name: 'is_lightweight_protocol') final  bool isLightweightProtocol;
- final  String? instructionText;
+@JsonKey(name: 'instruction_text') final  String? instructionText;
 
 @JsonKey(name: 'category_id')
 final String $type;
@@ -3493,7 +3504,7 @@ abstract mixin class $RuntimeVariablesPromptBlockCopyWith<$Res> implements $Prom
   factory $RuntimeVariablesPromptBlockCopyWith(RuntimeVariablesPromptBlock value, $Res Function(RuntimeVariablesPromptBlock) _then) = _$RuntimeVariablesPromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? instructionText
+@StrictOpaqueIdConverter() String id, String slug,@JsonKey(name: 'organization_id') String? organizationId, I18nText label, I18nText description,@JsonKey(name: 'is_evaluative') bool isEvaluative, BlockDataType type,@JsonKey(name: 'allow_decimals') bool allowDecimals,@JsonKey(name: 'output_extensions') List<String> outputExtensions,@JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol,@JsonKey(name: 'instruction_text') String? instructionText
 });
 
 
@@ -3565,27 +3576,27 @@ $TheoryGroundingCopyWith<$Res>? get theoryGrounding {
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class TaskDefinitionPromptBlock extends PromptBlock {
-  const TaskDefinitionPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, this.organizationId, required this.label, required this.description, this.isEvaluative = false, this.type = BlockDataType.instruction, this.allowDecimals = false, final  List<String> outputExtensions = const [], this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, this.instructionText, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'task_definition',super._();
+  const TaskDefinitionPromptBlock({@StrictOpaqueIdConverter() required this.id, required this.slug, @JsonKey(name: 'organization_id') this.organizationId, required this.label, required this.description, @JsonKey(name: 'is_evaluative') this.isEvaluative = false, this.type = BlockDataType.instruction, @JsonKey(name: 'allow_decimals') this.allowDecimals = false, @JsonKey(name: 'output_extensions') final  List<String> outputExtensions = const [], @JsonKey(name: 'theory_grounding') this.theoryGrounding, @JsonKey(name: 'is_lightweight_protocol') this.isLightweightProtocol = false, @JsonKey(name: 'instruction_text') this.instructionText, final  String? $type}): _outputExtensions = outputExtensions,$type = $type ?? 'task_definition',super._();
   factory TaskDefinitionPromptBlock.fromJson(Map<String, dynamic> json) => _$TaskDefinitionPromptBlockFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
 @override final  String slug;
-@override final  String? organizationId;
+@override@JsonKey(name: 'organization_id') final  String? organizationId;
 @override final  I18nText label;
 @override final  I18nText description;
-@override@JsonKey() final  bool isEvaluative;
+@override@JsonKey(name: 'is_evaluative') final  bool isEvaluative;
 @override@JsonKey() final  BlockDataType type;
-@override@JsonKey() final  bool allowDecimals;
+@override@JsonKey(name: 'allow_decimals') final  bool allowDecimals;
  final  List<String> _outputExtensions;
-@override@JsonKey() List<String> get outputExtensions {
+@override@JsonKey(name: 'output_extensions') List<String> get outputExtensions {
   if (_outputExtensions is EqualUnmodifiableListView) return _outputExtensions;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_outputExtensions);
 }
 
-@override final  TheoryGrounding? theoryGrounding;
+@override@JsonKey(name: 'theory_grounding') final  TheoryGrounding? theoryGrounding;
 @override@JsonKey(name: 'is_lightweight_protocol') final  bool isLightweightProtocol;
- final  String? instructionText;
+@JsonKey(name: 'instruction_text') final  String? instructionText;
 
 @JsonKey(name: 'category_id')
 final String $type;
@@ -3617,7 +3628,7 @@ abstract mixin class $TaskDefinitionPromptBlockCopyWith<$Res> implements $Prompt
   factory $TaskDefinitionPromptBlockCopyWith(TaskDefinitionPromptBlock value, $Res Function(TaskDefinitionPromptBlock) _then) = _$TaskDefinitionPromptBlockCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String slug, String? organizationId, I18nText label, I18nText description, bool isEvaluative, BlockDataType type, bool allowDecimals, List<String> outputExtensions, TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol, String? instructionText
+@StrictOpaqueIdConverter() String id, String slug,@JsonKey(name: 'organization_id') String? organizationId, I18nText label, I18nText description,@JsonKey(name: 'is_evaluative') bool isEvaluative, BlockDataType type,@JsonKey(name: 'allow_decimals') bool allowDecimals,@JsonKey(name: 'output_extensions') List<String> outputExtensions,@JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,@JsonKey(name: 'is_lightweight_protocol') bool isLightweightProtocol,@JsonKey(name: 'instruction_text') String? instructionText
 });
 
 

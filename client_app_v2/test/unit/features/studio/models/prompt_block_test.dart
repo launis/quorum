@@ -53,6 +53,7 @@ void main() {
                           'tda_id': validTdaId,
                           'source_id': 'chunk_1',
                           'expected_status': 'PASSED',
+                          'warrant_quotes': ['Exact quote 1'],
                         },
                       ],
                     },
@@ -223,12 +224,21 @@ void main() {
     );
 
     test(
-      'Negative Partition 3: BlockDataType.fromString throws FormatException on unknown value',
-      () {
+      'Negative Partition 3: BlockDataType.fromString throws FormatException on unknown value and background parsers reject non-Map payloads',
+      () async {
         expect(BlockDataType.fromString('FLOAT'), BlockDataType.floatType);
         expect(
           () => BlockDataType.fromString('invalid_type'),
           throwsA(isA<FormatException>()),
+        );
+
+        await expectLater(
+          PromptBlock.parseInBackground('["not_a_json_object"]'),
+          throwsA(isA<AppException>()),
+        );
+        await expectLater(
+          PromptBlock.parseListInBackground(['invalid_item']),
+          throwsA(isA<AppException>()),
         );
       },
     );

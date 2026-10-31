@@ -1,3 +1,4 @@
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:convert';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -46,8 +47,8 @@ abstract class TheoryGrounding with _$TheoryGrounding {
 
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory TheoryGrounding({
-    required String sourceUrl,
-    String? citationReference,
+    @JsonKey(name: 'source_url') required String sourceUrl,
+    @JsonKey(name: 'citation_reference') String? citationReference,
   }) = _TheoryGrounding;
 
   factory TheoryGrounding.fromJson(Map<String, dynamic> json) =>
@@ -98,6 +99,7 @@ abstract class CausalEdgeDTO with _$CausalEdgeDTO {
     @JsonKey(name: 'expected_status')
     @Default(ExecutionStatus.passed)
     ExecutionStatus expectedStatus,
+    @JsonKey(name: 'warrant_quotes') List<String>? warrantQuotes,
   }) = _CausalEdgeDTO;
 
   factory CausalEdgeDTO.fromJson(Map<String, dynamic> json) =>
@@ -210,7 +212,7 @@ abstract class MatrixRow with _$MatrixRow {
   @JsonSerializable(disallowUnrecognizedKeys: true)
   const factory MatrixRow({
     required I18nText label,
-    required String aiDescription,
+    @JsonKey(name: 'ai_description') required String aiDescription,
   }) = _MatrixRow;
 
   factory MatrixRow.fromJson(Map<String, dynamic> json) =>
@@ -225,7 +227,7 @@ abstract class MatrixScale with _$MatrixScale {
   const factory MatrixScale({
     required int score,
     I18nText? name,
-    required String aiLabel,
+    @JsonKey(name: 'ai_label') required String aiLabel,
     required List<MatrixClaim> claims,
   }) = _MatrixScale;
 
@@ -244,15 +246,17 @@ sealed class PromptBlock with _$PromptBlock {
   const factory PromptBlock.matrix({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    String? organizationId,
+    @JsonKey(name: 'organization_id') String? organizationId,
     required I18nText label,
     required I18nText description,
-    String? aiDescription,
-    @Default(true) bool isEvaluative,
+    @JsonKey(name: 'ai_description') String? aiDescription,
+    @JsonKey(name: 'is_evaluative') @Default(true) bool isEvaluative,
     @Default(BlockDataType.floatType) BlockDataType type,
-    @Default(false) bool allowDecimals,
-    @Default([]) List<String> outputExtensions,
-    TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'allow_decimals') @Default(false) bool allowDecimals,
+    @JsonKey(name: 'output_extensions')
+    @Default([])
+    List<String> outputExtensions,
+    @JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,
     @JsonKey(name: 'allow_contextual_override')
     @Default(false)
     bool allowContextualOverride,
@@ -272,18 +276,20 @@ sealed class PromptBlock with _$PromptBlock {
   const factory PromptBlock.systemRule({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    String? organizationId,
+    @JsonKey(name: 'organization_id') String? organizationId,
     required I18nText label,
     required I18nText description,
-    @Default(false) bool isEvaluative,
+    @JsonKey(name: 'is_evaluative') @Default(false) bool isEvaluative,
     @Default(BlockDataType.instruction) BlockDataType type,
-    @Default(false) bool allowDecimals,
-    @Default([]) List<String> outputExtensions,
-    TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'allow_decimals') @Default(false) bool allowDecimals,
+    @JsonKey(name: 'output_extensions')
+    @Default([])
+    List<String> outputExtensions,
+    @JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,
     @JsonKey(name: 'is_lightweight_protocol')
     @Default(false)
     bool isLightweightProtocol,
-    String? instructionText,
+    @JsonKey(name: 'instruction_text') String? instructionText,
   }) = SystemRulePromptBlock;
 
   @FreezedUnionValue('execution_persona')
@@ -291,19 +297,21 @@ sealed class PromptBlock with _$PromptBlock {
   const factory PromptBlock.executionPersona({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    String? organizationId,
+    @JsonKey(name: 'organization_id') String? organizationId,
     required I18nText label,
     required I18nText description,
-    @Default(false) bool isEvaluative,
+    @JsonKey(name: 'is_evaluative') @Default(false) bool isEvaluative,
     @Default(BlockDataType.instruction) BlockDataType type,
-    @Default(false) bool allowDecimals,
-    @Default([]) List<String> outputExtensions,
-    TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'allow_decimals') @Default(false) bool allowDecimals,
+    @JsonKey(name: 'output_extensions')
+    @Default([])
+    List<String> outputExtensions,
+    @JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,
     @JsonKey(name: 'is_lightweight_protocol')
     @Default(false)
     bool isLightweightProtocol,
-    String? roleEnforcement,
-    @Default([]) List<String> toneDirectives,
+    @JsonKey(name: 'role_enforcement') String? roleEnforcement,
+    @JsonKey(name: 'tone_directives') @Default([]) List<String> toneDirectives,
   }) = ExecutionPersonaPromptBlock;
 
   @FreezedUnionValue('agent_role')
@@ -311,19 +319,21 @@ sealed class PromptBlock with _$PromptBlock {
   const factory PromptBlock.agentRole({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    String? organizationId,
+    @JsonKey(name: 'organization_id') String? organizationId,
     required I18nText label,
     required I18nText description,
-    @Default(false) bool isEvaluative,
+    @JsonKey(name: 'is_evaluative') @Default(false) bool isEvaluative,
     @Default(BlockDataType.instruction) BlockDataType type,
-    @Default(false) bool allowDecimals,
-    @Default([]) List<String> outputExtensions,
-    TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'allow_decimals') @Default(false) bool allowDecimals,
+    @JsonKey(name: 'output_extensions')
+    @Default([])
+    List<String> outputExtensions,
+    @JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,
     @JsonKey(name: 'is_lightweight_protocol')
     @Default(false)
     bool isLightweightProtocol,
-    String? roleEnforcement,
-    @Default([]) List<String> toneDirectives,
+    @JsonKey(name: 'role_enforcement') String? roleEnforcement,
+    @JsonKey(name: 'tone_directives') @Default([]) List<String> toneDirectives,
   }) = AgentRolePromptBlock;
 
   @FreezedUnionValue('protocol')
@@ -331,18 +341,20 @@ sealed class PromptBlock with _$PromptBlock {
   const factory PromptBlock.protocol({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    String? organizationId,
+    @JsonKey(name: 'organization_id') String? organizationId,
     required I18nText label,
     required I18nText description,
-    @Default(false) bool isEvaluative,
+    @JsonKey(name: 'is_evaluative') @Default(false) bool isEvaluative,
     @Default(BlockDataType.instruction) BlockDataType type,
-    @Default(false) bool allowDecimals,
-    @Default([]) List<String> outputExtensions,
-    TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'allow_decimals') @Default(false) bool allowDecimals,
+    @JsonKey(name: 'output_extensions')
+    @Default([])
+    List<String> outputExtensions,
+    @JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,
     @JsonKey(name: 'is_lightweight_protocol')
     @Default(false)
     bool isLightweightProtocol,
-    String? protocolInstructions,
+    @JsonKey(name: 'protocol_instructions') String? protocolInstructions,
   }) = ProtocolPromptBlock;
 
   @FreezedUnionValue('runtime_variables')
@@ -350,18 +362,20 @@ sealed class PromptBlock with _$PromptBlock {
   const factory PromptBlock.runtimeVariables({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    String? organizationId,
+    @JsonKey(name: 'organization_id') String? organizationId,
     required I18nText label,
     required I18nText description,
-    @Default(false) bool isEvaluative,
+    @JsonKey(name: 'is_evaluative') @Default(false) bool isEvaluative,
     @Default(BlockDataType.instruction) BlockDataType type,
-    @Default(false) bool allowDecimals,
-    @Default([]) List<String> outputExtensions,
-    TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'allow_decimals') @Default(false) bool allowDecimals,
+    @JsonKey(name: 'output_extensions')
+    @Default([])
+    List<String> outputExtensions,
+    @JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,
     @JsonKey(name: 'is_lightweight_protocol')
     @Default(false)
     bool isLightweightProtocol,
-    String? instructionText,
+    @JsonKey(name: 'instruction_text') String? instructionText,
   }) = RuntimeVariablesPromptBlock;
 
   @FreezedUnionValue('task_definition')
@@ -369,18 +383,20 @@ sealed class PromptBlock with _$PromptBlock {
   const factory PromptBlock.taskDefinition({
     @StrictOpaqueIdConverter() required String id,
     required String slug,
-    String? organizationId,
+    @JsonKey(name: 'organization_id') String? organizationId,
     required I18nText label,
     required I18nText description,
-    @Default(false) bool isEvaluative,
+    @JsonKey(name: 'is_evaluative') @Default(false) bool isEvaluative,
     @Default(BlockDataType.instruction) BlockDataType type,
-    @Default(false) bool allowDecimals,
-    @Default([]) List<String> outputExtensions,
-    TheoryGrounding? theoryGrounding,
+    @JsonKey(name: 'allow_decimals') @Default(false) bool allowDecimals,
+    @JsonKey(name: 'output_extensions')
+    @Default([])
+    List<String> outputExtensions,
+    @JsonKey(name: 'theory_grounding') TheoryGrounding? theoryGrounding,
     @JsonKey(name: 'is_lightweight_protocol')
     @Default(false)
     bool isLightweightProtocol,
-    String? instructionText,
+    @JsonKey(name: 'instruction_text') String? instructionText,
   }) = TaskDefinitionPromptBlock;
 
   factory PromptBlock.fromJson(Map<String, dynamic> json) =>
@@ -429,16 +445,30 @@ sealed class PromptBlock with _$PromptBlock {
   /// Parses raw JSON string to PromptBlock in a background isolate
   static Future<PromptBlock> parseInBackground(String rawJson) async {
     return safeIsolateRun(() {
-      final decoded = jsonDecode(rawJson);
+      final Object? decoded = jsonDecode(rawJson);
+      if (decoded is! Map<String, Object?>) {
+        throw AppException.validation(
+          'Malformed PromptBlock JSON payload: expected JSON object.',
+        );
+      }
       return PromptBlock.fromJson(decoded);
     });
   }
 
   static Future<List<PromptBlock>> parseListInBackground(
-    List<dynamic> rawList,
+    List<Object?> rawList,
   ) async {
     return safeIsolateRun(() {
-      return rawList.map((e) => PromptBlock.fromJson(e)).toList();
+      return rawList
+          .map((Object? item) {
+            if (item is! Map<String, Object?>) {
+              throw AppException.validation(
+                'Malformed PromptBlock list item: expected JSON object.',
+              );
+            }
+            return PromptBlock.fromJson(item);
+          })
+          .toList(growable: false);
     });
   }
 }

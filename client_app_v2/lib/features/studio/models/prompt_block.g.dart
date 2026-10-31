@@ -104,6 +104,7 @@ _CausalEdgeDTO _$CausalEdgeDTOFromJson(Map<String, dynamic> json) =>
             'tda_id',
             'source_id',
             'expected_status',
+            'warrant_quotes',
           ],
         );
         final val = _CausalEdgeDTO(
@@ -119,6 +120,10 @@ _CausalEdgeDTO _$CausalEdgeDTOFromJson(Map<String, dynamic> json) =>
                 $enumDecodeNullable(_$ExecutionStatusEnumMap, v) ??
                 ExecutionStatus.passed,
           ),
+          warrantQuotes: $checkedConvert(
+            'warrant_quotes',
+            (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
+          ),
         );
         return val;
       },
@@ -127,6 +132,7 @@ _CausalEdgeDTO _$CausalEdgeDTOFromJson(Map<String, dynamic> json) =>
         'tdaId': 'tda_id',
         'sourceId': 'source_id',
         'expectedStatus': 'expected_status',
+        'warrantQuotes': 'warrant_quotes',
       },
     );
 
@@ -136,6 +142,7 @@ Map<String, dynamic> _$CausalEdgeDTOToJson(_CausalEdgeDTO instance) =>
       'tda_id': const StrictOpaqueIdConverter().toJson(instance.tdaId),
       'source_id': instance.sourceId,
       'expected_status': _$ExecutionStatusEnumMap[instance.expectedStatus]!,
+      'warrant_quotes': instance.warrantQuotes,
     };
 
 const _$ExecutionStatusEnumMap = {

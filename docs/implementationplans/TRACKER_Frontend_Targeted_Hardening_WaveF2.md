@@ -46,7 +46,7 @@
   - [x] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
   - [x] @[client_app_v2/lib/features/studio/models/model_config.dart]
   - [x] @[client_app_v2/lib/features/studio/models/output_profile.dart]
-  - [ ] @[client_app_v2/lib/features/studio/models/prompt_block.dart]
+  - [x] @[client_app_v2/lib/features/studio/models/prompt_block.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/step_simulation.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
