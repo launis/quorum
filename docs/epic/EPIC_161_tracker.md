@@ -71,7 +71,7 @@
   - [x] @[backend_v2/hooks/archival.py]
   - [x] @[backend_v2/models/domain/proposition_graph.py]
   - [x] @[backend_v2/models/domain/synthesis.py]
-  - [ ] @[backend_v2/models/dtos/atom_evaluation.py]
+  - [x] @[backend_v2/models/dtos/atom_evaluation.py]
   - [ ] @[backend_v2/models/dtos/causal_discovery.py]
   - [ ] @[backend_v2/models/dtos/lightweight_matrix.py]
   - [ ] @[backend_v2/models/dtos/report_data.py]
