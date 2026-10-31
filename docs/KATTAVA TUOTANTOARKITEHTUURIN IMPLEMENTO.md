@@ -12,11 +12,11 @@
 >    * **Askel 3.3 (Malli A) — [SUORITETTU, KOVENNETTU & LUKITTU]:** Yhtenäinen 32-hex `PrefixedUUID7`-arkkitehtuuri, Natiivi PostgreSQL 19 `UUIDv7` kaikissa 12 taulussa, `@[backend_v2/seed/seed_data.json]` 32-hex Cutover, `@[scripts/sanitize_seed_vault.py]`-automaatio, `@[docs/tiede.md]`-graafimatematiikan synkronointi sekä kaikkien legacy `uuid.uuid4()`- ja `Uuid().v4()`-generaattoreiden poisto ja `QGR030`/`DGR008`-lukitus (`@[docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md]` [15/15], `@[docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md]` [31/31], `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 2).
 >    * **Askel 3.4 — [SUORITETTU, KOVENNETTU & LUKITTU]:** AST- ja Laatuporttilaajennukset (`QGR020` PEP 593 `Annotated`-pakko, `QGR031` `FilterOperator`-kurinalaisuus, `QGR032` Polyfactory 32-hex `UUIDv7` -invariantti, `QGR033` PEP 257 / `Raises: None` / RFC 7807 `logger.error` ennen `raise AppException`), dynaaminen `scripts/*.py`-skannaus sekä **`auto_hardening_runner.py` SHA-256 -välimuisti** (`target + unit_test + .agents/rules/` SHA-256, esitäytettynä Karkaisuaaltojen 1–4 ja UUIDv7-trackereiden 179 valmistuneesta kohteesta) (`@[docs/implementationplans/IMPLEMENTATION_PLAN_AST_Guardrails_QGR031_QGR032.md]`, `@[docs/implementationplans/TRACKER_AST_Guardrails_QGR031_QGR032.md]`, `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 3).
 >    * **Askel 3.4b — [SUORITETTU, KOVENNETTU & LUKITTU]:** FastAPI Reitittimien SSOT-konsolidointi (`reports.py`, `workflows.py`, `system_configs.py`) & Universaalin `CRUD + Clone` (`POST /{id}/clone`) -elinkaaren ja 3-tason poistosuojan lukitus (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md]`, `@[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]` [`22/22` karkaistu], `@[ki_router_ssot_and_crud_clone_lifecycle.md]`, `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 4).
->    * **Askel 3.4c (`EPIC 161`) — [SEURAAVANA JONOSSA — 1. PRIORITEETTI]:** Topologisen Älykkyyden Säilyttäminen Tislauksessa, Synteesissä & SDUI-raportoinnissa (*5-Pillar Asymmetric Epistemic Distillation Architecture*, `1500` merkin Micro-CoT-häntäsäilytys, transitiivinen `N_A`-eston periytyminen, kehitysrajan $S+1$ kontrastiivinen ankkurointi `[NEW]` `MatrixFailureDeficitDTO`-mallissa, PostgreSQL 19 3-suuntainen Toulmin-falsifikaatio `find_falsified_claims`, 4-tehtävän `[NEW]` `CausalSynthesisBriefDTO`-hajautus sekä kontekstuaalinen SDUI/Jinja2/Flutter-pariteetti) (`@[docs/epic/EPIC_161_topological_synthesis_cohesion.md]`, `@[docs/epic/EPIC_161_audit_report.md]`, `@[docs/epic/EPIC_161_tracker.md]`, `@[docs/epic/tasks_EPIC_161/01_phase1_plan.md]`–`@[docs/epic/tasks_EPIC_161/04_phase4_plan.md]`, `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 5).
+>    * **Askel 3.4c (`EPIC 161`) — [VAIHEET 1–4, LIVE E2E & BACKEND HARDENING 31/31 SUORITETTU; FRONTEND 5 KOHDETTA AALLOISSA F1–F3]:** Topologisen Älykkyyden Säilyttäminen Tislauksessa, Synteesissä & SDUI-raportoinnissa (*5-Pillar Asymmetric Epistemic Distillation Architecture*, `1500` merkin Micro-CoT-häntäsäilytys, transitiivinen `N_A`-eston periytyminen, kehitysrajan $S+1$ kontrastiivinen ankkurointi `MatrixFailureDeficitDTO`-mallissa, PostgreSQL 19 3-suuntainen Toulmin-falsifikaatio `find_falsified_claims`, 4-tehtävän `CausalSynthesisBriefDTO`-hajautus sekä kontekstuaalinen SDUI/Jinja2/Flutter-pariteetti) (`@[docs/epic/EPIC_161_topological_synthesis_cohesion.md]`, `@[docs/epic/EPIC_161_audit_report.md]`, `@[docs/epic/EPIC_161_tracker.md]`, `@[docs/epic/tasks_EPIC_161/01_phase1_plan.md]`–`@[docs/epic/tasks_EPIC_161/04_phase4_plan.md]`, `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 5).
 >    * **Askel 3.5:** `PostgresEntityAdapter` (`@[backend_v2/database/postgres/entity_adapter.py]`, 1 975 LOC) God Code -purku 4 SRP-moduuliin (`iam_adapter.py`, `studio_adapter.py`, `execution_adapter.py`, `seeding_adapter.py` + `<150 LOC` `__init__.py` fasaadi).
 > 4. **B2B SaaS IAM, Token Exchange & Enterprise Hardening** (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`)
 > 5. **Firebase Storage & Direct-to-Cloud Signed URLs** (`[NEW]` `@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]`)
-> 6. **Frontend & Studio UI Hardening (`client_app_v2` Karkaisuaallot F1–F4: 185 `.dart`-tiedostoa + 9 IAM-tiedostoa = 194 tiedostoa)** (`[NEW]` `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]` – `WaveF4.md`)
+> 6. **Frontend & Studio UI Hardening (`client_app_v2` Karkaisuaallot F1–F4: 185 `.dart`-tiedostoa + 9 IAM-tiedostoa = 194 tiedostoa)** (`@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]` – `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]`)
 > 7. **GCP Production Deployment, Cloud Security & FinOps Hardening** (`@[docs/epic/EPIC_74_Production_Deployment_GCP.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]`, tracker: `@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]`)
 
 ---
@@ -94,7 +94,7 @@ Tuotannon verkkoinfrastruktuuri ja kuormantasaus konfiguroidaan tukemaan viralli
 * **1. Verkkotunnuksen hankinta ja DNS-vyöhykkeen delegointi (`qrum.ai`):**
   * `whois.nic.ai` -rekisteritarkistus vahvistaa verkkotunnuksen `qrum.ai` olevan vapaana rekisteröitäväksi.
   * Rekisteröidään `qrum.ai` ensisijaiseksi globaaliksi verkkotunnukseksi valtuutetulla verkkotunnusvälittäjällä (nimenomaan ja tyhjentävästi: Cloudflare Registrar tai Google Cloud Domains) ja ohjataan nimipalvelimet (`NS`-tietueet) Google Cloud DNS -vyöhykkeeseen (`qrum-ai-zone`).
-  * Asetetaan verkkotunnus Cloud Run -ympäristömuuttujiin (`PRIMARY_DOMAIN=qrum.ai`, `JWT_ISSUER=https://api.qrum.ai`, `JWT_AUDIENCE=https://qrum.ai`, `CORS_ORIGINS`). Koska `@[backend_v2/settings.py#L47-L1132]` lukee kaikki domain- ja JWT-väitteet dynaamisesti ympäristömuuttujista (`AliasChoices`), Python- tai Flutter-lähdekoodiin ei tarvita yhtäkään koodimuutosta.
+  * Asetetaan verkkotunnus Cloud Run -ympäristömuuttujiin (`PRIMARY_DOMAIN=qrum.ai`, `JWT_ISSUER=https://api.qrum.ai`, `JWT_AUDIENCE=https://qrum.ai`, `CORS_ORIGINS`). Koska `@[backend_v2/settings.py]` lukee kaikki domain- ja JWT-väitteet dynaamisesti ympäristömuuttujista (`AliasChoices`), Python- tai Flutter-lähdekoodiin ei tarvita yhtäkään koodimuutosta.
 * **2. Domain-jako ja reititys (Cloud Load Balancer & Cloud DNS):**
   * `api.qrum.ai` $\rightarrow$ Cloud Run API (`quorum-api`) REST/SSE-rajapinnat.
   * `app.qrum.ai` / `studio.qrum.ai` $\rightarrow$ Flutter Web & Studio -käyttöliittymä.
@@ -111,7 +111,7 @@ Tuotannon verkkoinfrastruktuuri ja kuormantasaus konfiguroidaan tukemaan viralli
   gcloud dns record-sets create studio.qrum.ai. --zone=qrum-ai-zone --type=A --ttl=300 --rrdatas="GLOBAL_ANYCAST_IP"
   gcloud compute ssl-certificates create qrum-san-cert --domains="qrum.ai,api.qrum.ai,app.qrum.ai,studio.qrum.ai" --global
   ```
-* **5. CORS & Origin Security (`@[backend_v2/settings.py#L47-L1132]`):**
+* **5. CORS & Origin Security (`@[backend_v2/settings.py]`):**
   * API-ingress sallii nimenomaisesti tuotanto-originit: `https://qrum.ai`, `https://app.qrum.ai`, `https://studio.qrum.ai`.
 * **6. Firebase Auth & OAuth Redirect URIs:**
   * Lisätään Firebase Authenticationin *Authorized Domains* -listalle: `qrum.ai`, `app.qrum.ai`, `api.qrum.ai`.
@@ -660,9 +660,9 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
 4. `[x]` `@[backend_v2/api/routers/output_profiles.py]`
 5. `[x]` `@[backend_v2/api/routers/studio/model_registry.py]`
 6. `[x]` `@[backend_v2/api/routers/studio/prompt_blocks.py]`
-7. `[x]` `@[backend_v2/api/routers/studio/system_configs.py]`
+7. `[x]` `backend_v2/api/routers/studio/system_configs.py`
 8. `[x]` `@[backend_v2/api/routers/studio/workflows.py]`
-9. `[x]` `@[backend_v2/api/routers/execution/workflows.py]`
+9. `[x]` `backend_v2/api/routers/execution/workflows.py`
 10. `[x]` `@[backend_v2/api/routers/execution/reports.py]`
 
 ---
@@ -778,8 +778,8 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
 * **Toteutussuunnitelma (Implementation Plan):** `@[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md]`
 * **Arkkitehtuurinen KI-standardi:** `@[ki_router_ssot_and_crud_clone_lifecycle.md]` (`single_router_ssot_mandate` & `crud_and_clone_lifecycle_standard_mandate`)
 * **Tavoite (`@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 4):** Varmistetaan 100 % **1 Entiteetti = 1 Reititin SSOT** -kurinalaisuus kaikissa ei-IAM-reitittimissä ennen Askeleen 4 (`EPIC 160` IAM-reitittimien `auth.py`, `users.py`, `organizations.py` siivous) ja Askeleen 5.1 (Flutter API-asiakkaiden karkaisu) käynnistämistä sekä lukitaan universaali `CRUD + Draft + Clone` (`POST /{id}/clone`) -elinkaari automaattiseen laatuporttiin:
-  1. **Kuolleen tyhjän reitittimen poisto (`system_configs.py`) & `/system/hooks`-prefiksikorjaus (`system/health.py`):** Poistetaan tyhjä varjoreititin `@[backend_v2/api/routers/studio/system_configs.py]` ja sen testi `@[backend_v2/tests/unit/api/routers/studio/test_system_configs.py]`, siivotaan `@[backend_v2/api/routers/studio/__init__.py]` sekä poistetaan päällekkäinen `prefix="/system"` tiedostosta `@[backend_v2/api/routers/system/health.py]` (`/api/v2/system/system/hooks` -> `/api/v2/system/hooks`).
-  2. **`Workflow`-reitittimen SSOT-konsolidointi (`studio/workflows.py`) & kaikkien 5 vanhan Studio-reitittimen yhdenmukaistaminen `output_profiles.py`-standardiin:** Siirretään `GET /{id}/ui_schema` (`response_model=WorkflowSchemaResponseDTO`) tiedostosta `@[backend_v2/api/routers/execution/workflows.py]` osaksi ainoaa virallista `Workflow`-reititintä `@[backend_v2/api/routers/studio/workflows.py]` (`/api/v2/studio/workflows/{id}/ui_schema`), poistetaan `execution/workflows.py`, päivitetään Flutterin `@[client_app_v2/lib/core/api/workflow_client.dart]` ja päivitetään kaikki 5 vanhempaa Studio-reititintä (`workflows.py`, `steps.py`, `prompt_blocks.py`, `model_registry.py`, `mcp_gateways.py`) tarkistamaan polkuparametreista `Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)]` sekä `PUT /{id}`-kutsuista Fail-Fast `ErrorCodes.ID_MISMATCH` täsmälleen `@[backend_v2/api/routers/output_profiles.py]`-mallin mukaisesti.
+  1. **Kuolleen tyhjän reitittimen poisto (`system_configs.py`) & `/system/hooks`-prefiksikorjaus (`system/health.py`):** Poistetaan tyhjä varjoreititin `backend_v2/api/routers/studio/system_configs.py` ja sen testi `backend_v2/tests/unit/api/routers/studio/test_system_configs.py`, siivotaan `@[backend_v2/api/routers/studio/__init__.py]` sekä poistetaan päällekkäinen `prefix="/system"` tiedostosta `@[backend_v2/api/routers/system/health.py]` (`/api/v2/system/system/hooks` -> `/api/v2/system/hooks`).
+  2. **`Workflow`-reitittimen SSOT-konsolidointi (`studio/workflows.py`) & kaikkien 5 vanhan Studio-reitittimen yhdenmukaistaminen `output_profiles.py`-standardiin:** Siirretään `GET /{id}/ui_schema` (`response_model=WorkflowSchemaResponseDTO`) tiedostosta `backend_v2/api/routers/execution/workflows.py` osaksi ainoaa virallista `Workflow`-reititintä `@[backend_v2/api/routers/studio/workflows.py]` (`/api/v2/studio/workflows/{id}/ui_schema`), poistetaan `execution/workflows.py`, päivitetään Flutterin `@[client_app_v2/lib/core/api/workflow_client.dart]` ja päivitetään kaikki 5 vanhempaa Studio-reititintä (`workflows.py`, `steps.py`, `prompt_blocks.py`, `model_registry.py`, `mcp_gateways.py`) tarkistamaan polkuparametreista `Annotated[str, Path(pattern=OPAQUE_STRIPE_ID_REGEX)]` sekä `PUT /{id}`-kutsuista Fail-Fast `ErrorCodes.ID_MISMATCH` täsmälleen `@[backend_v2/api/routers/output_profiles.py]`-mallin mukaisesti.
   3. **`ReportArtifact`-reitittimen täysi 1-Router SSOT-konsolidointi (`execution/reports.py` & `main.py`):** Yhdistetään `external_router` (`GET /external/reports/{report_id}`) suoraan `reports.py`:n ainoaan `router`-instanssiin, poistetaan `execution_reports_subrouter`, `external_router`, kaksoiskoristellut `include_in_schema=False` `/execution/...`-varjopolut, tuplakiinnitys `@[backend_v2/api/routers/execution/__init__.py]`-tiedostosta sekä vanhentuneet `external_reports_router`-kiinnitykset (`/api/v1` ja `/api/v2`) `@[backend_v2/main.py]`-tiedostosta; korjataan samalla `@[client_app_v2/lib/core/api/reports_client.dart]`-tiedoston `DGR008` `.substring()`-tekninen velka.
   4. **Universaali `CRUD + Clone` (`POST /{id}/clone`) & `OPAQUE_STRIPE_ID_REGEX` OpenAPI-laatuportti (`@[backend_v2/tests/unit/api/test_router_ssot_guardrails.py]`):** Lukitaan automaattinen testi, joka tarkistaa `app.routes`- ja `app.openapi()["paths"]`-rakenteista, ettei yksikään reitti ala `/api/v1`-, `/api/v2/system/system`- tai `/api/v2/execution/reports`-etuliitteellä ja että kaikki 6 konfiguroitavaa Studio/Ontologia-entiteettiä (`workflows`, `steps`, `prompt-blocks`, `output-profiles`, `model-registry`, `mcp-gateways`) toteuttavat täyden `GET /`, `POST /`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` ja `POST /{id}/clone` -pinnan `OPAQUE_STRIPE_ID_REGEX`-polkuvalidoinnilla.
 * **1. Generoi seurantatiedosto (valinnainen):**
@@ -810,7 +810,7 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
 
 ---
 
-### Askel 3.4c: Topologisen Älykkyyden Säilyttäminen Tislauksessa, Synteesissä & SDUI-raportoinnissa (Vaihe 2f-3 — EPIC 161) — [SEURAAVANA JONOSSA — 1. PRIORITEETTI]
+### Askel 3.4c: Topologisen Älykkyyden Säilyttäminen Tislauksessa, Synteesissä & SDUI-raportoinnissa (Vaihe 2f-3 — EPIC 161) — [VAIHEET 1–4, LIVE E2E & BACKEND HARDENING 31/31 SUORITETTU; FRONTEND 5 KOHDETTA AALLOISSA F1–F3]
 * **Lähtötilanteen E2E-varmennus:** Ennen `EPIC 161` -toteutuksen aloitusta koko 32-hex `PrefixedUUID7` -kannan, uusien AST-laatuporttien (`QGR020`, `QGR031`–`QGR033`) ja konsolidoitujen FastAPI-reitittimien päästä päähän -toimivuus on todennettu tuotantoajolla `exe_01a18ecef54372d39c31ef9fb1f12937` / `rep_01a18ed15c5a732288f2bb762c263440` GitHub-versiolla `f1a6818a8` (`@[data/files/executions/exe_01a18ecef54372d39c31ef9fb1f12937/forensic_summary.md]`, ks. yllä oleva *Välivaiheen Todentaminen 3*).
 * **Virallinen Eepos:** `@[docs/epic/EPIC_161_topological_synthesis_cohesion.md]`
 * **Red-Team Auditointiraportti (`0` virhettä):** `@[docs/epic/EPIC_161_audit_report.md]`
@@ -821,11 +821,11 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
   3. **Vaihe 3:** `@[docs/epic/tasks_EPIC_161/03_phase3_plan.md]` — *Frontend Flutter UI, Jinja PDF & Freezed SDUI DTO Synchronization*
   4. **Vaihe 4:** `@[docs/epic/tasks_EPIC_161/04_phase4_plan.md]` — *Verification & E2E Integration Gate*
 * **Tavoite (`5-Pillar Asymmetric Epistemic Distillation Architecture`, `@[docs/arkkitehtuurin_parannuskohteet.md]` Luku 5):** Korjataan 6 rakenteellista litistymiskohtaa (Breakpoints 1–6), joissa Vaiheen 1 rikastetun DAG-suorituksen topologiset estoketjut (`short_circuit_reason_tda_ids`), kausaaliset riippuvuudet (`depends_on_tda_ids`), käänteiset myrkkyosumat (`is_inverse_evidence`), PostgreSQL 19 3-suuntaiset Toulmin-falsifikaatiot (`find_falsified_claims`) ja kontrastiiviset esimerkit (`ContrastivePairDTO`) katoavat ennen synteesiä ja SDUI-raportointia — ylittämättä `300 000` merkin (`~75 000` tokenin) kontekstikattoa (`<= 60 000` merkkiä / `20.0 %` budjetista 20 matriisirivillä):
-  1. **Pilari 1 — Epäsymmetrinen tislaus (`PASSED` tiivistäminen vs. `FAILED`/`N_A` nollahävikki):** Säilytetään kaikki `ExecutionStatus.FAILED`-, `ExecutionStatus.N_A`- ja `is_inverse_evidence == True` -arvioinnit ilman tyhjän sitaatin pudotusta (`@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L182-L393]`) ja järjestetään defisiitit topologisen vaikuttavuuden mukaan `(-int(item.is_inverse_evidence), -item.topological_out_degree, len(item.short_circuit_reason_tda_ids), atom_id)` (`@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L135-L140]`).
-  2. **Pilari 2 — Micro-CoT-päättelyhännän (`step_3` & `step_4`) säilytys:** Nostetaan `max_synthesis_reasoning_length` arvosta `300` arvoon `1500` merkkiä tiedostossa `@[backend_v2/settings.py]`, jotta `ReasoningStepDTO`:n (`@[backend_v2/models/dtos/atom_evaluation.py#L21-L40]`) `step_3_evaluate_anti_patterns` ja `step_4_final_conclusion` säilyvät leikkautumatta.
-  3. **Pilari 3 — Transitiivinen `N_A`-oikosulkujen periytyminen vanhemmalta lapselle:** Koska `@[backend_v2/services/orchestrator/topological_evaluator.py#L56-L175]` jättää `evaluation_reasoning = None` oikosuljetuille `N_A`-atomeille, `@[backend_v2/services/orchestrator/matrix_explanation_service.py#L56-L311]` sitoo jokaisen `N_A`-atomin `short_circuit_reason_tda_ids`-ketjun kautta suoraan sen kaataneen yläsolmun väitteeseen ja yläsolmun `evaluation_reasoning`-perusteluun.
-  4. **Pilari 4 — Kehitysrajan ($S + 1$) kontrastiivinen ja antimallien ankkurointi:** Luodaan `[NEW]` `MatrixFailureDeficitDTO` tiedostoon `@[backend_v2/models/dtos/synthesis.py]`, joka injektoi `ContrastivePairDTO(rejected, acceptable)` (`@[backend_v2/models/domain/matrix.py#L94-L129]`) ja `anti_patterns` (`@[backend_v2/models/domain/matrix.py#L66-L77]`) ainoastaan välittömällä kehitysrajalla (`scale_score == achieved_score + 1`, enintään `MAX_CONTRASTIVE_DEFICITS_PER_ROW = 3` per rivi).
-  5. **Pilari 5 — Yhtenäinen `[NEW]` `CausalSynthesisBriefDTO`, Toulmin-falsifikaatiot & SDUI/Jinja/Flutter-pariteetti:** Kytketään `@[backend_v2/database/postgres/graph_adapter.py#L347-L431]` (`CteReasoningStrategy.find_falsified_claims`) osaksi `CausalTdaFusionResultDTO`:ta (`@[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py#L392-L465]`), injektoidaan `matrix_reducer_output.reduced_atoms` Vaiheen 1 `SynthesisEngine`:en (`@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L58-L301]`), hajautetaan `[NEW]` `CausalSynthesisBriefDTO` kaikille neljälle synteesitehtävälle (`@[backend_v2/workers/synthesis_worker.py#L92-L664]`) ja sidotaan `short_circuited_by_claims` sekä `falsified_warrant_claims` kontekstuaalisesti matriisiriveihin ja kausaaligraafisolmuihin Pythonissa, Jinja2 PDF:ssä ja Flutter Freezed -komponenteissa.
+  1. **Pilari 1 — Epäsymmetrinen tislaus (`PASSED` tiivistäminen vs. `FAILED`/`N_A` nollahävikki):** Säilytetään kaikki `ExecutionStatus.FAILED`-, `ExecutionStatus.N_A`- ja `is_inverse_evidence == True` -arvioinnit ilman tyhjän sitaatin pudotusta (`@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]`) ja järjestetään defisiitit topologisen vaikuttavuuden mukaan `(-int(item.is_inverse_evidence), -item.topological_out_degree, len(item.short_circuit_reason_tda_ids), atom_id)` (`@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]`).
+  2. **Pilari 2 — Micro-CoT-päättelyhännän (`step_3` & `step_4`) säilytys:** Nostetaan `max_synthesis_reasoning_length` arvosta `300` arvoon `1500` merkkiä tiedostossa `@[backend_v2/settings.py]`, jotta `ReasoningStepDTO`:n (`@[backend_v2/models/dtos/atom_evaluation.py]`) `step_3_evaluate_anti_patterns` ja `step_4_final_conclusion` säilyvät leikkautumatta.
+  3. **Pilari 3 — Transitiivinen `N_A`-oikosulkujen periytyminen vanhemmalta lapselle:** Koska `@[backend_v2/services/orchestrator/topological_evaluator.py]` jättää `evaluation_reasoning = None` oikosuljetuille `N_A`-atomeille, `@[backend_v2/services/orchestrator/matrix_explanation_service.py]` sitoo jokaisen `N_A`-atomin `short_circuit_reason_tda_ids`-ketjun kautta suoraan sen kaataneen yläsolmun väitteeseen ja yläsolmun `evaluation_reasoning`-perusteluun.
+  4. **Pilari 4 — Kehitysrajan ($S + 1$) kontrastiivinen ja antimallien ankkurointi:** Luodaan `MatrixFailureDeficitDTO` tiedostoon `@[backend_v2/models/dtos/synthesis.py]`, joka injektoi `ContrastivePairDTO(rejected, acceptable)` (`@[backend_v2/models/domain/matrix.py]`) ja `anti_patterns` (`@[backend_v2/models/domain/matrix.py]`) ainoastaan välittömällä kehitysrajalla (`scale_score == achieved_score + 1`, enintään `MAX_CONTRASTIVE_DEFICITS_PER_ROW = 3` per rivi).
+  5. **Pilari 5 — Yhtenäinen `CausalSynthesisBriefDTO`, Toulmin-falsifikaatiot & SDUI/Jinja/Flutter-pariteetti:** Kytketään `@[backend_v2/database/postgres/graph_adapter.py]` (`CteReasoningStrategy.find_falsified_claims`) osaksi `CausalTdaFusionResultDTO`:ta (`@[backend_v2/services/orchestrator/dag_executor/causal_tda_fusion.py]`), injektoidaan `matrix_reducer_output.reduced_atoms` Vaiheen 1 `SynthesisEngine`:en (`@[backend_v2/services/orchestrator/engines/synthesis_engine.py]`), hajautetaan `CausalSynthesisBriefDTO` kaikille neljälle synteesitehtävälle (`@[backend_v2/workers/synthesis_worker.py]`) ja sidotaan `short_circuited_by_claims` sekä `falsified_warrant_claims` kontekstuaalisesti matriisiriveihin ja kausaaligraafisolmuihin Pythonissa, Jinja2 PDF:ssä ja Flutter Freezed -komponenteissa.
 * **1. Vaiheittainen suoritus (Aloita Vaiheen 1 syväanalyysillä):**
   ```powershell
   # Vaihe 1 Red-Team & syväanalyysi:
@@ -891,10 +891,10 @@ Vastaavasti kuin backendissä (`backend_v2/` 403 tiedostoa), myös koko Flutter 
 
 | Frontend-kategoria (`client_app_v2/lib/`) | Tiedostomäärä | Tila ja seurantadokumentti |
 | :--- | :--- | :--- |
-| **1. Karkaisuaalto F1 — Core, Network, API Clients, Error Boundaries, Theme, Shell & Shared Models** | `41` kpl | `[NEW]` `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]` (Askel 5.1) |
-| **2. Karkaisuaalto F2 — Freezed Domain & DTO Models + Riverpod Controllers & Providers** | `44` kpl | `[NEW]` `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]` (Askel 5.2) |
-| **3. Karkaisuaalto F3 — Execution, Reports & Shared SDUI / Presentation Widgets** | `47` kpl | `[NEW]` `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]` (Askel 5.3) |
-| **4. Karkaisuaalto F4 — Quorum Studio Master Views, Profile Block Editors & Workflow Canvas Widgets** | `53` kpl | `[NEW]` `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]` (Askel 5.4) |
+| **1. Karkaisuaalto F1 — Core, Network, API Clients, Error Boundaries, Theme, Shell & Shared Models** | `41` kpl | `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]` (Askel 5.1) |
+| **2. Karkaisuaalto F2 — Freezed Domain & DTO Models + Riverpod Controllers & Providers** | `44` kpl | `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]` (Askel 5.2) |
+| **3. Karkaisuaalto F3 — Execution, Reports & Shared SDUI / Presentation Widgets** | `47` kpl | `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]` (Askel 5.3) |
+| **4. Karkaisuaalto F4 — Quorum Studio Master Views, Profile Block Editors & Workflow Canvas Widgets** | `53` kpl | `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]` (Askel 5.4) |
 | **5. Eristetty B2B SaaS IAM Auth -alue (`client_app_v2/lib/features/auth/`)** | `9` kpl | Toteutetaan ja karkaistaan Askeleessa 4 (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`) |
 | **YHTEENSÄ (`client_app_v2/lib/`)** | **194 kpl** | **185 tiedostoa Karkaisuaalloissa F1–F4 + 9 tiedostoa Askeleessa 4 (`EPIC 160`) = 100 % kattavuus** |
 
@@ -909,7 +909,7 @@ Vastaavasti kuin backendissä (`backend_v2/` 403 tiedostoa), myös koko Flutter 
 ---
 
 ### Askel 5.1: Frontend Karkaisuaalto F1 — Core, Network, API Clients, Error Boundaries, Theme, Shell & Shared Models (41 tiedostoa)
-* **Seurantadokumentti (`[NEW]`):** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]`
+* **Seurantadokumentti:** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]`
 * **Suorituskomento:**
   ```powershell
   $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md --gate frontend --model gemini-4-argon-medium --continue-on-failure
@@ -962,7 +962,7 @@ Vastaavasti kuin backendissä (`backend_v2/` 403 tiedostoa), myös koko Flutter 
 ---
 
 ### Askel 5.2: Frontend Karkaisuaalto F2 — Freezed Domain & DTO Models + Riverpod Controllers & Providers (44 tiedostoa)
-* **Seurantadokumentti (`[NEW]`):** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]`
+* **Seurantadokumentti:** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]`
 * **Suorituskomento:**
   ```powershell
   $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md --gate frontend --model gemini-4-argon-medium --continue-on-failure
@@ -1018,7 +1018,7 @@ Vastaavasti kuin backendissä (`backend_v2/` 403 tiedostoa), myös koko Flutter 
 ---
 
 ### Askel 5.3: Frontend Karkaisuaalto F3 — Execution, Reports & Shared SDUI / Presentation Widgets (47 tiedostoa)
-* **Seurantadokumentti (`[NEW]`):** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]`
+* **Seurantadokumentti:** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]`
 * **Suorituskomento:**
   ```powershell
   $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md --gate frontend --model gemini-4-argon-medium --continue-on-failure
@@ -1076,7 +1076,7 @@ Vastaavasti kuin backendissä (`backend_v2/` 403 tiedostoa), myös koko Flutter 
 ---
 
 ### Askel 5.4: Frontend Karkaisuaalto F4 — Quorum Studio Master Views, Profile Block Editors & Workflow Canvas Widgets (53 tiedostoa)
-* **Seurantadokumentti (`[NEW]`):** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]`
+* **Seurantadokumentti:** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]`
 * **Suorituskomento:**
   ```powershell
   $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md --gate frontend --model gemini-4-argon-medium --continue-on-failure
