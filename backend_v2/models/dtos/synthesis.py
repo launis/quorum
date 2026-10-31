@@ -6,7 +6,7 @@ outputs of the reporting synthesis pipeline.
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field, TypeAdapter
 
@@ -26,6 +26,7 @@ __all__ = [
     "MatrixExplanationContextDTO",
     "MatrixExplanationContextList",
     "MatrixExplanationsResult",
+    "MatrixFailureDeficitDTO",
     "MatrixSectionSynthesesResult",
     "SynthesisDistillationDTO",
     "SynthesisOutputDTO",
@@ -78,6 +79,56 @@ class XaiHighlightItem(V2CoreBase):
     ]
 
 
+# Phase 2, Step 2.1: Full Contrastive Deficit Injection & Transitive N_A Parent Hydration
+class MatrixFailureDeficitDTO(V2CoreBase):
+    """Structured failure or short-circuited deficit entry for a matrix criterion.
+
+    Attributes:
+        claim: Localized claim label for the unmet or short-circuited criterion.
+        status: Evaluation status of the deficit (FAILED or N_A).
+        scale_score: Numerical scale score tier of the unmet criterion.
+        evaluation_reasoning: Cognitive evaluation reasoning explaining the failure.
+        is_inverse_evidence: True if assertion evaluates absence of negative evidence.
+        short_circuited_by_claims: Transitively resolved upstream blocker claims and reasoning for N_A deficits.
+        anti_patterns: Known anti-pattern descriptions associated with this assertion.
+        contrastive_rejected: Contrastive rejected exemplar demonstrating boundary failure.
+        contrastive_acceptable: Contrastive acceptable exemplar satisfying the assertion.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    claim: Annotated[str, Field(description="Localized claim label for the unmet or short-circuited criterion.")]
+    status: Annotated[Literal["FAILED", "N_A"], Field(description="Evaluation status of the deficit (FAILED or N_A).")]
+    scale_score: Annotated[int, Field(description="Numerical scale score tier of the unmet criterion.")]
+    evaluation_reasoning: Annotated[
+        str | None,
+        Field(default=None, description="Cognitive evaluation reasoning explaining the failure."),
+    ] = None
+    is_inverse_evidence: Annotated[
+        bool,
+        Field(default=False, description="True if assertion evaluates absence of negative evidence."),
+    ] = False
+    short_circuited_by_claims: Annotated[
+        list[str],
+        Field(
+            default_factory=list,
+            description="Transitively resolved upstream blocker claims and reasoning for N_A deficits.",
+        ),
+    ]
+    anti_patterns: Annotated[
+        list[str],
+        Field(default_factory=list, description="Known anti-pattern descriptions associated with this assertion."),
+    ]
+    contrastive_rejected: Annotated[
+        str | None,
+        Field(default=None, description="Contrastive rejected exemplar demonstrating boundary failure."),
+    ] = None
+    contrastive_acceptable: Annotated[
+        str | None,
+        Field(default=None, description="Contrastive acceptable exemplar satisfying the assertion."),
+    ] = None
+
+
 class MatrixExplanationContextDTO(V2CoreBase):
     """DTO representing the evaluated state of a matrix for synthesis explanation.
 
@@ -87,6 +138,7 @@ class MatrixExplanationContextDTO(V2CoreBase):
         matrix_label: The localized matrix title.
         score: The normalized score.
         justification: The structured justification text including quotes.
+        unmet_deficits: Structured failure and short-circuit deficits for this matrix.
     """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
@@ -96,6 +148,10 @@ class MatrixExplanationContextDTO(V2CoreBase):
     matrix_label: Annotated[str, Field(description="The localized matrix title")]
     score: Annotated[float | None, Field(description="The normalized score", default=None)]
     justification: Annotated[str, Field(description="The structured justification text including quotes")]
+    unmet_deficits: Annotated[
+        list[MatrixFailureDeficitDTO],
+        Field(default_factory=list, description="Structured failure and short-circuit deficits for this matrix."),
+    ]
 
 
 MatrixExplanationContextList = TypeAdapter(list[MatrixExplanationContextDTO])

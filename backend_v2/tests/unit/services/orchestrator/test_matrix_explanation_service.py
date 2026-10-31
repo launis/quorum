@@ -8,15 +8,17 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from pydantic import JsonValue
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
+from backend_v2.models.domain.matrix import AntiPattern, ContrastivePairDTO, MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.dag_models import CausalEdge
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
+from backend_v2.models.dtos.synthesis import MatrixFailureDeficitDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.state import StepOutputDTO
@@ -82,6 +84,7 @@ def _make_step_dtos(
     results: list[dict[str, JsonValue]] | None = None,
     level_breakdown: dict[str, LevelStatsDTO] | None = None,
     step_id: str = "step1",
+    raw_score: float = 0.0,
 ) -> list[StepOutputDTO]:
     """Helper to construct strictly typed StepOutputDTO collections for atom and matrix steps."""
     dtos: list[StepOutputDTO] = []
@@ -103,6 +106,10 @@ def _make_step_dtos(
                     atom_data["contextual_override"] = r["contextual_override"]
                 if "is_inverse_evidence" in r:
                     atom_data["is_inverse_evidence"] = r["is_inverse_evidence"]
+                if "depends_on_tda_ids" in r:
+                    atom_data["depends_on_tda_ids"] = r["depends_on_tda_ids"]
+                if "short_circuit_reason_tda_ids" in r:
+                    atom_data["short_circuit_reason_tda_ids"] = r["short_circuit_reason_tda_ids"]
                 atom_dtos.append(AtomResultDTO.model_validate(atom_data))
         if atom_dtos:
             dtos.append(
@@ -119,6 +126,7 @@ def _make_step_dtos(
             block_id=block_id,
             data_type="matrix",
             payload=LightweightMatrixOutput(
+                raw_score=raw_score,
                 normalized_score=normalized_score,
                 evaluated_atoms={k: _to_status(v) for k, v in evaluated_atoms.items()},
                 level_breakdown=level_breakdown,
@@ -274,7 +282,7 @@ def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
 
 
 def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
-    """PROMISE: Matrix explanation must include FAILED claims under UNMET CRITERIA / DEFICITS: and skip N_A claims."""
+    """PROMISE: Matrix explanation includes both FAILED and N_A claims under UNMET CRITERIA / DEFICITS:."""
     block_id = "blk_0195f3a0000070058555555555555555"
     tda_id_1 = "tda_11111111111111111111111111111111"
     tda_id_3 = "tda_33333333333333333333333333333333"
@@ -345,7 +353,8 @@ def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
     assert len(result) == 1
     assert "UNMET CRITERIA / DEFICITS:" in result[0].justification
     assert "Claim 1" in result[0].justification
-    assert "Claim 3" not in result[0].justification
+    assert "Claim 3" in result[0].justification
+    assert len(result[0].unmet_deficits) == 2
 
 
 def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
@@ -1193,3 +1202,399 @@ def test_assemble_matrices_to_explain_trace_matrix_payload_and_reduced_atom_and_
     assert '"1234567890123456789012345"' in result[0].justification
     assert "EXTRA_CLIPPED" not in result[0].justification
     assert '"Second valid quote from R"' in result[0].justification
+
+
+def test_assemble_matrices_to_explain_retains_all_deficits_and_contrastive_pairs_across_all_scales(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify unbounded retention of all 6 deficits with contrastive pairs across scales 2, 3, 4 and 8 600-char quotes."""
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.matrix_explanation_service.get_settings",
+        lambda: SimpleNamespace(
+            min_synthesis_quote_length=15,
+            max_synthesis_quote_length=0,
+            max_synthesis_quotes_per_matrix=0,
+            max_synthesis_unmet_criteria_per_matrix=0,
+        ),
+    )
+
+    block_id = "blk_0195f3a00000700d8ddddddddddddddd"
+
+    # 8 passed TDAs on Scale 1 + 2 failed TDAs each on Scales 2, 3, and 4 (total 6 failed)
+    scale_1_claims = [
+        MatrixClaim(
+            label=I18nText(translations={"en": f"Passed Claim {i}"}),
+            tda_assertions=[
+                TDAAssertion(
+                    tda_id=f"tda_0195f3a000007001800000000000000{i}",
+                    inverse_evidence=False,
+                    aggregation_mode="ALL_MUST_COMPLY",
+                    concept_description=f"Passed Concept Description {i}",
+                )
+            ],
+        )
+        for i in range(8)
+    ]
+
+    scales = [MatrixScale(score=1, ai_label="SCALE_1", claims=scale_1_claims)]
+    failed_tda_ids: list[str] = []
+    for scale_num in (2, 3, 4):
+        scale_claims: list[MatrixClaim] = []
+        for j in range(2):
+            tda_id = f"tda_0195f3a00000700{scale_num}800000000000000{j}"
+            failed_tda_ids.append(tda_id)
+            scale_claims.append(
+                MatrixClaim(
+                    label=I18nText(translations={"en": f"Scale {scale_num} Deficit {j}"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=tda_id,
+                            inverse_evidence=(scale_num == 2 and j == 0),
+                            aggregation_mode="EXISTS" if (scale_num == 2 and j == 0) else "ALL_MUST_COMPLY",
+                            concept_description=f"Failed Concept Scale {scale_num} Item {j}",
+                            anti_patterns=[AntiPattern(pattern=f"Anti-pattern S{scale_num}-{j}")],
+                            contrastive_example=ContrastivePairDTO(
+                                acceptable=f"Acceptable exemplar for scale {scale_num} item {j}.",
+                                rejected=f"Rejected exemplar for scale {scale_num} item {j}.",
+                            ),
+                        )
+                    ],
+                )
+            )
+        scales.append(MatrixScale(score=scale_num, ai_label=f"SCALE_{scale_num}", claims=scale_claims))
+
+    results: list[dict[str, JsonValue]] = []
+    evaluated_atoms: dict[str, JsonValue] = {}
+    for i in range(8):
+        tid = f"tda_0195f3a000007001800000000000000{i}"
+        long_quote = f"Quote_{i}_" + ("X" * (600 - len(f"Quote_{i}_")))
+        assert len(long_quote) == 600
+        results.append(
+            {
+                "tda_id": tid,
+                "status": "PASSED",
+                "evaluation_reasoning": f"Passed reasoning {i}",
+                "source_quotes": [long_quote],
+            }
+        )
+        evaluated_atoms[tid] = ExecutionStatus.PASSED
+
+    for idx, tid in enumerate(failed_tda_ids):
+        results.append(
+            {
+                "tda_id": tid,
+                "status": "FAILED",
+                "evaluation_reasoning": f"Step 4: Micro-CoT reasoning for failure {idx}",
+                "source_quotes": None,
+            }
+        )
+        evaluated_atoms[tid] = ExecutionStatus.FAILED
+
+    dtos = _make_step_dtos(
+        block_id=block_id,
+        raw_score=2.0,
+        normalized_score=40.0,
+        evaluated_atoms=evaluated_atoms,
+        results=results,
+    )
+    blocks_by_id = {block_id: _create_matrix_block(block_id=block_id, scales=scales)}
+
+    result = MatrixExplanationService.assemble_matrices_to_explain(
+        dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+    )
+
+    assert len(result) == 1
+    ctx = result[0]
+    assert len(ctx.unmet_deficits) == 6
+    assert [d.scale_score for d in ctx.unmet_deficits] == [2, 2, 3, 3, 4, 4]
+    assert ctx.unmet_deficits[0].is_inverse_evidence is True
+    assert "[INVERSE EVIDENCE / POISON HIT]" in ctx.justification
+
+    for deficit in ctx.unmet_deficits:
+        assert deficit.status == "FAILED"
+        assert deficit.evaluation_reasoning is not None
+        assert "Step 4: Micro-CoT reasoning for failure" in deficit.evaluation_reasoning
+        assert len(deficit.anti_patterns) == 1
+        assert deficit.contrastive_rejected is not None
+        assert deficit.contrastive_acceptable is not None
+        assert deficit.contrastive_rejected in ctx.justification
+        assert deficit.contrastive_acceptable in ctx.justification
+
+    # All 8 quotes retained at full 600-character length
+    assert ctx.justification.count('- "Quote_') == 8
+    for i in range(8):
+        expected_quote = f"Quote_{i}_" + ("X" * (600 - len(f"Quote_{i}_")))
+        assert expected_quote in ctx.justification
+
+
+def test_assemble_matrices_to_explain_transitively_hydrates_na_parent_claim_and_reasoning() -> None:
+    """Verify N_A atoms transitively resolve parent claim labels and parent evaluation_reasoning."""
+    block_id = "blk_0195f3a00000700e8eeeeeeeeeeeeeee"
+    other_block_id = "blk_0195f3a00000700f8fffffffffffffff"
+    tda_parent = "tda_0195f3a0000070018aaaaaaaaaaaaaaa"
+    tda_mid_na = "tda_0195f3a0000070028bbbbbbbbbbbbbbb"
+    tda_child_na = "tda_0195f3a0000070038ccccccccccccccc"
+    tda_edge_na = "tda_0195f3a0000070048ddddddddddddddd"
+    tda_cross_matrix = "tda_0195f3a0000070058eeeeeeeeeeeeeee"
+    tda_unmapped = "tda_0195f3a0000070068fffffffffffffff"
+
+    scales = [
+        MatrixScale(
+            score=1,
+            ai_label="FOUNDATION",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(translations={"en": "Parent Claim"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=tda_parent,
+                            inverse_evidence=False,
+                            aggregation_mode="ALL_MUST_COMPLY",
+                            concept_description="Parent Prerequisite Concept",
+                        )
+                    ],
+                )
+            ],
+        ),
+        MatrixScale(
+            score=2,
+            ai_label="INTERMEDIATE",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(translations={"en": "Mid Blocked Claim"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=tda_mid_na,
+                            inverse_evidence=False,
+                            aggregation_mode="ALL_MUST_COMPLY",
+                            concept_description="Mid Blocked Concept",
+                        )
+                    ],
+                )
+            ],
+        ),
+        MatrixScale(
+            score=3,
+            ai_label="ADVANCED",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(translations={"en": "Blocked Claim"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=tda_child_na,
+                            inverse_evidence=False,
+                            aggregation_mode="ALL_MUST_COMPLY",
+                            concept_description="Child Blocked Concept",
+                        )
+                    ],
+                ),
+                MatrixClaim(
+                    label=I18nText(translations={"en": "Static Edge Blocked Claim"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=tda_edge_na,
+                            inverse_evidence=False,
+                            aggregation_mode="ALL_MUST_COMPLY",
+                            concept_description="Static Edge Blocked Concept",
+                            depends_on=(
+                                CausalEdge(
+                                    edge_reasoning="Requires cross matrix prerequisite",
+                                    tda_id=tda_cross_matrix,
+                                    source_id="chk_0",
+                                ),
+                                CausalEdge(
+                                    edge_reasoning="Requires unmapped prerequisite",
+                                    tda_id=tda_unmapped,
+                                    source_id="chk_0",
+                                ),
+                            ),
+                        )
+                    ],
+                ),
+            ],
+        ),
+    ]
+
+    other_scales = [
+        MatrixScale(
+            score=1,
+            ai_label="OTHER",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(translations={"en": "Cross Matrix Prerequisite Claim"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=tda_cross_matrix,
+                            inverse_evidence=False,
+                            aggregation_mode="ALL_MUST_COMPLY",
+                            concept_description="Cross Matrix Concept",
+                        )
+                    ],
+                )
+            ],
+        )
+    ]
+
+    results: list[dict[str, JsonValue]] = [
+        {
+            "tda_id": tda_parent,
+            "status": "FAILED",
+            "evaluation_reasoning": "Step 4: Failed due to missing metric",
+            "source_quotes": None,
+            "depends_on_tda_ids": [],
+            "short_circuit_reason_tda_ids": [],
+        },
+        {
+            "tda_id": tda_mid_na,
+            "status": "N_A",
+            "evaluation_reasoning": None,
+            "source_quotes": None,
+            "depends_on_tda_ids": [tda_parent],
+            "short_circuit_reason_tda_ids": [tda_parent],
+        },
+        {
+            "tda_id": tda_child_na,
+            "status": "N_A",
+            "evaluation_reasoning": None,
+            "source_quotes": None,
+            "depends_on_tda_ids": [tda_mid_na],
+            "short_circuit_reason_tda_ids": [tda_mid_na],
+        },
+    ]
+
+    dtos = _make_step_dtos(
+        block_id=block_id,
+        raw_score=1.0,
+        normalized_score=20.0,
+        evaluated_atoms={
+            tda_parent: ExecutionStatus.FAILED,
+            tda_mid_na: ExecutionStatus.N_A,
+            tda_child_na: ExecutionStatus.N_A,
+            tda_edge_na: ExecutionStatus.N_A,
+        },
+        results=results,
+    )
+
+    blocks_by_id = {
+        block_id: _create_matrix_block(block_id=block_id, scales=scales),
+        other_block_id: _create_matrix_block(block_id=other_block_id, scales=other_scales),
+    }
+
+    result = MatrixExplanationService.assemble_matrices_to_explain(
+        dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+    )
+
+    assert len(result) == 1
+    deficits_by_claim = {d.claim: d for d in result[0].unmet_deficits}
+    assert "Blocked Claim" in deficits_by_claim
+    child_deficit = deficits_by_claim["Blocked Claim"]
+    assert child_deficit.status == "N_A"
+    assert any(
+        "Parent Claim" in item and "Step 4: Failed due to missing metric" in item
+        for item in child_deficit.short_circuited_by_claims
+    )
+    assert (
+        "[Blocked Claim] <-- SHORT-CIRCUITED BY PREREQUISITE FAILURE: "
+        "[Parent Claim: Step 4: Failed due to missing metric]"
+    ) in child_deficit.short_circuited_by_claims
+
+    edge_deficit = deficits_by_claim["Static Edge Blocked Claim"]
+    assert edge_deficit.status == "N_A"
+    assert any("Cross Matrix Prerequisite Claim" in item for item in edge_deficit.short_circuited_by_claims)
+    assert all("tda_" not in item for item in edge_deficit.short_circuited_by_claims)
+
+
+def test_assemble_matrices_to_explain_max_score_row_has_zero_unmet_deficits() -> None:
+    """Verify matrix row where achieved_score equals computed_max (5 of 5) has empty unmet_deficits."""
+    block_id = "blk_0195f3a00000700a9999999999999999"
+    tda_1 = "tda_0195f3a0000070019999999999999991"
+    tda_5 = "tda_0195f3a0000070059999999999999995"
+
+    scales = [
+        MatrixScale(
+            score=1,
+            ai_label="SCALE_1",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(translations={"en": "Scale 1 Claim"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=tda_1,
+                            inverse_evidence=False,
+                            aggregation_mode="ALL_MUST_COMPLY",
+                            concept_description="Scale 1 Concept Description",
+                        )
+                    ],
+                )
+            ],
+        ),
+        MatrixScale(
+            score=5,
+            ai_label="SCALE_5",
+            claims=[
+                MatrixClaim(
+                    label=I18nText(translations={"en": "Scale 5 Claim"}),
+                    tda_assertions=[
+                        TDAAssertion(
+                            tda_id=tda_5,
+                            inverse_evidence=False,
+                            aggregation_mode="ALL_MUST_COMPLY",
+                            concept_description="Scale 5 Concept Description",
+                        )
+                    ],
+                )
+            ],
+        ),
+    ]
+
+    dtos = _make_step_dtos(
+        block_id=block_id,
+        raw_score=5.0,
+        normalized_score=100.0,
+        evaluated_atoms={
+            tda_1: ExecutionStatus.FAILED,
+            tda_5: ExecutionStatus.PASSED,
+        },
+        results=[
+            {
+                "tda_id": tda_1,
+                "status": "FAILED",
+                "evaluation_reasoning": "Minor omission on scale 1",
+                "source_quotes": None,
+            },
+            {
+                "tda_id": tda_5,
+                "status": "PASSED",
+                "evaluation_reasoning": "Achieved mastery on scale 5",
+                "source_quotes": ["Comprehensive mastery quote exceeding minimum length."],
+            },
+        ],
+    )
+    blocks_by_id = {block_id: _create_matrix_block(block_id=block_id, scales=scales)}
+
+    result = MatrixExplanationService.assemble_matrices_to_explain(
+        dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+    )
+
+    assert len(result) == 1
+    assert result[0].unmet_deficits == []
+    assert "UNMET CRITERIA / DEFICITS:" not in result[0].justification
+
+
+def test_matrix_failure_deficit_dto_invalid_status_raises_validation_error() -> None:
+    """Verify MatrixFailureDeficitDTO raises ValidationError when instantiated with status='PASSED'."""
+    with pytest.raises(ValidationError):
+        MatrixFailureDeficitDTO.model_validate(
+            {
+                "claim": "Invalid Status Claim",
+                "status": "PASSED",
+                "scale_score": 1,
+                "evaluation_reasoning": "Should fail validation",
+                "is_inverse_evidence": False,
+                "short_circuited_by_claims": [],
+                "anti_patterns": [],
+                "contrastive_rejected": None,
+                "contrastive_acceptable": None,
+            }
+        )
+

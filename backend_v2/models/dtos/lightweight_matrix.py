@@ -32,7 +32,7 @@ class OutputProfileConfig(V2CoreBase):
         visible_workflow_extensions: List of extensions enabled globally across the workflow.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     visible_block_extensions: Annotated[
         list[LaxXaiExtensionType], Field(description="List of extensions enabled at the block level")
@@ -50,7 +50,7 @@ class XAILogDto(V2CoreBase):
         engine_debug_trace: System dictionary containing mathematical/diagnostic reasoning.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     pedagogical_key: Annotated[str, Field(description="The designated mapping key for UI-facing explanations")]
     engine_debug_trace: Annotated[
@@ -138,7 +138,7 @@ class LightweightMatrixOutput(V2CoreBase):
         atom_quotes: Atom quotes list if provided.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     raw_score: Annotated[
         float | None, Field(default=None, description="Original unnormalized float evaluation score")
