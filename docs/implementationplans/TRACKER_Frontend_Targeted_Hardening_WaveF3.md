@@ -24,7 +24,7 @@
   - [x] @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]
   - [x] @[client_app_v2/lib/features/execution/views/dashboard_view.dart]
   - [x] @[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/execution_view.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/execution_view.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/diagnostic_scorecard_widget.dart]

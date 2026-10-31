@@ -1,20 +1,19 @@
+import 'package:client_app/core/api/reports_client.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/state/mutation.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/features/execution/controllers/execution_controller.dart';
+import 'package:client_app/features/execution/models/execution_record.dart';
+import 'package:client_app/features/reports/models/report_artifact.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/router/router.dart';
+import 'package:client_app/shared/widgets/execution_timeline.dart';
+import 'package:client_app/shared/widgets/global_error_view.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:client_app/features/execution/controllers/execution_controller.dart';
-
-import 'package:client_app/core/ui/error_view.dart';
-import 'package:client_app/shared/widgets/execution_timeline.dart';
-import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/core/state/mutation.dart';
-import 'package:client_app/shared/widgets/global_error_view.dart';
-import 'package:client_app/core/error/app_exception.dart';
-import 'package:client_app/core/error/app_error_boundary.dart';
-import 'package:client_app/core/api/reports_client.dart';
-import 'package:client_app/features/reports/models/report_artifact.dart';
-import 'package:client_app/router/router.dart';
-
-import 'package:client_app/features/execution/models/execution_record.dart';
-import 'package:client_app/core/theme/app_spacing.dart';
 
 /// **Live Execution SDUI Screen**
 ///
@@ -61,8 +60,12 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
 
     try {
       final reportsClient = ref.read(reportsClientProvider);
-      final profileId =
-          record.outputProfileId ?? record.activeProfileId ?? 'default';
+      final profileId = record.outputProfileId ?? record.activeProfileId;
+      if (profileId == null || profileId.isEmpty) {
+        throw AppException.validation(
+          'Missing output profile ID for automatic report generation.',
+        );
+      }
       await reportsClient.createReport(
         executionId: widget.executionId,
         request: CreateReportRequest(profileId: profileId),
@@ -74,7 +77,15 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
       if (context.mounted) {
         ExecutionReportRoute(executionId: widget.executionId).go(context);
       }
-    } catch (e) {
+    } catch (e, stack) {
+      ref
+          .read(loggerServiceProvider)
+          .error(
+            'ExecutionView',
+            'AUTO_REPORT_GENERATION_FAILED: Failed to create report for execution ${widget.executionId}',
+            e,
+            stack,
+          );
       if (!mounted) return;
       setState(() {
         _reportGenerationLoading = false;
@@ -237,6 +248,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                             AppLocalizations.of(
                               context,
                             )!.statusLabel(status.toUpperCase()),
+                            overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
                                   color: status == 'failed'
@@ -250,7 +262,10 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                             onPressed: () => ExecutionReportRoute(
                               executionId: widget.executionId,
                             ).go(context),
-                            icon: const Icon(Icons.article_outlined, size: 18),
+                            icon: const Icon(
+                              Icons.article_outlined,
+                              size: AppSpacing.s16,
+                            ),
                             label: Text(
                               AppLocalizations.of(
                                 context,
@@ -292,10 +307,13 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            Text(
-                              '${record.progress ?? 0}%',
-                              style: Theme.of(context).textTheme.labelMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            Flexible(
+                              child: Text(
+                                '${record.progress ?? 0}%',
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ],
                         ),
@@ -330,17 +348,18 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                 child: Row(
                   children: [
                     const SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: AppSpacing.s24,
+                      height: AppSpacing.s24,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                    const SizedBox(width: AppSpacing.s16),
+                    AppSpacing.w16,
                     Expanded(
                       child: Text(
                         AppLocalizations.of(
                           context,
                         )!.autoGeneratingReportNotice,
-                        style: TextStyle(
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: Theme.of(
                             context,
@@ -377,13 +396,14 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                       Icons.error_outline,
                       color: Theme.of(context).colorScheme.error,
                     ),
-                    const SizedBox(width: AppSpacing.s16),
+                    AppSpacing.w16,
                     Expanded(
                       child: Text(
                         AppLocalizations.of(
                           context,
                         )!.reportGenerationFailedNotice,
-                        style: TextStyle(
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onErrorContainer,
                           fontWeight: FontWeight.w600,
                         ),
@@ -391,7 +411,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                     ),
                     FilledButton.tonalIcon(
                       onPressed: () => _retryReportGeneration(record),
-                      icon: const Icon(Icons.refresh, size: 18),
+                      icon: const Icon(Icons.refresh, size: AppSpacing.s16),
                       label: Text(
                         AppLocalizations.of(
                           context,
@@ -427,13 +447,14 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                       Icons.warning_amber_rounded,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(width: AppSpacing.s12),
+                    AppSpacing.w12,
                     Expanded(
                       child: Text(
                         AppLocalizations.of(
                           context,
                         )!.auditDriftWarning(versionId),
-                        style: TextStyle(
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
