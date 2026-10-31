@@ -34,11 +34,15 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
 
     // Catch framework-level errors gracefully without causing the Red Screen of Death
     ErrorWidget.builder = (FlutterErrorDetails details) {
-      if (!mounted) return const SizedBox.shrink();
+      if (!mounted) {
+        return _rootOriginalErrorBuilder?.call(details) ??
+            ErrorWidget(details.exception);
+      }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _error == null) {
-          try {
-            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          final messenger = ScaffoldMessenger.maybeOf(context);
+          if (messenger != null && Scaffold.maybeOf(context) != null) {
+            messenger.showSnackBar(
               SnackBar(
                 content: Text(
                   AppLocalizations.of(context)?.errorUnknown ??
@@ -48,15 +52,13 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
-          } catch (_) {
-            // Scaffold / ScaffoldMessenger may not be available in all hierarchies
           }
           setState(() {
             _error = details.exception;
           });
         }
       });
-      // Diagnostic Node Mandate: Immediately show error box instead of hiding it (No SizedBox.shrink())
+      // Diagnostic Node Mandate: Immediately show error box instead of hiding it
       return _buildDiagnosticNode(context, details.exception);
     };
   }
@@ -104,7 +106,7 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
     }
 
     return Material(
-      color: Colors.transparent,
+      type: MaterialType.transparency,
       child: Container(
         margin: AppSpacing.p8,
         padding: AppSpacing.p16,
@@ -130,6 +132,7 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
                 Expanded(
                   child: Text(
                     l10n?.errorUnknown ?? 'Data Corruption / Render Error',
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.onErrorContainer,
                       fontWeight: FontWeight.bold,
@@ -149,7 +152,7 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
                         child: Icon(
                           Icons.refresh,
                           color: theme.colorScheme.onErrorContainer,
-                          size: 20,
+                          size: AppSpacing.s16,
                         ),
                       ),
                     ),

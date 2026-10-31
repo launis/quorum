@@ -90,4 +90,84 @@ void main() {
       }
     },
   );
+
+  testWidgets(
+    'AppExceptionBoundary formats CheckedFromJsonException with innerError and recovers on reset tap',
+    (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      FlutterError.onError = (FlutterErrorDetails details) {};
+      var shouldThrow = true;
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('en'),
+            home: Scaffold(
+              body: AppExceptionBoundary(
+                child: Builder(
+                  builder: (context) {
+                    if (shouldThrow) {
+                      $checkedConvert<int>(
+                        const {'score': 'not_an_int'},
+                        'score',
+                        (v) => v as int,
+                      );
+                    }
+                    return const Text('Recovered Content');
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.report_problem), findsOneWidget);
+        expect(find.textContaining('score'), findsOneWidget);
+
+        // Fix underlying state and trigger reset via the refresh icon button
+        shouldThrow = false;
+        await tester.tap(find.byIcon(Icons.refresh));
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.report_problem), findsNothing);
+        expect(find.text('Recovered Content'), findsOneWidget);
+      } finally {
+        FlutterError.onError = originalOnError;
+      }
+    },
+  );
+
+  testWidgets(
+    'AppExceptionBoundary restores original ErrorWidget.builder when all boundaries dispose',
+    (WidgetTester tester) async {
+      final initialBuilder = ErrorWidget.builder;
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Column(
+            children: [
+              AppExceptionBoundary(child: SizedBox()),
+              AppExceptionBoundary(child: SizedBox()),
+            ],
+          ),
+        ),
+      );
+
+      expect(ErrorWidget.builder, isNot(same(initialBuilder)));
+
+      // Dispose one boundary; one remains active so custom builder stays installed
+      await tester.pumpWidget(
+        const MaterialApp(home: AppExceptionBoundary(child: SizedBox())),
+      );
+      expect(ErrorWidget.builder, isNot(same(initialBuilder)));
+
+      // Dispose final boundary; original builder must be restored
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+      expect(ErrorWidget.builder, same(initialBuilder));
+    },
+  );
 }
