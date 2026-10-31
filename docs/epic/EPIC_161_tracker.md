@@ -73,7 +73,7 @@
   - [x] @[backend_v2/models/domain/synthesis.py]
   - [x] @[backend_v2/models/dtos/atom_evaluation.py]
   - [x] @[backend_v2/models/dtos/causal_discovery.py]
-  - [ ] @[backend_v2/models/dtos/lightweight_matrix.py]
+  - [x] @[backend_v2/models/dtos/lightweight_matrix.py]
   - [ ] @[backend_v2/models/dtos/report_data.py]
   - [ ] @[backend_v2/models/dtos/synthesis.py]
   - [ ] @[backend_v2/models/prompts/synthesis/synthesis_directives.py]
