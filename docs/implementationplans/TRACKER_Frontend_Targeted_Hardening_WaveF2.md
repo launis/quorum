@@ -33,7 +33,7 @@
   - [x] @[client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart]
   - [x] @[client_app_v2/lib/features/execution/models/human_override_request_dto.dart]
   - [x] @[client_app_v2/lib/features/execution/models/hydrated_atom_dto.dart]
-  - [ ] @[client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart]
+  - [x] @[client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/report_data_v2_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/synthesis_config_dto.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/tda_state.dart]
