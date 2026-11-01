@@ -82,10 +82,10 @@
 6. **Item 10 (`anti_happy_path_mandate` — ISTQB Negative & Boundary Partitions)**: Add negative and boundary unit tests covering the 15 missed statements from baseline (`lines 849, 869, 1456, 1566, 1758, 1864, 1969, 2045, 2107, 2193, 2303, 2381, 2449, 2474, 2490` of `entity_adapter.py`) across `backend_v2/tests/unit/database/postgres/entity_adapter/` to achieve `>= 99%` line coverage.
 
 #### Architectural Documentation Synchronization
-- [x] **[OK] As-Built Architectural Sync**: Run `/tier7-describe-architecture @[docs/epic/entity_adapter_decomposition_tracker.md] @[ki_god_code_prevention.md] @[ki_deterministic_hardening_state.md]`
-  - **Target KIs to Synchronize**: `@[ki_god_code_prevention.md]`, `@[ki_deterministic_hardening_state.md]`
-  - **Directory Reference Sync**: Verify `@[.agents/rules/04_directory_reference.md]` reflects `backend_v2/database/postgres/entity_adapter/` and `backend_v2/tests/unit/database/postgres/entity_adapter/`
-  - **Pillar Documentation Sync**: Update Database & Persistence documentation in `docs/architecture/` to reflect the modular `backend_v2/database/postgres/entity_adapter/` package
+- [x] **[OK] As-Built Architectural Sync**: Run `/tier7-describe-architecture @[docs/epic/entity_adapter_decomposition_tracker.md] @[ki_god_code_prevention.md] @[ki_deterministic_hardening_state.md] @[ki_zero_permissive_typing.md]`
+  - **Target KIs to Synchronize**: `@[ki_god_code_prevention.md]`, `@[ki_deterministic_hardening_state.md]`, `@[ki_zero_permissive_typing.md]`, and `backend_system_architecture` (`database_systems_and_maintenance.md`)
+  - **Directory Reference Sync**: Verify `@[.agents/rules/04_directory_reference.md]` reflects `backend_v2/database/postgres/entity_adapter/`, `backend_v2/tests/unit/database/postgres/entity_adapter/`, and all `scripts/*.py` verifiers
+  - **Pillar Documentation Sync**: Update Database & Persistence documentation in `@[docs/architecture/01_system_context_and_invariants.md#L34-L38]` and `@[docs/architecture/02_data_seeding_and_ontology.md#L13-L21]` to reflect the stage-partitioned Zero-ORM entity persistence architecture, and scrub physical file paths across `docs/architecture/01_` through `09_`
 
 ### Final Epic Audit
 - [x] **[OK] System 2 Red-Team Audit**: Run `/tier8-audit-plan @[docs/epic/tasks_entity_adapter/phase4_package_cutover_and_guardrails.md] @[docs/epic/entity_adapter_decomposition_tracker.md]` and verify 100% completion across all phases and gates.
@@ -130,4 +130,4 @@
 `/tier5-resume @[docs/epic/entity_adapter_decomposition_tracker.md]`
 
 ## Remaining
-- None — 100% Complete across all Epoch 1 phases (Phases 1–4), Epoch 2 Tier 2 Backend Hardening (`9/9` targets passed on Attempt 1 in commits `467885671`–`f32dfadf4` + Final Macro-Audit Completion Gate), Tier 7 As-Built Architectural Sync (`@[ki_god_code_prevention.md]`, `@[.agents/rules/04_directory_reference.md]`, `@[docs/architecture/01_system_context_and_invariants.md#L34-L38]`), and Final Epic Audit.
+- None — 100% Complete across all Epoch 1 phases (Phases 1–4), Epoch 2 Tier 2 Backend Hardening (`9/9` targets passed on Attempt 1 in commits `467885671`–`f32dfadf4` + Final Macro-Audit Completion Gate), Tier 7 As-Built Architectural Sync (`@[ki_god_code_prevention.md]`, `@[ki_deterministic_hardening_state.md]`, `@[ki_zero_permissive_typing.md]`, `backend_system_architecture/artifacts/database_systems_and_maintenance.md`, `@[.agents/rules/04_directory_reference.md]`, `@[docs/architecture/01_system_context_and_invariants.md#L34-L38]`, `@[docs/architecture/02_data_seeding_and_ontology.md#L13-L21]`), and Final Epic Audit.

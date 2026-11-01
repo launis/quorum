@@ -45,7 +45,7 @@ Both Track A and Track B matrices compute scores and directly affect assessment 
 1. **Evaluative Scoring Matrices (`is_evaluative: true`, 10 matrices):**
    - **Track A:** Bloom (`blk_f921c7c0989b47e8`), Clarity (`blk_f6e286f050c94d60`), HACM (`blk_7d8e9f0a1b2c3d4e`), and Causal Cohesion (`blk_c0a1e50000000001`).
    - **Track B:** Toulmin (`blk_440a5fef9331451b`), Kahneman (`blk_109dab5b6b3f403a`), Causal Analyst (`blk_c5804a9143c34cb1`), Falsifier (`blk_b476f89fb732448c`), Epistemic Humility (`blk_22e3598e06414409`), and Causal & Abductive Integrity (`blk_c3bc5f3eb8e74110`).
-   - *Scoring Pipeline:* Each evaluative matrix executes through `UnifiedScoringEngine` to produce a raw score mapped between its scale extrema (`computed_min` and `computed_max`). The score is normalized to $[0.0, 100.0]$ via `normalization_hook.py` and stored in `GlobalContextVarsDTO.evaluative_matrices`. The downstream scoring hook (`apply_scoring_logic_hook`) computes the unweighted arithmetic mean across all active evaluative matrices to establish the base `global_score` before workflow penalty deductions. Thus, evaluative matrices from both Track A and Track B contribute directly and commensurately to the candidate's final numerical rating.
+   - *Scoring Pipeline:* Each evaluative matrix executes through `UnifiedScoringEngine` to produce a raw score mapped between its scale extrema (`computed_min` and `computed_max`). The score is normalized to $[0.0, 100.0]$ via the normalization post-hook (`normalize_matrix_scores_hook`) and stored in `GlobalContextVarsDTO.evaluative_matrices`. The downstream scoring hook (`apply_scoring_logic_hook`) computes the unweighted arithmetic mean across all active evaluative matrices to establish the base `global_score` before workflow penalty deductions. Thus, evaluative matrices from both Track A and Track B contribute directly and commensurately to the candidate's final numerical rating.
 
 2. **Specialized Structural Matrices (`is_evaluative: false`, 5 matrices):**
    - **Track A:** Goodhart (`blk_53f32679aa514fcb`), Supreme Adjudicator (`blk_ff72c2d79edb4ebf`), and XAI Reporter (`blk_6b8c766185294f7e`).
@@ -487,7 +487,7 @@ Performative language detection operates dynamically through prompt compilation 
 ### 5.5. Deterministic Target Matrix Binding & Studio Configuration
 Targeting the authenticity matrix is completely decoupled from background worker heuristics or hardcoded name markers:
 1. **SSOT Contract:** `OutputProfile.variance_target_block` is the sole authoritative binding for the X-axis metric. A Fail-Fast `@model_validator` guarantees that whenever variance validation is enabled, a valid matrix block is explicitly designated.
-2. **Deterministic Worker Extraction:** The Arq synthesis worker (`worker.py`) reads the score directly from `out_content[target_block_id]` using the bound block ID, operating with zero heuristic string matching.
+2. **Deterministic Worker Extraction:** The Arq synthesis worker reads the score directly from `out_content[target_block_id]` using the bound block ID, operating with zero heuristic string matching.
 3. **Studio Scoping:** In Quorum Studio, `VarianceBlockCard` scopes the dropdown selector strictly to matrix blocks evaluated within the active workflow (`allowedBlockIds`), preventing cross-workflow configuration drift.
 
 ---
@@ -705,7 +705,7 @@ Traditional assessment methodologies and naive LLM evaluators suffer from profou
 Quorum completely eliminates this subjective vulnerability through **Bottom-Up Empirical Evaluation**. Evaluative matrices do not prompt models to pick a score level. Instead, scoring is decomposed into an array of discrete, binary Test-Driven Assertion (TDA) atoms evaluated in complete isolation under zero-trust conditions.
 
 ### 8.2 Atom Flattening Hook (`atom_flattening_hook`)
-Prior to LLM prompt generation, the orchestration pipeline triggers the deterministic `atom_flattening_hook` (`backend_v2/hooks/atom_flattening.py`):
+Prior to LLM prompt generation, the orchestration pipeline triggers the deterministic `atom_flattening_hook`:
 1. **Multi-Scale Atom Extraction:** The hook iterates through all configured scale levels (`MatrixPromptBlock.scales`) for the target matrix block. For every `MatrixScale`, it traverses its `claims` and extracts all underlying `tda_assertions`.
 2. **Metadata Stripping & De-Scoring:** All level metadata, numerical score values (specifically `score=1`, `score=5`), scale names, and target labels are systematically stripped from each assertion. Every assertion is converted into a neutral `FlattenedAtom` DTO containing solely the propositional question, extraction rule, syntactic anchors, and causal dependencies (`depends_on`).
 3. **Stratified Sampling & Deterministic Shuffling:** When matrix sampling limits are configured in metadata (`matrix_sampling_strategy`), the hook samples proportionally across each scale level before performing Transitive Causal Closure to guarantee that parent causal assertions are never severed. The resulting atom collection is randomized using an execution-locked seed into a single blind list (`shuffled_atoms`).
@@ -739,10 +739,10 @@ Once the model returns batch evaluation results across flattened assertions:
    $$\text{Dampened\_Ratio} = (\text{Linear\_Ratio})^{e(S)}$$
    $$\text{Raw\_Score} = \text{math\_min} + \text{Dampened\_Ratio} \times (\text{math\_max} - \text{math\_min})$$
 
-4. **Per-Matrix Normalization:** In `normalization_hook.py`, every matrix score is mapped to a standardized $[0.0, 100.0]$ range using its dynamically computed scale extrema ($\text{computed\_min}$ and $\text{computed\_max}$):
+4. **Per-Matrix Normalization:** In the normalization post-hook (`normalize_matrix_scores_hook`), every matrix score is mapped to a standardized $[0.0, 100.0]$ range using its dynamically computed scale extrema ($\text{computed\_min}$ and $\text{computed\_max}$):
    $$\text{Normalized\_Score}_m = \left(\frac{\text{Raw\_Score}_m - \text{computed\_min}_m}{\text{computed\_max}_m - \text{computed\_min}_m}\right) \times 100.0$$
 
-5. **Multi-Matrix Global Score Aggregation:** In `falsifier_hook.py` and `blueprint.py`, normalized matrix scores are aggregated into a single holistic `global_score` via unweighted arithmetic averaging, subject to capped automated penalties ($\text{MAX\_TOTAL\_PENALTY\_RATIO} = 0.40$):
+5. **Multi-Matrix Global Score Aggregation:** In the scoring logic post-hook (`apply_scoring_logic_hook`) and presentation blueprint transformer (`BlueprintTransformer`), normalized matrix scores are aggregated into a single holistic `global_score` via unweighted arithmetic averaging, subject to capped automated penalties ($\text{MAX\_TOTAL\_PENALTY\_RATIO} = 0.40$):
    $$\text{average\_score} = \frac{1}{N} \sum_{m=1}^{N} \text{Normalized\_Score}_m$$
    $$\text{effective\_penalty} = \min(\text{total\_penalty}, 0.40)$$
    $$\text{global\_score} = \text{round}(\max(0.0, \text{average\_score} \times (1.0 - \text{effective\_penalty})), 1)$$

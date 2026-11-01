@@ -97,7 +97,7 @@ Report artifacts provide enterprise-grade tabular row delivery via `ReportRowIte
 #### SRP & CQRS Decomposition of Workers and Services
 Monolithic worker and execution structures are decomposed into Single Responsibility Principle (SRP) and Command Query Responsibility Segregation (CQRS) subpackages:
 - **Workers Subpackage:** Separates execution workers (heavy DAG execution) from report workers (synthesis and presentation artifact compilation), while the worker daemon entrypoint serves exclusively as the pure Arq daemon runtime entrypoint (`WorkerSettings`, `startup`, `shutdown`, `health_check`).
-- **Execution Services Subpackage:** Decomposes execution logic into focused, single-responsibility services (`lifecycle_service.py`, `ingress_service.py`, `resumption_service.py`, `override_service.py`, `stream_service.py`, `context_service.py`) unified by a sovereign `ExecutionService` facade, with external service bridges decoupled and purged from the package entrypoint.
+- **Execution Services Subpackage:** Decomposes execution logic into focused, single-responsibility services (lifecycle, ingress, resumption, human override, event streaming, and context resolution) unified by a sovereign `ExecutionService` facade, with external service bridges decoupled and purged from the package entrypoint.
 - **Dedicated Export & Report Services:** `ReportService` manages full report artifact lifecycle and CRUD operations, while `ExportService` compiles multi-tab Excel and flat-file data anchored directly to backend `I18nText` SSOT.
 
 ### 2.16. Evidence Extraction Invariants, Provenance Sovereignty, & Anti-Pattern Falsification
@@ -130,7 +130,7 @@ To guarantee repeatable evaluation and eliminate test harness noise across found
 FinOps telemetry, token metrics (`prompt_tokens`, `completion_tokens`, `cached_tokens`, `reasoning_tokens`, `cumulative_synthesis_tokens`, `dag_cost_usd`, `cumulative_synthesis_cost`, `cost_estimate`, `models_used`), and step progression indicators (`progress`, `has_warning`) are defined directly on `ExecutionRecord` and `ExecutionStep` as first-class, strictly typed fields bounded with non-negative constraints (`ge=0`). Nesting telemetry metrics inside dynamic or untyped metadata dictionaries is prohibited. The client API layer strictly enforces typed domain transit: client methods return `Future<ExecutionRecord>` directly, while nested map properties are encapsulated into dedicated immutable Freezed sub-DTOs (`ExecutionSummarySnapshot`, `WorkflowInputs`, `FrozenContextSnapshot`, and `Map<String, ExecutionStep>`) configured with strict deserialization rejecting unrecognized keys. Step-level micro-measurements captured in trace events are deterministically aggregated once upon DAG termination and atomically persisted to the execution record, enabling downstream consumers, UI widgets, and PDF renderers to access pre-calculated metrics directly via dot-notation with zero runtime math or trace re-parsing.
 
 ### 2.20. Flutter Theme Sovereignty & UI Boundary Hardening
-Flutter client UI widgets enforce complete Theme Sovereignty: direct instantiations of raw static colors (`Color(...)`, `Color(0x...)`, `Color.fromARGB`, `Color.fromRGBO`, `Colors.*`), standalone naked `TextStyle(...)` declarations, and defensive fallback string extensions (`safeSubstring`) are prohibited. All widget colors derive strictly from `Theme.of(context).colorScheme` (such as `primary`, `errorContainer`, `tertiaryContainer`, `onSurfaceVariant`, `surfaceContainerHighest`) or the registered `ThemeExtension<AppSemanticColors>`, and all typography derives from `Theme.of(context).textTheme` tokens (`titleMedium`, `bodyMedium`, `bodySmall`, `labelSmall`, `labelMedium`), preserving GoogleFonts typography metrics, line height, letter spacing, font family, and accessibility font scaling. Semantic intent colors (success, warning, alert, neutral) are declared via `AppSemanticColors` integrated into `AppTheme.light` and `AppTheme.dark`. Hardcoded UI chrome strings are fully extracted into `.arb` localization resources (`app_en.arb`, `app_fi.arb`) with 1:1 key parity. Static verification via `scripts/audit_flutter_theme_sovereignty.py` guarantees zero direct styling violations across client widgets.
+Flutter client UI widgets enforce complete Theme Sovereignty: direct instantiations of raw static colors (`Color(...)`, `Color(0x...)`, `Color.fromARGB`, `Color.fromRGBO`, `Colors.*`), standalone naked `TextStyle(...)` declarations, and defensive fallback string extensions (`safeSubstring`) are prohibited. All widget colors derive strictly from `Theme.of(context).colorScheme` (such as `primary`, `errorContainer`, `tertiaryContainer`, `onSurfaceVariant`, `surfaceContainerHighest`) or the registered `ThemeExtension<AppSemanticColors>`, and all typography derives from `Theme.of(context).textTheme` tokens (`titleMedium`, `bodyMedium`, `bodySmall`, `labelSmall`, `labelMedium`), preserving GoogleFonts typography metrics, line height, letter spacing, font family, and accessibility font scaling. Semantic intent colors (success, warning, alert, neutral) are declared via `AppSemanticColors` integrated into `AppTheme.light` and `AppTheme.dark`. Hardcoded UI chrome strings are fully extracted into `.arb` localization resources (`app_en.arb`, `app_fi.arb`) with 1:1 key parity. Static theme sovereignty verification guarantees zero direct styling violations across client widgets.
 
 ### 2.21. Autonomous Causal Discovery, Topological Fault Attribution & Fair Scoring Arithmetic
 Autonomous argument mining operates over unstructured source documents through sliding window linking (`SlidingWindowLinker`) and causal discovery execution (`CausalDiscoveryEngine`), constructing a directed proposition DAG (`LinkedAtomGraph`) evaluated through `TopologicalEvaluator`. The causal discovery pipeline adheres to seven structural invariants:
@@ -144,7 +144,7 @@ Autonomous argument mining operates over unstructured source documents through s
 
 ### 2.22. Topological Code Decomposition & Test Invariance
 System refactoring and module decomposition adhere to topological AST boundary extraction and test preservation invariants:
-1. **AST Boundary Extraction**: Structural dependencies, call hierarchies, external consumers, and cyclic couplings are analyzed prior to decomposition via AST inspection utilities (`_ast_boundary_utils.py`), computing deterministic acyclic extraction plans without guesswork.
+1. **AST Boundary Extraction**: Structural dependencies, call hierarchies, external consumers, and cyclic couplings are analyzed prior to decomposition via static AST boundary inspection utilities, computing deterministic acyclic extraction plans without guesswork.
 2. **Bottom-Up Topological Decomposition**: Decompositions execute in strict bottom-up order, extracting self-contained leaf functions, static calculation engines, and stateless transformation primitives before decomposing higher-order coordinators or caller surfaces.
 3. **Shared Concurrency Primitive Containers**: When extracted sibling modules or helper functions access shared runtime synchronization primitives (specifically: `asyncio.Semaphore`, `asyncio.Lock`, or `asyncio.Event`), instances are not instantiated piecemeal across modules. Primitives are encapsulated within immutable, frozen parameter containers (`@dataclass(frozen=True)`) passed explicitly to downstream routines, preserving single-instance lifecycle and preventing split-semaphore deadlocks or unconstrained parallel dispatch.
 4. **Bounded Consumer Migration Batches**: Consumer call-site migrations execute in strictly bounded batches of at most 5 files per checkpoint, preventing sprawling unverified diffs and catastrophic merge conflicts.
@@ -166,12 +166,12 @@ flowchart TD
     B -- Valid Payload --> D[Repository Reconstitution Firewall]
     D --> E[ExecutionInputsDTO Encapsulation]
     E --> F[AliasEngine Attention Anchor Masking]
-    F --> G[Phase 1: Cognitive Engine & DAG Evaluation]
+    F --> G[Stage 1: Cognitive Engine & DAG Evaluation]
     G -- Runtime Error --> C
     G -- DAG Complete --> H[Execution Record: PASSED & Telemetry Finalized]
-    H --> I[Phase 2 & 3: Background Report Job Enqueue]
-    I --> J[Phase 2: Qualitative Synthesis & Narrative Generation]
-    J --> K[Phase 3: Dumb Painter SDUI, PDF & Excel Compilation]
+    H --> I[Stage 2 & 3: Background Report Job Enqueue]
+    I --> J[Stage 2: Qualitative Synthesis & Narrative Generation]
+    J --> K[Stage 3: Dumb Painter SDUI, PDF & Excel Compilation]
     K --> L[Materialized Report Artifacts rep_...]
     L --> M[O1 REST API & Flutter Pro Tool Delivery]
 ```
