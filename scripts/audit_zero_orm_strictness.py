@@ -357,18 +357,21 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
     Attributes:
         filepath: String representation of the file being visited.
         is_adapter_file: Whether the file is graph_adapter.py or entity_adapter.py.
+        is_db_scope: Whether database/UoW-specific rules (ZORM002, ZORM003, ZORM005) apply.
         findings: List of ZeroOrmFindingDTO instances collected during traversal.
     """
 
-    def __init__(self, filepath: str, is_adapter_file: bool) -> None:
+    def __init__(self, filepath: str, is_adapter_file: bool, is_db_scope: bool = True) -> None:
         """Initialize the AST visitor for a target Python source file.
 
         Args:
             filepath: File path string for diagnostic reporting.
             is_adapter_file: True if checking SQL column subscript parity (ZORM006).
+            is_db_scope: True if enforcing database/UoW-specific rules (ZORM002, ZORM003, ZORM005).
         """
         self.filepath = filepath
         self.is_adapter_file = is_adapter_file
+        self.is_db_scope = is_db_scope
         self.findings: list[ZeroOrmFindingDTO] = []
         self._in_finally: bool = False
 
@@ -427,7 +430,11 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
         Args:
             node: AST Subscript node.
         """
-        if isinstance(node.value, ast.Name) and node.value.id.lower() in {"dict", "mapping", "mutablemapping"}:
+        if (
+            self.is_db_scope
+            and isinstance(node.value, ast.Name)
+            and node.value.id.lower() in {"dict", "mapping", "mutablemapping"}
+        ):
             if isinstance(node.slice, ast.Tuple) and len(node.slice.elts) == 2:
                 val_node = node.slice.elts[1]
                 if isinstance(val_node, ast.Name) and val_node.id in {"Any", "object"}:
@@ -458,32 +465,33 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
         Args:
             node: AST Call node.
         """
-        if isinstance(node.func, ast.Name):
-            if node.func.id == "dict" and len(node.args) >= 1:
-                self._record(
-                    node.lineno,
-                    ZeroOrmRuleCode.ZORM002,
-                    "Direct dict(...) conversion on database records is banned; use direct subscripting into DTOs.",
-                )
-            if node.func.id in BANNED_LLM_IDENTIFIERS:
-                self._record(
-                    node.lineno,
-                    ZeroOrmRuleCode.ZORM005,
-                    f"Banned LLM call '{node.func.id}' inside database/UoW layer violates Post-Wave Atomic Commit.",
-                )
-        elif isinstance(node.func, ast.Attribute):
-            if node.func.attr in BANNED_LLM_IDENTIFIERS:
-                self._record(
-                    node.lineno,
-                    ZeroOrmRuleCode.ZORM005,
-                    f"Banned LLM method '{node.func.attr}' inside database/UoW layer violates Post-Wave Atomic Commit.",
-                )
-            if isinstance(node.func.value, ast.Name) and node.func.value.id in BANNED_LLM_IDENTIFIERS:
-                self._record(
-                    node.lineno,
-                    ZeroOrmRuleCode.ZORM005,
-                    f"Banned LLM client usage '{node.func.value.id}.{node.func.attr}' inside database/UoW layer.",
-                )
+        if self.is_db_scope:
+            if isinstance(node.func, ast.Name):
+                if node.func.id == "dict" and len(node.args) >= 1:
+                    self._record(
+                        node.lineno,
+                        ZeroOrmRuleCode.ZORM002,
+                        "Direct dict(...) conversion on database records is banned; use direct subscripting into DTOs.",
+                    )
+                if node.func.id in BANNED_LLM_IDENTIFIERS:
+                    self._record(
+                        node.lineno,
+                        ZeroOrmRuleCode.ZORM005,
+                        f"Banned LLM call '{node.func.id}' inside database/UoW layer violates Post-Wave Atomic Commit.",
+                    )
+            elif isinstance(node.func, ast.Attribute):
+                if node.func.attr in BANNED_LLM_IDENTIFIERS:
+                    self._record(
+                        node.lineno,
+                        ZeroOrmRuleCode.ZORM005,
+                        f"Banned LLM method '{node.func.attr}' inside database/UoW layer violates Post-Wave Atomic Commit.",
+                    )
+                if isinstance(node.func.value, ast.Name) and node.func.value.id in BANNED_LLM_IDENTIFIERS:
+                    self._record(
+                        node.lineno,
+                        ZeroOrmRuleCode.ZORM005,
+                        f"Banned LLM client usage '{node.func.value.id}.{node.func.attr}' inside database/UoW layer.",
+                    )
         self.generic_visit(node)
 
     def visit_Try(self, node: ast.Try) -> None:
@@ -510,7 +518,7 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
         Args:
             node: AST ExceptHandler node.
         """
-        if not self._in_finally:
+        if self.is_db_scope and not self._in_finally:
             is_broad = node.type is None or (
                 isinstance(node.type, ast.Name) and node.type.id in {"Exception", "BaseException"}
             )
@@ -525,11 +533,12 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def audit_python_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
+def audit_python_file(filepath: Path, *, is_db_scope: bool = True) -> list[ZeroOrmFindingDTO]:
     """Parse and audit a single Python file against Zero-ORM AST rules.
 
     Args:
         filepath: Path to the Python file to inspect.
+        is_db_scope: Whether database/UoW-specific rules (ZORM002, ZORM003, ZORM005) apply.
 
     Returns:
         List of ZeroOrmFindingDTO findings discovered in the file.
@@ -548,7 +557,11 @@ def audit_python_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
         ]
 
     is_adapter = filepath.name in {"graph_adapter.py", "entity_adapter.py"}
-    visitor = _ZeroOrmAstVisitor(filepath=str(filepath), is_adapter_file=is_adapter)
+    visitor = _ZeroOrmAstVisitor(
+        filepath=str(filepath),
+        is_adapter_file=is_adapter,
+        is_db_scope=is_db_scope,
+    )
     visitor.visit(tree)
     return visitor.findings
 
@@ -627,20 +640,19 @@ def run_zero_orm_audit(target_paths: list[Path] | None = None) -> ZeroOrmAuditRe
 
     Args:
         target_paths: Optional explicit list of files or directories to scan. When None,
-            scans the canonical PostgreSQL package, proposition graph domain module,
-            and SQL DDL migration file if present on disk.
+            scans all of backend_v2/ (excluding tests/) and scripts/reconcile_storage.py,
+            enforcing ZORM001/ZORM004 universally and ZORM002/ZORM003/ZORM005/ZORM006 on
+            database/UoW and proposition graph modules.
 
     Returns:
         Immutable ZeroOrmAuditReportDTO containing file count and findings.
     """
     explicit_mode = target_paths is not None and len(target_paths) > 0
-    # Phase 3, Step 3: Include scripts/reconcile_storage.py in default Zero-ORM strictness targets
     resolved_targets: list[Path] = (
         list(target_paths)
         if explicit_mode and target_paths is not None
         else [
-            _WORKSPACE_ROOT / "backend_v2" / "database",
-            _WORKSPACE_ROOT / "backend_v2" / "models" / "domain" / "proposition_graph.py",
+            _WORKSPACE_ROOT / "backend_v2",
             _WORKSPACE_ROOT / "scripts" / "reconcile_storage.py",
         ]
     )
@@ -663,14 +675,28 @@ def run_zero_orm_audit(target_paths: list[Path] | None = None) -> ZeroOrmAuditRe
 
         if target.is_dir():
             for py_file in sorted(target.rglob("*.py")):
+                if not explicit_mode and "tests" in py_file.parts:
+                    continue
                 scanned_count += 1
-                all_findings.extend(audit_python_file(py_file))
+                file_is_db_scope = (
+                    explicit_mode
+                    or "database" in py_file.parts
+                    or py_file.name in {"proposition_graph.py", "reconcile_storage.py"}
+                )
+                all_findings.extend(audit_python_file(py_file, is_db_scope=file_is_db_scope))
             for sql_file in sorted(target.rglob("*.sql")):
+                if not explicit_mode and "tests" in sql_file.parts:
+                    continue
                 scanned_count += 1
                 all_findings.extend(audit_sql_migration_file(sql_file))
         elif target.suffix.lower() == ".py":
             scanned_count += 1
-            all_findings.extend(audit_python_file(target))
+            file_is_db_scope = (
+                explicit_mode
+                or "database" in target.parts
+                or target.name in {"proposition_graph.py", "reconcile_storage.py"}
+            )
+            all_findings.extend(audit_python_file(target, is_db_scope=file_is_db_scope))
         elif target.suffix.lower() == ".sql":
             scanned_count += 1
             all_findings.extend(audit_sql_migration_file(target))

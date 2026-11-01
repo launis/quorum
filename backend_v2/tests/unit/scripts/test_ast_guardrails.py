@@ -2323,6 +2323,32 @@ def legacy_override(record):
     assert len(qgr028) == 0
 
 
+def test_qgr028_expanded_backend_domain_scope_and_database_exemption() -> None:
+    """QGR028: Enforced across non-database backend_v2 domain packages (llm/, core/, utils/) while database/ is exempt."""
+    bad_code = """
+def mutate_state(execution):
+    return dict(execution.step_states)
+"""
+    for rel_path in (
+        "backend_v2/llm/executor.py",
+        "backend_v2/core/security.py",
+        "backend_v2/utils/helpers.py",
+    ):
+        violations = _scan_snippet(bad_code, filepath=rel_path)
+        qgr028 = [v for v in violations if v.rule_code == "QGR028"]
+        assert len(qgr028) == 1, f"Expected QGR028 violation in {rel_path}"
+        assert qgr028[0].severity == GuardrailSeverity.FATAL
+
+    # Database reconstitution boundary is exempt from QGR028
+    db_reconstitution = """
+async def get_workflow(self, wf_id: str):
+    wf_dict = await self.driver.fetch_one(wf_id)
+    return Workflow.model_validate(wf_dict)
+"""
+    db_violations = _scan_snippet(db_reconstitution, filepath="backend_v2/database/repositories/workflow.py")
+    assert [v for v in db_violations if v.rule_code == "QGR028"] == []
+
+
 # ==============================================================================
 # Partition 29: QGR029 Banned Untyped Dict Return in Test Fixtures
 # ==============================================================================
@@ -2922,3 +2948,12 @@ def test_qgr017_tripartite_layer_and_protocol_firewall() -> None:
     bad_hook_asyncpg = "import asyncpg\n"
     v_hook_pg = _scan_snippet(bad_hook_asyncpg, filepath="backend_v2/hooks/archival.py")
     assert any(v.rule_code == "QGR017" and v.severity == GuardrailSeverity.FATAL for v in v_hook_pg)
+
+    # Negative 4: Expanded domain packages (llm/, core/, utils/) importing concrete database modules or asyncpg
+    for rel_path in (
+        "backend_v2/llm/client.py",
+        "backend_v2/core/auth.py",
+        "backend_v2/utils/crypto.py",
+    ):
+        v_pkg = _scan_snippet("from backend_v2.database.postgres.uow import PostgresUnitOfWork\n", filepath=rel_path)
+        assert any(v.rule_code == "QGR017" and v.severity == GuardrailSeverity.FATAL for v in v_pkg)

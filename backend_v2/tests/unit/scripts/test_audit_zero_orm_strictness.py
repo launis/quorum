@@ -44,11 +44,23 @@ def test_audit_zero_orm_clean_python_and_sql(tmp_path: Path) -> None:
 
 
 def test_audit_zero_orm_default_paths_pass() -> None:
-    """Verify running main() with default canonical workspace paths returns exit code 0."""
+    """Verify running main() with default canonical workspace paths returns exit code 0 across full backend_v2."""
     report = run_zero_orm_audit()
     assert report.is_clean is True
-    assert report.scanned_files >= 8
+    assert report.scanned_files >= 300
     assert main([]) == 0
+
+
+def test_non_db_scope_enforces_zorm001_while_allowing_llm_execution(tmp_path: Path) -> None:
+    """Verify non-database backend_v2 modules enforce ZORM001 ORM ban while permitting legitimate LLM execution."""
+    service_py = tmp_path / "orchestrator_service.py"
+    service_py.write_text(
+        "import sqlalchemy\n\ndef run_step(llm_client: object) -> None:\n    llm_client.execute_structured_task()\n",
+        encoding="utf-8",
+    )
+    findings = audit_python_file(service_py, is_db_scope=False)
+    codes = [f.rule_code for f in findings]
+    assert codes == [ZeroOrmRuleCode.ZORM001]
 
 
 def test_zorm001_banned_orm_and_orjson_imports(tmp_path: Path) -> None:

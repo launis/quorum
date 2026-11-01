@@ -1650,20 +1650,10 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             severity=GuardrailSeverity.FATAL,
                         )
 
-        # QGR028: Redundant repository model reconstitution and domain state dictionary conversions in services/hooks/api/workers
+        # QGR028: Redundant repository model reconstitution and domain state dictionary conversions across backend_v2 domain code (outside database/)
         is_services_scope = (
-            (
-                any(
-                    seg in self._normalized_path
-                    for seg in (
-                        "backend_v2/services/",
-                        "backend_v2/hooks/",
-                        "backend_v2/api/",
-                        "backend_v2/workers/",
-                    )
-                )
-                or any(part in self._path_parts for part in ("services", "hooks", "api", "workers"))
-            )
+            self._is_domain_code
+            and "database" not in self._path_parts
             and not self._is_test_file
             and not self._is_boundary_exempt
             and self._normalized_path not in RESIDUAL_FUTURE_PHASE_QGR028_FILES
@@ -2712,7 +2702,17 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     severity=GuardrailSeverity.FATAL,
                 )
                 return True
-        elif any(seg in norm for seg in ("backend_v2/services/", "backend_v2/hooks/", "backend_v2/api/routers/")):
+        elif any(
+            seg in norm
+            for seg in (
+                "backend_v2/services/",
+                "backend_v2/hooks/",
+                "backend_v2/api/routers/",
+                "backend_v2/llm/",
+                "backend_v2/core/",
+                "backend_v2/utils/",
+            )
+        ):
             concrete_db_forbidden = (
                 "asyncpg",
                 "backend_v2.database.postgres",
