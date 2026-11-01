@@ -12,8 +12,6 @@ import pytest
 from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
     get_output_profile_row,
     get_workflow_row,
-    hydrate_output_profile_row,
-    hydrate_workflow_row,
     upsert_output_profile_row,
     upsert_workflow_row,
 )
@@ -177,5 +175,3 @@ async def test_stage_get_methods_translate_fetchrow_faults_to_app_exception() ->
     finally:
         pool.clear_faults()
         await pool.release(conn)
-    assert callable(hydrate_workflow_row)
-    assert callable(hydrate_output_profile_row)

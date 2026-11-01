@@ -17,6 +17,7 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _parse_optional_uuid7,
     _parse_org_uuid7,
     execute_entity_upsert,
+    resolve_effective_timeout,
 )
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPgRecordProtocol
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -27,7 +28,21 @@ from backend_v2.models.enums import EntityPrefix
 
 logger = logging.getLogger(__name__)
 
-# Phase 2, Step 1: Relocate workflows and output_profiles SQL constants
+__all__ = [
+    "_GET_OUTPUT_PROFILE_SQL",
+    "_GET_WORKFLOW_SQL",
+    "_LIST_OUTPUT_PROFILES_SQL",
+    "_LIST_WORKFLOWS_SQL",
+    "_UPSERT_OUTPUT_PROFILE_SQL",
+    "_UPSERT_WORKFLOW_SQL",
+    "get_output_profile_row",
+    "get_workflow_row",
+    "hydrate_output_profile_row",
+    "hydrate_workflow_row",
+    "upsert_output_profile_row",
+    "upsert_workflow_row",
+]
+
 _UPSERT_WORKFLOW_SQL: str = """INSERT INTO workflows (id, slug, name, description, status, version, is_public,
     organization_id, default_profile_id, mcp_gateway_id, model_registry_id, default_strictness_level,
     default_lexical_strictness_level, security_penalty, post_hoc_penalty, passivity_penalty,
@@ -132,16 +147,37 @@ FROM output_profiles"""
 
 
 async def _fetch_row(
-    conn: AsyncPgConnectionProtocol, timeout: float, sql: str, entity_uuid: object, entity_id: str
+    conn: AsyncPgConnectionProtocol, timeout: float | None, sql: str, entity_uuid: object, entity_id: str
 ) -> AsyncPgRecordProtocol | None:
-    """Execute fetchrow with timeout and translate driver errors to AppException."""
+    """Execute fetchrow with timeout and translate driver errors to AppException.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds, or None to resolve from settings.
+        sql: Parameterized SELECT SQL statement.
+        entity_uuid: Parsed 16-byte UUID primary key parameter.
+        entity_id: Canonical Opaque Stripe ID of the target entity for error reporting.
+
+    Returns:
+        Database record if found, or None.
+
+    Raises:
+        AppException: With STORAGE_ACCESS_FAILED if the database query fails.
+    """
+    effective_timeout = resolve_effective_timeout(timeout)
     try:
-        return await conn.fetchrow(sql, entity_uuid, timeout=timeout)
+        return await conn.fetchrow(sql, entity_uuid, timeout=effective_timeout)
     except Exception as exc:
         if isinstance(exc, AppException):
             raise
         msg = f"Failed to fetch entity '{entity_id}': {exc}"
-        logger.error("[PostgresEntityAdapter] %s: %s", ErrorCodes.STORAGE_ACCESS_FAILED.name, msg, exc_info=True)
+        logger.error(
+            "[PostgresEntityAdapter] %s: %s",
+            ErrorCodes.STORAGE_ACCESS_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "entity_id": entity_id},
+        )
         raise AppException(
             message=msg,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -149,7 +185,6 @@ async def _fetch_row(
         ) from exc
 
 
-# Phase 2, Step 1: Extract Workflow and OutputProfile hydration, upsert, and get functions
 def hydrate_workflow_row(row: AsyncPgRecordProtocol) -> Workflow:
     """Hydrate a Workflow from a database row.
 
@@ -158,6 +193,9 @@ def hydrate_workflow_row(row: AsyncPgRecordProtocol) -> Workflow:
 
     Returns:
         Validated Workflow domain model.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if the workflow, organization, profile, or system_config UUID is invalid.
     """
     return Workflow.model_validate(
         {
@@ -267,6 +305,9 @@ def hydrate_output_profile_row(row: AsyncPgRecordProtocol) -> OutputProfile:
 
     Returns:
         Validated OutputProfile domain model.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if the output_profile, workflow, or organization UUID is invalid.
     """
     return OutputProfile.model_validate(
         {
