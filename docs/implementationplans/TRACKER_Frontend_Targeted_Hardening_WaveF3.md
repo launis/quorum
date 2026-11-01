@@ -43,7 +43,7 @@
   - [x] @[client_app_v2/lib/features/reports/views/execution_reports_view.dart]
   - [x] @[client_app_v2/lib/features/reports/views/widgets/report_artifact_card.dart]
   - [x] @[client_app_v2/lib/shared/widgets/audit_trail_viewer.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/comparison_matrix.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/comparison_matrix.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/deep_dive_expander.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/dynamic_form.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/execution_timeline.dart]
