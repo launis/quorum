@@ -49,7 +49,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/execution_timeline.dart]
   - [x] @[client_app_v2/lib/shared/widgets/feedback_section.dart]
   - [x] @[client_app_v2/lib/shared/widgets/file_input_field.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/file_uploader.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/file_uploader.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/generic_grid.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/global_error_view.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/log_viewer.dart]
