@@ -28,7 +28,13 @@ from backend_v2.models.auth import User
 from backend_v2.models.core_base import I18nText, generate_uuid7
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
 from backend_v2.models.domain.inputs import WorkflowInputs
-from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
+from backend_v2.models.domain.prompt_blocks import (
+    AnyPromptBlock,
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
+)
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.node_execution import StepOutputContentDTO
@@ -171,7 +177,7 @@ def compute_step_input_merkle_hash(
     """
     # Phase 3, Step 3.3: Compute deterministic node-level SHA-256 input_merkle_hash
     referenced_block_ids: set[str] = set()
-    if step_def is not None:
+    if isinstance(step_def, Step):
         referenced_block_ids.update(step_def.criteria_block_ids)
         if step_def.role_block_id is not None:
             referenced_block_ids.add(step_def.role_block_id)
@@ -183,7 +189,7 @@ def compute_step_input_merkle_hash(
     resolved_blocks_payload = {
         b_id: blocks_by_id[b_id].model_dump(mode="json")
         for b_id in sorted(referenced_block_ids)
-        if b_id in blocks_by_id
+        if b_id in blocks_by_id and isinstance(blocks_by_id[b_id], BaseModel)
     }
     dep_hashes: dict[str, str | None] = {}
     for dep_id in sorted(step_rule.depends_on):
@@ -193,7 +199,7 @@ def compute_step_input_merkle_hash(
         dep_hashes[dep_id] = dep_hash
 
     step_def_payload = None
-    if step_def is not None:
+    if isinstance(step_def, Step):
         step_def_payload = step_def.model_dump(mode="json")
 
     merkle_payload = {
@@ -225,6 +231,8 @@ async def _fetch_referenced_prompt_blocks(
         return blocks_by_id
     all_block_ids: set[str] = set()
     for s_def in step_definitions.values():
+        if not isinstance(s_def, Step):
+            continue
         all_block_ids.update(s_def.criteria_block_ids)
         if s_def.role_block_id is not None:
             all_block_ids.add(s_def.role_block_id)
@@ -235,7 +243,7 @@ async def _fetch_referenced_prompt_blocks(
     for b_id in sorted(all_block_ids):
         res_blk = prompt_block_repo.get_prompt_block_by_id(b_id)
         blk = await res_blk if inspect.isawaitable(res_blk) else res_blk
-        if blk is not None:
+        if isinstance(blk, (MatrixPromptBlock, SystemRulePromptBlock, PersonaPromptBlock, ProtocolPromptBlock)):
             blocks_by_id[b_id] = blk
     return blocks_by_id
 

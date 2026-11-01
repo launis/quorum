@@ -21,6 +21,7 @@ from backend_v2.models.dtos.trace import TraceEventMetadataDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor, ExecutionCommitter
+from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import compute_step_input_merkle_hash
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -1687,6 +1688,15 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
         },
     )
 
+    step1_def = Step.model_validate(await mock_repo.get_step_by_id("bp_0195f3a0000070038333444455556666"))
+    step1_merkle_hash = compute_step_input_merkle_hash(
+        step_rule=step1,
+        step_def=step1_def,
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        blocks_by_id={},
+        upstream_hashes={},
+    )
+
     existing_record = create_execution_record(
         execution_id="exe_0195f3a0000070038333444455556666",
         workflow_id=workflow.id,
@@ -1695,12 +1705,20 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
         source_identity_manifest={},
         status=ExecutionStatus.FAILED,
         steps=[
-            ExecutionStep(id="stp_0195f3a0000070038333444455556666", label="Step 1", status=ExecutionStatus.PASSED),
+            ExecutionStep(
+                id="stp_0195f3a0000070038333444455556666",
+                label="Step 1",
+                status=ExecutionStatus.PASSED,
+                input_merkle_hash=step1_merkle_hash,
+            ),
             ExecutionStep(id="stp_0195f3a0000070048444555566667777", label="Step 2", status=ExecutionStatus.FAILED),
         ],
         step_states={
             "stp_0195f3a0000070038333444455556666": ExecutionStep(
-                id="stp_0195f3a0000070038333444455556666", label="Step 1", status=ExecutionStatus.PASSED
+                id="stp_0195f3a0000070038333444455556666",
+                label="Step 1",
+                status=ExecutionStatus.PASSED,
+                input_merkle_hash=step1_merkle_hash,
             ),
             "stp_0195f3a0000070048444555566667777": ExecutionStep(
                 id="stp_0195f3a0000070048444555566667777", label="Step 2", status=ExecutionStatus.FAILED
