@@ -52,7 +52,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/tag_chip_input.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_inputs_tab.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_inputs_tab.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_strictness_tab.dart]
