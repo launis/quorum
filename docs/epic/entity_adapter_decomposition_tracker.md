@@ -58,7 +58,7 @@
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Tier 2 Hardening (Backend)** (`[NEW]` sub-modules & 1-hop callers): Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/entity_adapter_decomposition_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
+- [x] **[OK] Tier 2 Hardening (Backend)** (`[NEW]` sub-modules & 1-hop callers): Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/entity_adapter_decomposition_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
   - [x] [NEW] @[backend_v2/database/postgres/entity_adapter/coercion_and_constants.py]
   - [x] [NEW] @[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]
   - [x] [NEW] @[backend_v2/database/postgres/entity_adapter/prompt_block_and_step_stage.py]
@@ -67,7 +67,7 @@
   - [x] [NEW] @[backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py]
   - [x] [NEW] @[backend_v2/database/postgres/entity_adapter/__init__.py]
   - [x] `@[backend_v2/database/postgres/uow.py#L218-L234]`
-  - [ ] `@[backend_v2/database/postgres/storage_driver.py#L218-L247]`
+  - [x] `@[backend_v2/database/postgres/storage_driver.py#L218-L247]`
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Pure backend Python decomposition with zero `.dart` changes.
 - [x] **[OK] Pre-Delete Audit**: Verify `git status` and `grep_search` confirm physical removal of `[DELETE] @[backend_v2/database/postgres/entity_adapter.py]`, with `QGR017` blocking re-creation of `backend_v2/database/postgres/entity_adapter.py`.
 - [x] **[OK] Golden Master & Test Restoration Audit**: Verify all 18 baseline unit tests in `@[backend_v2/tests/unit/database/test_postgres.py#L837-L1174]` and all modularized unit tests (`[NEW] @[backend_v2/tests/unit/database/postgres/entity_adapter/test_coercion_and_constants.py]`, `[NEW] @[backend_v2/tests/unit/database/postgres/entity_adapter/test_iam_and_system_stage.py]`, `[NEW] @[backend_v2/tests/unit/database/postgres/entity_adapter/test_prompt_block_and_step_stage.py]`, `[NEW] @[backend_v2/tests/unit/database/postgres/entity_adapter/test_workflow_and_profile_stage.py]`, `[NEW] @[backend_v2/tests/unit/database/postgres/entity_adapter/test_execution_and_report_stage.py]`, `[NEW] @[backend_v2/tests/unit/database/postgres/entity_adapter/test_seed_and_collection_stage.py]`, and `[NEW] @[backend_v2/tests/unit/database/postgres/entity_adapter/test_entity_adapter_facade.py]`) pass with `>= 97%` line coverage.
