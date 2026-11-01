@@ -240,4 +240,3 @@ class PostgresEntityAdapter:
     async def clear_collection_documents(self, collection_name: str) -> None:
         """Delete all rows from a canonical PostgreSQL 19 table."""
         await clear_collection_documents_rows(self._conn, self.command_timeout_seconds, collection_name)
-
