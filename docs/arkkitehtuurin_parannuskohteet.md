@@ -230,7 +230,7 @@ $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scri
 ---
 
 ## Luku 6: Studio-käyttöliittymän ja `OutputProfile`-profiilin vanhentuneiden matriisiviittausten (`target_blocks`) synkronointi steppiä poistettaessa
-> **STATUS: AVOIN PARANNUSKOHDE (Studio UI & Backend `OutputProfile` / `Workflow` -synkronointi)**
+> **STATUS: SUUNNITELTU — ASKEL 3.6 / EPIC 162 VAIHE 2 (`@[docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md]`, `@[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md]`)**
 > *Selite: Estää näkymättömän "haamuvalinnan" (`ghost ID`) jäämisen `OutputProfile`-profiilin `matrix_synthesis_groups[*].target_blocks`-, `variance_target_block`- ja `user_role_target_block`-kenttiin silloin, kun työnkulusta (`Workflow`) irrotetaan steppi ja siihen kytketty matriisi.*
 
 ### 6.1 Tunnistettu ongelma ja nykytilan käyttäytyminen
@@ -255,7 +255,7 @@ Parannus on yksinkertainen toteuttaa joko automaattisena siivouksena tai visuaal
 ---
 
 ## Luku 7: `CognitiveTier`-enumin 100 % Pakottaminen, Merkkijonopohjaisten `LLMClient.from_strategy`-siltojen Poisto & KI-/Sääntöohjeistuksen Synkronointi
-> **STATUS: AVOIN PARANNUSKOHDE (`No-String Mandate` & `zero_backward_compatibility_planning_ban` -yhdenmukaistaminen; KI- ja sääntötiedostot synkronoitu)**
+> **STATUS: SUUNNITELTU — ASKEL 3.6 / EPIC 162 VAIHE 1 (`@[docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md]`, `@[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md]`)**
 > *Selite: Muuttaa kaikki jäljellä olevat merkkijonopohjaiset `LLMClient.from_strategy("fast", ...)` -kutsut ja `PipelineConfig.default_strategy: str | None` -määritykset käyttämään suoraan vahvasti tyypitettyä `CognitiveTier`-enumia (`CognitiveTier.FAST`, `CognitiveTier.BALANCED`, `CognitiveTier.DEEP`, `CognitiveTier.REASONING`) sekä metodia `LLMClient.from_tier(...)`, ja poistaa vanhentuneen `LLMClient.from_strategy`-yhteensopivuussillan.*
 
 ### 7.1 Tunnistetut kohteet, joissa käytetään raakaa `"fast"`-merkkijonoa tai `str`-tyyppiä `CognitiveTier`-enumin sijaan
@@ -286,7 +286,7 @@ Vaikka Vaiheen 1 DAG-vaiheet (`@[backend_v2/services/orchestrator/strategies/llm
 ---
 
 ## Luku 8: DAG-suorituksen Resilienssi, Prosessienvälinen Optimistinen Lukitus (OCC) ja Solmutason Merkle-syötetiiviste (`input_merkle_hash`)
-> **STATUS: AVOIN PARANNUSKOHDE (`/tier8-audit-feature` -arvioinnin perusteella valitut 3 korkean hyöty–panos-suhteen karkaisukohdetta)**
+> **STATUS: SUUNNITELTU — ASKEL 3.6 / EPIC 162 VAIHEET 3 & 4 (`@[docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md]`, `@[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md]`)**
 > *Selite: Täydentää Quorumin nykyistä DAG-orkestrointia kolmella kohdennetulla parannuksella: (1) Vaiheen 3 (`execute_engine_retry_stage`) semanttinen oskillaatiotunnistin ja ajokohtainen `ExecutionBudget`-kustannuskatto, (2) prosessienvälinen optimistinen lukitus (`state_version` OCC) `executions`-taulun päivityksissä ja (3) solmutason `input_merkle_hash`-tiiviste `ExecutionStep`-malliin yhdessä MCP-hakutulosten XML-ohjaustagien suodatuksen kanssa.*
 
 ### 8.1 Vaiheen 3 (`execute_engine_retry_stage`) semanttinen oskillaatiotunnistin ja ajokohtainen `ExecutionBudget`-katto
@@ -301,12 +301,12 @@ Vaikka Vaiheen 1 DAG-vaiheet (`@[backend_v2/services/orchestrator/strategies/llm
 
 ### 8.2 Prosessienvälinen optimistinen lukitus (`state_version` OCC) `executions`-taulussa
 
-1. **Nykytilan aukko (`@[backend_v2/database/postgres/entity_adapter.py]`, rivit `1150–1218` & `@[backend_v2/services/execution/override_service.py]`, rivit `307–382`):**
+1. **Nykytilan aukko (`@[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py]`, rivit `299–366` & `@[backend_v2/services/execution/override_service.py]`, rivit `307–382`):**
    * Yksittäisen Arq-työläisen sisällä rinnakkaiset solmut ovat suojattuja muistitason lukolla (`async with state.update_lock:` tiedostossa `@[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]`, rivit `149–197`).
-   * Kahden eri prosessin välillä voi kuitenkin syntyä päivitystörmäys (`Lost Update`), kun käyttäjä tallentaa manuaalisen tuomion ylikirjoituksen (`ExecutionOverrideService.override_atom` tiedostossa `@[backend_v2/services/execution/override_service.py]`, rivit `307–382`) tai synteesin esilämmitys päivittää `ExecutionRecord`-oliota samanaikaisesti, kun Arq-työläinen tallentaa tilannevedosta (`ExecutionCommitter.commit_trace` tiedostossa `@[backend_v2/services/orchestrator/dag_executor/execution_committer.py]`, rivit `43–108`). `PostgresEntityAdapter.update_execution` (`@[backend_v2/database/postgres/entity_adapter.py]`, rivit `1185–1218`) suorittaa tällä hetkellä ehdottoman `UPDATE executions SET ... WHERE id = $1` -lauseen, jolloin jälkimmäinen kirjoittaja ylikirjoittaa `step_states`- ja `context_variables`-JSONB-sarakkeet.
+   * Kahden eri prosessin välillä voi kuitenkin syntyä päivitystörmäys (`Lost Update`), kun käyttäjä tallentaa manuaalisen tuomion ylikirjoituksen (`ExecutionOverrideService.override_atom` tiedostossa `@[backend_v2/services/execution/override_service.py]`, rivit `307–382`) tai synteesin esilämmitys päivittää `ExecutionRecord`-oliota samanaikaisesti, kun Arq-työläinen tallentaa tilannevedosta (`ExecutionCommitter.commit_trace` tiedostossa `@[backend_v2/services/orchestrator/dag_executor/execution_committer.py]`, rivit `43–108`). `save_execution_row` (`@[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py]`, rivit `299–366`) suorittaa tällä hetkellä ehdottoman `ON CONFLICT (id) DO UPDATE SET ...` -lauseen ilman versiotarkistusta, jolloin jälkimmäinen kirjoittaja ylikirjoittaa `step_states`- ja `context_variables`-JSONB-sarakkeet.
 2. **Toteutettava ratkaisu:**
    * Lisätään `ExecutionRecord`-malliin (`@[backend_v2/models/domain/execution.py]`, rivit `175–280`) ja PostgreSQL:n `executions`-tauluun (`@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]`, rivit `136–157`) kokonaislukukenttä `state_version: Annotated[int, Field(ge=1)] = 1`.
-   * Päivitetään `PostgresEntityAdapter.update_execution` (`@[backend_v2/database/postgres/entity_adapter.py]`, rivit `1185–1218`) käyttämään atomista ehtoa `WHERE id = $1 AND state_version = $11` ja kasvattamaan versiota (`state_version = state_version + 1`). Jos `asyncpg` ei päivitä riviä, nostetaan RFC 7807 -yhteensopiva `AppException(ErrorCodes.CONFLICT, status_code=409)`, jolloin kutsuva palvelu hakee tuoreen `ExecutionRecord`-tilan ja yhdistää muutoksensa hävittämättä rinnakkaisen prosessin päivitystä.
+   * Päivitetään `save_execution_row` (`@[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py]`, rivit `299–366`) ja `PostgresStorageDriver.update` (`@[backend_v2/database/postgres/storage_driver.py]`, rivit `326–353`) tarkistamaan odotettu `expected_state_version` ja kasvattamaan versiota (`state_version = state_version + 1`). Jos tallennettu `state_version` poikkeaa odotetusta versiosta, nostetaan RFC 7807 -yhteensopiva `AppException(ErrorCodes.CONFLICT, status_code=409)`, jolloin kutsuva palvelu hakee tuoreen `ExecutionRecord`-tilan ja yhdistää muutoksensa hävittämättä rinnakkaisen prosessin päivitystä.
 
 ### 8.3 Solmutason `input_merkle_hash` `ExecutionStep`-malliin ja MCP-hakutulosten XML-tagisiivous
 
