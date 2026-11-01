@@ -3,7 +3,7 @@
 Automated Quality Gate for the Flutter client (`client_app_v2`).
 Executes sequential code hygiene and validation stages:
 1. `build_runner` (Optional): Runs the Dart code generator for SDUI/Freezed/JSON models.
-2. `_dart_guardrails.py`: Enforces Dart static guardrails (DGR001-DGR010) with generated file immunity.
+2. `_dart_guardrails.py` & `audit_flutter_theme_sovereignty.py`: Enforces Dart static guardrails (DGR001-DGR010) and Theme Sovereignty across full multi-line source with generated file immunity.
 3. `dart format`: Formats Dart files to ensure consistent indentation and layout.
 4. `dart analyze`: Statically analyzes source code to enforce architectural invariants.
 5. `flutter test` (Optional): Executes Flutter unit tests with coverage reporting or isolated micro test.
@@ -96,7 +96,8 @@ def main(argv: list[str] | None = None) -> None:
     """Main CLI entrypoint executing the sequential Flutter quality gate pipeline.
 
     Parses CLI flags and executes optional code generation, Dart static guardrail
-    validation (_dart_guardrails.py), dart format, dart analyze, and optional flutter test.
+    validation (_dart_guardrails.py & audit_flutter_theme_sovereignty.py), dart format,
+    dart analyze, and optional flutter test.
 
     Args:
         argv: Optional list of CLI arguments; defaults to sys.argv[1:] when None.
@@ -120,7 +121,7 @@ def main(argv: list[str] | None = None) -> None:
 
 Executes a five-stage code hygiene and validation sequence:
   1/5 (Optional): Code generation (flutter gen-l10n & dart run build_runner build -d)
-  2/5: Dart codebase guardrails (scripts/_dart_guardrails.py, DGR001-DGR010)
+  2/5: Dart codebase guardrails & Theme Sovereignty (scripts/_dart_guardrails.py & scripts/audit_flutter_theme_sovereignty.py)
   3/5: Code style formatting (dart format)
   4/5: Static architectural analysis (dart analyze)
   5/5 (Optional): Flutter unit tests and coverage (flutter test --coverage or isolated micro test)
@@ -129,7 +130,7 @@ Executes a five-stage code hygiene and validation sequence:
         epilog="""Examples (PowerShell):
   uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/execution/
   uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/ --build
-  uv run python scripts/flutter_audit_loop.py client_app_v2/lib/ --strict --test
+  uv run python scripts/flutter_audit_loop.py client_app_v2/ --strict --test
   uv run python scripts/flutter_audit_loop.py client_app_v2/lib/app.dart --build --strict --micro
 """,
     )
@@ -204,7 +205,7 @@ Executes a five-stage code hygiene and validation sequence:
     if raw_target.is_absolute():
         target_scan_dir = raw_target
     elif cmd_dir == ".":
-        target_scan_dir = root_dir / "client_app_v2" / "lib"
+        target_scan_dir = root_dir / "client_app_v2"
     else:
         target_scan_dir = root_dir / "client_app_v2" / cmd_dir
         if not target_scan_dir.exists():
@@ -230,7 +231,7 @@ Executes a five-stage code hygiene and validation sequence:
     else:
         print(f"\n⏭️ 1/{total_steps}: Skipping code generation (no --build flag).")
 
-    print(f"\n⏳ 2/{total_steps}: Checking Dart Codebase Guardrails (scripts/_dart_guardrails.py)...")
+    print(f"\n⏳ 2/{total_steps}: Checking Dart Codebase Guardrails & Theme Sovereignty...")
     dart_guardrails_script = root_dir / "scripts" / "_dart_guardrails.py"
 
     guardrail_cmd = [sys.executable, str(dart_guardrails_script), str(target_scan_dir)]
@@ -240,7 +241,13 @@ Executes a five-stage code hygiene and validation sequence:
     if res_guardrail.returncode != 0:
         print("\n❌ AUDIT FAILED: Fatal Dart guardrail violations detected!")
         sys.exit(res_guardrail.returncode)
-    print("✅ Dart Guardrails passed.")
+
+    theme_sovereignty_script = root_dir / "scripts" / "audit_flutter_theme_sovereignty.py"
+    res_theme = subprocess.run([sys.executable, str(theme_sovereignty_script), str(target_scan_dir)])
+    if res_theme.returncode != 0:
+        print("\n❌ AUDIT FAILED: Flutter Theme Sovereignty violations detected!")
+        sys.exit(res_theme.returncode)
+    print("✅ Dart Guardrails & Theme Sovereignty passed.")
 
     print(f"\n⏳ 3/{total_steps}: Formatting code (dart format {cmd_dir})...")
     res = subprocess.run(["dart", "format", cmd_dir], shell=True)

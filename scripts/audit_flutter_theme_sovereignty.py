@@ -6,7 +6,7 @@ Colors.*) and standalone TextStyle(...) declarations across full multi-line Dart
 Ensures 100% adherence to ThemeData tokens (colorScheme, textTheme, AppSemanticColors ThemeExtension).
 
 Usage:
-    uv run python scripts/audit_flutter_theme_sovereignty.py [file1.dart file2.dart ...]
+    uv run python scripts/audit_flutter_theme_sovereignty.py [file_or_dir1 file_or_dir2 ...]
 """
 
 from __future__ import annotations
@@ -36,6 +36,7 @@ BOLD = "\033[1m"
 RESET = "\033[0m"
 
 __all__ = [
+    "DEFAULT_TARGET_FILES",
     "ThemeAuditReportDTO",
     "ThemeViolationDTO",
     "main",
@@ -53,6 +54,7 @@ COLORS_PALETTE_PATTERN = re.compile(r"\bColors\s*\.\s*[a-zA-Z0-9_]+")
 TEXT_STYLE_PATTERN = re.compile(r"\b(?:const\s+)?TextStyle\s*\(")
 
 DEFAULT_TARGET_FILES = [
+    "client_app_v2/lib",
     "client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart",
     "client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart",
     "client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart",
@@ -135,11 +137,58 @@ def _line_info_from_offset(content: str, lines: list[str], offset: int) -> tuple
     return line_idx, line_str
 
 
-def scan_theme_sovereignty(target_paths: list[str]) -> ThemeAuditReportDTO:
-    """Scan target Dart files across full multi-line source for Theme Sovereignty violations.
+def _is_exempt_generated_or_test_dart_file(path: Path) -> bool:
+    """Check whether a Dart file discovered during directory walking is generated or inside test/.
 
     Args:
-        target_paths: List of Dart file path strings to inspect.
+        path: Candidate file path.
+
+    Returns:
+        True if the file is generated or inside a test directory, False otherwise.
+    """
+    name = path.name.lower()
+    if name.endswith(".freezed.dart") or name.endswith(".g.dart") or name == "firebase_options.dart":
+        return True
+    normalized = str(path).replace("\\", "/")
+    parts = set(normalized.strip("/").split("/"))
+    return ".dart_tool" in parts or "build" in parts or "test" in parts or "bin" in parts or "l10n/gen" in normalized
+
+
+def _expand_target_dart_files(target_paths: list[str]) -> list[Path]:
+    """Expand file and directory target strings into a deduplicated list of Dart file paths.
+
+    Args:
+        target_paths: List of file or directory path strings.
+
+    Returns:
+        Deduplicated list of existing Dart file Paths.
+    """
+    expanded: list[Path] = []
+    seen_resolved: set[Path] = set()
+
+    for raw_target in target_paths:
+        path = Path(raw_target)
+        if path.is_dir():
+            for child in sorted(path.rglob("*.dart")):
+                if child.is_file() and not _is_exempt_generated_or_test_dart_file(child):
+                    resolved = child.resolve()
+                    if resolved not in seen_resolved:
+                        seen_resolved.add(resolved)
+                        expanded.append(child)
+        elif path.is_file():
+            resolved = path.resolve()
+            if resolved not in seen_resolved:
+                seen_resolved.add(resolved)
+                expanded.append(path)
+
+    return expanded
+
+
+def scan_theme_sovereignty(target_paths: list[str]) -> ThemeAuditReportDTO:
+    """Scan target Dart files or directories across full multi-line source for Theme Sovereignty violations.
+
+    Args:
+        target_paths: List of Dart file or directory path strings to inspect.
 
     Returns:
         ThemeAuditReportDTO containing scanned file count and detected violations.
@@ -147,15 +196,10 @@ def scan_theme_sovereignty(target_paths: list[str]) -> ThemeAuditReportDTO:
     violations: list[ThemeViolationDTO] = []
     scanned_count = 0
 
-    for file_str in target_paths:
-        path = Path(file_str)
-        if not path.is_file():
-            continue
-
+    for path in _expand_target_dart_files(target_paths):
         scanned_count += 1
         normalized_name = path.name.lower()
         is_theme_definition = normalized_name == "app_colors.dart" or "theme" in path.parts
-        is_specialist_section = normalized_name == "specialist_section.dart"
 
         try:
             content = path.read_text(encoding="utf-8")
@@ -243,19 +287,18 @@ def scan_theme_sovereignty(target_paths: list[str]) -> ThemeAuditReportDTO:
                 )
             )
 
-        # In primary UI widgets, assert zero naked TextStyle
-        if not is_specialist_section:
-            for match in TEXT_STYLE_PATTERN.finditer(uncommented):
-                line_idx, line_str = _line_info_from_offset(content, lines, match.start())
-                file_violations.append(
-                    ThemeViolationDTO(
-                        file_path=str(path),
-                        line_number=line_idx,
-                        line_content=line_str,
-                        violation_type="PROHIBITED_NAKED_TEXT_STYLE",
-                        remediation="Replace naked TextStyle(...) with Theme.of(context).textTheme tokens (e.g. titleMedium, bodyMedium).",
-                    )
+        # In all non-theme UI files, assert zero naked TextStyle
+        for match in TEXT_STYLE_PATTERN.finditer(uncommented):
+            line_idx, line_str = _line_info_from_offset(content, lines, match.start())
+            file_violations.append(
+                ThemeViolationDTO(
+                    file_path=str(path),
+                    line_number=line_idx,
+                    line_content=line_str,
+                    violation_type="PROHIBITED_NAKED_TEXT_STYLE",
+                    remediation="Replace naked TextStyle(...) with Theme.of(context).textTheme tokens (e.g. titleMedium, bodyMedium).",
                 )
+            )
 
         file_violations.sort(key=lambda v: v.line_number)
         violations.extend(file_violations)
@@ -281,14 +324,14 @@ def main(argv: list[str] | None = None) -> None:
         "files",
         nargs="*",
         default=[],
-        help="Target Dart files to scan (defaults to standard Theme Sovereignty target set).",
+        help="Target Dart files or directories to scan (defaults to client_app_v2/lib).",
     )
     args = parser.parse_args(argv)
 
     targets = args.files if args.files else DEFAULT_TARGET_FILES
 
     print(f"\n{BOLD}{CYAN}=== Flutter Theme Sovereignty Audit Gate ==={RESET}")
-    print(f"Target files: {len(targets)}")
+    print(f"Target paths: {len(targets)}")
 
     report = scan_theme_sovereignty(targets)
 

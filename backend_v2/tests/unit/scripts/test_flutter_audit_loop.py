@@ -1,8 +1,8 @@
 """Hermetically Isolated ISTQB Unit Tests for flutter_audit_loop.py.
 
 Verifies CLI argument parsing, working directory validation, code generator (--build),
-Dart static guardrail execution (_dart_guardrails.py), dart format, dart analyze,
-Flutter unit tests (--test), and error status handling.
+Dart static guardrail execution (_dart_guardrails.py & audit_flutter_theme_sovereignty.py),
+dart format, dart analyze, Flutter unit tests (--test), and error status handling.
 Enforces 100% hermetic isolation via @patch('subprocess.run') and @patch('sys.exit').
 """
 
@@ -268,7 +268,7 @@ def test_cli_build_runner_failure_triggers_exit(mock_sub: MagicMock, mock_exit: 
 
 
 # ==============================================================================
-# Partition 4: Dart Static Guardrails Stage (_dart_guardrails.py)
+# Partition 4: Dart Static Guardrails Stage (_dart_guardrails.py & theme sovereignty)
 # ==============================================================================
 
 
@@ -328,6 +328,25 @@ def test_cli_guardrail_failure_triggers_exit(mock_sub: MagicMock, mock_exit: Mag
             assert exc.value.code == 1
 
 
+@patch("sys.exit")
+@patch("subprocess.run")
+def test_cli_theme_sovereignty_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
+    """Verify Flutter Theme Sovereignty violations trigger script exit."""
+    client_app = tmp_path / "client_app_v2"
+    client_app.mkdir()
+    mock_exit.side_effect = SystemExit(1)
+    mock_sub.side_effect = [
+        _mock_completed_process(0),  # _dart_guardrails.py passes
+        _mock_completed_process(1),  # audit_flutter_theme_sovereignty.py fails
+    ]
+
+    with patch("os.getcwd", return_value=str(client_app)):
+        with patch.object(sys, "argv", ["flutter_audit_loop.py", "lib"]):
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 1
+
+
 # ==============================================================================
 # Partition 5: Formatting, Static Analysis, and Tests
 # ==============================================================================
@@ -342,6 +361,7 @@ def test_cli_format_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicM
     mock_exit.side_effect = SystemExit(1)
     mock_sub.side_effect = [
         _mock_completed_process(0),  # guardrails pass
+        _mock_completed_process(0),  # theme sovereignty passes
         _mock_completed_process(1),  # dart format fails
     ]
 
@@ -361,6 +381,7 @@ def test_cli_analyze_failure_triggers_exit(mock_sub: MagicMock, mock_exit: Magic
     mock_exit.side_effect = SystemExit(3)
     mock_sub.side_effect = [
         _mock_completed_process(0),  # guardrails pass
+        _mock_completed_process(0),  # theme sovereignty passes
         _mock_completed_process(0),  # dart format passes
         _mock_completed_process(3),  # dart analyze fails
     ]
@@ -422,6 +443,7 @@ def test_cli_micro_unit_test_failure_triggers_exit(mock_sub: MagicMock, mock_exi
     mock_exit.side_effect = SystemExit(1)
     mock_sub.side_effect = [
         _mock_completed_process(0),  # guardrails pass
+        _mock_completed_process(0),  # theme sovereignty passes
         _mock_completed_process(0),  # dart format passes
         _mock_completed_process(0),  # dart analyze passes
         _mock_completed_process(1),  # isolated flutter test fails
@@ -443,6 +465,7 @@ def test_cli_flutter_test_failure_triggers_exit(mock_sub: MagicMock, mock_exit: 
     mock_exit.side_effect = SystemExit(1)
     mock_sub.side_effect = [
         _mock_completed_process(0),  # guardrails pass
+        _mock_completed_process(0),  # theme sovereignty passes
         _mock_completed_process(0),  # dart format passes
         _mock_completed_process(0),  # dart analyze passes
         _mock_completed_process(1),  # flutter test fails

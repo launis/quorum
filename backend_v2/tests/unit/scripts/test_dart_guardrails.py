@@ -868,3 +868,28 @@ Widget buildShared(BuildContext context) {
     )
     assert len([v for v in router_violations if v.rule_code == "DGR003"]) == 1
     assert len([v for v in router_violations if v.rule_code == "DGR007"]) == 2
+
+
+def test_core_ui_and_repository_scopes_and_test_dgr005_exemption() -> None:
+    core_ui_violations = _scan_snippet(
+        "Widget build(BuildContext context) => Container(color: Colors.transparent, child: Text('Unlocalized'));\n",
+        filepath="client_app_v2/lib/core/ui/error_view.dart",
+        strict=True,
+    )
+    assert len([v for v in core_ui_violations if v.rule_code == "DGR003"]) == 1
+    assert len([v for v in core_ui_violations if v.rule_code == "DGR007"]) == 1
+
+    repo_violations = _scan_snippet(
+        "class AuthRepository {\n  Future<Map<String, dynamic>> login() async => {};\n}\n",
+        filepath="client_app_v2/lib/features/auth/data/auth_repository.dart",
+        strict=True,
+    )
+    assert any(v.rule_code == "DGR001" for v in repo_violations)
+
+    test_violations = _scan_snippet(
+        "final Map<String, dynamic> fixture = {};\n// ignore: avoid_print\n",
+        filepath="client_app_v2/test/models/domain_parity_test.dart",
+        strict=True,
+    )
+    assert len([v for v in test_violations if v.rule_code == "DGR005"]) == 0
+    assert len([v for v in test_violations if v.rule_code == "DGR004"]) == 1

@@ -152,8 +152,8 @@ class AppSemanticColors {
     assert "PROHIBITED_RAW_HEX_COLOR" not in types
 
 
-def test_scan_theme_sovereignty_specialist_section_exemption(tmp_path: Path) -> None:
-    """Verify that specialist_section.dart is exempt from naked TextStyle rule."""
+def test_scan_theme_sovereignty_specialist_section_enforced(tmp_path: Path) -> None:
+    """Verify that specialist_section.dart is enforced against naked TextStyle without exemption."""
     specialist_file = tmp_path / "specialist_section.dart"
     specialist_file.write_text(
         """
@@ -173,6 +173,26 @@ class SpecialistSection extends StatelessWidget {
     )
 
     report = scan_theme_sovereignty([str(specialist_file)])
+    assert report.total_files_scanned == 1
+    assert report.total_violations == 1
+    assert report.violations[0].violation_type == "PROHIBITED_NAKED_TEXT_STYLE"
+
+
+def test_scan_theme_sovereignty_directory_expansion_skips_generated_and_test(tmp_path: Path) -> None:
+    """Verify directory targets recursively scan handwritten lib files while skipping generated and test files."""
+    lib_dir = tmp_path / "lib"
+    lib_dir.mkdir()
+    clean_widget = lib_dir / "widget.dart"
+    clean_widget.write_text("class MyWidget {}\n", encoding="utf-8")
+    gen_file = lib_dir / "widget.freezed.dart"
+    gen_file.write_text("final c = Colors.red;\n", encoding="utf-8")
+
+    test_dir = tmp_path / "test"
+    test_dir.mkdir()
+    test_file = test_dir / "widget_test.dart"
+    test_file.write_text("final c = Colors.blue;\n", encoding="utf-8")
+
+    report = scan_theme_sovereignty([str(tmp_path), str(clean_widget)])
     assert report.total_files_scanned == 1
     assert report.total_violations == 0
 
@@ -224,8 +244,9 @@ def test_main_cli_violations(
 
 
 def test_default_target_files_constant() -> None:
-    """Verify DEFAULT_TARGET_FILES list is defined and non-empty."""
+    """Verify DEFAULT_TARGET_FILES list is defined and includes client_app_v2/lib."""
     assert len(DEFAULT_TARGET_FILES) >= 5
+    assert "client_app_v2/lib" in DEFAULT_TARGET_FILES
     assert "client_app_v2/lib/theme/app_colors.dart" in DEFAULT_TARGET_FILES
 
 

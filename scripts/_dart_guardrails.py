@@ -314,7 +314,7 @@ def _check_api_and_codec_multiline_rules(
         filepath: Target file path being scanned.
         source_text: Original decoded UTF-8 source text.
         uncommented_text: Source text with comments replaced by spaces preserving line breaks.
-        is_api_or_model_scope: Whether the file resides in an API, model, controller, or provider directory.
+        is_api_or_model_scope: Whether the file resides in an API, model, controller, data, repository, or provider directory.
         is_test_scope: Whether the file resides in a test directory.
 
     Returns:
@@ -326,7 +326,7 @@ def _check_api_and_codec_multiline_rules(
     def _is_inside_codec_span(offset: int) -> bool:
         return any(start <= offset < end for start, end in codec_exempt_spans)
 
-    if is_api_or_model_scope:
+    if is_api_or_model_scope and not is_test_scope:
         for dgr001_match in DGR001_PATTERN.finditer(uncommented_text):
             if _is_inside_codec_span(dgr001_match.start()):
                 continue
@@ -347,24 +347,25 @@ def _check_api_and_codec_multiline_rules(
             )
 
     seen_dgr005_offsets: set[int] = set()
-    for dgr005_match in DGR005_DYNAMIC_MAP_PATTERN.finditer(uncommented_text):
-        start_pos = dgr005_match.start()
-        if _is_inside_codec_span(start_pos):
-            continue
-        seen_dgr005_offsets.add(start_pos)
-        lineno, col_offset = _offset_to_line_col(source_text, start_pos)
-        violations.append(
-            DartViolation(
-                filepath=filepath,
-                lineno=lineno,
-                col_offset=col_offset,
-                rule_code="DGR005",
-                message="Banned non-codec `Map<String, dynamic>` detected in handwritten Dart code.",
-                remediation="Retype to a strongly typed Freezed DTO or domain model instead of raw Map.",
-                severity=GuardrailSeverity.FATAL,
-                is_suppressed=False,
+    if not is_test_scope:
+        for dgr005_match in DGR005_DYNAMIC_MAP_PATTERN.finditer(uncommented_text):
+            start_pos = dgr005_match.start()
+            if _is_inside_codec_span(start_pos):
+                continue
+            seen_dgr005_offsets.add(start_pos)
+            lineno, col_offset = _offset_to_line_col(source_text, start_pos)
+            violations.append(
+                DartViolation(
+                    filepath=filepath,
+                    lineno=lineno,
+                    col_offset=col_offset,
+                    rule_code="DGR005",
+                    message="Banned non-codec `Map<String, dynamic>` detected in handwritten Dart code.",
+                    remediation="Retype to a strongly typed Freezed DTO or domain model instead of raw Map.",
+                    severity=GuardrailSeverity.FATAL,
+                    is_suppressed=False,
+                )
             )
-        )
 
     if not is_test_scope and not is_dgr005_object_map_exempt(filepath):
         for obj_map_match in DGR005_OBJECT_MAP_PATTERN.finditer(uncommented_text):
@@ -422,8 +423,8 @@ def _check_ui_and_feature_multiline_rules(
         filepath: Target file path being scanned.
         source_text: Original decoded UTF-8 source text.
         uncommented_text: Source text with comments replaced by spaces preserving line breaks.
-        is_ui_scope: Whether the file resides in features, shared, or router UI directories.
-        is_feature_widget_scope: Whether the file is a non-test UI widget file (features, shared, or router).
+        is_ui_scope: Whether the file is a non-test, non-theme Dart source file.
+        is_feature_widget_scope: Whether the file is a non-test, non-theme Dart source file.
         is_theme_scope: Whether the file is a theme token definition file.
         is_test_scope: Whether the file resides in a test directory.
         default_severity: Default severity tier (WARNING or FATAL when strict).
@@ -658,12 +659,15 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
         or "models" in path_parts
         or "controllers" in path_parts
         or "providers" in path_parts
+        or "data" in path_parts
+        or "repositories" in path_parts
+        or "network" in path_parts
         or "core/api" in normalized_path
     )
-    is_test_scope = "test" in path_parts
-    is_ui_scope = ("features" in path_parts or "shared" in path_parts or "router" in path_parts) and not is_test_scope
-    is_feature_widget_scope = is_ui_scope
+    is_test_scope = "test" in path_parts or "bin" in path_parts
     is_theme_scope = "theme" in path_parts or Path(filepath).name.lower() == "app_colors.dart"
+    is_ui_scope = not is_test_scope and not is_theme_scope
+    is_feature_widget_scope = is_ui_scope
     default_severity = GuardrailSeverity.FATAL if strict else GuardrailSeverity.WARNING
 
     # DGR004 scans raw lines specifically to catch // ignore: and // ignore_for_file: comments
@@ -825,13 +829,13 @@ def main(argv: list[str] | None = None) -> int:
         description="""Client-Side Static Dart Guardrail Analyzer (DGR001-DGR010).
 
 Enforces Flutter client architecture and static type safety invariants across full multi-line source:
-  DGR001: Loose Map return types in API clients, models, controllers, or providers (FATAL)
-  DGR002: SizedBox.shrink() concealment (WARNING)
-  DGR003: Raw hardcoded string literals in Text widgets across features/, shared/, and router/ (WARNING)
-  DGR004: Dart lint suppressions (FATAL)
+  DGR001: Loose Map return types in API clients, models, controllers, data, repositories, or providers (FATAL)
+  DGR002: SizedBox.shrink() concealment across all non-test, non-theme lib/ files (WARNING)
+  DGR003: Raw hardcoded string literals in Text widgets across all non-test, non-theme lib/ files (WARNING)
+  DGR004: Dart lint suppressions across lib/ and test/ (FATAL)
   DGR005: Non-codec Map<String, dynamic> or unexempted Map<String, Object?> in handwritten Dart code (FATAL)
   DGR006: Anonymous Map literals in HTTP request payloads (FATAL)
-  DGR007: Banned hardcoded hex colors or direct Colors.* calls in UI widgets (WARNING)
+  DGR007: Banned hardcoded hex colors or direct Colors.* calls across all non-test, non-theme lib/ files (WARNING)
   DGR008: Banned manual string clippings via .substring() and legacy Uuid().v4() (WARNING)
   DGR009: Missing AppErrorBoundary wrapping on feature master views (WARNING)
   DGR010: Missing AsyncValue guards on dynamic AsyncNotifierProvider consumers (WARNING)
@@ -840,7 +844,7 @@ Immunity: Generated files (*.g.dart, *.freezed.dart) are automatically exempted.
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples (PowerShell):
-  uv run python scripts/_dart_guardrails.py client_app_v2/lib
+  uv run python scripts/_dart_guardrails.py client_app_v2
   uv run python scripts/_dart_guardrails.py client_app_v2/lib/features/studio/ --strict
   uv run python scripts/_dart_guardrails.py client_app_v2/lib/features/execution/models/
 """,
@@ -848,8 +852,8 @@ Immunity: Generated files (*.g.dart, *.freezed.dart) are automatically exempted.
     parser.add_argument(
         "targets",
         nargs="*",
-        default=["client_app_v2/lib"],
-        help="Target Dart files or directories to scan (default: client_app_v2/lib).",
+        default=["client_app_v2"],
+        help="Target Dart files or directories to scan (default: client_app_v2).",
     )
     parser.add_argument(
         "--strict",
