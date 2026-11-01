@@ -14,10 +14,11 @@ from backend_v2.core.hook_registry import (
     HookResult,
     HookState,
 )
+from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.hooks.interaction_hook import _SYSTEM_INSTRUCTION, analyze_interaction_role
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO, InteractionInput
-from backend_v2.models.enums import InteractionStrategy, LLMProvider, RoleClassification
+from backend_v2.models.enums import CognitiveTier, InteractionStrategy, LLMProvider, RoleClassification
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
@@ -82,7 +83,7 @@ async def test_analyze_interaction_role_missing_system_repo(mock_repository: InM
         output_profile_repo=mock_repository,
         identity_repo=mock_repository,
         audit_repo=mock_repository,
-        system_repo=None,
+        system_repo=cast(ISystemRepository, cast(object, None)),
     )
 
     with pytest.raises(AppException) as exc:
@@ -120,9 +121,9 @@ async def test_analyze_interaction_role_invalid_inputs(mock_repository: InMemory
 @patch("backend_v2.hooks.interaction_hook.calculate_behavioral_metrics")
 @patch("backend_v2.hooks.interaction_hook.calculate_control_ratio")
 @patch("backend_v2.hooks.interaction_hook.LLMTaskExecutor.execute_structured_task", new_callable=AsyncMock)
-@patch("backend_v2.hooks.interaction_hook.LLMClient.from_strategy", new_callable=AsyncMock)
+@patch("backend_v2.hooks.interaction_hook.LLMClient.from_tier", new_callable=AsyncMock)
 async def test_analyze_interaction_role_prompt_injection(
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     mock_execute_structured_task: AsyncMock,
     mock_control_ratio: AsyncMock,
     mock_behavioral_metrics: AsyncMock,
@@ -189,9 +190,9 @@ async def test_analyze_interaction_role_prompt_injection(
 @patch("backend_v2.hooks.interaction_hook.calculate_behavioral_metrics")
 @patch("backend_v2.hooks.interaction_hook.calculate_control_ratio")
 @patch("backend_v2.hooks.interaction_hook.LLMTaskExecutor.execute_structured_task", new_callable=AsyncMock)
-@patch("backend_v2.hooks.interaction_hook.LLMClient.from_strategy", new_callable=AsyncMock)
+@patch("backend_v2.hooks.interaction_hook.LLMClient.from_tier", new_callable=AsyncMock)
 async def test_analyze_interaction_role_garbage_data(
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     mock_execute_structured_task: AsyncMock,
     mock_control_ratio: AsyncMock,
     mock_behavioral_metrics: AsyncMock,
@@ -243,9 +244,9 @@ async def test_analyze_interaction_role_garbage_data(
 @patch("backend_v2.hooks.interaction_hook.calculate_behavioral_metrics")
 @patch("backend_v2.hooks.interaction_hook.calculate_control_ratio")
 @patch("backend_v2.hooks.interaction_hook.LLMTaskExecutor.execute_structured_task", new_callable=AsyncMock)
-@patch("backend_v2.hooks.interaction_hook.LLMClient.from_strategy", new_callable=AsyncMock)
+@patch("backend_v2.hooks.interaction_hook.LLMClient.from_tier", new_callable=AsyncMock)
 async def test_analyze_interaction_role_cognitive_conflict(
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     mock_execute_structured_task: AsyncMock,
     mock_control_ratio: AsyncMock,
     mock_behavioral_metrics: AsyncMock,
@@ -303,9 +304,9 @@ async def test_analyze_interaction_role_cognitive_conflict(
 @patch("backend_v2.hooks.interaction_hook.calculate_behavioral_metrics")
 @patch("backend_v2.hooks.interaction_hook.calculate_control_ratio")
 @patch("backend_v2.hooks.interaction_hook.LLMTaskExecutor.execute_structured_task", new_callable=AsyncMock)
-@patch("backend_v2.hooks.interaction_hook.LLMClient.from_strategy", new_callable=AsyncMock)
+@patch("backend_v2.hooks.interaction_hook.LLMClient.from_tier", new_callable=AsyncMock)
 async def test_analyze_interaction_role_llm_failure(
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     mock_execute_structured_task: AsyncMock,
     mock_control_ratio: AsyncMock,
     mock_behavioral_metrics: AsyncMock,
@@ -349,14 +350,14 @@ async def test_analyze_interaction_role_llm_failure(
 @pytest.mark.asyncio
 @patch("backend_v2.hooks.interaction_hook.calculate_behavioral_metrics")
 @patch("backend_v2.hooks.interaction_hook.calculate_control_ratio")
-@patch("backend_v2.hooks.interaction_hook.LLMClient.from_strategy", new_callable=AsyncMock)
+@patch("backend_v2.hooks.interaction_hook.LLMClient.from_tier", new_callable=AsyncMock)
 async def test_analyze_interaction_role_configuration_error(
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     mock_control_ratio: AsyncMock,
     mock_behavioral_metrics: AsyncMock,
     mock_repository: InMemoryUnifiedWorkflowRepository,
 ) -> None:
-    """Test fail-fast when LLMClient.from_strategy raises ConfigurationError."""
+    """Test fail-fast when LLMClient.from_tier raises ConfigurationError."""
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
@@ -381,7 +382,7 @@ async def test_analyze_interaction_role_configuration_error(
     mock_behavioral_metrics.return_value = BehavioralMetricsDTO(
         say_do_gap=0.0, automation_bias=0.0, illusion_of_competence=0.0, imperative_command_count=0
     )
-    mock_from_strategy.side_effect = ConfigurationError("Missing fast tier in registry")
+    mock_from_tier.side_effect = ConfigurationError("Missing fast tier in registry")
 
     with pytest.raises(AppException) as exc:
         await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
@@ -395,15 +396,15 @@ async def test_analyze_interaction_role_configuration_error(
 @patch("backend_v2.hooks.interaction_hook.calculate_behavioral_metrics")
 @patch("backend_v2.hooks.interaction_hook.calculate_control_ratio")
 @patch("backend_v2.hooks.interaction_hook.LLMTaskExecutor.execute_structured_task", new_callable=AsyncMock)
-@patch("backend_v2.hooks.interaction_hook.LLMClient.from_strategy", new_callable=AsyncMock)
+@patch("backend_v2.hooks.interaction_hook.LLMClient.from_tier", new_callable=AsyncMock)
 async def test_analyze_interaction_role_registry_and_provider_override(
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     mock_execute_structured_task: AsyncMock,
     mock_control_ratio: AsyncMock,
     mock_behavioral_metrics: AsyncMock,
     mock_repository: InMemoryUnifiedWorkflowRepository,
 ) -> None:
-    """Test that model_registry_id and provider_override are forwarded to LLMClient.from_strategy."""
+    """Test that model_registry_id and provider_override are forwarded to LLMClient.from_tier."""
     state = HookState(
         execution_id="sub-123",
         workflow_id="wf-123",
@@ -445,8 +446,8 @@ async def test_analyze_interaction_role_registry_and_provider_override(
     res = await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
 
     assert res.success is True
-    mock_from_strategy.assert_awaited_once_with(
-        "fast",
+    mock_from_tier.assert_awaited_once_with(
+        CognitiveTier.FAST,
         repository=mock_repository,
         pipeline_name="interaction_hook",
         registry_id="sys_0195f3a0000070018234567890abcdef",
@@ -480,7 +481,7 @@ async def test_analyze_interaction_role_post_validation_empty_chat_log_short_cir
     with patch.object(
         InteractionInput,
         "model_validate",
-        return_value=InteractionInput.model_construct(chat_log="   "),
+        return_value=InteractionInput.model_construct(chat_log="   ", dynamic_inputs={}),
     ):
         res = await cast(Awaitable[HookResult], analyze_interaction_role(state, deps))
 

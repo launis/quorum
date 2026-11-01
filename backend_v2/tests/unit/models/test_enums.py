@@ -1,11 +1,13 @@
 """Unit tests for backend_v2.models.enums."""
 
 import pytest
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from backend_v2.models.enums import (
+    PIPELINE_REGISTRY,
     BlockDataType,
     CausalRootCauseType,
+    CognitiveTier,
     ComponentType,
     DependencyRelationType,
     DisplayScale,
@@ -237,10 +239,27 @@ def test_role_classification_from_score_invalid_inputs() -> None:
 
 def test_pipeline_config_immutability() -> None:
     """Verify PipelineConfig is frozen and hashable."""
-    cfg = PipelineConfig(profile=ExecutionProfile.ONE_SHOT, default_strategy="fast")
+    cfg = PipelineConfig(profile=ExecutionProfile.ONE_SHOT, default_strategy=CognitiveTier.FAST)
     assert cfg.profile == ExecutionProfile.ONE_SHOT
-    assert cfg.default_strategy == "fast"
+    assert cfg.default_strategy == CognitiveTier.FAST
     assert isinstance(hash(cfg), int)
+
+
+def test_pipeline_config_default_strategy_enforces_cognitive_tier_enum() -> None:
+    """Verify PIPELINE_REGISTRY entries with default_strategy use CognitiveTier.FAST."""
+    for key in ("chat_parser", "studio_generation", "interaction_hook"):
+        entry = PIPELINE_REGISTRY[key]
+        assert entry.default_strategy is CognitiveTier.FAST
+        assert isinstance(entry.default_strategy, CognitiveTier)
+
+
+def test_pipeline_config_rejects_raw_string_default_strategy_under_strict_mode() -> None:
+    """Negative test: Verify PipelineConfig rejects raw string default_strategy under strict=True."""
+    adapter = TypeAdapter(PipelineConfig)
+    with pytest.raises(ValidationError):
+        adapter.validate_python({"profile": ExecutionProfile.ONE_SHOT, "default_strategy": "fast"})
+    with pytest.raises(ValidationError):
+        adapter.validate_python({"description": "Test", "default_strategy": "fast"})
 
 
 def test_lax_causal_root_cause_and_step_zone() -> None:

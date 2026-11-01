@@ -3,11 +3,11 @@
 Strict definitions of allowed domain types enforcing the No-String Mandate.
 """
 
-from dataclasses import dataclass
 from enum import Enum, IntEnum, StrEnum
 from typing import Annotated, Self
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
+from pydantic.dataclasses import dataclass
 
 __all__ = [
     "DEFAULT_ALIAS_LITERALS",
@@ -1048,27 +1048,31 @@ DEFAULT_NULL_HYPOTHESIS_BLACKLIST: frozenset[str] = frozenset(
 )
 
 
-@dataclass(frozen=True)
+@dataclass(config=ConfigDict(strict=True, extra="forbid", frozen=True))
 class PipelineConfig:
     """Immutable static configuration for internal execution pipelines.
 
     Attributes:
         profile: Execution profile governing caching and iteration behavior.
-        default_strategy: Optional cognitive tier strategy name.
+        default_strategy: Default cognitive tier if not overridden.
     """
 
     profile: ExecutionProfile
-    default_strategy: str | None = None
+    # Phase 1, Step 1.2: Enforce CognitiveTier Enum SSOT on PipelineConfig.default_strategy
+    default_strategy: Annotated[
+        CognitiveTier | None,
+        Field(default=None, description="Default cognitive tier if not overridden"),
+    ] = None
 
 
 # Static registry for execution pipelines.
 # This prevents putting backend physical logic into the mutable database.
 PIPELINE_REGISTRY: dict[str, PipelineConfig] = {
-    "chat_parser": PipelineConfig(profile=ExecutionProfile.ONE_SHOT, default_strategy="fast"),
+    "chat_parser": PipelineConfig(profile=ExecutionProfile.ONE_SHOT, default_strategy=CognitiveTier.FAST),
     "mcp_tool_loop": PipelineConfig(profile=ExecutionProfile.ITERATIVE),
     "chunk_worker": PipelineConfig(profile=ExecutionProfile.ITERATIVE),
-    "studio_generation": PipelineConfig(profile=ExecutionProfile.ONE_SHOT, default_strategy="fast"),
-    "interaction_hook": PipelineConfig(profile=ExecutionProfile.ONE_SHOT, default_strategy="fast"),
+    "studio_generation": PipelineConfig(profile=ExecutionProfile.ONE_SHOT, default_strategy=CognitiveTier.FAST),
+    "interaction_hook": PipelineConfig(profile=ExecutionProfile.ONE_SHOT, default_strategy=CognitiveTier.FAST),
     "synthesis": PipelineConfig(profile=ExecutionProfile.ITERATIVE),
     "synthesis_strict": PipelineConfig(profile=ExecutionProfile.ONE_SHOT),
 }

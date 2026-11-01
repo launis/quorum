@@ -22,6 +22,7 @@ from backend_v2.hooks.metrics import calculate_behavioral_metrics, calculate_con
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO, InteractionInput
+from backend_v2.models.enums import CognitiveTier
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.execution import INTERACTION_OBJECTIVE, INTERACTION_RULES
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -102,20 +103,20 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
         )
 
     try:
-        # Internal Utility LLM Execution pattern
+        # Phase 1, Step 1.2: Internal Utility LLM Execution pattern via CognitiveTier.FAST
         registry_id = state.metadata.model_registry_id
         provider = state.metadata.provider_override
         if registry_id is not None or provider is not None:
-            llm_client = await LLMClient.from_strategy(
-                "fast",
+            llm_client = await LLMClient.from_tier(
+                CognitiveTier.FAST,
                 repository=system_repo,
                 pipeline_name="interaction_hook",
                 registry_id=registry_id,
                 provider=provider,
             )
         else:
-            llm_client = await LLMClient.from_strategy(
-                "fast",
+            llm_client = await LLMClient.from_tier(
+                CognitiveTier.FAST,
                 repository=system_repo,
                 pipeline_name="interaction_hook",
             )

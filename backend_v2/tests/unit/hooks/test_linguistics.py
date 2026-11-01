@@ -25,7 +25,7 @@ from backend_v2.models.domain.linguistics import (
     LinguisticsPayloadDTO,
     LinguisticsResultDTO,
 )
-from backend_v2.models.enums import EntityPrefix, LLMProvider
+from backend_v2.models.enums import CognitiveTier, EntityPrefix, LLMProvider
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
@@ -94,7 +94,8 @@ def test_get_lexical_fuzz_threshold_locales() -> None:
 async def test_detect_performative_patterns_empty_state() -> None:
     """Verify empty state returns successful no-op."""
     deps = MagicMock()
-    result = await detect_performative_patterns(None, deps)
+    empty_state = cast(HookState, cast(object, None))
+    result = await cast(Awaitable[HookResult], detect_performative_patterns(empty_state, deps))
     assert result.success
     assert result.state_delta is not None
     assert not result.state_delta.delta
@@ -151,7 +152,7 @@ async def test_detect_performative_patterns_prioritizes_user_only(
     mock_extractor_dto = DynamicLinguisticsExtractorDTO(detected_phrases=["delve into"])
 
     with (
-        patch("backend_v2.hooks.linguistics.LLMClient.from_strategy", return_value=mock_llm_client),
+        patch("backend_v2.hooks.linguistics.LLMClient.from_tier", return_value=mock_llm_client),
         patch(
             "backend_v2.hooks.linguistics.LLMTaskExecutor.execute_structured_task",
             return_value=(mock_extractor_dto, None),
@@ -195,7 +196,7 @@ async def test_detect_performative_patterns_exact_substring(
     mock_extractor_dto = DynamicLinguisticsExtractorDTO(detected_phrases=["delve into"])
 
     with (
-        patch("backend_v2.hooks.linguistics.LLMClient.from_strategy", return_value=mock_llm_client),
+        patch("backend_v2.hooks.linguistics.LLMClient.from_tier", return_value=mock_llm_client),
         patch(
             "backend_v2.hooks.linguistics.LLMTaskExecutor.execute_structured_task",
             return_value=(mock_extractor_dto, None),
@@ -240,7 +241,7 @@ async def test_detect_performative_patterns_morphological_inflection(
     mock_extractor_dto = DynamicLinguisticsExtractorDTO(detected_phrases=["syvennytään tarkemmin"])
 
     with (
-        patch("backend_v2.hooks.linguistics.LLMClient.from_strategy", return_value=mock_llm_client),
+        patch("backend_v2.hooks.linguistics.LLMClient.from_tier", return_value=mock_llm_client),
         patch(
             "backend_v2.hooks.linguistics.LLMTaskExecutor.execute_structured_task",
             return_value=(mock_extractor_dto, None),
@@ -282,7 +283,7 @@ async def test_detect_performative_patterns_unanchored_discarded(
     )
 
     with (
-        patch("backend_v2.hooks.linguistics.LLMClient.from_strategy", return_value=mock_llm_client),
+        patch("backend_v2.hooks.linguistics.LLMClient.from_tier", return_value=mock_llm_client),
         patch(
             "backend_v2.hooks.linguistics.LLMTaskExecutor.execute_structured_task",
             return_value=(mock_extractor_dto, None),
@@ -318,9 +319,9 @@ async def test_detect_performative_patterns_disabled_setting(
         inputs=ExecutionInputsDTO(raw_inputs={"chat_log_user_only": "We delve into this matter."}),
     )
 
-    with patch("backend_v2.hooks.linguistics.LLMClient.from_strategy") as mock_from_strategy:
+    with patch("backend_v2.hooks.linguistics.LLMClient.from_tier") as mock_from_tier:
         result = await cast(Awaitable[HookResult], detect_performative_patterns(state, mock_deps))
-        mock_from_strategy.assert_not_called()
+        mock_from_tier.assert_not_called()
 
     assert result.success is True
     assert result.state_delta is not None
@@ -347,7 +348,7 @@ async def test_detect_performative_patterns_llm_exception_graceful(
         inputs=ExecutionInputsDTO(raw_inputs={"chat_log_user_only": "We delve into this matter."}),
     )
 
-    with patch("backend_v2.hooks.linguistics.LLMClient.from_strategy", side_effect=RuntimeError("LLM API Timeout")):
+    with patch("backend_v2.hooks.linguistics.LLMClient.from_tier", side_effect=RuntimeError("LLM API Timeout")):
         result = await cast(Awaitable[HookResult], detect_performative_patterns(state, mock_deps))
 
     # Does not crash; gracefully returns empty patterns
@@ -517,17 +518,17 @@ async def test_detect_performative_patterns_fuzzy_fallback_and_provider_override
 
     with (
         patch(
-            "backend_v2.hooks.linguistics.LLMClient.from_strategy",
+            "backend_v2.hooks.linguistics.LLMClient.from_tier",
             return_value=mock_llm_client,
-        ) as mock_from_strategy,
+        ) as mock_from_tier,
         patch(
             "backend_v2.hooks.linguistics.LLMTaskExecutor.execute_structured_task",
             return_value=(mock_extractor_dto, None),
         ),
     ):
         result = await cast(Awaitable[HookResult], detect_performative_patterns(state, mock_deps))
-        mock_from_strategy.assert_called_once_with(
-            "fast",
+        mock_from_tier.assert_called_once_with(
+            CognitiveTier.FAST,
             repository=mock_deps.system_repo,
             pipeline_name="linguistics_hook",
             registry_id=sys_id,

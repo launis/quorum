@@ -27,7 +27,7 @@ from backend_v2.models.dtos.source_extraction_schema import (
     SourceVerificationInputsDTO,
     SourceVerificationPayloadDTO,
 )
-from backend_v2.models.enums import SystemLocale, ToolCapability
+from backend_v2.models.enums import CognitiveTier, SystemLocale, ToolCapability
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.localization import set_language
 from backend_v2.services.mcp.dispatcher import ToolDispatcher
@@ -224,19 +224,20 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
                 ),
             )
 
+        # Phase 1, Step 1.2: Route source verification LLM client initialization through CognitiveTier.FAST
         registry_id = state.metadata.model_registry_id
         provider = state.metadata.provider_override
         if registry_id is not None or provider is not None:
-            llm_client = await LLMClient.from_strategy(
-                "fast",
+            llm_client = await LLMClient.from_tier(
+                CognitiveTier.FAST,
                 repository=deps.system_repo,
                 pipeline_name="source_verification",
                 registry_id=registry_id,
                 provider=provider,
             )
         else:
-            llm_client = await LLMClient.from_strategy(
-                "fast",
+            llm_client = await LLMClient.from_tier(
+                CognitiveTier.FAST,
                 repository=deps.system_repo,
                 pipeline_name="source_verification",
             )

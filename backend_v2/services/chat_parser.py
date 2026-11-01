@@ -19,7 +19,7 @@ from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.models.dtos.ingress import ChatTurnAnchorsResponseDTO
-from backend_v2.models.enums import LLMProvider
+from backend_v2.models.enums import CognitiveTier, LLMProvider
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
@@ -172,19 +172,19 @@ class ChatParserService:
                 details={"error_code": ErrorCodes.EMPTY_INPUT.value},
             )
 
-        # Initialize LLM Client via Strategy Pattern
+        # Phase 1, Step 1.2: Initialize LLM Client via CognitiveTier Enum SSOT
         try:
             if registry_id is not None or provider is not None:
-                llm_client = await LLMClient.from_strategy(
-                    "fast",
+                llm_client = await LLMClient.from_tier(
+                    CognitiveTier.FAST,
                     repository=system_repo,
                     pipeline_name="chat_parser",
                     registry_id=registry_id,
                     provider=provider,
                 )
             else:
-                llm_client = await LLMClient.from_strategy(
-                    "fast",
+                llm_client = await LLMClient.from_tier(
+                    CognitiveTier.FAST,
                     repository=system_repo,
                     pipeline_name="chat_parser",
                 )

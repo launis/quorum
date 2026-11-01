@@ -23,7 +23,7 @@
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_162/01_phase1_plan.md] @[docs/epic/EPIC_162_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_162/01_phase1_plan.md] @[docs/epic/EPIC_162_tracker.md]`
   - [x] Step 1.1: Pre-Implementation Technical Debt Cleanups in `ablation_live_executor.py` and `in_memory_uow.py`
-  - [ ] Step 1.2: `PipelineConfig.default_strategy` `CognitiveTier` Enum Enforcement & Production Call-Site Migration
+  - [x] Step 1.2: `PipelineConfig.default_strategy` `CognitiveTier` Enum Enforcement & Production Call-Site Migration
   - [ ] Step 1.3: Eradication of `LLMClient.from_strategy`, Static AST Guardrail Enforcement & Unit Test Suite Migration
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_162/01_phase1_plan.md] @[docs/epic/EPIC_162_tracker.md]`
@@ -135,7 +135,7 @@
 | Requirement | Description | Phase / Plan Step | Status |
 | :--- | :--- | :--- | :--- |
 | **REQ-162-001** | Resolve pre-existing `TD_DICT_GET` and `TD_MODEL_FACTORY` technical debt items in `scripts/ablation_live_executor.py#L153-L179`, `scripts/ablation_live_executor.py#L649-L687`, `backend_v2/tests/fakes/in_memory_uow.py#L951-L1123`, and `backend_v2/tests/fakes/in_memory_uow.py#L1125-L1200`. | Phase 1, Step 1.1 | [x] Complete |
-| **REQ-162-002** | Type `PipelineConfig.default_strategy` as `CognitiveTier \| None = None` in `backend_v2/models/enums.py#L1051-L1061`, update `PIPELINE_REGISTRY` entries to `CognitiveTier.FAST`, and migrate `chat_parser.py#L72-L346`, `interaction_hook.py#L43-L184`, `linguistics.py#L77-L229`, and `source_verification_hook.py#L155-L281` to `LLMClient.from_tier`. | Phase 1, Step 1.2 | [ ] Pending |
+| **REQ-162-002** | Type `PipelineConfig.default_strategy` as `CognitiveTier \| None = None` in `backend_v2/models/enums.py#L1051-L1061`, update `PIPELINE_REGISTRY` entries to `CognitiveTier.FAST`, and migrate `chat_parser.py#L72-L346`, `interaction_hook.py#L43-L184`, `linguistics.py#L77-L229`, and `source_verification_hook.py#L155-L281` to `LLMClient.from_tier`. | Phase 1, Step 1.2 | [x] Complete |
 | **REQ-162-003** | Delete `LLMClient.from_strategy` from `backend_v2/llm/client.py#L44-L911`, enforce static AST guardrail bans in `scripts/_ast_guardrails.py#L781-L3490`, and migrate all 16 unit test suites to `LLMClient.from_tier`. | Phase 1, Step 1.3 | [ ] Pending |
 | **REQ-162-004** | Implement `_sync_output_profiles_for_workflow` in `StudioWorkflowService.save_workflow` (`workflow_service.py#L283-321`) to prune stale `target_blocks`, `variance_target_block`, and `user_role_target_block` references and coerce `view_type`, and validate `variance_target_block` and `user_role_target_block` against `allowed_prompt_blocks` in `StudioOutputProfileService.save_output_profile` (`output_profile_service.py#L96-155`). | Phase 2, Step 2.1 | [ ] Pending |
 | **REQ-162-005** | Add `staleTargetBlockChipLabel` to `app_en.arb#L2963-2983` and `app_fi.arb#L2213-2233` and render removable error-styled `FilterChip` widgets for stale block IDs in `matrix_graph_item_editor.dart#L260-305` and `profile_section_config_tab.dart#L41-72`. | Phase 2, Step 2.2 | [ ] Pending |

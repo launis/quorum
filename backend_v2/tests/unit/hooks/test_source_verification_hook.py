@@ -1,6 +1,7 @@
 """Unit tests for Source Verification Hook."""
 
 import datetime
+from typing import cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -13,6 +14,7 @@ from backend_v2.core.hook_registry import (
     HookState,
     hook_registry,
 )
+from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.source_verification_hook import source_verification_hook
 from backend_v2.models.core_base import I18nText
@@ -174,16 +176,16 @@ async def test_source_verification_hook_short_text_short_circuit(mock_deps: Hook
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_strategy")
+@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_tier")
 @patch("backend_v2.hooks.source_verification_hook.SourceVerificationService")
 async def test_source_verification_hook_success(
     mock_service_cls: AsyncMock,
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     mock_deps: HookDependencies,
 ) -> None:
     """TC-HOOK-03: Valid document text delegates to SourceVerificationService and produces external_evidence XML and traces."""
     mock_llm_client = AsyncMock()
-    mock_from_strategy.return_value = mock_llm_client
+    mock_from_tier.return_value = mock_llm_client
 
     mock_instance = AsyncMock()
     mock_service_cls.return_value = mock_instance
@@ -260,7 +262,7 @@ async def test_source_verification_hook_missing_system_repo_raises() -> None:
         output_profile_repo=repo,
         identity_repo=repo,
         audit_repo=repo,
-        system_repo=None,
+        system_repo=cast(ISystemRepository, cast(object, None)),
     )
 
     state = HookState(
@@ -297,15 +299,15 @@ async def test_source_verification_hook_invalid_input_type(mock_deps: HookDepend
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_strategy")
+@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_tier")
 @patch("backend_v2.hooks.source_verification_hook.SourceVerificationService")
 async def test_source_verification_hook_multi_key_string_inputs(
     mock_service_cls: AsyncMock,
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     mock_deps: HookDependencies,
 ) -> None:
     """TC-HOOK-05: Non-recognized key inputs synthesize string text parts for verification."""
-    mock_from_strategy.return_value = AsyncMock()
+    mock_from_tier.return_value = AsyncMock()
     mock_instance = AsyncMock()
     mock_service_cls.return_value = mock_instance
     mock_instance.run_full_verification.return_value = SourceVerificationResultDTO(
@@ -336,15 +338,15 @@ async def test_source_verification_hook_multi_key_string_inputs(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_strategy")
+@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_tier")
 @patch("backend_v2.hooks.source_verification_hook.SourceVerificationService")
 async def test_source_verification_hook_dto_inputs_handled_safely(
     mock_service_cls: AsyncMock,
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     mock_deps: HookDependencies,
 ) -> None:
     """TC-HOOK-05C: SourceVerificationInputsDTO passed as state.inputs delegates safely."""
-    mock_from_strategy.return_value = AsyncMock()
+    mock_from_tier.return_value = AsyncMock()
     mock_instance = AsyncMock()
     mock_service_cls.return_value = mock_instance
     mock_instance.run_full_verification.return_value = SourceVerificationResultDTO(
@@ -361,7 +363,13 @@ async def test_source_verification_hook_dto_inputs_handled_safely(
         workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=SourceVerificationInputsDTO(prior_analysis="Valid analytical text discussing scientific findings."),
+        inputs=cast(
+            ExecutionInputsDTO,
+            cast(
+                object,
+                SourceVerificationInputsDTO(prior_analysis="Valid analytical text discussing scientific findings."),
+            ),
+        ),
     )
 
     result = await source_verification_hook(state, mock_deps)
@@ -371,15 +379,15 @@ async def test_source_verification_hook_dto_inputs_handled_safely(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_strategy")
+@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_tier")
 @patch("backend_v2.hooks.source_verification_hook.SourceVerificationService")
 async def test_source_verification_hook_service_error_propagates(
     mock_service_cls: AsyncMock,
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     mock_deps: HookDependencies,
 ) -> None:
     """TC-HOOK-06: Exceptions from SourceVerificationService propagate cleanly."""
-    mock_from_strategy.return_value = AsyncMock()
+    mock_from_tier.return_value = AsyncMock()
     mock_instance = AsyncMock()
     mock_service_cls.return_value = mock_instance
     mock_instance.run_full_verification.side_effect = AppException(message="Fatal verification error", status_code=502)
@@ -399,15 +407,15 @@ async def test_source_verification_hook_service_error_propagates(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_strategy")
+@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_tier")
 @patch("backend_v2.hooks.source_verification_hook.SourceVerificationService")
 async def test_source_verification_hook_raw_string_and_list_inputs(
     mock_service_cls: AsyncMock,
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     mock_deps: HookDependencies,
 ) -> None:
     """TC-HOOK-07: Tests pure string inputs and list inputs."""
-    mock_from_strategy.return_value = AsyncMock()
+    mock_from_tier.return_value = AsyncMock()
     mock_instance = AsyncMock()
     mock_service_cls.return_value = mock_instance
     mock_instance.run_full_verification.return_value = SourceVerificationResultDTO(
@@ -424,7 +432,7 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
         workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs="A direct string input for source checking.",
+        inputs=cast(ExecutionInputsDTO, cast(object, "A direct string input for source checking.")),
     )
 
     result_str = await source_verification_hook(state_str, mock_deps)
@@ -436,7 +444,7 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
         workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=["Line one of content.", "Line two of content."],
+        inputs=cast(ExecutionInputsDTO, cast(object, ["Line one of content.", "Line two of content."])),
     )
 
     result_list = await source_verification_hook(state_list, mock_deps)
@@ -445,11 +453,11 @@ async def test_source_verification_hook_raw_string_and_list_inputs(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_strategy")
+@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_tier")
 @patch("backend_v2.hooks.source_verification_hook.SourceVerificationService")
 async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
     mock_service_cls: AsyncMock,
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     mock_deps: HookDependencies,
 ) -> None:
     """TC-HOOK-08: Tests generic BaseModel inputs and non-AppException wrapping."""
@@ -458,7 +466,7 @@ async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
     class CustomDataModel(BaseModel):
         text: str
 
-    mock_from_strategy.return_value = AsyncMock()
+    mock_from_tier.return_value = AsyncMock()
     mock_instance = AsyncMock()
     mock_service_cls.return_value = mock_instance
     mock_instance.run_full_verification.return_value = SourceVerificationResultDTO(
@@ -475,7 +483,9 @@ async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
         workflow_id="wor_0195f3a0000070018111222233334444",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=CustomDataModel(text="Generic base model text for verification."),
+        inputs=cast(
+            ExecutionInputsDTO, cast(object, CustomDataModel(text="Generic base model text for verification."))
+        ),
     )
 
     res = await source_verification_hook(state_bm, mock_deps)
@@ -561,15 +571,15 @@ async def test_source_verification_hook_extra_none_and_invalid_type() -> None:
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_strategy")
+@patch("backend_v2.hooks.source_verification_hook.LLMClient.from_tier")
 @patch("backend_v2.hooks.source_verification_hook.SourceVerificationService")
 async def test_source_verification_hook_with_payload_dto_and_registry_override(
     mock_service_cls: AsyncMock,
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     mock_deps: HookDependencies,
 ) -> None:
     """Test ExecutionInputsDTO input and metadata model_registry_id override."""
-    mock_from_strategy.return_value = AsyncMock()
+    mock_from_tier.return_value = AsyncMock()
     mock_instance = AsyncMock()
     mock_service_cls.return_value = mock_instance
     mock_instance.run_full_verification.return_value = SourceVerificationResultDTO(
@@ -596,4 +606,4 @@ async def test_source_verification_hook_with_payload_dto_and_registry_override(
 
     result = await source_verification_hook(state, mock_deps)
     assert result.success is True
-    mock_from_strategy.assert_called_once()
+    mock_from_tier.assert_called_once()
