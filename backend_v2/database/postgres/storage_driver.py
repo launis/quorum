@@ -240,6 +240,7 @@ class PostgresStorageDriver(StorageDriver):
             return
 
         async with self._pool_manager.acquire_connection() as conn:
+            # Phase 4, Step 2: Yield PostgresEntityAdapter from entity_adapter package facade
             yield PostgresEntityAdapter(
                 connection=conn,
                 command_timeout_seconds=self._settings.postgres_command_timeout_seconds,
