@@ -1,19 +1,28 @@
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/theme/app_durations.dart';
 import 'package:flutter/material.dart';
-import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class UnifiedMetricGauge extends StatelessWidget {
+class UnifiedMetricGauge extends ConsumerWidget {
   final String label;
   final double value;
   final double max;
-  final String description; // Primary localized description
-  final String?
-  descriptionSecondary; // Optional secondary (e.g. English fallback)
-  final String displayValue; // e.g. "4/6" or "High"
+  final String description;
+  final String? descriptionSecondary;
+  final String displayValue;
   final Color? color;
   final List<String>? axisLabels;
-  final bool
-  isOrdinal; // If true, only highlights the current segment instead of all segments up to it.
+  final bool isOrdinal;
+
+  static const int _labelFlex = 3;
+  static const int _barFlex = 5;
+  static const int _valueFlex = 2;
+  static const double _segmentMarginHorizontal = 1.0;
+  static const double _dialogIconSize = 20.0;
 
   const UnifiedMetricGauge({
     super.key,
@@ -29,164 +38,203 @@ class UnifiedMetricGauge extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    if (label.trim().isEmpty) {
-      throw FormatException("UnifiedMetricGauge requires a non-empty label.");
-    }
-    if (displayValue.trim().isEmpty) {
-      throw FormatException(
-        "UnifiedMetricGauge requires a non-empty displayValue for '$label'.",
-      );
-    }
-
-    if (max <= 0) {
-      throw FormatException(
-        "UnifiedMetricGauge '$label' requires max > 0, got $max.",
-      );
-    }
-    if (value < 0 || value > max) {
-      throw FormatException(
-        "UnifiedMetricGauge '$label' value $value is out of bounds [0, $max].",
-      );
-    }
-
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final effectiveColor = color ?? theme.primaryColor;
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
-    // Segment logic
-    final int totalSegments = max.toInt();
-    final int filledSegments = value.toInt();
+    try {
+      if (label.trim().isEmpty) {
+        throw AppException.validation(
+          'Fail-Fast: UnifiedMetricGauge requires a non-empty label.',
+        );
+      }
+      if (displayValue.trim().isEmpty) {
+        throw AppException.validation(
+          "Fail-Fast: UnifiedMetricGauge requires a non-empty displayValue for '$label'.",
+        );
+      }
+      if (description.trim().isEmpty) {
+        throw AppException.validation(
+          "Fail-Fast: UnifiedMetricGauge requires a non-empty description for '$label'.",
+        );
+      }
+      if (max.isNaN || max.isInfinite || max <= 0) {
+        throw AppException.validation(
+          "Fail-Fast: UnifiedMetricGauge '$label' requires finite max > 0, got $max.",
+        );
+      }
+      if (value.isNaN || value.isInfinite || value < 0 || value > max) {
+        throw AppException.validation(
+          "Fail-Fast: UnifiedMetricGauge '$label' value $value is out of bounds [0, $max].",
+        );
+      }
 
-    final mainRow = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          // 1. Label
-          SizedBox(
-            width: 140,
-            child: Tooltip(
-              message: description,
-              waitDuration: AppDurations.medium,
-              showDuration: AppDurations.display,
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ),
+      final effectiveColor = color ?? colorScheme.primary;
+      final int totalSegments = max.toInt();
+      final int filledSegments = value.toInt();
+      final currentAxisLabels = axisLabels;
 
-          // 2. Segmented Bar
-          Expanded(
-            child: SizedBox(
-              height: 12, // Compact height
-              child: Row(
-                children: List.generate(totalSegments, (index) {
-                  final isFilled = isOrdinal
-                      ? (index == filledSegments - 1)
-                      : (index < filledSegments);
-                  return Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 1.0),
-                      decoration: BoxDecoration(
-                        color: isFilled
-                            ? effectiveColor
-                            : Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // 3. Display Value
-          SizedBox(
-            width: 60,
-            child: Text(
-              displayValue,
-              textAlign: TextAlign.end,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-          ),
-
-          // 4. Mandatory Bilingual Help Trigger
-          const SizedBox(width: 8),
-          _buildHelpTrigger(context),
-        ],
-      ),
-    );
-
-    if (axisLabels == null || axisLabels!.isEmpty) {
-      return mainRow;
-    }
-
-    // Render labels under the bar
-    // We need to align them with the bar, so we use the same flex ratio or padding
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        mainRow,
-        Row(
+      final mainRow = Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.s4),
+        child: Row(
           children: [
-            // Spacer for Label (width 140)
-            const SizedBox(width: 140),
-            // Labels
             Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: _buildAlignedLabels(
-                  context,
-                  axisLabels!,
-                  totalSegments,
+              flex: _labelFlex,
+              child: Tooltip(
+                message: description,
+                waitDuration: AppDurations.medium,
+                showDuration: AppDurations.display,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
-            // Spacer for DisplayValue (width 60)
-            const SizedBox(width: 60),
-            const SizedBox(width: 8),
-            // Spacer for Icon (approx 24)
-            const SizedBox(width: 24),
+            AppSpacing.w8,
+            Expanded(
+              flex: _barFlex,
+              child: SizedBox(
+                height: AppSpacing.s12,
+                child: Row(
+                  children: List.generate(totalSegments, (index) {
+                    final isFilled = isOrdinal
+                        ? (index == filledSegments - 1)
+                        : (index < filledSegments);
+                    return Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: _segmentMarginHorizontal,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isFilled
+                              ? effectiveColor
+                              : colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(AppSpacing.s2),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ),
+            AppSpacing.w12,
+            Expanded(
+              flex: _valueFlex,
+              child: Text(
+                displayValue,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ),
+            AppSpacing.w8,
+            _buildHelpTrigger(context, l10n, colorScheme),
           ],
         ),
-      ],
-    );
+      );
+
+      if (currentAxisLabels == null || currentAxisLabels.isEmpty) {
+        return mainRow;
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          mainRow,
+          Row(
+            children: [
+              const Expanded(flex: _labelFlex, child: SizedBox()),
+              AppSpacing.w8,
+              Expanded(
+                flex: _barFlex,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: _buildAlignedLabels(
+                    context,
+                    currentAxisLabels,
+                    totalSegments,
+                  ),
+                ),
+              ),
+              AppSpacing.w12,
+              const Expanded(flex: _valueFlex, child: SizedBox()),
+              AppSpacing.w8,
+              AppSpacing.w16,
+            ],
+          ),
+        ],
+      );
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error(
+            'UnifiedMetricGauge',
+            'VALIDATION_FAILED: Failed to render UnifiedMetricGauge',
+            e,
+            st,
+          );
+      return ErrorView(error: e, stackTrace: st, compact: true);
+    }
   }
 
-  Widget _buildHelpTrigger(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showHelpDialog(context),
-      child: Icon(
-        Icons.help_outline,
-        size: 16,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
+  Widget _buildHelpTrigger(
+    BuildContext context,
+    AppLocalizations l10n,
+    ColorScheme colorScheme,
+  ) {
+    return Tooltip(
+      message: l10n.sharedMoreInfoTooltip,
+      child: InkWell(
+        mouseCursor: SystemMouseCursors.click,
+        borderRadius: BorderRadius.circular(AppSpacing.s4),
+        onTap: () => _showHelpDialog(context),
+        child: Icon(
+          Icons.help_outline,
+          size: AppSpacing.s16,
+          color: colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }
 
   void _showHelpDialog(BuildContext context) {
-    showDialog(
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
+    final secondaryText = descriptionSecondary;
+
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
             Icon(
               Icons.info_outline,
-              size: 20,
-              color: Theme.of(context).colorScheme.primary,
+              size: _dialogIconSize,
+              color: colorScheme.primary,
             ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            AppSpacing.w8,
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -194,16 +242,15 @@ class UnifiedMetricGauge extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(description, style: const TextStyle(fontSize: 14)),
-            if (descriptionSecondary != null) ...[
-              const SizedBox(height: 12),
+            Text(description, style: textTheme.bodyMedium),
+            if (secondaryText != null && secondaryText.trim().isNotEmpty) ...[
+              AppSpacing.h12,
               const Divider(),
-              const SizedBox(height: 8),
+              AppSpacing.h8,
               Text(
-                descriptionSecondary!,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                secondaryText,
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -213,7 +260,7 @@ class UnifiedMetricGauge extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(AppLocalizations.of(context)?.sharedOk ?? "OK"),
+            child: Text(l10n.sharedOk),
           ),
         ],
       ),
@@ -225,17 +272,21 @@ class UnifiedMetricGauge extends StatelessWidget {
     List<String> labels,
     int segmentCount,
   ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     if (labels.length == segmentCount) {
       return labels
           .map(
             (l) => Expanded(
               child: Text(
                 l,
+                maxLines: 1,
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 8,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                style: textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -246,11 +297,14 @@ class UnifiedMetricGauge extends StatelessWidget {
 
     return labels
         .map(
-          (l) => Text(
-            l,
-            style: TextStyle(
-              fontSize: 9,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+          (l) => Flexible(
+            child: Text(
+              l,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.labelSmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
         )

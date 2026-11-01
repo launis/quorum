@@ -65,7 +65,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/score_card.dart]
   - [x] @[client_app_v2/lib/shared/widgets/score_card_radar.dart]
   - [x] @[client_app_v2/lib/shared/widgets/specialist_section.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/unified_metric_gauge.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/unified_metric_gauge.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/validation_timeline_widget.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/workflow_selector.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
