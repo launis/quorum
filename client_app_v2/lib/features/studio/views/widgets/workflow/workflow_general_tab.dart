@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
+import 'package:client_app/features/studio/models/model_config.dart';
 import '../../../../../l10n/gen/app_localizations.dart';
 import '../i18n_text_field.dart';
 import '../../../controllers/output_profile_controller.dart';
@@ -13,11 +16,11 @@ import '../../../controllers/model_registry_controller.dart';
 ///
 /// Componentized UI widget representing Tab 1 of the Workflow Builder.
 /// Handles high-level metadata and the default output profile routing.
-class WorkflowGeneralTab extends ConsumerWidget {
+class WorkflowGeneralTab extends HookConsumerWidget {
   final Workflow workflow;
   final TextEditingController idController;
   final TextEditingController slugController;
-  final Function(Workflow) onChanged;
+  final ValueChanged<Workflow> onChanged;
 
   const WorkflowGeneralTab({
     super.key,
@@ -30,7 +33,41 @@ class WorkflowGeneralTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final currentLocale = Localizations.localeOf(context).languageCode;
     final descTranslations = workflow.description.translations;
+
+    final descEnController = useTextEditingController(
+      text: descTranslations['en'] ?? '',
+    );
+    final descFiController = useTextEditingController(
+      text: descTranslations['fi'] ?? '',
+    );
+    final syncedWorkflowId = useRef<String?>(null);
+
+    useEffect(() {
+      final nextEn = descTranslations['en'] ?? '';
+      final nextFi = descTranslations['fi'] ?? '';
+      if (syncedWorkflowId.value != workflow.id) {
+        descEnController.text = nextEn;
+        descFiController.text = nextFi;
+        syncedWorkflowId.value = workflow.id;
+      } else {
+        if (descEnController.text != nextEn) {
+          descEnController.value = descEnController.value.copyWith(
+            text: nextEn,
+            selection: TextSelection.collapsed(offset: nextEn.length),
+          );
+        }
+        if (descFiController.text != nextFi) {
+          descFiController.value = descFiController.value.copyWith(
+            text: nextFi,
+            selection: TextSelection.collapsed(offset: nextFi.length),
+          );
+        }
+      }
+      return null;
+    }, [workflow.id, descTranslations['en'], descTranslations['fi']]);
 
     return SingleChildScrollView(
       child: Padding(
@@ -48,8 +85,8 @@ class WorkflowGeneralTab extends ConsumerWidget {
                       prefixIcon: const Icon(Icons.fingerprint),
                     ),
                     readOnly: true, // Opaque Stripe ID mandate
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -78,8 +115,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                   children: [
                     Text(
                       l10n.studioWorkflowIdentity,
-                      style: const TextStyle(
-                        fontSize: 18,
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -93,9 +129,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                     ),
                     AppSpacing.h16,
                     TextField(
-                      controller: TextEditingController(
-                        text: descTranslations['en'] ?? '',
-                      ),
+                      controller: descEnController,
                       maxLines: 2,
                       decoration: InputDecoration(
                         labelText: l10n.studioWorkflowDescEnLabel,
@@ -117,9 +151,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                     ),
                     AppSpacing.h16,
                     TextField(
-                      controller: TextEditingController(
-                        text: descTranslations['fi'] ?? '',
-                      ),
+                      controller: descFiController,
                       maxLines: 2,
                       decoration: InputDecoration(
                         labelText: l10n.studioWorkflowDescFiLabel,
@@ -153,8 +185,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                   children: [
                     Text(
                       l10n.studioWorkflowGlobalSettings,
-                      style: const TextStyle(
-                        fontSize: 18,
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -164,7 +195,10 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         final globalProfilesAsync = ref.watch(
                           outputProfilesControllerProvider,
                         );
-                        final globalProfiles = globalProfilesAsync.value ?? [];
+                        final globalProfiles = switch (globalProfilesAsync) {
+                          AsyncData(:final value) => value,
+                          _ => const <OutputProfile>[],
+                        };
                         final applicableProfiles = globalProfiles
                             .where((p) => p.workflowId == workflow.id)
                             .toList();
@@ -196,12 +230,17 @@ class WorkflowGeneralTab extends ConsumerWidget {
                                 .where((p) => p.id == key)
                                 .firstOrNull;
                             final title =
-                                profileData?.name.translations['fi'] ??
-                                profileData?.name.translations['en'] ??
-                                key;
+                                (profileData != null &&
+                                    profileData.name.isNotEmpty)
+                                ? profileData.name.get(currentLocale)
+                                : key;
+                            final displayLabel = [title, '($key)'].join(' ');
                             return DropdownMenuItem(
                               value: key,
-                              child: Text('$title ($key)'),
+                              child: Text(
+                                displayLabel,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             );
                           }).toList(),
                           onChanged: (val) {
@@ -220,8 +259,10 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         final mcpGatewaysAsync = ref.watch(
                           mcpGatewaysControllerProvider,
                         );
-                        final gateways =
-                            mcpGatewaysAsync.value ?? const <McpGateway>[];
+                        final gateways = switch (mcpGatewaysAsync) {
+                          AsyncData(:final value) => value,
+                          _ => const <McpGateway>[],
+                        };
                         final currentGatewayId = workflow.mcpGatewayId;
                         final hasCurrentGw =
                             currentGatewayId == null ||
@@ -244,14 +285,24 @@ class WorkflowGeneralTab extends ConsumerWidget {
                           items: [
                             DropdownMenuItem<String?>(
                               value: null,
-                              child: Text(l10n.studioWorkflowMcpGatewayNone),
+                              child: Text(
+                                l10n.studioWorkflowMcpGatewayNone,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                             ...gateways.map((gw) {
                               final id = gw.id;
                               final toolsCount = gw.tools.length;
+                              final displayLabel = [
+                                id,
+                                '($toolsCount)',
+                              ].join(' ');
                               return DropdownMenuItem<String?>(
                                 value: id,
-                                child: Text('$id ($toolsCount)'),
+                                child: Text(
+                                  displayLabel,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               );
                             }),
                           ],
@@ -267,7 +318,10 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         final registriesAsync = ref.watch(
                           modelRegistryControllerProvider,
                         );
-                        final registries = registriesAsync.value ?? [];
+                        final registries = switch (registriesAsync) {
+                          AsyncData(:final value) => value,
+                          _ => const <ModelConfig>[],
+                        };
                         final currentRegistryId = workflow.modelRegistryId;
 
                         final hasCurrent = registries.any(
@@ -295,14 +349,24 @@ class WorkflowGeneralTab extends ConsumerWidget {
                             if (!hasCurrent && currentRegistryId.isNotEmpty)
                               DropdownMenuItem<String>(
                                 value: currentRegistryId,
-                                child: Text(currentRegistryId),
+                                child: Text(
+                                  currentRegistryId,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ...registries.map((r) {
                               final name = r.name.isNotEmpty ? r.name : r.id;
                               final provider = r.defaultProvider.toUpperCase();
+                              final displayLabel = [
+                                name,
+                                '($provider)',
+                              ].join(' ');
                               return DropdownMenuItem<String>(
                                 value: r.id,
-                                child: Text('$name ($provider)'),
+                                child: Text(
+                                  displayLabel,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               );
                             }),
                           ],
