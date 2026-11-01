@@ -56,7 +56,7 @@ class ProfileEditorView extends HookConsumerWidget {
           onRetry: () => ref.invalidate(workflowFormProvider(workflowId)),
         ),
       ),
-      _ => Scaffold(
+      AsyncLoading() => Scaffold(
         appBar: AppBar(title: Text(l10n.editProfilesTitle(workflowId))),
         body: const Center(child: CircularProgressIndicator()),
       ),
@@ -70,12 +70,11 @@ class ProfileEditorView extends HookConsumerWidget {
     AsyncValue<Workflow> formState,
     Workflow payload,
     AsyncValue<List<PromptBlock>> promptBlocksState,
-    AsyncValue<List<dynamic>> stepsState,
+    AsyncValue<List<NodeStrategy>> stepsState,
     AsyncValue<List<String>> availableExtensionsState,
   ) {
-    Set<String> allowedBlockIds = {};
-    if (stepsState.hasValue) {
-      final stepsList = stepsState.value!.cast<NodeStrategy>();
+    final Set<String> allowedBlockIds = {};
+    if (stepsState case AsyncData(value: final stepsList)) {
       final taskBlueprintIds = payload.steps
           .map((s) => s.taskBlueprint)
           .toSet();
@@ -149,7 +148,7 @@ class ProfileEditorView extends HookConsumerWidget {
 
     void addProfileDialog() {
       String newId = '';
-      showDialog(
+      showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: Text(l10n.newProfileIdTitle),
@@ -205,12 +204,14 @@ class ProfileEditorView extends HookConsumerWidget {
           actions: [
             if (formState.isLoading)
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.s16),
                 child: Center(
                   child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    width: AppSpacing.s16,
+                    height: AppSpacing.s16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: AppSpacing.s2,
+                    ),
                   ),
                 ),
               )
@@ -297,7 +298,7 @@ class ProfileEditorView extends HookConsumerWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.s24),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
         side: BorderSide(color: Theme.of(context).colorScheme.outline),
       ),
       child: Padding(
@@ -321,7 +322,7 @@ class ProfileEditorView extends HookConsumerWidget {
                   children: [
                     // Tab 1: General
                     ListView(
-                      padding: const EdgeInsets.all(AppSpacing.s8),
+                      padding: AppSpacing.p8,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -329,13 +330,13 @@ class ProfileEditorView extends HookConsumerWidget {
                             Expanded(
                               child: Text(
                                 l10n.variantIdLabel(profileId),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -413,7 +414,7 @@ class ProfileEditorView extends HookConsumerWidget {
 
                     // Tab 2: XAI / Extensions
                     ListView(
-                      padding: const EdgeInsets.all(AppSpacing.s8),
+                      padding: AppSpacing.p8,
                       children: [
                         InputDecorator(
                           decoration: InputDecoration(
@@ -439,9 +440,6 @@ class ProfileEditorView extends HookConsumerWidget {
                                       return !isWorkflowExtension;
                                     })
                                     .map((ext) {
-                                      final l10n = AppLocalizations.of(
-                                        context,
-                                      )!;
                                       String label = ext.name;
                                       switch (ext) {
                                         case XaiExtensionType.citation:
@@ -547,7 +545,6 @@ class ProfileEditorView extends HookConsumerWidget {
                                   XaiExtensionType.varianceValidation,
                                   XaiExtensionType.authenticityEvaluation,
                                 ].map((ext) {
-                                  final l10n = AppLocalizations.of(context)!;
                                   String label = ext.name;
                                   switch (ext) {
                                     case XaiExtensionType.varianceValidation:
@@ -599,9 +596,7 @@ class ProfileEditorView extends HookConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              AppLocalizations.of(
-                                context,
-                              )!.profileEditorMaxExtensionItems,
+                              l10n.profileEditorMaxExtensionItems,
                               style: Theme.of(context).textTheme.titleSmall,
                             ),
                             AppSpacing.h8,
@@ -650,9 +645,7 @@ class ProfileEditorView extends HookConsumerWidget {
                               ],
                             ),
                             Text(
-                              AppLocalizations.of(
-                                context,
-                              )!.profileEditorMaxExtensionItemsDesc,
+                              l10n.profileEditorMaxExtensionItemsDesc,
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     color: Theme.of(
@@ -667,7 +660,7 @@ class ProfileEditorView extends HookConsumerWidget {
 
                     // Tab 3: Layouts
                     ListView(
-                      padding: const EdgeInsets.all(AppSpacing.s8),
+                      padding: AppSpacing.p8,
                       children: [
                         LayoutEditorCard(
                           groups: groups,
