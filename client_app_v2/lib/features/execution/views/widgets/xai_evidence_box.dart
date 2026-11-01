@@ -38,6 +38,7 @@ class XAIEvidenceBox extends ConsumerWidget {
         leading: Icon(Icons.fact_check, color: theme.colorScheme.primary),
         title: Text(
           l10n.xaiEvidenceTitle,
+          overflow: TextOverflow.ellipsis,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: theme.colorScheme.primary,
@@ -146,19 +147,22 @@ class XAIEvidenceBox extends ConsumerWidget {
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.s8,
-                    vertical: AppSpacing.s2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(AppSpacing.s12),
-                  ),
-                  child: Text(
-                    '${l10n.xaiEvidenceDuration}: ${audit.durationMs}ms',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s8,
+                      vertical: AppSpacing.s2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(AppSpacing.s12),
+                    ),
+                    child: Text(
+                      '${l10n.xaiEvidenceDuration}: ${audit.durationMs}ms',
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ),
