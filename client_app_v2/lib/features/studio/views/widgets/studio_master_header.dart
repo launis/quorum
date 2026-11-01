@@ -55,10 +55,12 @@ class StudioMasterHeader extends StatelessWidget {
             ),
             if (actionLabel != null && onAction != null) ...[
               AppSpacing.w16,
-              FilledButton.icon(
-                onPressed: onAction,
-                icon: Icon(actionIcon ?? Icons.add),
-                label: Text(actionLabel!),
+              Flexible(
+                child: FilledButton.icon(
+                  onPressed: onAction,
+                  icon: Icon(actionIcon ?? Icons.add),
+                  label: Text(actionLabel!, overflow: TextOverflow.ellipsis),
+                ),
               ),
             ],
           ],
@@ -85,20 +87,23 @@ class StudioMasterHeader extends StatelessWidget {
               ),
             ),
             AppSpacing.w16,
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.s12,
-                vertical: AppSpacing.s8,
-              ),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(AppSpacing.s16),
-              ),
-              child: Text(
-                l10n.studioMasterItemCount(itemCount, totalCount),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onPrimaryContainer,
-                  fontWeight: FontWeight.bold,
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s12,
+                  vertical: AppSpacing.s8,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(AppSpacing.s16),
+                ),
+                child: Text(
+                  l10n.studioMasterItemCount(itemCount, totalCount),
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

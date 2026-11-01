@@ -129,5 +129,78 @@ void main() {
       expect(find.byKey(const Key('header-leading')), findsOneWidget);
       expect(find.byKey(const Key('header-bottom')), findsOneWidget);
     });
+
+    testWidgets(
+      'negative/boundary: omits action button when actionLabel or onAction is null and omits clear icon when searchQuery is empty',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestWidget(
+            StudioMasterHeader(
+              title: 'Boundary Title',
+              searchQuery: '',
+              onSearchChanged: (_) {},
+              itemCount: 0,
+              totalCount: 0,
+              actionLabel: 'Orphan Label Without Callback',
+              onAction: null,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Orphan Label Without Callback'), findsNothing);
+        expect(find.byType(FilledButton), findsNothing);
+        expect(find.byIcon(Icons.clear), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'boundary: handles narrow layout constraints and external searchQuery update without horizontal overflow',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestWidget(
+            SizedBox(
+              width: 280,
+              child: StudioMasterHeader(
+                title:
+                    'Extremely Long Studio Master Header Title That Must Ellipsize Cleanly Without Overflowing',
+                subtitle:
+                    'Extremely Long Subtitle Text Describing Studio Blueprint Configuration Details',
+                searchQuery: 'initial_query',
+                onSearchChanged: (_) {},
+                itemCount: 999,
+                totalCount: 1000,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.widgetWithText(TextField, 'initial_query'), findsOneWidget);
+
+        // External state update propagates via didUpdateWidget
+        await tester.pumpWidget(
+          createTestWidget(
+            SizedBox(
+              width: 280,
+              child: StudioMasterHeader(
+                title:
+                    'Extremely Long Studio Master Header Title That Must Ellipsize Cleanly Without Overflowing',
+                searchQuery: 'updated_external_query',
+                onSearchChanged: (_) {},
+                itemCount: 0,
+                totalCount: 1000,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(
+          find.widgetWithText(TextField, 'updated_external_query'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }
