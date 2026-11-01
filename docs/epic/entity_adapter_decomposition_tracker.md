@@ -66,7 +66,7 @@
   - [x] [NEW] @[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py]
   - [x] [NEW] @[backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py]
   - [x] [NEW] @[backend_v2/database/postgres/entity_adapter/__init__.py]
-  - [ ] `@[backend_v2/database/postgres/uow.py#L218-L234]`
+  - [x] `@[backend_v2/database/postgres/uow.py#L218-L234]`
   - [ ] `@[backend_v2/database/postgres/storage_driver.py#L218-L247]`
 - [x] **[SKIPPED] Tier 2 Hardening (Frontend)**: Pure backend Python decomposition with zero `.dart` changes.
 - [x] **[OK] Pre-Delete Audit**: Verify `git status` and `grep_search` confirm physical removal of `[DELETE] @[backend_v2/database/postgres/entity_adapter.py]`, with `QGR017` blocking re-creation of `backend_v2/database/postgres/entity_adapter.py`.

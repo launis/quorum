@@ -223,7 +223,7 @@ class PostgresUnitOfWork:
             connection=unbound_conn,
             command_timeout_seconds=timeout_sec,
         )
-        # Phase 4, Step 2: Bind PostgresEntityAdapter from entity_adapter package facade
+        # Bind PostgresEntityAdapter from entity_adapter package facade
         unbound_entities = PostgresEntityAdapter(
             connection=unbound_conn,
             command_timeout_seconds=timeout_sec,
