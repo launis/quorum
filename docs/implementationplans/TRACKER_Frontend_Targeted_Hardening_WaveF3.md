@@ -66,7 +66,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/score_card_radar.dart]
   - [x] @[client_app_v2/lib/shared/widgets/specialist_section.dart]
   - [x] @[client_app_v2/lib/shared/widgets/unified_metric_gauge.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/validation_timeline_widget.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/validation_timeline_widget.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/workflow_selector.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify widget test coverage and 100% theme sovereignty across all 47 hardened Wave F3 views and SDUI widgets.
