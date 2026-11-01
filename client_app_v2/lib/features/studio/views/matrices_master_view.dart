@@ -97,7 +97,11 @@ class _MatricesMasterViewState extends ConsumerState<MatricesMasterView> {
                     try {
                       final draft = await ref
                           .read(promptBlocksControllerProvider.notifier)
-                          .createPromptBlockDraft(categoryId: 'matrix');
+                          .createPromptBlockDraft(
+                            categoryId: PromptBlockCategoryGroups
+                                .matrixCategories
+                                .first,
+                          );
                       if (!context.mounted) return;
                       PromptBlockEditRoute(
                         id: draft.id,
@@ -198,14 +202,12 @@ class _MatricesMasterViewState extends ConsumerState<MatricesMasterView> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         CloneEntityButton(
-                                          onClone: () async {
-                                            await ref
-                                                .read(
-                                                  promptBlocksControllerProvider
-                                                      .notifier,
-                                                )
-                                                .clonePromptBlock(matrix.id);
-                                          },
+                                          onClone: () => ref
+                                              .read(
+                                                promptBlocksControllerProvider
+                                                    .notifier,
+                                              )
+                                              .clonePromptBlock(matrix.id),
                                         ),
                                         const Icon(Icons.settings_ethernet),
                                       ],

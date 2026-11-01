@@ -24,7 +24,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/blueprint_editor_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart]
   - [x] @[client_app_v2/lib/features/studio/views/components/clone_entity_button.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/matrices_master_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/matrices_master_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/matrix_editor_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]
