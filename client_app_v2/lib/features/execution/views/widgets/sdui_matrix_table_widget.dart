@@ -362,7 +362,6 @@ class SduiMatrixTableWidget extends StatelessWidget {
               ),
             ),
         ],
-        // Phase 3, Step 3.3: Render inline short-circuit blocker chips and Toulmin falsification badges
         if (block.shortCircuitedByClaims.any((c) => c.trim().isNotEmpty)) ...[
           AppSpacing.h8,
           ...block.shortCircuitedByClaims
