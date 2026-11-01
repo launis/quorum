@@ -30,6 +30,7 @@ from backend_v2.services.orchestrator.causal_cohesion_evaluator import CausalCoh
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 from backend_v2.settings import get_settings
+from backend_v2.settings import get_settings as _default_get_settings
 
 from .causal_tda_fusion import compute_causal_tda_fusion_result
 from .execution_committer import ExecutionCommitter
@@ -277,6 +278,70 @@ async def _fail_running_steps(state: WorkflowExecutionState, committer: Executio
     await _commit_record_snapshot(committer, state.exec_record, err=state.exec_record.error)
 
 
+def _enforce_execution_budget(state: WorkflowExecutionState) -> None:
+    """Enforce per-run token, USD cost, and step count ceilings from Settings between waves.
+
+    Args:
+        state: Active WorkflowExecutionState holding the cumulative ExecutionRecord.
+
+    Raises:
+        AppException: Triggered with QUOTA_EXCEEDED (HTTP 429) when a configured budget ceiling is breached.
+    """
+    # Phase 3, Step 3.2: Resolve per-run ExecutionBudget ceilings from Settings
+    if get_settings is not _default_get_settings:
+        settings = get_settings()
+    elif _DAG_EXECUTOR_MODULE in sys.modules:
+        settings = sys.modules[_DAG_EXECUTOR_MODULE].get_settings()
+    else:
+        settings = get_settings()
+
+    rec = state.exec_record
+    record_tokens = rec.prompt_tokens + rec.completion_tokens + rec.reasoning_tokens
+    step_tokens = sum(s.prompt_tokens + s.completion_tokens + s.reasoning_tokens for s in rec.step_states.values())
+    cumulative_tokens = max(record_tokens, step_tokens)
+
+    record_cost = max(rec.dag_cost_usd, rec.cost_estimate)
+    step_cost = sum(s.cost_usd for s in rec.step_states.values())
+    cumulative_cost_usd = max(record_cost, step_cost)
+
+    executed_steps = sum(1 for s in rec.step_states.values() if s.status == ExecutionStatus.PASSED)
+
+    breach_reason: str | None = None
+    if settings.max_tokens_per_run > 0 and cumulative_tokens > settings.max_tokens_per_run:
+        breach_reason = f"Execution token quota exceeded: {cumulative_tokens} > {settings.max_tokens_per_run}"
+    elif settings.max_cost_usd_per_run > 0.0 and cumulative_cost_usd > settings.max_cost_usd_per_run:
+        breach_reason = (
+            f"Execution cost quota exceeded: {cumulative_cost_usd:.4f} USD > {settings.max_cost_usd_per_run:.4f} USD"
+        )
+    elif settings.max_total_steps_per_run > 0 and executed_steps > settings.max_total_steps_per_run:
+        breach_reason = f"Execution step quota exceeded: {executed_steps} > {settings.max_total_steps_per_run}"
+
+    if breach_reason is None:
+        return
+
+    logger.error(
+        "[DAGExecutor] %s: %s (execution_id=%s)",
+        ErrorCodes.QUOTA_EXCEEDED.name,
+        breach_reason,
+        state.execution_id,
+        extra={"error_code": ErrorCodes.QUOTA_EXCEEDED.name, "execution_id": state.execution_id},
+    )
+    for step_id, step_state in list(rec.step_states.items()):
+        if step_state.status == ExecutionStatus.PENDING:
+            state.exec_record = state.exec_record.transition_step(
+                step_id=step_id,
+                status=ExecutionStatus.BLOCKED,
+                last_error=breach_reason,
+                has_warning=True,
+            )
+    state.exec_record = state.exec_record.model_copy(update={"status": ExecutionStatus.FAILED, "error": breach_reason})
+    raise AppException(
+        message=breach_reason,
+        status_code=429,
+        details={"error_code": ErrorCodes.QUOTA_EXCEEDED},
+    )
+
+
 async def execute_topological_waves_stage(
     state: WorkflowExecutionState,
     node_executor: NodeExecutor,
@@ -303,7 +368,7 @@ async def execute_topological_waves_stage(
         Updated ExecutionRecord after all topological waves complete.
 
     Raises:
-        AppException: Triggered with WORKFLOW_EXECUTION_FAILED when a wave or step fails.
+        AppException: Triggered with WORKFLOW_EXECUTION_FAILED or QUOTA_EXCEEDED when a wave, step, or budget fails.
     """
     tracer = get_tracer(__name__)
     orch_stack = contextlib.ExitStack()
@@ -321,6 +386,7 @@ async def execute_topological_waves_stage(
             steps_to_run = [s for s in wave if state.exec_record.step_states[s.id].status != ExecutionStatus.PASSED]
             if not steps_to_run:
                 continue
+            _enforce_execution_budget(state)
             try:
                 common = (node_executor, committer, causal_cohesion_evaluator)
                 dlq_cbs = (dlq_on_step_failure, dlq_on_progress_commit_error)
@@ -340,6 +406,7 @@ async def execute_topological_waves_stage(
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED}
                 ) from eg
+            _enforce_execution_budget(state)
 
         failed_statuses = (ExecutionStatus.FAILED, ExecutionStatus.BLOCKED)
         if any(s.status in failed_statuses for s in state.exec_record.step_states.values()):

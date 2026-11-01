@@ -253,6 +253,7 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
                                 aggregation_mode="EXISTS",
                                 concept_description=f"Causal cohesion assertion for level {lvl}",
                                 extraction_rule=f"Rule L{lvl}",
+                                depends_on=(),
                             )
                         ],
                     )
@@ -269,6 +270,7 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
         extraction_protocol_block_id="blk_0195f3a0000070008000abcdef012345",
         criteria_block_ids=[cohesion_mat_id],
         cognitive_tier=CognitiveTier.FAST,
+        mcp_tool_params={},
     )
     state = _build_state(
         steps=[causal_step, tda_step],
@@ -289,6 +291,8 @@ async def test_finalize_step_output_and_commit_causal_fusion_cohesion_and_contex
                 status=ExecutionStatus.PASSED,
                 blame_parent_ids=[],
                 dependent_child_ids=[],
+                short_circuited_by_claims=[],
+                falsified_warrant_claims=[],
             )
         ],
         edges=[],
@@ -465,3 +469,118 @@ async def test_execute_topological_waves_stage_traps_direct_runtime_error_and_ap
     assert exc_outer_rt.value.status_code == 500
     assert state_outer_rt.exec_record.step_states[step_a.id].status == ExecutionStatus.FAILED
     assert state_outer_rt.exec_record.step_states[step_a.id].last_error == "compiler crash while step running"
+
+
+@pytest.mark.asyncio
+async def test_wave_orchestrator_stage_raises_quota_exceeded_when_tokens_or_cost_breach_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify per-run ExecutionBudget ceilings (tokens, USD cost, step count) and boundary behavior."""
+    from unittest.mock import MagicMock
+
+    import backend_v2.services.orchestrator.dag_executor.wave_orchestrator_stage as wave_mod
+    from backend_v2.settings import Settings
+
+    # Verify Settings validator rejects negative max_cost_usd_per_run
+    with pytest.raises(ValueError, match="max_cost_usd_per_run"):
+        Settings.validate_max_cost_usd_per_run_non_negative(-0.01)
+    assert Settings.validate_max_cost_usd_per_run_non_negative(0.0) == 0.0
+    assert Settings.validate_max_cost_usd_per_run_non_negative(25.0) == 25.0
+
+    repo = InMemoryUnifiedWorkflowRepository()
+    step_1 = StepRule(
+        id="stp_0195f3a0000070008000111111111111", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[]
+    )
+    step_2 = StepRule(
+        id="stp_0195f3a0000070008000222222222222",
+        task_blueprint="stp_0195f3a0000070008000111111111111",
+        depends_on=[step_1.id],
+    )
+
+    mock_settings = MagicMock()
+    mock_settings.max_tokens_per_run = 5000
+    mock_settings.max_cost_usd_per_run = 25.0
+    mock_settings.max_total_steps_per_run = 50
+    monkeypatch.setattr(wave_mod, "get_settings", lambda: mock_settings)
+
+    # 1. Boundary: exactly 5000 tokens (limit) proceeds cleanly
+    state_ok = _build_state(steps=[step_1])
+    state_ok.exec_record = state_ok.exec_record.model_copy(
+        update={"prompt_tokens": 3000, "completion_tokens": 1500, "reasoning_tokens": 500}
+    )
+    repo.set_execution(state_ok.exec_record)
+    committer_ok = ExecutionCommitter(exec_repo=repo, execution_id=state_ok.execution_id)
+
+    async def _pass_runner(st: WorkflowExecutionState, sid: str, *_args: Any) -> None:
+        st.exec_record = st.exec_record.transition_step(step_id=sid, status=ExecutionStatus.PASSED, progress=100)
+
+    res_ok = await execute_topological_waves_stage(
+        state=state_ok,
+        node_executor=NodeExecutor(deps=_build_deps(repo)),
+        committer=committer_ok,
+        step_runner_fn=_pass_runner,
+    )
+    assert res_ok.step_states[step_1.id].status == ExecutionStatus.PASSED
+
+    # 2. Negative: 5001 tokens (limit + 1) raises QUOTA_EXCEEDED (429) and marks PENDING steps BLOCKED
+    state_tok = _build_state(steps=[step_1, step_2])
+    state_tok.exec_record = state_tok.exec_record.model_copy(update={"prompt_tokens": 4000, "completion_tokens": 1001})
+    repo.set_execution(state_tok.exec_record)
+    committer_tok = ExecutionCommitter(exec_repo=repo, execution_id=state_tok.execution_id)
+
+    with pytest.raises(AppException) as exc_tok:
+        await execute_topological_waves_stage(
+            state=state_tok,
+            node_executor=NodeExecutor(deps=_build_deps(repo)),
+            committer=committer_tok,
+            step_runner_fn=_pass_runner,
+        )
+    assert exc_tok.value.status_code == 429
+    assert exc_tok.value.details["error_code"] == ErrorCodes.QUOTA_EXCEEDED
+    assert state_tok.exec_record.status == ExecutionStatus.FAILED
+    assert state_tok.exec_record.step_states[step_1.id].status == ExecutionStatus.BLOCKED
+    assert state_tok.exec_record.step_states[step_2.id].status == ExecutionStatus.BLOCKED
+
+    # 3. Negative: Cost breach after wave 1 completes blocks wave 2
+    mock_settings.max_tokens_per_run = 0
+    mock_settings.max_cost_usd_per_run = 10.0
+    state_cost = _build_state(steps=[step_1, step_2])
+    repo.set_execution(state_cost.exec_record)
+    committer_cost = ExecutionCommitter(exec_repo=repo, execution_id=state_cost.execution_id)
+
+    async def _cost_spike_runner(st: WorkflowExecutionState, sid: str, *_args: Any) -> None:
+        st.exec_record = st.exec_record.transition_step(step_id=sid, status=ExecutionStatus.PASSED, progress=100)
+        st.exec_record = st.exec_record.model_copy(update={"dag_cost_usd": 10.01})
+
+    with pytest.raises(AppException) as exc_cost:
+        await execute_topological_waves_stage(
+            state=state_cost,
+            node_executor=NodeExecutor(deps=_build_deps(repo)),
+            committer=committer_cost,
+            step_runner_fn=_cost_spike_runner,
+        )
+    assert exc_cost.value.status_code == 429
+    assert exc_cost.value.details["error_code"] == ErrorCodes.QUOTA_EXCEEDED
+    assert state_cost.exec_record.step_states[step_1.id].status == ExecutionStatus.PASSED
+    assert state_cost.exec_record.step_states[step_2.id].status == ExecutionStatus.BLOCKED
+
+    # 4. Negative: Step count breach (max_total_steps_per_run = 1) after wave 1 completes
+    mock_settings.max_cost_usd_per_run = 0.0
+    mock_settings.max_total_steps_per_run = 1
+    step_1b = StepRule(
+        id="stp_0195f3a0000070008000333333333333", task_blueprint="stp_0195f3a0000070008000111111111111", depends_on=[]
+    )
+    state_steps = _build_state(steps=[step_1, step_1b, step_2])
+    repo.set_execution(state_steps.exec_record)
+    committer_steps = ExecutionCommitter(exec_repo=repo, execution_id=state_steps.execution_id)
+
+    with pytest.raises(AppException) as exc_steps:
+        await execute_topological_waves_stage(
+            state=state_steps,
+            node_executor=NodeExecutor(deps=_build_deps(repo)),
+            committer=committer_steps,
+            step_runner_fn=_pass_runner,
+        )
+    assert exc_steps.value.status_code == 429
+    assert exc_steps.value.details["error_code"] == ErrorCodes.QUOTA_EXCEEDED
+    assert state_steps.exec_record.step_states[step_2.id].status == ExecutionStatus.BLOCKED

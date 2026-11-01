@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Annotated, Any, Literal, Self
 
 from fastapi import status
-from pydantic import AliasChoices, BeforeValidator, Field, computed_field, model_validator
+from pydantic import AliasChoices, BeforeValidator, Field, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
@@ -279,6 +279,29 @@ class Settings(BaseSettings):
     semaphore_max_concurrency: Annotated[int, Field(ge=1, description="Max simultaneous active LLM connections")] = 10
     semaphore_rpm_divisor: Annotated[int, Field(ge=1, description="Divisor applied to requested RPM constraint")] = 10
     max_safe_tokens: Annotated[int, Field(description="Maximum token shield limit per context window")] = 2000000
+    max_tokens_per_run: Annotated[
+        int,
+        Field(
+            ge=0,
+            default=5_000_000,
+            description="Maximum cumulative tokens permitted per workflow execution run (0 disables limit)",
+        ),
+    ] = 5_000_000
+    max_cost_usd_per_run: Annotated[
+        float,
+        Field(
+            default=25.0,
+            description="Maximum cumulative USD cost permitted per workflow execution run (0.0 disables limit)",
+        ),
+    ] = 25.0
+    max_total_steps_per_run: Annotated[
+        int,
+        Field(
+            ge=0,
+            default=50,
+            description="Maximum executed DAG steps permitted per workflow execution run (0 disables limit)",
+        ),
+    ] = 50
     schema_max_evaluations: Annotated[int, Field(description="Max boolean metrics evaluation per prompt")] = 7
     max_synthesis_evaluations: Annotated[int, Field(ge=0, description="Max evaluations for synthesis token shield")] = 0
     max_synthesis_quote_length: Annotated[
@@ -1156,6 +1179,24 @@ class Settings(BaseSettings):
             description="Mock Analyst User ID",
         ),
     ] = "usr_0195f3a000007009836983a7a6c643ab"
+
+    @field_validator("max_cost_usd_per_run")
+    @classmethod
+    def validate_max_cost_usd_per_run_non_negative(cls, value: float) -> float:
+        """Validate that max_cost_usd_per_run is non-negative.
+
+        Args:
+            value: Configured maximum USD cost per workflow execution run.
+
+        Returns:
+            Validated float value.
+
+        Raises:
+            ValueError: If max_cost_usd_per_run is negative.
+        """
+        if value < 0.0:
+            raise ValueError(f"max_cost_usd_per_run ({value}) must be >= 0.0.")
+        return value
 
     @model_validator(mode="after")
     def validate_linker_axiom_budgets(self) -> Self:
