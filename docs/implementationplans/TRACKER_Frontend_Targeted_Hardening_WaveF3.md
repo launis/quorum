@@ -30,7 +30,7 @@
   - [x] @[client_app_v2/lib/features/execution/views/widgets/diagnostic_scorecard_widget.dart]
   - [x] @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart]
   - [x] @[client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/report_renderer_v2_widget.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/report_renderer_v2_widget.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_alert_box_widget.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/features/execution/views/widgets/sdui_blocks_renderer.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
-// Phase 3, Step 2: Create ReportRendererV2Widget
+/// Renders a server-driven execution report payload via polymorphic SDUI blocks.
 class ReportRendererV2Widget extends StatelessWidget {
   final ReportDataDto payload;
   final String executionId;
@@ -16,9 +18,11 @@ class ReportRendererV2Widget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final widgets = <Widget>[];
 
-    // 1. Inner SDUI Blocks (Polymorphic SDUI Parity)
     if (payload.innerSduiBlocks.isNotEmpty) {
       widgets.add(
         Padding(
@@ -26,45 +30,56 @@ class ReportRendererV2Widget extends StatelessWidget {
             horizontal: AppSpacing.s24,
             vertical: AppSpacing.s8,
           ),
-          child: SduiBlocksRenderer(
-            blocks: payload.innerSduiBlocks,
-            mcpToolAudit: payload.mcpToolAudit,
+          child: AppErrorBoundary(
+            child: SduiBlocksRenderer(
+              blocks: payload.innerSduiBlocks,
+              mcpToolAudit: payload.mcpToolAudit,
+            ),
           ),
         ),
       );
     } else {
-      // V2 ARCHITECTURE VIOLATION fallback
       widgets.add(
         Container(
           margin: const EdgeInsets.symmetric(
             horizontal: AppSpacing.s24,
             vertical: AppSpacing.s16,
           ),
-          padding: const EdgeInsets.all(AppSpacing.s16),
+          padding: AppSpacing.p16,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.errorContainer,
+            color: colorScheme.errorContainer,
             border: Border(
-              left: BorderSide(
-                color: Theme.of(context).colorScheme.error,
-                width: 4,
-              ),
+              left: BorderSide(color: colorScheme.error, width: AppSpacing.s4),
             ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'V2 ARCHITECTURE VIOLATION',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onErrorContainer,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    color: colorScheme.onErrorContainer,
+                    size: AppSpacing.s24,
+                  ),
+                  AppSpacing.w8,
+                  Expanded(
+                    child: Text(
+                      l10n.sharedNoReportData,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: colorScheme.onErrorContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppSpacing.s8),
+              AppSpacing.h8,
               Text(
-                'FAIL-FAST MANDATE: This execution lacks explicit ReportDataDTO mapping securely populated from backend APIs.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onErrorContainer,
+                l10n.reportEmptyProfile,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onErrorContainer,
                 ),
               ),
             ],
