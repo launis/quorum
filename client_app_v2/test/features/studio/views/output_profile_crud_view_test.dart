@@ -29,8 +29,9 @@ class FakeOutputProfile extends Fake implements OutputProfile {}
 class MockOutputProfilesController extends OutputProfilesController {
   final Future<OutputProfile> Function(String id, OutputProfile payload)?
   onSaveProfile;
+  final Future<void> Function(String id)? onDeleteProfile;
 
-  MockOutputProfilesController({this.onSaveProfile});
+  MockOutputProfilesController({this.onSaveProfile, this.onDeleteProfile});
 
   @override
   Future<OutputProfile> saveProfile(String id, OutputProfile payload) async {
@@ -38,6 +39,14 @@ class MockOutputProfilesController extends OutputProfilesController {
       return onSaveProfile!(id, payload);
     }
     return payload;
+  }
+
+  @override
+  Future<void> deleteProfile(String id) async {
+    if (onDeleteProfile != null) {
+      await onDeleteProfile!(id);
+      return;
+    }
   }
 }
 
@@ -697,5 +706,89 @@ void main() {
       expect(find.byType(SnackBar), findsOneWidget);
       expect(find.textContaining('Simulated save failure'), findsOneWidget);
     });
+
+    testWidgets(
+      'test_crud_view_rejects_whitespace_only_profile_id_on_save',
+      (WidgetTester tester) async {
+        final profile = createValidProfile(id: '   ');
+        final mockLogger = MockLoggerService();
+
+        final overrides = [
+          loggerServiceProvider.overrideWithValue(mockLogger),
+          outputProfileFormProvider('   ').overrideWith(
+            () => TestOutputProfileForm(AsyncData(profile)),
+          ),
+          promptBlocksControllerProvider.overrideWith(
+            () => MockPromptBlocksController(),
+          ),
+          workflowsControllerProvider.overrideWith(
+            () => MockWorkflowsController(),
+          ),
+          stepsControllerProvider.overrideWith(() => MockStepsController()),
+          workflowAvailableExtensionsProvider(
+            'wf_test',
+          ).overrideWith((ref) async => []),
+        ];
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(profileId: '   ', overrides: overrides),
+        );
+        await tester.pumpAndSettle();
+
+        final saveBtn = find.widgetWithText(TextButton, 'Save');
+        await tester.tap(saveBtn);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(find.textContaining('Profile ID is required'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'test_crud_view_handles_delete_failure_gracefully',
+      (WidgetTester tester) async {
+        final profile = createValidProfile();
+        final mockLogger = MockLoggerService();
+
+        final overrides = [
+          loggerServiceProvider.overrideWithValue(mockLogger),
+          outputProfilesControllerProvider.overrideWith(
+            () => MockOutputProfilesController(
+              onDeleteProfile: (id) async {
+                throw AppException.validation('Simulated delete failure');
+              },
+            ),
+          ),
+          outputProfileFormProvider(
+            'prf_test',
+          ).overrideWith(() => TestOutputProfileForm(AsyncData(profile))),
+          promptBlocksControllerProvider.overrideWith(
+            () => MockPromptBlocksController(),
+          ),
+          workflowsControllerProvider.overrideWith(
+            () => MockWorkflowsController(),
+          ),
+          stepsControllerProvider.overrideWith(() => MockStepsController()),
+          workflowAvailableExtensionsProvider(
+            'wf_test',
+          ).overrideWith((ref) async => []),
+        ];
+
+        await tester.pumpWidget(
+          createWidgetUnderTest(profileId: 'prf_test', overrides: overrides),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.delete));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AlertDialog), findsOneWidget);
+        await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(find.textContaining('Simulated delete failure'), findsOneWidget);
+      },
+    );
   });
 }

@@ -9,6 +9,7 @@ import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_sc
 import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart';
 import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
@@ -72,9 +73,11 @@ class OutputProfileCrudView extends HookConsumerWidget {
                     padding: EdgeInsets.symmetric(horizontal: AppSpacing.s16),
                     child: Center(
                       child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        width: AppSpacing.s16,
+                        height: AppSpacing.s16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: AppSpacing.s2,
+                        ),
                       ),
                     ),
                   )
@@ -126,7 +129,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
     try {
       final String idToSave = payload.id.trim();
       if (idToSave.isEmpty) {
-        throw Exception(l10n.studioViewsProfileIdRequired);
+        throw AppException.validation(l10n.studioViewsProfileIdRequired);
       }
 
       final newPayload = payload.copyWith(
@@ -145,11 +148,11 @@ class OutputProfileCrudView extends HookConsumerWidget {
         ),
       );
       context.pop();
-    } catch (e) {
+    } catch (e, st) {
       if (!context.mounted) return;
       ref
           .read(loggerServiceProvider)
-          .error('Studio', 'Failed to save profile: $e', e);
+          .error('Studio', 'Failed to save profile: $e', e, st);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.saveFailedError(e.toString())),
@@ -169,10 +172,7 @@ class OutputProfileCrudView extends HookConsumerWidget {
     if (idToDelete.isEmpty) return;
 
     final currentLocale = Localizations.localeOf(context).languageCode;
-    final nameToDisplay =
-        payload.name.translations[currentLocale] ??
-        payload.name.translations['en'] ??
-        idToDelete;
+    final nameToDisplay = payload.name.get(currentLocale);
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -201,13 +201,16 @@ class OutputProfileCrudView extends HookConsumerWidget {
             .read(outputProfilesControllerProvider.notifier)
             .deleteProfile(idToDelete);
         if (context.mounted) context.pop();
-      } catch (e) {
+      } catch (e, st) {
         if (!context.mounted) return;
         ref
             .read(loggerServiceProvider)
-            .error('Studio', 'Failed to delete profile: $e', e);
+            .error('Studio', 'Failed to delete profile: $e', e, st);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.deleteFailedError(e.toString()))),
+          SnackBar(
+            content: Text(l10n.deleteFailedError(e.toString())),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     }
