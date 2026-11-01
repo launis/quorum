@@ -32,6 +32,7 @@ void main() {
           'chunk_count': 3,
           'progress': 100,
           'has_warning': true,
+          'input_merkle_hash': 'a1b2c3d4e5f6',
           'scorecard_atoms': <String, Object?>{
             'a0': <String, Object?>{
               'atom_id': 'a0',
@@ -85,6 +86,7 @@ void main() {
         expect(step.chunkCount, equals(3));
         expect(step.progress, equals(100));
         expect(step.hasWarning, isTrue);
+        expect(step.inputMerkleHash, equals('a1b2c3d4e5f6'));
         expect(step.scorecardAtoms, hasLength(1));
         expect(step.scorecardAtoms['a0'], isA<ScorecardAtomDto>());
         expect(
@@ -136,6 +138,7 @@ void main() {
         expect(step.chunkCount, equals(1));
         expect(step.progress, isNull);
         expect(step.hasWarning, isFalse);
+        expect(step.inputMerkleHash, isNull);
         expect(step.scorecardAtoms, isEmpty);
       },
     );

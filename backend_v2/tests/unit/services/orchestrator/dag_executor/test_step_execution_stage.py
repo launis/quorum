@@ -47,6 +47,7 @@ from backend_v2.services.orchestrator.dag_executor.step_execution_stage import (
 )
 from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
     WorkflowExecutionState,
+    compute_step_input_merkle_hash,
     dlq_fallback_step_exceptions,
 )
 from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
@@ -232,6 +233,15 @@ async def test_execute_dag_step_wrapper_reduces_matrix_and_commits_trace() -> No
     mock_reduce.assert_called_once()
     assert len(progress_errors) == 1
     assert state.exec_record.step_states[step_rule.id].status == ExecutionStatus.PASSED
+    expected_merkle = compute_step_input_merkle_hash(
+        step_rule=step_rule,
+        step_def=bp,
+        raw_inputs=state.exec_record.raw_inputs,
+        blocks_by_id=state.blocks_by_id,
+        upstream_hashes={},
+    )
+    assert state.exec_record.step_states[step_rule.id].input_merkle_hash == expected_merkle
+    assert len(expected_merkle) == 64
     assert state.exec_record.context_variables.matrix_reducer_output == reduced_dto
     assert state.exec_record.frozen_context is not None
     assert step_rule.id in state.exec_record.frozen_context.generated_schemas.schemas
@@ -259,6 +269,8 @@ async def test_prepare_step_strategy_context_upstream_causal_graph_and_failure_b
                 status=ExecutionStatus.PASSED,
                 blame_parent_ids=[],
                 dependent_child_ids=[],
+                short_circuited_by_claims=[],
+                falsified_warrant_claims=[],
             )
         ],
         edges=[],
@@ -450,6 +462,7 @@ async def test_execute_dag_step_wrapper_resumption_skip_blocked_dependency_and_e
             dlq_on_step_failure=lambda sid, code, _exc: dlq_calls.append((sid, code)),
         )
     assert state_crash.exec_record.step_states[dep_step.id].status == ExecutionStatus.FAILED
+    assert state_crash.exec_record.step_states[dep_step.id].input_merkle_hash is None
     assert dlq_calls == [(dep_step.id, "UNEXPECTED_STEP_EXCEPTION")]
 
     # Verify _extract_app_exception_error_code branches
@@ -488,6 +501,8 @@ async def test_execute_dag_step_wrapper_resumption_skip_blocked_dependency_and_e
                 status=ExecutionStatus.PASSED,
                 blame_parent_ids=[],
                 dependent_child_ids=[],
+                short_circuited_by_claims=[],
+                falsified_warrant_claims=[],
             )
         ],
         edges=[],

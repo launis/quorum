@@ -2,17 +2,24 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 from collections.abc import Awaitable, Callable
 
 from arq import ArqRedis
 
-from backend_v2.database.interfaces import IExecutionRepository, IWorkflowRepository
+from backend_v2.database.interfaces import IExecutionRepository, IPromptBlockRepository, IWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
+    _fetch_referenced_prompt_blocks,
+    invalidate_drifted_passed_steps,
+)
 from backend_v2.services.usage_service import UsageService
 
 logger = logging.getLogger(__name__)
@@ -27,6 +34,7 @@ class ExecutionResumptionService:
         exec_repo: Repository providing access to execution records.
         workflow_repo: Repository providing access to workflow blueprints.
         usage_service: Optional service for evaluating organization quotas.
+        prompt_block_repo: Optional repository providing access to prompt blocks.
     """
 
     def __init__(
@@ -36,6 +44,7 @@ class ExecutionResumptionService:
         usage_service: UsageService | None = None,
         get_execution_fn: Callable[..., Awaitable[ExecutionRecord]] | None = None,
         check_resumability_fn: Callable[..., Awaitable[bool]] | None = None,
+        prompt_block_repo: IPromptBlockRepository | None = None,
     ) -> None:
         """Initialize the execution resumption service.
 
@@ -45,10 +54,12 @@ class ExecutionResumptionService:
             usage_service: Optional service for evaluating organization quotas.
             get_execution_fn: Optional callable overriding execution fetching.
             check_resumability_fn: Optional callable overriding resumability check.
+            prompt_block_repo: Optional repository providing access to prompt blocks.
         """
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
         self.usage_service = usage_service
+        self.prompt_block_repo = prompt_block_repo
         self._get_execution = get_execution_fn if get_execution_fn is not None else self._default_get_execution
         self._check_resumability = check_resumability_fn
 
@@ -177,8 +188,30 @@ class ExecutionResumptionService:
                     details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
                 )
 
+        # Phase 3, Step 3.3: Verify node-level input_merkle_hash and invalidate drifted PASSED steps on resume
+        wf_res = self.workflow_repo.get_workflow_by_id(record.workflow_id)
+        workflow = await wf_res if inspect.isawaitable(wf_res) else wf_res
+        if isinstance(workflow, Workflow):
+            step_definitions: dict[str, Step] = {}
+            for step_rule in workflow.steps:
+                if step_rule.task_blueprint:
+                    step_res = self.workflow_repo.get_step_by_id(step_rule.task_blueprint)
+                    step_data = await step_res if inspect.isawaitable(step_res) else step_res
+                    if isinstance(step_data, Step):
+                        step_definitions[step_rule.task_blueprint] = step_data
+            pb_repo = self.prompt_block_repo if self.prompt_block_repo is not None else self.workflow_repo
+            blocks_by_id = await _fetch_referenced_prompt_blocks(step_definitions, pb_repo)
+            record = invalidate_drifted_passed_steps(record, workflow, step_definitions, blocks_by_id)
+
         record = record.model_copy(update={"status": ExecutionStatus.RUNNING})
-        await self.exec_repo.update_execution(execution_id, ExecutionUpdateDTO(status=ExecutionStatus.RUNNING))
+        await self.exec_repo.update_execution(
+            execution_id,
+            ExecutionUpdateDTO(
+                status=ExecutionStatus.RUNNING,
+                steps=record.steps,
+                step_states=record.step_states,
+            ),
+        )
 
         await arq_pool.enqueue_job(
             "execute_workflow_job",

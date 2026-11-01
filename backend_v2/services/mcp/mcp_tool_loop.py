@@ -122,6 +122,49 @@ def is_source_sufficient(source_context: str) -> bool:
     return len(source_context.strip()) >= SourceSufficiencyThreshold.MIN_CHARS.value
 
 
+_RESERVED_MCP_XML_TAGS: tuple[str, ...] = (
+    "<source_data>",
+    "</source_data>",
+    "<user_payload>",
+    "</user_payload>",
+    "<system_directive>",
+    "</system_directive>",
+    "<external_evidence>",
+    "</external_evidence>",
+    "</source>",
+    "<source>",
+    "<source",
+)
+
+
+def _sanitize_mcp_xml_control_tags(raw_text: str) -> str:
+    """Strip reserved structural XML boundary tags from external MCP tool text.
+
+    Args:
+        raw_text: Untrusted string returned by an external MCP tool.
+
+    Returns:
+        Sanitized string with reserved structural XML boundary tags removed.
+    """
+    # Phase 3, Step 3.3: Enforce role_segregation_and_fencing on external MCP evidence
+    cleaned = raw_text
+    for tag in _RESERVED_MCP_XML_TAGS:
+        tag_lower = tag.lower()
+        while True:
+            idx = cleaned.lower().find(tag_lower)
+            if idx == -1:
+                break
+            if tag_lower == "<source":
+                end_idx = cleaned.find(">", idx)
+                if end_idx != -1:
+                    cleaned = cleaned[:idx] + cleaned[end_idx + 1 :]
+                else:
+                    cleaned = cleaned[:idx] + cleaned[idx + len(tag) :]
+            else:
+                cleaned = cleaned[:idx] + cleaned[idx + len(tag) :]
+    return cleaned
+
+
 def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> LLMMessageDTO:
     """Convert an MCPAuditTrace into a ToolMessage for LLM injection.
 
@@ -143,13 +186,16 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> LLM
             ),
         )
 
-    content = f"<tool_response>\n  <query>{audit.query}</query>\n"
+    safe_query = _sanitize_mcp_xml_control_tags(audit.query)
+    content = f"<tool_response>\n  <query>{safe_query}</query>\n"
     if audit.response_summary:
-        content += f"  <summary>{audit.response_summary}</summary>\n"
+        safe_summary = _sanitize_mcp_xml_control_tags(audit.response_summary)
+        content += f"  <summary>{safe_summary}</summary>\n"
     if audit.source_urls:
         content += "  <sources>\n"
         for url in audit.source_urls:
-            content += f"    <url>{url}</url>\n"
+            safe_url = _sanitize_mcp_xml_control_tags(url)
+            content += f"    <url>{safe_url}</url>\n"
         content += "  </sources>\n"
     content += "</tool_response>"
 
@@ -432,14 +478,17 @@ def _assemble_evidence_payload(
     local_alias_engine = alias_engine if alias_engine is not None else AliasEngine()
 
     for audit in audit_traces:
-        real_id = audit.id if audit.id else f"mcp_trace_{audit.query[:20]}"
+        safe_query = _sanitize_mcp_xml_control_tags(audit.query)
+        real_id = audit.id if audit.id else f"mcp_trace_{safe_query[:20]}"
         local_id = local_alias_engine.register(real_id, prefix="mcp")
         local_alias_engine.source_document_aliases.append(local_id)
-        text_payload = f"Query: {audit.query}\n"
+        text_payload = f"Query: {safe_query}\n"
         if audit.response_summary:
-            text_payload += f"Summary: {audit.response_summary}\n"
+            safe_summary = _sanitize_mcp_xml_control_tags(audit.response_summary)
+            text_payload += f"Summary: {safe_summary}\n"
         if audit.source_urls:
-            text_payload += f"Sources: {', '.join(audit.source_urls)}\n"
+            safe_urls = [_sanitize_mcp_xml_control_tags(url) for url in audit.source_urls]
+            text_payload += f"Sources: {', '.join(safe_urls)}\n"
 
         source_texts[local_id] = text_payload
         evidence_blocks.append(f'<source ID="{local_id}">\n{text_payload}\n</source>')

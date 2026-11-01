@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import hashlib
+import inspect
+import json
 import logging
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -43,10 +46,12 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "WorkflowExecutionState",
     "bootstrap_workflow_execution_state",
+    "compute_step_input_merkle_hash",
     "dlq_fallback_step_exceptions",
     "dlq_handle_progress_commit_error",
     "dlq_record_step_failure",
     "execute_rag_preflight_stage",
+    "invalidate_drifted_passed_steps",
     "safe_commit_execution_state",
 ]
 _DAG_EXECUTOR_MODULE = "backend_v2.services.orchestrator.dag_executor"
@@ -145,6 +150,172 @@ def _extract_input_delta_dict(state_delta: Any) -> dict[str, StepOutputContentVa
     return {"value": payload} if isinstance(payload, (str, int, float, bool, list)) else dict(payload)
 
 
+def compute_step_input_merkle_hash(
+    step_rule: StepRule,
+    step_def: Step | None,
+    raw_inputs: WorkflowInputs,
+    blocks_by_id: Mapping[str, AnyPromptBlock],
+    upstream_hashes: Mapping[str, str | None] | None = None,
+) -> str:
+    """Compute canonical SHA-256 Merkle hash of step inputs, prompt blocks, and tier configuration.
+
+    Args:
+        step_rule: Workflow StepRule node defining dependencies and input mappings.
+        step_def: Optional resolved Step blueprint definition.
+        raw_inputs: WorkflowInputs instance containing ingress payloads.
+        blocks_by_id: Mapping of resolved PromptBlock instances keyed by block ID.
+        upstream_hashes: Optional mapping of upstream step IDs to their Merkle hashes.
+
+    Returns:
+        Hexadecimal SHA-256 Merkle digest string for the step.
+    """
+    # Phase 3, Step 3.3: Compute deterministic node-level SHA-256 input_merkle_hash
+    referenced_block_ids: set[str] = set()
+    if step_def is not None:
+        referenced_block_ids.update(step_def.criteria_block_ids)
+        if step_def.role_block_id is not None:
+            referenced_block_ids.add(step_def.role_block_id)
+        if step_def.execution_persona_block_id is not None:
+            referenced_block_ids.add(step_def.execution_persona_block_id)
+        if step_def.extraction_protocol_block_id is not None:
+            referenced_block_ids.add(step_def.extraction_protocol_block_id)
+
+    resolved_blocks_payload = {
+        b_id: blocks_by_id[b_id].model_dump(mode="json")
+        for b_id in sorted(referenced_block_ids)
+        if b_id in blocks_by_id
+    }
+    dep_hashes: dict[str, str | None] = {}
+    for dep_id in sorted(step_rule.depends_on):
+        dep_hash: str | None = None
+        if upstream_hashes is not None and dep_id in upstream_hashes:
+            dep_hash = upstream_hashes[dep_id]
+        dep_hashes[dep_id] = dep_hash
+
+    step_def_payload = None
+    if step_def is not None:
+        step_def_payload = step_def.model_dump(mode="json")
+
+    merkle_payload = {
+        "step_rule": step_rule.model_dump(mode="json"),
+        "step_def": step_def_payload,
+        "raw_inputs": raw_inputs.model_dump(mode="json"),
+        "prompt_blocks": resolved_blocks_payload,
+        "upstream_hashes": dep_hashes,
+    }
+    canonical_json = json.dumps(merkle_payload, sort_keys=True, default=str)
+    return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
+
+
+async def _fetch_referenced_prompt_blocks(
+    step_definitions: Mapping[str, Step],
+    prompt_block_repo: Any,
+) -> dict[str, AnyPromptBlock]:
+    """Fetch all prompt blocks referenced by the provided step definitions.
+
+    Args:
+        step_definitions: Mapping of Step blueprint definitions keyed by blueprint ID.
+        prompt_block_repo: Repository port exposing get_prompt_block_by_id.
+
+    Returns:
+        Dictionary of resolved PromptBlock instances keyed by block ID.
+    """
+    blocks_by_id: dict[str, AnyPromptBlock] = {}
+    if prompt_block_repo is None:
+        return blocks_by_id
+    all_block_ids: set[str] = set()
+    for s_def in step_definitions.values():
+        all_block_ids.update(s_def.criteria_block_ids)
+        if s_def.role_block_id is not None:
+            all_block_ids.add(s_def.role_block_id)
+        if s_def.execution_persona_block_id is not None:
+            all_block_ids.add(s_def.execution_persona_block_id)
+        if s_def.extraction_protocol_block_id is not None:
+            all_block_ids.add(s_def.extraction_protocol_block_id)
+    for b_id in sorted(all_block_ids):
+        res_blk = prompt_block_repo.get_prompt_block_by_id(b_id)
+        blk = await res_blk if inspect.isawaitable(res_blk) else res_blk
+        if blk is not None:
+            blocks_by_id[b_id] = blk
+    return blocks_by_id
+
+
+def invalidate_drifted_passed_steps(
+    exec_record: ExecutionRecord,
+    workflow: Workflow,
+    step_definitions: Mapping[str, Step],
+    blocks_by_id: Mapping[str, AnyPromptBlock],
+) -> ExecutionRecord:
+    """Transition FAILED steps and Merkle-drifted PASSED steps (plus dependents) to PENDING.
+
+    Args:
+        exec_record: Current ExecutionRecord being resumed or bootstrapped.
+        workflow: Active Workflow domain model defining the topological step order.
+        step_definitions: Resolved Step blueprint definitions keyed by blueprint ID.
+        blocks_by_id: Resolved PromptBlock instances keyed by block ID.
+
+    Returns:
+        Updated ExecutionRecord with drifted and downstream dependent steps reset to PENDING.
+    """
+    # Phase 3, Step 3.3: Verify node-level input_merkle_hash and cascade invalidation to downstream steps
+    expected_hashes: dict[str, str] = {}
+    for step_rule in workflow.steps:
+        bp_id = step_rule.task_blueprint
+        s_def: Step | None = None
+        if bp_id is not None and bp_id in step_definitions:
+            s_def = step_definitions[bp_id]
+        expected_hashes[step_rule.id] = compute_step_input_merkle_hash(
+            step_rule=step_rule,
+            step_def=s_def,
+            raw_inputs=exec_record.raw_inputs,
+            blocks_by_id=blocks_by_id,
+            upstream_hashes=expected_hashes,
+        )
+
+    invalidated_ids: set[str] = set()
+    for step_id, s_state in list(exec_record.step_states.items()):
+        if s_state.status == ExecutionStatus.FAILED:
+            invalidated_ids.add(step_id)
+
+    for step_rule in workflow.steps:
+        step_id = step_rule.id
+        if step_id not in exec_record.step_states:
+            continue
+        s_state = exec_record.step_states[step_id]
+        if s_state.status == ExecutionStatus.PASSED:
+            stored_hash = s_state.input_merkle_hash
+            if stored_hash is None or stored_hash != expected_hashes[step_id]:
+                invalidated_ids.add(step_id)
+
+    changed = True
+    while changed:
+        changed = False
+        for step_rule in workflow.steps:
+            if step_rule.id in invalidated_ids:
+                continue
+            if any(
+                dep_id in invalidated_ids
+                or (
+                    dep_id in exec_record.step_states
+                    and exec_record.step_states[dep_id].status != ExecutionStatus.PASSED
+                )
+                for dep_id in step_rule.depends_on
+            ):
+                invalidated_ids.add(step_rule.id)
+                changed = True
+
+    updated_record = exec_record
+    for step_id in invalidated_ids:
+        if step_id in updated_record.step_states:
+            updated_record = updated_record.transition_step(
+                step_id=step_id,
+                status=ExecutionStatus.PENDING,
+                last_error=None,
+                has_warning=False,
+            )
+    return updated_record
+
+
 async def bootstrap_workflow_execution_state(
     execution_id: str,
     workflow: Workflow,
@@ -194,11 +365,7 @@ async def bootstrap_workflow_execution_state(
             if "apply_scoring_logic_hook" in s_def.post_hooks or "apply_scoring_logic" in s_def.post_hooks:
                 posts = [h for h in s_def.post_hooks if h not in ("apply_scoring_logic_hook", "apply_scoring_logic")]
                 step_definitions[bp_id] = s_def.model_copy(update={"post_hooks": posts})
-    blocks_by_id: dict[str, AnyPromptBlock] = {}
-    for s_def in step_definitions.values():
-        for cb_id in s_def.criteria_block_ids if s_def.type == StepType.CAUSAL_DISCOVERY else ():
-            if (blk := await deps.prompt_block_repo.get_prompt_block_by_id(cb_id)) is not None:
-                blocks_by_id[cb_id] = blk
+    blocks_by_id = await _fetch_referenced_prompt_blocks(step_definitions, deps.prompt_block_repo)
 
     s_lvl = workflow.default_strictness_level if strictness_level is None else strictness_level
     lex_def = workflow.default_lexical_strictness_level
@@ -317,9 +484,7 @@ async def bootstrap_workflow_execution_state(
         step_exceptions: tuple[type[BaseException], ...] = (*dlq_fallback_fn(), *t1, *t2, *t3)
     except ImportError:  # pragma: no cover
         step_exceptions = dlq_fallback_fn()
-    for step_id, s_state in list(exec_record.step_states.items()):
-        if s_state.status == ExecutionStatus.FAILED:
-            exec_record = exec_record.transition_step(step_id=step_id, status=ExecutionStatus.PENDING)
+    exec_record = invalidate_drifted_passed_steps(exec_record, workflow, step_definitions, blocks_by_id)
     state = WorkflowExecutionState(execution_id, workflow, exec_record, gvars, projector, step_definitions)
     state.steps_by_id, state.blocks_by_id = {step.id: step for step in workflow.steps}, blocks_by_id
     state.strictness_level, state.lexical_strictness_level, state.step_exceptions = s_lvl, lex_lvl, step_exceptions

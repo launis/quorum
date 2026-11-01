@@ -28,6 +28,7 @@ abstract class ExecutionStep with _$ExecutionStep {
     @JsonKey(name: 'chunk_count') @Default(1) int chunkCount,
     @JsonKey(name: 'progress') int? progress,
     @JsonKey(name: 'has_warning') @Default(false) bool hasWarning,
+    @JsonKey(name: 'input_merkle_hash') String? inputMerkleHash,
     @JsonKey(name: 'scorecard_atoms')
     @Default({})
     Map<String, ScorecardAtomDto> scorecardAtoms,

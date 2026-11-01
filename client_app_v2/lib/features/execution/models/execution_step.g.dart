@@ -31,6 +31,7 @@ _ExecutionStep _$ExecutionStepFromJson(Map<String, dynamic> json) =>
             'chunk_count',
             'progress',
             'has_warning',
+            'input_merkle_hash',
             'scorecard_atoms',
           ],
         );
@@ -79,6 +80,10 @@ _ExecutionStep _$ExecutionStepFromJson(Map<String, dynamic> json) =>
             'has_warning',
             (v) => v as bool? ?? false,
           ),
+          inputMerkleHash: $checkedConvert(
+            'input_merkle_hash',
+            (v) => v as String?,
+          ),
           scorecardAtoms: $checkedConvert(
             'scorecard_atoms',
             (v) =>
@@ -107,6 +112,7 @@ _ExecutionStep _$ExecutionStepFromJson(Map<String, dynamic> json) =>
         'durationMs': 'duration_ms',
         'chunkCount': 'chunk_count',
         'hasWarning': 'has_warning',
+        'inputMerkleHash': 'input_merkle_hash',
         'scorecardAtoms': 'scorecard_atoms',
       },
     );
@@ -130,6 +136,7 @@ Map<String, dynamic> _$ExecutionStepToJson(_ExecutionStep instance) =>
       'chunk_count': instance.chunkCount,
       'progress': instance.progress,
       'has_warning': instance.hasWarning,
+      'input_merkle_hash': instance.inputMerkleHash,
       'scorecard_atoms': instance.scorecardAtoms.map(
         (k, e) => MapEntry(k, e.toJson()),
       ),

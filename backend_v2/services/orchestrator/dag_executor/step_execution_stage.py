@@ -29,6 +29,7 @@ from backend_v2.services.orchestrator.dag_executor.node_executor import NodeExec
 from backend_v2.services.orchestrator.dag_executor.wave_orchestrator_stage import finalize_step_output_and_commit
 from backend_v2.services.orchestrator.dag_executor.workflow_bootstrap_stage import (
     WorkflowExecutionState,
+    compute_step_input_merkle_hash,
     dlq_handle_progress_commit_error,
     dlq_record_step_failure,
     safe_commit_execution_state,
@@ -288,9 +289,27 @@ async def execute_dag_step_wrapper(
                 return
 
         upstream_graph, node_step_def = await prepare_step_strategy_context(state=state, step_id=step_id)
+        # Phase 3, Step 3.3: Compute deterministic node-level SHA-256 input_merkle_hash
+        upstream_merkle_hashes: dict[str, str | None] = {}
+        for dep_id in step_obj.depends_on:
+            dep_merkle_hash: str | None = None
+            if dep_id in state.exec_record.step_states:
+                dep_merkle_hash = state.exec_record.step_states[dep_id].input_merkle_hash
+            upstream_merkle_hashes[dep_id] = dep_merkle_hash
+        step_merkle_hash = compute_step_input_merkle_hash(
+            step_rule=step_obj,
+            step_def=node_step_def,
+            raw_inputs=state.exec_record.raw_inputs,
+            blocks_by_id=state.blocks_by_id,
+            upstream_hashes=upstream_merkle_hashes,
+        )
 
         async with _update_lock:
-            state.exec_record = state.exec_record.transition_step(step_id=step_id, status=ExecutionStatus.RUNNING)
+            state.exec_record = state.exec_record.transition_step(
+                step_id=step_id,
+                status=ExecutionStatus.RUNNING,
+                input_merkle_hash=step_merkle_hash,
+            )
         await safe_commit_execution_state(state=state, committer=committer)
 
         async def progress_callback(completed: int, total: int) -> None:

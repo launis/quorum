@@ -164,6 +164,13 @@ class ExecutionStep(V2CoreBase):
         int | None, Field(default=None, ge=0, le=100, description="Step progress percentage for SSE streaming (0-100)")
     ] = None
     has_warning: Annotated[bool, Field(default=False, description="Whether the step completed with warnings")] = False
+    input_merkle_hash: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Canonical SHA-256 Merkle hash of step inputs, prompt blocks, and tier configuration",
+        ),
+    ] = None
 
     scorecard_atoms: dict[str, ScorecardAtomDTO] = Field(
         default_factory=dict, description="Presentation atoms including potential human overrides."
@@ -287,6 +294,7 @@ class ExecutionRecord(ExecutionCoreFields):
         label: str | None = None,
         last_error: str | None = None,
         has_warning: bool | None = None,
+        input_merkle_hash: str | None = None,
     ) -> ExecutionRecord:
         """Atomically transition step state across steps list and step_states dictionary.
 
@@ -297,6 +305,7 @@ class ExecutionRecord(ExecutionCoreFields):
             label: Optional display label for the step.
             last_error: Optional error message string if failed.
             has_warning: Optional boolean flag indicating warnings.
+            input_merkle_hash: Optional canonical SHA-256 Merkle hash of step inputs.
 
         Returns:
             ExecutionRecord: Cloned execution record with atomically synchronized steps.
@@ -318,6 +327,10 @@ class ExecutionRecord(ExecutionCoreFields):
                 updated_data["last_error"] = last_error
             if has_warning is not None:
                 updated_data["has_warning"] = has_warning
+            if input_merkle_hash is not None:
+                updated_data["input_merkle_hash"] = input_merkle_hash
+            elif status in (ExecutionStatus.PENDING, ExecutionStatus.FAILED, ExecutionStatus.BLOCKED):
+                updated_data["input_merkle_hash"] = None
             step_item = ExecutionStep.model_validate(updated_data)
         else:
             step_item = ExecutionStep.model_validate(
@@ -328,6 +341,7 @@ class ExecutionRecord(ExecutionCoreFields):
                     "progress": progress,
                     "last_error": last_error,
                     "has_warning": has_warning if has_warning is not None else False,
+                    "input_merkle_hash": input_merkle_hash,
                 }
             )
 
