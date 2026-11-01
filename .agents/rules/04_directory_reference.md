@@ -137,7 +137,7 @@
     
     <module path="client_app_v2/lib/shared/">
         <responsibility>SHARED UI WIDGETS & CROSS-DOMAIN MODELS</responsibility>
-        <key_domains>widgets/ (execution_timeline.dart, i18n_text_field.dart, omni_input_box.dart, pdf_export_guide_dialog.dart), models/ (i18n_text.dart, sdui_block_dto.dart)</key_domains>
+        <key_domains>widgets/ (execution_timeline.dart, i18n_text_field.dart, log_viewer.dart, omni_input_box.dart, pdf_export_guide_dialog.dart), models/ (i18n_text.dart, sdui_block_dto.dart)</key_domains>
     </module>
 
     <module path="client_app_v2/lib/utils/">

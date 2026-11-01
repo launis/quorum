@@ -1,4 +1,4 @@
-# Tracker: Targeted Frontend Hardening Wave F1 (Core, Network, API Clients, Error Boundaries, Theme, Shell & Shared Models)
+# Tracker: Targeted Frontend Hardening Wave F1 (Core, Network, API Clients, Error Boundaries, Theme, Shell & Shared Models) — [COMPLETED & LOCKED]
 
 @[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md]
 
@@ -15,7 +15,7 @@
 
 **Plan:** @[docs/KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO.md] (Askel 5.1: Vaihe 4b - Wave F1)
 
-- [ ] **[NOK] Execution:** `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md --gate frontend --model gemini-4-argon-medium --continue-on-failure`
+- [x] **[OK] Execution:** `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md --gate frontend --model gemini-4-argon-medium --continue-on-failure`
 
 ### Post-Implementation Gates
 
@@ -62,11 +62,11 @@
   - [x] @[client_app_v2/lib/shared/models/i18n_text.dart]
   - [x] @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
   - [x] @[client_app_v2/lib/features/settings/domain/models/app_settings_state.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify unit and widget test coverage across all 41 hardened Wave F1 modules.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify unit and widget test coverage across all 41 hardened Wave F1 modules.
 
 ### Final Verification Quality Gate
-- [ ] **[NOK]** Universal Frontend Quality Gate:
+- [x] **[OK]** Universal Frontend Quality Gate:
   ```powershell
   $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/ --build
   ```
@@ -76,7 +76,7 @@
 # Session Handover Context
 
 ## Achieved
-* Initialized **Targeted Frontend Hardening Wave F1 (`41` targets)** covering Root, Routing, Shell, Theme (`11` files), Core API Clients & Dio Network Interceptors (`10` files), and Core Error Boundaries, Logging, Models, Utils & Shared DTOs (`20` files).
+* Completed and locked **Targeted Frontend Hardening Wave F1 (`41/41` targets = `100%`)** covering Root, Routing, Shell, Theme (`11` files), Core API Clients & Dio Network Interceptors (`10` files), and Core Error Boundaries, Logging, Models, Utils & Shared DTOs (`20` files).
 
 ## Learned
 * `auto_hardening_runner.py` leverages `data/hardening_cache.json` SHA-256 composite digests across target `.dart` files, their paired `client_app_v2/test/` unit/widget tests, and `.agents/rules/` to short-circuit already-hardened unchanged targets in `0.0s` while enforcing full `flutter_audit_loop.py` and `audit_flutter_theme_sovereignty.py` gates on all modified targets.
@@ -87,4 +87,4 @@ $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scri
 ```
 
 ## Remaining
-* Execute `auto_hardening_runner.py` across all 41 targets in Wave F1 and proceed to Wave F2 (`@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]`).
+* Wave F1 (`41/41`) is 100% completed and locked alongside Waves F2–F4 (`185/185` total files). Proceed to Askel 3.5 (`PostgresEntityAdapter` decomposition).

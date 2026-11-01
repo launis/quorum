@@ -16,7 +16,7 @@
 >    * **Askel 3.5 — [SEURAAVANA JONOSSA (1. PRIORITEETTI)]:** `PostgresEntityAdapter` (`@[backend_v2/database/postgres/entity_adapter.py]`, 1 975 LOC) God Code -purku 4 SRP-moduuliin (`iam_adapter.py`, `studio_adapter.py`, `execution_adapter.py`, `seeding_adapter.py` + `<150 LOC` `__init__.py` fasaadi).
 > 4. **B2B SaaS IAM, Token Exchange & Enterprise Hardening** (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`)
 > 5. **Firebase Storage & Direct-to-Cloud Signed URLs** (`[NEW]` `@[docs/implementationplans/IMPLEMENTATION_PLAN_Storage_Signed_URLs.md]`)
-> 6. **Frontend & Studio UI Hardening (`client_app_v2` Karkaisuaallot F1–F4: 185 `.dart`-tiedostoa + 9 IAM-tiedostoa = 194 tiedostoa)** (`@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]` – `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]`)
+> 6. **Frontend & Studio UI Hardening (`client_app_v2` Karkaisuaallot F1–F4: 185/185 `.dart`-tiedostoa + 9 IAM-tiedostoa = 194 tiedostoa; 0 `DGR`-virhettä koko `client_app_v2/`-koodikannassa) — [SUORITETTU & LUKITTU 185/185]** (`@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]` – `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]`)
 > 7. **GCP Production Deployment, Cloud Security & FinOps Hardening** (`@[docs/epic/EPIC_74_Production_Deployment_GCP.md]`, `@[docs/implementationplans/IMPLEMENTATION_PLAN_GCP_Production_Deployment.md]`, tracker: `@[docs/implementationplans/TRACKER_GCP_Production_Deployment.md]`)
 
 ---
@@ -887,18 +887,18 @@ Koko `backend_v2/`-tuotantokoodikannan **403 `.py`-tiedoston** kattava AST-, doc
 
 ---
 
-### Askel 5.1–5.4: Koko `client_app_v2/lib/` Frontend- ja Studio UI -Koodikannan Karkaisuaallot F1–F4 (Bottom-Up Hardening Roadmap, Vaihe 4b)
+### Askel 5.1–5.4: Koko `client_app_v2/lib/` Frontend- ja Studio UI -Koodikannan Karkaisuaallot F1–F4 (Bottom-Up Hardening Roadmap, Vaihe 4b) — [SUORITETTU & LUKITTU 185/185]
 
 Vastaavasti kuin backendissä (`backend_v2/` 403 tiedostoa), myös koko Flutter Web- ja Desktop -asiakassovelluksen (`client_app_v2/lib/`) **194 ei-generoitua `.dart`-lähdetiedostoa** (pl. `*.freezed.dart`, `*.g.dart` ja `l10n/`) karkaistaan systemaattisesti alhaalta ylös (Bottom-Up) neljässä karkaisuaallossa (`Aallot F1–F4`) ennen pilvituotantoon julkaisua:
 
 | Frontend-kategoria (`client_app_v2/lib/`) | Tiedostomäärä | Tila ja seurantadokumentti |
 | :--- | :--- | :--- |
-| **1. Karkaisuaalto F1 — Core, Network, API Clients, Error Boundaries, Theme, Shell & Shared Models** | `41` kpl | `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]` (Askel 5.1) |
-| **2. Karkaisuaalto F2 — Freezed Domain & DTO Models + Riverpod Controllers & Providers** | `44` kpl | `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]` (Askel 5.2) |
-| **3. Karkaisuaalto F3 — Execution, Reports & Shared SDUI / Presentation Widgets** | `47` kpl | `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]` (Askel 5.3) |
-| **4. Karkaisuaalto F4 — Quorum Studio Master Views, Profile Block Editors & Workflow Canvas Widgets** | `53` kpl | `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]` (Askel 5.4) |
+| **1. Karkaisuaalto F1 — Core, Network, API Clients, Error Boundaries, Theme, Shell & Shared Models** | `41 / 41` kpl | **[SUORITETTU & LUKITTU]** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]` (Askel 5.1) |
+| **2. Karkaisuaalto F2 — Freezed Domain & DTO Models + Riverpod Controllers & Providers** | `44 / 44` kpl | **[SUORITETTU & LUKITTU]** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]` (Askel 5.2) |
+| **3. Karkaisuaalto F3 — Execution, Reports & Shared SDUI / Presentation Widgets** | `47 / 47` kpl | **[SUORITETTU & LUKITTU]** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]` (Askel 5.3) |
+| **4. Karkaisuaalto F4 — Quorum Studio Master Views, Profile Block Editors & Workflow Canvas Widgets** | `53 / 53` kpl | **[SUORITETTU & LUKITTU]** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]` (Askel 5.4) |
 | **5. Eristetty B2B SaaS IAM Auth -alue (`client_app_v2/lib/features/auth/`)** | `9` kpl | Toteutetaan ja karkaistaan Askeleessa 4 (`@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]`) |
-| **YHTEENSÄ (`client_app_v2/lib/`)** | **194 kpl** | **185 tiedostoa Karkaisuaalloissa F1–F4 + 9 tiedostoa Askeleessa 4 (`EPIC 160`) = 100 % kattavuus** |
+| **YHTEENSÄ (`client_app_v2/lib/`)** | **194 kpl** | **185/185 tiedostoa Karkaisuaalloissa F1–F4 [SUORITETTU & LUKITTU] + 9 tiedostoa Askeleessa 4 (`EPIC 160`) = 100 % kattavuus (`0` `DGR`-virhettä koko `client_app_v2/`-koodikannassa)** |
 
 > [!IMPORTANT]
 > **Frontend-karkaisun laatuvaatimukset (`/tier2-hardening-frontend` & `@[.agents/rules/02_flutter_desktop.md]`):**
@@ -910,235 +910,235 @@ Vastaavasti kuin backendissä (`backend_v2/` 403 tiedostoa), myös koko Flutter 
 
 ---
 
-### Askel 5.1: Frontend Karkaisuaalto F1 — Core, Network, API Clients, Error Boundaries, Theme, Shell & Shared Models (41 tiedostoa)
+### Askel 5.1: Frontend Karkaisuaalto F1 — Core, Network, API Clients, Error Boundaries, Theme, Shell & Shared Models (41/41 tiedostoa) — [SUORITETTU & LUKITTU]
 * **Seurantadokumentti:** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md]`
 * **Suorituskomento:**
   ```powershell
   $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md --gate frontend --model gemini-4-argon-medium --continue-on-failure
   ```
 * **Paketti 1 — Root, Routing, Shell & Theme (11 tiedostoa):**
-  1. `[ ]` `@[client_app_v2/lib/main.dart]`
-  2. `[ ]` `@[client_app_v2/lib/app.dart]`
-  3. `[ ]` `@[client_app_v2/lib/app_config.dart]`
-  4. `[ ]` `@[client_app_v2/lib/firebase_options.dart]`
-  5. `[ ]` `@[client_app_v2/lib/router/router.dart]`
-  6. `[ ]` `@[client_app_v2/lib/router/scaffold_with_nav.dart]`
-  7. `[ ]` `@[client_app_v2/lib/features/shell/presentation/scaffold_with_nav.dart]`
-  8. `[ ]` `@[client_app_v2/lib/features/shell/presentation/widgets/admin_sidebar.dart]`
-  9. `[ ]` `@[client_app_v2/lib/theme/app_colors.dart]`
-  10. `[ ]` `@[client_app_v2/lib/theme/app_durations.dart]`
-  11. `[ ]` `@[client_app_v2/lib/theme/app_theme.dart]`
+  1. `[x]` `@[client_app_v2/lib/main.dart]`
+  2. `[x]` `@[client_app_v2/lib/app.dart]`
+  3. `[x]` `@[client_app_v2/lib/app_config.dart]`
+  4. `[x]` `@[client_app_v2/lib/firebase_options.dart]`
+  5. `[x]` `@[client_app_v2/lib/router/router.dart]`
+  6. `[x]` `@[client_app_v2/lib/router/scaffold_with_nav.dart]`
+  7. `[x]` `@[client_app_v2/lib/features/shell/presentation/scaffold_with_nav.dart]`
+  8. `[x]` `@[client_app_v2/lib/features/shell/presentation/widgets/admin_sidebar.dart]`
+  9. `[x]` `@[client_app_v2/lib/theme/app_colors.dart]`
+  10. `[x]` `@[client_app_v2/lib/theme/app_durations.dart]`
+  11. `[x]` `@[client_app_v2/lib/theme/app_theme.dart]`
 * **Paketti 2 — Core API Clients & Dio Network Interceptors (10 tiedostoa):**
-  1. `[ ]` `@[client_app_v2/lib/core/api/execution_client.dart]`
-  2. `[ ]` `@[client_app_v2/lib/core/api/reports_client.dart]`
-  3. `[ ]` `@[client_app_v2/lib/core/api/sse_client.dart]`
-  4. `[ ]` `@[client_app_v2/lib/core/api/studio_client.dart]`
-  5. `[ ]` `@[client_app_v2/lib/core/api/workflow_client.dart]`
-  6. `[ ]` `@[client_app_v2/lib/core/network/api_client.dart]`
-  7. `[ ]` `@[client_app_v2/lib/core/network/interceptors/auth_interceptor.dart]`
-  8. `[ ]` `@[client_app_v2/lib/core/network/interceptors/dio_logger_interceptor.dart]`
-  9. `[ ]` `@[client_app_v2/lib/core/network/interceptors/error_interceptor.dart]`
-  10. `[ ]` `@[client_app_v2/lib/core/network/interceptors/locale_interceptor.dart]`
+  1. `[x]` `@[client_app_v2/lib/core/api/execution_client.dart]`
+  2. `[x]` `@[client_app_v2/lib/core/api/reports_client.dart]`
+  3. `[x]` `@[client_app_v2/lib/core/api/sse_client.dart]`
+  4. `[x]` `@[client_app_v2/lib/core/api/studio_client.dart]`
+  5. `[x]` `@[client_app_v2/lib/core/api/workflow_client.dart]`
+  6. `[x]` `@[client_app_v2/lib/core/network/api_client.dart]`
+  7. `[x]` `@[client_app_v2/lib/core/network/interceptors/auth_interceptor.dart]`
+  8. `[x]` `@[client_app_v2/lib/core/network/interceptors/dio_logger_interceptor.dart]`
+  9. `[x]` `@[client_app_v2/lib/core/network/interceptors/error_interceptor.dart]`
+  10. `[x]` `@[client_app_v2/lib/core/network/interceptors/locale_interceptor.dart]`
 * **Paketti 3 — Core Error Boundaries, Logging, Models, Utils & Shared DTOs (20 tiedostoa):**
-  1. `[ ]` `@[client_app_v2/lib/core/environment/env.dart]`
-  2. `[ ]` `@[client_app_v2/lib/core/error/app_error_boundary.dart]`
-  3. `[ ]` `@[client_app_v2/lib/core/error/app_error_ext.dart]`
-  4. `[ ]` `@[client_app_v2/lib/core/error/app_exception.dart]`
-  5. `[ ]` `@[client_app_v2/lib/core/error/validation_error_reason.dart]`
-  6. `[ ]` `@[client_app_v2/lib/core/logging/app_logger_observer.dart]`
-  7. `[ ]` `@[client_app_v2/lib/core/logging/logger_service.dart]`
-  8. `[ ]` `@[client_app_v2/lib/core/models/enums.dart]`
-  9. `[ ]` `@[client_app_v2/lib/core/models/generic_status_response_dto.dart]`
-  10. `[ ]` `@[client_app_v2/lib/core/models/prompt_block_category.dart]`
-  11. `[ ]` `@[client_app_v2/lib/core/state/mutation.dart]`
-  12. `[ ]` `@[client_app_v2/lib/core/theme/app_spacing.dart]`
-  13. `[ ]` `@[client_app_v2/lib/core/ui/error_view.dart]`
-  14. `[ ]` `@[client_app_v2/lib/core/ui/splash_screen.dart]`
-  15. `[ ]` `@[client_app_v2/lib/core/utils/safe_isolate.dart]`
-  16. `[ ]` `@[client_app_v2/lib/utils/json_converters.dart]`
-  17. `[ ]` `@[client_app_v2/lib/utils/riverpod_extensions.dart]`
-  18. `[ ]` `@[client_app_v2/lib/shared/models/i18n_text.dart]`
-  19. `[ ]` `@[client_app_v2/lib/shared/models/sdui_block_dto.dart]`
-  20. `[ ]` `@[client_app_v2/lib/features/settings/domain/models/app_settings_state.dart]`
+  1. `[x]` `@[client_app_v2/lib/core/environment/env.dart]`
+  2. `[x]` `@[client_app_v2/lib/core/error/app_error_boundary.dart]`
+  3. `[x]` `@[client_app_v2/lib/core/error/app_error_ext.dart]`
+  4. `[x]` `@[client_app_v2/lib/core/error/app_exception.dart]`
+  5. `[x]` `@[client_app_v2/lib/core/error/validation_error_reason.dart]`
+  6. `[x]` `@[client_app_v2/lib/core/logging/app_logger_observer.dart]`
+  7. `[x]` `@[client_app_v2/lib/core/logging/logger_service.dart]`
+  8. `[x]` `@[client_app_v2/lib/core/models/enums.dart]`
+  9. `[x]` `@[client_app_v2/lib/core/models/generic_status_response_dto.dart]`
+  10. `[x]` `@[client_app_v2/lib/core/models/prompt_block_category.dart]`
+  11. `[x]` `@[client_app_v2/lib/core/state/mutation.dart]`
+  12. `[x]` `@[client_app_v2/lib/core/theme/app_spacing.dart]`
+  13. `[x]` `@[client_app_v2/lib/core/ui/error_view.dart]`
+  14. `[x]` `@[client_app_v2/lib/core/ui/splash_screen.dart]`
+  15. `[x]` `@[client_app_v2/lib/core/utils/safe_isolate.dart]`
+  16. `[x]` `@[client_app_v2/lib/utils/json_converters.dart]`
+  17. `[x]` `@[client_app_v2/lib/utils/riverpod_extensions.dart]`
+  18. `[x]` `@[client_app_v2/lib/shared/models/i18n_text.dart]`
+  19. `[x]` `@[client_app_v2/lib/shared/models/sdui_block_dto.dart]`
+  20. `[x]` `@[client_app_v2/lib/features/settings/domain/models/app_settings_state.dart]`
 
 ---
 
-### Askel 5.2: Frontend Karkaisuaalto F2 — Freezed Domain & DTO Models + Riverpod Controllers & Providers (44 tiedostoa)
+### Askel 5.2: Frontend Karkaisuaalto F2 — Freezed Domain & DTO Models + Riverpod Controllers & Providers (44/44 tiedostoa) — [SUORITETTU & LUKITTU]
 * **Seurantadokumentti:** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md]`
 * **Suorituskomento:**
   ```powershell
   $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md --gate frontend --model gemini-4-argon-medium --continue-on-failure
   ```
 * **Paketti 1 — Execution Freezed Models (18 tiedostoa):**
-  1. `[ ]` `@[client_app_v2/lib/features/execution/models/atom_result_dto.dart]`
-  2. `[ ]` `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`
-  3. `[ ]` `@[client_app_v2/lib/features/execution/models/distilled_evaluation.dart]`
-  4. `[ ]` `@[client_app_v2/lib/features/execution/models/execution_create_request_dto.dart]`
-  5. `[ ]` `@[client_app_v2/lib/features/execution/models/execution_metadata.dart]`
-  6. `[ ]` `@[client_app_v2/lib/features/execution/models/execution_metrics_dto.dart]`
-  7. `[ ]` `@[client_app_v2/lib/features/execution/models/execution_record.dart]`
-  8. `[ ]` `@[client_app_v2/lib/features/execution/models/execution_step.dart]`
-  9. `[ ]` `@[client_app_v2/lib/features/execution/models/execution_summary_snapshot.dart]`
-  10. `[ ]` `@[client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart]`
-  11. `[ ]` `@[client_app_v2/lib/features/execution/models/human_override_request_dto.dart]`
-  12. `[ ]` `@[client_app_v2/lib/features/execution/models/hydrated_atom_dto.dart]`
-  13. `[ ]` `@[client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart]`
-  14. `[ ]` `@[client_app_v2/lib/features/execution/models/report_data_v2_dto.dart]`
-  15. `[ ]` `@[client_app_v2/lib/features/execution/models/synthesis_config_dto.dart]`
-  16. `[ ]` `@[client_app_v2/lib/features/execution/models/tda_state.dart]`
-  17. `[ ]` `@[client_app_v2/lib/features/execution/models/trace_context_carrier.dart]`
-  18. `[ ]` `@[client_app_v2/lib/features/execution/models/workflow_inputs.dart]`
+  1. `[x]` `@[client_app_v2/lib/features/execution/models/atom_result_dto.dart]`
+  2. `[x]` `@[client_app_v2/lib/features/execution/models/causal_discovery_dto.dart]`
+  3. `[x]` `@[client_app_v2/lib/features/execution/models/distilled_evaluation.dart]`
+  4. `[x]` `@[client_app_v2/lib/features/execution/models/execution_create_request_dto.dart]`
+  5. `[x]` `@[client_app_v2/lib/features/execution/models/execution_metadata.dart]`
+  6. `[x]` `@[client_app_v2/lib/features/execution/models/execution_metrics_dto.dart]`
+  7. `[x]` `@[client_app_v2/lib/features/execution/models/execution_record.dart]`
+  8. `[x]` `@[client_app_v2/lib/features/execution/models/execution_step.dart]`
+  9. `[x]` `@[client_app_v2/lib/features/execution/models/execution_summary_snapshot.dart]`
+  10. `[x]` `@[client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart]`
+  11. `[x]` `@[client_app_v2/lib/features/execution/models/human_override_request_dto.dart]`
+  12. `[x]` `@[client_app_v2/lib/features/execution/models/hydrated_atom_dto.dart]`
+  13. `[x]` `@[client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart]`
+  14. `[x]` `@[client_app_v2/lib/features/execution/models/report_data_v2_dto.dart]`
+  15. `[x]` `@[client_app_v2/lib/features/execution/models/synthesis_config_dto.dart]`
+  16. `[x]` `@[client_app_v2/lib/features/execution/models/tda_state.dart]`
+  17. `[x]` `@[client_app_v2/lib/features/execution/models/trace_context_carrier.dart]`
+  18. `[x]` `@[client_app_v2/lib/features/execution/models/workflow_inputs.dart]`
 * **Paketti 2 — Studio & Reports Freezed Models + Cloner Utils (14 tiedostoa):**
-  1. `[ ]` `@[client_app_v2/lib/features/reports/models/report_artifact.dart]`
-  2. `[ ]` `@[client_app_v2/lib/features/studio/models/blueprint_config.dart]`
-  3. `[ ]` `@[client_app_v2/lib/features/studio/models/gcp_location.dart]`
-  4. `[ ]` `@[client_app_v2/lib/features/studio/models/llm_platform.dart]`
-  5. `[ ]` `@[client_app_v2/lib/features/studio/models/mcp_gateway.dart]`
-  6. `[ ]` `@[client_app_v2/lib/features/studio/models/model_config.dart]`
-  7. `[ ]` `@[client_app_v2/lib/features/studio/models/output_profile.dart]`
-  8. `[ ]` `@[client_app_v2/lib/features/studio/models/prompt_block.dart]`
-  9. `[ ]` `@[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart]`
-  10. `[ ]` `@[client_app_v2/lib/features/studio/models/step_simulation.dart]`
-  11. `[ ]` `@[client_app_v2/lib/features/studio/models/workflow.dart]`
-  12. `[ ]` `@[client_app_v2/lib/features/studio/models/workflow_simulation.dart]`
-  13. `[ ]` `@[client_app_v2/lib/features/studio/models/workflow_ui_schema.dart]`
-  14. `[ ]` `@[client_app_v2/lib/features/studio/utils/workflow_cloner.dart]`
+  1. `[x]` `@[client_app_v2/lib/features/reports/models/report_artifact.dart]`
+  2. `[x]` `@[client_app_v2/lib/features/studio/models/blueprint_config.dart]`
+  3. `[x]` `@[client_app_v2/lib/features/studio/models/gcp_location.dart]`
+  4. `[x]` `@[client_app_v2/lib/features/studio/models/llm_platform.dart]`
+  5. `[x]` `@[client_app_v2/lib/features/studio/models/mcp_gateway.dart]`
+  6. `[x]` `@[client_app_v2/lib/features/studio/models/model_config.dart]`
+  7. `[x]` `@[client_app_v2/lib/features/studio/models/output_profile.dart]`
+  8. `[x]` `@[client_app_v2/lib/features/studio/models/prompt_block.dart]`
+  9. `[x]` `@[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart]`
+  10. `[x]` `@[client_app_v2/lib/features/studio/models/step_simulation.dart]`
+  11. `[x]` `@[client_app_v2/lib/features/studio/models/workflow.dart]`
+  12. `[x]` `@[client_app_v2/lib/features/studio/models/workflow_simulation.dart]`
+  13. `[x]` `@[client_app_v2/lib/features/studio/models/workflow_ui_schema.dart]`
+  14. `[x]` `@[client_app_v2/lib/features/studio/utils/workflow_cloner.dart]`
 * **Paketti 3 — Riverpod Controllers & State Providers (12 tiedostoa):**
-  1. `[ ]` `@[client_app_v2/lib/features/execution/controllers/execution_controller.dart]`
-  2. `[ ]` `@[client_app_v2/lib/features/execution/providers/atom_result_provider.dart]`
-  3. `[ ]` `@[client_app_v2/lib/features/execution/providers/hydrated_reference_provider.dart]`
-  4. `[ ]` `@[client_app_v2/lib/features/execution/providers/report_data_v2_provider.dart]`
-  5. `[ ]` `@[client_app_v2/lib/features/reports/controllers/report_artifact_controller.dart]`
-  6. `[ ]` `@[client_app_v2/lib/features/settings/presentation/settings_controller.dart]`
-  7. `[ ]` `@[client_app_v2/lib/features/studio/controllers/blueprint_editor_controller.dart]`
-  8. `[ ]` `@[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]`
-  9. `[ ]` `@[client_app_v2/lib/features/studio/controllers/model_registry_controller.dart]`
-  10. `[ ]` `@[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]`
-  11. `[ ]` `@[client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart]`
-  12. `[ ]` `@[client_app_v2/lib/features/studio/controllers/studio_controller.dart]`
+  1. `[x]` `@[client_app_v2/lib/features/execution/controllers/execution_controller.dart]`
+  2. `[x]` `@[client_app_v2/lib/features/execution/providers/atom_result_provider.dart]`
+  3. `[x]` `@[client_app_v2/lib/features/execution/providers/hydrated_reference_provider.dart]`
+  4. `[x]` `@[client_app_v2/lib/features/execution/providers/report_data_v2_provider.dart]`
+  5. `[x]` `@[client_app_v2/lib/features/reports/controllers/report_artifact_controller.dart]`
+  6. `[x]` `@[client_app_v2/lib/features/settings/presentation/settings_controller.dart]`
+  7. `[x]` `@[client_app_v2/lib/features/studio/controllers/blueprint_editor_controller.dart]`
+  8. `[x]` `@[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]`
+  9. `[x]` `@[client_app_v2/lib/features/studio/controllers/model_registry_controller.dart]`
+  10. `[x]` `@[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]`
+  11. `[x]` `@[client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart]`
+  12. `[x]` `@[client_app_v2/lib/features/studio/controllers/studio_controller.dart]`
 
 ---
 
-### Askel 5.3: Frontend Karkaisuaalto F3 — Execution, Reports & Shared SDUI / Presentation Widgets (47 tiedostoa)
+### Askel 5.3: Frontend Karkaisuaalto F3 — Execution, Reports & Shared SDUI / Presentation Widgets (47/47 tiedostoa) — [SUORITETTU & LUKITTU]
 * **Seurantadokumentti:** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]`
 * **Suorituskomento:**
   ```powershell
   $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md --gate frontend --model gemini-4-argon-medium --continue-on-failure
   ```
 * **Paketti 1 — Execution & Reports Views and SDUI Widgets (21 tiedostoa):**
-  1. `[ ]` `@[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]`
-  2. `[ ]` `@[client_app_v2/lib/features/execution/views/dashboard_view.dart]`
-  3. `[ ]` `@[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]`
-  4. `[ ]` `@[client_app_v2/lib/features/execution/views/execution_view.dart]`
-  5. `[ ]` `@[client_app_v2/lib/features/execution/views/new_execution_view.dart]`
-  6. `[ ]` `@[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]`
-  7. `[ ]` `@[client_app_v2/lib/features/execution/views/widgets/diagnostic_scorecard_widget.dart]`
-  8. `[ ]` `@[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart]`
-  9. `[ ]` `@[client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart]`
-  10. `[ ]` `@[client_app_v2/lib/features/execution/views/widgets/report_renderer_v2_widget.dart]`
-  11. `[ ]` `@[client_app_v2/lib/features/execution/views/widgets/sdui_alert_box_widget.dart]`
-  12. `[ ]` `@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]`
-  13. `[ ]` `@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`
-  14. `[ ]` `@[client_app_v2/lib/features/execution/views/widgets/sdui_grid_widget.dart]`
-  15. `[ ]` `@[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]`
-  16. `[ ]` `@[client_app_v2/lib/features/execution/views/widgets/sdui_node_renderer.dart]`
-  17. `[ ]` `@[client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart]`
-  18. `[ ]` `@[client_app_v2/lib/features/execution/views/widgets/xai_evidence_box.dart]`
-  19. `[ ]` `@[client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart]`
-  20. `[ ]` `@[client_app_v2/lib/features/reports/views/execution_reports_view.dart]`
-  21. `[ ]` `@[client_app_v2/lib/features/reports/views/widgets/report_artifact_card.dart]`
+  1. `[x]` `@[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]`
+  2. `[x]` `@[client_app_v2/lib/features/execution/views/dashboard_view.dart]`
+  3. `[x]` `@[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]`
+  4. `[x]` `@[client_app_v2/lib/features/execution/views/execution_view.dart]`
+  5. `[x]` `@[client_app_v2/lib/features/execution/views/new_execution_view.dart]`
+  6. `[x]` `@[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]`
+  7. `[x]` `@[client_app_v2/lib/features/execution/views/widgets/diagnostic_scorecard_widget.dart]`
+  8. `[x]` `@[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart]`
+  9. `[x]` `@[client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart]`
+  10. `[x]` `@[client_app_v2/lib/features/execution/views/widgets/report_renderer_v2_widget.dart]`
+  11. `[x]` `@[client_app_v2/lib/features/execution/views/widgets/sdui_alert_box_widget.dart]`
+  12. `[x]` `@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]`
+  13. `[x]` `@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`
+  14. `[x]` `@[client_app_v2/lib/features/execution/views/widgets/sdui_grid_widget.dart]`
+  15. `[x]` `@[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]`
+  16. `[x]` `@[client_app_v2/lib/features/execution/views/widgets/sdui_node_renderer.dart]`
+  17. `[x]` `@[client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart]`
+  18. `[x]` `@[client_app_v2/lib/features/execution/views/widgets/xai_evidence_box.dart]`
+  19. `[x]` `@[client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart]`
+  20. `[x]` `@[client_app_v2/lib/features/reports/views/execution_reports_view.dart]`
+  21. `[x]` `@[client_app_v2/lib/features/reports/views/widgets/report_artifact_card.dart]`
 * **Paketti 2 — Shared Cross-Domain Widgets (`client_app_v2/lib/shared/widgets/`, 26 tiedostoa):**
-  1. `[ ]` `@[client_app_v2/lib/shared/widgets/audit_trail_viewer.dart]`
-  2. `[ ]` `@[client_app_v2/lib/shared/widgets/comparison_matrix.dart]`
-  3. `[ ]` `@[client_app_v2/lib/shared/widgets/deep_dive_expander.dart]`
-  4. `[ ]` `@[client_app_v2/lib/shared/widgets/dynamic_form.dart]`
-  5. `[ ]` `@[client_app_v2/lib/shared/widgets/execution_timeline.dart]`
-  6. `[ ]` `@[client_app_v2/lib/shared/widgets/feedback_section.dart]`
-  7. `[ ]` `@[client_app_v2/lib/shared/widgets/file_input_field.dart]`
-  8. `[ ]` `@[client_app_v2/lib/shared/widgets/file_uploader.dart]`
-  9. `[ ]` `@[client_app_v2/lib/shared/widgets/generic_grid.dart]`
-  10. `[ ]` `@[client_app_v2/lib/shared/widgets/global_error_view.dart]`
-  11. `[ ]` `@[client_app_v2/lib/shared/widgets/log_viewer.dart]`
-  12. `[ ]` `@[client_app_v2/lib/shared/widgets/logic_matrix_chart.dart]`
-  13. `[ ]` `@[client_app_v2/lib/shared/widgets/logic_radar_chart.dart]`
-  14. `[ ]` `@[client_app_v2/lib/shared/widgets/omni_input_box.dart]`
-  15. `[ ]` `@[client_app_v2/lib/shared/widgets/output_renderer.dart]`
-  16. `[ ]` `@[client_app_v2/lib/shared/widgets/pdf_export_guide_dialog.dart]`
-  17. `[ ]` `@[client_app_v2/lib/shared/widgets/pre_mortem_card.dart]`
-  18. `[ ]` `@[client_app_v2/lib/shared/widgets/quadrant_matrix_chart.dart]`
-  19. `[ ]` `@[client_app_v2/lib/shared/widgets/result_dashboard.dart]`
-  20. `[ ]` `@[client_app_v2/lib/shared/widgets/schema_mapper.dart]`
-  21. `[ ]` `@[client_app_v2/lib/shared/widgets/score_card.dart]`
-  22. `[ ]` `@[client_app_v2/lib/shared/widgets/score_card_radar.dart]`
-  23. `[ ]` `@[client_app_v2/lib/shared/widgets/specialist_section.dart]`
-  24. `[ ]` `@[client_app_v2/lib/shared/widgets/unified_metric_gauge.dart]`
-  25. `[ ]` `@[client_app_v2/lib/shared/widgets/validation_timeline_widget.dart]`
-  26. `[ ]` `@[client_app_v2/lib/shared/widgets/workflow_selector.dart]`
+  1. `[x]` `@[client_app_v2/lib/shared/widgets/audit_trail_viewer.dart]`
+  2. `[x]` `@[client_app_v2/lib/shared/widgets/comparison_matrix.dart]`
+  3. `[x]` `@[client_app_v2/lib/shared/widgets/deep_dive_expander.dart]`
+  4. `[x]` `@[client_app_v2/lib/shared/widgets/dynamic_form.dart]`
+  5. `[x]` `@[client_app_v2/lib/shared/widgets/execution_timeline.dart]`
+  6. `[x]` `@[client_app_v2/lib/shared/widgets/feedback_section.dart]`
+  7. `[x]` `@[client_app_v2/lib/shared/widgets/file_input_field.dart]`
+  8. `[x]` `@[client_app_v2/lib/shared/widgets/file_uploader.dart]`
+  9. `[x]` `@[client_app_v2/lib/shared/widgets/generic_grid.dart]`
+  10. `[x]` `@[client_app_v2/lib/shared/widgets/global_error_view.dart]`
+  11. `[x]` `@[client_app_v2/lib/shared/widgets/log_viewer.dart]`
+  12. `[x]` `@[client_app_v2/lib/shared/widgets/logic_matrix_chart.dart]`
+  13. `[x]` `@[client_app_v2/lib/shared/widgets/logic_radar_chart.dart]`
+  14. `[x]` `@[client_app_v2/lib/shared/widgets/omni_input_box.dart]`
+  15. `[x]` `@[client_app_v2/lib/shared/widgets/output_renderer.dart]`
+  16. `[x]` `@[client_app_v2/lib/shared/widgets/pdf_export_guide_dialog.dart]`
+  17. `[x]` `@[client_app_v2/lib/shared/widgets/pre_mortem_card.dart]`
+  18. `[x]` `@[client_app_v2/lib/shared/widgets/quadrant_matrix_chart.dart]`
+  19. `[x]` `@[client_app_v2/lib/shared/widgets/result_dashboard.dart]`
+  20. `[x]` `@[client_app_v2/lib/shared/widgets/schema_mapper.dart]`
+  21. `[x]` `@[client_app_v2/lib/shared/widgets/score_card.dart]`
+  22. `[x]` `@[client_app_v2/lib/shared/widgets/score_card_radar.dart]`
+  23. `[x]` `@[client_app_v2/lib/shared/widgets/specialist_section.dart]`
+  24. `[x]` `@[client_app_v2/lib/shared/widgets/unified_metric_gauge.dart]`
+  25. `[x]` `@[client_app_v2/lib/shared/widgets/validation_timeline_widget.dart]`
+  26. `[x]` `@[client_app_v2/lib/shared/widgets/workflow_selector.dart]`
 
 ---
 
-### Askel 5.4: Frontend Karkaisuaalto F4 — Quorum Studio Master Views, Profile Block Editors & Workflow Canvas Widgets (53 tiedostoa)
+### Askel 5.4: Frontend Karkaisuaalto F4 — Quorum Studio Master Views, Profile Block Editors & Workflow Canvas Widgets (53/53 tiedostoa) — [SUORITETTU & LUKITTU]
 * **Seurantadokumentti:** `@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]`
 * **Suorituskomento:**
   ```powershell
   $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md --gate frontend --model gemini-4-argon-medium --continue-on-failure
   ```
 * **Paketti 1 — Studio Master Views & Core Components (16 tiedostoa):**
-  1. `[ ]` `@[client_app_v2/lib/features/studio/views/blueprint_editor_view.dart]`
-  2. `[ ]` `@[client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart]`
-  3. `[ ]` `@[client_app_v2/lib/features/studio/views/components/clone_entity_button.dart]`
-  4. `[ ]` `@[client_app_v2/lib/features/studio/views/matrices_master_view.dart]`
-  5. `[ ]` `@[client_app_v2/lib/features/studio/views/matrix_editor_view.dart]`
-  6. `[ ]` `@[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]`
-  7. `[ ]` `@[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]`
-  8. `[ ]` `@[client_app_v2/lib/features/studio/views/model_registry_view.dart]`
-  9. `[ ]` `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]`
-  10. `[ ]` `@[client_app_v2/lib/features/studio/views/output_profile_list_view.dart]`
-  11. `[ ]` `@[client_app_v2/lib/features/studio/views/profile_editor_view.dart]`
-  12. `[ ]` `@[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]`
-  13. `[ ]` `@[client_app_v2/lib/features/studio/views/step_builder_view.dart]`
-  14. `[ ]` `@[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]`
-  15. `[ ]` `@[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]`
-  16. `[ ]` `@[client_app_v2/lib/features/studio/views/workflows_master_view.dart]`
+  1. `[x]` `@[client_app_v2/lib/features/studio/views/blueprint_editor_view.dart]`
+  2. `[x]` `@[client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart]`
+  3. `[x]` `@[client_app_v2/lib/features/studio/views/components/clone_entity_button.dart]`
+  4. `[x]` `@[client_app_v2/lib/features/studio/views/matrices_master_view.dart]`
+  5. `[x]` `@[client_app_v2/lib/features/studio/views/matrix_editor_view.dart]`
+  6. `[x]` `@[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]`
+  7. `[x]` `@[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]`
+  8. `[x]` `@[client_app_v2/lib/features/studio/views/model_registry_view.dart]`
+  9. `[x]` `@[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]`
+  10. `[x]` `@[client_app_v2/lib/features/studio/views/output_profile_list_view.dart]`
+  11. `[x]` `@[client_app_v2/lib/features/studio/views/profile_editor_view.dart]`
+  12. `[x]` `@[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]`
+  13. `[x]` `@[client_app_v2/lib/features/studio/views/step_builder_view.dart]`
+  14. `[x]` `@[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]`
+  15. `[x]` `@[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]`
+  16. `[x]` `@[client_app_v2/lib/features/studio/views/workflows_master_view.dart]`
 * **Paketti 2 — Studio Widgets, Dialogs & Workflow Tabs (21 tiedostoa):**
-  1. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/contrastive_pair_editor.dart]`
-  2. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/dag_canvas_view.dart]`
-  3. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/dynamic_item_list_editor.dart]`
-  4. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/expected_input_editor_box.dart]`
-  5. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart]`
-  6. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/inspector_pane.dart]`
-  7. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/linguistic_shield_banner.dart]`
-  8. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart]`
-  9. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/prompt_preview_dialog.dart]`
-  10. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/row_editor_modal.dart]`
-  11. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]`
-  12. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]`
-  13. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]`
-  14. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/tag_chip_input.dart]`
-  15. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart]`
-  16. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_inputs_tab.dart]`
-  17. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]`
-  18. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]`
-  19. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_strictness_tab.dart]`
-  20. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/xai/fallback_error_card.dart]`
-  21. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/xai/matrix_observability_accordion.dart]`
+  1. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/contrastive_pair_editor.dart]`
+  2. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/dag_canvas_view.dart]`
+  3. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/dynamic_item_list_editor.dart]`
+  4. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/expected_input_editor_box.dart]`
+  5. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart]`
+  6. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/inspector_pane.dart]`
+  7. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/linguistic_shield_banner.dart]`
+  8. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart]`
+  9. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/prompt_preview_dialog.dart]`
+  10. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/row_editor_modal.dart]`
+  11. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]`
+  12. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]`
+  13. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]`
+  14. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/tag_chip_input.dart]`
+  15. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart]`
+  16. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_inputs_tab.dart]`
+  17. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]`
+  18. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]`
+  19. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_strictness_tab.dart]`
+  20. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/xai/fallback_error_card.dart]`
+  21. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/xai/matrix_observability_accordion.dart]`
 * **Paketti 3 — Output Profile Block Cards & Tabs (16 tiedostoa):**
-  1. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart]`
-  2. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart]`
-  3. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart]`
-  4. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/executive_summary_block_card.dart]`
-  5. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graph_item_editor.dart]`
-  6. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]`
-  7. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart]`
-  8. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart]`
-  9. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart]`
-  10. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/variance_block_card.dart]`
-  11. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart]`
-  12. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]`
-  13. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart]`
-  14. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart]`
-  15. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart]`
-  16. `[ ]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart]`
+  1. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart]`
+  2. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart]`
+  3. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart]`
+  4. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/executive_summary_block_card.dart]`
+  5. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graph_item_editor.dart]`
+  6. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]`
+  7. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart]`
+  8. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart]`
+  9. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart]`
+  10. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/variance_block_card.dart]`
+  11. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart]`
+  12. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]`
+  13. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart]`
+  14. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart]`
+  15. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart]`
+  16. `[x]` `@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart]`
 * **Laatuvarmennus (Kaikki Frontend-aallot F1–F4):**
   ```powershell
   $env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/flutter_audit_loop.py client_app_v2/ --build
@@ -1240,7 +1240,8 @@ Vastaavasti kuin backendissä (`backend_v2/` 403 tiedostoa), myös koko Flutter 
   3. Created and verified `@[docs/epic/EPIC_161_tracker.md]` (`audit_tracker_output.py` 100% PASS) tracking `REQ-161-001`–`REQ-161-012`, 24 backend hardening targets, and 4 Flutter SDUI hardening targets.
 * Completed, hardened (`22/22` targets: `16/16` Backend + `6/6` Frontend), documented (`/tier7-describe-architecture`), and audited **Askel 3.4b (FastAPI Router SSOT Consolidation & Universal `CRUD + Clone` Lifecycle Guard)** (`@[docs/implementationplans/IMPLEMENTATION_PLAN_Router_SSOT_Consolidation.md]` & `@[docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md]`, commits `b62b65d47`, `ee38118ed`).
 * Executed and verified the post-Askel 3.3 / 3.4 / 3.4b full E2E production run (`exe_01a18ecef54372d39c31ef9fb1f12937`, report `rep_01a18ed15c5a732288f2bb762c263440`, workflow `wf_0195f3a00000700b89e2d71000000002`, profile `prf_0195f3a00000700b89e2d71000000002`) via `/tier6-execution-monitor` on GitHub version `f1a6818a8` (`f1a6818a813efae79269481cd043c178c586c060`, parent commits `3a914b43a` & `ee38118ed`) prior to starting **Askel 3.4c (`EPIC 161`)** (`PASSED & FINALIZED` in `3 min 46 s`, 8-page WeasyPrint PDF + Flutter Desktop `/rows` and `/sdui` `200 OK`, `healing_cost_events: 0`, documented in `@[data/files/executions/exe_01a18ecef54372d39c31ef9fb1f12937/forensic_summary.md]`).
-* Completed, hardened (`31/31` Backend targets via `auto_hardening_runner.py --gate backend`; `5/5` Frontend SDUI targets delegated to Flutter Hardening Waves F1–F4), synchronized (`/tier7-describe-architecture`, commit `81853a38e`), audited (`/tier8-audit-epic @[docs/epic/EPIC_161_topological_synthesis_cohesion.md]`, commit `83f11d369`, `@[docs/epic/EPIC_161_audit_report.md]`), and locked **Askel 3.4c (`EPIC 161: Topological Intelligence Preservation Across Distillation, Synthesis & SDUI Reporting`)** across all 4 phases (`REQ-161-001`–`REQ-161-012`, Live E2E REST API gate commit `8f838d834`).
+* Completed, hardened (`31/31` Backend targets via `auto_hardening_runner.py --gate backend`; `5/5` Frontend SDUI targets hardened in Flutter Hardening Waves F1–F4), synchronized (`/tier7-describe-architecture`, commit `81853a38e`), audited (`/tier8-audit-epic @[docs/epic/EPIC_161_topological_synthesis_cohesion.md]`, commit `83f11d369`, `@[docs/epic/EPIC_161_audit_report.md]`), and locked **Askel 3.4c (`EPIC 161: Topological Intelligence Preservation Across Distillation, Synthesis & SDUI Reporting`)** across all 4 phases (`REQ-161-001`–`REQ-161-012`, Live E2E REST API gate commit `8f838d834`).
+* Completed and locked **Frontend Targeted Hardening Waves F1–F4 (`185/185` `.dart` files = `100%`: Wave F1 `41/41`, Wave F2 `44/44`, Wave F3 `47/47`, Wave F4 `53/53`)** plus `@[client_app_v2/lib/features/auth/presentation/login_screen.dart]` (`@[ client_app_v2/lib/features/auth/data/auth_repository.dart]` and `@[client_app_v2/lib/features/auth/data/repositories/user_repository.dart]`), passing the global `flutter_audit_loop.py client_app_v2/ --build` gate with **0 `DGR` guardrail violations, 0 errors, and 0 warnings across all 533 files in `client_app_v2/`**.
 
 ## Learned
 * Both `StrictOpaqueIdConverter` on the Flutter client and `OPAQUE_STRIPE_ID_REGEX` / `PostgresEntityAdapter` on the Python backend enforce 32-hex RFC 9562 `UUIDv7` identifiers (`^[a-z]{2,5}_[a-f0-9]{32}$` with version nibble `7`), guarded statically by `QGR030` (`@[scripts/_ast_guardrails.py]`) and `DGR008` (`@[scripts/_dart_guardrails.py]`).
@@ -1256,5 +1257,5 @@ Vastaavasti kuin backendissä (`backend_v2/` 403 tiedostoa), myös koko Flutter 
 
 ## Remaining
 ### Hardening State Snapshot
-* **Backend Hardening Waves 1–4 + Askel 3.3 (`PrefixedUUID7`) + Askel 3.4 (AST Guardrails) + Askel 3.4b (Router SSOT Consolidation `22/22`) + Askel 3.4c (`EPIC 161` Backend `31/31`):** `100% COMPLETED & LOCKED` (`391/403` = `97.0%` of `backend_v2/` hardened; `12` files remaining in Askel 4 IAM [`9` files] and Askel 5 Storage [`3` files]; `5` Frontend SDUI files from `EPIC 161` delegated to Flutter Hardening Waves F1–F4).
+* **Backend Hardening Waves 1–4 + Askel 3.3 (`PrefixedUUID7`) + Askel 3.4 (AST Guardrails) + Askel 3.4b (Router SSOT Consolidation `22/22`) + Askel 3.4c (`EPIC 161` Backend `31/31` + Frontend `5/5`) + Frontend Hardening Waves F1–F4 (`185/185`):** `100% COMPLETED & LOCKED` (`391/403` = `97.0%` of `backend_v2/` hardened; `185/194` = `95.4%` of `client_app_v2/lib/` hardened with `0` `DGR` violations across all 533 files in `client_app_v2/`; remaining `12` backend files and `9` frontend auth files scheduled for Askel 4 IAM and Askel 5 Storage).
 * **Immediate Next Task:** Execute **Askel 3.5 (`PostgresEntityAdapter` `entity_adapter.py` God Code decomposition)** starting with `/tier3-god-code-decomposition @[backend_v2/database/postgres/entity_adapter.py]`, followed by **Askel 4 (`EPIC 160` B2B SaaS IAM)**.

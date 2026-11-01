@@ -874,11 +874,11 @@
     },
     "client_app_v2/lib/features/execution/models/causal_discovery_dto.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/causal_discovery_dto.dart",
-      "target_sha256": "aa05cde88171c9bd090b0647a023d977acc6e4cb975860696eac62425b433fec",
+      "target_sha256": "a31b3653743284d9873e16fe00129f7fb7b0948045371fdf94eda7f1867d6218",
       "unit_test_sha256": "8bf0771924a997cb459e31cb61ba34d31f258f0e3cdf23acd7aa7cb531491b81",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "261184d96a8dc3f8e1bb80fd6e4e80b3df7e2d004d9e528817907ff2f6a8fd93",
-      "source_tracker": "docs/implementationplans/TRACKER_Prefixed_UUIDv7_Cutover.md"
+      "rules_sha256": "0570f94a2b9113b168eb1af7ea9b22dc7ed6e5cdf0dd372952b310718247099e",
+      "composite_sha256": "1b9239b035c8dfb839cf10205f6a71da3fcc74a38c09e17490b505787e838c47",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "backend_v2/database/repositories/audit.py": {
       "target_file": "backend_v2/database/repositories/audit.py",
@@ -996,41 +996,41 @@
       "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart",
       "target_sha256": "38813e1ab32a44ab251151c90ccd3a5cb5b2968d202f4e90ebbf25e74427def1",
       "unit_test_sha256": "fb22e06075709dffdaf539148da93340b1da04b39b60f39eb6c5704b3e00fe7c",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "aa61b424561794ed9de3136c93c27794334833121444677bf22dda4af344b252",
-      "source_tracker": "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md"
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "211328fafe5183f43a022c845fe5cd82388a59a16d1457058a043389241e797a",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart",
       "target_sha256": "daeb737ade7d6c284cc33d23e500ef5257d0240095e95c07b4b5b51501ff9011",
       "unit_test_sha256": "8a10f6e5885faf4c2ef5b59dad154a511d6812cbc76aa2155f9c198a77cc1174",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "64aea79027044ca77ead3ad9725fe9382e4af97a80e9f25884584dc5f97ac632",
-      "source_tracker": "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md"
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "22dd9236f67079b33f9b5e40ded13be190f82ee7a47204f8f14cb0f57adc2570",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart",
       "target_sha256": "2ef76fc8b6659e5a516342e53539b220c36308ec4fe959f4a1cb285dfa8b1bbc",
       "unit_test_sha256": "339cd82aae6d0e45ef511e68544265d65a946a22465400382179c125448d7847",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "db356163a37f7bcd94388b84408bd333035c31d94064807948b9715df439e8c2",
-      "source_tracker": "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md"
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "08392da0d36bba43ab01025f015628c4e357d39182d403d88b5078c0c7118bb8",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart",
       "target_sha256": "b23c5479e264b889f8dff0449889f34e1fcb5230871a00d227fb00fa03996ca6",
       "unit_test_sha256": "03f1dda54b8adc6ea7abe857b409d2ed1dfbcfc2524a5ad0a5660d868cde7b73",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "ab115c96380116fa4fae75431eeee40516f5e987bb986ed8a9cf37158bce9aee",
-      "source_tracker": "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md"
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "aa0c218fe734404b800d98cc39e5bcbb46e3466e621b2c06328e411a4e9c70c4",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/utils/json_converters.dart": {
       "target_file": "client_app_v2/lib/utils/json_converters.dart",
       "target_sha256": "7b11243a4f3744d964a80bb024b4ecc2cd88e5589122cc079140fae6efcdbad0",
-      "unit_test_sha256": "f2fa23b7673ef3fa7dc3fd6fab2d7c76d324c7cbe05adcc66bf14ab7a5f1999e",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "c3565661c82965713eb6286299bce79f0d70d4ee49a468cf5ad25041884ba93e",
-      "source_tracker": "docs/implementationplans/TRACKER_Universal_UUIDv4_Eradication_and_32Hex_UUIDv7_Enforcement.md"
+      "unit_test_sha256": "6b061fcc37c2f66ffb2b81accb3bd201501fff6999a5f57810f2c79e72af6787",
+      "rules_sha256": "0570f94a2b9113b168eb1af7ea9b22dc7ed6e5cdf0dd372952b310718247099e",
+      "composite_sha256": "64d752d4eb26a3cbb55cba54883220fe746ec0fa0c30ce9ad0156ba68608c3b6",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
     },
     "scripts/auto_phase_runner.py": {
       "target_file": "scripts/auto_phase_runner.py",
@@ -1098,43 +1098,43 @@
     },
     "client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart": {
       "target_file": "client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart",
-      "target_sha256": "1eebfe30912fbbc5f672ef0e4f3fdb0e68188e9dee0d24ae8fe6b7678973877b",
-      "unit_test_sha256": "34b2d1b9a1e46cb62285665aacfdbfd7c3a45390cea86647d9bd5b6681208cfc",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "67c160b8634f4096be0711a84f8d267358375dcc16beb515327ca89e8baaf606",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Type_Safety_Orchestrator_Concurrency_and_Flutter_Theme_Sovereignty.md"
+      "target_sha256": "481758cf8f7c025936f0a3713e784b75979edae9e86aed78663c90e82fe07529",
+      "unit_test_sha256": "456c4ec3a6b96ce322b3f0345a569856681d13aa45e04e59fae491bc072d5745",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "0967b655a6053593d91f9c7e04d3b09aa837009afe0e39ee5e11c677a3f7e676",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
     },
     "client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart": {
       "target_file": "client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart",
-      "target_sha256": "162fb4a11fd1a06a39e11b80bf4332333d017a60ee26ec04319b935aabfbc921",
-      "unit_test_sha256": "fbc42b540684d49f18d6a15bf6b6a2166a553df98af1f428cf258d24714d7e08",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "2659705569402460711f557311da640c8ba89b222b82c7f38da2f030b531b80f",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Type_Safety_Orchestrator_Concurrency_and_Flutter_Theme_Sovereignty.md"
+      "target_sha256": "4141ffab72cae6d3d6b0aaf840ff6c166e74c355c9f48388280b6674904196bc",
+      "unit_test_sha256": "2f5975eefb9a9f654ce5728e69d072344ad0583e9cb236df338ef408d620d169",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "3faa5c996f237d8f3d87a1d33023712f13fe87288c80b7155a2cd81a49abe5c6",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
     },
     "client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart",
-      "target_sha256": "408b9b19afdb10e8ece5d137909eb90fa7803508429475612322de6f712f3680",
-      "unit_test_sha256": "673f54003fe1d19036020a9f3b4e7e2beb85e02c2dfcd929048501a05ac99d3f",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "5e6820ffeebd2966f3035040d6b8892ae322be09e154ca3e0331af6ec195e37f",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Type_Safety_Orchestrator_Concurrency_and_Flutter_Theme_Sovereignty.md"
+      "target_sha256": "0a38c31cad3b74548fa104b410fcfd0595592d4491f744de540102e5cd408ac3",
+      "unit_test_sha256": "c0de2f11fc08b59009b81eeac3a2adde85b86332c66b5323e699d4d1a568db65",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "5a07f324945db3c01fff768e9b994e3bd57028983633c1f78d332aebda24e699",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/theme/app_colors.dart": {
       "target_file": "client_app_v2/lib/theme/app_colors.dart",
       "target_sha256": "d6fb844e4d4d0af7136e6f9f1e7e3a81bffe94fe6d59143d3590ca87c34c88dc",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "197f93a313f77abd504d18f505e302e7a13cc26fc8da2c45e8d5d0c8a8402d74",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Type_Safety_Orchestrator_Concurrency_and_Flutter_Theme_Sovereignty.md"
+      "unit_test_sha256": "ec4956b53a6cdae78586468e4293a9833c9b10ed80784d3d1ab00c90e17fcfce",
+      "rules_sha256": "4089c7fda58de3afe66c690928912d969ce8947c956aa7d4e0c131fd7b834a00",
+      "composite_sha256": "c3fd90288c60bf6a2b3c74c6a5232671febb729fa9536a387c0d0c177b0a1824",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
     },
     "client_app_v2/lib/theme/app_theme.dart": {
       "target_file": "client_app_v2/lib/theme/app_theme.dart",
       "target_sha256": "44623c72fa11f74073fb5661f5c43e619d5ae07becc18ed6454743e540b82088",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "1c073d5e87ff9ba236054a1e0d9130cf24cd02411543d748035d6ee453b73016",
-      "source_tracker": "docs/implementationplans/TRACKER_Backend_Type_Safety_Orchestrator_Concurrency_and_Flutter_Theme_Sovereignty.md"
+      "unit_test_sha256": "1068a8cc865e4b95b25ba0f21ffc955deef1a24363bb96c6aa5d6e0ad704f6d1",
+      "rules_sha256": "4089c7fda58de3afe66c690928912d969ce8947c956aa7d4e0c131fd7b834a00",
+      "composite_sha256": "a2b1472185f6fbcbed40e29afffa96dc6bcd251a4964454bbe4cbbd6b5aa7033",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
     },
     "backend_v2/models/dtos/report_data.py": {
       "target_file": "backend_v2/models/dtos/report_data.py",
@@ -1194,11 +1194,11 @@
     },
     "client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart",
-      "target_sha256": "e1066d6a08ef09950ddc00cf8952565ea5e4ac32f411e785bb46be552812f4b0",
-      "unit_test_sha256": "55bdc0f536e2f83ca2413581af3bb93faf5cd78bb853d5f9788797603de9e280",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "d8fad3e802c069cd61f0dddca50b8024c355962ae2ca5b25a9748c52c2fe13fb",
-      "source_tracker": "docs/implementationplans/TRACKER_Dynamic_Causal_Discovery_Studio_Integration_Causal_Cohesion_BARS_Matrix_and_Holistic_Workflow_AI_Steering.md"
+      "target_sha256": "0d22769fdc37d6fec7d462e6c7ea7cdb7f53b9a39b5be282ce80c7d984c8e80e",
+      "unit_test_sha256": "f7dcbcd92187a07e0b6c05538de0fc8de27b1dc2d56916c2d8b96d45adbabefb",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "0499aab4be9054f7e84293d769ac4a4dae8b03252f1fe637e40435e4506e4c52",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "backend_v2/models/prompts/__init__.py": {
       "target_file": "backend_v2/models/prompts/__init__.py",
@@ -1235,42 +1235,42 @@
     "client_app_v2/lib/features/execution/models/execution_step.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/execution_step.dart",
       "target_sha256": "b1725f9b62b9013772155c50cb7f0636ef14ea9829d4e2577ef6c4457d993523",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "d1c947d26e32ce18667cbee4b57408ccc31d6954d51cbd2db104412bff746a09",
-      "source_tracker": "docs/implementationplans/TRACKER_Execution_Record_Hardening_and_Tech_Debt.md"
+      "unit_test_sha256": "18c97105d0e369b9b4e001692cf9c3bfa2bf62b442e0c2a1bdc3a29142acda0f",
+      "rules_sha256": "1a7fe4bd7e1a5c6deccefaa6ed4d1290d5cd84c9bdb1259257359a84ab41ded5",
+      "composite_sha256": "25e9f4a13e169656149c1e118aa8413097058d55f7ee01bc7bad7ec80db6911c",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "client_app_v2/lib/features/execution/models/execution_summary_snapshot.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/execution_summary_snapshot.dart",
       "target_sha256": "50dc15e7af018a97e8c7ce5261f331c61a64c642204700eab645cb8d58e10427",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "3badab5e52dba6d8f6bfd396625a24ce127bc5f10e9d4578816290704862e521",
-      "source_tracker": "docs/implementationplans/TRACKER_Execution_Record_Hardening_and_Tech_Debt.md"
+      "unit_test_sha256": "a701c901a058eb1b0668b0d61f3b7e46687c85f3944951bb5fe2b894abdf305f",
+      "rules_sha256": "1a7fe4bd7e1a5c6deccefaa6ed4d1290d5cd84c9bdb1259257359a84ab41ded5",
+      "composite_sha256": "392160992c23f2e104552fa92ab8b6c9800852103c1cfe6cec1a68b1329a4a49",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "client_app_v2/lib/features/execution/views/execution_view.dart": {
       "target_file": "client_app_v2/lib/features/execution/views/execution_view.dart",
-      "target_sha256": "83225d45760b0b39f8f282b30399357349caa1969f9ff1cd50e1e803f2ecba5e",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "30a2f29bc7f877dec252537c1169d40012278e38ef62147d06dc84eab7922e8a",
-      "source_tracker": "docs/implementationplans/TRACKER_Execution_Record_Hardening_and_Tech_Debt.md"
+      "target_sha256": "5d8441b0bde0684454ec55f79119d7cdf356064f562b2bdd4221943c53d06eaf",
+      "unit_test_sha256": "ce501ec2ce943a028583bae07ac8d836320711b43c7da0011842bfecb88282bc",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "faae87c3b498bffa6d91ae2e531237214761f3d67df602bbabd42f1a650849a8",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
     },
     "client_app_v2/lib/shared/widgets/execution_timeline.dart": {
       "target_file": "client_app_v2/lib/shared/widgets/execution_timeline.dart",
-      "target_sha256": "dfd4387534388896070d6dc7ff18e0876a397e2daa413e466decd65c77c9c457",
-      "unit_test_sha256": "c1f69ff931c1553564f2821f522dc4cd178fcca36ac3fc61dbafa9424eaed2f9",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "b49249d9f9e0078015938d7454583541e1609c804b50dad1234f2623f43ab315",
-      "source_tracker": "docs/implementationplans/TRACKER_Execution_Record_Hardening_and_Tech_Debt.md"
+      "target_sha256": "3613ae39cb243b30740b9ca9af7cf1570df08b2c38333ea86f10090ecf7777fa",
+      "unit_test_sha256": "d613f83cb58467d437c041ba624bb20b866617c20e8cf65dc6076c6351bbb7c3",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "ee1ff8af5cc7c73574cb074d1dbba1c5e0919bd14bb30c18c805e8a9ee414b62",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
     },
     "client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart": {
       "target_file": "client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart",
       "target_sha256": "60d63b391c309f109dce8470e63193c9d98fefcf90d8c4cf28d164b6797836c1",
       "unit_test_sha256": "df85733eeb8c47b3f351d74982acc1a3aa50bc35c4139315d3b7b8815b07579d",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "c9c01489fea273afddd24f6bc5587a1bcf21afa4e50037f95d9baea390f707a2",
-      "source_tracker": "docs/implementationplans/TRACKER_Fix_MCP_Discovery_Validation_and_Form_Crash.md"
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "5696a5eea7e125db1414ad6c1b6db07b7c2861737c2c24c3d6cd7fa796dd70cc",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "backend_v2/models/prompts/execution/mcp_prompts.py": {
       "target_file": "backend_v2/models/prompts/execution/mcp_prompts.py",
@@ -1292,17 +1292,17 @@
       "target_file": "client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart",
       "target_sha256": "d846456251aa661ab96d8172743b9383a266567c0a1dadbb2ab63ac982a7fdbb",
       "unit_test_sha256": "0fd81b905d7c11940b9d860c5965503044b40ed4d863195e825a1f22ca3ac1ee",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "7b7eea5f043d5749991b75a0f54073396d8f423937c01374870b58aeb851b3eb",
-      "source_tracker": "docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md"
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "1f7b9b0e8be3c27023b49ef37667c3bd3439701cf7ee5ce633bcd0d9d2d627b3",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/step_builder_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/step_builder_view.dart",
-      "target_sha256": "50484b7009f02032bdd42b4eb9e97d4f138eae50bf908793e1d5ab4e12d81132",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "bd295df34a5c01a1f31d8e79051c296d556d81e9341c0206b0a66608806a7350",
-      "source_tracker": "docs/implementationplans/TRACKER_JIT_MCP_Argument_Synthesizer_and_Studio_Params.md"
+      "target_sha256": "df6f88472e39335a200e9851177a62610b98a7d42b2624e646af539a03020cfe",
+      "unit_test_sha256": "88794421926afd6e3e7521100bb21b71eaebb2b7da25cadfe7f0939aae4d0d2b",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "90d415ed964adc00e5fc63f750823be4d4174ba987dd4f58677580a2e107f3aa",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "backend_v2/models/dtos/__init__.py": {
       "target_file": "backend_v2/models/dtos/__init__.py",
@@ -1314,19 +1314,19 @@
     },
     "client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graph_item_editor.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graph_item_editor.dart",
-      "target_sha256": "a6fa0000c0837fed7e32e1a4976f58878bbc584534469f34a3496b9ad49e9656",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "faba87153b99a40aa5d83ae4486f4526e58b1fc6e4de35a552aeee95ee7ab72d",
-      "source_tracker": "docs/implementationplans/TRACKER_Logic_Matrix_Excel_and_CSV_Parity_Architecture.md"
+      "target_sha256": "16fb0eb4c3a31b5cdfecd596fa84676af8c01d47cc514954669bd97e255bad85",
+      "unit_test_sha256": "bbff6c992078d6df667b9521d0897eb8fd7c15b8e882f9724a0d9a5e271b39d4",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "7844383b0ee79aa912681b97d65beb592bfe6f525842ddfd762384dd74f324ad",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart",
       "target_sha256": "a5ea78eea8e3ec103bfbb42f66bc4a8e24685d957cc81c6dbc0f6cc21b14eb30",
       "unit_test_sha256": "e9a3a62f1f32396571b72febdda8252c5b1303424e968e06eb0ac3380e0c538c",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "bcde184352d7ae3c8569f49f34438a5e900c1df3a2bdaee37f07e7f6c39cc33f",
-      "source_tracker": "docs/implementationplans/TRACKER_Logic_Matrix_Excel_and_CSV_Parity_Architecture.md"
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "7d3311c7da8c06d8af3b98b3242a096150415b04b17644d5998e6881a44c7b65",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "backend_v2/logging_config.py": {
       "target_file": "backend_v2/logging_config.py",
@@ -1355,10 +1355,10 @@
     "client_app_v2/lib/features/execution/models/trace_context_carrier.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/trace_context_carrier.dart",
       "target_sha256": "b7f7fddc86f5deb8bd0bfa84f3d3ac85315ca1fc0d511b089d21140cf7b2bb15",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "d01276735d013ae7d58484f62f1654577a1b295c65578c2c96d12614bc44779d",
-      "source_tracker": "docs/implementationplans/TRACKER_OpenTelemetry_and_Logfire_Architecture.md"
+      "unit_test_sha256": "7b171dc6f67f2c59ff0949768861c875554cb01f799e11017ba8d66302e696b2",
+      "rules_sha256": "d72a880dff1d6485847ca3b81dc1c81b853418b190bb6f2972750b4db680fcbc",
+      "composite_sha256": "c1c3f902cfb08a9f2a0fb2766cc9b1b43e07e1164b2257934a4d87ecdb5b1ca8",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "backend_v2/models/dtos/context_variables.py": {
       "target_file": "backend_v2/models/dtos/context_variables.py",
@@ -1412,17 +1412,17 @@
       "target_file": "client_app_v2/lib/core/models/enums.dart",
       "target_sha256": "5598d2f8d40c44b80afef5528d105290534a224f48d6900e3692e8d7a2ddb3b9",
       "unit_test_sha256": "8296c7f063758b010871ba42dbcb07710d3a6e8002cebe893cdd6ea28ec85102",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "e57d50aaa992153930b54f0c732fa73ce8171a749910c987b39d840737c2c68f",
-      "source_tracker": "docs/implementationplans/TRACKER_Pipeline_State_Transit_Type_Safety.md"
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "a33b4d01484b75a3d513b4c405c947527c481a93e5cc9418650661583bd38460",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart",
-      "target_sha256": "f289025ae680d895515665659a27c4027501ba1dca961d7cdd1b8e8f585e739d",
-      "unit_test_sha256": "15a80dc01fd424e759f7758ae8a200bb1c51199dacc3c60c1a76ca82a2895557",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "a9fa29bc72e85dcdeccc0a9f2bd8a0a84211f833bc35b63f7344b038745b532c",
-      "source_tracker": "docs/implementationplans/TRACKER_Pipeline_State_Transit_Type_Safety.md"
+      "target_sha256": "ae6d757d0780c1e4317cb7510c1a541f741650e36b78c771e3185856f2c56b91",
+      "unit_test_sha256": "4b99c44dbe8c84b34bd2c172016ca8e3beafd3462717c7ecd5fdf05c5b962c48",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "41882961aba584088c6ffed54f2dad51d11c64ca8e83b1d91e6bc9e3b380279e",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "backend_v2/services/auth/protocols.py": {
       "target_file": "backend_v2/services/auth/protocols.py",
@@ -1468,9 +1468,9 @@
       "target_file": "client_app_v2/lib/features/studio/controllers/studio_controller.dart",
       "target_sha256": "c7cc4aa48e051298230026ab6ba10175fc8f8f1329bd6d11775ed5059c68de6d",
       "unit_test_sha256": "891b82c46cb3d9ec75c3a6a2698081ee37c22e9bc3f9866f7d131b69fa712d81",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "cc17909762a2aa6e353b442869123a5d9758ae3a779f63751e08c47c8d18bf1d",
-      "source_tracker": "docs/implementationplans/TRACKER_Studio_Steps_Filter_and_Causal_Discovery_Harmonization.md"
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "44aa7f3915d7f897fa2a2b70c6512f2cc791226c828c7e508e2b3fe07a1ec3e1",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "backend_v2/tests/factories/model_factories.py": {
       "target_file": "backend_v2/tests/factories/model_factories.py",
@@ -1546,35 +1546,35 @@
     },
     "client_app_v2/lib/features/reports/views/widgets/report_artifact_card.dart": {
       "target_file": "client_app_v2/lib/features/reports/views/widgets/report_artifact_card.dart",
-      "target_sha256": "5e1e771ad24b21db4cf104bb6dca7c20b477ba335da05746fb7236ea5d36e4be",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "75c289f87a12184f472e96fe3340f24d0271e08da269ad716878cd89c085c6ee",
-      "source_tracker": "docs/implementationplans/TRACKER_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md"
+      "target_sha256": "caf37959e81a41a160022e3f0dd6be60cd39e9bcca7b0e3809d8033ecc2bd8ff",
+      "unit_test_sha256": "1799482e418859afd6fab335bc89d036b651620915534ccdeeec6a89835ca738",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "50a475347917485606106da80b0fd36fbd0500408635724b7ea83d119d9fe11e",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
     },
     "client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart": {
       "target_file": "client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart",
-      "target_sha256": "1c82ab615ba365bb9a51dcd8654841a3993fbafb24f73c73625e57898f312406",
-      "unit_test_sha256": "9d312b936dd0bb1894585fd796bbd05be69835fa22f523a2cb099d8152f20cdc",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "5c9c75f82634c320c5565b89077cf96fe2a43c384f44e69be5290959c1fef81e",
-      "source_tracker": "docs/implementationplans/TRACKER_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md"
+      "target_sha256": "f4f771ed46c71d7dcfa5f82dee81faf3096f936f3e36a126628b7af610197c92",
+      "unit_test_sha256": "64be61f9661c384d55aff4d869f34cd2259261ed7ed2622ec4b0b66844fc5b39",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "7d26c759057420f927c1380293c017cf4b2ba7dc4f78c8beaf1ffe27ab837d8c",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart",
-      "target_sha256": "4f75b693e00aba7db169add7f867638b06712082d37e55a5142ca63fd9209e15",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "42f5ebeff6b7751191c644a96b0f79e511a17d8004538b0aa07019dfabbc7cb4",
-      "source_tracker": "docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md"
+      "target_sha256": "3e785fbeaeba81d4d6f402274fbac9b4ae3778b0a0e69515ec3c46045a13d6dd",
+      "unit_test_sha256": "552d7dab76df4581954d974ad8df31f14718e10e68f026746ba000fda347d42e",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "c20ce6cfa4122cf38beecaa077dd8996aadaf6c3ae88ac37e094d273289f8cd7",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/workflow_builder_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/workflow_builder_view.dart",
-      "target_sha256": "f6a46df177e9084215e2a0097db2eab036b0b9350c3aaae820b2379dda9d8686",
-      "unit_test_sha256": "7285c5119e4299a2661795600c609e2224f3f8f8a150a0a8b4d1a90d0ea54b1b",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "cd772d9bb9644b09313770cfde5ea77ad238a2941e4fd626440a3127b8d587d1",
-      "source_tracker": "docs/implementationplans/TRACKER_Workflow_Steps_Dumb_Painter_System_Core.md"
+      "target_sha256": "5e018d5722b72d79d06bf282928ca55af024ef5aa2b31df230e6688190fc9d1f",
+      "unit_test_sha256": "3b7dde2296cbe270761a1121a2ce3bb23e14790daba2d880417b2b7bf31c281a",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "8712a6dbe734e09fe03b01c2bf0802a7638ce23ec538961f5a4328525ecc8ce2",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py": {
       "target_file": "backend_v2/services/orchestrator/anchor_validation/lexical_normalizer.py",
@@ -1674,67 +1674,67 @@
     },
     "client_app_v2/lib/features/studio/views/output_profile_crud_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/output_profile_crud_view.dart",
-      "target_sha256": "e5b73bcb8f22fe8b6358652c5e350f2a508918b996d1c4219fed1d043ce0a522",
-      "unit_test_sha256": "8f4849c49c74753ec7d5d5e5f97b2c75bef8643803c1ac74b362014ba59f5eb9",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "8ea54cb09dc2aac892c8e2187aaef5594a899c199986fdde1e4ea0b05802d9b9",
-      "source_tracker": "docs/epic/EPIC_144_tracker.md"
+      "target_sha256": "7f95792e1d5bd2a6d92b78a544ed00218c82d9d51586ff8ce73770934ddf9b88",
+      "unit_test_sha256": "56ac29806ad6d2345940dc6b8e7a65094cf244c049ecbe80876b01236b7e1476",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "3075873dbe6adaf524edf1960988057dc6847d8ef74faad36e4ca62d6caabb92",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart",
-      "target_sha256": "215829ca33d293750e83b05b73042cbf508e3a995a6414639eeb957037d8b79a",
-      "unit_test_sha256": "813e059106c5c05af1163dc5fe572009e9f245f8ed0f18a9203fa4a3d757d540",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "e692d0997f94b8147224a335b5c3a2a6372f5d637476eeb72906ee9aba30cefd",
-      "source_tracker": "docs/epic/EPIC_144_tracker.md"
+      "target_sha256": "e6fc1ccde0c89e11654808717b17498cfc4fe6268af6b3d7a1bc9ff97946debf",
+      "unit_test_sha256": "0f512260680142553a1491cad02fed7eadfb741357ddec47b24c1a5da3cdbcaa",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "d0806b41b39be058581b597b10791bcfb653ccd96381ff2e32faecd351822074",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart",
-      "target_sha256": "e27e327e1d39fb6450522085534e6001eebfdac7d48351449db3cc07a05e7b76",
-      "unit_test_sha256": "951133a15e6f0cffdf206edcc3381731bc9969614f2853febf48016437811287",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "d597f0555ffce1fdf8ac4249b2e485c5c50cde9bcff575dd72381528c7265931",
-      "source_tracker": "docs/epic/EPIC_144_tracker.md"
+      "target_sha256": "e5a457b4da38e6b586674e58381d0d9a0fc9fa41b3232c38091a032cbb5385c7",
+      "unit_test_sha256": "1ee7f392b133c26a040db3ebcdde4fbf378b59063f053ec19dac959a96f5e450",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "1df4f0a99e430e2b43593302bf16beec2ff818c79ada549c000d284cdcd084eb",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart",
       "target_sha256": "e6ec048b3e26c62747bf574963183a826ae91e77fdd13f07cb45ab1899e91dad",
       "unit_test_sha256": "4335af803fc7778bcc4ab502b2fc95dd73ed84c99d20507b69055cc73e0deb20",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "608210f7cb942f71fa2eb76b0b526bc17d61d6691f7877652354f3f5e92ac370",
-      "source_tracker": "docs/epic/EPIC_144_tracker.md"
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "b5bc4ce8878a0cd8b8e57925b7b3c9ce6550757fc6eea18f2139079119cea26a",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart",
       "target_sha256": "b4a30cffdbd9b958c878d76595485686c9bcafd677481b150874ec5d67d3d573",
-      "unit_test_sha256": "186178c64d429f4476cb92c4815a5e9f00b849eba650089edda3098da9a1133d",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "91f53a6f40daf3a6907d25cfaea4b162208f9260c2158571c9e3bdc310cdcd0d",
-      "source_tracker": "docs/epic/EPIC_144_tracker.md"
+      "unit_test_sha256": "b36620b87287d4fbe7a048bfcbe86f5adf380d439487f946d4fb06fbb2c9ec0b",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "9440964a972c886ce46c9959be1e1088008bd8b996526d8847792e9fa264d79a",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart",
-      "target_sha256": "c15155cc31bce2f8c3077148818a2ce339fc41771761a96382406551bfa5db50",
-      "unit_test_sha256": "bf80271076d7969a3e971d37c36dab8d033676c5485dfdb9fac31ca6a5472695",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "b3bfe588a9a684a981c94f3607d7a94f6706edca68e371d07588c37e5cd91cf9",
-      "source_tracker": "docs/epic/EPIC_144_tracker.md"
+      "target_sha256": "f8d7582ac5bf139786c0359641790909330c063d8dad084d8582ab5cd7da5799",
+      "unit_test_sha256": "12a78527b4bafda44887ee7d25f532f2fcf812c21578dd8065d55437194330e6",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "284b49193c3930521048ccaf45a2a84aecab56be0ac04ba72f42f8e9230a13c6",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart",
-      "target_sha256": "74e9a02a7668d9aa3c2083d7fb99f834a744d5acf2aedbe51826c8b0ba49b904",
-      "unit_test_sha256": "777dd0e8b62ad3f8e2d9340d2c4c3e9cdc7fe227909557a5603259902b337aaa",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "e9b501af06624166e48eb69444bd7041f865db0396b4ac81ab487486e5e609cb",
-      "source_tracker": "docs/epic/EPIC_144_tracker.md"
+      "target_sha256": "9854a4343e13b22c9f5ae9a6d439e16d339d874801b6202a62dff75e7178b18a",
+      "unit_test_sha256": "23454b86177a57066b06c8632fa472476eded3bed6061104fba9ec785d23cc6d",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "981945fcdb5c6cf76df23f23702fb4840e3772ae58975b7ec768fc2e2a7a7d2f",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart",
       "target_sha256": "a5d2105205fa486ded3d9be5712b6a23405f5db350af0fb86c122aa6709a893a",
-      "unit_test_sha256": "a1de4d733f96d1702814fc674bb5b7bc7d8f20c9636f4ec00703de555219bba4",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "24296e77e6d8068536a618d1609e5f8895ac421ae5b49cc997760b4bbb9674c1",
-      "source_tracker": "docs/epic/EPIC_144_tracker.md"
+      "unit_test_sha256": "6c585b08dd53e27000312bf43a3e42819dc2d50274bc42bec0be36c431077296",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "557eb95f8b6b9783a191c3629f2c7dbaab3d2bd4439a46568a00756fc43e665a",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "backend_v2/models/domain/mechanical_anchors.py": {
       "target_file": "backend_v2/models/domain/mechanical_anchors.py",
@@ -1778,19 +1778,19 @@
     },
     "client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart",
-      "target_sha256": "e7b35ef66c6a9ace8060da9e86fe8dc4d9517cda5f0f00bc7bd8c7e25627031d",
-      "unit_test_sha256": "55b02067d3fbe87cf3a084b14feeab3b0df8ca1277475bc5e7f951b8c33c3436",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "5cad11a0895d22c1bcb376bcf21bc7700fd8f8d3018feaa83ff63e9e9b7fefef",
-      "source_tracker": "docs/epic/EPIC_146_tracker.md"
+      "target_sha256": "c453ae5224044cd967b633d9c09cd5de70a53fe056cc6c9d6839d1d637481ea7",
+      "unit_test_sha256": "a00c0b87751acd14dc7bc3c062fce0a8879b4d7e7c9c04db34f9caec2af745cf",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "3b4c3a71e7e27e3162ca141c193ae248ece5378faeb58f8aca81abdac487603a",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/row_editor_modal.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/row_editor_modal.dart",
-      "target_sha256": "e55c04766ce9afcbac9e0eb28e8fda688385192c5f1d0f3311c0d7ba5b542fdd",
-      "unit_test_sha256": "5a328cde1ba2c7372c4f559092cca840a087f59380f4206a40bc979a4348350a",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "b4fd58720bb2323bb11481d4045e8ce9009299c7e373632b7bd8580371ce51b0",
-      "source_tracker": "docs/epic/EPIC_146_tracker.md"
+      "target_sha256": "e92c5547f0c5274b5e996892065317f4523b9f51e5e15bc15e69e253c3e07c20",
+      "unit_test_sha256": "1949b0010cf5ecdcf34bb2981340bd7e42c549a1da59aa9f39d9f7af00cda05d",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "1febd46324cad736e36198e89814f4b6f7489746cf96fcad9d391a8370f15cb6",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "backend_v2/services/orchestrator/strategies/logic.py": {
       "target_file": "backend_v2/services/orchestrator/strategies/logic.py",
@@ -1876,49 +1876,49 @@
       "target_file": "client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart",
       "target_sha256": "63cb02f7226d83800714fa28bff439065f54a0a9990dcc0164fba0e3883b2edf",
       "unit_test_sha256": "77e355ed3a38f8db5a9949ed9fd2cf488dbc5131120e4af596acd97a614347c8",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "443d9437d342a4fa593fd0b21d91ed96bd4536baa6dcd8c5ef4265baa6f752ca",
-      "source_tracker": "docs/epic/EPIC_148_tracker.md"
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "c3d10fa274e2e84e422c50d084178c8b39871bbeadb2e460e76c39dde9931314",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
     },
     "client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart": {
       "target_file": "client_app_v2/lib/features/execution/views/widgets/matrix_row_item_widget.dart",
-      "target_sha256": "96c48bb616d21d7928dd3466335e68b62d0b785a091ba1f90341093f9cc18858",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "7dd82ffcb4c9cd797276f4d5958efbad89e9314e231c5ad105375764dc40567e",
-      "source_tracker": "docs/epic/EPIC_148_tracker.md"
+      "target_sha256": "981ba4a17fd10f7d88b6aae97d07951235cc211e3fc7fbde3b355d6a4f467ead",
+      "unit_test_sha256": "2a885f3f44f557d2dd0c2d244a70e75d938b9f07eef6a7d00f87637de707edbd",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "f9e4ad43fbc48282b1f93731077938fc0c16d81977e8388a506944f8503271f1",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
     },
     "client_app_v2/lib/features/execution/views/widgets/xai_evidence_box.dart": {
       "target_file": "client_app_v2/lib/features/execution/views/widgets/xai_evidence_box.dart",
-      "target_sha256": "bbb3d663d58151ff3a60069fc4b88276ec5782814889fc8d25412655b4ca9c81",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "423d44988fa8d6c52ec7a9fac58ad5138ff5e01e038e53c675f7b273e9362c8a",
-      "source_tracker": "docs/epic/EPIC_148_tracker.md"
+      "target_sha256": "0f8b223426d0c95eafde0af609e6a66eb0d060bb9800f1585cc778c5300d3007",
+      "unit_test_sha256": "17368edb24d029514d57320c19b9410ff4bb7f9ef2ac8f9c53b2d526d0e43a00",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "43c8d586a4e382cffe7dbf35270e528dbd8a8e8a3369303fc38a349a9cb2b8dc",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
     },
     "client_app_v2/lib/features/studio/controllers/output_profile_controller.dart": {
       "target_file": "client_app_v2/lib/features/studio/controllers/output_profile_controller.dart",
-      "target_sha256": "a969fb0933e59afe515524a2c21a993857f48ca21cc18b1911c10cda5429f63a",
-      "unit_test_sha256": "276a8cb0909749e82aaca3010b2f8a50c347c4ea2cf7d04cb213f4e4aa9f5b20",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "6ee0ebb5b5f62e60f5990cee2f8a4f413a7a5e615911c8c979306babbbef25ff",
-      "source_tracker": "docs/epic/EPIC_148_tracker.md"
+      "target_sha256": "489eabc46d7454a1dc8413f95996e0b26477de958bbeb2e894c49b0878a504b4",
+      "unit_test_sha256": "94655d74814f586217067f92d950d21fa7e7eb0f38bbc0cd807c9d7d6085915a",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "6322f48557cb68301dfc8c292227ec3540c90ab4ea531a2d0e919827cebb539b",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "client_app_v2/lib/features/studio/views/profile_editor_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/profile_editor_view.dart",
-      "target_sha256": "27c428b7c22235a432000eadda61473c849ffa39e5ab74f2345847ef188beeee",
+      "target_sha256": "37de6d533f73e86b748648794623a0a7b7c84638d02819b1cc64d7f0e823892a",
       "unit_test_sha256": "eb910ba585d60a9526521fef3ee3e70fc7192c0981ab107e23bf013ec147e310",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "bb2cf26cbe32f7dbc1d2c4969e2b90873a11e19d307bf37b6380b2857b1f4ab7",
-      "source_tracker": "docs/epic/EPIC_148_tracker.md"
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "dd7f358d7827df781280158719f42342996b10e360f3183702ed6b6934ef0843",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart",
-      "target_sha256": "fbb9e516487a1e1b62bac4d61982745afa99dc1acc150d65b7a1ca1aceedb057",
-      "unit_test_sha256": "2fb8d388f00aeeee80d781fff1cff5b5aa776368c81ef993879538953d85f025",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "ad604ae323850a9ea5fc30ff1ef1429d87284c08b9755bffd35f334290a1ebe3",
-      "source_tracker": "docs/epic/EPIC_148_tracker.md"
+      "target_sha256": "47367ac4701a0cfe30b2d6c6086fa24967e64e4fa18378a8f1f278a94e6bbf0f",
+      "unit_test_sha256": "bd13492a3baa574e137a9bc36f4eb25a4995760bc1e51748e1eda0144998b797",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "a886eba140f9e147a21af4d1db933c6a85970b08941411dd5bfd8fd25c9dc9ee",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "backend_v2/models/dtos/hook_state.py": {
       "target_file": "backend_v2/models/dtos/hook_state.py",
@@ -2044,121 +2044,121 @@
       "target_file": "client_app_v2/lib/core/models/generic_status_response_dto.dart",
       "target_sha256": "d4edb64ff19d007d4ee81061c82e960ebee01abff3ca4d75440a09db4add805c",
       "unit_test_sha256": "3f3c98c51e5fe30346eec07f9cf14ab55a5f7135d7e0477c7163086f7a1f42a8",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "fe52a3ff5fa3e903fbf0bf767b04cdd2603a728135d9e1ca0ece1cf57da68678",
-      "source_tracker": "docs/epic/EPIC_152_tracker.md"
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "9397d4a7745db7878ab96b836ceeddba5cca160f6d42d5d2a5bbd60c5e2bb900",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
     },
     "client_app_v2/lib/features/reports/controllers/report_artifact_controller.dart": {
       "target_file": "client_app_v2/lib/features/reports/controllers/report_artifact_controller.dart",
-      "target_sha256": "2ad489dc54aa2ed1cde812db7fa1cc27c7b84021ea8b2c903412da4394d8381d",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "1c2683c2f394c9e79bbbb140db305d4f660bbe227bbcd09b92449d3f08e1a78a",
-      "source_tracker": "docs/epic/EPIC_152_tracker.md"
+      "target_sha256": "84f31fdab45e432fed221781ca455151ab85c5118615828c3726f8474179183b",
+      "unit_test_sha256": "e41c84b3a8baf4c110f726333712d9b6c16901ddcbaed9074dc2466723a7d188",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "c8e1ac50a907d0772816f135c72d891d555a879487e5516da993c9ee6dfd40e2",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart": {
       "target_file": "client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart",
-      "target_sha256": "c6c51a3908ffb9f345e0c7cab369683224504fee34796241597d5d1a57538a5a",
-      "unit_test_sha256": "75980d4b658d085819d98f11e109a9c0e0c767f57add1020b9f24a1d6206227e",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "ddf2d035da6285fc420afeeabe98e99e80bb455567254501152c5509f84b9a2a",
-      "source_tracker": "docs/epic/EPIC_152_tracker.md"
+      "target_sha256": "66248ebeb16bc09d4574f8a01f862e91b6e098e7fcb89494b72fb68fe73e52b2",
+      "unit_test_sha256": "cc9355c3d495941f9ad3456e06ce97202bad49b8cb1e09e0c364c595a324bdda",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "b73b5fb12b4493fa4870236fd3fc6f5763f4f21c2410ae8a04b3e18d1b3b67d0",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
     },
     "client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart",
       "target_sha256": "aa0d4a1adcfb7f0b96d4a44f5adb7c9700e4f6f17a3e09ef70e5d734380461f0",
       "unit_test_sha256": "daa95f6d67d7bb3c95a2f882c5e52370b8f1f13dfaf56f95400aeaf0b6a7c3fd",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "f6b82b7513d4fc1a3d97831b20b9ea8ed883bdd64c17c9a574b4493561d378cc",
-      "source_tracker": "docs/epic/EPIC_152_tracker.md"
+      "rules_sha256": "1a7fe4bd7e1a5c6deccefaa6ed4d1290d5cd84c9bdb1259257359a84ab41ded5",
+      "composite_sha256": "3fbf7a35793c5d849512212c36d0f9e3126c50912c66e61fd14eb3b2a0a155ba",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart": {
       "target_file": "client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart",
       "target_sha256": "d823ddcd3dcfdf47b26bd5555587ba2130d3771bc86bc4256baafdfef6f358b9",
       "unit_test_sha256": "49fe43ed2f3475c24c0b462ae43bff19e9ebb09e1080a76948755294252ec9be",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "c7ca9a0a06c9a244288451e2b178dd172645f75e6d8c2e9e199a32056c5c7d41",
-      "source_tracker": "docs/epic/EPIC_152_tracker.md"
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "cbe0b4c9d589607b2456b09b15346afd96cedd8fd1542271daab7bdac0d1468f",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
     },
     "client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart",
-      "target_sha256": "13e61ae0776fc89eabf968a16626c80c220a3b9e799735bc7e8222ab70d16edf",
-      "unit_test_sha256": "ee50fe8dd23195ced990d03a08a79458225bbe3449b201428d7f362fe7912944",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "b1ce2862a58a9bd24a7f116f42343d721dee35334b52177b6a8151929f843bd9",
-      "source_tracker": "docs/epic/EPIC_153_tracker.md"
+      "target_sha256": "3c61233f1e11af10b4aa5237492e61448959c4fd04801350685e9c111dbe4aff",
+      "unit_test_sha256": "04595eb0b3a1b5bdd41fbe4d8c37fb0ea2ed209d99e627833516a501d909e4e3",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "1319885cd3146c9fa1f1f5abf99150dc1f9108b765fead535176bb20cf76f14c",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/matrices_master_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/matrices_master_view.dart",
-      "target_sha256": "23dd64db6c1c049995b5b46ea925da4a8dc16bf27a36971dd6b8923f6fefcef8",
+      "target_sha256": "daf033dae502bd5dd43e5885329cab45166162e8f8f9ab83b0474546c1188168",
       "unit_test_sha256": "6e1cffd57d13f06f273344ba1825f7ec3166176f6ceb8e8f57148e185cb467e5",
-      "rules_sha256": "912bfe288118baaf70932f17d98521837247670cf36730a1e1b5222aa8028e52",
-      "composite_sha256": "c4895be3f3c643df681ac2b5c3917a2686618f58d12dd2c676fb89978324fef7",
-      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "4899641328e2b5ed532ad6afa1a34ce1cf06ccd23c8d11c25aa2a9ffbda14aaa",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/workflows_master_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/workflows_master_view.dart",
-      "target_sha256": "340ae08e6f743981344e98a82b31781c076ccdb5869fe7feb81ec3a4ae8287ac",
-      "unit_test_sha256": "071171e77948006cdbd05a5f3c938ca430a4e1f88d89f61cc7e48f81dba516a1",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "e5dba707bec5fcb2e465e05513bfa28cc63257ded857a6ed43eae787fe8617ba",
-      "source_tracker": "docs/epic/EPIC_153_tracker.md"
+      "target_sha256": "c329fa8d16d9d4a035d7dc7441077bf8665677ed3c0167556c8c8ecacea4a9ad",
+      "unit_test_sha256": "fbf6f18b8ad50e16cf03c5af28780146f6235de9c75e84888eba2531604e439d",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "e92d9558d2149a4ceb74b1b60e0e4ea4dd92086e8d72325451cf29856a7123a5",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/output_profile_list_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/output_profile_list_view.dart",
-      "target_sha256": "8b6aac863450c49256d9bac62ab41b53753eea9e4c9812de9d043f8a10c193b6",
-      "unit_test_sha256": "e8bee6f719b455dadbb6f7316d91b988d58466ac52b59c184884e8c724b2537f",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "edabea3d6791228c13d81edc55d7f4dd82d8124b06c8873a68c7e23739d2d839",
-      "source_tracker": "docs/epic/EPIC_153_tracker.md"
+      "target_sha256": "e6a7ec702e14d44cc8969624ed9b50700f298a5bcbb533a2fd8114f249824403",
+      "unit_test_sha256": "f9717427284b05fd6d8ab1166646ffc0bbd832718205f16ebe5830e2b6ffa3e0",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "70777f17fdab0e64dc0bafa50045cf35e310e416ad4e9e013b8e32e16d64812a",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/models/llm_platform.dart": {
       "target_file": "client_app_v2/lib/features/studio/models/llm_platform.dart",
       "target_sha256": "7720f56a653c52d9f96e30e9dc04a1a8556c5aee550ec0920e7f7ec96fc6475b",
-      "unit_test_sha256": "8cd1b36dee6dd15ed64262e99e3899e4ceb8bcc6a7993f5685c727d05b0b386b",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "b6f8b3d2920a07ba4294037fdd122f28805de7e23491961479913d0090b1664c",
-      "source_tracker": "docs/epic/EPIC_153_tracker.md"
+      "unit_test_sha256": "7975ab140be411e85d86db19ddba4f26c04eef17cc35b69007b6514e1f121f94",
+      "rules_sha256": "9a59b06080176236a136a606deaaccac689805f1d030916da842fe5ebf95a04e",
+      "composite_sha256": "acd777be73e570ef3061681ebf1a58b0022543e6263f471a5d4ea8ecc6761a64",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "client_app_v2/lib/features/studio/models/workflow_ui_schema.dart": {
       "target_file": "client_app_v2/lib/features/studio/models/workflow_ui_schema.dart",
       "target_sha256": "135afd67b2a1e4df82847e8932b1027b441de1adb9ad5fb2825c678abbd8c0a3",
       "unit_test_sha256": "4a270a4b76e5da69298e2d5907a1e1135b7139f19999b63fdb6c53834c152c8a",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "2e1e55c4cc632c6707bd38c635b77a96a4fcdab588aef0533c9ac772357dc11b",
-      "source_tracker": "docs/epic/EPIC_153_tracker.md"
+      "rules_sha256": "df7db792a2cc5b58317c1d22b7f8d7288d28862ced219c2b1d476848eab4ea22",
+      "composite_sha256": "81871fef2a93f06b40d260d2e621f23c9a115b97cefb7653814973c6c6efaf14",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "client_app_v2/lib/features/execution/models/human_override_request_dto.dart": {
       "target_file": "client_app_v2/lib/features/execution/models/human_override_request_dto.dart",
       "target_sha256": "85490671bf105d949f02e14a1c6943c4815a48284c5cecd14f660bb82cf9f5e0",
-      "unit_test_sha256": "09d4b83e570541d9094ba9644a64d2f2279254ad93b5674790e6789acd9a00c8",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "ee7848196b5eec55bbbb4dd99bea651a7e870612ba8571238fd2f4c9a10b0498",
-      "source_tracker": "docs/epic/EPIC_153_tracker.md"
+      "unit_test_sha256": "520c9ed3ebbd0702db89a563bd9793427ac3f27e2d7eb73b5114e9a2c52881ba",
+      "rules_sha256": "1a7fe4bd7e1a5c6deccefaa6ed4d1290d5cd84c9bdb1259257359a84ab41ded5",
+      "composite_sha256": "408b375874d4132577d4ac1855da3a7d9129360a1cfc475f5fae6f9db5784348",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "client_app_v2/lib/features/studio/controllers/model_registry_controller.dart": {
       "target_file": "client_app_v2/lib/features/studio/controllers/model_registry_controller.dart",
-      "target_sha256": "6710aedd9e673b4ebd6b3b2debc9e98e1bba7cf4ea49f20eaf616743ef003870",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "a5d4ef5db80b387d5acd981da7845d1a17088208f82281a354b558e5f16ca1fb",
-      "source_tracker": "docs/epic/EPIC_153_tracker.md"
+      "target_sha256": "6705150cd2380db0e5cf0802f24d6eb6f96409454d80dfa95f50426147b5e95b",
+      "unit_test_sha256": "9fbff02d1c635dd27ef1ad0c5bcf3543c0fef4770ccaf14131031861138dd4ea",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "7d9ff4ab06d38d860ea0966dc3ac4a5c05c895cc507b21ea134c17a8fe90c24e",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart",
-      "target_sha256": "4f83f2a47775c6f4ad1774bfea75924cb92e82d726b4546bb9db78c8632914e1",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "4a3ccfe6d64153d4ac904675037bd5c4f14fb044eb57410a86d78b9c38f96beb",
-      "source_tracker": "docs/epic/EPIC_153_tracker.md"
+      "target_sha256": "41fb701f82278879814ae6a6bdd2304d63e6be0f13d033764756e851b40867fa",
+      "unit_test_sha256": "d98a9a7b500fa83b6d598db7a179374f7e826f492385eb15773aa5636b9dbd8e",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "9ed6a090a6436051017879f5ed229db715e2e6db993f9fc76719e1e99ad96ad5",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart",
-      "target_sha256": "68afd15a1eb0398cdc62b97470605d14fbd5b63c5c4d0f7defbc555336079510",
-      "unit_test_sha256": "c9990467a6c76cb6d49dadeab11a2f07b4594eabe5a27058c75a2b2563857391",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "8192ffefaadd9ef3995482b29267362ee02716b9c837c0192f8203f1a0515418",
-      "source_tracker": "docs/epic/EPIC_153_tracker.md"
+      "target_sha256": "a19416e5c740e11ec9046f237085fd7b7f7ee1251c5bafef0540babcd9f41cef",
+      "unit_test_sha256": "b589ac20318ec954561714beb054fb672b8c0aa390e21854b56473ac2ef5f538",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "9ad060de9088c7b8e9b4b81feb51cb756f0d8bd614d75465dcce5e8d14914da2",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "client_app_v2/test/features/execution/views/widgets/human_override_dialog_test.dart": {
       "target_file": "client_app_v2/test/features/execution/views/widgets/human_override_dialog_test.dart",
@@ -2186,19 +2186,19 @@
     },
     "client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart": {
       "target_file": "client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart",
-      "target_sha256": "a40c0f5a1ac6b5eb1310d25e0ddded51a3f588141693ad513c7c64c4c4aaa4c1",
-      "unit_test_sha256": "e19905a65fffbe09f765eb674e6e7cdb35c49b09e765b36644992ec4b953e7a7",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "ace87ebfbaf3afb0e4b2b82a5c6870b0b70edc13a6e266d3accd84faf5155f34",
-      "source_tracker": "docs/epic/EPIC_154_tracker.md"
+      "target_sha256": "18dad96d6cb9ad96ab134c6ee5483f893544604f3acec4e2181fe5cff271bba5",
+      "unit_test_sha256": "2764ab79bfaffdbd55b90c72e82442563b4398ce9806b206dc36b46c915445a8",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "8b96224c8bd527654fca84ef4af383d67659380e3b4392e29418729cb68b9594",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
     },
     "client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart": {
       "target_file": "client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart",
-      "target_sha256": "509a3d33680579ab7f108925f4abb9388f76107fe5d5a1073169e762f4862cd2",
-      "unit_test_sha256": "64052b041d4eed7e94ff8dfa837357c5cc0576ccda05c8c83f801c06a66a7bdf",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "3fe723b18de7c61ad98cbd57f99efa605ce8bbb9ae23d4f9af439100f74d823f",
-      "source_tracker": "docs/epic/EPIC_154_tracker.md"
+      "target_sha256": "2d67a44a5d66d8a025440efaeb975b9f98ddb10cf65ba6515dddc6caeee8c856",
+      "unit_test_sha256": "f6de07acd4991317c1202d8cfcfdf6eb380f29caa5681b770652b84e1aa3c4aa",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "5937368682ac4bd95a6b6390a5e9f1a470cf18b11535bd9ceb572d2fea97181a",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
     },
     "scripts/audit_clean_imports.py": {
       "target_file": "scripts/audit_clean_imports.py",
@@ -2418,11 +2418,11 @@
     },
     "client_app_v2/lib/features/studio/views/widgets/workflow/workflow_strictness_tab.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/widgets/workflow/workflow_strictness_tab.dart",
-      "target_sha256": "9660604f4cd1c92a5eb9947b7c150e844ec31b20a5409efc927c02a2043e0fce",
-      "unit_test_sha256": "3a701d4a6ce6d23e83d03f2361f26afe63597d3a5dbaeace874b9079ec535897",
-      "rules_sha256": "42b7333e09b4422c3142f58666cdf698e13a8ef50026cfe2e3a342578865f75e",
-      "composite_sha256": "fc0bd8a7b43ca805b1e532614f944c2932cda81561b610cb14cfa6ef8b40a32e",
-      "source_tracker": "docs/epic/EPIC_158_tracker.md"
+      "target_sha256": "75599257d8928492aabd98e57ddb3b9e46c76ed445bf809a85b55134ee5c2381",
+      "unit_test_sha256": "b065f484a0f6b5c25ec5537976385363bc497f92135fa7de512e999e0ab8da03",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "e2d649ae3c37ef1baa2a2b72624b94bdc93a4c26265c4979acd2f3ba4c544f6e",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "backend_v2/services/mcp/url_validator.py": {
       "target_file": "backend_v2/services/mcp/url_validator.py",
@@ -2770,43 +2770,43 @@
     },
     "client_app_v2/lib/core/api/reports_client.dart": {
       "target_file": "client_app_v2/lib/core/api/reports_client.dart",
-      "target_sha256": "ac37120154b7d91f01514a571b2646ab63f63d2c3f440f30b34ff5f490598b5d",
-      "unit_test_sha256": "81d38d45d7fd3d15705cd5ef95f23b1820412b11052733f3dc21f8c989bf9039",
-      "rules_sha256": "912bfe288118baaf70932f17d98521837247670cf36730a1e1b5222aa8028e52",
-      "composite_sha256": "af49cc583799bb895f7bb41b269a9e0be42114077a4b73a45c6b862e6362c464",
-      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+      "target_sha256": "d8d4029f50cdfbeed0e17df1b54b0287cfb1fbfbe63b28e7b6b4797b533aef62",
+      "unit_test_sha256": "747e6b61b00b7515f70416d127f89aecb2559f56735ffa712ba58a5f2d9ae57d",
+      "rules_sha256": "94e12c4ffe7203b335706c1604e3f9fee7b5373f7a0fabe63b19b0433c4699b1",
+      "composite_sha256": "ceee93ed2115cc3a89ce42f8ccd2fc36d9f9b546ec824399b29848a1b7b1cd92",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
     },
     "client_app_v2/lib/core/api/workflow_client.dart": {
       "target_file": "client_app_v2/lib/core/api/workflow_client.dart",
-      "target_sha256": "33eb083fe5e7eb9932215b3e658b7c23631117077f17aac3db19112c9774ce4d",
-      "unit_test_sha256": "2864651ae54da5b51c0c5c29b4c21ed376cc2d296980bebe81b3f5e0eb6f3f9d",
-      "rules_sha256": "912bfe288118baaf70932f17d98521837247670cf36730a1e1b5222aa8028e52",
-      "composite_sha256": "f87be3e2ff0ef14debbc93d325ba6c2666591105b2ba9c251fc4c331119ba7dd",
-      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+      "target_sha256": "c39381cc9ae2ed1f8fd1e52eb11248c174a28112b7e5b91bd45ee30fefc6de3a",
+      "unit_test_sha256": "68f46ad03a3c47306a07c841e0dd4150bbb0d262dd6061f7804127368927dacd",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "83f9f43d9fc0c0d9bcaf7b316e49cb583cdb418b6acf7ba9a87f7f6332361b60",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
     },
     "client_app_v2/lib/core/api/studio_client.dart": {
       "target_file": "client_app_v2/lib/core/api/studio_client.dart",
-      "target_sha256": "d5dd033167172e157be86740cb92f0d812a1e8a74fff28cd9978d2798e48f32c",
-      "unit_test_sha256": "649a76fee6c39b0232940d530d831d0841eb9567bf70611ad1f6b305fa641e2a",
-      "rules_sha256": "912bfe288118baaf70932f17d98521837247670cf36730a1e1b5222aa8028e52",
-      "composite_sha256": "0dd9259838657c3d95de2fc1157e1a1e5792ec9c230ae0cc46471ec6eb9a42e4",
-      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+      "target_sha256": "09e3762ccb8933a776bb2313aeb0dd8d367b5fa59f2ee4b9429a8b738b010d81",
+      "unit_test_sha256": "552aebbdacef2bd37c65ce45470e1435ae376fd71eda7e2e27e2cc87df3e50dd",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "e821e3aa89e592d80324581cbbfea3752d4691320cc909fc714421bcf028ee6f",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
     },
     "client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart": {
       "target_file": "client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart",
       "target_sha256": "eaca97949eaefb73496275f6224959faba2cb390f1b0654a01ae8c08186f7ff9",
       "unit_test_sha256": "64074dcc505dbea465d4438a6707d5f973b79e0514fe4b618cfe98466a48fada",
-      "rules_sha256": "912bfe288118baaf70932f17d98521837247670cf36730a1e1b5222aa8028e52",
-      "composite_sha256": "30ce06ff607f6a1eaece1fcd57b294679ec82a26295b9a27b86bbad5f8465a6b",
-      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "02ed0b64259d1641283e6db7666752bfacb463de7df92edfcf56e14a9a322f02",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
     },
     "client_app_v2/lib/features/studio/views/studio_dashboard_view.dart": {
       "target_file": "client_app_v2/lib/features/studio/views/studio_dashboard_view.dart",
-      "target_sha256": "f5bad277f3468027d9441032ee2add45b4900266284cb367679c51b56dc3021a",
-      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "912bfe288118baaf70932f17d98521837247670cf36730a1e1b5222aa8028e52",
-      "composite_sha256": "3c0738f6b49c4022e8a17c39ebf5b49cd99a836967bca2497f139aa8af84494d",
-      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+      "target_sha256": "af2b088358e89d65bf44877959211bd069cbf5773e6a5dc4b27dd4aee89225b4",
+      "unit_test_sha256": "8390fc3ccd0a4f64ab9e9bd872a381eba5ee12a78e3a6297eb51d5f4023949fc",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "ecc8ade48a2accdfb19d7c8d40a24e0f035c64c0247776d289423c722a6b51cd",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     },
     "backend_v2/database/postgres/graph_adapter.py": {
       "target_file": "backend_v2/database/postgres/graph_adapter.py",
@@ -2959,6 +2959,910 @@
       "rules_sha256": "65fbdb903cb43c8e49aab07b29c170742ee0446680e3e0e0d9b5add1e93a4f38",
       "composite_sha256": "3eadda26034fea999d68f644900b62ef64480051c5cdc46c59f98ce68407d2bc",
       "source_tracker": "docs/implementationplans/TRACKER_Symmetric_Flutter_Hardening_Pipeline.md"
+    },
+    "client_app_v2/lib/router/router.dart": {
+      "target_file": "client_app_v2/lib/router/router.dart",
+      "target_sha256": "7b3edc1f7d50148ecdc76fd7e6c624433d70f0d47bc67c9aa9affd814f2b3682",
+      "unit_test_sha256": "5521eb1033bf4b17942bc6b762f7ae9ed5700f417f16676ab4ecf27251322c67",
+      "rules_sha256": "70908458245823fb819a7e2da36bf50dcb5d3983af67ff63fe6a96d81e1ebbdc",
+      "composite_sha256": "7c5d6bc7911cc49d8f72cb6470d5410234c53cbac309d5498124d5a578b48935",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/router/scaffold_with_nav.dart": {
+      "target_file": "client_app_v2/lib/router/scaffold_with_nav.dart",
+      "target_sha256": "db21cc8a06d448de17fe4902e7c96a4ec6a59f21d7826a5f467f78f5fdc30050",
+      "unit_test_sha256": "329b099cc6d8f06f59e27bb9e090cfe0b0485b3461d5de657ea95549c0097388",
+      "rules_sha256": "70908458245823fb819a7e2da36bf50dcb5d3983af67ff63fe6a96d81e1ebbdc",
+      "composite_sha256": "159f102188af9bfc425f55f09af4c0b018b6ae19337e31740743b6f55e5bf565",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/features/shell/presentation/scaffold_with_nav.dart": {
+      "target_file": "client_app_v2/lib/features/shell/presentation/scaffold_with_nav.dart",
+      "target_sha256": "08c97c9d32050d1a92439bf301b208ba8c62d9d7d547fa1b72e703c92614ef82",
+      "unit_test_sha256": "4957bacea6ec6f0e2404f5e8ea27229172c7f7b6577e91ebbcbaa84ccef69b31",
+      "rules_sha256": "70908458245823fb819a7e2da36bf50dcb5d3983af67ff63fe6a96d81e1ebbdc",
+      "composite_sha256": "f7a2c22e7c411013cb654b5d446ad8625f7b64d25bd9ca418f4c4a6457edf5ee",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/features/shell/presentation/widgets/admin_sidebar.dart": {
+      "target_file": "client_app_v2/lib/features/shell/presentation/widgets/admin_sidebar.dart",
+      "target_sha256": "f19eaaa950b534725c00643b356a4ad0be239f8c2d6d2889ef4c50c8c11d19fb",
+      "unit_test_sha256": "2dc8b94393355e3816f7597d33c18bfc769b500b7b7f9b750c53bbc7490d260a",
+      "rules_sha256": "70908458245823fb819a7e2da36bf50dcb5d3983af67ff63fe6a96d81e1ebbdc",
+      "composite_sha256": "d07d7f1cc2f98a5ee79de89708e22299f17be0cfab6e31c97693b2e6ecd21a32",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/theme/app_durations.dart": {
+      "target_file": "client_app_v2/lib/theme/app_durations.dart",
+      "target_sha256": "c2a1ee19b94031a314a4ede9e10de65eb375ed849f59b91cae43d4d14debbff2",
+      "unit_test_sha256": "e9dad25a52c435659ed30066ed793a3eea87f25ed8041c23c2504daf4f22e64c",
+      "rules_sha256": "4089c7fda58de3afe66c690928912d969ce8947c956aa7d4e0c131fd7b834a00",
+      "composite_sha256": "03957f364dc63064bb8aa20e51d035fdbea6ac920139d3f2b29e3ddf12d666c2",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/api/execution_client.dart": {
+      "target_file": "client_app_v2/lib/core/api/execution_client.dart",
+      "target_sha256": "918c8e293babb59c4747b659b34c767430cc3f8305c82f499ef4ec6c66e2c95f",
+      "unit_test_sha256": "3686cb5c8bfaf97b6d930403b4361324edfe54cc5da0df338f277f36c84b3b72",
+      "rules_sha256": "3dfdf674f40ac67e7b81a494d3e7532de33ae0f9a2b75812824e411fc9df211d",
+      "composite_sha256": "3d501c4467048d9117f0d9e369a429a1e882fa3644816143e61134f650e84b33",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/api/sse_client.dart": {
+      "target_file": "client_app_v2/lib/core/api/sse_client.dart",
+      "target_sha256": "7a40ae6ebef8748562fcec94629ee2d44647b8970894682f47ff38a648b0766b",
+      "unit_test_sha256": "9ded1dc473eff5b1f838bc6fcd5b5beb7a74c0e5a2cf000b164734d5a1193769",
+      "rules_sha256": "94e12c4ffe7203b335706c1604e3f9fee7b5373f7a0fabe63b19b0433c4699b1",
+      "composite_sha256": "db3b37b5c6c4f103db3d522fa868e417673e8b6a2128975ec726d8ab20f9e546",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/network/api_client.dart": {
+      "target_file": "client_app_v2/lib/core/network/api_client.dart",
+      "target_sha256": "b1da115db995c310478ea0680bc1f64b76ac6be1503705fc8a260268973bf625",
+      "unit_test_sha256": "8321c4bcbdc9c19267e745b5bf1ff3b13b0160e13d35e120f98b305fd8b0798d",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "f21450870c86edbd8e4737cb8a29216194ee5e73bcaa71f4a429bd8bb567b706",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/network/interceptors/auth_interceptor.dart": {
+      "target_file": "client_app_v2/lib/core/network/interceptors/auth_interceptor.dart",
+      "target_sha256": "6cbcafe88a4d84fed04478d4f85b43540eeef91b2395a151f632795a47219fcb",
+      "unit_test_sha256": "5a0d36d241df73cad394013b6e865c7ac895a5688e4d86840f0b977af7753321",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "b5dcf479c14bbbb2085658646c29346df38e81bda737c526970b63fb92e71940",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/network/interceptors/dio_logger_interceptor.dart": {
+      "target_file": "client_app_v2/lib/core/network/interceptors/dio_logger_interceptor.dart",
+      "target_sha256": "e5fe2819a8f348cd97b2b104793c6c0b08b9dc1f6cc76b9fe3b34ad8cdc2b906",
+      "unit_test_sha256": "8be6d54391a11bd830b98543d58e87ef3309bfafe67edc3e77d176003282e4af",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "0c85bd8222a051bf97ed769df99d1b5ec89be15a8e296d545abe7edb100f0653",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/network/interceptors/error_interceptor.dart": {
+      "target_file": "client_app_v2/lib/core/network/interceptors/error_interceptor.dart",
+      "target_sha256": "d67fe9072619bf255108ab328a538cb8a62af7eee6f833217d22f71cd7b7f837",
+      "unit_test_sha256": "901b10cc0f28b3cce273ea8ef871f60887df13f424992c02cf934084b31e003e",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "12fef8c90a83072ab15efa05ea6975c821b836dfc20613cc7b5728e18c086635",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/network/interceptors/locale_interceptor.dart": {
+      "target_file": "client_app_v2/lib/core/network/interceptors/locale_interceptor.dart",
+      "target_sha256": "0766269295831d5bb28dec3dab8adddd5637c699a6324f62986800177b48911f",
+      "unit_test_sha256": "002a673dd8161c6dc03de77f47299c6ace644e4c1204e529c3cf96a457f092cf",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "bebaa4f8efd92655743cf867798cfedb51fe87ce3c5350729006d7e84b3275dc",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/environment/env.dart": {
+      "target_file": "client_app_v2/lib/core/environment/env.dart",
+      "target_sha256": "16786ebcdcda38cf3bbd16344547ca7fa8878a699dd9f541cb87c7a883e2597b",
+      "unit_test_sha256": "e13b12cba3cb3c99c6c6513f4992a601bd6a0c5b80263b03f7ba6656890e320f",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "dd103eccfad82b18c98eb19aee5b14af5456e0d6af9e586eaad3ac501b73bb76",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/error/app_error_boundary.dart": {
+      "target_file": "client_app_v2/lib/core/error/app_error_boundary.dart",
+      "target_sha256": "a3cd790c7d3b274065e1371b4c434b58917637f65f9735b23487dc6d3195101a",
+      "unit_test_sha256": "b10e6664f5a2decb9abececb0696f2c7d3347beca01ceab4fc9749d3be799e5e",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "32bdeea04f599e19b36e4ce8fc504590b694351b7f4061c638dced8183d87c9e",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/error/app_error_ext.dart": {
+      "target_file": "client_app_v2/lib/core/error/app_error_ext.dart",
+      "target_sha256": "595baf45d797104601011d56eb78ab3177f576fcb28daffe44de57f5bcdf1b2c",
+      "unit_test_sha256": "cbda5ec0481ec967834e9a8652b698f48db67fba96a6ce659def6e937eb584e7",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "3cef4e41fc008d37a0ca015d4005b15e47ff7e4062508fda0d7bb4a2ff6b0557",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/error/app_exception.dart": {
+      "target_file": "client_app_v2/lib/core/error/app_exception.dart",
+      "target_sha256": "4fdf3ee4d912a19fb4d43202d6b8db2e709fba08e22742c35304ede9f572117a",
+      "unit_test_sha256": "33de08e477548405ead96434d706879246284046c8d90f21730dbab756db2bd7",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "41d3d4b8e9efae281b44052ac802aa9cc92992326178fedae213b86db896c570",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/error/validation_error_reason.dart": {
+      "target_file": "client_app_v2/lib/core/error/validation_error_reason.dart",
+      "target_sha256": "283e4b995f62b880834b8ced2a3a3d4173652a8ad1eac489c28e65465b7be6f4",
+      "unit_test_sha256": "f216c8840d703e7972d8431367fc45a8e25a153a6b0ef7657cc07d5abcd02c29",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "1df4cd61d989fc39156e1344fc35b045da44d32b07af4ee75dcafc094285fd29",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/logging/app_logger_observer.dart": {
+      "target_file": "client_app_v2/lib/core/logging/app_logger_observer.dart",
+      "target_sha256": "6682ffe5ee780ade473e0e21bf34857cbc5fe2998e961801fc1f3faa3107df20",
+      "unit_test_sha256": "251d82b807d26f4044bedf513286344caf4610d6db47ed345aaff14db11edd2c",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "e4339d2b483e50045653030fb908ea624879161ac091c77d144d42a1b0ca6c57",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/logging/logger_service.dart": {
+      "target_file": "client_app_v2/lib/core/logging/logger_service.dart",
+      "target_sha256": "01fddde6463555d0c67ae2098a80c229b469995cdbdb064fe87d02b26dc6cf7d",
+      "unit_test_sha256": "7dc951a7ee743da70feb2709f6e1b24cd6704eaecd5cbca54818cdee1e70f63f",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "50a5e1134025a082361e0e3029ed2d58a5309d0961f4094865042fe4f71bce2a",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/models/prompt_block_category.dart": {
+      "target_file": "client_app_v2/lib/core/models/prompt_block_category.dart",
+      "target_sha256": "1eda44bcdf446e966063f04a673331d79ab72937429620e36c610db4c09fc34a",
+      "unit_test_sha256": "05ec676ff63efd1250cc530fb58dba3996be94d19feba59892e57731cd0922bb",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "5aa9988bf8985a86fc86663aac7ebdf54a09ad4df5d3c5b489a3e2ef1f7f0f2a",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/state/mutation.dart": {
+      "target_file": "client_app_v2/lib/core/state/mutation.dart",
+      "target_sha256": "22fe23359446a9122a880207ac3d9a7c40848a109cabea3458141d00e66b01ba",
+      "unit_test_sha256": "f6dc6f93502e17c7d39756a1b4fa0eeba61c0456d76af1236d053886229bdeb6",
+      "rules_sha256": "9c697bdd277a814befb182818b42a09f3ea332044a5a653ff3c6ff817d558a8c",
+      "composite_sha256": "bbe050bee288dc2050fdb7e85b96716696541adf4dc90da0970fcb941ce5b0ae",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/theme/app_spacing.dart": {
+      "target_file": "client_app_v2/lib/core/theme/app_spacing.dart",
+      "target_sha256": "0fd885f7958401490aa5fb5695d4044c470d589761a298613cdfae97d20a2e0c",
+      "unit_test_sha256": "156dbca769db4d27ac9a3ff74c17169cab7cd203982fcd62eb0c2bbb20b0722f",
+      "rules_sha256": "0ed26336de64d38235054ad5b02a36e864948c316497e8777e5588e2b5d1d937",
+      "composite_sha256": "e7ef8eaeb0ef387bcba48efb30b815f94b3eb3675802d887ee4863024e12e6ec",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/ui/error_view.dart": {
+      "target_file": "client_app_v2/lib/core/ui/error_view.dart",
+      "target_sha256": "03e6d0279dd8de4c2f0844789fadebf70ce99800bb5f1744b564c1115e3e0cbb",
+      "unit_test_sha256": "a90e7ac8367f6e5dfa3008d2aed58b2b438d958192b04507945ece08110f53fa",
+      "rules_sha256": "0ed26336de64d38235054ad5b02a36e864948c316497e8777e5588e2b5d1d937",
+      "composite_sha256": "7c9c19993bfa02ace514c85df7c53ce9645c4316af849a5c3684dd03c3e6ade6",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/ui/splash_screen.dart": {
+      "target_file": "client_app_v2/lib/core/ui/splash_screen.dart",
+      "target_sha256": "f9d266c23716b241a92a1b879fad93cce90fb4710ddad48ded73aad36fe05486",
+      "unit_test_sha256": "26600538e7658e556f62eb30ce244ee67a5f2e32ac8fac86a6a0c44d80f18143",
+      "rules_sha256": "0570f94a2b9113b168eb1af7ea9b22dc7ed6e5cdf0dd372952b310718247099e",
+      "composite_sha256": "aa2bcd2209e219f764035fbee7da71caa0a74e18094a5f53cf1c7f40b18a609e",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/core/utils/safe_isolate.dart": {
+      "target_file": "client_app_v2/lib/core/utils/safe_isolate.dart",
+      "target_sha256": "eb592dc62c4f95829fc4282fdcb29e73775520521278e734db1f837418ed9e84",
+      "unit_test_sha256": "086d6d9dab3fc9168e0efdea25b5cb3de7459f66ee67fdf49fffc6ac24d50f77",
+      "rules_sha256": "0570f94a2b9113b168eb1af7ea9b22dc7ed6e5cdf0dd372952b310718247099e",
+      "composite_sha256": "f979191cc28e06f650662e9aefb0790b08600e4c36983866f941d0446f2a0e48",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/utils/riverpod_extensions.dart": {
+      "target_file": "client_app_v2/lib/utils/riverpod_extensions.dart",
+      "target_sha256": "ab91d51e6dce81672defd0a5923dbc6983e5c0eb44001873a0768442d2fb6daa",
+      "unit_test_sha256": "f0315019b1eec7acccf6806602b296f9a4df47360e7fe10fcab62b3022e475de",
+      "rules_sha256": "0570f94a2b9113b168eb1af7ea9b22dc7ed6e5cdf0dd372952b310718247099e",
+      "composite_sha256": "e26095e378a95529bed02f81680df760dad44c92ce2dcf086c971daa09a31b1c",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/shared/models/i18n_text.dart": {
+      "target_file": "client_app_v2/lib/shared/models/i18n_text.dart",
+      "target_sha256": "5a1eb91fa39b4aa2a188a3d88df9ad90042749646fd57c6bde2417eba459fbd2",
+      "unit_test_sha256": "eeda2a05c3c27e862d4817431328f2ac64f325f0dde5bbea0898684cb3c0a1cb",
+      "rules_sha256": "0570f94a2b9113b168eb1af7ea9b22dc7ed6e5cdf0dd372952b310718247099e",
+      "composite_sha256": "d41418cd74d95cb7faa27727d6111d883ed03bb46eda97827bc23f96ebda43d1",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/shared/models/sdui_block_dto.dart": {
+      "target_file": "client_app_v2/lib/shared/models/sdui_block_dto.dart",
+      "target_sha256": "c1827fbd80ad39a46197dd0c7305d775e9dde7f8e3486c4c114558d8a09bb4f1",
+      "unit_test_sha256": "0df6a22c55a96f41511df5d9207550a33c3733a4ebde86fccae25d0256138eb9",
+      "rules_sha256": "0570f94a2b9113b168eb1af7ea9b22dc7ed6e5cdf0dd372952b310718247099e",
+      "composite_sha256": "ac35dea02cc188aad35069ea99eac3a23933bd1f533601732ad5b33ac6eed1a1",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/features/settings/domain/models/app_settings_state.dart": {
+      "target_file": "client_app_v2/lib/features/settings/domain/models/app_settings_state.dart",
+      "target_sha256": "db090c16b969f6eb6ec601c157dbf56dc354e0d77429cc5e1b5ab671b0646538",
+      "unit_test_sha256": "9d9f72a7b347eebab7785496b346a944f29be3cf6ba63932b670ec436cf2d6b6",
+      "rules_sha256": "0570f94a2b9113b168eb1af7ea9b22dc7ed6e5cdf0dd372952b310718247099e",
+      "composite_sha256": "569f1a0234a40f292ecf91e35567138e8b426ae943734e266b00af0c78ae5f4c",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+    },
+    "client_app_v2/lib/features/execution/models/atom_result_dto.dart": {
+      "target_file": "client_app_v2/lib/features/execution/models/atom_result_dto.dart",
+      "target_sha256": "d790306be7d60bb258a125553d2cd01227f42d1ebe9789044677b7848270704e",
+      "unit_test_sha256": "f8e71d09b88bab9857a2acfdf1a4d12b6f7c0b639b322f43004b5f615d830483",
+      "rules_sha256": "0570f94a2b9113b168eb1af7ea9b22dc7ed6e5cdf0dd372952b310718247099e",
+      "composite_sha256": "a070a8a416dbbe3ffa5538834a505a176236d58d87bc3bbe3e113d16cb951662",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/models/distilled_evaluation.dart": {
+      "target_file": "client_app_v2/lib/features/execution/models/distilled_evaluation.dart",
+      "target_sha256": "8f58f5b392c9e9ac08448048a14ce43b33512c51e92ff7ff64fd94cff99eb9f1",
+      "unit_test_sha256": "f099b6228ac4f9f90d516ad9d9a126de37f45faa6a60388aed18314d1283226b",
+      "rules_sha256": "0570f94a2b9113b168eb1af7ea9b22dc7ed6e5cdf0dd372952b310718247099e",
+      "composite_sha256": "84efd393d99a41419284671633cfc2596d28ccd7b5476b84ddc88df5ee9709aa",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/models/execution_create_request_dto.dart": {
+      "target_file": "client_app_v2/lib/features/execution/models/execution_create_request_dto.dart",
+      "target_sha256": "f76b04e6d940e56bff5234ebf2480638d40ca1cef19b1ba6780a4cd7856eb822",
+      "unit_test_sha256": "a828b985f4ed5d6e1d611b4ea4607ccf26b6e243ee8017b893dbe6e935c04e45",
+      "rules_sha256": "0570f94a2b9113b168eb1af7ea9b22dc7ed6e5cdf0dd372952b310718247099e",
+      "composite_sha256": "7f5ce8daf9b7633744aed04c511730b37db8ce5b181e9844b67e378f2a48ba8b",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/models/execution_metadata.dart": {
+      "target_file": "client_app_v2/lib/features/execution/models/execution_metadata.dart",
+      "target_sha256": "d9ac21c5edadb43425e1e428650c8e4bc97f63f8c94b2039e0207aad01113353",
+      "unit_test_sha256": "f04cdd9da2cbc50f0847ab5a11d69eb28b10c0bbe11cf1f51eaf81d2ba67797d",
+      "rules_sha256": "0570f94a2b9113b168eb1af7ea9b22dc7ed6e5cdf0dd372952b310718247099e",
+      "composite_sha256": "bb4478333ab354975c4908325b3f5c1fd3fdab43d846c81b1101ca655a800da9",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/models/execution_metrics_dto.dart": {
+      "target_file": "client_app_v2/lib/features/execution/models/execution_metrics_dto.dart",
+      "target_sha256": "69c47fe7a8ae91d2c35e16aebcf99b1c78be6f862353f50c1ce3ba1e25172a40",
+      "unit_test_sha256": "7c7a51f4581884f9c0f9e54f4256b0ea385316c05274a701cf53f47c4b7caa4b",
+      "rules_sha256": "1a7fe4bd7e1a5c6deccefaa6ed4d1290d5cd84c9bdb1259257359a84ab41ded5",
+      "composite_sha256": "6fc85fa72a7d6ca2849c996664e33c84ba7428c5bc1cb1a4f1daea02b59a6de4",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/models/execution_record.dart": {
+      "target_file": "client_app_v2/lib/features/execution/models/execution_record.dart",
+      "target_sha256": "97da9b04ebca371ffd5947d21e519ea6ddc913b175bd5d3391ea171e50c4bed6",
+      "unit_test_sha256": "efaaf9f57a0ecd6a03182b830e26637025c7d42189dcff02f2d20c0edcc74ffa",
+      "rules_sha256": "1a7fe4bd7e1a5c6deccefaa6ed4d1290d5cd84c9bdb1259257359a84ab41ded5",
+      "composite_sha256": "0809f7b3afafb55313069b1bdcbb7cb56542c8f9142997926116b37efc428317",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart": {
+      "target_file": "client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart",
+      "target_sha256": "843409c4b5060d462ae1da3ac1b0fb3c45d7c1a4f9e0b6029879f166c83eb866",
+      "unit_test_sha256": "8f393d544169da4758eea1e6aa4999deee835a6bc4633078e976de2fa7bb80c1",
+      "rules_sha256": "1a7fe4bd7e1a5c6deccefaa6ed4d1290d5cd84c9bdb1259257359a84ab41ded5",
+      "composite_sha256": "ec699a1573a1b638f82c9390845c97d2df5981d39bbfd1c8db79a10d76c69d6e",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/models/hydrated_atom_dto.dart": {
+      "target_file": "client_app_v2/lib/features/execution/models/hydrated_atom_dto.dart",
+      "target_sha256": "287efae3804af736029991c562c53b82e29cece6222d6da1515e3e58fbc7dc4d",
+      "unit_test_sha256": "89ffe59cf228032d766228157d6ebc6f303385d592c6762fee1dbea7ec9fc8f9",
+      "rules_sha256": "1a7fe4bd7e1a5c6deccefaa6ed4d1290d5cd84c9bdb1259257359a84ab41ded5",
+      "composite_sha256": "4707b90fd9e8ff1ba31f6017cc384d4f29ad5b86c26a5b6d58727804d66e16ff",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/models/report_data_v2_dto.dart": {
+      "target_file": "client_app_v2/lib/features/execution/models/report_data_v2_dto.dart",
+      "target_sha256": "015c2d4e742e70b0dc81aff4867847e28c948673d4e4cba6d52bdb7de448f589",
+      "unit_test_sha256": "f94f0a6e0838459a1c98979a80f71774247fd05c79185d5e5f276a69a308fbae",
+      "rules_sha256": "a4f5cf4201df7b17673e2d23671b6f288b92688441e59e74640deb38e461ccbc",
+      "composite_sha256": "ec186059539e9055d27e7ed85a3ef30fc7a622a56e98437e3cd678f25803b3b7",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/models/synthesis_config_dto.dart": {
+      "target_file": "client_app_v2/lib/features/execution/models/synthesis_config_dto.dart",
+      "target_sha256": "8118bb4666c2696d855525f08d391aa438553bb6664dded691b90cb61543ae8c",
+      "unit_test_sha256": "8a5caf7607f7572931799acb02ff13de56c2fe624290d9cbac02dd39bcf078bd",
+      "rules_sha256": "a4f5cf4201df7b17673e2d23671b6f288b92688441e59e74640deb38e461ccbc",
+      "composite_sha256": "ca4debf1431372393d1427f6bbcf788f2b55055334653f3513a1a5e0771b54cb",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/models/tda_state.dart": {
+      "target_file": "client_app_v2/lib/features/execution/models/tda_state.dart",
+      "target_sha256": "e0d3b0ef7949b6754f03db82271e18046872be6c5c073bb950d8aedc59e13193",
+      "unit_test_sha256": "13af95cab60dc0d9c0965b6a4796196da264c95a9fb3ce44bf05ed3bebf229e3",
+      "rules_sha256": "a4f5cf4201df7b17673e2d23671b6f288b92688441e59e74640deb38e461ccbc",
+      "composite_sha256": "9c72e8a0a616afdf719b35a5416f1df036b158790c634018765608cfdfaa52a9",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/models/workflow_inputs.dart": {
+      "target_file": "client_app_v2/lib/features/execution/models/workflow_inputs.dart",
+      "target_sha256": "63a670236b84df73c9f14515ce88f55fa7fb10bdae0da52321c7cce76fb0e73d",
+      "unit_test_sha256": "f41b4a880eab61cfb034229557a23caf135003edcd9351706b61ab23f469ca0e",
+      "rules_sha256": "7fe52bd1721ff9a03e47cb9d3e162dc48c57f1ca38b264ddba2da1c013ee722d",
+      "composite_sha256": "223d7b906a5fb850cf0718328024f667fea1beafaa43d279d9c1b37cd648b565",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/reports/models/report_artifact.dart": {
+      "target_file": "client_app_v2/lib/features/reports/models/report_artifact.dart",
+      "target_sha256": "a8da9f61c29160c02b6da143aa423187401ade015831e076ab4990a9a2b0022a",
+      "unit_test_sha256": "9898157f02d5db8074d1aa91eaae2f99626e29c55337c3fa59ccf7aefbf76481",
+      "rules_sha256": "c261c11682da5a3953b5f602914efef978c570bb3be23c33751ef96e078fef53",
+      "composite_sha256": "13ae125cb517f5845ab609b422c219dfc9c895eec08ae655e9b6871cbffe29af",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/studio/models/blueprint_config.dart": {
+      "target_file": "client_app_v2/lib/features/studio/models/blueprint_config.dart",
+      "target_sha256": "f9ca3c7f7e6e074b987a6682a30833a422294ad8f4cce3e08291879113aba626",
+      "unit_test_sha256": "7cbcd0d2ddec351755335aee69da3d64acf9ed2ea7be94a3b40356d68d2f302a",
+      "rules_sha256": "c261c11682da5a3953b5f602914efef978c570bb3be23c33751ef96e078fef53",
+      "composite_sha256": "28a260c154463f7549ee5c217ea97e7ae36c0053e0ee289e02f7123e17f3440c",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/studio/models/gcp_location.dart": {
+      "target_file": "client_app_v2/lib/features/studio/models/gcp_location.dart",
+      "target_sha256": "dbaf8e9453f7c9acb5d288ba18cb478ce6c43fbfab5231b071a5c103ea38522e",
+      "unit_test_sha256": "1f618a6ea80f1825c80158560f0cd93ae51e1ec2e00ebafc36c82dd102a2ea37",
+      "rules_sha256": "9a59b06080176236a136a606deaaccac689805f1d030916da842fe5ebf95a04e",
+      "composite_sha256": "99d6b82f2465f26dc849ead4444d76afb1292009c8bd30262200b0e68ff29d3f",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/studio/models/mcp_gateway.dart": {
+      "target_file": "client_app_v2/lib/features/studio/models/mcp_gateway.dart",
+      "target_sha256": "3cfaceb18c85f95699f3791a7f049ccd45fd1001c9b10ae7e5a1c30046070edd",
+      "unit_test_sha256": "391bd90f8ace693a73f36e8dacb1721809795a0fa931dabd55b4af89d662c47a",
+      "rules_sha256": "9a59b06080176236a136a606deaaccac689805f1d030916da842fe5ebf95a04e",
+      "composite_sha256": "f0717e575484245fb6dd9f7208a471c4f8a2c6f85f50874628cc4f8fdd1682df",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/studio/models/model_config.dart": {
+      "target_file": "client_app_v2/lib/features/studio/models/model_config.dart",
+      "target_sha256": "055c19219a57f5785da1af3d9e03e95e439534853ce1da2300271a3771ca8144",
+      "unit_test_sha256": "572545ca848a84689e6c3ab5f1f7ad381a904751a05118249e9cfd544df4ba6b",
+      "rules_sha256": "9a59b06080176236a136a606deaaccac689805f1d030916da842fe5ebf95a04e",
+      "composite_sha256": "260a358c80e5f7a6a514efbc5560bf56395a88b6a06b451ee9e9a3c7a1b19b1d",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/studio/models/output_profile.dart": {
+      "target_file": "client_app_v2/lib/features/studio/models/output_profile.dart",
+      "target_sha256": "f46724d4fa0f56a0b3f7eb84bf938b9d5e76aa90a3693e71ca482063a194e0c0",
+      "unit_test_sha256": "63889a619eef17506245e003fd3ca262de66dfcb325f25cd049be98d46e4a283",
+      "rules_sha256": "9a59b06080176236a136a606deaaccac689805f1d030916da842fe5ebf95a04e",
+      "composite_sha256": "b59577022134c6d989779f3f5ff2ba6e6e24c0ba3a7de4c8a3250edba791f371",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/studio/models/prompt_block.dart": {
+      "target_file": "client_app_v2/lib/features/studio/models/prompt_block.dart",
+      "target_sha256": "4a98ab65e5200ec62944fe7ee061890942092fa0fe7baf518cc970e7f4270c98",
+      "unit_test_sha256": "7ce5c1c6a183d3b297ad4a658227a4dcdc7d02ef0ee030b52f69aa2fe79413f6",
+      "rules_sha256": "9a59b06080176236a136a606deaaccac689805f1d030916da842fe5ebf95a04e",
+      "composite_sha256": "18353df788fab81518daf1d158025c58a7acb6e7fa50c8f90e54a5efe1e617e9",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/studio/models/prompt_block_simulation.dart": {
+      "target_file": "client_app_v2/lib/features/studio/models/prompt_block_simulation.dart",
+      "target_sha256": "f3114ea5f492766c7a93f9eed836f700b14325b713b3e105e52379c4582a6886",
+      "unit_test_sha256": "ccb51293df9bcb2ea70e47e76e1f899dd64fef8b9ebd6d0ecaa36c1633155a6c",
+      "rules_sha256": "9a59b06080176236a136a606deaaccac689805f1d030916da842fe5ebf95a04e",
+      "composite_sha256": "3c0b2073e580ad044e06e2161ab99cbd29f6cfbfd9c964b2d05615498220e74d",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/studio/models/step_simulation.dart": {
+      "target_file": "client_app_v2/lib/features/studio/models/step_simulation.dart",
+      "target_sha256": "aec40bdcc20bc5a3758d2a276046d06fe5614fa75509fdeb27344eb86b24a0fc",
+      "unit_test_sha256": "cb546620a008104c7c41e437e8399d0d998abb0942421638fefe6d9810fa263a",
+      "rules_sha256": "df7db792a2cc5b58317c1d22b7f8d7288d28862ced219c2b1d476848eab4ea22",
+      "composite_sha256": "b7f5ad206e52bc361dd9cc30a11692672d7eeff2c97ce7f1d348635ae5388737",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/studio/models/workflow.dart": {
+      "target_file": "client_app_v2/lib/features/studio/models/workflow.dart",
+      "target_sha256": "372591b83e069b9734e7b1adf9c620c9a5ec0e0071d85e160ff62b2f48c1de6a",
+      "unit_test_sha256": "134a301cb920b60dd813e9bdf1993198f1adfd84afb47b0b64129fc5e5a54bcb",
+      "rules_sha256": "df7db792a2cc5b58317c1d22b7f8d7288d28862ced219c2b1d476848eab4ea22",
+      "composite_sha256": "cb95ec94095d85c49a3415cec4f73035dc61b32c0b001abf8d1fd35db8799024",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/studio/models/workflow_simulation.dart": {
+      "target_file": "client_app_v2/lib/features/studio/models/workflow_simulation.dart",
+      "target_sha256": "e9cf8718c8f397efae041a139212fd35560411c01d51607205c752b1341039f6",
+      "unit_test_sha256": "d7eeb7ab586dc396370a5bd9c633cd603e6974cf9b9bb901f034e62f7a90868b",
+      "rules_sha256": "df7db792a2cc5b58317c1d22b7f8d7288d28862ced219c2b1d476848eab4ea22",
+      "composite_sha256": "bae79c48928b8a125a4678e73c580ba527bd9d7ddd82fbc5be405d709d96ad50",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/studio/utils/workflow_cloner.dart": {
+      "target_file": "client_app_v2/lib/features/studio/utils/workflow_cloner.dart",
+      "target_sha256": "1bbafa9b4c68a2cc6e8e5de48b46351cbaaf30065811c71e7c3b91f3c53916c2",
+      "unit_test_sha256": "2241d023d26464ee41d21ba79841a1568fbb444d77562fffb4dfbcb27d77696f",
+      "rules_sha256": "df7db792a2cc5b58317c1d22b7f8d7288d28862ced219c2b1d476848eab4ea22",
+      "composite_sha256": "c7b70bb074d6c01e65d2e7ebba951b1285e9ef4a4980971955dcfdc5c7f5a203",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/controllers/execution_controller.dart": {
+      "target_file": "client_app_v2/lib/features/execution/controllers/execution_controller.dart",
+      "target_sha256": "f11bff44a16ca41954e2041c48e546961e88926385a648d3b66dac914e287404",
+      "unit_test_sha256": "024f548ccff475bf9d93eb94f96fba458b15af11325eb09c6eb3396c74e70c98",
+      "rules_sha256": "55eaa1ddd5d7deb3a4f5c9a12f8e946c07f12cf2cbf639adc97706b6182e84ae",
+      "composite_sha256": "d302f01179030965e96de237019d88ab67d9304a74296c60a41d771490396d52",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/providers/atom_result_provider.dart": {
+      "target_file": "client_app_v2/lib/features/execution/providers/atom_result_provider.dart",
+      "target_sha256": "9da6267e1643452d664572e4b88bbfa532f2e2cbf9a634f51f9466c6ac4f797b",
+      "unit_test_sha256": "81a25f08c95d746aad494ce1ac8edaa73faf20502838cac42c7337d297dc13b5",
+      "rules_sha256": "55eaa1ddd5d7deb3a4f5c9a12f8e946c07f12cf2cbf639adc97706b6182e84ae",
+      "composite_sha256": "6a6cac46c3d9c07f6e0e45cba6810ca3d0ca2d28b0950deda7b33a66c740936d",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/providers/hydrated_reference_provider.dart": {
+      "target_file": "client_app_v2/lib/features/execution/providers/hydrated_reference_provider.dart",
+      "target_sha256": "10d4b4fd105f5fed47f72c04a97ad6fe1b5de10aab970d35cd705df2d4a5798f",
+      "unit_test_sha256": "10a8610569f66c63c4b011bd4b0ac817ffc44dfab6ce2dd367e5c91eee308d00",
+      "rules_sha256": "5b7395fb1f56660c1858018fa1cd597b9604d32b242ddc0998b8983c8d323c79",
+      "composite_sha256": "8e76242658e51446e91a5a9cdd892bcb91cc85ccfaffdf18434d1d4fea7ba5c6",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/providers/report_data_v2_provider.dart": {
+      "target_file": "client_app_v2/lib/features/execution/providers/report_data_v2_provider.dart",
+      "target_sha256": "cb77542823f1cf94810811345bf7d98ab20ceff40ffbf841e1b1b2fac8f766ff",
+      "unit_test_sha256": "61441ceb3c0cc1d2938ed503eff17eba2eb8b10fab2673dcdb15f46fcbe4e0dd",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "98463bc4792d6c83bf8e5c916050fac976162f5646f7245f581a7dac26f906b7",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/settings/presentation/settings_controller.dart": {
+      "target_file": "client_app_v2/lib/features/settings/presentation/settings_controller.dart",
+      "target_sha256": "89175a1944a8cadb38edff82e4bb379768ae31e2897a48e075b8b566a998c292",
+      "unit_test_sha256": "13668fa917e91cb6359b066c41538f844fe400b7205823009e5b8453ccafe71f",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "4baf2d2c593a182e13b250c12baa2b63bbdb8da92c8e075284ce2a8d0dad3406",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/studio/controllers/blueprint_editor_controller.dart": {
+      "target_file": "client_app_v2/lib/features/studio/controllers/blueprint_editor_controller.dart",
+      "target_sha256": "bf636c05dab279e557425dc8653d1e0a78d30e30444dc2cd1e1eb4f0fbeb6928",
+      "unit_test_sha256": "8f1f5283ed2a7dbe3e8d685537f9e85d4244b68884a3ed204599dfe34cf6960e",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "39a74c4f6098a2a2ebe05572bdb4328db5657dff898cf1954a639b705423ac77",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF2.md"
+    },
+    "client_app_v2/lib/features/execution/views/dashboard_view.dart": {
+      "target_file": "client_app_v2/lib/features/execution/views/dashboard_view.dart",
+      "target_sha256": "c9671e81c5d5e95e87b28242eb233695d62f5bc66eaff82e5e9013a48c073e43",
+      "unit_test_sha256": "1eaf8f55d5c7750941168dd622dae61d9668517315ed15a7bdc89618fd15cdab",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "ec8b13fee4262ceaaa62ea1d5c3c94f5b2aca348210ddd2883e43c80d21d58b1",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/features/execution/views/dynamic_start_screen.dart": {
+      "target_file": "client_app_v2/lib/features/execution/views/dynamic_start_screen.dart",
+      "target_sha256": "c7024215e94cb83687be38c6c4b49d34fdd2b054700460342f9c1f4bcf361241",
+      "unit_test_sha256": "17e45ae90586646a0092527369660085e5e71690684493e972140a0f89681147",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "c7bd08b001f9fa175f6e0c3aa6dbc8a1549f5f723aa3f901a9d218defac656a3",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/features/execution/views/new_execution_view.dart": {
+      "target_file": "client_app_v2/lib/features/execution/views/new_execution_view.dart",
+      "target_sha256": "e157d42e1bb0c855750bff471d3c40a9bb542a259405221c17d4820aec3aad14",
+      "unit_test_sha256": "b609bb45cd82799b32747504fecd73d839b9a5578c60d173c6327cb52a703510",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "8747f61180725f63445e16a8408d210eb3cab11e219bec806938e0950c6e2589",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/features/execution/views/widgets/diagnostic_scorecard_widget.dart": {
+      "target_file": "client_app_v2/lib/features/execution/views/widgets/diagnostic_scorecard_widget.dart",
+      "target_sha256": "92cc6b8408e6408bc87f9d74b6f996ac7166cf41d8d80d7c0c78791871350ee2",
+      "unit_test_sha256": "9c07a8e2146dbd7c14d33ca6669aa00a6ce2a953c2824d1e26a03fd38be3a3c8",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "1773276550a374d1aa3ec3898a06a142989537f9a290bb76bc3bebc2b0062780",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/features/execution/views/widgets/report_renderer_v2_widget.dart": {
+      "target_file": "client_app_v2/lib/features/execution/views/widgets/report_renderer_v2_widget.dart",
+      "target_sha256": "fa572aa76e53aa2d13379a6893da01e18f7322e67c53dd52001258dff41e776c",
+      "unit_test_sha256": "d2263c004c2766326b6be54dbb6d30593060d94eadc03937f622b20f124edfa8",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "8e7bac74ab2737659116650203ba0e33d76caa4254043e1768225db99b1a2ebc",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/features/execution/views/widgets/sdui_alert_box_widget.dart": {
+      "target_file": "client_app_v2/lib/features/execution/views/widgets/sdui_alert_box_widget.dart",
+      "target_sha256": "f9fd1b6bcd6df9b9df73fdddda915fb6cf93a0eeb86a26e04a3c10557c449190",
+      "unit_test_sha256": "6310bd0433278cd9fb5c58189f1c7f00b2a3fc356aea74e4a23800e9b54072ac",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "4db09d38b37e9be44359367b9a4b9ca903d17030ddafc503b0c38f212dd8c45f",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/features/execution/views/widgets/sdui_grid_widget.dart": {
+      "target_file": "client_app_v2/lib/features/execution/views/widgets/sdui_grid_widget.dart",
+      "target_sha256": "0e99c3e25ad71eecf141d8670fba6af991b961df60805bb63aa5d8d6fb52fdd6",
+      "unit_test_sha256": "adc60a27c8e229122be627a22ad8409598fe30e1153d55ee51a563d27514b8e3",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "760cfe29fc5bc83f51f58de251953be7c81a056de6826ea3aedcb4cd821149c8",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/features/execution/views/widgets/sdui_node_renderer.dart": {
+      "target_file": "client_app_v2/lib/features/execution/views/widgets/sdui_node_renderer.dart",
+      "target_sha256": "93256278e12eae551c24cd3c4adf5e31d2d655566fec10104ae699a1f82b2856",
+      "unit_test_sha256": "1506453ab0230d29c640a209fc57f7b6fff6e409abca519b26cb1517ca3e0c7c",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "1b07a8c1fab505239d2c39087b892516fbbb4b25d8531c41116db71fec06869d",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/features/reports/views/execution_reports_view.dart": {
+      "target_file": "client_app_v2/lib/features/reports/views/execution_reports_view.dart",
+      "target_sha256": "3933fa25ace0bc313e5d3933c92e716160bc2978abb3fe92136aa82132b33849",
+      "unit_test_sha256": "052962236965870c5f23be76b0c7d99157dbed16c35f7965aabecd52381c9be8",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "f7744aa17621a5a645ee9d0dccfbb923e2d6578dc258724caed833d12c70cefb",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/audit_trail_viewer.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/audit_trail_viewer.dart",
+      "target_sha256": "680c0f18edbfde198b735de04b4b947c34796b5f7959825e88e4e6c626db7b56",
+      "unit_test_sha256": "84622c4021321d26e6ce8f84830a7a0033947a3cd3eb5c2476d8db3f87ff9023",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "d5465e5c9a13526a1fba9756a0aec7d3718a2954df10e5788e7ee7332e727b10",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/comparison_matrix.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/comparison_matrix.dart",
+      "target_sha256": "1511a438920865bf8352ca929799584b3138888a282974bdbc5fe6bb9c24b4ca",
+      "unit_test_sha256": "89cb7fdac3216bdcad0d91fa112c359f2ab3af726565469cf0bfc77e4898bdc6",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "79ff51cac150f023e4bae819c84681cdddda3e5fd8c33488310a597981bd7fb0",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/deep_dive_expander.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/deep_dive_expander.dart",
+      "target_sha256": "b91ab94c74c1563f8c4380a7559022129a603e6c0552c45d15204cbe63af194a",
+      "unit_test_sha256": "2529e33f91a4be95461d4109b751df4daeb60995e3c65617ffa85a28b88d8b64",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "e561ff1c2a32921d50a005dd1be49742cd6f9188b2f38585e79598901f7de47b",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/dynamic_form.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/dynamic_form.dart",
+      "target_sha256": "112723383bdb2eb27ccf572953583a58ebbb794dbb0e3c8baa3e11d37b4b6985",
+      "unit_test_sha256": "e1e57f7685de6360dd5e71d96b5da465337b840cb112bd8efca38376387aae9b",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "eaa8b716cc6286b08571031c8e69cd52176e632a01fbd34e5d3da2cfb3e0e8f7",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/feedback_section.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/feedback_section.dart",
+      "target_sha256": "3c906d0707965eef40eb02c20166b844f9702dd199170ee7c24ab47d3564f9d1",
+      "unit_test_sha256": "f4bba4f2e164e371217b7938a52517cae25dca0dea85b85e3675feb46d9fdc61",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "cf87e6f56286da48b9591c356c83e2eb7abbf81a4e1de9d9042ad59351a7387f",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/file_input_field.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/file_input_field.dart",
+      "target_sha256": "b9a428cc8ff44cb9cbe9edca4d0778ef1f3053f7c46d14a3cd48307e061d774d",
+      "unit_test_sha256": "843aa3c5f3320879c70bcbd73a39091d8c0d82590cde6edfcbd01f4651384aa6",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "192dbd8fe78e3afa80477a158d56356a8a6a45747ccdee137f2c252fe137639a",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/file_uploader.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/file_uploader.dart",
+      "target_sha256": "9120c0cb9f347374afdb10a55f6d0f84c3a40988b83cc416c2b35ddb87bade4d",
+      "unit_test_sha256": "ef58c918dffb6c07155ca1878bbf381a120cf16cde7e5b985a8a8324b2614148",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "ea55f8c4dadbf33db0f3fa27c202c05b80a6fbcdba655e2e6806a06474a23518",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/generic_grid.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/generic_grid.dart",
+      "target_sha256": "c09eb9652ccd72b83a7f981ea2a51500ebb7ed7a026527346c3c1956b070def9",
+      "unit_test_sha256": "81f7f62de42d6314d790f68a9626841737a4d2f8a06797a585efb438e0e8b46f",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "9d13590dcff2930d4918cce1e479394bf95d608faf9c2b7c76ae4809fc882a42",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/global_error_view.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/global_error_view.dart",
+      "target_sha256": "594f9be6dd115daa37c144e299246e0a52711157faf17ea88a30ac96750b0fde",
+      "unit_test_sha256": "2362bb01cfbc50ee694429c91a67e1bf9c8991a94bd287f62f76c2f3913e99c0",
+      "rules_sha256": "31a2041f26a1f917b929fe8b8528590756dfd95db62eccca44908d1463536bca",
+      "composite_sha256": "77eaba200e001e417cd41f1c6c45b2efb20b350954d4763290013d411c89e4e6",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/log_viewer.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/log_viewer.dart",
+      "target_sha256": "f44daffe201e9b4583169d66896816d4a18539165b1afa794a2e952a6a4708b0",
+      "unit_test_sha256": "b0f19b68b7ee6cb2cf0e3c8b2d66ae4bee17fefa26eb43e7ff9d6594f3440fa8",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "ea9ae9c6d8b8c097458a21f2543573c7037b2dc8ff32e4ef16113fc094e98a11",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/logic_matrix_chart.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/logic_matrix_chart.dart",
+      "target_sha256": "3d0ae1f6af1b364c307cd1d4db0608d277af6b8cd58ed65a3ced22cadef54b97",
+      "unit_test_sha256": "e1f604ce165af3113a492edbf5a0c3493e58b21fcf2e030b741226ebd9a23147",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "eb4d79da62d3426caf31ebe8142945e5a89d9bc4707a903780d5d794444bbf4e",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/logic_radar_chart.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/logic_radar_chart.dart",
+      "target_sha256": "9aebc79ea1d8bf5112609508147c6a23630b4c17f5fdc2cf3f70a861c6754910",
+      "unit_test_sha256": "14523c1686e368cfd5867db54920da8a2df5497b486cbb9080bfa8eb706c93f4",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "96f0a8f78d4e269911461083cc96de47d25174970c56afef9ff8d225d0be901f",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/omni_input_box.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/omni_input_box.dart",
+      "target_sha256": "f3961ec9822ebb82868c73dac1e6701d79db142edf8c371048ada76a6aba0fba",
+      "unit_test_sha256": "1fb1c1c0c1b22c0e6b76bb6bea766539261b06df250c2d5ed1ebc19e3b1b79d3",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "52c2e582c25476f8c2492e02337737e0409c1411920ab1d2ee302f57e95ca1d1",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/output_renderer.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/output_renderer.dart",
+      "target_sha256": "95b00b3c48f159e7e575213c2dde6b1058fbe05e3a25ca5a467d47b810903f00",
+      "unit_test_sha256": "e88970b5fda1aa3761fbc4afd2264ffccf0458de5beb2c5683bccf1822f87084",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "623b4caed92d0347496120a1b1aa70e2c5dd8af6197ce5ca012e89fa2baac00e",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/pdf_export_guide_dialog.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/pdf_export_guide_dialog.dart",
+      "target_sha256": "fb6623630e06de4e35e8c8b6e66b8f54aa3d2c0ab44dbeb31a9da7470978284f",
+      "unit_test_sha256": "e3cb098cbfab7e272d631e9bf1fb3f7e85e623a0f88dd35f365f8e6407adf17b",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "9ca6b082dd75c9de562c2a5f764892b05a438f9c005789355f5c78ab24485f93",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/pre_mortem_card.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/pre_mortem_card.dart",
+      "target_sha256": "ced88def5d57a7f544d63998d5756d8a835b9155f62597f58171e027ae582fd1",
+      "unit_test_sha256": "55c5bc354b6d244538435cf870b2e1d06d5afdb166f5f3aec6e1331da4df08f2",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "443e08684b337533bd250deec68ff63e73b888da3f3f41224e3889aa1274af99",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/quadrant_matrix_chart.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/quadrant_matrix_chart.dart",
+      "target_sha256": "46ddd6757993bb4c54cab7e0641e56280b8ed81ea0b8673da7d8224d18564a34",
+      "unit_test_sha256": "ae56901cbde2fcc9c194c3dc6802ea327d1fc94dfc914946ff931538134eaf39",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "705d236e017d87380114f20bde711296e6f0001c917f6566e26146b424458aca",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/result_dashboard.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/result_dashboard.dart",
+      "target_sha256": "413592981bc68014d6e60d0538d9b1016074654d2c40cb04cdf6c5c4228b0bf0",
+      "unit_test_sha256": "8a7aac12f746d14ad3951e11d76e1ea92d845a59c07bf79582e6f22cb486fe6b",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "fb997ca70ed795a4e99dc2ef8cc917967cfc70f170ce9afc702352acb832375f",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/schema_mapper.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/schema_mapper.dart",
+      "target_sha256": "7d41caf87b3cc85294269cd2ebbf3261358d39941335a86703abe363f92958aa",
+      "unit_test_sha256": "f00e842a1ec76c8df72939a968a0428bbf194e1570a7a1f366ef17a7d68cc7c8",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "cf1bfea01268c93c8526e44585044d207c3351bdea08c4e7636f36503fd749dd",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/score_card.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/score_card.dart",
+      "target_sha256": "a50a36c7ffc9a98bd4ca991f4849f5ce966377b9ca59274686262f11e1685e92",
+      "unit_test_sha256": "0a6e0928f29bbabdb4085a1d4f37132662546be5c422cf96a6cfbc73c5fd7667",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "0ea37be85ec2d4881216d05e3fdfc0da5f12e9b30532455dcac2c6b788ab6e08",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/score_card_radar.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/score_card_radar.dart",
+      "target_sha256": "50681b7d1232473e817cb937c55d5126f7abb81c5597b15cd1249bb9b2486fb9",
+      "unit_test_sha256": "40f0cd869991904238a7e6a5b07aa48120751f97a294e80b46f55d742f0d2aa6",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "971f5796dfbc59f9d3536d0d0bbeef32cb13754759f194c7281816dd108cb73a",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/specialist_section.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/specialist_section.dart",
+      "target_sha256": "ab1560b74d143c93b4f90a07b578fc800c5fe9a0edc8d593d8a492af82de12c3",
+      "unit_test_sha256": "764e3c2e86b27b057094abce6ec9792e0b3dc5e0ead388a07d2dc72ab36b92bf",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "4782d0e8a6baa56b248a0680eddf2e3cf0362996f8a172311e092833f469c062",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/unified_metric_gauge.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/unified_metric_gauge.dart",
+      "target_sha256": "99abafb009cdc68e67b3a323b5aec88b6572c5c25b59777b8a08fb53c52484e6",
+      "unit_test_sha256": "e705d7bbd29e382cf8464447d77a9af2310d09ccc13af62d75abeff4f62bd449",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "4f24bf4c5b0d14137428551d252585af45ff9c3e19b8df309839022b643be0f0",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/validation_timeline_widget.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/validation_timeline_widget.dart",
+      "target_sha256": "67725912a0d88f015eda3d0a8bb43af9cfcd0e2ab60754a7ed02779088d95eeb",
+      "unit_test_sha256": "28bad38955a8b43c3a955e66b021972227089cb06baede9ee930cdc23eba5fd3",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "2138e401f82290ae19a67f898b89f4454ab00224467420861695d64f28fabe34",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/shared/widgets/workflow_selector.dart": {
+      "target_file": "client_app_v2/lib/shared/widgets/workflow_selector.dart",
+      "target_sha256": "b99790a37cc42ca8d07926b63f7fbe11aeba819121d265033ac958dad0a70d2c",
+      "unit_test_sha256": "c915b2be06e5ab792e15bcb8562dc20618f7abad05caad31b95338ade7cf1e87",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "c1300731c71f4c154e2d2d053a016f0ee771160476e641f0d60191bf3cf67a01",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md"
+    },
+    "client_app_v2/lib/features/studio/views/blueprint_editor_view.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/blueprint_editor_view.dart",
+      "target_sha256": "bc56dc9eea7d07be3a7f2133f2110c5077eab712096d0cdc2f23fbdbefab3723",
+      "unit_test_sha256": "5fee95dd6a086771208c65cb76a49dcb9543e560b8d8f4abab394f0579bc22db",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "ab878c05308cda552529a6de0483c456237b7a0a70d8814d5cbb833ab6ed343e",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/components/clone_entity_button.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/components/clone_entity_button.dart",
+      "target_sha256": "bc1a9f8efc96f1ba9a0d31b6562c08a6a89edd20036111d6e05ce41e8036827e",
+      "unit_test_sha256": "676e5896beec499cfc55e367d863f4a36eac7447b29a0b9246d85b4d8e872644",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "70d030b93dea2185370ad1c2a9dce53cfccbfaf79ee7bee2cbb8abf42529c614",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/matrix_editor_view.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/matrix_editor_view.dart",
+      "target_sha256": "cc7bb56aec24003c27507887fad71db5ca30426de9f236fcdd4bea5944f75690",
+      "unit_test_sha256": "0a58360f5d0eed888f0f8740003861156fda98d6a43a5fe4f8f3504331e8ee2f",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "a33ea8e064bb50eebf24a46a156c7362a460eec43e6b9b6492bdaed72e132085",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/mcp_gateway_view.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/mcp_gateway_view.dart",
+      "target_sha256": "8ed371dbb8edaef864b8610942f9aee8196c038af5582bc39a831e7dfb9953e2",
+      "unit_test_sha256": "5cf2a71dc116877784faab5ce90ef82553768428f1b9bc4469230529317afd3c",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "06e2fc4a8252df602e50e6f05ecd97d2baee064f560177c95200f3becd9ea6ab",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/model_registry_view.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/model_registry_view.dart",
+      "target_sha256": "afb63b7688f9123e3d6a53b6ac02a081d919c4edd405b2b27a9a0d666e1c25f0",
+      "unit_test_sha256": "e320e1dcb6ad2cc77de18f5ab5d8a2520494445f7a8cc1592f0f27b4f769feee",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "35401ca543d03ad7a8f9a2d821761330b294d1602f7f1277f14881ac8f96c97c",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/contrastive_pair_editor.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/contrastive_pair_editor.dart",
+      "target_sha256": "fdad0fe923248c6851175c94c3b5d8135198ed254c73af7cf3279340525a1df6",
+      "unit_test_sha256": "95e6d045c3e4b7f8973aab90a6d827186265836bec3ec7c955a024944a054f7b",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "cf4eece2356253762ec796fe736c065e70a2c89146f432b71cffbc81573f8077",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/dag_canvas_view.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/dag_canvas_view.dart",
+      "target_sha256": "1e0808a2cb667761eb2dfb979738965c92a24ebdad314099d41e729dd0110ad4",
+      "unit_test_sha256": "46f27916850987bc66aa5ffbafe3c0fafc4e81078abf5ecd744b61dad6b7c3ea",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "7c54924f1662a84d06db3ba4b02b9c9f5f3441a434e436cefb248248ca3edc05",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/dynamic_item_list_editor.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/dynamic_item_list_editor.dart",
+      "target_sha256": "fc8856ae91889eadacd7533d94ee283516ff21807846e495bbd05c9dac034cfe",
+      "unit_test_sha256": "a672973af8b3748b3091bc9e2798ae703d198b7aa7c0e6713d6f9004a845277d",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "d4c30e0804c984092f4b0787281013772b7ed8619f0af7a1d7347a21c5d1df99",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/expected_input_editor_box.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/expected_input_editor_box.dart",
+      "target_sha256": "5a486b38f6cbd307d08024597c781a37b40c71601678ce843498c2d56d6cdc4e",
+      "unit_test_sha256": "d83bd975f3942145a55bf713a7c62535391de54873311120e821b63f9ce1d5c1",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "507c3c10555805a1bde07b16ef7ddaa69deaceb3bd044f5825a7897b00c65a6c",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/inspector_pane.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/inspector_pane.dart",
+      "target_sha256": "6a46d38eb7f23c993c2d6df2daf0e0e1e9194c7c3909342edafaed9a693d056e",
+      "unit_test_sha256": "804cc4f4a92d5a001c9e87ace50c9922e302995f2662a11bf56717fbbd618614",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "bc1eec275baf1380497b06350ca8b79b0a82a6855b234655c26125226991812c",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/linguistic_shield_banner.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/linguistic_shield_banner.dart",
+      "target_sha256": "ad0e7a4b3bc5f21c581a358f3173e7184eb3750f840ade8cb783aae0efb9afcc",
+      "unit_test_sha256": "d99c30e9bbff08b422018ec3cdcc9f1fd973c730acad429109579a4dfd2d7f93",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "6b90106f74bf0adb27497137893dd336d0e2827dd33fe84c6dfce2d6bbf7ff80",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/prompt_preview_dialog.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/prompt_preview_dialog.dart",
+      "target_sha256": "7d94172788a403392abb357bd6538af8be4c6835b77a4b7bd860b55f86080025",
+      "unit_test_sha256": "2c9a71e93dcccff5bd78d602b101519435e87bd4be2b259b53d04a023df63333",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "5695d1de301f81f212103eb2f8b8142934cbff2d05f57e775e473cfe0242d571",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/tag_chip_input.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/tag_chip_input.dart",
+      "target_sha256": "f17577e2efb369a6f43e0395c8a9e227c61fde535128c880e2f1be1d5662b9f4",
+      "unit_test_sha256": "4519e2a4014e4d74199a850cd43ff7a324509fab198e7fa7934af3a545ffba54",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "d5222fd1ad097e6f742fd5458264e1f33a090e2f808c01ec1466be98b47d3642",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/workflow/workflow_inputs_tab.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/workflow/workflow_inputs_tab.dart",
+      "target_sha256": "7acd87777d21567aa4e1e858eb68a28ad785ed3056b0451250db3c73ab6451ef",
+      "unit_test_sha256": "7fc340d9a5c30f375f54388249082511493b13921c46e3a41eaacb42d5379e1c",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "828e3db4f1dc6fc7ae8876d6e177dcbdf33af74113d16c90d8bf38bb10d71e0a",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/xai/fallback_error_card.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/xai/fallback_error_card.dart",
+      "target_sha256": "e827041ab0975b3c6aac3e0b8fc3f31886677d67f87ee2d875e71bc1d087d719",
+      "unit_test_sha256": "29a439f27d06e9bacd8c2ce0fc5df3f2153e2d4faf206f83d3c258e908e460e2",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "8ea883bcf2118825f8257a70ab6cc510f26bd471224b6711ff452c44fe7506f3",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/xai/matrix_observability_accordion.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/xai/matrix_observability_accordion.dart",
+      "target_sha256": "a7fe0b345a2bc3572cf0804701422dc7a8a60c8fe66534145cab92b3791e84d3",
+      "unit_test_sha256": "60241ac17dc852f7f32bc40fe9f8fe08913e75f57192da6662f3f090e117e2bf",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "f18f2eccdad23c533f8f3087ceae724dc16da71e172a6b96f74fbdfab382ced1",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/profile/blocks/executive_summary_block_card.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/blocks/executive_summary_block_card.dart",
+      "target_sha256": "5086fd27a774dd37cc21b23af9d23592b9c6ac086bd6f83ec45a6b5098f77e6e",
+      "unit_test_sha256": "340cad4b5d4286fbb3df467d95ffa576d16a0760cf8eec7a784a45c77f69f3a0",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "0330b0ce5ac0a31a8e9f7bd447ef7d8a6b9e8644b7952e84770998be7f2337c7",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/profile/blocks/variance_block_card.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/blocks/variance_block_card.dart",
+      "target_sha256": "7096b6fb81f8b0b4c737eee6b57ea4a78dc0924f0f873cede03fa020f92e9974",
+      "unit_test_sha256": "a6da4cecc5defb503232a865596834540d531ffc7728a1e0fa2a27a58b5ab99d",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "79a77a13154b8641d463f38133c297cb65bcb6099b23a134d0059253214debaa",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart",
+      "target_sha256": "7806f99adaf3776a85fe18b6cb5504e3c1c2d709dab072ecc23dfb2df82f1f23",
+      "unit_test_sha256": "108d0531e235d01f629be0d436c9fe2bfa2911e5cde2eb4f0959f19cea69653c",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "213f344164fc50417a927438cb5b942c0b077ea57ff173882976ff2b60874dd7",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart": {
+      "target_file": "client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart",
+      "target_sha256": "eeae6e16ac6d65f6c2ad0783d9e222afdda32058c8e5c6ffef92563ea66d86e4",
+      "unit_test_sha256": "0053ac6ffc3a3f91bb16783b26d1fd7a950d20bb8123f65d156bd8c16a1eac97",
+      "rules_sha256": "ea26fd82798dcb03aacdd89a0dad68e57a76a236d53625a38c6269d51ba273ec",
+      "composite_sha256": "b5eb0a37a1c278ebc933668f4c35197cc09c3d3b4767face796e1781fc3049af",
+      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
     }
   }
 }
