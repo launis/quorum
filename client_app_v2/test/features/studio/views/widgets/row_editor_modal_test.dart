@@ -54,6 +54,11 @@ void main() {
 
       expect(find.text('Initial simple row'), findsOneWidget);
 
+      final textField = find.widgetWithText(TextField, 'Initial simple row');
+      await tester.enterText(textField, 'Updated simple row');
+      await tester.pump(const Duration(milliseconds: 700));
+      await tester.pumpAndSettle();
+
       final saveButton = find.widgetWithText(FilledButton, 'Save');
       expect(saveButton, findsOneWidget);
 
@@ -61,7 +66,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(result, isNotNull);
-      expect(result!.translations['en'], 'Initial simple row');
+      expect(result!.translations['en'], 'Updated simple row');
     });
 
     testWidgets('renders and saves MatrixRow with aiDescription and label', (
@@ -108,16 +113,21 @@ void main() {
       await tester.enterText(aiDescField, 'Updated rule for AI');
       await tester.pumpAndSettle();
 
+      final labelField = find.widgetWithText(TextField, 'Matrix Row Label');
+      await tester.enterText(labelField, 'Updated Matrix Label');
+      await tester.pump(const Duration(milliseconds: 700));
+      await tester.pumpAndSettle();
+
       final saveButton = find.widgetWithText(FilledButton, 'Save');
       await tester.tap(saveButton);
       await tester.pumpAndSettle();
 
       expect(result, isNotNull);
       expect(result!.aiDescription, 'Updated rule for AI');
-      expect(result!.label.translations['en'], 'Matrix Row Label');
+      expect(result!.label.translations['en'], 'Updated Matrix Label');
     });
 
-    testWidgets('cancels and closes modal on close icon tap', (
+    testWidgets('cancels and closes modal on close icon tap or Escape key', (
       WidgetTester tester,
     ) async {
       I18nText? result = const I18nText(translations: {'en': 'Sentinels'});
@@ -134,6 +144,7 @@ void main() {
                       initialI18nText: I18nText(
                         translations: {'en': 'Simple row'},
                       ),
+                      title: 'Custom Modal Header',
                       isMatrixRow: false,
                     ),
                   );
@@ -147,6 +158,8 @@ void main() {
 
       await tester.tap(find.text('Open Modal'));
       await tester.pumpAndSettle();
+
+      expect(find.text('Custom Modal Header'), findsOneWidget);
 
       final closeIcon = find.byIcon(Icons.close);
       expect(closeIcon, findsOneWidget);
@@ -162,6 +175,37 @@ void main() {
       () {
         expect(
           () => RowEditorModal(initialMatrixRow: null, initialI18nText: null),
+          throwsA(isA<AssertionError>()),
+        );
+      },
+    );
+
+    test(
+      'throws AssertionError when isMatrixRow is true but initialMatrixRow is null',
+      () {
+        expect(
+          () => RowEditorModal(
+            isMatrixRow: true,
+            initialMatrixRow: null,
+            initialI18nText: const I18nText(translations: {'en': 'Mismatch'}),
+          ),
+          throwsA(isA<AssertionError>()),
+        );
+      },
+    );
+
+    test(
+      'throws AssertionError when isMatrixRow is false but initialI18nText is null',
+      () {
+        expect(
+          () => RowEditorModal(
+            isMatrixRow: false,
+            initialMatrixRow: const MatrixRow(
+              label: I18nText(translations: {'en': 'Mismatch'}),
+              aiDescription: 'Rule',
+            ),
+            initialI18nText: null,
+          ),
           throwsA(isA<AssertionError>()),
         );
       },
