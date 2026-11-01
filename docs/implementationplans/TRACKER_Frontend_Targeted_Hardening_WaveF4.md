@@ -23,7 +23,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
   - [x] @[client_app_v2/lib/features/studio/views/blueprint_editor_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/components/bars_matrix_builder.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/components/clone_entity_button.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/components/clone_entity_button.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/matrices_master_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/matrix_editor_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]

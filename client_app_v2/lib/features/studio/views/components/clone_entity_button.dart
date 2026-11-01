@@ -1,15 +1,16 @@
+import 'package:client_app/core/error/app_error_ext.dart';
+import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/state/mutation.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/core/state/mutation.dart';
-import 'package:client_app/core/logging/logger_service.dart';
-import 'package:client_app/core/error/app_error_ext.dart';
 
 /// A standardized button for cloning Admin Studio entities securely.
 /// Enforces Riverpod 3.0 Mutation side-effects, I18n No-String Mandate,
 /// and Dual-Reporting Telemetry for the Zero-Latency PC illusion.
 class CloneEntityButton extends HookConsumerWidget {
-  final Future<dynamic> Function() onClone;
+  final Future<Object?> Function() onClone;
 
   const CloneEntityButton({super.key, required this.onClone});
 
@@ -17,7 +18,7 @@ class CloneEntityButton extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
 
-    final mutationParams = useMutation<dynamic>(
+    final mutationParams = useMutation<Object?>(
       onSuccess: (_) {
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -51,11 +52,11 @@ class CloneEntityButton extends HookConsumerWidget {
 
     if (mutationParams.isLoading) {
       return const Padding(
-        padding: EdgeInsets.all(12.0),
+        padding: AppSpacing.p12,
         child: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2.0),
+          width: AppSpacing.s24,
+          height: AppSpacing.s24,
+          child: CircularProgressIndicator(strokeWidth: AppSpacing.s2),
         ),
       );
     }
