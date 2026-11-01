@@ -1,17 +1,22 @@
-import 'package:client_app/theme/app_durations.dart';
-import 'unified_metric_gauge.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:client_app/core/logging/logger_service.dart';
-import 'package:client_app/shared/widgets/output_renderer.dart';
 
-class SpecialistSection extends StatefulWidget {
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/shared/widgets/output_renderer.dart';
+import 'package:client_app/shared/widgets/unified_metric_gauge.dart';
+import 'package:client_app/theme/app_colors.dart';
+import 'package:client_app/theme/app_durations.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class SpecialistSection extends ConsumerStatefulWidget {
   final String title;
-  final String type; // e.g. LOGIC_ANALYSIS, STRESS_TEST
+  final String type;
   final Map<String, Object?> data;
   final Map<String, Object?>? metrics;
 
@@ -24,57 +29,117 @@ class SpecialistSection extends StatefulWidget {
   });
 
   @override
-  State<SpecialistSection> createState() => _SpecialistSectionState();
+  ConsumerState<SpecialistSection> createState() => _SpecialistSectionState();
 }
 
-class _SpecialistSectionState extends State<SpecialistSection> {
+class _SpecialistSectionState extends ConsumerState<SpecialistSection> {
+  static const double _desktopBreakpoint = 800.0;
+  static const double _logicThreshold = 3.0;
+  static const double _strategicMaxScore = 4.0;
+  static const double _bloomMaxScore = 6.0;
+  static const double _toulminMaxScore = 6.0;
+  static const double _fidelityMaxScore = 3.0;
+  static const double _abductiveMaxScore = 3.0;
+  static const double _authenticityMaxScore = 3.0;
+  static const double _complianceMaxScore = 5.0;
+  static const double _baseBubbleSize = 12.0;
+  static const double _bubbleScaleMultiplier = 4.0;
+  static const double _spectrumLineTop = 10.0;
+  static const double _spectrumLineHorizontalInset = 30.0;
+  static const double _spectrumTrackHeight = 4.0;
+  static const double _spectrumNodeDimension = 24.0;
+  static const double _spectrumBorderWidth = 3.0;
+  static const double _infoIconSize = 32.0;
+  static const double _helpIconSize = 18.0;
+  static const double _chipIconSize = 14.0;
+  static const double _defaultBorderWidth = 1.0;
+
   bool _showRaw = false;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    if (widget.title.trim().isEmpty) {
+      final err = AppException.validation(
+        'Fail-Fast: SpecialistSection title cannot be empty.',
+      );
+      ref
+          .read(loggerServiceProvider)
+          .error(
+            'SpecialistSection',
+            'VALIDATION_FAILED: SpecialistSection title cannot be empty',
+            err,
+          );
+      return ErrorView(error: err, compact: true);
+    }
+
+    if (widget.type.trim().isEmpty) {
+      final err = AppException.validation(
+        'Fail-Fast: SpecialistSection type cannot be empty.',
+      );
+      ref
+          .read(loggerServiceProvider)
+          .error(
+            'SpecialistSection',
+            'VALIDATION_FAILED: SpecialistSection type cannot be empty',
+            err,
+          );
+      return ErrorView(error: err, compact: true);
+    }
+
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: AppSpacing.s2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
+      ),
       child: Semantics(
         excludeSemantics: Platform.isWindows,
         child: ExpansionTile(
-          leading: _buildIconForType(),
+          leading: _buildIconForType(context),
           title: Text(
             widget.title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           subtitle: Text(
-            _getSubtitleForType(context),
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            _getSubtitleForType(l10n),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
-          childrenPadding: const EdgeInsets.all(16),
+          childrenPadding: AppSpacing.p16,
           children: [
-            // Toolbar
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showRaw = !_showRaw;
-                    });
-                  },
-                  icon: Icon(
-                    _showRaw ? Icons.visibility_off : Icons.code,
-                    size: 16,
-                  ),
-                  label: Text(
-                    _showRaw
-                        ? AppLocalizations.of(context)!.btnHideRawData
-                        : AppLocalizations.of(context)!.btnShowJson,
-                    style: const TextStyle(fontSize: 12),
+                Flexible(
+                  child: TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _showRaw = !_showRaw;
+                      });
+                    },
+                    icon: Icon(
+                      _showRaw ? Icons.visibility_off : Icons.code,
+                      size: AppSpacing.s16,
+                    ),
+                    label: Text(
+                      _showRaw ? l10n.btnHideRawData : l10n.btnShowJson,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodySmall,
+                    ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.copy, size: 16),
+                  icon: const Icon(Icons.copy, size: AppSpacing.s16),
                   onPressed: () {
                     final jsonStr = const JsonEncoder.withIndent(
                       '  ',
@@ -82,22 +147,19 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                     Clipboard.setData(ClipboardData(text: jsonStr));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(
-                          AppLocalizations.of(context)!.msgJsonCopied,
-                        ),
+                        content: Text(l10n.msgJsonCopied),
                         duration: AppDurations.slow,
                       ),
                     );
                   },
-                  tooltip: AppLocalizations.of(context)!.copyToClipboard,
+                  tooltip: l10n.copyToClipboard,
                 ),
               ],
             ),
             const Divider(),
-
             AnimatedCrossFade(
               firstChild: _buildSummaryView(context),
-              secondChild: _buildRawJsonView(),
+              secondChild: _buildRawJsonView(context),
               crossFadeState: _showRaw
                   ? CrossFadeState.showSecond
                   : CrossFadeState.showFirst,
@@ -109,189 +171,111 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  Icon _buildIconForType() {
-    switch (widget.type) {
-      case 'LOGIC_ANALYSIS':
-        return Icon(
-          Icons.psychology,
-          color: Theme.of(context).colorScheme.primary,
-        );
-      case 'STRESS_TEST':
-        return Icon(
-          Icons.fitness_center,
-          color: Theme.of(context).colorScheme.error,
-        );
-      case 'CAUSAL_ANALYSIS':
-        return Icon(
-          Icons.compare_arrows,
-          color: Theme.of(context).colorScheme.secondary,
-        );
-      case 'PERFORMATIVITY_CHECK':
-        return Icon(
-          Icons.theater_comedy,
-          color: Theme.of(context).colorScheme.tertiary,
-        );
-      case 'fact-check':
-      case 'FACT_CHECK':
-      case 'fact-check-grid':
-      case 'FACT_CHECK_GRID':
-        return Icon(
-          Icons.fact_check,
-          color: Theme.of(context).colorScheme.primary,
-        );
-      case 'PROFILER_ANALYSIS':
-        return Icon(Icons.face, color: Theme.of(context).colorScheme.secondary);
-      case 'ARCHIVIST_CHECK':
-        return Icon(
-          Icons.gavel,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        );
-      default:
-        return Icon(
-          Icons.extension,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        );
-    }
+  Icon _buildIconForType(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return switch (widget.type) {
+      'logic-analysis' ||
+      'LOGIC_ANALYSIS' => Icon(Icons.psychology, color: colorScheme.primary),
+      'stress-test' ||
+      'STRESS_TEST' => Icon(Icons.fitness_center, color: colorScheme.error),
+      'causal-analysis' || 'CAUSAL_ANALYSIS' => Icon(
+        Icons.compare_arrows,
+        color: colorScheme.secondary,
+      ),
+      'performativity-check' || 'PERFORMATIVITY_CHECK' => Icon(
+        Icons.theater_comedy,
+        color: colorScheme.tertiary,
+      ),
+      'fact-check' ||
+      'FACT_CHECK' ||
+      'fact-check-grid' ||
+      'FACT_CHECK_GRID' => Icon(Icons.fact_check, color: colorScheme.primary),
+      'profiler-analysis' ||
+      'PROFILER_ANALYSIS' => Icon(Icons.face, color: colorScheme.secondary),
+      'archivist-check' || 'ARCHIVIST_CHECK' => Icon(
+        Icons.gavel,
+        color: colorScheme.onSurfaceVariant,
+      ),
+      _ => Icon(Icons.extension, color: colorScheme.onSurfaceVariant),
+    };
   }
 
-  String _getSubtitleForType(BuildContext context) {
-    switch (widget.type) {
-      case 'LOGIC_ANALYSIS':
-        return AppLocalizations.of(context)!.subLogicAnalysis;
-      case 'STRESS_TEST':
-        return AppLocalizations.of(context)!.subStressTest;
-      case 'CAUSAL_ANALYSIS':
-        return AppLocalizations.of(context)!.subCausalAnalysis;
-      case 'PERFORMATIVITY_CHECK':
-        return AppLocalizations.of(context)!.subPerformativityCheck;
-      case 'fact-check':
-      case 'FACT_CHECK':
-      case 'fact-check-grid':
-      case 'FACT_CHECK_GRID':
-        return AppLocalizations.of(context)!.subFactCheck;
-      case 'PROFILER_ANALYSIS':
-        return AppLocalizations.of(context)!.subProfilerAnalysis;
-      case 'ARCHIVIST_CHECK':
-        return AppLocalizations.of(context)!.subArchivistCheck;
-      default:
-        return "";
-    }
+  String _getSubtitleForType(AppLocalizations l10n) {
+    return switch (widget.type) {
+      'logic-analysis' || 'LOGIC_ANALYSIS' => l10n.subLogicAnalysis,
+      'stress-test' || 'STRESS_TEST' => l10n.subStressTest,
+      'causal-analysis' || 'CAUSAL_ANALYSIS' => l10n.subCausalAnalysis,
+      'performativity-check' ||
+      'PERFORMATIVITY_CHECK' => l10n.subPerformativityCheck,
+      'fact-check' ||
+      'FACT_CHECK' ||
+      'fact-check-grid' ||
+      'FACT_CHECK_GRID' => l10n.subFactCheck,
+      'profiler-analysis' || 'PROFILER_ANALYSIS' => l10n.subProfilerAnalysis,
+      'archivist-check' || 'ARCHIVIST_CHECK' => l10n.subArchivistCheck,
+      _ => '',
+    };
   }
 
   void _validateRequiredKeys(List<String> keys, String contextName) {
     final missing = keys.where((k) => widget.data[k] == null).toList();
     if (missing.isNotEmpty) {
       final msg =
-          "Missing required keys in $contextName: ${missing.join(', ')}";
-      debugPrint("🔴 STRUCTURAL DATA ERROR: $msg");
-      throw FormatException(msg);
+          'Fail-Fast: Missing required keys in $contextName: ${missing.join(', ')}';
+      throw AppException.validation(msg);
     }
   }
 
-  Widget _buildDataErrorCard(BuildContext context, String errorDetails) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      margin: EdgeInsets.only(top: 8, bottom: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.error,
-        border: Border.all(color: Theme.of(context).colorScheme.error),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.warning_amber_rounded,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  AppLocalizations.of(context)!.errDataIntegrity,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            errorDetails,
-            style: TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.error,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSummaryView(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
     if (widget.data.isEmpty) {
       return Padding(
-        padding: EdgeInsets.all(8.0),
+        padding: AppSpacing.p8,
         child: Text(
-          AppLocalizations.of(context)!.dataUnavailable,
-          style: const TextStyle(fontStyle: FontStyle.italic),
+          l10n.dataUnavailable,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontStyle: FontStyle.italic,
+          ),
         ),
       );
     }
 
     try {
-      // Switch on type to provide RICH custom visualization
-      switch (widget.type) {
-        case 'logic-analysis':
-        case 'LOGIC_ANALYSIS':
-          return _buildLogicAnalysis(context);
-        case 'stress-test':
-        case 'STRESS_TEST':
-          return _buildStressTest(context);
-        case 'causal-analysis':
-        case 'CAUSAL_ANALYSIS':
-          return _buildCausalAnalysis(context);
-        case 'profiler-analysis':
-        case 'PROFILER_ANALYSIS':
-          return _buildProfilerAnalysis(context);
-        case 'fact-check':
-        case 'FACT_CHECK':
-        case 'fact-check-grid':
-        case 'FACT_CHECK_GRID':
-          return _buildFactCheck(context);
-        case 'performativity-check':
-        case 'PERFORMATIVITY_CHECK':
-          return _buildPerformativityCheck(context);
-        case 'archivist-check':
-        case 'ARCHIVIST_CHECK':
-          return _buildArchivistCheck(context);
-
-        case 'driver-profile':
-        case 'DRIVER_PROFILE':
-        case 'interaction-grid':
-        case 'INTERACTION_GRID':
-          return _buildDriverProfile(context);
-        case 'security-check':
-        case 'SECURITY_CHECK':
-          return _buildSecurityCheck(context);
-        default:
-          // Fallback to generic map renderer if type is barely supported
-          return _buildGenericMap(widget.data);
-      }
-    } on FormatException catch (e) {
-      ProviderScope.containerOf(context)
+      return switch (widget.type) {
+        'logic-analysis' || 'LOGIC_ANALYSIS' => _buildLogicAnalysis(context),
+        'stress-test' || 'STRESS_TEST' => _buildStressTest(context),
+        'causal-analysis' || 'CAUSAL_ANALYSIS' => _buildCausalAnalysis(context),
+        'profiler-analysis' ||
+        'PROFILER_ANALYSIS' => _buildProfilerAnalysis(context),
+        'fact-check' ||
+        'FACT_CHECK' ||
+        'fact-check-grid' ||
+        'FACT_CHECK_GRID' => _buildFactCheck(context),
+        'performativity-check' ||
+        'PERFORMATIVITY_CHECK' => _buildPerformativityCheck(context),
+        'archivist-check' || 'ARCHIVIST_CHECK' => _buildArchivistCheck(context),
+        'driver-profile' ||
+        'DRIVER_PROFILE' ||
+        'interaction-grid' ||
+        'INTERACTION_GRID' => _buildDriverProfile(context),
+        'security-check' || 'SECURITY_CHECK' => _buildSecurityCheck(context),
+        _ => _buildGenericMap(context, widget.data),
+      };
+    } catch (e, st) {
+      ref
           .read(loggerServiceProvider)
-          .error('Report', 'UI Graceful Degradation [${widget.type}]: $e', e);
-      return _buildDataErrorCard(context, e.toString());
+          .error(
+            'SpecialistSection',
+            'VALIDATION_FAILED: UI Graceful Degradation [${widget.type}]: $e',
+            e,
+            st,
+          );
+      return ErrorView(error: e, stackTrace: st, compact: true);
     }
   }
 
-  // --- RESPONSIVE LAYOUT HELPER ---
   Widget _buildResponsiveLayout(
     BuildContext context, {
     required Widget leftContent,
@@ -302,108 +286,64 @@ class _SpecialistSectionState extends State<SpecialistSection> {
   }) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth > 800) {
-          // Desktop / Horizontal layout
+        if (constraints.maxWidth > _desktopBreakpoint) {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(flex: leftFlex, child: leftContent),
-              const SizedBox(width: 16),
+              AppSpacing.w16,
               Expanded(flex: rightFlex, child: rightContent),
             ],
           );
         } else {
-          // Mobile / Vertical Stack
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: mobileReverse
-                ? [rightContent, const SizedBox(height: 16), leftContent]
-                : [leftContent, const SizedBox(height: 16), rightContent],
+                ? [rightContent, AppSpacing.h16, leftContent]
+                : [leftContent, AppSpacing.h16, rightContent],
           );
         }
       },
     );
   }
 
-  String _getLocalizedEnum(String? key) {
-    if (key == null) return "N/A";
-    final l10n = AppLocalizations.of(context)!;
-    switch (key) {
-      // Security
-      case 'SEC_THREAT_DETECTED':
-        return l10n.secThreatDetected;
-      case 'SEC_THREAT_NONE':
-        return l10n.secThreatNone;
-      case 'SEC_ANONYMIZED':
-        return l10n.secAnonymized;
-      case 'SEC_NOT_ANONYMIZED':
-        return l10n.secNotAnonymized;
-      case 'RISK_HIGH':
-        return l10n.riskHigh;
-      case 'RISK_MEDIUM':
-        return l10n.riskMedium;
-      case 'RISK_LOW':
-        return l10n.riskLow;
-      case 'RISK_UNKNOWN':
-        return l10n.riskUnknown;
-      // Profiler
-      case 'BIAS_DETECTED':
-        return l10n.biasDetected;
-      case 'BIAS_NONE':
-        return l10n.biasNone;
-      case 'GAP_DETECTED':
-        return l10n.gapDetected;
-      case 'GAP_NONE':
-        return l10n.gapNone;
-      // Roles
-      case 'ROLE_PASSENGER':
-        return l10n.rolePassenger;
-      case 'ROLE_NAVIGATOR':
-        return l10n.roleNavigator;
-      case 'ROLE_DRIVER':
-        return l10n.roleDriver;
-      case 'ROLE_ARCHITECT':
-        return l10n.roleArchitect;
-      // Fact Check
-      case 'VER_VERIFIED':
-        return l10n.verVerified;
-      case 'VER_DEBUNKED':
-        return l10n.verDebunked;
-      case 'VER_UNCERTAIN':
-        return l10n.verUncertain;
-      // Performativity
-      case 'AUTH_ORGANIC':
-        return l10n.authOrganic;
-      case 'AUTH_PERFORMATIVE':
-        return l10n.authPerformative;
-      case 'AUTH_UNKNOWN':
-        return l10n.authUnknown;
-      // Bloom
-      case 'BLOOM_REMEMBERING':
-        return l10n.bloomRemembering;
-      case 'BLOOM_UNDERSTANDING':
-        return l10n.bloomUnderstanding;
-      case 'BLOOM_APPLYING':
-        return l10n.bloomApplying;
-      case 'BLOOM_ANALYZING':
-        return l10n.bloomAnalyzing;
-      case 'BLOOM_EVALUATING':
-        return l10n.bloomEvaluating;
-      case 'BLOOM_CREATING':
-        return l10n.bloomCreating;
-      // Strategic Depth
-      case 'STRAT_LOW':
-        return l10n.stratLow;
-      case 'STRAT_MEDIUM':
-        return l10n.stratMedium;
-      case 'STRAT_HIGH':
-        return l10n.stratHigh;
-      case 'STRAT_VISIONARY':
-        return l10n.stratVisionary;
-
-      default:
-        return key;
-    }
+  String _getLocalizedEnum(String? key, AppLocalizations l10n) {
+    if (key == null) return l10n.dataUnavailable;
+    return switch (key) {
+      'SEC_THREAT_DETECTED' => l10n.secThreatDetected,
+      'SEC_THREAT_NONE' => l10n.secThreatNone,
+      'SEC_ANONYMIZED' => l10n.secAnonymized,
+      'SEC_NOT_ANONYMIZED' => l10n.secNotAnonymized,
+      'RISK_HIGH' => l10n.riskHigh,
+      'RISK_MEDIUM' => l10n.riskMedium,
+      'RISK_LOW' => l10n.riskLow,
+      'RISK_UNKNOWN' => l10n.riskUnknown,
+      'BIAS_DETECTED' => l10n.biasDetected,
+      'BIAS_NONE' => l10n.biasNone,
+      'GAP_DETECTED' => l10n.gapDetected,
+      'GAP_NONE' => l10n.gapNone,
+      'ROLE_PASSENGER' => l10n.rolePassenger,
+      'ROLE_NAVIGATOR' => l10n.roleNavigator,
+      'ROLE_DRIVER' => l10n.roleDriver,
+      'ROLE_ARCHITECT' => l10n.roleArchitect,
+      'VER_VERIFIED' => l10n.verVerified,
+      'VER_DEBUNKED' => l10n.verDebunked,
+      'VER_UNCERTAIN' => l10n.verUncertain,
+      'AUTH_ORGANIC' => l10n.authOrganic,
+      'AUTH_PERFORMATIVE' => l10n.authPerformative,
+      'AUTH_UNKNOWN' => l10n.authUnknown,
+      'BLOOM_REMEMBERING' => l10n.bloomRemembering,
+      'BLOOM_UNDERSTANDING' => l10n.bloomUnderstanding,
+      'BLOOM_APPLYING' => l10n.bloomApplying,
+      'BLOOM_ANALYZING' => l10n.bloomAnalyzing,
+      'BLOOM_EVALUATING' => l10n.bloomEvaluating,
+      'BLOOM_CREATING' => l10n.bloomCreating,
+      'STRAT_LOW' => l10n.stratLow,
+      'STRAT_MEDIUM' => l10n.stratMedium,
+      'STRAT_HIGH' => l10n.stratHigh,
+      'STRAT_VISIONARY' => l10n.stratVisionary,
+      _ => key,
+    };
   }
 
   Widget _buildLogicMatrix(
@@ -413,79 +353,79 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     double strat,
     AppLocalizations l10n,
   ) {
-    // Determine active quadrant
-    // X: Toulmin (<= 3 vs > 3)
-    // Y: Bloom (<= 3 vs > 3)
-    final bool isStrongToulmin = toulmin >= 3.0; // >= to be safe
-    final bool isHighBloom = bloom >= 3.0;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final bool isStrongToulmin = toulmin >= _logicThreshold;
+    final bool isHighBloom = bloom >= _logicThreshold;
+    final helpBtn = _buildHelpButton(context, 'logicMatrix');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            Icon(
-              Icons.grid_view,
-              color: Theme.of(context).colorScheme.secondary,
+            Icon(Icons.grid_view, color: colorScheme.secondary),
+            AppSpacing.w8,
+            Expanded(
+              child: Text(
+                l10n.logicMatrixTitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-            const SizedBox(width: 8),
-            Text(
-              l10n.logicMatrixTitle,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const Spacer(),
-            _buildHelpButton(context, "logicMatrix"),
+            ?helpBtn,
           ],
         ),
-        const SizedBox(height: 16),
-        // 2x2 Grid
+        AppSpacing.h16,
         Column(
           children: [
-            // Top Row
             Row(
               children: [
                 Expanded(
                   child: _buildQuadrant(
+                    context,
                     l10n.logicMatrixQ2Title,
                     l10n.logicMatrixQ2Desc,
                     !isStrongToulmin && isHighBloom,
                     strat,
-                    Theme.of(context).colorScheme.error,
                   ),
                 ),
-                const SizedBox(width: 8),
+                AppSpacing.w8,
                 Expanded(
                   child: _buildQuadrant(
+                    context,
                     l10n.logicMatrixQ1Title,
                     l10n.logicMatrixQ1Desc,
                     isStrongToulmin && isHighBloom,
                     strat,
-                    Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            // Bottom Row
+            AppSpacing.h8,
             Row(
               children: [
                 Expanded(
                   child: _buildQuadrant(
+                    context,
                     l10n.logicMatrixQ4Title,
                     l10n.logicMatrixQ4Desc,
                     !isStrongToulmin && !isHighBloom,
                     strat,
-                    Theme.of(context).colorScheme.error,
                   ),
                 ),
-                const SizedBox(width: 8),
+                AppSpacing.w8,
                 Expanded(
                   child: _buildQuadrant(
+                    context,
                     l10n.logicMatrixQ3Title,
                     l10n.logicMatrixQ3Desc,
                     isStrongToulmin && !isHighBloom,
                     strat,
-                    Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
@@ -497,28 +437,32 @@ class _SpecialistSectionState extends State<SpecialistSection> {
   }
 
   Widget _buildQuadrant(
+    BuildContext context,
     String title,
     String desc,
     bool isActive,
     double strat,
-    Color baseColor,
   ) {
-    // If active, bubble size responds to strat (1-4 -> 12px-24px)
-    final double bubbleSize = isActive ? 12.0 + (strat * 4.0) : 0.0;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final double bubbleSize = isActive
+        ? _baseBubbleSize + (strat * _bubbleScaleMultiplier)
+        : 0.0;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: AppSpacing.p12,
       decoration: BoxDecoration(
         color: isActive
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.surfaceContainerLowest,
+            ? colorScheme.primaryContainer
+            : colorScheme.surfaceContainerLowest,
         border: Border.all(
           color: isActive
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
-          width: isActive ? 2.0 : 1.0,
+              ? colorScheme.primary
+              : colorScheme.surfaceContainerHighest,
+          width: isActive ? AppSpacing.s2 : _defaultBorderWidth,
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppSpacing.s8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -528,34 +472,36 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodySmall?.copyWith(
                     fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
                     color: isActive
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 13,
+                        ? colorScheme.onPrimaryContainer
+                        : colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
-              if (isActive)
+              if (isActive) ...[
+                AppSpacing.w4,
                 Container(
                   width: bubbleSize,
                   height: bubbleSize,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
                 ),
+              ],
             ],
           ),
-          const SizedBox(height: 6),
+          AppSpacing.h4,
           Text(
             desc,
-            style: TextStyle(
-              fontSize: 11,
+            style: textTheme.labelSmall?.copyWith(
               color: isActive
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.surfaceContainerLowest,
+                  ? colorScheme.onPrimaryContainer
+                  : colorScheme.onSurfaceVariant,
               height: 1.3,
             ),
           ),
@@ -564,55 +510,74 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  // --- 1. LOGIC ANALYSIS (Toulmin & Cognitive) ---
   Widget _buildLogicAnalysis(BuildContext context) {
     _validateRequiredKeys([
       'bloom_score',
       'strategic_score',
       'arguments',
     ], 'LOGIC_ANALYSIS');
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    // Strict V3 Flattened Keys
-    final arguments =
-        (widget.data['arguments'] as List?)?.cast<Map<String, Object?>>() ?? [];
+    final rawArgs = widget.data['arguments'];
+    if (rawArgs is! List) {
+      throw AppException.validation(
+        'Fail-Fast: LOGIC_ANALYSIS arguments must be a List.',
+      );
+    }
+    final arguments = <Map<String, Object?>>[];
+    for (var i = 0; i < rawArgs.length; i++) {
+      final item = rawArgs[i];
+      if (item is! Map<String, Object?>) {
+        throw AppException.validation(
+          'Fail-Fast: LOGIC_ANALYSIS argument[$i] must be a Map<String, Object?>.',
+        );
+      }
+      arguments.add(item);
+    }
 
     final methodology =
-        widget.data['methodological_log'] as String? ??
-        widget.data['metodologinen_loki'] as String?;
+        widget.data['methodological_log']?.toString() ??
+        widget.data['metodologinen_loki']?.toString();
 
     final List<Widget> children = [];
 
     if (methodology != null) {
       children.add(
         _buildInfoCard(
+          context,
           l10n.lblMethodologicalLog,
           methodology,
           Icons.history_edu,
-          helpKey: "metodologia",
+          helpKey: 'metodologia',
         ),
       );
-      children.add(const SizedBox(height: 16));
+      children.add(AppSpacing.h16);
     }
 
-    // NEW: Compact Text Metrics (PDF Parity)
-    if (widget.metrics != null && widget.metrics!.isNotEmpty) {
-      children.add(_buildCompactTextMetrics(context, widget.metrics!));
-      children.add(const SizedBox(height: 16));
+    final currentMetrics = widget.metrics;
+    if (currentMetrics != null && currentMetrics.isNotEmpty) {
+      children.add(_buildCompactTextMetrics(context, currentMetrics));
+      children.add(AppSpacing.h16);
     }
 
-    // Strategic Depth Gauge
-    final stratScore =
-        (widget.data['strategic_score'] as num?)?.toDouble() ?? 2.0;
-    final stratDisplay = "${stratScore.toStringAsFixed(1)}/4.0";
+    final stratScore = _parseNumericScore(
+      widget.data['strategic_score'],
+      'strategic_score',
+      maxBound: _strategicMaxScore,
+    );
+    final stratDisplay =
+        '${stratScore.toStringAsFixed(1)}/${_strategicMaxScore.toStringAsFixed(1)}';
     final stratGauge = UnifiedMetricGauge(
       label: l10n.lblStrategicDepth,
       value: stratScore,
-      max: 4.0,
+      max: _strategicMaxScore,
       description:
-          widget.data['strategic_help']?.toString() ?? "Strategic Depth Help",
+          widget.data['strategic_help']?.toString() ?? l10n.helpStrategicDepth,
       displayValue: stratDisplay,
-      color: Theme.of(context).colorScheme.secondary,
+      color: colorScheme.secondary,
       axisLabels: [
         l10n.stratLow,
         l10n.stratMedium,
@@ -622,17 +587,21 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       isOrdinal: true,
     );
 
-    // Enhanced Bloom Gauge
-    final bloomScore = (widget.data['bloom_score'] as num?)?.toDouble() ?? 0.0;
-    final bloomDisplay = "${bloomScore.toStringAsFixed(1)}/6.0";
+    final bloomScore = _parseNumericScore(
+      widget.data['bloom_score'],
+      'bloom_score',
+      maxBound: _bloomMaxScore,
+    );
+    final bloomDisplay =
+        '${bloomScore.toStringAsFixed(1)}/${_bloomMaxScore.toStringAsFixed(1)}';
 
     final bloomGauge = UnifiedMetricGauge(
       label: l10n.lblBloomScore,
       value: bloomScore,
-      max: 6.0,
-      description: widget.data['bloom_help']?.toString() ?? "Bloom Help",
+      max: _bloomMaxScore,
+      description: widget.data['bloom_help']?.toString() ?? l10n.helpBloom,
       displayValue: bloomDisplay,
-      color: Theme.of(context).colorScheme.secondary,
+      color: colorScheme.secondary,
       axisLabels: [
         l10n.bloomRemembering,
         l10n.bloomUnderstanding,
@@ -644,54 +613,53 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       isOrdinal: true,
     );
 
-    // Toulmin Gauge
-    final toulminScore =
-        (widget.data['toulmin_score'] as num?)?.toDouble() ?? 0.0;
+    final toulminScore = widget.data['toulmin_score'] != null
+        ? _parseNumericScore(
+            widget.data['toulmin_score'],
+            'toulmin_score',
+            maxBound: _toulminMaxScore,
+          )
+        : 0.0;
     final toulminGauge = UnifiedMetricGauge(
       label: l10n.lblToulminScore,
       value: toulminScore,
-      max: 6.0,
-      description: widget.data['toulmin_help']?.toString() ?? "Toulmin Help",
-      displayValue: "${toulminScore.toStringAsFixed(1)}/6.0",
-      color: Theme.of(context).colorScheme.primary,
+      max: _toulminMaxScore,
+      description: widget.data['toulmin_help']?.toString() ?? l10n.helpToulmin,
+      displayValue:
+          '${toulminScore.toStringAsFixed(1)}/${_toulminMaxScore.toStringAsFixed(1)}',
+      color: colorScheme.primary,
       axisLabels: [l10n.lblClaim, '', l10n.lblData, '', l10n.lblBacking, ''],
       isOrdinal: true,
     );
 
-    // Render Logic Matrix (2x2)
     children.add(
       _buildLogicMatrix(context, toulminScore, bloomScore, stratScore, l10n),
     );
-    children.add(const SizedBox(height: 24));
+    children.add(AppSpacing.h24);
 
-    // Render as equal full-width fields
     children.add(
       Card(
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(
-            color: Theme.of(
-              context,
-            ).colorScheme.secondary.withValues(alpha: 0.3),
-          ),
+          borderRadius: BorderRadius.circular(AppSpacing.s8),
+          side: BorderSide(color: colorScheme.secondary.withValues(alpha: 0.3)),
         ),
-        color: Theme.of(context).colorScheme.secondary,
+        color: colorScheme.secondaryContainer.withValues(alpha: 0.3),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: AppSpacing.p16,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               bloomGauge,
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16.0),
-                child: Divider(height: 1),
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.s16),
+                child: Divider(height: _defaultBorderWidth),
               ),
               stratGauge,
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16.0),
-                child: Divider(height: 1),
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.s16),
+                child: Divider(height: _defaultBorderWidth),
               ),
               toulminGauge,
             ],
@@ -700,63 +668,70 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       ),
     );
 
-    children.add(const SizedBox(height: 24));
+    children.add(AppSpacing.h24);
 
-    // Arguments section (was previously in rightContent)
     if (arguments.isNotEmpty) {
-      final List<Widget> toulminChildren = [];
-      toulminChildren.add(
+      final toulminHelp = _buildHelpButton(context, 'toulmin');
+      final List<Widget> toulminChildren = [
         Row(
           children: [
-            Text(
-              l10n.lblArguments,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Expanded(
+              child: Text(
+                l10n.lblArguments,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-            _buildHelpButton(context, "toulmin"),
+            ?toulminHelp,
           ],
         ),
-      );
-      toulminChildren.add(const SizedBox(height: 8));
+        AppSpacing.h8,
+      ];
 
       toulminChildren.addAll(
         arguments.map<Widget>(
           (t) => Card(
-            margin: EdgeInsets.only(bottom: 8),
-            color: Theme.of(context).colorScheme.primary,
+            margin: const EdgeInsets.only(bottom: AppSpacing.s8),
+            color: colorScheme.surfaceContainerLow,
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(AppSpacing.s4),
               side: BorderSide(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.2),
+                color: colorScheme.primary.withValues(alpha: 0.2),
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: AppSpacing.p12,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildLabelValue(l10n.lblClaim, t['claim']),
-                  const SizedBox(height: 4),
+                  _buildLabelValue(context, l10n.lblClaim, t['claim']),
+                  AppSpacing.h4,
                   const Divider(),
-                  const SizedBox(height: 4),
+                  AppSpacing.h4,
                   if (t['data'] != null) ...[
-                    _buildLabelValue(l10n.lblData, t['data']),
-                    const SizedBox(height: 4),
+                    _buildLabelValue(context, l10n.lblData, t['data']),
+                    AppSpacing.h4,
                   ],
-                  _buildLabelValue(l10n.lblWarrant, t['warrant']),
+                  _buildLabelValue(context, l10n.lblWarrant, t['warrant']),
                   if (t['backing'] != null) ...[
-                    const SizedBox(height: 4),
-                    _buildLabelValue(l10n.lblBacking, t['backing']),
+                    AppSpacing.h4,
+                    _buildLabelValue(context, l10n.lblBacking, t['backing']),
                   ],
                   if (t['rebuttal'] != null) ...[
-                    const SizedBox(height: 4),
-                    _buildLabelValue(l10n.lblRebuttal, t['rebuttal']),
+                    AppSpacing.h4,
+                    _buildLabelValue(context, l10n.lblRebuttal, t['rebuttal']),
                   ],
                   if (t['qualifier'] != null) ...[
-                    const SizedBox(height: 4),
-                    _buildLabelValue(l10n.lblQualifier, t['qualifier']),
+                    AppSpacing.h4,
+                    _buildLabelValue(
+                      context,
+                      l10n.lblQualifier,
+                      t['qualifier'],
+                    ),
                   ],
                 ],
               ),
@@ -766,12 +741,10 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       );
       children.add(
         Container(
-          padding: EdgeInsets.all(16),
+          padding: AppSpacing.p16,
           decoration: BoxDecoration(
-            border: Border.all(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
-            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colorScheme.surfaceContainerHighest),
+            borderRadius: BorderRadius.circular(AppSpacing.s8),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -782,10 +755,10 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     } else {
       children.add(
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: AppSpacing.p16,
           child: Text(
             l10n.dataUnavailable,
-            style: const TextStyle(fontStyle: FontStyle.italic),
+            style: textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
           ),
         ),
       );
@@ -797,49 +770,41 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  // --- 1.5 SECURITY CHECK (New Compact Visuals) ---
   Widget _buildSecurityCheck(BuildContext context) {
-    // Keys: threat_detected, risk_level, anonymized, findings
-    // STRICT: Use Backend Provided Label Keys
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final semanticColors = context.semanticColors;
+    final l10n = AppLocalizations.of(context)!;
 
-    // Threat
+    final threat = widget.data['threat_detected'] == true;
     final threatLabel =
-        widget.data['threat_label']?.toString() ?? "Threat Unknown";
-    final threat = widget.data['threat_detected'] == true; // Keep for color
+        widget.data['threat_label']?.toString() ??
+        (threat ? l10n.secThreatDetected : l10n.secThreatNone);
 
-    // Risk
-    final riskLabel = widget.data['risk_label']?.toString() ?? "Risk Unknown";
-    // Determine color from Key (Safe/Canonical) or just use level if simpler?
-    // We still need logic for color. BFF sends risk_color?
-    // BFF sent "risk_color".
-    // Let's use it if available!
-    // widget.data['risk_color'] -> "red", "orange", "green".
-    // Map string to Color.
+    final riskLabel = widget.data['risk_label']?.toString() ?? l10n.riskUnknown;
 
-    Color riskColor;
-    final rColorStr = widget.data['risk_color'];
-    if (rColorStr == 'red')
-      riskColor = Theme.of(context).colorScheme.error;
-    else if (rColorStr == 'orange')
-      riskColor = Theme.of(context).colorScheme.error;
-    else if (rColorStr == 'green')
-      riskColor = Theme.of(context).colorScheme.primary;
-    else
-      riskColor = Theme.of(context).colorScheme.onSurfaceVariant;
-
-    IconData riskIcon = Icons.help_outline;
-    // We can infer icon from color or just use generic.
-    if (riskColor == Theme.of(context).colorScheme.error)
+    final rColorStr = widget.data['risk_color']?.toString();
+    final Color riskColor;
+    final IconData riskIcon;
+    if (rColorStr == 'red') {
+      riskColor = colorScheme.error;
       riskIcon = Icons.gpp_bad;
-    else if (riskColor == Theme.of(context).colorScheme.error)
+    } else if (rColorStr == 'orange') {
+      riskColor = semanticColors.warning;
       riskIcon = Icons.warning_amber;
-    else if (riskColor == Theme.of(context).colorScheme.primary)
+    } else if (rColorStr == 'green') {
+      riskColor = colorScheme.primary;
       riskIcon = Icons.check_circle;
+    } else {
+      riskColor = colorScheme.onSurfaceVariant;
+      riskIcon = Icons.help_outline;
+    }
 
-    // Anonymized
-    final anonLabel =
-        widget.data['anonymized_label']?.toString() ?? "Anonymity Unknown";
     final anonymized = widget.data['anonymized'] == true;
+    final anonLabel =
+        widget.data['anonymized_label']?.toString() ??
+        (anonymized ? l10n.secAnonymized : l10n.secNotAnonymized);
 
     final rawFindings = widget.data['findings'] ?? widget.data['loydokset'];
     final findings = rawFindings is List
@@ -849,23 +814,19 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Status Row (Chips)
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: AppSpacing.s8,
+          runSpacing: AppSpacing.s8,
           children: [
             _buildStatusChip(
               context,
               label: threatLabel,
-              color: threat
-                  ? Theme.of(context).colorScheme.error
-                  : Theme.of(context).colorScheme.primary,
+              color: threat ? colorScheme.error : colorScheme.primary,
               icon: threat ? Icons.warning : Icons.check,
             ),
             _buildStatusChip(
               context,
-              label:
-                  "${AppLocalizations.of(context)!.lblRiskLevel}: $riskLabel",
+              label: '${l10n.lblRiskLevel}: $riskLabel',
               color: riskColor,
               icon: riskIcon,
             ),
@@ -873,53 +834,47 @@ class _SpecialistSectionState extends State<SpecialistSection> {
               context,
               label: anonLabel,
               color: anonymized
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant,
               icon: anonymized ? Icons.visibility_off : Icons.visibility,
             ),
           ],
         ),
-        const SizedBox(height: 16),
-
-        // Findings List (Compact)
+        AppSpacing.h16,
         if (findings.isNotEmpty) ...[
           Text(
-            "${AppLocalizations.of(context)!.lblFindings}:",
-            style: TextStyle(
+            '${l10n.lblFindings}:',
+            style: textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.bold,
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 4),
+          AppSpacing.h4,
           ...findings.map(
             (f) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.s2),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: EdgeInsets.only(top: 2),
+                    padding: const EdgeInsets.only(top: AppSpacing.s2),
                     child: Icon(
                       Icons.arrow_right,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      size: AppSpacing.s16,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  Expanded(
-                    child: Text(f, style: const TextStyle(fontSize: 13)),
-                  ),
+                  Expanded(child: Text(f, style: textTheme.bodySmall)),
                 ],
               ),
             ),
           ),
         ] else
           Text(
-            AppLocalizations.of(context)!.lblNoSignificantFindings,
-            style: TextStyle(
+            l10n.lblNoSignificantFindings,
+            style: textTheme.bodySmall?.copyWith(
               fontStyle: FontStyle.italic,
-              fontSize: 13,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
       ],
@@ -932,24 +887,31 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     required Color color,
     required IconData icon,
   }) {
+    final textTheme = Theme.of(context).textTheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s8,
+        vertical: AppSpacing.s4,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         border: Border.all(color: color.withValues(alpha: 0.3)),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppSpacing.s16),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              color: color,
+          Icon(icon, size: _chipIconSize, color: color),
+          AppSpacing.w4,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -957,64 +919,103 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  // --- 2. STRESS TEST (Falsifier) ---
   Widget _buildStressTest(BuildContext context) {
     _validateRequiredKeys(['findings', 'fidelity_audit'], 'STRESS_TEST');
-    // V3 Flat Keys:
-    final findings =
-        (widget.data['findings'] as List?)?.cast<Map<String, Object?>>() ?? [];
-    final fidelity =
-        widget.data['fidelity_audit'] as Map<String, Object?>? ?? {};
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    final rawFindings = widget.data['findings'];
+    if (rawFindings is! List) {
+      throw AppException.validation(
+        'Fail-Fast: STRESS_TEST findings must be a List.',
+      );
+    }
+    final findings = <Map<String, Object?>>[];
+    for (var i = 0; i < rawFindings.length; i++) {
+      final item = rawFindings[i];
+      if (item is! Map<String, Object?>) {
+        throw AppException.validation(
+          'Fail-Fast: STRESS_TEST finding[$i] must be a Map<String, Object?>.',
+        );
+      }
+      findings.add(item);
+    }
+
+    final rawFidelity = widget.data['fidelity_audit'];
+    if (rawFidelity is! Map<String, Object?>) {
+      throw AppException.validation(
+        'Fail-Fast: STRESS_TEST fidelity_audit must be a Map<String, Object?>.',
+      );
+    }
+    final fidelity = rawFidelity;
 
     final leftChildren = <Widget>[];
     if (fidelity.isNotEmpty) {
-      final fidelityDisplay = fidelity['fidelity_score_display'] as String?;
-      double scoreVal = fidelityDisplay != null
-          ? double.tryParse(fidelityDisplay.split('/')[0]) ?? 0.0
-          : 0.0;
+      final fidelityDisplay = fidelity['fidelity_score_display']?.toString();
+      final double scoreVal;
+      if (fidelity['fidelity_score'] != null) {
+        scoreVal = _parseNumericScore(
+          fidelity['fidelity_score'],
+          'fidelity_score',
+          maxBound: _fidelityMaxScore,
+        );
+      } else if (fidelityDisplay != null && fidelityDisplay.isNotEmpty) {
+        scoreVal = _parseNumericScore(
+          fidelityDisplay.split('/').first,
+          'fidelity_score_display',
+          maxBound: _fidelityMaxScore,
+        );
+      } else {
+        scoreVal = 0.0;
+      }
 
       leftChildren.add(
         Container(
-          padding: EdgeInsets.all(16),
+          padding: AppSpacing.p16,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.error,
-            borderRadius: BorderRadius.circular(8),
+            color: colorScheme.errorContainer.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(AppSpacing.s8),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               UnifiedMetricGauge(
-                label: AppLocalizations.of(context)!.lblFidelity,
+                label: l10n.lblFidelity,
                 value: scoreVal,
-                max: 3.0,
+                max: _fidelityMaxScore,
                 description:
-                    widget.data['fidelity_help']?.toString() ?? "Fidelity Help",
-                displayValue: fidelity['fidelity_score_display'] != null
-                    ? "${fidelity['fidelity_score_display']}/3.0"
-                    : "0.0/3.0",
-                color: Theme.of(context).colorScheme.error,
-                axisLabels: const ['Matala', 'Keski', 'Korkea'],
+                    widget.data['fidelity_help']?.toString() ??
+                    l10n.helpFidelity,
+                displayValue: fidelityDisplay != null
+                    ? '$fidelityDisplay/${_fidelityMaxScore.toStringAsFixed(1)}'
+                    : '${scoreVal.toStringAsFixed(1)}/${_fidelityMaxScore.toStringAsFixed(1)}',
+                color: colorScheme.error,
+                axisLabels: [l10n.lblWeak, l10n.lblModerate, l10n.lblStrong],
               ),
-              SizedBox(height: 12),
+              AppSpacing.h12,
               Text(
                 fidelity['post_hoc_rationalization_suspected'] == true
-                    ? AppLocalizations.of(context)!.lblPostHocWarning
-                    : AppLocalizations.of(context)!.lblNoRationalization,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    ? l10n.lblPostHocWarning
+                    : l10n.lblNoRationalization,
+                style: textTheme.bodyMedium?.copyWith(
                   color: fidelity['post_hoc_rationalization_suspected'] == true
-                      ? Theme.of(context).colorScheme.error
-                      : Theme.of(context).colorScheme.primary,
+                      ? colorScheme.error
+                      : colorScheme.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              SizedBox(height: 12),
+              AppSpacing.h12,
               _buildLabelValue(
-                AppLocalizations.of(context)!.lblPostHocRationalization,
-                fidelity['post_hoc_rationalization_suspected'].toString(),
+                context,
+                l10n.lblPostHocRationalization,
+                fidelity['post_hoc_rationalization_suspected']?.toString(),
               ),
-              SizedBox(height: 4),
+              AppSpacing.h4,
               _buildLabelValue(
-                AppLocalizations.of(context)!.lblReasoning,
+                context,
+                l10n.lblReasoning,
                 fidelity['reasoning'] ?? '-',
               ),
             ],
@@ -1023,40 +1024,36 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       );
     }
 
-    final rightChildren = <Widget>[];
-    rightChildren.addAll(
-      findings.map<Widget>((f) {
-        final passed = f['is_held'] == true;
-        return Card(
-          margin: EdgeInsets.only(bottom: 8),
-          color: passed
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.error,
+    final rightChildren = <Widget>[
+      for (final f in findings)
+        Card(
+          margin: const EdgeInsets.only(bottom: AppSpacing.s8),
+          color: f['is_held'] == true
+              ? colorScheme.primaryContainer
+              : colorScheme.errorContainer,
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: AppSpacing.p12,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildLabelValue(context, l10n.lblQuestion, f['question']),
+                AppSpacing.h4,
                 _buildLabelValue(
-                  AppLocalizations.of(context)!.lblQuestion,
-                  f['question'],
+                  context,
+                  l10n.lblEvidenceHeld,
+                  f['is_held']?.toString(),
                 ),
-                SizedBox(height: 4),
+                AppSpacing.h4,
                 _buildLabelValue(
-                  AppLocalizations.of(context)!.lblEvidenceHeld,
-                  f['is_held'].toString(),
-                ),
-                SizedBox(height: 4),
-                _buildLabelValue(
-                  AppLocalizations.of(context)!.lblObservation,
+                  context,
+                  l10n.lblObservation,
                   f['observation'],
                 ),
               ],
             ),
           ),
-        );
-      }),
-    );
+        ),
+    ];
 
     return _buildResponsiveLayout(
       context,
@@ -1073,7 +1070,6 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  // --- 3. CAUSAL ANALYSIS ---
   Widget _buildCausalAnalysis(BuildContext context) {
     _validateRequiredKeys([
       'abductive_score',
@@ -1081,84 +1077,97 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       'counterfactual_actual',
       'counterfactual_simulated',
     ], 'CAUSAL_ANALYSIS');
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
-    // English Keys: causal_audit, counterfactual_test, abductive_conclusion
-    // V3 Flat Keys:
-    final abductive = widget.data['abductive_conclusion'] as String?;
-    final abductiveScore =
-        (widget.data['abductive_score'] as num?)?.toDouble() ?? 0.0;
-
-    // Causal Audit Flat
-    final observation = widget.data['observation'] as String?;
-
-    // Counterfactual Test Flat
-    final actualScenario = widget.data['counterfactual_actual'] as String?;
-    final simulatedScenario =
-        widget.data['counterfactual_simulated'] as String?;
+    final abductive = widget.data['abductive_conclusion']?.toString();
+    final abductiveScore = _parseNumericScore(
+      widget.data['abductive_score'],
+      'abductive_score',
+      maxBound: _abductiveMaxScore,
+    );
+    final observation = widget.data['observation']?.toString();
+    final actualScenario = widget.data['counterfactual_actual']?.toString();
+    final simulatedScenario = widget.data['counterfactual_simulated']
+        ?.toString();
     final plausibilityScore = widget.data['plausibility_score'] != null
-        ? (widget.data['plausibility_score'] as num?)?.toDouble() ?? 0.0
+        ? _parseNumericScore(
+            widget.data['plausibility_score'],
+            'plausibility_score',
+            maxBound: _abductiveMaxScore,
+          )
         : null;
 
     final leftChildren = <Widget>[];
-    if (abductive != null) {
+    if (abductive != null && abductive.trim().isNotEmpty) {
       leftChildren.add(
         Container(
-          padding: EdgeInsets.all(12),
+          padding: AppSpacing.p12,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.secondary,
-            borderRadius: BorderRadius.circular(8),
+            color: colorScheme.secondaryContainer.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(AppSpacing.s8),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               UnifiedMetricGauge(
-                label: AppLocalizations.of(context)!.lblAbductiveReasoning,
+                label: l10n.lblAbductiveReasoning,
                 value: abductiveScore,
-                max: 3.0,
+                max: _abductiveMaxScore,
                 description:
                     widget.data['abductive_help']?.toString() ??
-                    "Abductive Help",
+                    l10n.helpAbductive,
                 displayValue: widget.data['abductive_score_display'] != null
-                    ? "${widget.data['abductive_score_display']}/3.0"
-                    : "${abductiveScore.toStringAsFixed(1)}/3.0",
-                color: Theme.of(context).colorScheme.secondary,
-                axisLabels: [
-                  AppLocalizations.of(context)!.lblWeak,
-                  AppLocalizations.of(context)!.lblModerate,
-                  AppLocalizations.of(context)!.lblStrong,
-                ],
+                    ? '${widget.data['abductive_score_display']}/${_abductiveMaxScore.toStringAsFixed(1)}'
+                    : '${abductiveScore.toStringAsFixed(1)}/${_abductiveMaxScore.toStringAsFixed(1)}',
+                color: colorScheme.secondary,
+                axisLabels: [l10n.lblWeak, l10n.lblModerate, l10n.lblStrong],
               ),
-              const SizedBox(height: 8),
-              Text(abductive, style: const TextStyle(fontSize: 14)),
+              AppSpacing.h8,
+              Text(abductive, style: textTheme.bodyMedium),
             ],
           ),
         ),
       );
-      leftChildren.add(const SizedBox(height: 16));
+      leftChildren.add(AppSpacing.h16);
     }
 
     if (observation != null) {
+      if (observation.trim().isEmpty) {
+        throw AppException.validation(
+          'Fail-Fast: CAUSAL_ANALYSIS observation cannot be empty.',
+        );
+      }
+      final causalHelp = _buildHelpButton(context, 'causal');
       leftChildren.add(
         Container(
-          padding: EdgeInsets.all(16),
+          padding: AppSpacing.p16,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.secondary,
-            borderRadius: BorderRadius.circular(8),
+            color: colorScheme.secondaryContainer.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(AppSpacing.s8),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Text(
-                    AppLocalizations.of(context)!.lblCausalAudit,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Text(
+                      l10n.lblCausalAudit,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                  _buildHelpButton(context, "causal"),
+                  ?causalHelp,
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(observation),
+              AppSpacing.h8,
+              Text(observation, style: textTheme.bodyMedium),
             ],
           ),
         ),
@@ -1172,47 +1181,51 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              AppLocalizations.of(context)!.lblCounterfactualTest,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              l10n.lblCounterfactualTest,
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            const SizedBox(height: 8),
+            AppSpacing.h8,
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: _buildComparisonBlock(
-                    AppLocalizations.of(context)!.lblScenarioActual,
+                    context,
+                    l10n.lblScenarioActual,
                     actualScenario,
-                    Theme.of(context).colorScheme.surfaceContainerHighest,
+                    colorScheme.surfaceContainerHighest,
                   ),
                 ),
-                const SizedBox(width: 8),
+                AppSpacing.w8,
                 const Icon(Icons.arrow_forward),
-                SizedBox(width: 8),
+                AppSpacing.w8,
                 Expanded(
                   child: _buildComparisonBlock(
-                    AppLocalizations.of(context)!.lblScenarioSimulation,
+                    context,
+                    l10n.lblScenarioSimulation,
                     simulatedScenario,
-                    Theme.of(context).colorScheme.secondary,
+                    colorScheme.secondaryContainer,
                   ),
                 ),
               ],
             ),
             if (plausibilityScore != null)
               Padding(
-                padding: EdgeInsets.only(top: 16.0),
+                padding: const EdgeInsets.only(top: AppSpacing.s16),
                 child: UnifiedMetricGauge(
-                  label: AppLocalizations.of(context)!.lblCredibility,
+                  label: l10n.lblCredibility,
                   value: plausibilityScore,
-                  max: 3.0,
+                  max: _abductiveMaxScore,
                   description:
                       widget.data['plausibility_help']?.toString() ??
-                      "Plausibility Help",
+                      l10n.plausibility_desc,
                   displayValue:
                       widget.data['plausibility_score_display']?.toString() ??
-                      "$plausibilityScore/3.0",
-                  color: Theme.of(context).colorScheme.secondary,
-                  axisLabels: const ['Epäuskottava', '', 'Uskottava'],
+                      '${plausibilityScore.toStringAsFixed(1)}/${_abductiveMaxScore.toStringAsFixed(1)}',
+                  color: colorScheme.secondary,
+                  axisLabels: [l10n.lblWeak, '', l10n.lblStrong],
                 ),
               ),
           ],
@@ -1235,135 +1248,125 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  // --- 4. PROFILER ANALYSIS ---
   Widget _buildProfilerAnalysis(BuildContext context) {
     _validateRequiredKeys([
       'word_count',
       'avg_sentence_length',
       'lexical_diversity',
     ], 'PROFILER_ANALYSIS');
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
-    // English Keys: detected_biases, psychological_profile, author_intent, text_metrics
-    // New V3 Flat Keys:
-    final profile = widget.data['psychological_profile'] as String?;
-    final intent = widget.data['intent_analysis'] as String?;
+    final profile = widget.data['psychological_profile']?.toString();
+    final intent = widget.data['intent_analysis']?.toString();
 
-    final leftChildren = <Widget>[];
-
-    // Explicitly read flat metrics
     final wordCount =
         widget.data['word_count_display']?.toString() ??
-        widget.data['word_count']?.toString() ??
-        '0';
+        widget.data['word_count']!.toString();
     final avgLength =
         widget.data['avg_sentence_length_display']?.toString() ??
-        widget.data['avg_sentence_length']?.toString() ??
-        '0.0';
+        widget.data['avg_sentence_length']!.toString();
     final lexicalDiv =
         widget.data['lexical_diversity_display']?.toString() ??
-        widget.data['lexical_diversity']?.toString() ??
-        '0.0';
+        widget.data['lexical_diversity']!.toString();
 
-    leftChildren.add(
+    final profilerHelp = _buildHelpButton(context, 'profiler');
+    final leftChildren = <Widget>[
       Row(
         children: [
-          Text(
-            "${AppLocalizations.of(context)!.lblTextMetrics}:",
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          Expanded(
+            child: Text(
+              '${l10n.lblTextMetrics}:',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-          _buildHelpButton(context, "profiler"),
+          ?profilerHelp,
         ],
       ),
-    );
-    leftChildren.add(const SizedBox(height: 8));
-
-    // Build a simple grid for text metrics using flat properties
-    leftChildren.add(
+      AppSpacing.h8,
       Wrap(
-        spacing: 16,
-        runSpacing: 16,
+        spacing: AppSpacing.s16,
+        runSpacing: AppSpacing.s16,
         children: [
-          _buildMetricBlock(
-            AppLocalizations.of(context)!.lblWordCount,
-            wordCount,
-          ),
-          _buildMetricBlock(
-            AppLocalizations.of(context)!.lblAvgSentenceLength,
-            avgLength,
-          ),
-          _buildMetricBlock(
-            AppLocalizations.of(context)!.lblLexicalDiversity,
-            lexicalDiv,
-          ),
+          _buildMetricBlock(context, l10n.lblWordCount, wordCount),
+          _buildMetricBlock(context, l10n.lblAvgSentenceLength, avgLength),
+          _buildMetricBlock(context, l10n.lblLexicalDiversity, lexicalDiv),
         ],
       ),
-    );
+    ];
 
     final rightChildren = <Widget>[];
-
     if (profile != null) {
       rightChildren.add(
         _buildInfoCard(
-          AppLocalizations.of(context)!.lblPsychologicalProfile,
+          context,
+          l10n.lblPsychologicalProfile,
           profile,
           Icons.psychology,
         ),
       );
-      rightChildren.add(const SizedBox(height: 8));
+      rightChildren.add(AppSpacing.h8);
     }
     if (intent != null) {
       rightChildren.add(
         _buildInfoCard(
-          AppLocalizations.of(context)!.lblAuthorIntent,
+          context,
+          l10n.lblAuthorIntent,
           intent,
           Icons.track_changes,
         ),
       );
     }
 
-    // New additions for Automation Bias & Say-Do gap (Flat properties)
-    final l10n = AppLocalizations.of(context)!;
     final autoBiasLabel = widget.data['automation_bias_label']?.toString();
     final autoBiasColor = widget.data['automation_bias_color'] == 'red'
-        ? Theme.of(context).colorScheme.error
-        : Theme.of(context).colorScheme.primary;
+        ? colorScheme.error
+        : colorScheme.primary;
 
     final sayDoLabel = widget.data['say_do_gap_label']?.toString();
     final sayDoColor = widget.data['say_do_gap_color'] == 'red'
-        ? Theme.of(context).colorScheme.error
-        : Theme.of(context).colorScheme.primary;
+        ? colorScheme.error
+        : colorScheme.primary;
 
     if (autoBiasLabel != null || sayDoLabel != null) {
-      leftChildren.add(const SizedBox(height: 16));
+      leftChildren.add(AppSpacing.h16);
       leftChildren.add(
         Text(
           l10n.lblBehavioralIndicators,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
       );
-      leftChildren.add(const SizedBox(height: 8));
+      leftChildren.add(AppSpacing.h8);
       leftChildren.add(
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: AppSpacing.s8,
+          runSpacing: AppSpacing.s8,
           children: [
             if (autoBiasLabel != null)
               _buildStatusChip(
                 context,
                 label: l10n.lblAutomationBiasValue(
-                  _getLocalizedEnum(autoBiasLabel),
+                  _getLocalizedEnum(autoBiasLabel, l10n),
                 ),
                 color: autoBiasColor,
-                icon: autoBiasColor == Theme.of(context).colorScheme.error
+                icon: autoBiasColor == colorScheme.error
                     ? Icons.warning
                     : Icons.check,
               ),
             if (sayDoLabel != null)
               _buildStatusChip(
                 context,
-                label: l10n.lblSayDoGapValue(_getLocalizedEnum(sayDoLabel)),
+                label: l10n.lblSayDoGapValue(
+                  _getLocalizedEnum(sayDoLabel, l10n),
+                ),
                 color: sayDoColor,
-                icon: sayDoColor == Theme.of(context).colorScheme.error
+                icon: sayDoColor == colorScheme.error
                     ? Icons.warning
                     : Icons.check,
               ),
@@ -1386,67 +1389,101 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       rightFlex: 6,
     );
   }
-  // --- 5. FACT CHECK ---
 
   Widget _buildFactCheck(BuildContext context) {
     _validateRequiredKeys(['fact_checks', 'ethical_issues'], 'FACT_CHECK');
-    // English Keys: fact_checks, ethical_issues
-    final facts =
-        (widget.data['fact_checks'] as List?)?.cast<Map<String, Object?>>() ??
-        [];
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
-    final ethics =
-        (widget.data['ethical_issues'] as List?)
-            ?.cast<Map<String, Object?>>() ??
-        [];
+    final rawFacts = widget.data['fact_checks'];
+    if (rawFacts is! List) {
+      throw AppException.validation(
+        'Fail-Fast: FACT_CHECK fact_checks must be a List.',
+      );
+    }
+    final facts = <Map<String, Object?>>[];
+    for (var i = 0; i < rawFacts.length; i++) {
+      final item = rawFacts[i];
+      if (item is! Map<String, Object?>) {
+        throw AppException.validation(
+          'Fail-Fast: FACT_CHECK fact_checks[$i] must be a Map<String, Object?>.',
+        );
+      }
+      facts.add(item);
+    }
 
+    final rawEthics = widget.data['ethical_issues'];
+    if (rawEthics is! List) {
+      throw AppException.validation(
+        'Fail-Fast: FACT_CHECK ethical_issues must be a List.',
+      );
+    }
+    final ethics = <Map<String, Object?>>[];
+    for (var i = 0; i < rawEthics.length; i++) {
+      final item = rawEthics[i];
+      if (item is! Map<String, Object?>) {
+        throw AppException.validation(
+          'Fail-Fast: FACT_CHECK ethical_issues[$i] must be a Map<String, Object?>.',
+        );
+      }
+      ethics.add(item);
+    }
+
+    final factHelp = _buildHelpButton(context, 'fact_check');
     final ethicsChildren = <Widget>[];
     if (ethics.isNotEmpty) {
       ethicsChildren.add(
         Row(
           children: [
-            Text(
-              AppLocalizations.of(context)!.lblEthicalObservation,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Expanded(
+              child: Text(
+                l10n.lblEthicalObservation,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-            const SizedBox(width: 8),
-            _buildHelpButton(context, "fact_check"),
+            if (factHelp != null) ...[AppSpacing.w8, factHelp],
           ],
         ),
       );
-      ethicsChildren.add(const SizedBox(height: 8));
+      ethicsChildren.add(AppSpacing.h8);
 
       ethicsChildren.addAll(
         ethics.map<Widget>((e) {
+          final isCrit =
+              e['is_critical'] == true ||
+              e['severity'] == 'Kriittinen' ||
+              e['severity'] == 'Critical';
           return Card(
-            color:
-                (e['is_critical'] == true ||
-                    e['severity'] == "Kriittinen" ||
-                    e['severity'] == "Critical")
-                ? Theme.of(context).colorScheme.error
-                : Theme.of(context).colorScheme.surface,
+            color: isCrit ? colorScheme.errorContainer : colorScheme.surface,
             child: ListTile(
-              leading: Icon(
-                Icons.security,
-                color: Theme.of(context).colorScheme.error,
-              ),
+              leading: Icon(Icons.security, color: colorScheme.error),
               title: Text(
                 e['label']?.toString() ??
                     e['issue_type']?.toString() ??
                     e['tyyppi']?.toString() ??
-                    AppLocalizations.of(context)!.lblEthicalObservation,
-                style: (e['is_critical'] == true)
-                    ? TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                    l10n.lblEthicalObservation,
+                style: isCrit
+                    ? textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onErrorContainer,
                         fontWeight: FontWeight.bold,
                       )
-                    : null,
+                    : textTheme.bodyMedium,
               ),
               subtitle: Text(
                 e['description']?.toString() ?? e['kuvaus']?.toString() ?? '',
+                style: textTheme.bodySmall,
               ),
               trailing: Text(
-                e['severity']?.toString() ?? e['vakavuus']?.toString() ?? 'N/A',
+                e['severity']?.toString() ??
+                    e['vakavuus']?.toString() ??
+                    l10n.dataUnavailable,
+                style: textTheme.labelSmall,
               ),
             ),
           );
@@ -1454,62 +1491,71 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       );
     }
 
-    final factsChildren = <Widget>[];
-    factsChildren.add(
+    final factsChildren = <Widget>[
       Row(
         children: [
-          Text(
-            AppLocalizations.of(context)!.lblFactCheck,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          Expanded(
+            child: Text(
+              l10n.lblFactCheck,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-          _buildHelpButton(context, "fact_check"),
+          ?factHelp,
         ],
       ),
-    );
+    ];
 
     if (facts.isEmpty) {
       factsChildren.add(
         Padding(
-          padding: EdgeInsets.all(8),
-          child: Text(AppLocalizations.of(context)!.lblNoFindings),
+          padding: AppSpacing.p8,
+          child: Text(l10n.lblNoFindings, style: textTheme.bodyMedium),
         ),
       );
     } else {
       factsChildren.addAll(
         facts.map<Widget>((f) {
           final resultKey =
-              f['verification_result'] as String? ?? 'VER_UNCERTAIN';
-          final statusText =
-              f['label'] as String? ?? f['label_key'] as String? ?? resultKey;
+              f['verification_result']?.toString() ?? 'VER_UNCERTAIN';
+          final rawStatus =
+              f['label']?.toString() ?? f['label_key']?.toString() ?? resultKey;
+          final statusText = _getLocalizedEnum(rawStatus, l10n);
           IconData i = Icons.help_outline;
-          Color c = Theme.of(context).colorScheme.error;
+          Color c = colorScheme.error;
 
           if (resultKey == 'VER_VERIFIED') {
             i = Icons.check_circle;
-            c = Theme.of(context).colorScheme.primary;
+            c = colorScheme.primary;
           } else if (resultKey == 'VER_DEBUNKED') {
             i = Icons.cancel;
-            c = Theme.of(context).colorScheme.error;
+            c = colorScheme.error;
           }
 
           return ListTile(
             leading: Icon(i, color: c),
-            title: Text(f['vaite']?.toString() ?? f['claim']?.toString() ?? ''),
+            title: Text(
+              f['vaite']?.toString() ?? f['claim']?.toString() ?? '',
+              style: textTheme.bodyMedium,
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   statusText,
-                  style: TextStyle(
+                  style: textTheme.labelSmall?.copyWith(
                     color: c,
                     fontWeight: FontWeight.bold,
-                    fontSize: 12,
                   ),
                 ),
                 Text(
                   f['lahde_tai_paattely']?.toString() ??
                       f['source']?.toString() ??
                       '',
+                  style: textTheme.bodySmall,
                 ),
               ],
             ),
@@ -1518,16 +1564,18 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       );
     }
 
-    if (ethics.isEmpty)
+    if (ethics.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: factsChildren,
       );
-    if (facts.isEmpty && ethics.isNotEmpty)
+    }
+    if (facts.isEmpty && ethics.isNotEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: ethicsChildren,
       );
+    }
 
     return _buildResponsiveLayout(
       context,
@@ -1544,72 +1592,82 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  // --- 6. PERFORMATIVITY CHECK ---
   Widget _buildPerformativityCheck(BuildContext context) {
     _validateRequiredKeys([
       'heuristics',
       'authenticity_assessment',
       'authenticity_score',
     ], 'PERFORMATIVITY_CHECK');
-    // Strict V3 Keys
-    final heuristics =
-        (widget.data['heuristics'] as List?)?.cast<Map<String, Object?>>() ??
-        [];
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
-    final overall = widget.data['authenticity_assessment'] as String?;
+    final rawHeuristics = widget.data['heuristics'];
+    if (rawHeuristics is! List) {
+      throw AppException.validation(
+        'Fail-Fast: PERFORMATIVITY_CHECK heuristics must be a List.',
+      );
+    }
+    final heuristics = <Map<String, Object?>>[];
+    for (var i = 0; i < rawHeuristics.length; i++) {
+      final item = rawHeuristics[i];
+      if (item is! Map<String, Object?>) {
+        throw AppException.validation(
+          'Fail-Fast: PERFORMATIVITY_CHECK heuristics[$i] must be a Map<String, Object?>.',
+        );
+      }
+      heuristics.add(item);
+    }
+
+    final overall = widget.data['authenticity_assessment']?.toString();
+    final authScore = _parseNumericScore(
+      widget.data['authenticity_score'],
+      'authenticity_score',
+      maxBound: _authenticityMaxScore,
+    );
 
     final leftChildren = <Widget>[];
     if (overall != null) {
-      final l10n = AppLocalizations.of(context)!;
       String displayAuth = overall;
-      if (displayAuth == overall) {
-        if (overall.contains("AUTH_ORGANIC"))
-          displayAuth = l10n.authOrganic;
-        else if (overall.contains("AUTH_PERFORMATIVE"))
-          displayAuth = l10n.authPerformative;
-        else if (overall.contains("AUTH_UNKNOWN"))
-          displayAuth = l10n.authUnknown;
+      if (overall.contains('AUTH_ORGANIC')) {
+        displayAuth = l10n.authOrganic;
+      } else if (overall.contains('AUTH_PERFORMATIVE')) {
+        displayAuth = l10n.authPerformative;
+      } else if (overall.contains('AUTH_UNKNOWN')) {
+        displayAuth = l10n.authUnknown;
       }
 
       leftChildren.add(
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.p16,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Theme.of(context).colorScheme.tertiary,
-                Theme.of(context).colorScheme.primary,
+                colorScheme.tertiaryContainer,
+                colorScheme.primaryContainer,
               ],
             ),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppSpacing.s12),
           ),
           child: Column(
             children: [
               UnifiedMetricGauge(
-                label: AppLocalizations.of(context)!.lblAuthenticity,
-                value:
-                    (widget.data['authenticity_score'] as num?)?.toDouble() ??
-                    (overall.contains("AUTH_ORGANIC")
-                        ? 3.0
-                        : (overall.contains("AUTH_PERFORMATIVE") ? 2.0 : 1.0)),
-                max: 3.0,
+                label: l10n.lblAuthenticity,
+                value: authScore,
+                max: _authenticityMaxScore,
                 description:
                     widget.data['authenticity_help']?.toString() ??
-                    "Authenticity Help",
+                    l10n.helpAuthenticity,
                 displayValue:
-                    "${(widget.data['authenticity_score'] as num?)?.toDouble().toStringAsFixed(1) ?? '?'}/3.0",
-                color: Theme.of(context).colorScheme.tertiary,
-                axisLabels: [
-                  AppLocalizations.of(context)!.authPerformative,
-                  '',
-                  AppLocalizations.of(context)!.authOrganic,
-                ],
+                    '${authScore.toStringAsFixed(1)}/${_authenticityMaxScore.toStringAsFixed(1)}',
+                color: colorScheme.tertiary,
+                axisLabels: [l10n.authPerformative, '', l10n.authOrganic],
               ),
-              const SizedBox(height: 8),
+              AppSpacing.h8,
               Text(
                 displayAuth,
-                style: const TextStyle(
-                  fontSize: 14,
+                style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1619,47 +1677,48 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       );
     }
 
-    final rightChildren = <Widget>[];
-    rightChildren.add(
+    final perfHelp = _buildHelpButton(context, 'performativity');
+    final rightChildren = <Widget>[
       Row(
         children: [
-          Text(
-            "${AppLocalizations.of(context)!.lblHeuristics}:",
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          Expanded(
+            child: Text(
+              '${l10n.lblHeuristics}:',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-          const SizedBox(width: 8),
-          _buildHelpButton(context, "performativity"),
+          if (perfHelp != null) ...[AppSpacing.w8, perfHelp],
         ],
       ),
-    );
-
-    rightChildren.add(
+      AppSpacing.h8,
       Wrap(
-        spacing: 8,
-        runSpacing: 4,
+        spacing: AppSpacing.s8,
+        runSpacing: AppSpacing.s4,
         children: heuristics.map<Widget>((b) {
           final raised = b['flag'] == true;
           return Chip(
             label: Text(b['name']?.toString() ?? ''),
             avatar: Icon(
               raised ? Icons.flag : Icons.check,
-              size: 16,
-              color: raised
-                  ? Theme.of(context).colorScheme.error
-                  : Theme.of(context).colorScheme.primary,
+              size: AppSpacing.s16,
+              color: raised ? colorScheme.error : colorScheme.primary,
             ),
             backgroundColor: raised
-                ? Theme.of(context).colorScheme.errorContainer
-                : Theme.of(context).colorScheme.primaryContainer,
-            labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+                ? colorScheme.errorContainer
+                : colorScheme.primaryContainer,
+            labelStyle: textTheme.labelSmall?.copyWith(
               color: raised
-                  ? Theme.of(context).colorScheme.onErrorContainer
-                  : Theme.of(context).colorScheme.onPrimaryContainer,
+                  ? colorScheme.onErrorContainer
+                  : colorScheme.onPrimaryContainer,
             ),
           );
         }).toList(),
       ),
-    );
+    ];
 
     return _buildResponsiveLayout(
       context,
@@ -1676,75 +1735,71 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  // --- 7. ARCHIVIST CHECK ---
   Widget _buildArchivistCheck(BuildContext context) {
-    // English Keys: compliance_score, consistency_analysis, precedents
-    final score = widget.data['compliance_score'];
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    final rawScore = widget.data['compliance_score'];
+    final double scoreVal = rawScore != null
+        ? _parseNumericScore(
+            rawScore,
+            'compliance_score',
+            maxBound: _complianceMaxScore,
+          )
+        : 0.0;
     final rawRecs =
         widget.data['recommendations'] ?? widget.data['suositukset'];
-    final recs = rawRecs is List ? rawRecs : const [];
+    final recs = rawRecs is List ? rawRecs : const <Object?>[];
 
     final analysis =
         widget.data['consistency_analysis']?.toString() ??
         widget.data['analysis']?.toString();
 
-    double normalizedScore = 0;
-    if (score is num) normalizedScore = score / 100.0;
-
-    final leftChildren = <Widget>[];
-    leftChildren.add(
+    final leftChildren = <Widget>[
       Container(
-        padding: const EdgeInsets.all(12),
+        padding: AppSpacing.p12,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             UnifiedMetricGauge(
-              label: AppLocalizations.of(context)!.lblComplianceAnalysis,
-              value:
-                  (score is num ? score.toDouble() : null) ??
-                  (normalizedScore * 5.0),
-              max: 5.0,
+              label: l10n.lblComplianceAnalysis,
+              value: scoreVal,
+              max: _complianceMaxScore,
               description:
                   widget.data['help_archivist']?.toString() ??
                   widget.data['help_compliance']?.toString() ??
-                  "Compliance Help",
+                  l10n.helpArchivist,
               displayValue:
-                  "${(score as num?)?.toDouble() ?? (normalizedScore * 5.0).toStringAsFixed(1)}/5.0",
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              axisLabels: [
-                AppLocalizations.of(context)!.lblWeak,
-                '',
-                '',
-                '',
-                '',
-                AppLocalizations.of(context)!.lblStrong,
-              ],
+                  '${scoreVal.toStringAsFixed(1)}/${_complianceMaxScore.toStringAsFixed(1)}',
+              color: colorScheme.onSurfaceVariant,
+              axisLabels: [l10n.lblWeak, '', '', '', '', l10n.lblStrong],
             ),
-            const SizedBox(height: 8),
+            AppSpacing.h8,
             Text(
               analysis != null && analysis.isNotEmpty
                   ? analysis
-                  : AppLocalizations.of(context)!.lblNoAnalysis,
+                  : l10n.lblNoAnalysis,
+              style: textTheme.bodyMedium,
             ),
           ],
         ),
       ),
-    );
+    ];
 
-    final rightChildren = <Widget>[];
-    rightChildren.addAll(
-      recs.map<Widget>(
-        (r) => ListTile(
+    final rightChildren = <Widget>[
+      for (final r in recs)
+        ListTile(
           leading: Icon(
             Icons.task_alt,
-            size: 16,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            size: AppSpacing.s16,
+            color: colorScheme.onSurfaceVariant,
           ),
-          title: Text(r.toString()),
+          title: Text(r.toString(), style: textTheme.bodySmall),
           dense: true,
         ),
-      ),
-    );
+    ];
 
     return _buildResponsiveLayout(
       context,
@@ -1761,57 +1816,50 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  Widget _buildGenericMap(Map<String, Object?> map) {
+  Widget _buildGenericMap(BuildContext context, Map<String, Object?> map) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: map.entries.map<Widget>((e) {
-        // Strip markdown asterisks from keys to prevent **Key**: bleeding
         final parsedKey = e.key.replaceAll(RegExp(r'\*+'), '').trim();
 
-        String displayValue;
+        final String displayValue;
         if (e.value is Map || e.value is List) {
-          try {
-            displayValue = const JsonEncoder.withIndent('  ').convert(e.value);
-          } catch (_) {
-            displayValue = e.value.toString();
-          }
+          displayValue = const JsonEncoder.withIndent('  ').convert(e.value);
         } else {
-          displayValue = e.value.toString();
+          displayValue = e.value?.toString() ?? '';
         }
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 12.0),
-          padding: const EdgeInsets.all(12.0),
+          margin: const EdgeInsets.only(bottom: AppSpacing.s12),
+          padding: AppSpacing.p12,
           decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            ),
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(AppSpacing.s8),
+            border: Border.all(color: colorScheme.surfaceContainerHighest),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 parsedKey.toUpperCase(),
-                style: TextStyle(
+                style: textTheme.labelMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
                   letterSpacing: 0.5,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: colorScheme.primary,
                 ),
               ),
-              const SizedBox(height: 8),
+              AppSpacing.h8,
               if (displayValue.contains('```') || displayValue.contains('**'))
                 OutputRenderer(markdownContent: displayValue)
               else
                 SelectableText(
                   displayValue,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(context).colorScheme.onSurface,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface,
                     height: 1.5,
                   ),
                 ),
@@ -1823,6 +1871,7 @@ class _SpecialistSectionState extends State<SpecialistSection> {
   }
 
   Widget _buildInfoCard(
+    BuildContext context,
     String title,
     String? value,
     IconData icon, {
@@ -1831,49 +1880,56 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     String? helpKey,
   }) {
     if (value == null || value.trim().isEmpty) {
-      throw FormatException("Missing value for InfoCard: '$title'");
+      throw AppException.validation(
+        'Fail-Fast: Missing value for InfoCard: "$title"',
+      );
     }
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final helpBtn = helpKey != null ? _buildHelpButton(context, helpKey) : null;
 
     return Semantics(
       excludeSemantics: Platform.isWindows,
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
         title: Container(
-          padding: EdgeInsets.all(12),
+          padding: AppSpacing.p12,
           decoration: BoxDecoration(
-            color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
-            borderRadius: BorderRadius.circular(8),
+            color: color ?? colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(AppSpacing.s8),
           ),
           child: Row(
             children: [
               Icon(
                 icon,
-                size: 32,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                size: _infoIconSize,
+                color: colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(width: 16),
+              AppSpacing.w16,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
-                        if (helpKey != null) _buildHelpButton(context, helpKey),
+                        ?helpBtn,
                       ],
                     ),
                     Text(
                       value,
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -1886,11 +1942,14 @@ class _SpecialistSectionState extends State<SpecialistSection> {
         children: [
           if (subtitle != null)
             Padding(
-              padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+              padding: const EdgeInsets.only(
+                left: AppSpacing.s12,
+                right: AppSpacing.s12,
+                bottom: AppSpacing.s12,
+              ),
               child: Text(
                 subtitle,
-                style: const TextStyle(
-                  fontSize: 12,
+                style: textTheme.bodySmall?.copyWith(
                   fontStyle: FontStyle.italic,
                 ),
               ),
@@ -1900,28 +1959,39 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  Widget _buildComparisonBlock(String label, dynamic content, Color color) {
+  Widget _buildComparisonBlock(
+    BuildContext context,
+    String label,
+    Object? content,
+    Color color,
+  ) {
     final strContent = content?.toString() ?? '';
     if (strContent.trim().isEmpty) {
-      throw FormatException("Missing content for ComparisonBlock: '$label'");
+      throw AppException.validation(
+        'Fail-Fast: Missing content for ComparisonBlock: "$label"',
+      );
     }
 
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: AppSpacing.p8,
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(AppSpacing.s4),
       ),
       child: Column(
         children: [
           Text(
             label,
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 4),
+          AppSpacing.h4,
           Text(
             strContent,
-            style: const TextStyle(fontSize: 12),
+            style: textTheme.bodySmall,
             textAlign: TextAlign.center,
           ),
         ],
@@ -1929,129 +1999,157 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  Widget _buildLabelValue(String label, dynamic value) {
+  Widget _buildLabelValue(BuildContext context, String label, Object? value) {
     final strValue = value?.toString() ?? '';
     if (strValue.trim().isEmpty) {
-      throw FormatException("Missing value for LabelValue: '$label'");
+      throw AppException.validation(
+        'Fail-Fast: Missing value for LabelValue: "$label"',
+      );
     }
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 11,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.bold,
           ),
         ),
-        Text(strValue, style: const TextStyle(fontSize: 14)),
+        Text(strValue, style: textTheme.bodyMedium),
       ],
     );
   }
 
-  Widget _buildRawJsonView() {
+  Widget _buildRawJsonView(BuildContext context) {
+    final theme = Theme.of(context);
     final jsonStr = const JsonEncoder.withIndent('  ').convert(widget.data);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: AppSpacing.p12,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(4),
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppSpacing.s4),
       ),
       child: SelectableText(
         jsonStr,
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+        style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
       ),
     );
   }
 
-  Widget _buildHelpButton(BuildContext context, String key) {
-    // Strict Mode: Help text must be provided by backend in the data payload.
-    // Keys are typically "help_key" or just "key_help".
-    // We try both common patterns.
+  Widget? _buildHelpButton(BuildContext context, String key) {
     final text =
         (widget.data[key] ??
                 widget.data['help_$key'] ??
                 widget.data['${key}_help'] ??
-                "")
+                '')
             .toString();
-    if (text.isEmpty) return const SizedBox.shrink();
+    if (text.trim().isEmpty) return null;
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return IconButton(
       icon: Icon(
         Icons.help_outline,
-        size: 18,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        size: _helpIconSize,
+        color: colorScheme.onSurfaceVariant,
       ),
       onPressed: () {
-        showDialog(
+        showDialog<void>(
           context: context,
           builder: (ctx) => AlertDialog(
             title: Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  AppLocalizations.of(context)?.aboutMetricTitle ??
-                      "About Metric",
-                  style: const TextStyle(fontSize: 16),
+                Icon(Icons.info_outline, color: colorScheme.primary),
+                AppSpacing.w8,
+                Expanded(
+                  child: Text(
+                    l10n.aboutMetricTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.titleMedium,
+                  ),
                 ),
               ],
             ),
-            content: Text(text, style: const TextStyle(height: 1.5)),
+            content: Text(
+              text,
+              style: textTheme.bodyMedium?.copyWith(height: 1.5),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: Text(AppLocalizations.of(context)?.sharedOk ?? "OK"),
+                child: Text(l10n.sharedOk),
               ),
             ],
           ),
         );
       },
-      tooltip:
-          AppLocalizations.of(context)?.sharedMoreInfoTooltip ?? "Lisätietoa",
+      tooltip: l10n.sharedMoreInfoTooltip,
     );
   }
 
-  // --- 8. DRIVER PROFILE (Interaction) ---
   Widget _buildDriverProfile(BuildContext context) {
     _validateRequiredKeys([
       'role_classification',
       'high_dependency',
       'imperative_command_count',
       'strategy',
-    ], "Driver Profile");
-    final roleRaw = widget.data['role_classification'] as String;
-    final ratio = widget.data['input_control_ratio'] as num?;
-
-    final cmdCount = widget.data['imperative_command_count'] as int;
-    final isHighDependency = widget.data['high_dependency'] as bool;
-    final strategyRaw = widget.data['strategy'] as String;
-    final strategies = [strategyRaw];
-
+    ], 'Driver Profile');
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    // Strict Enum: Use ROLE_DRIVER etc.
-    // If raw is "Driver", we map to "ROLE_DRIVER".
-    // Backend creates "driver_display" with "classification" containing strict keys (lines 600+ BFF).
-    // Let's rely on that if available, or map raw.
-
-    String roleKey = roleRaw;
-    if (!roleKey.startsWith("ROLE_")) {
-      // Fallback for unexpected raw strings
-      roleKey = "ROLE_${roleRaw.toUpperCase()}";
+    final roleRaw = widget.data['role_classification']?.toString().trim() ?? '';
+    if (roleRaw.isEmpty) {
+      throw AppException.validation(
+        'Fail-Fast: Driver Profile role_classification cannot be empty.',
+      );
     }
 
-    final role = roleKey;
+    final rawRatio = widget.data['input_control_ratio'];
+    final double? ratio = rawRatio != null
+        ? _parseNumericScore(rawRatio, 'input_control_ratio')
+        : null;
 
-    // Spectrum Definitions
+    final rawCmdCount = widget.data['imperative_command_count'];
+    if (rawCmdCount is! int) {
+      throw AppException.validation(
+        'Fail-Fast: Driver Profile imperative_command_count must be an int.',
+      );
+    }
+    final cmdCount = rawCmdCount;
+
+    final rawHighDep = widget.data['high_dependency'];
+    if (rawHighDep is! bool) {
+      throw AppException.validation(
+        'Fail-Fast: Driver Profile high_dependency must be a bool.',
+      );
+    }
+    final isHighDependency = rawHighDep;
+
+    final strategyRaw = widget.data['strategy']?.toString().trim() ?? '';
+    if (strategyRaw.isEmpty) {
+      throw AppException.validation(
+        'Fail-Fast: Driver Profile strategy cannot be empty.',
+      );
+    }
+    final strategies = [strategyRaw];
+
+    final String role = roleRaw.startsWith('ROLE_')
+        ? roleRaw
+        : 'ROLE_${roleRaw.toUpperCase()}';
+
     final roles = [
       l10n.rolePassenger,
       l10n.roleNavigator,
@@ -2059,66 +2157,67 @@ class _SpecialistSectionState extends State<SpecialistSection> {
       l10n.roleArchitect,
     ];
 
-    // If Ratio is 0 but role is Active, we still want to show it (e.g. 0% is valid data)
-    final showRatio = ratio != null;
+    final controlRatioHelp = _buildHelpButton(context, 'control_ratio');
 
-    final leftChildren = <Widget>[];
-    leftChildren.add(
+    final leftChildren = <Widget>[
       Container(
-        padding: EdgeInsets.all(20),
+        padding: AppSpacing.p16,
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.primary),
+          color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(AppSpacing.s12),
+          border: Border.all(color: colorScheme.primary),
         ),
         child: Column(
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  AppLocalizations.of(context)!.lblRoleAndPosition,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                Flexible(
+                  child: Text(
+                    l10n.lblRoleAndPosition,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                _buildHelpButton(context, "control_ratio"),
+                if (controlRatioHelp != null) ...[
+                  AppSpacing.w8,
+                  controlRatioHelp,
+                ],
               ],
             ),
-            const SizedBox(height: 10),
+            AppSpacing.h8,
             Text(
-              ratio != null ? "${(ratio * 100).toStringAsFixed(0)}%" : "N/A",
-              style: TextStyle(
+              ratio != null
+                  ? '${(ratio * 100).toStringAsFixed(0)}%'
+                  : l10n.dataUnavailable,
+              style: textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontSize: 32,
-                color: Theme.of(context).colorScheme.primary,
+                color: colorScheme.primary,
               ),
             ),
             Text(
-              showRatio
-                  ? AppLocalizations.of(context)!.lblControlRatio
-                  : "Osuus",
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              l10n.lblControlRatio,
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 24),
+            AppSpacing.h24,
             LayoutBuilder(
               builder: (context, constraints) {
-                final translatedRole = _getLocalizedEnum(role);
+                final translatedRole = _getLocalizedEnum(role, l10n);
                 return Stack(
                   alignment: Alignment.center,
                   children: [
                     Positioned(
-                      left: 30, // Padding from edges
-                      right: 30,
-                      top: 10,
+                      left: _spectrumLineHorizontalInset,
+                      right: _spectrumLineHorizontalInset,
+                      top: _spectrumLineTop,
                       child: Container(
-                        height: 4,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: _spectrumTrackHeight,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                     Row(
@@ -2130,54 +2229,46 @@ class _SpecialistSectionState extends State<SpecialistSection> {
                           child: Column(
                             children: [
                               Container(
-                                width: 24,
-                                height: 24,
+                                width: _spectrumNodeDimension,
+                                height: _spectrumNodeDimension,
                                 decoration: BoxDecoration(
                                   color: isActive
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
+                                      ? colorScheme.primary
+                                      : colorScheme.onSurfaceVariant,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.surface,
-                                    width: 3,
+                                    color: colorScheme.surface,
+                                    width: _spectrumBorderWidth,
                                   ),
                                   boxShadow: [
                                     if (isActive)
                                       BoxShadow(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary
-                                            .withValues(alpha: 0.4),
-                                        spreadRadius: 2,
-                                        blurRadius: 4,
-                                      ),
-                                    if (!isActive)
+                                        color: colorScheme.primary.withValues(
+                                          alpha: 0.4,
+                                        ),
+                                        spreadRadius: AppSpacing.s2,
+                                        blurRadius: AppSpacing.s4,
+                                      )
+                                    else
                                       BoxShadow(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                        spreadRadius: 1,
+                                        color: colorScheme.onSurfaceVariant,
+                                        spreadRadius: _defaultBorderWidth,
                                       ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              AppSpacing.h8,
                               Text(
                                 r,
-                                style: TextStyle(
-                                  fontSize: isActive ? 12 : 10,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: textTheme.labelSmall?.copyWith(
                                   fontWeight: isActive
                                       ? FontWeight.bold
                                       : FontWeight.normal,
                                   color: isActive
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
+                                      ? colorScheme.primary
+                                      : colorScheme.onSurfaceVariant,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -2193,118 +2284,125 @@ class _SpecialistSectionState extends State<SpecialistSection> {
           ],
         ),
       ),
-    );
+    ];
 
     final rightChildren = <Widget>[];
     if (strategies.isNotEmpty) {
       rightChildren.add(
-        const Text(
-          "Tunnistetut Strategiat:",
-          style: TextStyle(fontWeight: FontWeight.bold),
+        Text(
+          l10n.sharedIdentifiedStrategies,
+          style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
       );
-      rightChildren.add(const SizedBox(height: 8));
+      rightChildren.add(AppSpacing.h8);
       rightChildren.add(
         Wrap(
-          spacing: 8,
-          runSpacing: 4,
+          spacing: AppSpacing.s8,
+          runSpacing: AppSpacing.s4,
           children: [
             for (final s in strategies)
               Chip(
-                label: Text(s.toString()),
-                backgroundColor: Theme.of(context).colorScheme.primary,
+                label: Text(s),
+                backgroundColor: colorScheme.primaryContainer,
               ),
           ],
         ),
       );
-      rightChildren.add(const SizedBox(height: 16));
+      rightChildren.add(AppSpacing.h16);
     }
 
     if (isHighDependency) {
       rightChildren.add(
         Chip(
           label: Text(
-            "High Dependency",
-            style: TextStyle(color: Theme.of(context).colorScheme.surface),
+            l10n.sharedHighDependency,
+            style: textTheme.labelSmall?.copyWith(color: colorScheme.onError),
           ),
-          backgroundColor: Theme.of(context).colorScheme.error,
+          backgroundColor: colorScheme.error,
           avatar: Icon(
             Icons.warning_amber_rounded,
-            color: Theme.of(context).colorScheme.surface,
-            size: 16,
+            color: colorScheme.onError,
+            size: AppSpacing.s16,
           ),
         ),
       );
-      rightChildren.add(const SizedBox(height: 12));
+      rightChildren.add(AppSpacing.h12);
     }
 
     rightChildren.add(
       Text(
-        "Suoria käskyjä (Imperative): $cmdCount",
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        l10n.sharedImperativeCommandsCount(cmdCount),
+        style: textTheme.bodyMedium?.copyWith(
+          color: colorScheme.onSurfaceVariant,
           fontStyle: FontStyle.italic,
         ),
       ),
     );
-    rightChildren.add(const SizedBox(height: 12));
+    rightChildren.add(AppSpacing.h12);
 
     if (widget.data['compliance_analysis'] != null) {
       rightChildren.add(
         _buildComparisonBlock(
-          "Linjakkuus",
-          widget.data['compliance_analysis'] ?? 'N/A',
-          Theme.of(context).colorScheme.primary,
+          context,
+          l10n.lblComplianceAnalysis,
+          widget.data['compliance_analysis'],
+          colorScheme.primaryContainer,
         ),
       );
-      rightChildren.add(const SizedBox(height: 8));
+      rightChildren.add(AppSpacing.h8);
     }
 
     if (widget.data['poikkeamat_linjasta'] != null) {
       rightChildren.add(
         _buildInfoCard(
-          "Poikkeamat Linjasta",
+          context,
+          l10n.sharedDeviationsFromAlignment,
           widget.data['poikkeamat_linjasta']?.toString(),
           Icons.call_split,
-          color: Theme.of(context).colorScheme.surface,
+          color: colorScheme.surfaceContainerLow,
         ),
       );
-      rightChildren.add(const SizedBox(height: 8));
+      rightChildren.add(AppSpacing.h8);
     }
 
     if (widget.data['suositus_tuomarille'] != null) {
+      final recText =
+          widget.data['suositus_tuomarille']?.toString().trim() ?? '';
+      if (recText.isEmpty) {
+        throw AppException.validation(
+          'Fail-Fast: Driver Profile suositus_tuomarille cannot be empty.',
+        );
+      }
       rightChildren.add(
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.p16,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Theme.of(context).colorScheme.primary),
+            color: colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(AppSpacing.s8),
+            border: Border.all(color: colorScheme.primary),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.recommend,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    AppLocalizations.of(context)!.recommendationToJudgeTitle,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
+                  Icon(Icons.recommend, color: colorScheme.primary),
+                  AppSpacing.w8,
+                  Expanded(
+                    child: Text(
+                      l10n.recommendationToJudgeTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                widget.data['suositus_tuomarille']?.toString() ?? "",
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+              AppSpacing.h8,
+              Text(recText, style: textTheme.bodyMedium),
             ],
           ),
         ),
@@ -2323,14 +2421,16 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  // NEW: Compact Text Metrics for Logic Analysis (Teal Theme)
   Widget _buildCompactTextMetrics(
     BuildContext context,
     Map<String, Object?> metrics,
   ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
     final l10n = AppLocalizations.of(context)!;
 
-    double _safeDouble(dynamic value) {
+    double parseMetricDouble(Object? value) {
       if (value == null) return 0.0;
       if (value is num) return value.toDouble();
       if (value is String) return double.tryParse(value) ?? 0.0;
@@ -2342,14 +2442,14 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     final sentCount = metrics['sentence_count'] ?? 0;
     final lexDiv =
         metrics['lexical_diversity_display'] ??
-        _safeDouble(metrics['lexical_diversity']).toStringAsFixed(2);
+        parseMetricDouble(metrics['lexical_diversity']).toStringAsFixed(2);
 
     return Container(
-      padding: EdgeInsets.all(12),
+      padding: AppSpacing.p12,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondary,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Theme.of(context).colorScheme.secondary),
+        color: colorScheme.secondaryContainer.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(AppSpacing.s8),
+        border: Border.all(color: colorScheme.secondary),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2358,27 +2458,48 @@ class _SpecialistSectionState extends State<SpecialistSection> {
             children: [
               Icon(
                 Icons.bar_chart,
-                size: 16,
-                color: Theme.of(context).colorScheme.secondary,
+                size: AppSpacing.s16,
+                color: colorScheme.secondary,
               ),
-              const SizedBox(width: 8),
-              Text(
-                "${l10n.lblTextMetrics}",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.secondary,
+              AppSpacing.w8,
+              Expanded(
+                child: Text(
+                  l10n.lblTextMetrics,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.secondary,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          AppSpacing.h8,
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildCompactMetricItem(l10n.lblWordCount, "$wordCount"),
-              _buildCompactMetricItem(l10n.lblSentenceCount, "$sentCount"),
-              _buildCompactMetricItem(l10n.lblLexicalDiversity, "$lexDiv"),
+              Expanded(
+                child: _buildCompactMetricItem(
+                  context,
+                  l10n.lblWordCount,
+                  '$wordCount',
+                ),
+              ),
+              Expanded(
+                child: _buildCompactMetricItem(
+                  context,
+                  l10n.lblSentenceCount,
+                  '$sentCount',
+                ),
+              ),
+              Expanded(
+                child: _buildCompactMetricItem(
+                  context,
+                  l10n.lblLexicalDiversity,
+                  '$lexDiv',
+                ),
+              ),
             ],
           ),
         ],
@@ -2386,50 +2507,99 @@ class _SpecialistSectionState extends State<SpecialistSection> {
     );
   }
 
-  Widget _buildCompactMetricItem(String label, String value) {
+  Widget _buildCompactMetricItem(
+    BuildContext context,
+    String label,
+    String value,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Column(
       children: [
         Text(
           label.toUpperCase(),
-          style: TextStyle(
-            fontSize: 9,
-            color: Theme.of(context).colorScheme.secondary,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.secondary,
             fontWeight: FontWeight.bold,
           ),
         ),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 14,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.secondary,
+            color: colorScheme.secondary,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildMetricBlock(String label, String value) {
+  Widget _buildMetricBlock(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           value,
-          style: TextStyle(
+          style: textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
-            fontSize: 18,
-            color: Theme.of(context).colorScheme.primary,
+            color: colorScheme.primary,
           ),
         ),
-        const SizedBox(height: 2),
+        AppSpacing.h2,
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          style: textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
       ],
     );
+  }
+
+  double _parseNumericScore(
+    Object? raw,
+    String fieldName, {
+    double minBound = 0.0,
+    double? maxBound,
+  }) {
+    final double val;
+    if (raw is num) {
+      val = raw.toDouble();
+    } else if (raw != null) {
+      final parsed = double.tryParse(raw.toString().trim());
+      if (parsed == null) {
+        throw AppException.validation(
+          'Fail-Fast: SpecialistSection $fieldName must be a valid number.',
+        );
+      }
+      val = parsed;
+    } else {
+      throw AppException.validation(
+        'Fail-Fast: SpecialistSection $fieldName is required.',
+      );
+    }
+
+    if (val.isNaN || val.isInfinite) {
+      throw AppException.validation(
+        'Fail-Fast: SpecialistSection $fieldName must be finite.',
+      );
+    }
+
+    if (val < minBound || (maxBound != null && val > maxBound)) {
+      throw AppException.validation(
+        'Fail-Fast: SpecialistSection $fieldName ($val) is out of bounds [$minBound, ${maxBound ?? 'inf'}].',
+      );
+    }
+    return val;
   }
 }
