@@ -11,11 +11,11 @@ void main() {
     int defaultLexicalStrictnessLevel = 50,
   }) {
     return Workflow(
-      id: 'wor_1234567890abcdef',
+      id: 'wor_018f123456787abc8def0123456789ab',
       slug: 'test-workflow',
       name: const I18nText(translations: {'en': 'Test Workflow'}),
       description: const I18nText(translations: {'en': 'Test Description'}),
-      modelRegistryId: 'sys_b1c2d3e4f5a60718',
+      modelRegistryId: 'sys_018f123456787abc8def0123456789ac',
       defaultStrictnessLevel: defaultStrictnessLevel,
       defaultLexicalStrictnessLevel: defaultLexicalStrictnessLevel,
     );
@@ -23,7 +23,7 @@ void main() {
 
   Widget buildTestApp(
     Workflow workflow, {
-    Function(Workflow)? onChanged,
+    ValueChanged<Workflow>? onChanged,
     Locale locale = const Locale('en'),
   }) {
     return MaterialApp(
@@ -319,6 +319,68 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(lastUpdatedWorkflow?.securityPenalty, 0.0);
+      },
+    );
+
+    testWidgets(
+      'test_workflow_strictness_tab_rejects_negative_and_non_numeric_penalty_bounds',
+      (WidgetTester tester) async {
+        Workflow currentWorkflow = createTestWorkflow();
+        int updateCount = 0;
+
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              return buildTestApp(
+                currentWorkflow,
+                onChanged: (updated) {
+                  updateCount++;
+                  setState(() {
+                    currentWorkflow = updated;
+                  });
+                },
+              );
+            },
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final securityInput = find.widgetWithText(
+          TextFormField,
+          'Security Penalty (%)',
+        );
+        final postHocInput = find.widgetWithText(
+          TextFormField,
+          'Post-Hoc Penalty (%)',
+        );
+        final passivityInput = find.widgetWithText(
+          TextFormField,
+          'Passivity Penalty (%)',
+        );
+
+        // Boundary 1: Exact upper bound 100.0 -> accepted (1.0)
+        await tester.enterText(securityInput, '100');
+        await tester.pumpAndSettle();
+        expect(currentWorkflow.securityPenalty, 1.0);
+        final countAfterValid = updateCount;
+
+        // Negative Case 1: Below min bound (-0.1) -> rejected, no state mutation
+        await tester.enterText(securityInput, '-0.1');
+        await tester.pumpAndSettle();
+        expect(updateCount, countAfterValid);
+        expect(currentWorkflow.securityPenalty, 1.0);
+
+        // Negative Case 2: Above max bound (100.1) -> rejected, no state mutation
+        await tester.enterText(postHocInput, '100.1');
+        await tester.pumpAndSettle();
+        expect(updateCount, countAfterValid);
+        expect(currentWorkflow.postHocPenalty, 0.0);
+
+        // Negative Case 3: Malformed non-numeric text ('invalid') -> rejected
+        await tester.enterText(passivityInput, 'invalid');
+        await tester.pumpAndSettle();
+        expect(updateCount, countAfterValid);
+        expect(currentWorkflow.passivityPenalty, 0.0);
       },
     );
   });

@@ -10,7 +10,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 /// and dynamic semantic consequence card) anchored at the workflow definition level.
 class WorkflowStrictnessTab extends StatelessWidget {
   final Workflow workflow;
-  final Function(Workflow) onChanged;
+  final ValueChanged<Workflow> onChanged;
 
   const WorkflowStrictnessTab({
     super.key,
@@ -44,12 +44,12 @@ class WorkflowStrictnessTab extends StatelessWidget {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
+                          horizontal: AppSpacing.s8,
+                          vertical: AppSpacing.s2,
                         ),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppSpacing.s12),
                         ),
                         child: Text(
                           '${workflow.defaultStrictnessLevel}%',
@@ -166,7 +166,7 @@ class WorkflowStrictnessTab extends StatelessWidget {
                                 children: [
                                   Icon(
                                     consequenceIcon,
-                                    size: 16,
+                                    size: AppSpacing.s16,
                                     color: consequenceTextColor,
                                   ),
                                   AppSpacing.w8,
@@ -219,12 +219,12 @@ class WorkflowStrictnessTab extends StatelessWidget {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
+                          horizontal: AppSpacing.s8,
+                          vertical: AppSpacing.s2,
                         ),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppSpacing.s12),
                         ),
                         child: Text(
                           '${workflow.defaultLexicalStrictnessLevel}%',
@@ -345,7 +345,7 @@ class WorkflowStrictnessTab extends StatelessWidget {
                                 children: [
                                   Icon(
                                     consequenceIcon,
-                                    size: 16,
+                                    size: AppSpacing.s16,
                                     color: consequenceTextColor,
                                   ),
                                   AppSpacing.w8,
