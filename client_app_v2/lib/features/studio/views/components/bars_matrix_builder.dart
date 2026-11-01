@@ -5,11 +5,17 @@ import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// **Desktop-First V2 BARS Matrix Builder**
-/// Interactive layout to build 5-portainen (1-5) evaluation matrices.
+/// Interactive layout to build evaluation matrices.
 /// Complies with Macro-Breakpoint Three-Pane rule and handles deep atomization scales.
 class BarsMatrixBuilder extends StatelessWidget {
   final List<MatrixScale> scales;
   final void Function(List<MatrixScale>) onChanged;
+
+  static const double _desktopBreakpoint = 1200.0;
+  static const double _tabletBreakpoint = 800.0;
+  static const double _minScaleCardWidth = 240.0;
+  static const double _maxScaleCardWidth = 320.0;
+  static const double _maxAtomChipWidth = 150.0;
 
   const BarsMatrixBuilder({
     super.key,
@@ -24,12 +30,12 @@ class BarsMatrixBuilder extends StatelessWidget {
     // Use pure native flex constraints!
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Sort the scales to always process 1 -> 5
+        // Sort the scales ascending by score
         final sortedScales = List<MatrixScale>.from(scales)
           ..sort((a, b) => a.score.compareTo(b.score));
 
         Widget content;
-        if (constraints.maxWidth >= 1200) {
+        if (constraints.maxWidth >= _desktopBreakpoint) {
           if (sortedScales.length <= 5) {
             content = Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,8 +54,8 @@ class BarsMatrixBuilder extends StatelessWidget {
                     .map(
                       (s) => ConstrainedBox(
                         constraints: const BoxConstraints(
-                          minWidth: 240,
-                          maxWidth: 320,
+                          minWidth: _minScaleCardWidth,
+                          maxWidth: _maxScaleCardWidth,
                         ),
                         child: _buildScaleCard(context, l10n, s),
                       ),
@@ -58,7 +64,7 @@ class BarsMatrixBuilder extends StatelessWidget {
               ),
             );
           }
-        } else if (constraints.maxWidth >= 800) {
+        } else if (constraints.maxWidth >= _tabletBreakpoint) {
           content = SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -67,8 +73,8 @@ class BarsMatrixBuilder extends StatelessWidget {
                   .map(
                     (s) => ConstrainedBox(
                       constraints: const BoxConstraints(
-                        minWidth: 240,
-                        maxWidth: 320,
+                        minWidth: _minScaleCardWidth,
+                        maxWidth: _maxScaleCardWidth,
                       ),
                       child: _buildScaleCard(context, l10n, s),
                     ),
@@ -87,7 +93,7 @@ class BarsMatrixBuilder extends StatelessWidget {
         return Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppSpacing.s12),
             border: Border.all(
               color: Theme.of(context).colorScheme.outlineVariant,
             ),
@@ -114,12 +120,12 @@ class BarsMatrixBuilder extends StatelessWidget {
       elevation: 0,
       color: theme.colorScheme.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppSpacing.s8),
         side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       child: InkWell(
         onTap: () => _editScale(context, scale),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppSpacing.s8),
         child: Padding(
           padding: AppSpacing.p12,
           child: Column(
@@ -145,7 +151,7 @@ class BarsMatrixBuilder extends StatelessWidget {
                   IconButton(
                     icon: Icon(
                       Icons.edit,
-                      size: 20,
+                      size: AppSpacing.s16 + AppSpacing.s4,
                       color: theme.colorScheme.primary,
                     ),
                     onPressed: () => _editScale(context, scale),
@@ -156,7 +162,7 @@ class BarsMatrixBuilder extends StatelessWidget {
                   IconButton(
                     icon: Icon(
                       Icons.delete,
-                      size: 20,
+                      size: AppSpacing.s16 + AppSpacing.s4,
                       color: theme.colorScheme.error,
                     ),
                     onPressed: () => _deleteScale(scale),
@@ -192,7 +198,7 @@ class BarsMatrixBuilder extends StatelessWidget {
                     padding: AppSpacing.p8,
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(AppSpacing.s4),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,8 +222,8 @@ class BarsMatrixBuilder extends StatelessWidget {
                           ),
                           AppSpacing.h4,
                           Wrap(
-                            spacing: 4,
-                            runSpacing: 4,
+                            spacing: AppSpacing.s4,
+                            runSpacing: AppSpacing.s4,
                             children: [
                               ...claim.tdaAssertions
                                   .take(3)
@@ -233,13 +239,15 @@ class BarsMatrixBuilder extends StatelessWidget {
                                             : theme
                                                   .colorScheme
                                                   .tertiaryContainer,
-                                        borderRadius: BorderRadius.circular(4),
+                                        borderRadius: BorderRadius.circular(
+                                          AppSpacing.s4,
+                                        ),
                                       ),
                                       child: Tooltip(
                                         message: atom.conceptDescription,
                                         child: ConstrainedBox(
                                           constraints: const BoxConstraints(
-                                            maxWidth: 150,
+                                            maxWidth: _maxAtomChipWidth,
                                           ),
                                           child: Text(
                                             atom.conceptDescription,
@@ -270,7 +278,9 @@ class BarsMatrixBuilder extends StatelessWidget {
                                     color: theme
                                         .colorScheme
                                         .surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius: BorderRadius.circular(
+                                      AppSpacing.s4,
+                                    ),
                                   ),
                                   child: Text(
                                     l10n.barsMatrixMoreAssertions(
