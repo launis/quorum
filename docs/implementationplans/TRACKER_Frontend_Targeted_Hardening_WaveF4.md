@@ -63,7 +63,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/executive_summary_block_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graph_item_editor.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graphs_block_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart]
