@@ -673,4 +673,3 @@ async def test_synthesis_engine_revalidation_failure_raises_validation_failed(
     assert exc_info.value.status_code == 500
     assert exc_info.value.details is not None
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-

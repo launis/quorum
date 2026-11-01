@@ -19,6 +19,7 @@
 **Target Files:**
 - `[MODIFY] @[scripts/ablation_live_executor.py#L153-L180]`
 - `[MODIFY] @[scripts/ablation_live_executor.py#L651-L691]`
+- `[MODIFY] @[scripts/run_ablation_benchmark.py#L490-L1148]`
 - `[MODIFY] @[backend_v2/tests/fakes/in_memory_uow.py#L941-L996]`
 - `[MODIFY] @[backend_v2/tests/fakes/in_memory_uow.py#L1165-L1221]`
 - `[MODIFY] @[backend_v2/models/enums.py#L1051-L1065]`
@@ -37,6 +38,7 @@
 - `[MODIFY] @[backend_v2/tests/unit/hooks/test_source_verification_hook.py#L178-L250]`
 - `[MODIFY] @[backend_v2/tests/unit/guardrails/test_cdata_hardening_comprehensive.py#L135-L184]`
 - `[MODIFY] @[backend_v2/tests/unit/scripts/test_ablation_live_executor.py#L519-L553]`
+- `[MODIFY] @[backend_v2/tests/unit/scripts/test_run_ablation_benchmark.py#L904-L918]`
 - `[MODIFY] @[backend_v2/tests/unit/services/orchestrator/strategies/test_llm_cost_tracking.py#L154-L286]`
 - `[MODIFY] @[backend_v2/tests/unit/services/orchestrator/test_dag_executor_preflight.py#L311-L420]`
 - `[MODIFY] @[backend_v2/tests/unit/services/orchestrator/test_dag_executor_preflight.py#L477-L550]`
@@ -66,6 +68,7 @@
 
   <touched_artifacts>
     <backend>@[scripts/ablation_live_executor.py]</backend>
+    <backend>@[scripts/run_ablation_benchmark.py]</backend>
     <backend>@[backend_v2/tests/fakes/in_memory_uow.py]</backend>
     <backend>@[backend_v2/models/enums.py]</backend>
     <backend>@[backend_v2/services/chat_parser.py]</backend>
@@ -83,6 +86,7 @@
     <backend>@[backend_v2/tests/unit/hooks/test_source_verification_hook.py]</backend>
     <backend>@[backend_v2/tests/unit/guardrails/test_cdata_hardening_comprehensive.py]</backend>
     <backend>@[backend_v2/tests/unit/scripts/test_ablation_live_executor.py]</backend>
+    <backend>@[backend_v2/tests/unit/scripts/test_run_ablation_benchmark.py]</backend>
     <backend>@[backend_v2/tests/unit/services/orchestrator/strategies/test_llm_cost_tracking.py]</backend>
     <backend>@[backend_v2/tests/unit/services/orchestrator/test_dag_executor_preflight.py]</backend>
     <backend>@[backend_v2/tests/unit/services/orchestrator/test_rag_preflight_chat_inflation.py]</backend>
@@ -122,7 +126,7 @@
   <step id="1.1" name="Pre-Implementation Technical Debt Cleanups in ablation_live_executor.py and in_memory_uow.py">
     <action>In @[scripts/ablation_live_executor.py#L153-L180], update `AblationLiveExecutionConfigDTO.compare_strategies` to `tuple[LaxCognitiveTier, LaxCognitiveTier] | None = None` (importing `CognitiveTier` and `LaxCognitiveTier` from `backend_v2.models.enums`). In `load_seed_data` (`@[scripts/ablation_live_executor.py#load_seed_data]`), replace `data.get("system_config", [])` with `"system_config" in data` membership resolution. In `@[scripts/ablation_live_executor.py#L153-L180]`, replace `telemetry.get(strat)` with `telemetry[strat] if strat in telemetry else None` and replace `LLMClient.from_strategy(strat_1, repository=repo)` / `LLMClient.from_strategy(strat_2, repository=repo)` with `LLMClient.from_tier(CognitiveTier(strat_1), repository=repo)` / `LLMClient.from_tier(CognitiveTier(strat_2), repository=repo)`.</action>
     <action>In @[backend_v2/tests/fakes/in_memory_uow.py#L217-L299] and @[backend_v2/tests/fakes/in_memory_uow.py#L217-L299], extract module-level typed hydration helpers `_hydrate_in_memory_execution_record` and `_hydrate_in_memory_proposition_node` so inline dict literal `model_validate({...})` calls at lines 1040 and 1154 are eliminated cleanly with zero `TD_MODEL_FACTORY` warnings.</action>
-    <action>In @[backend_v2/tests/unit/scripts/test_ablation_live_executor.py#L519-L553], update mocks and assertions from `LLMClient.from_strategy` to `LLMClient.from_tier` with `CognitiveTier` enum arguments.</action>
+    <action>In @[backend_v2/tests/unit/scripts/test_ablation_live_executor.py#L519-L553] and @[backend_v2/tests/unit/scripts/test_run_ablation_benchmark.py#L904-L918], update mocks and assertions from `LLMClient.from_strategy` to `LLMClient.from_tier` with `CognitiveTier` enum arguments and verify `AblationBenchmarkRunner` coerces `compare_strategies` in live mode.</action>
     <constraint invariant="the_zero_compromise_pledge">Zero `.get()` dictionary fallbacks in operational script or fake state hydration paths.</constraint>
     <audit_command>$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/audit_technical_debt.py --targets scripts/ablation_live_executor.py backend_v2/tests/fakes/in_memory_uow.py</audit_command>
     <audit_command>$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/backend_audit_loop.py scripts/ablation_live_executor.py backend_v2/tests/fakes/in_memory_uow.py backend_v2/tests/unit/scripts/test_ablation_live_executor.py --test --ast-strict</audit_command>

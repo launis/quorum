@@ -11,7 +11,7 @@ import pytest
 from pydantic import TypeAdapter
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import I18nText, generate_opaque_id
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.proposition_graph import FalsifiedClaimMatch
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache

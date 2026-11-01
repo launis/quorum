@@ -94,6 +94,7 @@
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/ablation_live_executor.py]
   - [ ] @[scripts/audit_zero_orm_strictness.py]
+  - [ ] @[scripts/run_ablation_benchmark.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_162_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`.
   - [ ] @[client_app_v2/lib/features/execution/models/execution_record.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/execution_step.dart]

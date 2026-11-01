@@ -61,7 +61,7 @@ def _build_persona_block(category: PromptBlockCategory) -> PersonaPromptBlock:
         label=I18nText(translations={"en": "Persona Label", "fi": "Persoonan Nimike"}),
         description=I18nText(translations={"en": "Persona Description", "fi": "Persoonan Kuvaus"}),
         output_extensions=[],
-        category_id= (
+        category_id=(
             PromptBlockCategory.EXECUTION_PERSONA
             if category == PromptBlockCategory.EXECUTION_PERSONA
             else PromptBlockCategory.AGENT_ROLE

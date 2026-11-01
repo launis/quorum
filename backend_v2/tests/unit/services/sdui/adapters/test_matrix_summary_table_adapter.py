@@ -525,4 +525,3 @@ def test_matrix_summary_table_adapter_short_circuit_and_falsification_lineage() 
         "Empirical counter-evidence -> Assumed linear growth warrant -> Target conclusion claim",
         f"{unmapped_rebuttal_id} -> {unmapped_warrant_id} -> Fallback ID conclusion claim",
     ]
-

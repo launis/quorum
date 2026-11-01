@@ -11,10 +11,13 @@ from pydantic import ValidationError
 
 from backend_v2.database.postgres.entity_adapter import coercion_and_constants as coercion_mod
 from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _COLLECTION_TO_TABLE_MAP,
+    _ROOT_SYSTEM_ORG_UUID7,
+    _SYSTEM_ORG_UUID7,
+    _TABLE_TO_ENTITY_PREFIX,
     CANONICAL_SEED_TABLES,
     _coerce_float,
     _coerce_uuid_or_str,
-    _COLLECTION_TO_TABLE_MAP,
     _decode_jsonb_column,
     _encode_optional_jsonb,
     _format_optional_uuid7,
@@ -22,9 +25,6 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _parse_optional_uuid7,
     _parse_org_uuid7,
     _ReportBinaryRowDTO,
-    _ROOT_SYSTEM_ORG_UUID7,
-    _SYSTEM_ORG_UUID7,
-    _TABLE_TO_ENTITY_PREFIX,
     execute_entity_upsert,
     resolve_effective_timeout,
 )
@@ -122,7 +122,11 @@ async def test_execute_entity_upsert_executes_parameterized_sql() -> None:
             table="organizations",
         )
         assert persisted_id == org_id
-        row = await conn.fetchrow("SELECT id, name, description, is_active, created_at, updated_at FROM organizations WHERE id = $1", org_uuid, timeout=5.0)
+        row = await conn.fetchrow(
+            "SELECT id, name, description, is_active, created_at, updated_at FROM organizations WHERE id = $1",
+            org_uuid,
+            timeout=5.0,
+        )
         assert row is not None
         assert row["name"] == "Acme Org"
     finally:

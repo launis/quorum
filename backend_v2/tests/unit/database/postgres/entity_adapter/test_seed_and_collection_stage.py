@@ -258,7 +258,12 @@ async def test_collection_crud_across_all_canonical_tables(monkeypatch: pytest.M
         assert await get_collection_document_row(conn, _TIMEOUT, "organizations", "org_invalid") is None
         assert await upsert_collection_document_row(conn, _TIMEOUT, "unknown_col", org.id, {}) is False
         assert await upsert_collection_document_row(conn, _TIMEOUT, "organizations", org.id, {"bad": 1}) is False
-        assert await upsert_collection_document_row(conn, _TIMEOUT, "organizations", "org_invalid", org.model_dump(mode="json")) is False
+        assert (
+            await upsert_collection_document_row(
+                conn, _TIMEOUT, "organizations", "org_invalid", org.model_dump(mode="json")
+            )
+            is False
+        )
         assert await delete_collection_document_row(conn, _TIMEOUT, "unknown_col", org.id) is False
         assert await delete_collection_document_row(conn, _TIMEOUT, "organizations", "org_invalid") is False
         await clear_collection_documents_rows(conn, _TIMEOUT, "unknown_col")

@@ -499,7 +499,7 @@ class AblationBenchmarkRunner:
         tier: CognitiveTier = CognitiveTier.FAST,
         concurrency: int = 5,
         compare_providers: tuple[str, str] | None = None,
-        compare_strategies: tuple[str, str] | None = None,
+        compare_strategies: tuple[CognitiveTier | str, CognitiveTier | str] | None = None,
         inputs_path: Path | None = None,
         trace_path: Path | None = None,
         seed_path: Path = Path("backend_v2/seed/seed_data.json"),
@@ -551,12 +551,17 @@ class AblationBenchmarkRunner:
         self.live_executor: AblationLiveExecutor | None = None
 
         if live_config is None and mode == AblationMode.LIVE:
+            coerced_strategies: tuple[CognitiveTier, CognitiveTier] | None = (
+                (CognitiveTier(compare_strategies[0]), CognitiveTier(compare_strategies[1]))
+                if compare_strategies is not None
+                else None
+            )
             live_config = AblationLiveExecutionConfigDTO(
                 mode=mode,
                 tier=tier,
                 concurrency_limit=concurrency,
                 compare_providers=compare_providers,
-                compare_strategies=compare_strategies,
+                compare_strategies=coerced_strategies,
                 inputs_path=inputs_path,
             )
         self.live_config = live_config
@@ -1151,7 +1156,7 @@ def print_ablation_telemetry_banner(
     selected_configs: list[int],
     concurrency: int,
     compare_providers: tuple[str, str] | None = None,
-    compare_strategies: tuple[str, str] | None = None,
+    compare_strategies: tuple[CognitiveTier | str, CognitiveTier | str] | None = None,
     seed_path: Path | None = None,
 ) -> None:
     """Print structured ASCII telemetry banner summarizing ablation parameters and active LLM configuration."""
