@@ -40,7 +40,7 @@
   - [x] @[client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart]
   - [x] @[client_app_v2/lib/features/execution/views/widgets/xai_evidence_box.dart]
   - [x] @[client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart]
-  - [ ] @[client_app_v2/lib/features/reports/views/execution_reports_view.dart]
+  - [x] @[client_app_v2/lib/features/reports/views/execution_reports_view.dart]
   - [ ] @[client_app_v2/lib/features/reports/views/widgets/report_artifact_card.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/audit_trail_viewer.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/comparison_matrix.dart]

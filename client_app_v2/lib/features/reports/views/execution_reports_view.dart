@@ -196,7 +196,7 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
           title: Text(l10n.reportsTitle),
           actions: [
             Padding(
-              padding: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.only(right: AppSpacing.s16),
               child: FilledButton.icon(
                 icon: const Icon(Icons.add),
                 label: Text(l10n.createReportButtonLabel),
@@ -339,10 +339,13 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s8,
+                  vertical: AppSpacing.s2,
+                ),
                 decoration: BoxDecoration(
                   color: colorScheme.secondaryContainer,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppSpacing.s12),
                 ),
                 child: Text(
                   '${filteredReports.length} / ${reports.length}',
@@ -367,7 +370,7 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
               decoration: InputDecoration(
                 isDense: true,
                 prefixIcon: const Icon(Icons.search, size: 18),
-                hintText: 'Hae raportteja...',
+                hintText: l10n.reportSearchHint,
                 suffixIcon: _searchFilter.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 16),
@@ -453,7 +456,7 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     ReportArtifactSummary report,
     AppLocalizations l10n,
   ) {
-    final client = ref.read(reportsClientProvider);
+    final client = ref.watch(reportsClientProvider);
     final detailAsync = ref.watch(reportDetailProvider(report.id));
     final currentStatus = detailAsync.asData?.value.status ?? report.status;
     final isReady = currentStatus == ReportStatus.ready;
@@ -497,8 +500,8 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                   );
 
                   final actionsWidget = Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: AppSpacing.s8,
+                    runSpacing: AppSpacing.s8,
                     alignment: WrapAlignment.end,
                     children: [
                       OutlinedButton.icon(
@@ -506,21 +509,21 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                           Icons.picture_as_pdf_outlined,
                           size: 18,
                         ),
-                        label: const Text('PDF'),
+                        label: Text(l10n.reportFormatPdf),
                         onPressed: isReady
                             ? () => _downloadPdf(report.id)
                             : null,
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.table_chart_outlined, size: 18),
-                        label: const Text('Excel'),
+                        label: Text(l10n.reportFormatExcel),
                         onPressed: isReady
                             ? () => _downloadExcel(report.id)
                             : null,
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.description_outlined, size: 18),
-                        label: const Text('CSV'),
+                        label: Text(l10n.reportFormatCsv),
                         onPressed: isReady
                             ? () => _downloadCsv(report.id)
                             : null,
@@ -705,9 +708,9 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     final theme = Theme.of(context);
 
     return AppErrorBoundary(
-      child: sduiAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
+      child: switch (sduiAsync) {
+        AsyncLoading() => const Center(child: CircularProgressIndicator()),
+        AsyncError() => Center(
           child: Padding(
             padding: AppSpacing.p24,
             child: Column(
@@ -737,13 +740,13 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
             ),
           ),
         ),
-        data: (sduiPayload) => SingleChildScrollView(
+        AsyncData(:final value) => SingleChildScrollView(
           child: ReportRendererV2Widget(
-            payload: sduiPayload,
+            payload: value,
             executionId: widget.executionId,
           ),
         ),
-      ),
+      },
     );
   }
 
@@ -973,6 +976,7 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
   Widget _buildMetadataTab(String reportId) {
     final detailAsync = ref.watch(reportDetailProvider(reportId));
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return AppErrorBoundary(
       child: switch (detailAsync) {
@@ -996,25 +1000,42 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Suorituksen & Telemetrian Metatiedot',
+                        l10n.reportMetaSectionExecution,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const Divider(),
                       AppSpacing.h12,
-                      _buildMetaRow('Raportin ID', value.id),
-                      _buildMetaRow('Suorituksen ID', value.executionId),
-                      _buildMetaRow('Työnkulun ID', value.workflowId),
-                      _buildMetaRow('Esitysprofiili', value.profileId),
-                      _buildMetaRow('Luotu', value.createdAt.toIso8601String()),
+                      _buildMetaRow(l10n.reportMetaId, value.id, theme),
                       _buildMetaRow(
-                        'Päivitetty',
+                        l10n.reportMetaExecutionId,
+                        value.executionId,
+                        theme,
+                      ),
+                      _buildMetaRow(
+                        l10n.reportMetaWorkflowId,
+                        value.workflowId,
+                        theme,
+                      ),
+                      _buildMetaRow(
+                        l10n.reportMetaProfileId,
+                        value.profileId,
+                        theme,
+                      ),
+                      _buildMetaRow(
+                        l10n.reportMetaCreatedAt,
+                        value.createdAt.toIso8601String(),
+                        theme,
+                      ),
+                      _buildMetaRow(
+                        l10n.reportMetaUpdatedAt,
                         value.updatedAt.toIso8601String(),
+                        theme,
                       ),
                       AppSpacing.h16,
                       Text(
-                        'FinOps & LLM -kulutus',
+                        l10n.reportMetaSectionFinOps,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -1022,36 +1043,64 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                       const Divider(),
                       AppSpacing.h8,
                       _buildMetaRow(
-                        'Kustannus (USD)',
+                        l10n.reportMetaCostUsd,
                         '\$${meta.costUsd?.toStringAsFixed(4) ?? "0.0000"}',
+                        theme,
                       ),
-                      _buildMetaRow('Kesto', '${meta.durationMs ?? 0} ms'),
                       _buildMetaRow(
-                        'Tokeneita käytetty',
+                        l10n.reportMetaDuration,
+                        '${meta.durationMs ?? 0} ms',
+                        theme,
+                      ),
+                      _buildMetaRow(
+                        l10n.reportMetaTokensUsed,
                         '${meta.tokensUsed ?? 0}',
+                        theme,
                       ),
                       _buildMetaRow(
-                        'Päättelytokeneita',
+                        l10n.reportMetaThinkingTokens,
                         '${meta.thinkingTokens ?? 0}',
+                        theme,
                       ),
-                      _buildMetaRow('Mallin nimi', meta.llmModel ?? '-'),
-                      _buildMetaRow('Palveluntarjoaja', meta.provider ?? '-'),
+                      _buildMetaRow(
+                        l10n.reportMetaModelName,
+                        meta.llmModel ?? '-',
+                        theme,
+                      ),
+                      _buildMetaRow(
+                        l10n.reportMetaProvider,
+                        meta.provider ?? '-',
+                        theme,
+                      ),
                       AppSpacing.h16,
                       Text(
-                        'Tiedostopolut levyltä',
+                        l10n.reportMetaSectionStoragePaths,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const Divider(),
                       AppSpacing.h8,
-                      _buildMetaRow('PDF-polku', paths.pdfPath ?? '-'),
                       _buildMetaRow(
-                        'SDUI JSON -polku',
-                        paths.sduiJsonPath ?? '-',
+                        l10n.reportMetaPdfPath,
+                        paths.pdfPath ?? '-',
+                        theme,
                       ),
-                      _buildMetaRow('Excel-polku', paths.excelPath ?? '-'),
-                      _buildMetaRow('CSV-polku', paths.csvPath ?? '-'),
+                      _buildMetaRow(
+                        l10n.reportMetaSduiJsonPath,
+                        paths.sduiJsonPath ?? '-',
+                        theme,
+                      ),
+                      _buildMetaRow(
+                        l10n.reportMetaExcelPath,
+                        paths.excelPath ?? '-',
+                        theme,
+                      ),
+                      _buildMetaRow(
+                        l10n.reportMetaCsvPath,
+                        paths.csvPath ?? '-',
+                        theme,
+                      ),
                     ],
                   ),
                 ),
@@ -1063,9 +1112,9 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     );
   }
 
-  Widget _buildMetaRow(String label, String value) {
+  Widget _buildMetaRow(String label, String value, ThemeData theme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1073,13 +1122,17 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
             width: 180,
             child: Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           Expanded(
             child: SelectableText(
               value,
-              style: const TextStyle(fontFamily: 'monospace'),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontFamily: 'monospace',
+              ),
             ),
           ),
         ],
