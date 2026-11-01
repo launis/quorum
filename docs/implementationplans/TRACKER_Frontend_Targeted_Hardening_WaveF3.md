@@ -46,7 +46,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/comparison_matrix.dart]
   - [x] @[client_app_v2/lib/shared/widgets/deep_dive_expander.dart]
   - [x] @[client_app_v2/lib/shared/widgets/dynamic_form.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/execution_timeline.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/execution_timeline.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/feedback_section.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/file_input_field.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/file_uploader.dart]
