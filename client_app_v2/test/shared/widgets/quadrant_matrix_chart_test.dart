@@ -3,11 +3,12 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/shared/widgets/quadrant_matrix_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   const xAxis = MatrixScorecardRowDto(
-    blockId: 'axis_x',
+    blockId: 'blk_0195f2c4e8a97d3b9a1c2e3f4a5b6c71',
     labelI18n: I18nText(translations: {'en': 'Axis X', 'fi': 'Akseli X'}),
     name: 'Axis X',
     score: 2.0,
@@ -17,7 +18,7 @@ void main() {
   );
 
   const yAxis = MatrixScorecardRowDto(
-    blockId: 'axis_y',
+    blockId: 'blk_0195f2c4e8a97d3b9a1c2e3f4a5b6c72',
     labelI18n: I18nText(translations: {'en': 'Axis Y', 'fi': 'Akseli Y'}),
     name: 'Axis Y',
     score: 1.0,
@@ -27,16 +28,18 @@ void main() {
   );
 
   Widget createChartWidget({Locale locale = const Locale('en')}) {
-    return MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      locale: locale,
-      home: const Scaffold(
-        body: Center(
-          child: SizedBox(
-            width: 500,
-            height: 300,
-            child: QuadrantMatrixChart(xAxis: xAxis, yAxis: yAxis),
+    return ProviderScope(
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: locale,
+        home: const Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 500,
+              height: 300,
+              child: QuadrantMatrixChart(xAxis: xAxis, yAxis: yAxis),
+            ),
           ),
         ),
       ),
