@@ -136,12 +136,14 @@ class TaskBlueprintRepositoryImpl(AppendOnlyRepositoryBase):
 
         inc = self._increment_version(blueprint_id)
 
-        new_doc = dict(old_doc)
-        new_doc.update(updates.model_dump(mode="json", exclude_unset=True))
-        new_doc["id"] = inc.new_id
-        new_doc["is_latest"] = True
-        new_doc["version"] = inc.version
-        new_doc["slug"] = inc.base_id
+        new_doc = {
+            **old_doc,
+            **updates.model_dump(mode="json", exclude_unset=True),
+            "id": inc.new_id,
+            "is_latest": True,
+            "version": inc.version,
+            "slug": inc.base_id,
+        }
 
         await self.driver.upsert("task_blueprints", new_doc, inc.new_id)
         return True

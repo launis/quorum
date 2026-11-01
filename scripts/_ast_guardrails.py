@@ -180,6 +180,10 @@ RESIDUAL_FUTURE_PHASE_JSONVALUE_FILES: frozenset[str] = frozenset(
 
 RESIDUAL_FUTURE_PHASE_QGR028_FILES: frozenset[str] = frozenset(
     {
+        "backend_v2/hooks/atom_flattening.py",
+        "backend_v2/hooks/scoring/falsifier_hook.py",
+        "backend_v2/hooks/scoring/matrix_hook.py",
+        "backend_v2/hooks/scoring/normalization_hook.py",
         "backend_v2/services/execution/ingress_service.py",
         "backend_v2/services/execution/override_service.py",
         "backend_v2/services/execution/resumption_service.py",
@@ -192,6 +196,9 @@ RESIDUAL_FUTURE_PHASE_QGR028_FILES: frozenset[str] = frozenset(
         "backend_v2/services/orchestrator/strategies/llm_strategy/prompt_and_schema_stage.py",
         "backend_v2/services/orchestrator/synthesis_distiller.py",
         "backend_v2/services/studio/workflow_service.py",
+        "backend_v2/workers/execution_worker.py",
+        "backend_v2/workers/synthesis_reducers.py",
+        "backend_v2/workers/synthesis_worker.py",
     }
 )
 
@@ -1643,9 +1650,20 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             severity=GuardrailSeverity.FATAL,
                         )
 
-        # QGR028: Redundant repository model reconstitution and domain state dictionary conversions in services
+        # QGR028: Redundant repository model reconstitution and domain state dictionary conversions in services/hooks/api/workers
         is_services_scope = (
-            ("backend_v2/services/" in self._normalized_path or "services" in self._path_parts)
+            (
+                any(
+                    seg in self._normalized_path
+                    for seg in (
+                        "backend_v2/services/",
+                        "backend_v2/hooks/",
+                        "backend_v2/api/",
+                        "backend_v2/workers/",
+                    )
+                )
+                or any(part in self._path_parts for part in ("services", "hooks", "api", "workers"))
+            )
             and not self._is_test_file
             and not self._is_boundary_exempt
             and self._normalized_path not in RESIDUAL_FUTURE_PHASE_QGR028_FILES

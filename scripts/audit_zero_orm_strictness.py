@@ -639,9 +639,8 @@ def run_zero_orm_audit(target_paths: list[Path] | None = None) -> ZeroOrmAuditRe
         list(target_paths)
         if explicit_mode and target_paths is not None
         else [
-            _WORKSPACE_ROOT / "backend_v2" / "database" / "postgres",
+            _WORKSPACE_ROOT / "backend_v2" / "database",
             _WORKSPACE_ROOT / "backend_v2" / "models" / "domain" / "proposition_graph.py",
-            _WORKSPACE_ROOT / "backend_v2" / "database" / "migrations" / "001_pg19_uuidv7_schema.sql",
             _WORKSPACE_ROOT / "scripts" / "reconcile_storage.py",
         ]
     )

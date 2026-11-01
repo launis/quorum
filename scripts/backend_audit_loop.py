@@ -630,8 +630,14 @@ Optional steps:
         print("\n⏳ 7/10: Verifying Clean Imports (scripts/audit_clean_imports.py)...")
         res_imports = subprocess.run(["uv", "run", "python", "scripts/audit_clean_imports.py"])
         if res_imports.returncode != 0:
-            print("\n❌ Clean import audit failed! Circular dependencies or import errors detected.\n")
+            print("\n❌ Clean import audit failed in backend_v2! Circular dependencies or import errors detected.\n")
             sys.exit(res_imports.returncode)
+        res_scripts_imports = subprocess.run(
+            ["uv", "run", "python", "scripts/audit_clean_imports.py", "--target-dir", "scripts"]
+        )
+        if res_scripts_imports.returncode != 0:
+            print("\n❌ Clean import audit failed in scripts! Circular dependencies or import errors detected.\n")
+            sys.exit(res_scripts_imports.returncode)
         print("✅ Clean imports verified.")
 
         print("\n⏳ 8/10: Verifying DTO Parity (scripts/audit_dto_parity.py)...")
