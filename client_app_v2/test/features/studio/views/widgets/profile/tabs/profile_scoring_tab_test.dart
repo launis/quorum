@@ -20,11 +20,18 @@ class MockNullOutputProfileForm extends OutputProfileForm {
 
 class MockValidOutputProfileForm extends OutputProfileForm {
   final OutputProfile profile;
+  OutputProfile? lastUpdatedPayload;
   MockValidOutputProfileForm(this.profile);
 
   @override
   FutureOr<OutputProfile> build(String id) {
     return profile;
+  }
+
+  @override
+  void updatePayload(OutputProfile updated) {
+    lastUpdatedPayload = updated;
+    state = AsyncData(updated);
   }
 }
 
@@ -105,5 +112,74 @@ void main() {
 
       expect(tester.takeException(), isA<StateError>());
     });
+
+    testWidgets(
+      'test_scoring_tab_custom_scale_validates_boundaries_and_invalid_inputs',
+      (WidgetTester tester) async {
+        final formKey = GlobalKey<FormState>();
+        final profile = createTestProfile().copyWith(
+          displayScale: DisplayScale.custom,
+          customScaleMin: 4.0,
+          customScaleMax: 10.0,
+        );
+        final formNotifier = MockValidOutputProfileForm(profile);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              outputProfileFormProvider(
+                'prf_test',
+              ).overrideWith(() => formNotifier),
+            ],
+            child: MaterialApp(
+              locale: const Locale('en'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(
+                body: Form(
+                  key: formKey,
+                  child: const ProfileScoringTab(id: 'prf_test'),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final textFields = find.byType(TextFormField);
+        expect(textFields, findsNWidgets(2));
+
+        // Positive case: initial 4.0 and 10.0 are valid
+        expect(formKey.currentState!.validate(), isTrue);
+
+        // Boundary negative case 1: customScaleMax == customScaleMin (4.0 <= 4.0)
+        await tester.enterText(textFields.at(1), '4.0');
+        await tester.pump();
+        expect(formKey.currentState!.validate(), isFalse);
+
+        // Boundary negative case 2: customScaleMax < customScaleMin (3.5 <= 4.0)
+        await tester.enterText(textFields.at(1), '3.5');
+        await tester.pump();
+        expect(formKey.currentState!.validate(), isFalse);
+
+        // Negative case 3: non-numeric input
+        await tester.enterText(textFields.at(0), 'abc');
+        await tester.pump();
+        expect(formKey.currentState!.validate(), isFalse);
+
+        // Negative case 4: empty input
+        await tester.enterText(textFields.at(0), '   ');
+        await tester.pump();
+        expect(formKey.currentState!.validate(), isFalse);
+
+        // Boundary positive case: customScaleMin = 4.0, customScaleMax = 4.1
+        await tester.enterText(textFields.at(0), '4.0');
+        await tester.enterText(textFields.at(1), '4.1');
+        await tester.pump();
+        expect(formKey.currentState!.validate(), isTrue);
+        expect(formNotifier.lastUpdatedPayload?.customScaleMin, 4.0);
+        expect(formNotifier.lastUpdatedPayload?.customScaleMax, 4.1);
+      },
+    );
   });
 }

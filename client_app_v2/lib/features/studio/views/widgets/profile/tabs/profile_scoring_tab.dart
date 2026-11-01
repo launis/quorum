@@ -30,11 +30,24 @@ class ProfileScoringTab extends ConsumerWidget {
       padding: AppSpacing.p16,
       children: [
         Card(
+          elevation: 2,
+          margin: const EdgeInsets.only(bottom: AppSpacing.s16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Padding(
             padding: AppSpacing.p16,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Text(
+                  l10n.profileTabScoring,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                AppSpacing.h16,
                 InputDecorator(
                   decoration: InputDecoration(
                     labelText: l10n.profileDisplayScaleLabel,
