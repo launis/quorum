@@ -476,5 +476,60 @@ void main() {
       expect(find.textContaining('Grid Item 1'), findsOneWidget);
       expect(find.textContaining('Grid Item 2'), findsOneWidget);
     });
+
+    testWidgets(
+      'negative: SduiScatterPlotBlock with empty axes is caught by AppErrorBoundary',
+      (tester) async {
+        const block = SduiScatterPlotBlock(axes: []);
+
+        await tester.pumpWidget(
+          buildTestableWidget(const SduiBlocksRenderer(blocks: [block])),
+        );
+        final exception = tester.takeException();
+        expect(exception, isA<RangeError>());
+        await tester.pump();
+
+        expect(find.byIcon(Icons.report_problem), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'negative: SduiRadarChartBlock with missing I18nText translation is caught by AppErrorBoundary',
+      (tester) async {
+        const block = SduiRadarChartBlock(
+          title: I18nText(translations: {}),
+          axes: [],
+        );
+
+        await tester.pumpWidget(
+          buildTestableWidget(const SduiBlocksRenderer(blocks: [block])),
+        );
+        final exception = tester.takeException();
+        expect(exception, isNotNull);
+        await tester.pump();
+
+        expect(find.byIcon(Icons.report_problem), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'boundary: SduiScoreCardBlock renders without overflow in narrow 180px container',
+      (tester) async {
+        const scoreCardBlock = SduiScoreCardBlock(globalScore: 99.95);
+
+        await tester.pumpWidget(
+          buildTestableWidget(
+            const SizedBox(
+              width: 180,
+              child: SduiBlocksRenderer(blocks: [scoreCardBlock]),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('99.95/100'), findsOneWidget);
+      },
+    );
   });
 }

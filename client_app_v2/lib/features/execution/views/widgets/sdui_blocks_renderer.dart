@@ -41,7 +41,7 @@ class SduiBlocksRenderer extends StatelessWidget {
   Widget? _renderBlock(BuildContext context, SduiBlockDTO block) {
     return switch (block) {
       SduiAccordionBlock() => AppErrorBoundary(
-        child: _buildAccordion(context, block),
+        child: Builder(builder: (context) => _buildAccordion(context, block)),
       ),
       SduiMetadataBlock() => _buildMetadata(context, block),
       SduiScoreCardBlock() => _buildScoreCard(context, block),
@@ -63,41 +63,51 @@ class SduiBlocksRenderer extends StatelessWidget {
               )
             : null,
       SduiRadarChartBlock() => AppErrorBoundary(
-        child: _buildChartWithTitle(
-          context,
-          block.title,
-          LogicRadarChart(axes: block.axes),
+        child: Builder(
+          builder: (context) => _buildChartWithTitle(
+            context,
+            block.title,
+            LogicRadarChart(axes: block.axes),
+          ),
         ),
       ),
       SduiScatterPlotBlock() => AppErrorBoundary(
-        child: _buildChartWithTitle(
-          context,
-          block.title,
-          LogicMatrixChart(
-            xAxis: block.axes[0],
-            yAxis: block.axes[1],
-            zAxis: block.axes.length > 2 ? block.axes[2] : null,
+        child: Builder(
+          builder: (context) => _buildChartWithTitle(
+            context,
+            block.title,
+            LogicMatrixChart(
+              xAxis: block.axes[0],
+              yAxis: block.axes[1],
+              zAxis: block.axes.length > 2 ? block.axes[2] : null,
+            ),
           ),
         ),
       ),
       SduiQuadrantMatrixBlock() => AppErrorBoundary(
-        child: _buildChartWithTitle(
-          context,
-          block.title,
-          QuadrantMatrixChart(
-            xAxis: block.axes[0],
-            yAxis: block.axes[1],
-            zAxis: block.axes.length > 2 ? block.axes[2] : null,
+        child: Builder(
+          builder: (context) => _buildChartWithTitle(
+            context,
+            block.title,
+            QuadrantMatrixChart(
+              xAxis: block.axes[0],
+              yAxis: block.axes[1],
+              zAxis: block.axes.length > 2 ? block.axes[2] : null,
+            ),
           ),
         ),
       ),
-      SduiMetrics1DBlock() => _buildChartWithTitle(
-        context,
-        block.title,
-        Column(
-          children: block.axes
-              .map((axis) => MatrixRowItemWidget(matrix: axis))
-              .toList(),
+      SduiMetrics1DBlock() => AppErrorBoundary(
+        child: Builder(
+          builder: (context) => _buildChartWithTitle(
+            context,
+            block.title,
+            Column(
+              children: block.axes
+                  .map((axis) => MatrixRowItemWidget(matrix: axis))
+                  .toList(),
+            ),
+          ),
         ),
       ),
       SduiMatrixTableBlock() => AppErrorBoundary(
@@ -136,7 +146,7 @@ class SduiBlocksRenderer extends StatelessWidget {
           Icon(
             Icons.lightbulb_outline,
             color: theme.colorScheme.primary,
-            size: 24,
+            size: AppSpacing.s24,
           ),
           AppSpacing.w8,
           Expanded(child: OutputRenderer(markdownContent: block.text)),
@@ -210,7 +220,7 @@ class SduiBlocksRenderer extends StatelessWidget {
                 Icon(
                   Icons.format_quote,
                   color: theme.colorScheme.primary,
-                  size: 24,
+                  size: AppSpacing.s24,
                 ),
                 AppSpacing.w8,
                 Expanded(
@@ -248,7 +258,7 @@ class SduiBlocksRenderer extends StatelessWidget {
                     Chip(
                       avatar: Icon(
                         Icons.bookmark_outline,
-                        size: 14,
+                        size: AppSpacing.s16,
                         color: theme.colorScheme.primary,
                       ),
                       label: Text(
@@ -294,7 +304,7 @@ class SduiBlocksRenderer extends StatelessWidget {
               Icon(
                 Icons.warning_amber_rounded,
                 color: semantic.warning,
-                size: 24,
+                size: AppSpacing.s24,
               ),
               AppSpacing.w8,
               Expanded(child: OutputRenderer(markdownContent: block.message)),
@@ -340,7 +350,11 @@ class SduiBlocksRenderer extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, color: semantic.neutral, size: 24),
+          Icon(
+            Icons.info_outline,
+            color: semantic.neutral,
+            size: AppSpacing.s24,
+          ),
           AppSpacing.w8,
           Expanded(
             child: Column(
@@ -581,18 +595,25 @@ class SduiBlocksRenderer extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            l10n.scorecard_global_average,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-              fontWeight: FontWeight.bold,
+          Expanded(
+            child: Text(
+              l10n.scorecard_global_average,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          Text(
-            '${block.globalScore!.toStringAsFixed(2)}/100',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-              fontWeight: FontWeight.bold,
+          AppSpacing.w8,
+          Flexible(
+            child: Text(
+              '${block.globalScore!.toStringAsFixed(2)}/100',
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
