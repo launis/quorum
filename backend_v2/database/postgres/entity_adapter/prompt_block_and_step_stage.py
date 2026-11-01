@@ -16,6 +16,7 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _parse_optional_uuid7,
     _parse_org_uuid7,
     execute_entity_upsert,
+    resolve_effective_timeout,
 )
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPgRecordProtocol
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -32,7 +33,21 @@ from backend_v2.models.enums import EntityPrefix, PromptBlockCategory
 
 logger = logging.getLogger(__name__)
 
-# Phase 2, Step 1: Relocate prompt_blocks and steps SQL constants
+__all__ = [
+    "_GET_PROMPT_BLOCK_SQL",
+    "_GET_STEP_SQL",
+    "_LIST_PROMPT_BLOCKS_SQL",
+    "_LIST_STEPS_SQL",
+    "_UPSERT_PROMPT_BLOCK_SQL",
+    "_UPSERT_STEP_SQL",
+    "get_prompt_block_row",
+    "get_step_row",
+    "hydrate_prompt_block_row",
+    "hydrate_step_row",
+    "upsert_prompt_block_row",
+    "upsert_step_row",
+]
+
 _UPSERT_PROMPT_BLOCK_SQL: str = """INSERT INTO prompt_blocks (id, slug, organization_id, label, description,
     output_extensions, theory_grounding, category_id, type, is_evaluative, allow_decimals, allow_contextual_override,
     is_lightweight_protocol, target_input_key, ai_description, scales, rows, columns, computed_min, computed_max,
@@ -87,16 +102,37 @@ _LIST_STEPS_SQL: str = """SELECT id, slug, organization_id, name, description, t
 
 
 async def _fetch_row(
-    conn: AsyncPgConnectionProtocol, timeout: float, sql: str, entity_uuid: object, entity_id: str
+    conn: AsyncPgConnectionProtocol, timeout: float | None, sql: str, entity_uuid: object, entity_id: str
 ) -> AsyncPgRecordProtocol | None:
-    """Execute fetchrow with timeout and translate driver errors to AppException."""
+    """Execute fetchrow with timeout and translate driver errors to AppException.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds, or None to resolve from settings.
+        sql: Parameterized SELECT SQL statement.
+        entity_uuid: Parsed 16-byte UUID primary key parameter.
+        entity_id: Canonical Opaque Stripe ID of the target entity for error reporting.
+
+    Returns:
+        Database record if found, or None.
+
+    Raises:
+        AppException: With STORAGE_ACCESS_FAILED if the database query fails.
+    """
+    effective_timeout = resolve_effective_timeout(timeout)
     try:
-        return await conn.fetchrow(sql, entity_uuid, timeout=timeout)
+        return await conn.fetchrow(sql, entity_uuid, timeout=effective_timeout)
     except Exception as exc:
         if isinstance(exc, AppException):
             raise
         msg = f"Failed to fetch entity '{entity_id}': {exc}"
-        logger.error("[PostgresEntityAdapter] %s: %s", ErrorCodes.STORAGE_ACCESS_FAILED.name, msg, exc_info=True)
+        logger.error(
+            "[PostgresEntityAdapter] %s: %s",
+            ErrorCodes.STORAGE_ACCESS_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "entity_id": entity_id},
+        )
         raise AppException(
             message=msg,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -104,7 +140,6 @@ async def _fetch_row(
         ) from exc
 
 
-# Phase 2, Step 1: Extract AnyPromptBlock and Step hydration, upsert, and get functions
 def hydrate_prompt_block_row(row: AsyncPgRecordProtocol) -> AnyPromptBlock:
     """Hydrate a polymorphic AnyPromptBlock from a database row.
 
@@ -113,6 +148,9 @@ def hydrate_prompt_block_row(row: AsyncPgRecordProtocol) -> AnyPromptBlock:
 
     Returns:
         Validated MatrixPromptBlock, PersonaPromptBlock, ProtocolPromptBlock, or SystemRulePromptBlock.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if the prompt_block or organization UUID cannot be formatted.
     """
     blk_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.PROMPT_BLOCK)
     org_id = _format_org_uuid7(row["organization_id"])
@@ -299,6 +337,9 @@ def hydrate_step_row(row: AsyncPgRecordProtocol) -> Step:
 
     Returns:
         Validated Step domain model.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if the step, organization, or block UUID cannot be formatted.
     """
     blk_p = EntityPrefix.PROMPT_BLOCK
     return Step.model_validate(
