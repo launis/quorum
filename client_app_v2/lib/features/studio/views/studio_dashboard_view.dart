@@ -226,14 +226,9 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             CloneEntityButton(
-                              onClone: () async {
-                                final id = blockId;
-                                await ref
-                                    .read(
-                                      promptBlocksControllerProvider.notifier,
-                                    )
-                                    .clonePromptBlock(id);
-                              },
+                              onClone: () => ref
+                                  .read(promptBlocksControllerProvider.notifier)
+                                  .clonePromptBlock(blockId),
                             ),
                             const Icon(Icons.chevron_right),
                           ],
@@ -369,14 +364,9 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             CloneEntityButton(
-                              onClone: () async {
-                                final id = matrixId;
-                                await ref
-                                    .read(
-                                      promptBlocksControllerProvider.notifier,
-                                    )
-                                    .clonePromptBlock(id);
-                              },
+                              onClone: () => ref
+                                  .read(promptBlocksControllerProvider.notifier)
+                                  .clonePromptBlock(matrixId),
                             ),
                             const Icon(Icons.chevron_right),
                           ],
@@ -525,12 +515,9 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             CloneEntityButton(
-                              onClone: () async {
-                                final id = blueprintId;
-                                await ref
-                                    .read(stepsControllerProvider.notifier)
-                                    .cloneStep(id);
-                              },
+                              onClone: () => ref
+                                  .read(stepsControllerProvider.notifier)
+                                  .cloneStep(blueprintId),
                             ),
                             const Icon(Icons.chevron_right),
                           ],
@@ -651,7 +638,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                       ),
                       AppSpacing.w12,
                       Chip(
-                        avatar: const Icon(Icons.tune, size: 16),
+                        avatar: const Icon(Icons.tune, size: AppSpacing.s16),
                         label: Text(
                           '${filteredConfigs.length} / ${value.length}',
                         ),
@@ -712,7 +699,10 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                                     ),
                                     Chip(
                                       visualDensity: VisualDensity.compact,
-                                      avatar: const Icon(Icons.cloud, size: 14),
+                                      avatar: const Icon(
+                                        Icons.cloud,
+                                        size: AppSpacing.s16,
+                                      ),
                                       label: Text(
                                         config.defaultProvider.toUpperCase(),
                                         style: Theme.of(
@@ -724,7 +714,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                                       visualDensity: VisualDensity.compact,
                                       avatar: const Icon(
                                         Icons.layers,
-                                        size: 14,
+                                        size: AppSpacing.s16,
                                       ),
                                       label: Text(
                                         l10n.studioViewsConfiguredModels(
@@ -742,15 +732,12 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   CloneEntityButton(
-                                    onClone: () async {
-                                      final id = configId;
-                                      await ref
-                                          .read(
-                                            modelRegistryControllerProvider
-                                                .notifier,
-                                          )
-                                          .cloneConfig(id);
-                                    },
+                                    onClone: () => ref
+                                        .read(
+                                          modelRegistryControllerProvider
+                                              .notifier,
+                                        )
+                                        .cloneConfig(configId),
                                   ),
                                   const Icon(Icons.chevron_right),
                                 ],
