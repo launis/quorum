@@ -48,7 +48,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/dynamic_form.dart]
   - [x] @[client_app_v2/lib/shared/widgets/execution_timeline.dart]
   - [x] @[client_app_v2/lib/shared/widgets/feedback_section.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/file_input_field.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/file_input_field.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/file_uploader.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/generic_grid.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/global_error_view.dart]
