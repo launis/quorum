@@ -1,5 +1,6 @@
 """Unit tests for ExecutionOverrideService enforcing human override, synthesis invalidation, and quote rejection."""
 
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -15,6 +16,7 @@ from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest, ScorecardAtomDTO
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode, VisualIntent
 from backend_v2.services.execution.override_service import ExecutionOverrideService
 from backend_v2.tests.fakes.in_memory_repositories import (
@@ -72,7 +74,16 @@ def _create_mock_record(
         active_profile_id="prf_0195f3a0000070008123456789abcdef",
         pdf_report_path=pdf_path,
         step_states={"sr_1": step_state},
-        profile_syntheses={"prf_0195f3a0000070008123456789abcdef": RenderedSynthesisCache()},
+        profile_syntheses={
+            "prf_0195f3a0000070008123456789abcdef": RenderedSynthesisCache(
+                section_syntheses={},
+                row_explanations={},
+                row_curated_quotes={},
+                cited_sources=[],
+                xai_highlights=[],
+                created_at=datetime.now(timezone.utc),
+            )
+        },
         context_variables=ContextVariablesDTO(),
     )
 
@@ -536,3 +547,48 @@ async def test_reject_evidence_quote_permission_denied_with_custom_getter() -> N
             evq_id="evq_test123",
             reason="Unauthorized rejection",
         )
+
+
+@pytest.mark.asyncio
+async def test_override_service_raises_conflict_409_when_worker_advances_state_version_concurrently() -> None:
+    """Verify override_atom raises HTTP 409 CONFLICT when a worker advances state_version concurrently."""
+    service, exec_repo, _ = _create_mock_service()
+    record = _create_mock_record()
+    await exec_repo.save_execution(record)
+
+    async def _concurrent_worker_advancing_getter(initiator: TokenData, execution_id: str) -> ExecutionRecord:
+        fetched = await exec_repo.get_execution(execution_id)
+        assert fetched is not None
+        assert fetched.state_version == 1
+        # Simulate a concurrent worker commit advancing state_version to 2 before override_atom persists.
+        await exec_repo.update_execution(
+            execution_id,
+            ExecutionUpdateDTO(status=ExecutionStatus.RUNNING, expected_state_version=1),
+        )
+        return fetched
+
+    service._get_execution = _concurrent_worker_advancing_getter
+    initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
+    payload = HumanOverrideRequest(
+        new_status=ExecutionStatus.PASSED,
+        reason="Concurrent human override attempt",
+        evidence_quotes=[],
+    )
+
+    with patch("backend_v2.hooks.scoring.recalculate", new_callable=AsyncMock) as mock_recalc:
+        mock_recalc.return_value = ContextVariablesDTO(variables={"recalculated": True})
+        with pytest.raises(AppException) as exc_info:
+            await service.override_atom(
+                initiator=initiator,
+                execution_id=record.id,
+                atom_id="tda_1",
+                payload=payload,
+            )
+
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFLICT.value
+    persisted = await exec_repo.get_execution(record.id)
+    assert persisted is not None
+    assert persisted.state_version == 2
+    assert persisted.step_states["sr_1"].scorecard_atoms["tda_1"].human_override is None

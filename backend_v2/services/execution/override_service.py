@@ -196,12 +196,14 @@ class ExecutionOverrideService:
 
             target_pdf_path = None
 
+        # Phase 4, Step 4.2: Pass expected_state_version for optimistic concurrency control.
         await self.exec_repo.update_execution(
             execution_id,
             ExecutionUpdateDTO(
                 profile_syntheses=execution_rec.profile_syntheses,
                 pdf_report_path=target_pdf_path,
                 updated_at=datetime.now(timezone.utc),
+                expected_state_version=execution_rec.state_version,
             ),
         )
         logger.info(
@@ -370,8 +372,14 @@ class ExecutionOverrideService:
         recalculated_vars = await self._recalculate_scores(record)
         record = record.model_copy(update={"context_variables": recalculated_vars})
 
+        # Phase 4, Step 4.2: Pass expected_state_version for optimistic concurrency control.
         await self.exec_repo.update_execution(
-            execution_id, ExecutionUpdateDTO(step_states=record.step_states, context_variables=record.context_variables)
+            execution_id,
+            ExecutionUpdateDTO(
+                step_states=record.step_states,
+                context_variables=record.context_variables,
+                expected_state_version=record.state_version,
+            ),
         )
         event = TraceEvent(
             step_name="manual_override",
@@ -393,6 +401,7 @@ class ExecutionOverrideService:
             ResourceNotFoundError: If the execution record does not exist (ErrorCodes.RESOURCE_NOT_FOUND).
             PermissionDeniedError: If the initiator lacks permission to modify the execution
                 (ErrorCodes.PERMISSION_DENIED).
+            AppException: If optimistic concurrency conflict occurs (ErrorCodes.CONFLICT).
         """
         record = await self._get_execution(initiator, execution_id)
         if (
@@ -416,6 +425,14 @@ class ExecutionOverrideService:
             rejection_reason=reason,
             rejected_by=initiator.id,
             rejected_at=datetime.now(timezone.utc),
+        )
+        # Phase 4, Step 4.2: Enforce expected_state_version OCC before appending rejection event.
+        await self.exec_repo.update_execution(
+            execution_id,
+            ExecutionUpdateDTO(
+                updated_at=datetime.now(timezone.utc),
+                expected_state_version=record.state_version,
+            ),
         )
         event = TraceEvent(
             step_name="manual_override",

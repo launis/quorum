@@ -295,6 +295,7 @@ def _hydrate_in_memory_execution_record(args: Sequence[object]) -> ExecutionReco
         "completed_at": args[37],
         "created_by": args[38],
         "organization_id": org_id_val,
+        "state_version": int(str(args[40])),
     }
     return ExecutionRecord.model_validate(raw_record, strict=False)
 
@@ -751,18 +752,59 @@ class InMemoryEntityAdapter:
             return self._store.report_binaries[report_id]
         return None
 
-    async def save_execution(self, record: ExecutionRecord) -> str:
-        """Persist an ExecutionRecord in memory with full roundtrip validation.
+    async def save_execution(
+        self,
+        record: ExecutionRecord,
+        *,
+        expected_state_version: int | None = None,
+    ) -> str:
+        """Persist an ExecutionRecord in memory with full roundtrip validation and OCC enforcement.
 
         Args:
             record: Validated ExecutionRecord domain model.
+            expected_state_version: Optional expected state_version for optimistic concurrency control.
 
         Returns:
             Canonical exe_<uuid7_hex> execution identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED on invalid ID or CONFLICT on state_version mismatch.
         """
         _ = parse_prefixed_uuid7(record.id, EntityPrefix.EXECUTION)
+        # Phase 4, Step 4.2: Enforce conditional expected_state_version OCC check and atomic increment
+        target_record = record
+        if expected_state_version is not None:
+            actual_version = 1
+            if record.id in self._store.executions:
+                actual_version = self._store.executions[record.id].state_version
+            if actual_version != expected_state_version:
+                msg = (
+                    f"Optimistic concurrency conflict for execution '{record.id}': "
+                    f"expected state_version={expected_state_version}, actual state_version={actual_version}."
+                )
+                logger.error(
+                    "[InMemoryEntityAdapter] %s: %s",
+                    ErrorCodes.CONFLICT.name,
+                    msg,
+                    extra={
+                        "error_code": ErrorCodes.CONFLICT.value,
+                        "execution_id": record.id,
+                        "expected_state_version": expected_state_version,
+                        "actual_state_version": actual_version,
+                    },
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_409_CONFLICT,
+                    details={
+                        "error_code": ErrorCodes.CONFLICT.value,
+                        "expected_state_version": expected_state_version,
+                        "actual_state_version": actual_version,
+                    },
+                )
+            target_record = record.model_copy(update={"state_version": actual_version + 1})
         reconstituted = ExecutionRecord.model_validate(
-            record.model_dump(mode="json", exclude_none=True),
+            target_record.model_dump(mode="json", exclude_none=True),
             strict=False,
         )
         self._store.executions[record.id] = reconstituted
@@ -1408,6 +1450,7 @@ class InMemoryAsyncPgConnection:
                 "completed_at": rec.completed_at,
                 "created_by": rec.created_by,
                 "organization_id": rec.organization_id,
+                "state_version": rec.state_version,
             }
         )
 

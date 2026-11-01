@@ -27,6 +27,7 @@ void main() {
           'target_locale': 'fi',
           'status': 'passed',
           'workflow_version': 2,
+          'state_version': 3,
           'active_profile_id': profileId,
           'output_profile_id': profileId,
           'raw_inputs': <String, Object?>{
@@ -107,6 +108,7 @@ void main() {
         expect(record.targetLocale, equals('fi'));
         expect(record.status, equals('PASSED'));
         expect(record.workflowVersion, equals(2));
+        expect(record.stateVersion, equals(3));
         expect(record.activeProfileId, equals(profileId));
         expect(record.outputProfileId, equals(profileId));
         expect(record.rawInputs, isA<WorkflowInputs>());
@@ -137,6 +139,7 @@ void main() {
         expect(roundtripped.id, equals(execId));
         expect(roundtripped.workflowId, equals(wfId));
         expect(roundtripped.status, equals('PASSED'));
+        expect(roundtripped.stateVersion, equals(3));
         expect(roundtripped.promptTokens, equals(1200));
         expect(roundtripped.steps.first.id, equals(stepId));
       },

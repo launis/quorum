@@ -218,9 +218,31 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
         for k in updates.model_fields_set:
             if k in ExecutionRecord.model_fields:
                 v = update_dict[k]
-                if v is None and k in ("steps", "step_states", "profile_syntheses", "source_identity_manifest"):
+                if v is None and k in (
+                    "steps",
+                    "step_states",
+                    "profile_syntheses",
+                    "source_identity_manifest",
+                    "context_variables",
+                ):
                     continue
                 dumped[k] = v
+        # Phase 4, Step 4.2: Enforce expected_state_version OCC conflict detection and increment state_version.
+        if updates.expected_state_version is not None and existing.state_version != updates.expected_state_version:
+            raise AppException(
+                message=(
+                    f"Optimistic concurrency conflict for execution '{execution_id}': "
+                    f"expected state_version={updates.expected_state_version}, actual={existing.state_version}."
+                ),
+                status_code=409,
+                details={
+                    "error_code": ErrorCodes.CONFLICT.value,
+                    "expected_state_version": updates.expected_state_version,
+                    "actual_state_version": existing.state_version,
+                },
+            )
+        if "state_version" not in updates.model_fields_set or updates.state_version is None:
+            dumped["state_version"] = existing.state_version + 1
         updated_record = ExecutionRecord.model_validate(dumped)
         self._save_isolated(execution_id, updated_record)
         return True

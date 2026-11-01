@@ -20,6 +20,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
         'target_locale',
         'status',
         'workflow_version',
+        'state_version',
         'active_profile_id',
         'output_profile_id',
         'raw_inputs',
@@ -64,6 +65,10 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       status: $checkedConvert('status', (v) => _statusFromJson(v as String)),
       workflowVersion: $checkedConvert(
         'workflow_version',
+        (v) => (v as num?)?.toInt() ?? 1,
+      ),
+      stateVersion: $checkedConvert(
+        'state_version',
         (v) => (v as num?)?.toInt() ?? 1,
       ),
       activeProfileId: $checkedConvert(
@@ -201,6 +206,7 @@ _ExecutionRecord _$ExecutionRecordFromJson(
     'workflowId': 'workflow_id',
     'targetLocale': 'target_locale',
     'workflowVersion': 'workflow_version',
+    'stateVersion': 'state_version',
     'activeProfileId': 'active_profile_id',
     'outputProfileId': 'output_profile_id',
     'rawInputs': 'raw_inputs',
@@ -243,6 +249,7 @@ Map<String, dynamic> _$ExecutionRecordToJson(
   'target_locale': instance.targetLocale,
   'status': instance.status,
   'workflow_version': instance.workflowVersion,
+  'state_version': instance.stateVersion,
   'active_profile_id': instance.activeProfileId,
   'output_profile_id': instance.outputProfileId,
   'raw_inputs': instance.rawInputs?.toJson(),

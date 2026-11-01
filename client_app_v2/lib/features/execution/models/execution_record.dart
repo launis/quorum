@@ -25,6 +25,7 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'target_locale') required String targetLocale,
     @JsonKey(fromJson: _statusFromJson) required String status,
     @JsonKey(name: 'workflow_version') @Default(1) int workflowVersion,
+    @JsonKey(name: 'state_version') @Default(1) int stateVersion,
     @JsonKey(name: 'active_profile_id') String? activeProfileId,
     @JsonKey(name: 'output_profile_id') String? outputProfileId,
     @JsonKey(name: 'raw_inputs') WorkflowInputs? rawInputs,
