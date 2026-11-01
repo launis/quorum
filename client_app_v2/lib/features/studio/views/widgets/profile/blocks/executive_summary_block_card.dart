@@ -66,6 +66,7 @@ class ExecutiveSummaryBlockCard extends StatelessWidget {
           ),
           AppSpacing.h16,
           TextFormField(
+            key: const Key('profile_synthesis_length_constraint_field'),
             initialValue: payload.synthesisLengthConstraint?.toString() ?? '',
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
