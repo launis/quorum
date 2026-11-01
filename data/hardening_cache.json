@@ -3847,6 +3847,78 @@
       "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
       "composite_sha256": "7aa01f7c13395c7a13c8aae2ef4b3f44c30ffc20eb6f9360bada54e9b8cda327",
       "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF4.md"
+    },
+    "backend_v2/database/postgres/entity_adapter/coercion_and_constants.py": {
+      "target_file": "backend_v2/database/postgres/entity_adapter/coercion_and_constants.py",
+      "target_sha256": "c4df7da0cbb34a17d13e12c0178307cd3814bb777edffbed46e43a3d8eed864d",
+      "unit_test_sha256": "67e07a57269cbb7a2c873141c9c6b64c9d2f556f6a9aa4eafc26497c965fefaa",
+      "rules_sha256": "3c4c7b491246e635270bd694a8941090ff37334900eee00c1703e9ab143fce2b",
+      "composite_sha256": "471a154cdfcc0ceb3afa8f02c1e3a1e441d97ec331adcc1230ca2c990fed8e9d",
+      "source_tracker": "docs/epic/entity_adapter_decomposition_tracker.md"
+    },
+    "backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py": {
+      "target_file": "backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py",
+      "target_sha256": "269b15ff1ff9d4ae5ee368bce6ab1c345caa816c6ab8a85d395fc5c18784d152",
+      "unit_test_sha256": "135262fe0e8728979ae8929dca74e5536ba93a1ec6aa4958e0083e72d3ec32e2",
+      "rules_sha256": "3c4c7b491246e635270bd694a8941090ff37334900eee00c1703e9ab143fce2b",
+      "composite_sha256": "59dc3c5d2eeaabeca87c75042fd0b52c3d593e22057b73a92cd20400c5170b22",
+      "source_tracker": "docs/epic/entity_adapter_decomposition_tracker.md"
+    },
+    "backend_v2/database/postgres/entity_adapter/prompt_block_and_step_stage.py": {
+      "target_file": "backend_v2/database/postgres/entity_adapter/prompt_block_and_step_stage.py",
+      "target_sha256": "87083c583c0ce6d326070c95a00e24a217e2243b934ad6980aa2ca355fbf0f75",
+      "unit_test_sha256": "5f1315dd3feb339bc35415e0b2026bcab5256d35d6a7c87bcf74f3368e294860",
+      "rules_sha256": "3c4c7b491246e635270bd694a8941090ff37334900eee00c1703e9ab143fce2b",
+      "composite_sha256": "c0807600704f286ab5cf0f729b7f73dc29008e7111c4b7e811cd7d0d827360b1",
+      "source_tracker": "docs/epic/entity_adapter_decomposition_tracker.md"
+    },
+    "backend_v2/database/postgres/entity_adapter/workflow_and_profile_stage.py": {
+      "target_file": "backend_v2/database/postgres/entity_adapter/workflow_and_profile_stage.py",
+      "target_sha256": "5c26dc86396417c8c247be75611cf7ea8ee3f72a3cd8149efac67c1e9627d4a3",
+      "unit_test_sha256": "31c1ff8b4f31668df73054910435bedf4d2faa4d85e42bc2b8610b9c5898e379",
+      "rules_sha256": "3c4c7b491246e635270bd694a8941090ff37334900eee00c1703e9ab143fce2b",
+      "composite_sha256": "52cc369d92c29229cafc003a6e33bfbe3f5491a7ea1076077816daf8d8e85d5d",
+      "source_tracker": "docs/epic/entity_adapter_decomposition_tracker.md"
+    },
+    "backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py": {
+      "target_file": "backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py",
+      "target_sha256": "907c26601d246e107f03a09861dd133d51879f88916ab6c000fd90de27b8142f",
+      "unit_test_sha256": "815ff985ebc3cdf4f1045c7c8e7b8e9adcaa01d238cfa169b0799c8a35105ef8",
+      "rules_sha256": "3c4c7b491246e635270bd694a8941090ff37334900eee00c1703e9ab143fce2b",
+      "composite_sha256": "a3762fc8e05adf8ea3b4e9f2687e5a7457ddc5258cc741a15c65499ee5093e28",
+      "source_tracker": "docs/epic/entity_adapter_decomposition_tracker.md"
+    },
+    "backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py": {
+      "target_file": "backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py",
+      "target_sha256": "b566e5a9329a7b71b784302fd731df3819cec73cad79d870292a87cbb4cf0419",
+      "unit_test_sha256": "20f2540696fa600107f7cecf256c3aa07026e8eccb7e77d484b5a61be8d424d7",
+      "rules_sha256": "3c4c7b491246e635270bd694a8941090ff37334900eee00c1703e9ab143fce2b",
+      "composite_sha256": "b0c60cb48d7fabeaad1dfe2ae1465701d0b81db212dbe605150200d16c8f50e4",
+      "source_tracker": "docs/epic/entity_adapter_decomposition_tracker.md"
+    },
+    "backend_v2/database/postgres/entity_adapter/__init__.py": {
+      "target_file": "backend_v2/database/postgres/entity_adapter/__init__.py",
+      "target_sha256": "98d4817ede1d2f8ac1f1bb39ba5c5ee471b7f7b25e3a8d95f2facd910d7679ca",
+      "unit_test_sha256": "763c744e943b3145a9262dc92ee929016f3bba20d125d1ef1c06259af3428aa8",
+      "rules_sha256": "3c4c7b491246e635270bd694a8941090ff37334900eee00c1703e9ab143fce2b",
+      "composite_sha256": "68a86d6884a3cd18605a69bbb96d8071ed942ef78c55673a3e1b2f0d5c9596db",
+      "source_tracker": "docs/epic/entity_adapter_decomposition_tracker.md"
+    },
+    "backend_v2/database/postgres/uow.py": {
+      "target_file": "backend_v2/database/postgres/uow.py",
+      "target_sha256": "47b4728a65d33447f04c8bff32154f62fad448a3a44be1ff66fda91591c44f47",
+      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rules_sha256": "3c4c7b491246e635270bd694a8941090ff37334900eee00c1703e9ab143fce2b",
+      "composite_sha256": "97c47f4050255cad2b0b6f4c8a78abdc192a1290c6903f77ede562e6a9b470d6",
+      "source_tracker": "docs/epic/entity_adapter_decomposition_tracker.md"
+    },
+    "backend_v2/database/postgres/storage_driver.py": {
+      "target_file": "backend_v2/database/postgres/storage_driver.py",
+      "target_sha256": "96420ac05b13ed11cfe2f8746531f9de27e23f8f51b70c95a98713dcdde8f50b",
+      "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "rules_sha256": "3c4c7b491246e635270bd694a8941090ff37334900eee00c1703e9ab143fce2b",
+      "composite_sha256": "7ded883ff1ac23380ebad19077256c1ebfac4d01eb7f6a77c0aee4ef5d383b33",
+      "source_tracker": "docs/epic/entity_adapter_decomposition_tracker.md"
     }
   }
 }
