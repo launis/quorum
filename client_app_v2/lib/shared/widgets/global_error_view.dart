@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// **V3 Global Error View**
@@ -25,9 +26,7 @@ class GlobalErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint(
-      '🔴 V3 GRACEFUL DEGRADATION [GlobalErrorView Rendered]: \$error',
-    );
+    debugPrint('🔴 V3 GRACEFUL DEGRADATION [GlobalErrorView Rendered]: $error');
 
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
@@ -49,7 +48,10 @@ class GlobalErrorView extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s16,
+        vertical: AppSpacing.s8,
+      ),
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
@@ -57,9 +59,9 @@ class GlobalErrorView extends StatelessWidget {
           border: Border.all(
             color: theme.colorScheme.error.withValues(alpha: 0.3),
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppSpacing.s12),
         ),
-        padding: const EdgeInsets.all(20),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -69,12 +71,13 @@ class GlobalErrorView extends StatelessWidget {
                 Icon(
                   Icons.warning_amber_rounded,
                   color: theme.colorScheme.error,
-                  size: 28,
+                  size: AppSpacing.s24,
                 ),
-                const SizedBox(width: 12),
+                AppSpacing.w12,
                 Expanded(
                   child: Text(
                     titleText,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.error,
                       fontWeight: FontWeight.bold,
@@ -83,7 +86,7 @@ class GlobalErrorView extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            AppSpacing.h12,
             Text(
               hintText,
               style: theme.textTheme.bodyMedium?.copyWith(
@@ -93,13 +96,13 @@ class GlobalErrorView extends StatelessWidget {
             if (rawDetail != null &&
                 rawDetail.isNotEmpty &&
                 rawDetail != hintText) ...[
-              const SizedBox(height: 12),
+              AppSpacing.h12,
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
+                padding: AppSpacing.p12,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppSpacing.s8),
                   border: Border.all(
                     color: theme.colorScheme.error.withValues(alpha: 0.2),
                   ),
@@ -117,14 +120,15 @@ class GlobalErrorView extends StatelessWidget {
               ),
             ],
             if (onAction != null && actionLabel != null) ...[
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton.icon(
                   onPressed: onAction,
-                  icon: Icon(actionIcon ?? Icons.refresh, size: 18),
-                  label: Text(actionLabel!),
+                  icon: Icon(actionIcon ?? Icons.refresh, size: AppSpacing.s16),
+                  label: Text(actionLabel!, overflow: TextOverflow.ellipsis),
                   style: FilledButton.styleFrom(
+                    enabledMouseCursor: SystemMouseCursors.click,
                     backgroundColor: theme.colorScheme.error,
                     foregroundColor: theme.colorScheme.onError,
                   ),
