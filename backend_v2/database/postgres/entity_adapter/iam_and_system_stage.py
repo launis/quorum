@@ -14,6 +14,7 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _format_org_uuid7,
     _parse_org_uuid7,
     execute_entity_upsert,
+    resolve_effective_timeout,
 )
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPgRecordProtocol
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -24,7 +25,27 @@ from backend_v2.models.enums import EntityPrefix
 
 logger = logging.getLogger(__name__)
 
-# Phase 2, Step 1: Relocate organizations, users, and system_configs SQL constants
+__all__ = [
+    "_GET_ORGANIZATION_SQL",
+    "_GET_SYSTEM_CONFIG_SQL",
+    "_GET_USER_SQL",
+    "_LIST_ORGANIZATIONS_SQL",
+    "_LIST_SYSTEM_CONFIGS_SQL",
+    "_LIST_USERS_SQL",
+    "_UPSERT_ORGANIZATION_SQL",
+    "_UPSERT_SYSTEM_CONFIG_SQL",
+    "_UPSERT_USER_SQL",
+    "get_organization_row",
+    "get_system_config_row",
+    "get_user_row",
+    "hydrate_organization_row",
+    "hydrate_system_config_row",
+    "hydrate_user_row",
+    "upsert_organization_row",
+    "upsert_system_config_row",
+    "upsert_user_row",
+]
+
 _UPSERT_ORGANIZATION_SQL: str = """INSERT INTO organizations (id, slug, name, is_active, tier, contact_email,
     billing_id, subscription_status, quota_limit, tpm_limit, rpm_limit)
 VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9::numeric, $10::bigint, $11)
@@ -69,16 +90,37 @@ _LIST_SYSTEM_CONFIGS_SQL: str = """SELECT id, name, type, slug, default_provider
 
 
 async def _fetch_row(
-    conn: AsyncPgConnectionProtocol, timeout: float, sql: str, entity_uuid: object, entity_id: str
+    conn: AsyncPgConnectionProtocol, timeout: float | None, sql: str, entity_uuid: object, entity_id: str
 ) -> AsyncPgRecordProtocol | None:
-    """Execute fetchrow with timeout and translate driver errors to AppException."""
+    """Execute fetchrow with timeout and translate driver errors to AppException.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds, or None to resolve from settings.
+        sql: Parameterized SELECT SQL statement.
+        entity_uuid: Parsed 16-byte UUID primary key parameter.
+        entity_id: Canonical Opaque Stripe ID of the target entity for error reporting.
+
+    Returns:
+        Database record if found, or None.
+
+    Raises:
+        AppException: With STORAGE_ACCESS_FAILED if the database query fails.
+    """
+    effective_timeout = resolve_effective_timeout(timeout)
     try:
-        return await conn.fetchrow(sql, entity_uuid, timeout=timeout)
+        return await conn.fetchrow(sql, entity_uuid, timeout=effective_timeout)
     except Exception as exc:
         if isinstance(exc, AppException):
             raise
         msg = f"Failed to fetch entity '{entity_id}': {exc}"
-        logger.error("[PostgresEntityAdapter] %s: %s", ErrorCodes.STORAGE_ACCESS_FAILED.name, msg, exc_info=True)
+        logger.error(
+            "[PostgresEntityAdapter] %s: %s",
+            ErrorCodes.STORAGE_ACCESS_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "entity_id": entity_id},
+        )
         raise AppException(
             message=msg,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -86,7 +128,6 @@ async def _fetch_row(
         ) from exc
 
 
-# Phase 2, Step 1: Extract Organization, User, and SystemConfig hydration, upsert, and get functions
 def hydrate_organization_row(row: AsyncPgRecordProtocol) -> Organization:
     """Hydrate an Organization from a database row.
 
@@ -95,6 +136,9 @@ def hydrate_organization_row(row: AsyncPgRecordProtocol) -> Organization:
 
     Returns:
         Validated Organization domain model.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if the organization UUID cannot be formatted.
     """
     return Organization.model_validate(
         {
@@ -177,6 +221,9 @@ def hydrate_user_row(row: AsyncPgRecordProtocol) -> User:
 
     Returns:
         Validated User domain model.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if the user or organization UUID cannot be formatted.
     """
     return User.model_validate(
         {
@@ -260,6 +307,9 @@ def hydrate_system_config_row(
 
     Returns:
         Validated SystemConfigModelRegistry or SystemConfigMCPGateways instance.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if the system_config UUID cannot be formatted.
     """
     cfg_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.SYSTEM_CONFIG)
     if row["type"] == "mcp_gateways":
