@@ -13,10 +13,11 @@ from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import CognitiveTier, ExecutionStatus, LLMProvider
-from backend_v2.models.llm import TokenUsage
 from scripts.ablation_live_executor import (
     AblationLiveExecutionConfigDTO,
     AblationLiveExecutor,
@@ -409,10 +410,12 @@ def test_coerce_source_quotes_tuple() -> None:
 
 def test_trace_evaluation_raw_dto_validation() -> None:
     """Verify trace evaluation DTO deserialization and field validation."""
-    dto = TraceEvaluationRawDTO(
-        tda_id="tda_123",
-        status="PASSED",
-        source_quotes=["q1", "q2"],
+    dto = TraceEvaluationRawDTO.model_validate(
+        {
+            "tda_id": "tda_123",
+            "status": "PASSED",
+            "source_quotes": ["q1", "q2"],
+        }
     )
     assert dto.tda_id == "tda_123"
     assert dto.status == "PASSED"
@@ -515,11 +518,9 @@ def test_resolve_provider_enum() -> None:
 
 @pytest.mark.asyncio
 async def test_executor_create_factory(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify AblationLiveExecutor.create initializes single and dual clients."""
+    """Verify AblationLiveExecutor.create initializes single and dual clients via LLMClient.from_tier."""
     mock_from_tier = AsyncMock(return_value=AsyncMock())
-    mock_from_strategy = AsyncMock(return_value=AsyncMock())
     monkeypatch.setattr("scripts.ablation_live_executor.LLMClient.from_tier", mock_from_tier)
-    monkeypatch.setattr("scripts.ablation_live_executor.LLMClient.from_strategy", mock_from_strategy)
     monkeypatch.setattr("scripts.ablation_live_executor.get_driver", AsyncMock())
 
     # 1. Dual cross-model
@@ -533,19 +534,71 @@ async def test_executor_create_factory(monkeypatch: pytest.MonkeyPatch) -> None:
     assert exec_dm.client_2 is not None
 
     # 2. Dual cross-strategy
+    mock_from_tier.reset_mock()
     cfg_dual_strat = AblationLiveExecutionConfigDTO(
         mode=AblationMode.LIVE,
         tier=CognitiveTier.FAST,
-        compare_strategies=("fast", "deep"),
+        compare_strategies=(CognitiveTier.FAST, CognitiveTier.DEEP),
     )
     exec_ds = await AblationLiveExecutor.create(cfg_dual_strat)
     assert exec_ds.client_1 is not None
     assert exec_ds.client_2 is not None
+    assert mock_from_tier.await_count == 2
+    assert mock_from_tier.await_args_list[0].args[0] == CognitiveTier.FAST
+    assert mock_from_tier.await_args_list[1].args[0] == CognitiveTier.DEEP
 
     # 3. Single model
     cfg_single = AblationLiveExecutionConfigDTO(mode=AblationMode.LIVE, tier=CognitiveTier.FAST)
     exec_s = await AblationLiveExecutor.create(cfg_single)
     assert exec_s.client_1 is exec_s.client_2
+
+
+@pytest.mark.asyncio
+async def test_ablation_live_executor_config_coerces_lax_cognitive_tier_pair(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify AblationLiveExecutionConfigDTO coerces LaxCognitiveTier pair and initializes via LLMClient.from_tier."""
+    mock_from_tier = AsyncMock(return_value=AsyncMock())
+    monkeypatch.setattr("scripts.ablation_live_executor.LLMClient.from_tier", mock_from_tier)
+    monkeypatch.setattr("scripts.ablation_live_executor.get_driver", AsyncMock())
+
+    cfg = AblationLiveExecutionConfigDTO.model_validate(
+        {
+            "mode": AblationMode.LIVE,
+            "tier": CognitiveTier.FAST,
+            "compare_strategies": ("fast", "reasoning"),
+        }
+    )
+    assert cfg.compare_strategies == (CognitiveTier.FAST, CognitiveTier.REASONING)
+    assert isinstance(cfg.compare_strategies[0], CognitiveTier)
+    assert isinstance(cfg.compare_strategies[1], CognitiveTier)
+
+    executor = await AblationLiveExecutor.create(cfg)
+    assert executor.is_cross_model is True
+    assert mock_from_tier.await_count == 2
+    assert mock_from_tier.await_args_list[0].args[0] == CognitiveTier.FAST
+    assert mock_from_tier.await_args_list[1].args[0] == CognitiveTier.REASONING
+
+
+def test_ablation_live_executor_config_rejects_invalid_cognitive_tier_pair() -> None:
+    """Verify AblationLiveExecutionConfigDTO rejects unknown strategy strings and wrong tuple arities."""
+    with pytest.raises(ValidationError):
+        AblationLiveExecutionConfigDTO.model_validate(
+            {
+                "mode": AblationMode.LIVE,
+                "tier": CognitiveTier.FAST,
+                "compare_strategies": ("fast", "non_existent_tier"),
+            }
+        )
+
+    with pytest.raises(ValidationError):
+        AblationLiveExecutionConfigDTO.model_validate(
+            {
+                "mode": AblationMode.LIVE,
+                "tier": CognitiveTier.FAST,
+                "compare_strategies": ("fast",),
+            }
+        )
 
 
 def test_print_model_telemetry_output(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -717,20 +770,24 @@ async def test_evaluate_all_configurations_smoke(
 
 def test_dto_coercions_extra() -> None:
     """Verify synthetic_quotes and source_quotes coercion on DTOs."""
-    prop = AblationPropositionDTO(
-        tda_id="tda_extra",
-        step_id="step_extra",
-        claim_text="extra claim",
-        expected_true=True,
-        synthetic_quotes=["q1", "q2"],
-        is_quote_valid_in_source=True,
+    prop = AblationPropositionDTO.model_validate(
+        {
+            "tda_id": "tda_extra",
+            "step_id": "step_extra",
+            "claim_text": "extra claim",
+            "expected_true": True,
+            "synthetic_quotes": ["q1", "q2"],
+            "is_quote_valid_in_source": True,
+        }
     )
     assert prop.synthetic_quotes == ("q1", "q2")
 
-    resp = AblationStructuredResponseDTO(
-        is_true=True,
-        source_quotes=["q1", "q2"],
-        reasoning="extra reasoning",
+    resp = AblationStructuredResponseDTO.model_validate(
+        {
+            "is_true": True,
+            "source_quotes": ["q1", "q2"],
+            "reasoning": "extra reasoning",
+        }
     )
     assert resp.source_quotes == ("q1", "q2")
 

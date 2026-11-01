@@ -31,7 +31,7 @@ from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import AppException
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.system_config import ModelProfile
-from backend_v2.models.enums import CognitiveTier, ExecutionStatus, LLMProvider
+from backend_v2.models.enums import CognitiveTier, ExecutionStatus, LaxCognitiveTier, LLMProvider
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.services.orchestrator.anchor_validation import AnchorValidationService
 from backend_v2.settings import get_settings
@@ -173,8 +173,9 @@ class AblationLiveExecutionConfigDTO(BaseModel):
             description="Optional pair of provider names for cross-model inter-rater reliability benchmarks.",
         ),
     ] = None
+    # Phase 1, Step 1.1: Enforce LaxCognitiveTier pair typing on compare_strategies
     compare_strategies: Annotated[
-        tuple[str, str] | None,
+        tuple[LaxCognitiveTier, LaxCognitiveTier] | None,
         Field(default=None, description="Optional pair of strategies for cross-strategy benchmarks."),
     ] = None
 
@@ -350,7 +351,8 @@ def resolve_model_telemetry(
     if type(data) is not dict:
         return {}
 
-    sys_configs = data.get("system_config", [])
+    # Phase 1, Step 1.1: Replace permissive .get() with explicit membership resolution
+    sys_configs = data["system_config"] if "system_config" in data else []
     raw_configs: Sequence[JsonValue] = []
     if type(sys_configs) is dict:
         raw_configs = list(sys_configs.values())
@@ -519,7 +521,8 @@ def print_model_telemetry(
             ordered_keys.append(k)
 
     for strat in ordered_keys:
-        t = telemetry.get(strat)
+        # Phase 1, Step 1.1: Replace permissive .get() with explicit membership resolution
+        t = telemetry[strat] if strat in telemetry else None
         if not t:
             continue
         marker = " [AKTIIVINEN TESTIKOHDE]" if active_strategies and strat in active_strategies else ""
@@ -677,8 +680,9 @@ class AblationLiveExecutor:
                 strat_1,
                 strat_2,
             )
-            client_1 = await LLMClient.from_strategy(strat_1, repository=repo)
-            client_2 = await LLMClient.from_strategy(strat_2, repository=repo)
+            # Phase 1, Step 1.1: Route cross-strategy client initialization via LLMClient.from_tier
+            client_1 = await LLMClient.from_tier(CognitiveTier(strat_1), repository=repo)
+            client_2 = await LLMClient.from_tier(CognitiveTier(strat_2), repository=repo)
         else:
             client_1 = await LLMClient.from_tier(config.tier, repository=repo)
             client_2 = client_1

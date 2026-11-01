@@ -214,6 +214,120 @@ def _extract_uuid7_timestamp(prefixed_id: str, prefix: EntityPrefix) -> datetime
     return datetime.fromtimestamp(timestamp_ms / 1000.0, tz=timezone.utc)
 
 
+def _hydrate_in_memory_execution_record(args: Sequence[object]) -> ExecutionRecord:
+    """Hydrate an ExecutionRecord from parameterized INSERT INTO EXECUTIONS bind arguments.
+
+    Args:
+        args: Positional SQL bind parameters for executions insertion.
+
+    Returns:
+        Hydrated ExecutionRecord domain instance.
+    """
+    # Phase 1, Step 1.1: Extract typed hydration helper to eliminate inline dict literal TD_MODEL_FACTORY
+    exec_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
+    exec_id = format_prefixed_uuid7(exec_uuid, EntityPrefix.EXECUTION)
+    wf_uuid = args[1] if isinstance(args[1], (uuid.UUID, str)) else str(args[1])
+    wf_id = format_prefixed_uuid7(wf_uuid, EntityPrefix.WORKFLOW)
+    active_prof_id = (
+        format_prefixed_uuid7(
+            args[3] if isinstance(args[3], (uuid.UUID, str)) else str(args[3]),
+            EntityPrefix.OUTPUT_PROFILE,
+        )
+        if args[3] is not None
+        else None
+    )
+    output_prof_id = (
+        format_prefixed_uuid7(
+            args[4] if isinstance(args[4], (uuid.UUID, str)) else str(args[4]),
+            EntityPrefix.OUTPUT_PROFILE,
+        )
+        if args[4] is not None
+        else None
+    )
+    org_raw = args[39]
+    if org_raw is None:
+        org_id_val: str | None = None
+    elif str(org_raw) in {"SYSTEM", "0195f3a0-0000-7000-8000-000000000000"}:
+        org_id_val = "SYSTEM"
+    else:
+        org_id_val = format_prefixed_uuid7(
+            org_raw if isinstance(org_raw, (uuid.UUID, str)) else str(org_raw),
+            EntityPrefix.ORGANIZATION,
+        )
+    raw_record = {
+        "id": exec_id,
+        "workflow_id": wf_id,
+        "workflow_version": args[2],
+        "active_profile_id": active_prof_id,
+        "output_profile_id": output_prof_id,
+        "status": args[5],
+        "target_locale": args[6],
+        "progress": args[7],
+        "status_message": args[8],
+        "raw_inputs": from_json(str(args[9])),
+        "frozen_context": from_json(str(args[10])) if args[10] is not None else None,
+        "frozen_context_storage_path": args[11],
+        "pdf_report_path": args[12],
+        "steps": from_json(str(args[13])),
+        "step_states": from_json(str(args[14])),
+        "profile_syntheses": from_json(str(args[15])),
+        "source_identity_manifest": from_json(str(args[16])),
+        "execution_trace": from_json(str(args[17])),
+        "execution_trace_storage_path": args[18],
+        "context_variables": from_json(str(args[19])),
+        "context_variables_storage_path": args[20],
+        "is_resumable": args[21],
+        "prompt_tokens": args[22],
+        "completion_tokens": args[23],
+        "cached_tokens": args[24],
+        "reasoning_tokens": args[25],
+        "cumulative_synthesis_tokens": args[26],
+        "dag_cost_usd": args[27],
+        "cumulative_synthesis_cost": args[28],
+        "cost_estimate": args[29],
+        "models_used": from_json(str(args[30])),
+        "execution_summary": from_json(str(args[31])) if args[31] is not None else None,
+        "metadata": from_json(str(args[32])) if args[32] is not None else None,
+        "duration_ms": args[33],
+        "error": args[34],
+        "created_at": args[35],
+        "updated_at": args[36],
+        "completed_at": args[37],
+        "created_by": args[38],
+        "organization_id": org_id_val,
+    }
+    return ExecutionRecord.model_validate(raw_record, strict=False)
+
+
+def _hydrate_in_memory_proposition_node(row: Sequence[object]) -> _StoredNodeEntry:
+    """Hydrate a _StoredNodeEntry from parameterized INSERT INTO QUORUM_NODES row values.
+
+    Args:
+        row: Positional SQL bind parameters for a quorum_nodes row.
+
+    Returns:
+        Hydrated _StoredNodeEntry instance.
+    """
+    # Phase 1, Step 1.1: Extract typed hydration helper to eliminate inline dict literal TD_MODEL_FACTORY
+    node_uuid = row[0] if isinstance(row[0], (uuid.UUID, str)) else str(row[0])
+    run_uuid = row[1] if isinstance(row[1], (uuid.UUID, str)) else str(row[1])
+    node_id = format_prefixed_uuid7(node_uuid, EntityPrefix.NODE)
+    run_id = format_prefixed_uuid7(run_uuid, EntityPrefix.EXECUTION)
+    local_key = str(row[2]) if row[2] is not None else None
+    node_type = PropositionNodeType(str(row[3]))
+    confidence = float(str(row[4]))
+    raw_node = {
+        "node_id": node_id,
+        "run_id": run_id,
+        "node_type": node_type,
+        "confidence": confidence,
+        "payload": from_json(str(row[5])),
+        "created_at": _extract_uuid7_timestamp(node_id, EntityPrefix.NODE),
+    }
+    node = PropositionNode.model_validate(raw_node, strict=False)
+    return _StoredNodeEntry(node=node, local_key=local_key)
+
+
 def _find_cycle_in_edges(run_id: str, edges: Sequence[DependencyEdge]) -> tuple[str, ...] | None:
     """Perform deterministic DFS cycle detection over directed edges for run_id.
 
@@ -1007,82 +1121,8 @@ class InMemoryAsyncPgConnection:
             return "UPDATE 1"
 
         if "INSERT INTO EXECUTIONS" in normalized:
-            exec_uuid = args[0] if isinstance(args[0], (uuid.UUID, str)) else str(args[0])
-            exec_id = format_prefixed_uuid7(exec_uuid, EntityPrefix.EXECUTION)
-            wf_uuid = args[1] if isinstance(args[1], (uuid.UUID, str)) else str(args[1])
-            wf_id = format_prefixed_uuid7(wf_uuid, EntityPrefix.WORKFLOW)
-            active_prof_id = (
-                format_prefixed_uuid7(
-                    args[3] if isinstance(args[3], (uuid.UUID, str)) else str(args[3]),
-                    EntityPrefix.OUTPUT_PROFILE,
-                )
-                if args[3] is not None
-                else None
-            )
-            output_prof_id = (
-                format_prefixed_uuid7(
-                    args[4] if isinstance(args[4], (uuid.UUID, str)) else str(args[4]),
-                    EntityPrefix.OUTPUT_PROFILE,
-                )
-                if args[4] is not None
-                else None
-            )
-            org_raw = args[39]
-            if org_raw is None:
-                org_id_val: str | None = None
-            elif str(org_raw) in {"SYSTEM", "0195f3a0-0000-7000-8000-000000000000"}:
-                org_id_val = "SYSTEM"
-            else:
-                org_id_val = format_prefixed_uuid7(
-                    org_raw if isinstance(org_raw, (uuid.UUID, str)) else str(org_raw),
-                    EntityPrefix.ORGANIZATION,
-                )
-            record = ExecutionRecord.model_validate(
-                {
-                    "id": exec_id,
-                    "workflow_id": wf_id,
-                    "workflow_version": args[2],
-                    "active_profile_id": active_prof_id,
-                    "output_profile_id": output_prof_id,
-                    "status": args[5],
-                    "target_locale": args[6],
-                    "progress": args[7],
-                    "status_message": args[8],
-                    "raw_inputs": from_json(str(args[9])),
-                    "frozen_context": from_json(str(args[10])) if args[10] is not None else None,
-                    "frozen_context_storage_path": args[11],
-                    "pdf_report_path": args[12],
-                    "steps": from_json(str(args[13])),
-                    "step_states": from_json(str(args[14])),
-                    "profile_syntheses": from_json(str(args[15])),
-                    "source_identity_manifest": from_json(str(args[16])),
-                    "execution_trace": from_json(str(args[17])),
-                    "execution_trace_storage_path": args[18],
-                    "context_variables": from_json(str(args[19])),
-                    "context_variables_storage_path": args[20],
-                    "is_resumable": args[21],
-                    "prompt_tokens": args[22],
-                    "completion_tokens": args[23],
-                    "cached_tokens": args[24],
-                    "reasoning_tokens": args[25],
-                    "cumulative_synthesis_tokens": args[26],
-                    "dag_cost_usd": args[27],
-                    "cumulative_synthesis_cost": args[28],
-                    "cost_estimate": args[29],
-                    "models_used": from_json(str(args[30])),
-                    "execution_summary": from_json(str(args[31])) if args[31] is not None else None,
-                    "metadata": from_json(str(args[32])) if args[32] is not None else None,
-                    "duration_ms": args[33],
-                    "error": args[34],
-                    "created_at": args[35],
-                    "updated_at": args[36],
-                    "completed_at": args[37],
-                    "created_by": args[38],
-                    "organization_id": org_id_val,
-                },
-                strict=False,
-            )
-            self._store.executions[exec_id] = record
+            record = _hydrate_in_memory_execution_record(args)
+            self._store.executions[record.id] = record
             return "INSERT 0 1"
 
         for tbl in (
@@ -1142,27 +1182,8 @@ class InMemoryAsyncPgConnection:
 
         if "INSERT INTO QUORUM_NODES" in normalized:
             for row in args:
-                node_uuid = row[0] if isinstance(row[0], (uuid.UUID, str)) else str(row[0])
-                run_uuid = row[1] if isinstance(row[1], (uuid.UUID, str)) else str(row[1])
-                node_id = format_prefixed_uuid7(node_uuid, EntityPrefix.NODE)
-                run_id = format_prefixed_uuid7(run_uuid, EntityPrefix.EXECUTION)
-                local_key = str(row[2]) if row[2] is not None else None
-                node_type = PropositionNodeType(str(row[3]))
-                confidence = float(str(row[4]))
-                payload = PropositionNode.model_fields["payload"].annotation
-                _ = payload
-                node = PropositionNode.model_validate(
-                    {
-                        "node_id": node_id,
-                        "run_id": run_id,
-                        "node_type": node_type,
-                        "confidence": confidence,
-                        "payload": from_json(str(row[5])),
-                        "created_at": _extract_uuid7_timestamp(node_id, EntityPrefix.NODE),
-                    },
-                    strict=False,
-                )
-                self._store.nodes[node_id] = _StoredNodeEntry(node=node, local_key=local_key)
+                entry = _hydrate_in_memory_proposition_node(row)
+                self._store.nodes[entry.node.node_id] = entry
         elif "INSERT INTO QUORUM_EDGES" in normalized:
             for row in args:
                 edge_uuid = row[0] if isinstance(row[0], (uuid.UUID, str)) else str(row[0])
