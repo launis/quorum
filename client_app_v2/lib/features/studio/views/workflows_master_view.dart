@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
@@ -44,54 +45,56 @@ class _WorkflowsMasterViewState extends ConsumerState<WorkflowsMasterView> {
       return name.contains(query) || slug.contains(query) || id.contains(query);
     }).toList();
 
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1200),
-        child: Padding(
-          padding: AppSpacing.p16,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (_bannerError != null) ...[
-                MaterialBanner(
-                  content: Text(_bannerError!),
-                  backgroundColor: Theme.of(context).colorScheme.errorContainer,
-                  contentTextStyle: TextStyle(
-                    color: Theme.of(context).colorScheme.onErrorContainer,
+    return AppErrorBoundary(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Padding(
+            padding: AppSpacing.p16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_bannerError != null) ...[
+                  MaterialBanner(
+                    content: Text(_bannerError!),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.errorContainer,
+                    contentTextStyle: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                        ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => setState(() => _bannerError = null),
+                        child: Text(l10n.cancelButton),
+                      ),
+                    ],
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => setState(() => _bannerError = null),
-                      child: Text(l10n.cancelButton),
-                    ),
-                  ],
-                ),
-                AppSpacing.h16,
-              ],
-              StudioMasterHeader(
-                title: l10n.studioViewsWorkflowBuilderTitle,
-                subtitle: l10n.studioViewsWorkflowBuilderDesc,
-                searchQuery: _searchQuery,
-                onSearchChanged: (query) =>
-                    setState(() => _searchQuery = query),
-                itemCount: filtered?.length ?? 0,
-                totalCount: workflows?.length ?? 0,
-                actionLabel: l10n.studioViewsNewWorkflowBtn,
-                actionIcon: Icons.account_tree,
-                onAction: () async {
-                  try {
-                    final draft = await ref
-                        .read(workflowsControllerProvider.notifier)
-                        .createWorkflowDraft();
-                    if (context.mounted) {
+                  AppSpacing.h16,
+                ],
+                StudioMasterHeader(
+                  title: l10n.studioViewsWorkflowBuilderTitle,
+                  subtitle: l10n.studioViewsWorkflowBuilderDesc,
+                  searchQuery: _searchQuery,
+                  onSearchChanged: (query) =>
+                      setState(() => _searchQuery = query),
+                  itemCount: filtered?.length ?? 0,
+                  totalCount: workflows?.length ?? 0,
+                  actionLabel: l10n.studioViewsNewWorkflowBtn,
+                  actionIcon: Icons.account_tree,
+                  onAction: () async {
+                    try {
+                      final draft = await ref
+                          .read(workflowsControllerProvider.notifier)
+                          .createWorkflowDraft();
+                      if (!context.mounted) return;
                       WorkflowEditRoute(
                         id: draft.id,
                         slug: draft.slug,
                       ).go(context);
-                    }
-                  } catch (e, st) {
-                    if (context.mounted) {
+                    } catch (e, st) {
                       ref
                           .read(loggerServiceProvider)
                           .error(
@@ -100,58 +103,64 @@ class _WorkflowsMasterViewState extends ConsumerState<WorkflowsMasterView> {
                             e,
                             st,
                           );
+                      if (!context.mounted) return;
                       setState(() {
                         _bannerError = l10n.studioViewsFailedToCreate(
                           e.toString(),
                         );
                       });
                     }
-                  }
-                },
-              ),
-              AppSpacing.h16,
-              Expanded(
-                child: switch (workflowsState) {
-                  AsyncData() =>
-                    workflows!.isEmpty
-                        ? Center(
-                            child: Text(l10n.studioViewsNoWorkflowsConfigured),
-                          )
-                        : filtered!.isEmpty
-                        ? Center(child: Text(l10n.studioMasterNoMatchingItems))
-                        : ListView.builder(
-                            itemCount: filtered.length,
-                            prototypeItem: Card(
-                              child: ListTile(
-                                leading: Icon(
-                                  Icons.account_tree,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                                title: const Text(
-                                  'Prototype Title',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: const Padding(
-                                  padding: EdgeInsets.only(top: 8.0),
-                                  child: Text(
-                                    'Prototype Subtitle Content',
+                  },
+                ),
+                AppSpacing.h16,
+                Expanded(
+                  child: switch (workflowsState) {
+                    AsyncData() =>
+                      workflows!.isEmpty
+                          ? Center(
+                              child: Text(
+                                l10n.studioViewsNoWorkflowsConfigured,
+                              ),
+                            )
+                          : filtered!.isEmpty
+                          ? Center(
+                              child: Text(l10n.studioMasterNoMatchingItems),
+                            )
+                          : ListView.builder(
+                              itemCount: filtered.length,
+                              prototypeItem: Card(
+                                child: ListTile(
+                                  leading: Icon(
+                                    Icons.account_tree,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                                  title: Text(
+                                    l10n.studioViewsWorkflowBuilderTitle,
                                     overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  subtitle: Padding(
+                                    padding: const EdgeInsets.only(
+                                      top: AppSpacing.s8,
+                                    ),
+                                    child: Text(
+                                      l10n.studioViewsWorkflowBuilderDesc,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  trailing: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.copy),
+                                      Icon(Icons.settings_ethernet),
+                                    ],
                                   ),
                                 ),
-                                trailing: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.copy),
-                                    Icon(Icons.settings_ethernet),
-                                  ],
-                                ),
                               ),
-                            ),
-                            itemBuilder: (context, index) {
-                              try {
+                              itemBuilder: (context, index) {
                                 final workflow = filtered[index];
                                 final String displayName = workflow.name.get(
                                   currentLocale,
@@ -161,13 +170,13 @@ class _WorkflowsMasterViewState extends ConsumerState<WorkflowsMasterView> {
                                 final slug = workflow.slug;
                                 if (slug.isEmpty) {
                                   throw AppException.validation(
-                                    'Workflow slug is missing.',
+                                    'Fail-Fast: Workflow slug is missing.',
                                   );
                                 }
                                 final workflowId = workflow.id;
                                 if (workflowId.isEmpty) {
                                   throw AppException.validation(
-                                    'Workflow ID is missing.',
+                                    'Fail-Fast: Workflow ID is missing.',
                                   );
                                 }
 
@@ -182,15 +191,20 @@ class _WorkflowsMasterViewState extends ConsumerState<WorkflowsMasterView> {
                                     title: Text(
                                       displayName,
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
                                     subtitle: Padding(
-                                      padding: const EdgeInsets.only(top: 8.0),
+                                      padding: const EdgeInsets.only(
+                                        top: AppSpacing.s8,
+                                      ),
                                       child: Wrap(
-                                        spacing: 12.0,
-                                        runSpacing: 4.0,
+                                        spacing: AppSpacing.s12,
+                                        runSpacing: AppSpacing.s4,
                                         children: [
                                           Text(
                                             workflowId,
@@ -237,14 +251,12 @@ class _WorkflowsMasterViewState extends ConsumerState<WorkflowsMasterView> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         CloneEntityButton(
-                                          onClone: () async {
-                                            await ref
-                                                .read(
-                                                  workflowsControllerProvider
-                                                      .notifier,
-                                                )
-                                                .cloneWorkflow(workflowId);
-                                          },
+                                          onClone: () => ref
+                                              .read(
+                                                workflowsControllerProvider
+                                                    .notifier,
+                                              )
+                                              .cloneWorkflow(workflowId),
                                         ),
                                         const Icon(Icons.settings_ethernet),
                                       ],
@@ -257,37 +269,23 @@ class _WorkflowsMasterViewState extends ConsumerState<WorkflowsMasterView> {
                                     },
                                   ),
                                 );
-                              } catch (e, st) {
-                                ref
-                                    .read(loggerServiceProvider)
-                                    .error(
-                                      'Studio',
-                                      'Error rendering workflow list item: $e',
-                                      e,
-                                      st,
-                                    );
-                                return ErrorView(
-                                  error: e,
-                                  stackTrace: st,
-                                  compact: true,
-                                );
-                              }
-                            },
-                          ),
-                  AsyncLoading() => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                  AsyncError(:final error, :final stackTrace) => ErrorView(
-                    error: error,
-                    stackTrace: stackTrace,
-                    compact: true,
-                    onRetry: () => ref
-                        .read(workflowsControllerProvider.notifier)
-                        .refresh(),
-                  ),
-                },
-              ),
-            ],
+                              },
+                            ),
+                    AsyncLoading() => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                    AsyncError(:final error, :final stackTrace) => ErrorView(
+                      error: error,
+                      stackTrace: stackTrace,
+                      compact: true,
+                      onRetry: () => ref
+                          .read(workflowsControllerProvider.notifier)
+                          .refresh(),
+                    ),
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
