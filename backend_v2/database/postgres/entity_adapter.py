@@ -69,6 +69,132 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
 from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     resolve_effective_timeout as resolve_effective_timeout,
 )
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    _GET_ORGANIZATION_SQL as _GET_ORGANIZATION_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    _GET_SYSTEM_CONFIG_SQL as _GET_SYSTEM_CONFIG_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    _GET_USER_SQL as _GET_USER_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    _LIST_ORGANIZATIONS_SQL as _LIST_ORGANIZATIONS_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    _LIST_SYSTEM_CONFIGS_SQL as _LIST_SYSTEM_CONFIGS_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    _LIST_USERS_SQL as _LIST_USERS_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    _UPSERT_ORGANIZATION_SQL as _UPSERT_ORGANIZATION_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    _UPSERT_SYSTEM_CONFIG_SQL as _UPSERT_SYSTEM_CONFIG_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    _UPSERT_USER_SQL as _UPSERT_USER_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    get_organization_row as get_organization_row,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    get_system_config_row as get_system_config_row,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    get_user_row as get_user_row,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    hydrate_organization_row as hydrate_organization_row,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    hydrate_system_config_row as hydrate_system_config_row,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    hydrate_user_row as hydrate_user_row,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    upsert_organization_row as upsert_organization_row,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    upsert_system_config_row as upsert_system_config_row,
+)
+from backend_v2.database.postgres.entity_adapter.iam_and_system_stage import (
+    upsert_user_row as upsert_user_row,
+)
+from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+    _GET_PROMPT_BLOCK_SQL as _GET_PROMPT_BLOCK_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+    _GET_STEP_SQL as _GET_STEP_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+    _LIST_PROMPT_BLOCKS_SQL as _LIST_PROMPT_BLOCKS_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+    _LIST_STEPS_SQL as _LIST_STEPS_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+    _UPSERT_PROMPT_BLOCK_SQL as _UPSERT_PROMPT_BLOCK_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+    _UPSERT_STEP_SQL as _UPSERT_STEP_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+    get_prompt_block_row as get_prompt_block_row,
+)
+from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+    get_step_row as get_step_row,
+)
+from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+    hydrate_prompt_block_row as hydrate_prompt_block_row,
+)
+from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+    hydrate_step_row as hydrate_step_row,
+)
+from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+    upsert_prompt_block_row as upsert_prompt_block_row,
+)
+from backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage import (
+    upsert_step_row as upsert_step_row,
+)
+from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+    _GET_OUTPUT_PROFILE_SQL as _GET_OUTPUT_PROFILE_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+    _GET_WORKFLOW_SQL as _GET_WORKFLOW_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+    _LIST_OUTPUT_PROFILES_SQL as _LIST_OUTPUT_PROFILES_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+    _LIST_WORKFLOWS_SQL as _LIST_WORKFLOWS_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+    _UPSERT_OUTPUT_PROFILE_SQL as _UPSERT_OUTPUT_PROFILE_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+    _UPSERT_WORKFLOW_SQL as _UPSERT_WORKFLOW_SQL,
+)
+from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+    get_output_profile_row as get_output_profile_row,
+)
+from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+    get_workflow_row as get_workflow_row,
+)
+from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+    hydrate_output_profile_row as hydrate_output_profile_row,
+)
+from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+    hydrate_workflow_row as hydrate_workflow_row,
+)
+from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+    upsert_output_profile_row as upsert_output_profile_row,
+)
+from backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage import (
+    upsert_workflow_row as upsert_workflow_row,
+)
 from backend_v2.database.postgres.pool import (
     AsyncPgConnectionProtocol,
     AsyncPgRecordProtocol,
@@ -97,7 +223,7 @@ from backend_v2.models.domain.system_config import (
     SystemConfigModelRegistry,
 )
 from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.enums import EntityPrefix, PromptBlockCategory
+from backend_v2.models.enums import EntityPrefix
 from backend_v2.models.state import WorkflowState
 from backend_v2.settings import get_settings
 
@@ -348,377 +474,6 @@ SELECT
     created_by,
     organization_id
 FROM executions
-"""
-
-_UPSERT_ORGANIZATION_SQL: str = """
-INSERT INTO organizations (
-    id, slug, name, is_active, tier, contact_email, billing_id,
-    subscription_status, quota_limit, tpm_limit, rpm_limit
-) VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9::numeric, $10::bigint, $11)
-ON CONFLICT (id) DO UPDATE SET
-    slug = EXCLUDED.slug,
-    name = EXCLUDED.name,
-    is_active = EXCLUDED.is_active,
-    tier = EXCLUDED.tier,
-    contact_email = EXCLUDED.contact_email,
-    billing_id = EXCLUDED.billing_id,
-    subscription_status = EXCLUDED.subscription_status,
-    quota_limit = EXCLUDED.quota_limit,
-    tpm_limit = EXCLUDED.tpm_limit,
-    rpm_limit = EXCLUDED.rpm_limit
-"""
-
-_GET_ORGANIZATION_SQL: str = """
-SELECT id, slug, name, created_at, is_active, tier, contact_email, billing_id,
-       subscription_status, quota_limit, tpm_limit, rpm_limit
-FROM organizations
-WHERE id = $1::uuid
-"""
-
-_LIST_ORGANIZATIONS_SQL: str = """
-SELECT id, slug, name, created_at, is_active, tier, contact_email, billing_id,
-       subscription_status, quota_limit, tpm_limit, rpm_limit
-FROM organizations
-"""
-
-_UPSERT_USER_SQL: str = """
-INSERT INTO users (
-    id, slug, email, name, role, organization_id, is_active, language, theme_mode, created_by
-) VALUES ($1::uuid, $2, $3, $4, $5, $6::uuid, $7, $8, $9, $10)
-ON CONFLICT (id) DO UPDATE SET
-    slug = EXCLUDED.slug,
-    email = EXCLUDED.email,
-    name = EXCLUDED.name,
-    role = EXCLUDED.role,
-    organization_id = EXCLUDED.organization_id,
-    is_active = EXCLUDED.is_active,
-    language = EXCLUDED.language,
-    theme_mode = EXCLUDED.theme_mode,
-    created_by = EXCLUDED.created_by
-"""
-
-_GET_USER_SQL: str = """
-SELECT id, slug, email, name, role, organization_id, is_active, language, theme_mode, created_at, created_by
-FROM users
-WHERE id = $1::uuid
-"""
-
-_LIST_USERS_SQL: str = """
-SELECT id, slug, email, name, role, organization_id, is_active, language, theme_mode, created_at, created_by
-FROM users
-"""
-
-_UPSERT_SYSTEM_CONFIG_SQL: str = """
-INSERT INTO system_configs (
-    id, name, type, slug, default_provider, tier_definitions, endpoint_url,
-    transport_type, auth_type, auth_header_name, auth_env_var, timeout_seconds, tools
-) VALUES ($1::uuid, $2, $3, $4, $5, $6::jsonb, $7, $8, $9, $10, $11, $12, $13::jsonb)
-ON CONFLICT (id) DO UPDATE SET
-    name = EXCLUDED.name,
-    type = EXCLUDED.type,
-    slug = EXCLUDED.slug,
-    default_provider = EXCLUDED.default_provider,
-    tier_definitions = EXCLUDED.tier_definitions,
-    endpoint_url = EXCLUDED.endpoint_url,
-    transport_type = EXCLUDED.transport_type,
-    auth_type = EXCLUDED.auth_type,
-    auth_header_name = EXCLUDED.auth_header_name,
-    auth_env_var = EXCLUDED.auth_env_var,
-    timeout_seconds = EXCLUDED.timeout_seconds,
-    tools = EXCLUDED.tools
-"""
-
-_GET_SYSTEM_CONFIG_SQL: str = """
-SELECT id, name, type, slug, default_provider, tier_definitions, endpoint_url,
-       transport_type, auth_type, auth_header_name, auth_env_var, timeout_seconds, tools
-FROM system_configs
-WHERE id = $1::uuid
-"""
-
-_LIST_SYSTEM_CONFIGS_SQL: str = """
-SELECT id, name, type, slug, default_provider, tier_definitions, endpoint_url,
-       transport_type, auth_type, auth_header_name, auth_env_var, timeout_seconds, tools
-FROM system_configs
-"""
-
-_UPSERT_PROMPT_BLOCK_SQL: str = """
-INSERT INTO prompt_blocks (
-    id, slug, organization_id, label, description, output_extensions, theory_grounding,
-    category_id, type, is_evaluative, allow_decimals, allow_contextual_override,
-    is_lightweight_protocol, target_input_key, ai_description, scales, rows, columns,
-    computed_min, computed_max, instruction_text, role_enforcement, tone_directives,
-    protocol_instructions
-) VALUES (
-    $1::uuid, $2, $3::uuid, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb,
-    $8, $9, $10, $11, $12,
-    $13, $14, $15, $16::jsonb, $17::jsonb, $18::jsonb,
-    $19, $20, $21, $22, $23::jsonb,
-    $24
-)
-ON CONFLICT (id) DO UPDATE SET
-    slug = EXCLUDED.slug,
-    organization_id = EXCLUDED.organization_id,
-    label = EXCLUDED.label,
-    description = EXCLUDED.description,
-    output_extensions = EXCLUDED.output_extensions,
-    theory_grounding = EXCLUDED.theory_grounding,
-    category_id = EXCLUDED.category_id,
-    type = EXCLUDED.type,
-    is_evaluative = EXCLUDED.is_evaluative,
-    allow_decimals = EXCLUDED.allow_decimals,
-    allow_contextual_override = EXCLUDED.allow_contextual_override,
-    is_lightweight_protocol = EXCLUDED.is_lightweight_protocol,
-    target_input_key = EXCLUDED.target_input_key,
-    ai_description = EXCLUDED.ai_description,
-    scales = EXCLUDED.scales,
-    rows = EXCLUDED.rows,
-    columns = EXCLUDED.columns,
-    computed_min = EXCLUDED.computed_min,
-    computed_max = EXCLUDED.computed_max,
-    instruction_text = EXCLUDED.instruction_text,
-    role_enforcement = EXCLUDED.role_enforcement,
-    tone_directives = EXCLUDED.tone_directives,
-    protocol_instructions = EXCLUDED.protocol_instructions
-"""
-
-_GET_PROMPT_BLOCK_SQL: str = """
-SELECT id, slug, organization_id, label, description, output_extensions, theory_grounding,
-       category_id, type, is_evaluative, allow_decimals, allow_contextual_override,
-       is_lightweight_protocol, target_input_key, ai_description, scales, rows, columns,
-       computed_min, computed_max, instruction_text, role_enforcement, tone_directives,
-       protocol_instructions
-FROM prompt_blocks
-WHERE id = $1::uuid
-"""
-
-_LIST_PROMPT_BLOCKS_SQL: str = """
-SELECT id, slug, organization_id, label, description, output_extensions, theory_grounding,
-       category_id, type, is_evaluative, allow_decimals, allow_contextual_override,
-       is_lightweight_protocol, target_input_key, ai_description, scales, rows, columns,
-       computed_min, computed_max, instruction_text, role_enforcement, tone_directives,
-       protocol_instructions
-FROM prompt_blocks
-"""
-
-_UPSERT_STEP_SQL: str = """
-INSERT INTO steps (
-    id, slug, organization_id, name, description, type, hook, role_block_id,
-    extraction_protocol_block_id, execution_persona_block_id, criteria_block_ids,
-    pre_hooks, post_hooks, safety, allowed_mcp_tools, mcp_tool_params,
-    cognitive_tier, expected_inputs, is_system_core, engine_type, zone
-) VALUES (
-    $1::uuid, $2, $3::uuid, $4::jsonb, $5::jsonb, $6, $7, $8::uuid,
-    $9::uuid, $10::uuid, $11::jsonb,
-    $12::jsonb, $13::jsonb, $14, $15::jsonb, $16::jsonb,
-    $17, $18::jsonb, $19, $20, $21
-)
-ON CONFLICT (id) DO UPDATE SET
-    slug = EXCLUDED.slug,
-    organization_id = EXCLUDED.organization_id,
-    name = EXCLUDED.name,
-    description = EXCLUDED.description,
-    type = EXCLUDED.type,
-    hook = EXCLUDED.hook,
-    role_block_id = EXCLUDED.role_block_id,
-    extraction_protocol_block_id = EXCLUDED.extraction_protocol_block_id,
-    execution_persona_block_id = EXCLUDED.execution_persona_block_id,
-    criteria_block_ids = EXCLUDED.criteria_block_ids,
-    pre_hooks = EXCLUDED.pre_hooks,
-    post_hooks = EXCLUDED.post_hooks,
-    safety = EXCLUDED.safety,
-    allowed_mcp_tools = EXCLUDED.allowed_mcp_tools,
-    mcp_tool_params = EXCLUDED.mcp_tool_params,
-    cognitive_tier = EXCLUDED.cognitive_tier,
-    expected_inputs = EXCLUDED.expected_inputs,
-    is_system_core = EXCLUDED.is_system_core,
-    engine_type = EXCLUDED.engine_type,
-    zone = EXCLUDED.zone
-"""
-
-_GET_STEP_SQL: str = """
-SELECT id, slug, organization_id, name, description, type, hook, role_block_id,
-       extraction_protocol_block_id, execution_persona_block_id, criteria_block_ids,
-       pre_hooks, post_hooks, safety, allowed_mcp_tools, mcp_tool_params,
-       cognitive_tier, expected_inputs, is_system_core, engine_type, zone
-FROM steps
-WHERE id = $1::uuid
-"""
-
-_LIST_STEPS_SQL: str = """
-SELECT id, slug, organization_id, name, description, type, hook, role_block_id,
-       extraction_protocol_block_id, execution_persona_block_id, criteria_block_ids,
-       pre_hooks, post_hooks, safety, allowed_mcp_tools, mcp_tool_params,
-       cognitive_tier, expected_inputs, is_system_core, engine_type, zone
-FROM steps
-"""
-
-_UPSERT_WORKFLOW_SQL: str = """
-INSERT INTO workflows (
-    id, slug, name, description, status, version, is_public, organization_id,
-    default_profile_id, mcp_gateway_id, model_registry_id, default_strictness_level,
-    default_lexical_strictness_level, security_penalty, post_hoc_penalty,
-    passivity_penalty, enable_contextual_overrides, enable_semantic_smoothing,
-    enable_eager_anonymization, system_audit_trail, expected_inputs, steps,
-    historical_context_mode
-) VALUES (
-    $1::uuid, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8::uuid,
-    $9::uuid, $10::uuid, $11::uuid, $12,
-    $13, $14, $15,
-    $16, $17, $18,
-    $19, $20, $21::jsonb, $22::jsonb,
-    $23
-)
-ON CONFLICT (id) DO UPDATE SET
-    slug = EXCLUDED.slug,
-    name = EXCLUDED.name,
-    description = EXCLUDED.description,
-    status = EXCLUDED.status,
-    version = EXCLUDED.version,
-    is_public = EXCLUDED.is_public,
-    organization_id = EXCLUDED.organization_id,
-    default_profile_id = EXCLUDED.default_profile_id,
-    mcp_gateway_id = EXCLUDED.mcp_gateway_id,
-    model_registry_id = EXCLUDED.model_registry_id,
-    default_strictness_level = EXCLUDED.default_strictness_level,
-    default_lexical_strictness_level = EXCLUDED.default_lexical_strictness_level,
-    security_penalty = EXCLUDED.security_penalty,
-    post_hoc_penalty = EXCLUDED.post_hoc_penalty,
-    passivity_penalty = EXCLUDED.passivity_penalty,
-    enable_contextual_overrides = EXCLUDED.enable_contextual_overrides,
-    enable_semantic_smoothing = EXCLUDED.enable_semantic_smoothing,
-    enable_eager_anonymization = EXCLUDED.enable_eager_anonymization,
-    system_audit_trail = EXCLUDED.system_audit_trail,
-    expected_inputs = EXCLUDED.expected_inputs,
-    steps = EXCLUDED.steps,
-    historical_context_mode = EXCLUDED.historical_context_mode
-"""
-
-_GET_WORKFLOW_SQL: str = """
-SELECT id, slug, name, description, status, version, is_public, organization_id,
-       default_profile_id, mcp_gateway_id, model_registry_id, default_strictness_level,
-       default_lexical_strictness_level, security_penalty, post_hoc_penalty,
-       passivity_penalty, enable_contextual_overrides, enable_semantic_smoothing,
-       enable_eager_anonymization, system_audit_trail, expected_inputs, steps,
-       historical_context_mode
-FROM workflows
-WHERE id = $1::uuid
-"""
-
-_LIST_WORKFLOWS_SQL: str = """
-SELECT id, slug, name, description, status, version, is_public, organization_id,
-       default_profile_id, mcp_gateway_id, model_registry_id, default_strictness_level,
-       default_lexical_strictness_level, security_penalty, post_hoc_penalty,
-       passivity_penalty, enable_contextual_overrides, enable_semantic_smoothing,
-       enable_eager_anonymization, system_audit_trail, expected_inputs, steps,
-       historical_context_mode
-FROM workflows
-"""
-
-_UPSERT_OUTPUT_PROFILE_SQL: str = """
-INSERT INTO output_profiles (
-    id, slug, workflow_id, organization_id, name, description, user_role_label,
-    custom_preface, language, tone_instruction, executive_summary_directive,
-    matrix_1d_synthesis_directive, matrix_2d_synthesis_directive,
-    matrix_3d_synthesis_directive, matrix_text_synthesis_directive,
-    row_explanation_directive, xai_synthesis_directive, variance_synthesis_directive,
-    visible_metadata, matrix_visible_columns, visible_block_extensions,
-    visible_workflow_extensions, max_extension_items, display_scale,
-    custom_scale_min, custom_scale_max, synthesis_length_constraint,
-    row_explanation_length_constraint, xai_length_constraint,
-    variance_length_constraint, matrix_graph_length_constraint,
-    max_quotes_per_matrix, max_unmet_criteria, target_block_order,
-    matrix_synthesis_groups, content_blocks, show_sources_summary_box,
-    sources_display_mode, variance_target_block, user_role_target_block
-) VALUES (
-    $1::uuid, $2, $3::uuid, $4::uuid, $5::jsonb, $6::jsonb, $7::jsonb,
-    $8::jsonb, $9, $10, $11,
-    $12, $13,
-    $14, $15,
-    $16, $17, $18,
-    $19::jsonb, $20::jsonb, $21::jsonb,
-    $22::jsonb, $23, $24,
-    $25, $26, $27,
-    $28, $29,
-    $30, $31,
-    $32, $33, $34::jsonb,
-    $35::jsonb, $36::jsonb, $37,
-    $38, $39, $40
-)
-ON CONFLICT (id) DO UPDATE SET
-    slug = EXCLUDED.slug,
-    workflow_id = EXCLUDED.workflow_id,
-    organization_id = EXCLUDED.organization_id,
-    name = EXCLUDED.name,
-    description = EXCLUDED.description,
-    user_role_label = EXCLUDED.user_role_label,
-    custom_preface = EXCLUDED.custom_preface,
-    language = EXCLUDED.language,
-    tone_instruction = EXCLUDED.tone_instruction,
-    executive_summary_directive = EXCLUDED.executive_summary_directive,
-    matrix_1d_synthesis_directive = EXCLUDED.matrix_1d_synthesis_directive,
-    matrix_2d_synthesis_directive = EXCLUDED.matrix_2d_synthesis_directive,
-    matrix_3d_synthesis_directive = EXCLUDED.matrix_3d_synthesis_directive,
-    matrix_text_synthesis_directive = EXCLUDED.matrix_text_synthesis_directive,
-    row_explanation_directive = EXCLUDED.row_explanation_directive,
-    xai_synthesis_directive = EXCLUDED.xai_synthesis_directive,
-    variance_synthesis_directive = EXCLUDED.variance_synthesis_directive,
-    visible_metadata = EXCLUDED.visible_metadata,
-    matrix_visible_columns = EXCLUDED.matrix_visible_columns,
-    visible_block_extensions = EXCLUDED.visible_block_extensions,
-    visible_workflow_extensions = EXCLUDED.visible_workflow_extensions,
-    max_extension_items = EXCLUDED.max_extension_items,
-    display_scale = EXCLUDED.display_scale,
-    custom_scale_min = EXCLUDED.custom_scale_min,
-    custom_scale_max = EXCLUDED.custom_scale_max,
-    synthesis_length_constraint = EXCLUDED.synthesis_length_constraint,
-    row_explanation_length_constraint = EXCLUDED.row_explanation_length_constraint,
-    xai_length_constraint = EXCLUDED.xai_length_constraint,
-    variance_length_constraint = EXCLUDED.variance_length_constraint,
-    matrix_graph_length_constraint = EXCLUDED.matrix_graph_length_constraint,
-    max_quotes_per_matrix = EXCLUDED.max_quotes_per_matrix,
-    max_unmet_criteria = EXCLUDED.max_unmet_criteria,
-    target_block_order = EXCLUDED.target_block_order,
-    matrix_synthesis_groups = EXCLUDED.matrix_synthesis_groups,
-    content_blocks = EXCLUDED.content_blocks,
-    show_sources_summary_box = EXCLUDED.show_sources_summary_box,
-    sources_display_mode = EXCLUDED.sources_display_mode,
-    variance_target_block = EXCLUDED.variance_target_block,
-    user_role_target_block = EXCLUDED.user_role_target_block
-"""
-
-_GET_OUTPUT_PROFILE_SQL: str = """
-SELECT id, slug, workflow_id, organization_id, name, description, user_role_label,
-       custom_preface, language, tone_instruction, executive_summary_directive,
-       matrix_1d_synthesis_directive, matrix_2d_synthesis_directive,
-       matrix_3d_synthesis_directive, matrix_text_synthesis_directive,
-       row_explanation_directive, xai_synthesis_directive, variance_synthesis_directive,
-       visible_metadata, matrix_visible_columns, visible_block_extensions,
-       visible_workflow_extensions, max_extension_items, display_scale,
-       custom_scale_min, custom_scale_max, synthesis_length_constraint,
-       row_explanation_length_constraint, xai_length_constraint,
-       variance_length_constraint, matrix_graph_length_constraint,
-       max_quotes_per_matrix, max_unmet_criteria, target_block_order,
-       matrix_synthesis_groups, content_blocks, show_sources_summary_box,
-       sources_display_mode, variance_target_block, user_role_target_block
-FROM output_profiles
-WHERE id = $1::uuid
-"""
-
-_LIST_OUTPUT_PROFILES_SQL: str = """
-SELECT id, slug, workflow_id, organization_id, name, description, user_role_label,
-       custom_preface, language, tone_instruction, executive_summary_directive,
-       matrix_1d_synthesis_directive, matrix_2d_synthesis_directive,
-       matrix_3d_synthesis_directive, matrix_text_synthesis_directive,
-       row_explanation_directive, xai_synthesis_directive, variance_synthesis_directive,
-       visible_metadata, matrix_visible_columns, visible_block_extensions,
-       visible_workflow_extensions, max_extension_items, display_scale,
-       custom_scale_min, custom_scale_max, synthesis_length_constraint,
-       row_explanation_length_constraint, xai_length_constraint,
-       variance_length_constraint, matrix_graph_length_constraint,
-       max_quotes_per_matrix, max_unmet_criteria, target_block_order,
-       matrix_synthesis_groups, content_blocks, show_sources_summary_box,
-       sources_display_mode, variance_target_block, user_role_target_block
-FROM output_profiles
 """
 
 _UPSERT_REPORT_ARTIFACT_SQL: str = """
@@ -1141,23 +896,8 @@ class PostgresEntityAdapter:
         Returns:
             Validated Organization domain model.
         """
-        return Organization.model_validate(
-            {
-                "id": str(_format_org_uuid7(row["id"])),
-                "slug": row["slug"],
-                "name": row["name"],
-                "created_at": row["created_at"],
-                "is_active": row["is_active"],
-                "tier": row["tier"],
-                "contact_email": row["contact_email"],
-                "billing_id": row["billing_id"],
-                "subscription_status": row["subscription_status"],
-                "quota_limit": _coerce_float(row["quota_limit"]),
-                "tpm_limit": int(str(row["tpm_limit"])),
-                "rpm_limit": int(str(row["rpm_limit"])),
-            },
-            strict=False,
-        )
+        # Phase 2, Step 2: Delegate _hydrate_organization_row to hydrate_organization_row
+        return hydrate_organization_row(row)
 
     async def upsert_organization(self, org: Organization) -> str:
         """Persist an Organization into the organizations table.
@@ -1171,27 +911,8 @@ class PostgresEntityAdapter:
         Raises:
             AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
-        org_uuid = (
-            _ROOT_SYSTEM_ORG_UUID7
-            if org.id == "org_system000000"
-            else parse_prefixed_uuid7(org.id, EntityPrefix.ORGANIZATION)
-        )
-        return await self._execute_upsert(
-            _UPSERT_ORGANIZATION_SQL,
-            org_uuid,
-            org.slug,
-            org.name,
-            org.is_active,
-            org.tier,
-            org.contact_email,
-            org.billing_id,
-            org.subscription_status.value,
-            org.quota_limit,
-            org.tpm_limit,
-            org.rpm_limit,
-            entity_label="organization",
-            entity_id=org.id,
-        )
+        # Phase 2, Step 2: Delegate upsert_organization to upsert_organization_row
+        return await upsert_organization_row(self._conn, self.command_timeout_seconds, org)
 
     async def get_organization(self, org_id: str) -> Organization | None:
         """Fetch an Organization by ID.
@@ -1203,17 +924,10 @@ class PostgresEntityAdapter:
             Hydrated Organization instance if found, or None.
 
         Raises:
-            AppException: With VALIDATION_FAILED on invalid org_id.
+            AppException: With VALIDATION_FAILED on invalid org_id or STORAGE_ACCESS_FAILED on query failure.
         """
-        org_uuid = (
-            _ROOT_SYSTEM_ORG_UUID7
-            if org_id == "org_system000000"
-            else parse_prefixed_uuid7(org_id, EntityPrefix.ORGANIZATION)
-        )
-        row = await self._conn.fetchrow(_GET_ORGANIZATION_SQL, org_uuid, timeout=self.command_timeout_seconds)
-        if row is None:
-            return None
-        return self._hydrate_organization_row(row)
+        # Phase 2, Step 2: Delegate get_organization to get_organization_row
+        return await get_organization_row(self._conn, self.command_timeout_seconds, org_id)
 
     def _hydrate_user_row(self, row: AsyncPgRecordProtocol) -> User:
         """Hydrate a User from a database row.
@@ -1224,22 +938,8 @@ class PostgresEntityAdapter:
         Returns:
             Validated User domain model.
         """
-        return User.model_validate(
-            {
-                "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.USER),
-                "slug": row["slug"],
-                "email": row["email"],
-                "name": row["name"],
-                "role": row["role"],
-                "organization_id": _format_org_uuid7(row["organization_id"]),
-                "is_active": row["is_active"],
-                "language": row["language"],
-                "theme_mode": row["theme_mode"],
-                "created_at": row["created_at"],
-                "created_by": row["created_by"],
-            },
-            strict=False,
-        )
+        # Phase 2, Step 2: Delegate _hydrate_user_row to hydrate_user_row
+        return hydrate_user_row(row)
 
     async def upsert_user(self, user: User) -> str:
         """Persist a User into the users table.
@@ -1253,23 +953,8 @@ class PostgresEntityAdapter:
         Raises:
             AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
-        user_uuid = parse_prefixed_uuid7(user.id, EntityPrefix.USER)
-        org_uuid = _parse_org_uuid7(user.organization_id)
-        return await self._execute_upsert(
-            _UPSERT_USER_SQL,
-            user_uuid,
-            user.slug,
-            str(user.email),
-            user.name,
-            user.role.value,
-            org_uuid,
-            user.is_active,
-            str(user.language),
-            user.theme_mode,
-            user.created_by,
-            entity_label="user",
-            entity_id=user.id,
-        )
+        # Phase 2, Step 2: Delegate upsert_user to upsert_user_row
+        return await upsert_user_row(self._conn, self.command_timeout_seconds, user)
 
     async def get_user(self, user_id: str) -> User | None:
         """Fetch a User by ID.
@@ -1281,13 +966,10 @@ class PostgresEntityAdapter:
             Hydrated User instance if found, or None.
 
         Raises:
-            AppException: With VALIDATION_FAILED on invalid user_id.
+            AppException: With VALIDATION_FAILED on invalid user_id or STORAGE_ACCESS_FAILED on query failure.
         """
-        user_uuid = parse_prefixed_uuid7(user_id, EntityPrefix.USER)
-        row = await self._conn.fetchrow(_GET_USER_SQL, user_uuid, timeout=self.command_timeout_seconds)
-        if row is None:
-            return None
-        return self._hydrate_user_row(row)
+        # Phase 2, Step 2: Delegate get_user to get_user_row
+        return await get_user_row(self._conn, self.command_timeout_seconds, user_id)
 
     def _hydrate_system_config_row(
         self, row: AsyncPgRecordProtocol
@@ -1300,34 +982,8 @@ class PostgresEntityAdapter:
         Returns:
             Validated SystemConfigModelRegistry or SystemConfigMCPGateways instance.
         """
-        cfg_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.SYSTEM_CONFIG)
-        cfg_type = row["type"]
-        if cfg_type == "mcp_gateways":
-            return SystemConfigMCPGateways.model_validate(
-                {
-                    "id": cfg_id,
-                    "type": "mcp_gateways",
-                    "slug": row["slug"],
-                    "endpoint_url": row["endpoint_url"],
-                    "transport_type": row["transport_type"],
-                    "auth_type": row["auth_type"],
-                    "auth_header_name": row["auth_header_name"],
-                    "auth_env_var": row["auth_env_var"],
-                    "timeout_seconds": row["timeout_seconds"],
-                    "tools": _decode_jsonb_column(row["tools"]),
-                },
-                strict=False,
-            )
-        return SystemConfigModelRegistry.model_validate(
-            {
-                "id": cfg_id,
-                "name": row["name"],
-                "type": "model_registry",
-                "default_provider": row["default_provider"],
-                "tier_definitions": _decode_jsonb_column(row["tier_definitions"]),
-            },
-            strict=False,
-        )
+        # Phase 2, Step 2: Delegate _hydrate_system_config_row to hydrate_system_config_row
+        return hydrate_system_config_row(row)
 
     async def upsert_system_config(self, cfg: SystemConfigModelRegistry | SystemConfigMCPGateways) -> str:
         """Persist a SystemConfigModelRegistry or SystemConfigMCPGateways into system_configs.
@@ -1341,45 +997,8 @@ class PostgresEntityAdapter:
         Raises:
             AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
-        cfg_uuid = parse_prefixed_uuid7(cfg.id, EntityPrefix.SYSTEM_CONFIG)
-        dumped = cfg.model_dump(mode="json")
-        if isinstance(cfg, SystemConfigMCPGateways):
-            return await self._execute_upsert(
-                _UPSERT_SYSTEM_CONFIG_SQL,
-                cfg_uuid,
-                None,
-                cfg.type,
-                cfg.slug,
-                None,
-                None,
-                cfg.endpoint_url,
-                str(cfg.transport_type),
-                str(cfg.auth_type),
-                cfg.auth_header_name,
-                cfg.auth_env_var,
-                cfg.timeout_seconds,
-                to_json(dumped["tools"]).decode("utf-8"),
-                entity_label="system_config",
-                entity_id=cfg.id,
-            )
-        return await self._execute_upsert(
-            _UPSERT_SYSTEM_CONFIG_SQL,
-            cfg_uuid,
-            cfg.name,
-            cfg.type,
-            None,
-            str(cfg.default_provider),
-            to_json(dumped["tier_definitions"]).decode("utf-8"),
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            entity_label="system_config",
-            entity_id=cfg.id,
-        )
+        # Phase 2, Step 2: Delegate upsert_system_config to upsert_system_config_row
+        return await upsert_system_config_row(self._conn, self.command_timeout_seconds, cfg)
 
     async def get_system_config(self, config_id: str) -> SystemConfigModelRegistry | SystemConfigMCPGateways | None:
         """Fetch a SystemConfig by ID.
@@ -1391,13 +1010,10 @@ class PostgresEntityAdapter:
             Hydrated SystemConfigModelRegistry or SystemConfigMCPGateways if found, or None.
 
         Raises:
-            AppException: With VALIDATION_FAILED on invalid config_id.
+            AppException: With VALIDATION_FAILED on invalid config_id or STORAGE_ACCESS_FAILED on query failure.
         """
-        cfg_uuid = parse_prefixed_uuid7(config_id, EntityPrefix.SYSTEM_CONFIG)
-        row = await self._conn.fetchrow(_GET_SYSTEM_CONFIG_SQL, cfg_uuid, timeout=self.command_timeout_seconds)
-        if row is None:
-            return None
-        return self._hydrate_system_config_row(row)
+        # Phase 2, Step 2: Delegate get_system_config to get_system_config_row
+        return await get_system_config_row(self._conn, self.command_timeout_seconds, config_id)
 
     def _hydrate_prompt_block_row(self, row: AsyncPgRecordProtocol) -> AnyPromptBlock:
         """Hydrate a polymorphic AnyPromptBlock from a database row.
@@ -1408,95 +1024,8 @@ class PostgresEntityAdapter:
         Returns:
             Validated MatrixPromptBlock, PersonaPromptBlock, ProtocolPromptBlock, or SystemRulePromptBlock.
         """
-        blk_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.PROMPT_BLOCK)
-        org_id = _format_org_uuid7(row["organization_id"])
-        cat = str(row["category_id"])
-        if cat == PromptBlockCategory.MATRIX.value:
-            return MatrixPromptBlock.model_validate(
-                {
-                    "id": blk_id,
-                    "slug": row["slug"],
-                    "organization_id": org_id,
-                    "label": _decode_jsonb_column(row["label"]),
-                    "description": _decode_jsonb_column(row["description"]),
-                    "output_extensions": _decode_jsonb_column(row["output_extensions"]),
-                    "theory_grounding": _decode_jsonb_column(row["theory_grounding"]),
-                    "category_id": cat,
-                    "type": row["type"],
-                    "is_evaluative": row["is_evaluative"],
-                    "allow_decimals": row["allow_decimals"],
-                    "allow_contextual_override": row["allow_contextual_override"],
-                    "is_lightweight_protocol": row["is_lightweight_protocol"],
-                    "target_input_key": row["target_input_key"],
-                    "ai_description": row["ai_description"],
-                    "scales": _decode_jsonb_column(row["scales"]),
-                    "rows": _decode_jsonb_column(row["rows"]),
-                    "columns": _decode_jsonb_column(row["columns"]),
-                    "computed_min": row["computed_min"],
-                    "computed_max": row["computed_max"],
-                },
-                strict=False,
-            )
-        if cat in (
-            PromptBlockCategory.EXECUTION_PERSONA.value,
-            PromptBlockCategory.AGENT_ROLE.value,
-        ):
-            return PersonaPromptBlock.model_validate(
-                {
-                    "id": blk_id,
-                    "slug": row["slug"],
-                    "organization_id": org_id,
-                    "label": _decode_jsonb_column(row["label"]),
-                    "description": _decode_jsonb_column(row["description"]),
-                    "output_extensions": _decode_jsonb_column(row["output_extensions"]),
-                    "theory_grounding": _decode_jsonb_column(row["theory_grounding"]),
-                    "category_id": cat,
-                    "type": row["type"],
-                    "is_evaluative": row["is_evaluative"],
-                    "allow_decimals": row["allow_decimals"],
-                    "is_lightweight_protocol": row["is_lightweight_protocol"],
-                    "role_enforcement": row["role_enforcement"],
-                    "tone_directives": _decode_jsonb_column(row["tone_directives"]),
-                },
-                strict=False,
-            )
-        if cat == PromptBlockCategory.PROTOCOL.value:
-            return ProtocolPromptBlock.model_validate(
-                {
-                    "id": blk_id,
-                    "slug": row["slug"],
-                    "organization_id": org_id,
-                    "label": _decode_jsonb_column(row["label"]),
-                    "description": _decode_jsonb_column(row["description"]),
-                    "output_extensions": _decode_jsonb_column(row["output_extensions"]),
-                    "theory_grounding": _decode_jsonb_column(row["theory_grounding"]),
-                    "category_id": cat,
-                    "type": row["type"],
-                    "is_evaluative": row["is_evaluative"],
-                    "allow_decimals": row["allow_decimals"],
-                    "is_lightweight_protocol": row["is_lightweight_protocol"],
-                    "protocol_instructions": row["protocol_instructions"],
-                },
-                strict=False,
-            )
-        return SystemRulePromptBlock.model_validate(
-            {
-                "id": blk_id,
-                "slug": row["slug"],
-                "organization_id": org_id,
-                "label": _decode_jsonb_column(row["label"]),
-                "description": _decode_jsonb_column(row["description"]),
-                "output_extensions": _decode_jsonb_column(row["output_extensions"]),
-                "theory_grounding": _decode_jsonb_column(row["theory_grounding"]),
-                "category_id": cat,
-                "type": row["type"],
-                "is_evaluative": row["is_evaluative"],
-                "allow_decimals": row["allow_decimals"],
-                "is_lightweight_protocol": row["is_lightweight_protocol"],
-                "instruction_text": row["instruction_text"],
-            },
-            strict=False,
-        )
+        # Phase 2, Step 2: Delegate _hydrate_prompt_block_row to hydrate_prompt_block_row
+        return hydrate_prompt_block_row(row)
 
     async def upsert_prompt_block(self, block: AnyPromptBlock) -> str:
         """Persist a polymorphic AnyPromptBlock into prompt_blocks.
@@ -1510,68 +1039,8 @@ class PostgresEntityAdapter:
         Raises:
             AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
-        block_uuid = parse_prefixed_uuid7(block.id, EntityPrefix.PROMPT_BLOCK)
-        org_uuid = _parse_org_uuid7(block.organization_id)
-        dumped = block.model_dump(mode="json")
-        allow_ctx_override = False
-        target_input_key: str | None = None
-        ai_description: str | None = None
-        scales_json: str | None = None
-        rows_json: str | None = None
-        columns_json: str | None = None
-        computed_min: int | None = None
-        computed_max: int | None = None
-        instruction_text: str | None = None
-        role_enforcement: str | None = None
-        tone_directives_json: str | None = None
-        protocol_instructions: str | None = None
-
-        if isinstance(block, MatrixPromptBlock):
-            allow_ctx_override = block.allow_contextual_override
-            target_input_key = block.target_input_key
-            ai_description = block.ai_description
-            scales_json = _encode_optional_jsonb(dumped["scales"])
-            rows_json = _encode_optional_jsonb(dumped["rows"])
-            columns_json = _encode_optional_jsonb(dumped["columns"])
-            computed_min = block.computed_min
-            computed_max = block.computed_max
-        elif isinstance(block, PersonaPromptBlock):
-            role_enforcement = block.role_enforcement
-            tone_directives_json = _encode_optional_jsonb(dumped["tone_directives"])
-        elif isinstance(block, ProtocolPromptBlock):
-            protocol_instructions = block.protocol_instructions
-        elif isinstance(block, SystemRulePromptBlock):
-            instruction_text = block.instruction_text
-
-        return await self._execute_upsert(
-            _UPSERT_PROMPT_BLOCK_SQL,
-            block_uuid,
-            block.slug,
-            org_uuid,
-            to_json(dumped["label"]).decode("utf-8"),
-            to_json(dumped["description"]).decode("utf-8"),
-            to_json(dumped["output_extensions"]).decode("utf-8"),
-            _encode_optional_jsonb(dumped["theory_grounding"]),
-            str(block.category_id),
-            str(block.type),
-            block.is_evaluative,
-            block.allow_decimals,
-            allow_ctx_override,
-            block.is_lightweight_protocol,
-            target_input_key,
-            ai_description,
-            scales_json,
-            rows_json,
-            columns_json,
-            computed_min,
-            computed_max,
-            instruction_text,
-            role_enforcement,
-            tone_directives_json,
-            protocol_instructions,
-            entity_label="prompt_block",
-            entity_id=block.id,
-        )
+        # Phase 2, Step 2: Delegate upsert_prompt_block to upsert_prompt_block_row
+        return await upsert_prompt_block_row(self._conn, self.command_timeout_seconds, block)
 
     async def get_prompt_block(self, block_id: str) -> AnyPromptBlock | None:
         """Fetch an AnyPromptBlock by ID.
@@ -1583,13 +1052,10 @@ class PostgresEntityAdapter:
             Hydrated AnyPromptBlock instance if found, or None.
 
         Raises:
-            AppException: With VALIDATION_FAILED on invalid block_id.
+            AppException: With VALIDATION_FAILED on invalid block_id or STORAGE_ACCESS_FAILED on query failure.
         """
-        block_uuid = parse_prefixed_uuid7(block_id, EntityPrefix.PROMPT_BLOCK)
-        row = await self._conn.fetchrow(_GET_PROMPT_BLOCK_SQL, block_uuid, timeout=self.command_timeout_seconds)
-        if row is None:
-            return None
-        return self._hydrate_prompt_block_row(row)
+        # Phase 2, Step 2: Delegate get_prompt_block to get_prompt_block_row
+        return await get_prompt_block_row(self._conn, self.command_timeout_seconds, block_id)
 
     def _hydrate_step_row(self, row: AsyncPgRecordProtocol) -> Step:
         """Hydrate a Step from a database row.
@@ -1600,36 +1066,8 @@ class PostgresEntityAdapter:
         Returns:
             Validated Step domain model.
         """
-        return Step.model_validate(
-            {
-                "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.STEP),
-                "slug": row["slug"],
-                "organization_id": _format_org_uuid7(row["organization_id"], default_system=True),
-                "name": _decode_jsonb_column(row["name"]),
-                "description": _decode_jsonb_column(row["description"]),
-                "type": row["type"],
-                "hook": row["hook"],
-                "role_block_id": _format_optional_uuid7(row["role_block_id"], EntityPrefix.PROMPT_BLOCK),
-                "extraction_protocol_block_id": _format_optional_uuid7(
-                    row["extraction_protocol_block_id"], EntityPrefix.PROMPT_BLOCK
-                ),
-                "execution_persona_block_id": _format_optional_uuid7(
-                    row["execution_persona_block_id"], EntityPrefix.PROMPT_BLOCK
-                ),
-                "criteria_block_ids": _decode_jsonb_column(row["criteria_block_ids"]),
-                "pre_hooks": _decode_jsonb_column(row["pre_hooks"]),
-                "post_hooks": _decode_jsonb_column(row["post_hooks"]),
-                "safety": row["safety"],
-                "allowed_mcp_tools": _decode_jsonb_column(row["allowed_mcp_tools"]),
-                "mcp_tool_params": _decode_jsonb_column(row["mcp_tool_params"]),
-                "cognitive_tier": row["cognitive_tier"],
-                "expected_inputs": _decode_jsonb_column(row["expected_inputs"]),
-                "is_system_core": row["is_system_core"],
-                "engine_type": row["engine_type"],
-                "zone": row["zone"],
-            },
-            strict=False,
-        )
+        # Phase 2, Step 2: Delegate _hydrate_step_row to hydrate_step_row
+        return hydrate_step_row(row)
 
     async def upsert_step(self, step: Step) -> str:
         """Persist a Step into steps.
@@ -1643,41 +1081,8 @@ class PostgresEntityAdapter:
         Raises:
             AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
-        step_uuid = parse_prefixed_uuid7(step.id, EntityPrefix.STEP)
-        org_uuid = _parse_org_uuid7(step.organization_id)
-        role_uuid = _parse_optional_uuid7(step.role_block_id, EntityPrefix.PROMPT_BLOCK)
-        proto_uuid = _parse_optional_uuid7(step.extraction_protocol_block_id, EntityPrefix.PROMPT_BLOCK)
-        persona_uuid = _parse_optional_uuid7(step.execution_persona_block_id, EntityPrefix.PROMPT_BLOCK)
-        dumped = step.model_dump(mode="json")
-        cognitive_tier_str: str | None = None
-        if step.cognitive_tier is not None:
-            cognitive_tier_str = str(step.cognitive_tier)
-        return await self._execute_upsert(
-            _UPSERT_STEP_SQL,
-            step_uuid,
-            step.slug,
-            org_uuid,
-            to_json(dumped["name"]).decode("utf-8"),
-            _encode_optional_jsonb(dumped["description"]),
-            str(step.type),
-            step.hook,
-            role_uuid,
-            proto_uuid,
-            persona_uuid,
-            to_json(dumped["criteria_block_ids"]).decode("utf-8"),
-            to_json(dumped["pre_hooks"]).decode("utf-8"),
-            to_json(dumped["post_hooks"]).decode("utf-8"),
-            step.safety,
-            to_json(dumped["allowed_mcp_tools"]).decode("utf-8"),
-            to_json(dumped["mcp_tool_params"]).decode("utf-8"),
-            cognitive_tier_str,
-            to_json(dumped["expected_inputs"]).decode("utf-8"),
-            step.is_system_core,
-            str(step.engine_type),
-            str(step.zone),
-            entity_label="step",
-            entity_id=step.id,
-        )
+        # Phase 2, Step 2: Delegate upsert_step to upsert_step_row
+        return await upsert_step_row(self._conn, self.command_timeout_seconds, step)
 
     async def get_step(self, step_id: str) -> Step | None:
         """Fetch a Step by ID.
@@ -1689,13 +1094,10 @@ class PostgresEntityAdapter:
             Hydrated Step instance if found, or None.
 
         Raises:
-            AppException: With VALIDATION_FAILED on invalid step_id.
+            AppException: With VALIDATION_FAILED on invalid step_id or STORAGE_ACCESS_FAILED on query failure.
         """
-        step_uuid = parse_prefixed_uuid7(step_id, EntityPrefix.STEP)
-        row = await self._conn.fetchrow(_GET_STEP_SQL, step_uuid, timeout=self.command_timeout_seconds)
-        if row is None:
-            return None
-        return self._hydrate_step_row(row)
+        # Phase 2, Step 2: Delegate get_step to get_step_row
+        return await get_step_row(self._conn, self.command_timeout_seconds, step_id)
 
     def _hydrate_workflow_row(self, row: AsyncPgRecordProtocol) -> Workflow:
         """Hydrate a Workflow from a database row.
@@ -1706,36 +1108,8 @@ class PostgresEntityAdapter:
         Returns:
             Validated Workflow domain model.
         """
-        return Workflow.model_validate(
-            {
-                "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.WORKFLOW),
-                "slug": row["slug"],
-                "name": _decode_jsonb_column(row["name"]),
-                "description": _decode_jsonb_column(row["description"]),
-                "status": row["status"],
-                "version": row["version"],
-                "is_public": row["is_public"],
-                "organization_id": _format_org_uuid7(row["organization_id"], default_system=True),
-                "default_profile_id": _format_optional_uuid7(row["default_profile_id"], EntityPrefix.OUTPUT_PROFILE),
-                "mcp_gateway_id": _format_optional_uuid7(row["mcp_gateway_id"], EntityPrefix.SYSTEM_CONFIG),
-                "model_registry_id": format_prefixed_uuid7(
-                    _coerce_uuid_or_str(row["model_registry_id"]), EntityPrefix.SYSTEM_CONFIG
-                ),
-                "default_strictness_level": row["default_strictness_level"],
-                "default_lexical_strictness_level": row["default_lexical_strictness_level"],
-                "security_penalty": _coerce_float(row["security_penalty"]),
-                "post_hoc_penalty": _coerce_float(row["post_hoc_penalty"]),
-                "passivity_penalty": _coerce_float(row["passivity_penalty"]),
-                "enable_contextual_overrides": row["enable_contextual_overrides"],
-                "enable_semantic_smoothing": row["enable_semantic_smoothing"],
-                "enable_eager_anonymization": row["enable_eager_anonymization"],
-                "system_audit_trail": row["system_audit_trail"],
-                "expected_inputs": _decode_jsonb_column(row["expected_inputs"]),
-                "steps": _decode_jsonb_column(row["steps"]),
-                "historical_context_mode": row["historical_context_mode"],
-            },
-            strict=False,
-        )
+        # Phase 2, Step 2: Delegate _hydrate_workflow_row to hydrate_workflow_row
+        return hydrate_workflow_row(row)
 
     async def upsert_workflow(self, wf: Workflow) -> str:
         """Persist a Workflow into workflows.
@@ -1749,40 +1123,8 @@ class PostgresEntityAdapter:
         Raises:
             AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
-        wf_uuid = parse_prefixed_uuid7(wf.id, EntityPrefix.WORKFLOW)
-        org_uuid = _parse_org_uuid7(wf.organization_id)
-        default_prf_uuid = _parse_optional_uuid7(wf.default_profile_id, EntityPrefix.OUTPUT_PROFILE)
-        mcp_gw_uuid = _parse_optional_uuid7(wf.mcp_gateway_id, EntityPrefix.SYSTEM_CONFIG)
-        model_reg_uuid = parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.SYSTEM_CONFIG)
-        dumped = wf.model_dump(mode="json")
-        return await self._execute_upsert(
-            _UPSERT_WORKFLOW_SQL,
-            wf_uuid,
-            wf.slug,
-            to_json(dumped["name"]).decode("utf-8"),
-            to_json(dumped["description"]).decode("utf-8"),
-            wf.status,
-            wf.version,
-            wf.is_public,
-            org_uuid,
-            default_prf_uuid,
-            mcp_gw_uuid,
-            model_reg_uuid,
-            wf.default_strictness_level,
-            wf.default_lexical_strictness_level,
-            wf.security_penalty,
-            wf.post_hoc_penalty,
-            wf.passivity_penalty,
-            wf.enable_contextual_overrides,
-            wf.enable_semantic_smoothing,
-            wf.enable_eager_anonymization,
-            wf.system_audit_trail,
-            to_json(dumped["expected_inputs"]).decode("utf-8"),
-            to_json(dumped["steps"]).decode("utf-8"),
-            str(wf.historical_context_mode),
-            entity_label="workflow",
-            entity_id=wf.id,
-        )
+        # Phase 2, Step 2: Delegate upsert_workflow to upsert_workflow_row
+        return await upsert_workflow_row(self._conn, self.command_timeout_seconds, wf)
 
     async def get_workflow(self, workflow_id: str) -> Workflow | None:
         """Fetch a Workflow by ID.
@@ -1794,13 +1136,10 @@ class PostgresEntityAdapter:
             Hydrated Workflow instance if found, or None.
 
         Raises:
-            AppException: With VALIDATION_FAILED on invalid workflow_id.
+            AppException: With VALIDATION_FAILED on invalid workflow_id or STORAGE_ACCESS_FAILED on query failure.
         """
-        wf_uuid = parse_prefixed_uuid7(workflow_id, EntityPrefix.WORKFLOW)
-        row = await self._conn.fetchrow(_GET_WORKFLOW_SQL, wf_uuid, timeout=self.command_timeout_seconds)
-        if row is None:
-            return None
-        return self._hydrate_workflow_row(row)
+        # Phase 2, Step 2: Delegate get_workflow to get_workflow_row
+        return await get_workflow_row(self._conn, self.command_timeout_seconds, workflow_id)
 
     def _hydrate_output_profile_row(self, row: AsyncPgRecordProtocol) -> OutputProfile:
         """Hydrate an OutputProfile from a database row.
@@ -1811,51 +1150,8 @@ class PostgresEntityAdapter:
         Returns:
             Validated OutputProfile domain model.
         """
-        return OutputProfile.model_validate(
-            {
-                "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.OUTPUT_PROFILE),
-                "slug": row["slug"],
-                "workflow_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["workflow_id"]), EntityPrefix.WORKFLOW),
-                "organization_id": _format_org_uuid7(row["organization_id"], default_system=True),
-                "name": _decode_jsonb_column(row["name"]),
-                "description": _decode_jsonb_column(row["description"]),
-                "user_role_label": _decode_jsonb_column(row["user_role_label"]),
-                "custom_preface": _decode_jsonb_column(row["custom_preface"]),
-                "language": row["language"],
-                "tone_instruction": row["tone_instruction"],
-                "executive_summary_directive": row["executive_summary_directive"],
-                "matrix_1d_synthesis_directive": row["matrix_1d_synthesis_directive"],
-                "matrix_2d_synthesis_directive": row["matrix_2d_synthesis_directive"],
-                "matrix_3d_synthesis_directive": row["matrix_3d_synthesis_directive"],
-                "matrix_text_synthesis_directive": row["matrix_text_synthesis_directive"],
-                "row_explanation_directive": row["row_explanation_directive"],
-                "xai_synthesis_directive": row["xai_synthesis_directive"],
-                "variance_synthesis_directive": row["variance_synthesis_directive"],
-                "visible_metadata": _decode_jsonb_column(row["visible_metadata"]),
-                "matrix_visible_columns": _decode_jsonb_column(row["matrix_visible_columns"]),
-                "visible_block_extensions": _decode_jsonb_column(row["visible_block_extensions"]),
-                "visible_workflow_extensions": _decode_jsonb_column(row["visible_workflow_extensions"]),
-                "max_extension_items": row["max_extension_items"],
-                "display_scale": row["display_scale"],
-                "custom_scale_min": row["custom_scale_min"],
-                "custom_scale_max": row["custom_scale_max"],
-                "synthesis_length_constraint": row["synthesis_length_constraint"],
-                "row_explanation_length_constraint": row["row_explanation_length_constraint"],
-                "xai_length_constraint": row["xai_length_constraint"],
-                "variance_length_constraint": row["variance_length_constraint"],
-                "matrix_graph_length_constraint": row["matrix_graph_length_constraint"],
-                "max_quotes_per_matrix": row["max_quotes_per_matrix"],
-                "max_unmet_criteria": row["max_unmet_criteria"],
-                "target_block_order": _decode_jsonb_column(row["target_block_order"]),
-                "matrix_synthesis_groups": _decode_jsonb_column(row["matrix_synthesis_groups"]),
-                "content_blocks": _decode_jsonb_column(row["content_blocks"]),
-                "show_sources_summary_box": row["show_sources_summary_box"],
-                "sources_display_mode": row["sources_display_mode"],
-                "variance_target_block": row["variance_target_block"],
-                "user_role_target_block": row["user_role_target_block"],
-            },
-            strict=False,
-        )
+        # Phase 2, Step 2: Delegate _hydrate_output_profile_row to hydrate_output_profile_row
+        return hydrate_output_profile_row(row)
 
     async def upsert_output_profile(self, profile: OutputProfile) -> str:
         """Persist an OutputProfile into output_profiles.
@@ -1869,58 +1165,8 @@ class PostgresEntityAdapter:
         Raises:
             AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
         """
-        prf_uuid = parse_prefixed_uuid7(profile.id, EntityPrefix.OUTPUT_PROFILE)
-        wf_uuid = parse_prefixed_uuid7(profile.workflow_id, EntityPrefix.WORKFLOW)
-        org_uuid = _parse_org_uuid7(profile.organization_id)
-        dumped = profile.model_dump(mode="json")
-        language_str: str | None = None
-        if profile.language is not None:
-            language_str = str(profile.language)
-        return await self._execute_upsert(
-            _UPSERT_OUTPUT_PROFILE_SQL,
-            prf_uuid,
-            profile.slug,
-            wf_uuid,
-            org_uuid,
-            to_json(dumped["name"]).decode("utf-8"),
-            _encode_optional_jsonb(dumped["description"]),
-            _encode_optional_jsonb(dumped["user_role_label"]),
-            _encode_optional_jsonb(dumped["custom_preface"]),
-            language_str,
-            profile.tone_instruction,
-            profile.executive_summary_directive,
-            profile.matrix_1d_synthesis_directive,
-            profile.matrix_2d_synthesis_directive,
-            profile.matrix_3d_synthesis_directive,
-            profile.matrix_text_synthesis_directive,
-            profile.row_explanation_directive,
-            profile.xai_synthesis_directive,
-            profile.variance_synthesis_directive,
-            to_json(dumped["visible_metadata"]).decode("utf-8"),
-            to_json(dumped["matrix_visible_columns"]).decode("utf-8"),
-            to_json(dumped["visible_block_extensions"]).decode("utf-8"),
-            to_json(dumped["visible_workflow_extensions"]).decode("utf-8"),
-            profile.max_extension_items,
-            str(profile.display_scale),
-            profile.custom_scale_min,
-            profile.custom_scale_max,
-            profile.synthesis_length_constraint,
-            profile.row_explanation_length_constraint,
-            profile.xai_length_constraint,
-            profile.variance_length_constraint,
-            profile.matrix_graph_length_constraint,
-            profile.max_quotes_per_matrix,
-            profile.max_unmet_criteria,
-            to_json(dumped["target_block_order"]).decode("utf-8"),
-            to_json(dumped["matrix_synthesis_groups"]).decode("utf-8"),
-            to_json(dumped["content_blocks"]).decode("utf-8"),
-            profile.show_sources_summary_box,
-            str(profile.sources_display_mode),
-            profile.variance_target_block,
-            profile.user_role_target_block,
-            entity_label="output_profile",
-            entity_id=profile.id,
-        )
+        # Phase 2, Step 2: Delegate upsert_output_profile to upsert_output_profile_row
+        return await upsert_output_profile_row(self._conn, self.command_timeout_seconds, profile)
 
     async def get_output_profile(self, profile_id: str) -> OutputProfile | None:
         """Fetch an OutputProfile by ID.
@@ -1932,13 +1178,10 @@ class PostgresEntityAdapter:
             Hydrated OutputProfile instance if found, or None.
 
         Raises:
-            AppException: With VALIDATION_FAILED on invalid profile_id.
+            AppException: With VALIDATION_FAILED on invalid profile_id or STORAGE_ACCESS_FAILED on query failure.
         """
-        prf_uuid = parse_prefixed_uuid7(profile_id, EntityPrefix.OUTPUT_PROFILE)
-        row = await self._conn.fetchrow(_GET_OUTPUT_PROFILE_SQL, prf_uuid, timeout=self.command_timeout_seconds)
-        if row is None:
-            return None
-        return self._hydrate_output_profile_row(row)
+        # Phase 2, Step 2: Delegate get_output_profile to get_output_profile_row
+        return await get_output_profile_row(self._conn, self.command_timeout_seconds, profile_id)
 
     def _hydrate_report_artifact_row(self, row: AsyncPgRecordProtocol) -> ReportArtifact:
         """Hydrate a ReportArtifact from a database row.

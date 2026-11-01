@@ -1,0 +1,398 @@
+"""PostgreSQL 19 SQL constants, hydration, upsert, and fetch stage for prompt_blocks and steps."""
+
+from __future__ import annotations
+
+import logging
+
+from fastapi import status
+from pydantic_core import to_json
+
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _coerce_uuid_or_str,
+    _decode_jsonb_column,
+    _encode_optional_jsonb,
+    _format_optional_uuid7,
+    _format_org_uuid7,
+    _parse_optional_uuid7,
+    _parse_org_uuid7,
+    execute_entity_upsert,
+)
+from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPgRecordProtocol
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import format_prefixed_uuid7, parse_prefixed_uuid7
+from backend_v2.models.domain.prompt_blocks import (
+    AnyPromptBlock,
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
+)
+from backend_v2.models.domain.step import Step
+from backend_v2.models.enums import EntityPrefix, PromptBlockCategory
+
+logger = logging.getLogger(__name__)
+
+# Phase 2, Step 1: Relocate prompt_blocks and steps SQL constants
+_UPSERT_PROMPT_BLOCK_SQL: str = """INSERT INTO prompt_blocks (id, slug, organization_id, label, description,
+    output_extensions, theory_grounding, category_id, type, is_evaluative, allow_decimals, allow_contextual_override,
+    is_lightweight_protocol, target_input_key, ai_description, scales, rows, columns, computed_min, computed_max,
+    instruction_text, role_enforcement, tone_directives, protocol_instructions)
+VALUES ($1::uuid, $2, $3::uuid, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8, $9, $10, $11, $12, $13, $14, $15,
+    $16::jsonb, $17::jsonb, $18::jsonb, $19, $20, $21, $22, $23::jsonb, $24)
+ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, organization_id = EXCLUDED.organization_id, label = EXCLUDED.label,
+    description = EXCLUDED.description, output_extensions = EXCLUDED.output_extensions,
+    theory_grounding = EXCLUDED.theory_grounding, category_id = EXCLUDED.category_id, type = EXCLUDED.type,
+    is_evaluative = EXCLUDED.is_evaluative, allow_decimals = EXCLUDED.allow_decimals,
+    allow_contextual_override = EXCLUDED.allow_contextual_override,
+    is_lightweight_protocol = EXCLUDED.is_lightweight_protocol, target_input_key = EXCLUDED.target_input_key,
+    ai_description = EXCLUDED.ai_description, scales = EXCLUDED.scales, rows = EXCLUDED.rows,
+    columns = EXCLUDED.columns, computed_min = EXCLUDED.computed_min, computed_max = EXCLUDED.computed_max,
+    instruction_text = EXCLUDED.instruction_text, role_enforcement = EXCLUDED.role_enforcement,
+    tone_directives = EXCLUDED.tone_directives, protocol_instructions = EXCLUDED.protocol_instructions"""
+
+_GET_PROMPT_BLOCK_SQL: str = """SELECT id, slug, organization_id, label, description, output_extensions,
+       theory_grounding, category_id, type, is_evaluative, allow_decimals, allow_contextual_override,
+       is_lightweight_protocol, target_input_key, ai_description, scales, rows, columns, computed_min,
+       computed_max, instruction_text, role_enforcement, tone_directives, protocol_instructions
+FROM prompt_blocks WHERE id = $1::uuid"""
+
+_LIST_PROMPT_BLOCKS_SQL: str = """SELECT id, slug, organization_id, label, description, output_extensions,
+       theory_grounding, category_id, type, is_evaluative, allow_decimals, allow_contextual_override,
+       is_lightweight_protocol, target_input_key, ai_description, scales, rows, columns, computed_min,
+       computed_max, instruction_text, role_enforcement, tone_directives, protocol_instructions FROM prompt_blocks"""
+
+_UPSERT_STEP_SQL: str = """INSERT INTO steps (id, slug, organization_id, name, description, type, hook, role_block_id,
+    extraction_protocol_block_id, execution_persona_block_id, criteria_block_ids, pre_hooks, post_hooks, safety,
+    allowed_mcp_tools, mcp_tool_params, cognitive_tier, expected_inputs, is_system_core, engine_type, zone)
+VALUES ($1::uuid, $2, $3::uuid, $4::jsonb, $5::jsonb, $6, $7, $8::uuid, $9::uuid, $10::uuid, $11::jsonb,
+    $12::jsonb, $13::jsonb, $14, $15::jsonb, $16::jsonb, $17, $18::jsonb, $19, $20, $21)
+ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, organization_id = EXCLUDED.organization_id, name = EXCLUDED.name,
+    description = EXCLUDED.description, type = EXCLUDED.type, hook = EXCLUDED.hook,
+    role_block_id = EXCLUDED.role_block_id, extraction_protocol_block_id = EXCLUDED.extraction_protocol_block_id,
+    execution_persona_block_id = EXCLUDED.execution_persona_block_id, criteria_block_ids = EXCLUDED.criteria_block_ids,
+    pre_hooks = EXCLUDED.pre_hooks, post_hooks = EXCLUDED.post_hooks, safety = EXCLUDED.safety,
+    allowed_mcp_tools = EXCLUDED.allowed_mcp_tools, mcp_tool_params = EXCLUDED.mcp_tool_params,
+    cognitive_tier = EXCLUDED.cognitive_tier, expected_inputs = EXCLUDED.expected_inputs,
+    is_system_core = EXCLUDED.is_system_core, engine_type = EXCLUDED.engine_type, zone = EXCLUDED.zone"""
+
+_GET_STEP_SQL: str = """SELECT id, slug, organization_id, name, description, type, hook, role_block_id,
+       extraction_protocol_block_id, execution_persona_block_id, criteria_block_ids, pre_hooks, post_hooks,
+       safety, allowed_mcp_tools, mcp_tool_params, cognitive_tier, expected_inputs, is_system_core,
+       engine_type, zone FROM steps WHERE id = $1::uuid"""
+
+_LIST_STEPS_SQL: str = """SELECT id, slug, organization_id, name, description, type, hook, role_block_id,
+       extraction_protocol_block_id, execution_persona_block_id, criteria_block_ids, pre_hooks, post_hooks,
+       safety, allowed_mcp_tools, mcp_tool_params, cognitive_tier, expected_inputs, is_system_core,
+       engine_type, zone FROM steps"""
+
+
+async def _fetch_row(
+    conn: AsyncPgConnectionProtocol, timeout: float, sql: str, entity_uuid: object, entity_id: str
+) -> AsyncPgRecordProtocol | None:
+    """Execute fetchrow with timeout and translate driver errors to AppException."""
+    try:
+        return await conn.fetchrow(sql, entity_uuid, timeout=timeout)
+    except Exception as exc:
+        if isinstance(exc, AppException):
+            raise
+        msg = f"Failed to fetch entity '{entity_id}': {exc}"
+        logger.error("[PostgresEntityAdapter] %s: %s", ErrorCodes.STORAGE_ACCESS_FAILED.name, msg, exc_info=True)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+        ) from exc
+
+
+# Phase 2, Step 1: Extract AnyPromptBlock and Step hydration, upsert, and get functions
+def hydrate_prompt_block_row(row: AsyncPgRecordProtocol) -> AnyPromptBlock:
+    """Hydrate a polymorphic AnyPromptBlock from a database row.
+
+    Args:
+        row: Database record from the prompt_blocks table.
+
+    Returns:
+        Validated MatrixPromptBlock, PersonaPromptBlock, ProtocolPromptBlock, or SystemRulePromptBlock.
+    """
+    blk_id = format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.PROMPT_BLOCK)
+    org_id = _format_org_uuid7(row["organization_id"])
+    cat = str(row["category_id"])
+    if cat == PromptBlockCategory.MATRIX.value:
+        return MatrixPromptBlock.model_validate(
+            {
+                "id": blk_id,
+                "slug": row["slug"],
+                "organization_id": org_id,
+                "label": _decode_jsonb_column(row["label"]),
+                "description": _decode_jsonb_column(row["description"]),
+                "output_extensions": _decode_jsonb_column(row["output_extensions"]),
+                "theory_grounding": _decode_jsonb_column(row["theory_grounding"]),
+                "category_id": cat,
+                "type": row["type"],
+                "is_evaluative": row["is_evaluative"],
+                "allow_decimals": row["allow_decimals"],
+                "allow_contextual_override": row["allow_contextual_override"],
+                "is_lightweight_protocol": row["is_lightweight_protocol"],
+                "target_input_key": row["target_input_key"],
+                "ai_description": row["ai_description"],
+                "scales": _decode_jsonb_column(row["scales"]),
+                "rows": _decode_jsonb_column(row["rows"]),
+                "columns": _decode_jsonb_column(row["columns"]),
+                "computed_min": row["computed_min"],
+                "computed_max": row["computed_max"],
+            },
+            strict=False,
+        )
+    if cat in (PromptBlockCategory.EXECUTION_PERSONA.value, PromptBlockCategory.AGENT_ROLE.value):
+        return PersonaPromptBlock.model_validate(
+            {
+                "id": blk_id,
+                "slug": row["slug"],
+                "organization_id": org_id,
+                "label": _decode_jsonb_column(row["label"]),
+                "description": _decode_jsonb_column(row["description"]),
+                "output_extensions": _decode_jsonb_column(row["output_extensions"]),
+                "theory_grounding": _decode_jsonb_column(row["theory_grounding"]),
+                "category_id": cat,
+                "type": row["type"],
+                "is_evaluative": row["is_evaluative"],
+                "allow_decimals": row["allow_decimals"],
+                "is_lightweight_protocol": row["is_lightweight_protocol"],
+                "role_enforcement": row["role_enforcement"],
+                "tone_directives": _decode_jsonb_column(row["tone_directives"]),
+            },
+            strict=False,
+        )
+    if cat == PromptBlockCategory.PROTOCOL.value:
+        return ProtocolPromptBlock.model_validate(
+            {
+                "id": blk_id,
+                "slug": row["slug"],
+                "organization_id": org_id,
+                "label": _decode_jsonb_column(row["label"]),
+                "description": _decode_jsonb_column(row["description"]),
+                "output_extensions": _decode_jsonb_column(row["output_extensions"]),
+                "theory_grounding": _decode_jsonb_column(row["theory_grounding"]),
+                "category_id": cat,
+                "type": row["type"],
+                "is_evaluative": row["is_evaluative"],
+                "allow_decimals": row["allow_decimals"],
+                "is_lightweight_protocol": row["is_lightweight_protocol"],
+                "protocol_instructions": row["protocol_instructions"],
+            },
+            strict=False,
+        )
+    return SystemRulePromptBlock.model_validate(
+        {
+            "id": blk_id,
+            "slug": row["slug"],
+            "organization_id": org_id,
+            "label": _decode_jsonb_column(row["label"]),
+            "description": _decode_jsonb_column(row["description"]),
+            "output_extensions": _decode_jsonb_column(row["output_extensions"]),
+            "theory_grounding": _decode_jsonb_column(row["theory_grounding"]),
+            "category_id": cat,
+            "type": row["type"],
+            "is_evaluative": row["is_evaluative"],
+            "allow_decimals": row["allow_decimals"],
+            "is_lightweight_protocol": row["is_lightweight_protocol"],
+            "instruction_text": row["instruction_text"],
+        },
+        strict=False,
+    )
+
+
+async def upsert_prompt_block_row(conn: AsyncPgConnectionProtocol, timeout: float, block: AnyPromptBlock) -> str:
+    """Persist a polymorphic AnyPromptBlock into prompt_blocks.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        block: Validated concrete PromptBlock domain model.
+
+    Returns:
+        Canonical blk_<hex> prompt block identifier.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
+    """
+    dumped = block.model_dump(mode="json")
+    allow_ctx_override = False
+    target_input_key = ai_description = scales_json = rows_json = columns_json = None
+    computed_min = computed_max = None
+    instruction_text = role_enforcement = tone_directives_json = protocol_instructions = None
+    if isinstance(block, MatrixPromptBlock):
+        allow_ctx_override = block.allow_contextual_override
+        target_input_key = block.target_input_key
+        ai_description = block.ai_description
+        scales_json = _encode_optional_jsonb(dumped["scales"])
+        rows_json = _encode_optional_jsonb(dumped["rows"])
+        columns_json = _encode_optional_jsonb(dumped["columns"])
+        computed_min = block.computed_min
+        computed_max = block.computed_max
+    elif isinstance(block, PersonaPromptBlock):
+        role_enforcement = block.role_enforcement
+        tone_directives_json = _encode_optional_jsonb(dumped["tone_directives"])
+    elif isinstance(block, ProtocolPromptBlock):
+        protocol_instructions = block.protocol_instructions
+    elif isinstance(block, SystemRulePromptBlock):
+        instruction_text = block.instruction_text
+    return await execute_entity_upsert(
+        conn,
+        timeout,
+        _UPSERT_PROMPT_BLOCK_SQL,
+        parse_prefixed_uuid7(block.id, EntityPrefix.PROMPT_BLOCK),
+        block.slug,
+        _parse_org_uuid7(block.organization_id),
+        to_json(dumped["label"]).decode("utf-8"),
+        to_json(dumped["description"]).decode("utf-8"),
+        to_json(dumped["output_extensions"]).decode("utf-8"),
+        _encode_optional_jsonb(dumped["theory_grounding"]),
+        str(block.category_id),
+        str(block.type),
+        block.is_evaluative,
+        block.allow_decimals,
+        allow_ctx_override,
+        block.is_lightweight_protocol,
+        target_input_key,
+        ai_description,
+        scales_json,
+        rows_json,
+        columns_json,
+        computed_min,
+        computed_max,
+        instruction_text,
+        role_enforcement,
+        tone_directives_json,
+        protocol_instructions,
+        entity_id=block.id,
+        entity_label="prompt_block",
+    )
+
+
+async def get_prompt_block_row(conn: AsyncPgConnectionProtocol, timeout: float, block_id: str) -> AnyPromptBlock | None:
+    """Fetch an AnyPromptBlock by ID.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        block_id: Canonical blk_<hex> prompt block identifier.
+
+    Returns:
+        Hydrated AnyPromptBlock instance if found, or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED on query error.
+    """
+    block_uuid = parse_prefixed_uuid7(block_id, EntityPrefix.PROMPT_BLOCK)
+    row = await _fetch_row(conn, timeout, _GET_PROMPT_BLOCK_SQL, block_uuid, block_id)
+    if row is None:
+        return None
+    return hydrate_prompt_block_row(row)
+
+
+def hydrate_step_row(row: AsyncPgRecordProtocol) -> Step:
+    """Hydrate a Step from a database row.
+
+    Args:
+        row: Database record from the steps table.
+
+    Returns:
+        Validated Step domain model.
+    """
+    blk_p = EntityPrefix.PROMPT_BLOCK
+    return Step.model_validate(
+        {
+            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.STEP),
+            "slug": row["slug"],
+            "organization_id": _format_org_uuid7(row["organization_id"], default_system=True),
+            "name": _decode_jsonb_column(row["name"]),
+            "description": _decode_jsonb_column(row["description"]),
+            "type": row["type"],
+            "hook": row["hook"],
+            "role_block_id": _format_optional_uuid7(row["role_block_id"], blk_p),
+            "extraction_protocol_block_id": _format_optional_uuid7(row["extraction_protocol_block_id"], blk_p),
+            "execution_persona_block_id": _format_optional_uuid7(row["execution_persona_block_id"], blk_p),
+            "criteria_block_ids": _decode_jsonb_column(row["criteria_block_ids"]),
+            "pre_hooks": _decode_jsonb_column(row["pre_hooks"]),
+            "post_hooks": _decode_jsonb_column(row["post_hooks"]),
+            "safety": row["safety"],
+            "allowed_mcp_tools": _decode_jsonb_column(row["allowed_mcp_tools"]),
+            "mcp_tool_params": _decode_jsonb_column(row["mcp_tool_params"]),
+            "cognitive_tier": row["cognitive_tier"],
+            "expected_inputs": _decode_jsonb_column(row["expected_inputs"]),
+            "is_system_core": row["is_system_core"],
+            "engine_type": row["engine_type"],
+            "zone": row["zone"],
+        },
+        strict=False,
+    )
+
+
+async def upsert_step_row(conn: AsyncPgConnectionProtocol, timeout: float, step: Step) -> str:
+    """Persist a Step into steps.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        step: Validated Step domain model.
+
+    Returns:
+        Canonical stp_<hex> step identifier.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
+    """
+    dumped = step.model_dump(mode="json")
+    tier_str: str | None = None
+    if step.cognitive_tier is not None:
+        tier_str = str(step.cognitive_tier)
+    return await execute_entity_upsert(
+        conn,
+        timeout,
+        _UPSERT_STEP_SQL,
+        parse_prefixed_uuid7(step.id, EntityPrefix.STEP),
+        step.slug,
+        _parse_org_uuid7(step.organization_id),
+        to_json(dumped["name"]).decode("utf-8"),
+        _encode_optional_jsonb(dumped["description"]),
+        str(step.type),
+        step.hook,
+        _parse_optional_uuid7(step.role_block_id, EntityPrefix.PROMPT_BLOCK),
+        _parse_optional_uuid7(step.extraction_protocol_block_id, EntityPrefix.PROMPT_BLOCK),
+        _parse_optional_uuid7(step.execution_persona_block_id, EntityPrefix.PROMPT_BLOCK),
+        to_json(dumped["criteria_block_ids"]).decode("utf-8"),
+        to_json(dumped["pre_hooks"]).decode("utf-8"),
+        to_json(dumped["post_hooks"]).decode("utf-8"),
+        step.safety,
+        to_json(dumped["allowed_mcp_tools"]).decode("utf-8"),
+        to_json(dumped["mcp_tool_params"]).decode("utf-8"),
+        tier_str,
+        to_json(dumped["expected_inputs"]).decode("utf-8"),
+        step.is_system_core,
+        str(step.engine_type),
+        str(step.zone),
+        entity_id=step.id,
+        entity_label="step",
+    )
+
+
+async def get_step_row(conn: AsyncPgConnectionProtocol, timeout: float, step_id: str) -> Step | None:
+    """Fetch a Step by ID.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        step_id: Canonical stp_<hex> step identifier.
+
+    Returns:
+        Hydrated Step instance if found, or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED on query error.
+    """
+    step_uuid = parse_prefixed_uuid7(step_id, EntityPrefix.STEP)
+    row = await _fetch_row(conn, timeout, _GET_STEP_SQL, step_uuid, step_id)
+    if row is None:
+        return None
+    return hydrate_step_row(row)

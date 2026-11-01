@@ -1,0 +1,405 @@
+"""PostgreSQL 19 SQL constants, hydration, upsert, and fetch stage for workflows and output_profiles."""
+
+from __future__ import annotations
+
+import logging
+
+from fastapi import status
+from pydantic_core import to_json
+
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _coerce_float,
+    _coerce_uuid_or_str,
+    _decode_jsonb_column,
+    _encode_optional_jsonb,
+    _format_optional_uuid7,
+    _format_org_uuid7,
+    _parse_optional_uuid7,
+    _parse_org_uuid7,
+    execute_entity_upsert,
+)
+from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPgRecordProtocol
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import format_prefixed_uuid7, parse_prefixed_uuid7
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.enums import EntityPrefix
+
+logger = logging.getLogger(__name__)
+
+# Phase 2, Step 1: Relocate workflows and output_profiles SQL constants
+_UPSERT_WORKFLOW_SQL: str = """INSERT INTO workflows (id, slug, name, description, status, version, is_public,
+    organization_id, default_profile_id, mcp_gateway_id, model_registry_id, default_strictness_level,
+    default_lexical_strictness_level, security_penalty, post_hoc_penalty, passivity_penalty,
+    enable_contextual_overrides, enable_semantic_smoothing, enable_eager_anonymization, system_audit_trail,
+    expected_inputs, steps, historical_context_mode)
+VALUES ($1::uuid, $2, $3::jsonb, $4::jsonb, $5, $6, $7, $8::uuid, $9::uuid, $10::uuid, $11::uuid,
+    $12, $13, $14, $15, $16, $17, $18, $19, $20, $21::jsonb, $22::jsonb, $23)
+ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, name = EXCLUDED.name, description = EXCLUDED.description,
+    status = EXCLUDED.status, version = EXCLUDED.version, is_public = EXCLUDED.is_public,
+    organization_id = EXCLUDED.organization_id, default_profile_id = EXCLUDED.default_profile_id,
+    mcp_gateway_id = EXCLUDED.mcp_gateway_id, model_registry_id = EXCLUDED.model_registry_id,
+    default_strictness_level = EXCLUDED.default_strictness_level,
+    default_lexical_strictness_level = EXCLUDED.default_lexical_strictness_level,
+    security_penalty = EXCLUDED.security_penalty, post_hoc_penalty = EXCLUDED.post_hoc_penalty,
+    passivity_penalty = EXCLUDED.passivity_penalty,
+    enable_contextual_overrides = EXCLUDED.enable_contextual_overrides,
+    enable_semantic_smoothing = EXCLUDED.enable_semantic_smoothing,
+    enable_eager_anonymization = EXCLUDED.enable_eager_anonymization,
+    system_audit_trail = EXCLUDED.system_audit_trail, expected_inputs = EXCLUDED.expected_inputs,
+    steps = EXCLUDED.steps, historical_context_mode = EXCLUDED.historical_context_mode"""
+
+_GET_WORKFLOW_SQL: str = """SELECT id, slug, name, description, status, version, is_public, organization_id,
+       default_profile_id, mcp_gateway_id, model_registry_id, default_strictness_level,
+       default_lexical_strictness_level, security_penalty, post_hoc_penalty, passivity_penalty,
+       enable_contextual_overrides, enable_semantic_smoothing, enable_eager_anonymization,
+       system_audit_trail, expected_inputs, steps, historical_context_mode
+FROM workflows WHERE id = $1::uuid"""
+
+_LIST_WORKFLOWS_SQL: str = """SELECT id, slug, name, description, status, version, is_public, organization_id,
+       default_profile_id, mcp_gateway_id, model_registry_id, default_strictness_level,
+       default_lexical_strictness_level, security_penalty, post_hoc_penalty, passivity_penalty,
+       enable_contextual_overrides, enable_semantic_smoothing, enable_eager_anonymization,
+       system_audit_trail, expected_inputs, steps, historical_context_mode FROM workflows"""
+
+_UPSERT_OUTPUT_PROFILE_SQL: str = """INSERT INTO output_profiles (id, slug, workflow_id, organization_id, name,
+    description, user_role_label, custom_preface, language, tone_instruction, executive_summary_directive,
+    matrix_1d_synthesis_directive, matrix_2d_synthesis_directive, matrix_3d_synthesis_directive,
+    matrix_text_synthesis_directive, row_explanation_directive, xai_synthesis_directive, variance_synthesis_directive,
+    visible_metadata, matrix_visible_columns, visible_block_extensions, visible_workflow_extensions,
+    max_extension_items, display_scale, custom_scale_min, custom_scale_max, synthesis_length_constraint,
+    row_explanation_length_constraint, xai_length_constraint, variance_length_constraint,
+    matrix_graph_length_constraint, max_quotes_per_matrix, max_unmet_criteria, target_block_order,
+    matrix_synthesis_groups, content_blocks, show_sources_summary_box, sources_display_mode,
+    variance_target_block, user_role_target_block)
+VALUES ($1::uuid, $2, $3::uuid, $4::uuid, $5::jsonb, $6::jsonb, $7::jsonb, $8::jsonb,
+    $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
+    $19::jsonb, $20::jsonb, $21::jsonb, $22::jsonb, $23, $24, $25, $26, $27, $28,
+    $29, $30, $31, $32, $33, $34::jsonb, $35::jsonb, $36::jsonb, $37, $38, $39, $40)
+ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, workflow_id = EXCLUDED.workflow_id,
+    organization_id = EXCLUDED.organization_id, name = EXCLUDED.name, description = EXCLUDED.description,
+    user_role_label = EXCLUDED.user_role_label, custom_preface = EXCLUDED.custom_preface,
+    language = EXCLUDED.language, tone_instruction = EXCLUDED.tone_instruction,
+    executive_summary_directive = EXCLUDED.executive_summary_directive,
+    matrix_1d_synthesis_directive = EXCLUDED.matrix_1d_synthesis_directive,
+    matrix_2d_synthesis_directive = EXCLUDED.matrix_2d_synthesis_directive,
+    matrix_3d_synthesis_directive = EXCLUDED.matrix_3d_synthesis_directive,
+    matrix_text_synthesis_directive = EXCLUDED.matrix_text_synthesis_directive,
+    row_explanation_directive = EXCLUDED.row_explanation_directive,
+    xai_synthesis_directive = EXCLUDED.xai_synthesis_directive,
+    variance_synthesis_directive = EXCLUDED.variance_synthesis_directive,
+    visible_metadata = EXCLUDED.visible_metadata, matrix_visible_columns = EXCLUDED.matrix_visible_columns,
+    visible_block_extensions = EXCLUDED.visible_block_extensions,
+    visible_workflow_extensions = EXCLUDED.visible_workflow_extensions,
+    max_extension_items = EXCLUDED.max_extension_items, display_scale = EXCLUDED.display_scale,
+    custom_scale_min = EXCLUDED.custom_scale_min, custom_scale_max = EXCLUDED.custom_scale_max,
+    synthesis_length_constraint = EXCLUDED.synthesis_length_constraint,
+    row_explanation_length_constraint = EXCLUDED.row_explanation_length_constraint,
+    xai_length_constraint = EXCLUDED.xai_length_constraint,
+    variance_length_constraint = EXCLUDED.variance_length_constraint,
+    matrix_graph_length_constraint = EXCLUDED.matrix_graph_length_constraint,
+    max_quotes_per_matrix = EXCLUDED.max_quotes_per_matrix, max_unmet_criteria = EXCLUDED.max_unmet_criteria,
+    target_block_order = EXCLUDED.target_block_order,
+    matrix_synthesis_groups = EXCLUDED.matrix_synthesis_groups, content_blocks = EXCLUDED.content_blocks,
+    show_sources_summary_box = EXCLUDED.show_sources_summary_box,
+    sources_display_mode = EXCLUDED.sources_display_mode,
+    variance_target_block = EXCLUDED.variance_target_block,
+    user_role_target_block = EXCLUDED.user_role_target_block"""
+
+_GET_OUTPUT_PROFILE_SQL: str = """SELECT id, slug, workflow_id, organization_id, name, description,
+       user_role_label, custom_preface, language, tone_instruction, executive_summary_directive,
+       matrix_1d_synthesis_directive, matrix_2d_synthesis_directive, matrix_3d_synthesis_directive,
+       matrix_text_synthesis_directive, row_explanation_directive, xai_synthesis_directive,
+       variance_synthesis_directive, visible_metadata, matrix_visible_columns, visible_block_extensions,
+       visible_workflow_extensions, max_extension_items, display_scale, custom_scale_min, custom_scale_max,
+       synthesis_length_constraint, row_explanation_length_constraint, xai_length_constraint,
+       variance_length_constraint, matrix_graph_length_constraint, max_quotes_per_matrix,
+       max_unmet_criteria, target_block_order, matrix_synthesis_groups, content_blocks,
+       show_sources_summary_box, sources_display_mode, variance_target_block, user_role_target_block
+FROM output_profiles WHERE id = $1::uuid"""
+
+_LIST_OUTPUT_PROFILES_SQL: str = """SELECT id, slug, workflow_id, organization_id, name, description,
+       user_role_label, custom_preface, language, tone_instruction, executive_summary_directive,
+       matrix_1d_synthesis_directive, matrix_2d_synthesis_directive, matrix_3d_synthesis_directive,
+       matrix_text_synthesis_directive, row_explanation_directive, xai_synthesis_directive,
+       variance_synthesis_directive, visible_metadata, matrix_visible_columns, visible_block_extensions,
+       visible_workflow_extensions, max_extension_items, display_scale, custom_scale_min, custom_scale_max,
+       synthesis_length_constraint, row_explanation_length_constraint, xai_length_constraint,
+       variance_length_constraint, matrix_graph_length_constraint, max_quotes_per_matrix,
+       max_unmet_criteria, target_block_order, matrix_synthesis_groups, content_blocks,
+       show_sources_summary_box, sources_display_mode, variance_target_block, user_role_target_block
+FROM output_profiles"""
+
+
+async def _fetch_row(
+    conn: AsyncPgConnectionProtocol, timeout: float, sql: str, entity_uuid: object, entity_id: str
+) -> AsyncPgRecordProtocol | None:
+    """Execute fetchrow with timeout and translate driver errors to AppException."""
+    try:
+        return await conn.fetchrow(sql, entity_uuid, timeout=timeout)
+    except Exception as exc:
+        if isinstance(exc, AppException):
+            raise
+        msg = f"Failed to fetch entity '{entity_id}': {exc}"
+        logger.error("[PostgresEntityAdapter] %s: %s", ErrorCodes.STORAGE_ACCESS_FAILED.name, msg, exc_info=True)
+        raise AppException(
+            message=msg,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+        ) from exc
+
+
+# Phase 2, Step 1: Extract Workflow and OutputProfile hydration, upsert, and get functions
+def hydrate_workflow_row(row: AsyncPgRecordProtocol) -> Workflow:
+    """Hydrate a Workflow from a database row.
+
+    Args:
+        row: Database record from the workflows table.
+
+    Returns:
+        Validated Workflow domain model.
+    """
+    return Workflow.model_validate(
+        {
+            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.WORKFLOW),
+            "slug": row["slug"],
+            "name": _decode_jsonb_column(row["name"]),
+            "description": _decode_jsonb_column(row["description"]),
+            "status": row["status"],
+            "version": row["version"],
+            "is_public": row["is_public"],
+            "organization_id": _format_org_uuid7(row["organization_id"], default_system=True),
+            "default_profile_id": _format_optional_uuid7(row["default_profile_id"], EntityPrefix.OUTPUT_PROFILE),
+            "mcp_gateway_id": _format_optional_uuid7(row["mcp_gateway_id"], EntityPrefix.SYSTEM_CONFIG),
+            "model_registry_id": format_prefixed_uuid7(
+                _coerce_uuid_or_str(row["model_registry_id"]), EntityPrefix.SYSTEM_CONFIG
+            ),
+            "default_strictness_level": row["default_strictness_level"],
+            "default_lexical_strictness_level": row["default_lexical_strictness_level"],
+            "security_penalty": _coerce_float(row["security_penalty"]),
+            "post_hoc_penalty": _coerce_float(row["post_hoc_penalty"]),
+            "passivity_penalty": _coerce_float(row["passivity_penalty"]),
+            "enable_contextual_overrides": row["enable_contextual_overrides"],
+            "enable_semantic_smoothing": row["enable_semantic_smoothing"],
+            "enable_eager_anonymization": row["enable_eager_anonymization"],
+            "system_audit_trail": row["system_audit_trail"],
+            "expected_inputs": _decode_jsonb_column(row["expected_inputs"]),
+            "steps": _decode_jsonb_column(row["steps"]),
+            "historical_context_mode": row["historical_context_mode"],
+        },
+        strict=False,
+    )
+
+
+async def upsert_workflow_row(conn: AsyncPgConnectionProtocol, timeout: float, wf: Workflow) -> str:
+    """Persist a Workflow into workflows.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        wf: Validated Workflow domain model.
+
+    Returns:
+        Canonical wf_<hex> workflow identifier.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
+    """
+    dumped = wf.model_dump(mode="json")
+    return await execute_entity_upsert(
+        conn,
+        timeout,
+        _UPSERT_WORKFLOW_SQL,
+        parse_prefixed_uuid7(wf.id, EntityPrefix.WORKFLOW),
+        wf.slug,
+        to_json(dumped["name"]).decode("utf-8"),
+        to_json(dumped["description"]).decode("utf-8"),
+        wf.status,
+        wf.version,
+        wf.is_public,
+        _parse_org_uuid7(wf.organization_id),
+        _parse_optional_uuid7(wf.default_profile_id, EntityPrefix.OUTPUT_PROFILE),
+        _parse_optional_uuid7(wf.mcp_gateway_id, EntityPrefix.SYSTEM_CONFIG),
+        parse_prefixed_uuid7(wf.model_registry_id, EntityPrefix.SYSTEM_CONFIG),
+        wf.default_strictness_level,
+        wf.default_lexical_strictness_level,
+        wf.security_penalty,
+        wf.post_hoc_penalty,
+        wf.passivity_penalty,
+        wf.enable_contextual_overrides,
+        wf.enable_semantic_smoothing,
+        wf.enable_eager_anonymization,
+        wf.system_audit_trail,
+        to_json(dumped["expected_inputs"]).decode("utf-8"),
+        to_json(dumped["steps"]).decode("utf-8"),
+        str(wf.historical_context_mode),
+        entity_id=wf.id,
+        entity_label="workflow",
+    )
+
+
+async def get_workflow_row(conn: AsyncPgConnectionProtocol, timeout: float, workflow_id: str) -> Workflow | None:
+    """Fetch a Workflow by ID.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        workflow_id: Canonical wf_<hex> workflow identifier.
+
+    Returns:
+        Hydrated Workflow instance if found, or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED on query error.
+    """
+    wf_uuid = parse_prefixed_uuid7(workflow_id, EntityPrefix.WORKFLOW)
+    row = await _fetch_row(conn, timeout, _GET_WORKFLOW_SQL, wf_uuid, workflow_id)
+    if row is None:
+        return None
+    return hydrate_workflow_row(row)
+
+
+def hydrate_output_profile_row(row: AsyncPgRecordProtocol) -> OutputProfile:
+    """Hydrate an OutputProfile from a database row.
+
+    Args:
+        row: Database record from the output_profiles table.
+
+    Returns:
+        Validated OutputProfile domain model.
+    """
+    return OutputProfile.model_validate(
+        {
+            "id": format_prefixed_uuid7(_coerce_uuid_or_str(row["id"]), EntityPrefix.OUTPUT_PROFILE),
+            "slug": row["slug"],
+            "workflow_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["workflow_id"]), EntityPrefix.WORKFLOW),
+            "organization_id": _format_org_uuid7(row["organization_id"], default_system=True),
+            "name": _decode_jsonb_column(row["name"]),
+            "description": _decode_jsonb_column(row["description"]),
+            "user_role_label": _decode_jsonb_column(row["user_role_label"]),
+            "custom_preface": _decode_jsonb_column(row["custom_preface"]),
+            "language": row["language"],
+            "tone_instruction": row["tone_instruction"],
+            "executive_summary_directive": row["executive_summary_directive"],
+            "matrix_1d_synthesis_directive": row["matrix_1d_synthesis_directive"],
+            "matrix_2d_synthesis_directive": row["matrix_2d_synthesis_directive"],
+            "matrix_3d_synthesis_directive": row["matrix_3d_synthesis_directive"],
+            "matrix_text_synthesis_directive": row["matrix_text_synthesis_directive"],
+            "row_explanation_directive": row["row_explanation_directive"],
+            "xai_synthesis_directive": row["xai_synthesis_directive"],
+            "variance_synthesis_directive": row["variance_synthesis_directive"],
+            "visible_metadata": _decode_jsonb_column(row["visible_metadata"]),
+            "matrix_visible_columns": _decode_jsonb_column(row["matrix_visible_columns"]),
+            "visible_block_extensions": _decode_jsonb_column(row["visible_block_extensions"]),
+            "visible_workflow_extensions": _decode_jsonb_column(row["visible_workflow_extensions"]),
+            "max_extension_items": row["max_extension_items"],
+            "display_scale": row["display_scale"],
+            "custom_scale_min": row["custom_scale_min"],
+            "custom_scale_max": row["custom_scale_max"],
+            "synthesis_length_constraint": row["synthesis_length_constraint"],
+            "row_explanation_length_constraint": row["row_explanation_length_constraint"],
+            "xai_length_constraint": row["xai_length_constraint"],
+            "variance_length_constraint": row["variance_length_constraint"],
+            "matrix_graph_length_constraint": row["matrix_graph_length_constraint"],
+            "max_quotes_per_matrix": row["max_quotes_per_matrix"],
+            "max_unmet_criteria": row["max_unmet_criteria"],
+            "target_block_order": _decode_jsonb_column(row["target_block_order"]),
+            "matrix_synthesis_groups": _decode_jsonb_column(row["matrix_synthesis_groups"]),
+            "content_blocks": _decode_jsonb_column(row["content_blocks"]),
+            "show_sources_summary_box": row["show_sources_summary_box"],
+            "sources_display_mode": row["sources_display_mode"],
+            "variance_target_block": row["variance_target_block"],
+            "user_role_target_block": row["user_role_target_block"],
+        },
+        strict=False,
+    )
+
+
+async def upsert_output_profile_row(conn: AsyncPgConnectionProtocol, timeout: float, profile: OutputProfile) -> str:
+    """Persist an OutputProfile into output_profiles.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        profile: Validated OutputProfile domain model.
+
+    Returns:
+        Canonical prf_<hex> output profile identifier.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
+    """
+    dumped = profile.model_dump(mode="json")
+    lang_str: str | None = None
+    if profile.language is not None:
+        lang_str = str(profile.language)
+    return await execute_entity_upsert(
+        conn,
+        timeout,
+        _UPSERT_OUTPUT_PROFILE_SQL,
+        parse_prefixed_uuid7(profile.id, EntityPrefix.OUTPUT_PROFILE),
+        profile.slug,
+        parse_prefixed_uuid7(profile.workflow_id, EntityPrefix.WORKFLOW),
+        _parse_org_uuid7(profile.organization_id),
+        to_json(dumped["name"]).decode("utf-8"),
+        _encode_optional_jsonb(dumped["description"]),
+        _encode_optional_jsonb(dumped["user_role_label"]),
+        _encode_optional_jsonb(dumped["custom_preface"]),
+        lang_str,
+        profile.tone_instruction,
+        profile.executive_summary_directive,
+        profile.matrix_1d_synthesis_directive,
+        profile.matrix_2d_synthesis_directive,
+        profile.matrix_3d_synthesis_directive,
+        profile.matrix_text_synthesis_directive,
+        profile.row_explanation_directive,
+        profile.xai_synthesis_directive,
+        profile.variance_synthesis_directive,
+        to_json(dumped["visible_metadata"]).decode("utf-8"),
+        to_json(dumped["matrix_visible_columns"]).decode("utf-8"),
+        to_json(dumped["visible_block_extensions"]).decode("utf-8"),
+        to_json(dumped["visible_workflow_extensions"]).decode("utf-8"),
+        profile.max_extension_items,
+        str(profile.display_scale),
+        profile.custom_scale_min,
+        profile.custom_scale_max,
+        profile.synthesis_length_constraint,
+        profile.row_explanation_length_constraint,
+        profile.xai_length_constraint,
+        profile.variance_length_constraint,
+        profile.matrix_graph_length_constraint,
+        profile.max_quotes_per_matrix,
+        profile.max_unmet_criteria,
+        to_json(dumped["target_block_order"]).decode("utf-8"),
+        to_json(dumped["matrix_synthesis_groups"]).decode("utf-8"),
+        to_json(dumped["content_blocks"]).decode("utf-8"),
+        profile.show_sources_summary_box,
+        str(profile.sources_display_mode),
+        profile.variance_target_block,
+        profile.user_role_target_block,
+        entity_id=profile.id,
+        entity_label="output_profile",
+    )
+
+
+async def get_output_profile_row(
+    conn: AsyncPgConnectionProtocol, timeout: float, profile_id: str
+) -> OutputProfile | None:
+    """Fetch an OutputProfile by ID.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        profile_id: Canonical prf_<hex> output profile identifier.
+
+    Returns:
+        Hydrated OutputProfile instance if found, or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED on query error.
+    """
+    prf_uuid = parse_prefixed_uuid7(profile_id, EntityPrefix.OUTPUT_PROFILE)
+    row = await _fetch_row(conn, timeout, _GET_OUTPUT_PROFILE_SQL, prf_uuid, profile_id)
+    if row is None:
+        return None
+    return hydrate_output_profile_row(row)
