@@ -1,3 +1,4 @@
+import 'package:client_app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 /// Visualizes the internal scoring mechanics (true/false atoms) of a Matrix.
@@ -107,7 +108,7 @@ class MatrixObservabilityAccordion extends StatelessWidget {
     final bgColor = theme.colorScheme.surfaceContainerHighest;
 
     final valueColor = isPositive
-        ? Colors.green.shade700
+        ? context.semanticColors.success
         : theme.colorScheme.error;
 
     return Container(
@@ -137,6 +138,8 @@ class MatrixObservabilityAccordion extends StatelessWidget {
               color: valueColor,
               fontWeight: FontWeight.bold,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
