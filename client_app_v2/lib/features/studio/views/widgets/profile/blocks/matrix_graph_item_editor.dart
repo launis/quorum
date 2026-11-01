@@ -38,7 +38,10 @@ class MatrixGraphItemEditor extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final blocks = promptBlocksState.value ?? [];
+    final blocks = switch (promptBlocksState) {
+      AsyncData(:final value) => value,
+      _ => const <PromptBlock>[],
+    };
 
     // Filter strictly to matrix category prompt blocks
     final matrixBlocks = blocks.where((b) {
@@ -71,28 +74,34 @@ class MatrixGraphItemEditor extends StatelessWidget {
       child: ExpansionTile(
         initiallyExpanded: index == 0,
         leading: CircleAvatar(
-          radius: 12,
-          child: Text('${index + 1}', style: const TextStyle(fontSize: 11)),
+          radius: AppSpacing.s12,
+          child: Text(
+            (index + 1).toString(),
+            style: theme.textTheme.labelSmall,
+          ),
         ),
         title: Text(
           group.title.get(
             Localizations.localeOf(context).languageCode,
             fallback: 'en',
           ),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+          overflow: TextOverflow.ellipsis,
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (onMoveUp != null)
               IconButton(
-                icon: const Icon(Icons.arrow_upward, size: 20),
+                icon: const Icon(Icons.arrow_upward, size: AppSpacing.s16),
                 tooltip: l10n.matrixGroupMoveUp,
                 onPressed: onMoveUp,
               ),
             if (onMoveDown != null)
               IconButton(
-                icon: const Icon(Icons.arrow_downward, size: 20),
+                icon: const Icon(Icons.arrow_downward, size: AppSpacing.s16),
                 tooltip: l10n.matrixGroupMoveDown,
                 onPressed: onMoveDown,
               ),
@@ -100,7 +109,7 @@ class MatrixGraphItemEditor extends StatelessWidget {
               icon: Icon(
                 Icons.delete_outline,
                 color: colorScheme.error,
-                size: 20,
+                size: AppSpacing.s16,
               ),
               onPressed: onDelete,
             ),
@@ -133,15 +142,18 @@ class MatrixGraphItemEditor extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.bar_chart_outlined,
-                      size: 18,
+                      size: AppSpacing.s16,
                       color: colorScheme.primary,
                     ),
                     AppSpacing.w8,
-                    Text(
-                      l10n.groupVisualChartTitle,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.primary,
+                    Expanded(
+                      child: Text(
+                        l10n.groupVisualChartTitle,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.primary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -153,7 +165,7 @@ class MatrixGraphItemEditor extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.s4),
+                AppSpacing.h4,
                 SegmentedButton<PresetView>(
                   segments: [
                     ButtonSegment(
@@ -204,27 +216,34 @@ class MatrixGraphItemEditor extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      l10n.selectBlockHint,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        l10n.selectBlockHint,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Text(
-                      l10n.matrixBlocksSelectedCount(
-                        targetBlocks.length,
-                        maxSlots,
-                      ),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: targetBlocks.length == maxSlots
-                            ? colorScheme.primary
-                            : colorScheme.outline,
-                        fontWeight: FontWeight.bold,
+                    AppSpacing.w8,
+                    Flexible(
+                      child: Text(
+                        l10n.matrixBlocksSelectedCount(
+                          targetBlocks.length,
+                          maxSlots,
+                        ),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: targetBlocks.length == maxSlots
+                              ? colorScheme.primary
+                              : colorScheme.outline,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.s8),
+                AppSpacing.h8,
                 if (matrixBlocks.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(
