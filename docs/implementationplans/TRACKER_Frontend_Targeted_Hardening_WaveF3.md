@@ -58,7 +58,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/omni_input_box.dart]
   - [x] @[client_app_v2/lib/shared/widgets/output_renderer.dart]
   - [x] @[client_app_v2/lib/shared/widgets/pdf_export_guide_dialog.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/pre_mortem_card.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/pre_mortem_card.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/quadrant_matrix_chart.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/result_dashboard.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/schema_mapper.dart]

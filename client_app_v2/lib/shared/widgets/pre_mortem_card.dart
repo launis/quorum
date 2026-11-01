@@ -1,78 +1,144 @@
-import 'package:flutter/material.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/widgets/deep_dive_expander.dart';
+import 'package:client_app/theme/app_colors.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class PreMortemCard extends StatelessWidget {
+class PreMortemCard extends ConsumerWidget {
   final Map<String, Object?> report;
 
   const PreMortemCard({super.key, required this.report});
 
   @override
-  Widget build(BuildContext context) {
-    final preMortem = report['pre_mortem_analyysi'] as Map<String, Object?>?;
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (report.isEmpty ||
+        !report.containsKey('pre_mortem_analyysi') ||
+        report['pre_mortem_analyysi'] == null) {
+      return const SizedBox();
+    }
 
-    if (preMortem == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final semanticColors = context.semanticColors;
 
-    final executed = preMortem['suoritettu'] as bool? ?? false;
-    final signals = preMortem['hiljaiset_signaalit'] as List? ?? [];
+    try {
+      final preMortemRaw = report['pre_mortem_analyysi'];
+      if (preMortemRaw is! Map<String, Object?>) {
+        throw AppException.validation(
+          'Fail-Fast: pre_mortem_analyysi must be a Map<String, Object?>.',
+        );
+      }
 
-    return DeepDiveExpander(
-      title: 'Pre-Mortem & Future Signs',
-      icon: Icons.visibility_outlined, // Eye icon for "Foreseeing"
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
+      final executedRaw = preMortemRaw['suoritettu'];
+      if (executedRaw is! bool) {
+        throw AppException.validation(
+          'Fail-Fast: Missing or invalid boolean "suoritettu" in pre_mortem_analyysi.',
+        );
+      }
+
+      final signalsRaw = preMortemRaw['hiljaiset_signaalit'];
+      final parsedSignals = <String>[];
+      if (signalsRaw != null) {
+        if (signalsRaw is! List) {
+          throw AppException.validation(
+            'Fail-Fast: "hiljaiset_signaalit" must be a List.',
+          );
+        }
+        for (var i = 0; i < signalsRaw.length; i++) {
+          final item = signalsRaw[i];
+          if (item is! String || item.trim().isEmpty) {
+            throw AppException.validation(
+              'Fail-Fast: Weak signal at index $i must be a non-empty String.',
+            );
+          }
+          parsedSignals.add(item);
+        }
+      }
+
+      return DeepDiveExpander(
+        title: l10n.subPerformativityCheck,
+        icon: Icons.visibility_outlined,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    l10n.sharedAnalysisPerformed,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                AppSpacing.w4,
+                Icon(
+                  executedRaw ? Icons.check : Icons.close,
+                  size: AppSpacing.s16,
+                  color: executedRaw
+                      ? semanticColors.success
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+            AppSpacing.h12,
+            if (parsedSignals.isNotEmpty) ...[
               Text(
-                AppLocalizations.of(context)?.sharedAnalysisPerformed ??
-                    'Analysis Performed: ',
+                '${l10n.lblFindings}:',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
-              Icon(
-                executed ? Icons.check : Icons.close,
-                size: 16,
-                color: executed
-                    ? Color(0xFF2E7D32)
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              AppSpacing.h8,
+              Container(
+                decoration: BoxDecoration(
+                  color: semanticColors.warning.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(AppSpacing.s8),
+                  border: Border.all(
+                    color: semanticColors.warning.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Column(
+                  children: parsedSignals.map((signal) {
+                    return ListTile(
+                      leading: Icon(
+                        Icons.sensors,
+                        size: AppSpacing.s16,
+                        color: semanticColors.warning,
+                      ),
+                      title: Text(
+                        signal,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                    );
+                  }).toList(),
+                ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          if (signals.isNotEmpty) ...[
-            Text(
-              'Hiljaiset signaalit (Weak Signals):',
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber.withValues(alpha: 0.2)),
-              ),
-              child: Column(
-                children: signals.map((s) {
-                  return ListTile(
-                    leading: const Icon(
-                      Icons.sensors,
-                      size: 16,
-                      color: Colors.amber,
-                    ),
-                    title: Text(
-                      s.toString(),
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    dense: true,
-                    visualDensity: VisualDensity.compact,
-                  );
-                }).toList(),
-              ),
-            ),
           ],
-        ],
-      ),
-    );
+        ),
+      );
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error(
+            'PreMortemCard',
+            'VALIDATION_FAILED: Failed to render pre-mortem card',
+            e,
+            st,
+          );
+      return ErrorView(error: e, stackTrace: st, compact: true);
+    }
   }
 }
