@@ -107,4 +107,54 @@ void main() {
 
     expect(find.byType(PdfExportGuideDialog), findsNothing);
   });
+
+  testWidgets(
+    'PdfExportGuideDialog boundary test: constrained narrow viewport renders without overflow',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(360, 480));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(createDialogWidget(locale: const Locale('fi')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Open Dialog'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(PdfExportGuideDialog), findsOneWidget);
+
+      await tester.tap(find.text('Google Gemini'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('Claude'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'PdfExportGuideDialog negative test: extreme text scaling (2.0x) and dismissing via barrier tap',
+    (tester) async {
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
+          child: createDialogWidget(locale: const Locale('en')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Open Dialog'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(PdfExportGuideDialog), findsOneWidget);
+
+      // Dismiss dialog by tapping barrier outside dialog bounds
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PdfExportGuideDialog), findsNothing);
+    },
+  );
 }

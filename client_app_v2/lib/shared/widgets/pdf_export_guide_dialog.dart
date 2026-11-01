@@ -28,6 +28,7 @@ class PdfExportGuideDialog extends StatelessWidget {
           Expanded(
             child: Text(
               l10n.chatIngressGuideTitle,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
