@@ -62,7 +62,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/quadrant_matrix_chart.dart]
   - [x] @[client_app_v2/lib/shared/widgets/result_dashboard.dart]
   - [x] @[client_app_v2/lib/shared/widgets/schema_mapper.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/score_card.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/score_card.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/score_card_radar.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/specialist_section.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/unified_metric_gauge.dart]
