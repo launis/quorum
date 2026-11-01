@@ -7,7 +7,7 @@ import 'package:client_app/features/execution/models/atom_result_dto.dart';
 import 'package:client_app/features/execution/providers/hydrated_reference_provider.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
-// Phase 3, Step 1: Create SduiNodeRenderer (ConsumerWidget)
+/// Dumb Painter renderer for hydrated TDA atom results mapped to SDUI card variants.
 class SduiNodeRenderer extends ConsumerWidget {
   final String executionId;
   final AtomResultDTO result;
@@ -20,19 +20,16 @@ class SduiNodeRenderer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Phase 3, Step 1: Use O(1) ref.watch on hydratedReferenceProvider
     final hydratedAtom = ref.watch(
       hydratedReferenceProvider(executionId, result.tdaId),
     );
 
     if (hydratedAtom == null) {
-      // Phase 3, Step 1: No SizedBox.shrink() (Fail-Fast Boundary)
       throw AppException.validation(
         'Fail-Fast: Missing hydrated reference for TDA ${result.tdaId}',
       );
     }
 
-    // Phase 3, Step 1: Use Dart 3 switch expression on hydratedAtom.sduiComponent
     return switch (hydratedAtom.sduiComponent) {
       SDUIComponentType.booleanCard => _buildBooleanCard(
         context,
@@ -51,13 +48,12 @@ class SduiNodeRenderer extends ConsumerWidget {
         hydratedAtom.resolvedClaim,
         result.shortCircuitReasonTdaIds,
       ),
-      // Any other type not explicitly handled here will cause a compile-time error
-      // due to Dart 3 exhaustive switch, enforcing strict alignment with the enum.
     };
   }
 
-  // Phase 3, Step 1: Follow Macro-Breakpoint standard with LayoutBuilder
   Widget _buildBooleanCard(BuildContext context, String claim) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isPassed = result.status == ExecutionStatus.passed;
     return LayoutBuilder(
       builder: (context, constraints) {
         return Card(
@@ -66,15 +62,10 @@ class SduiNodeRenderer extends ConsumerWidget {
             child: Row(
               children: [
                 Icon(
-                  result.status == ExecutionStatus.passed
-                      ? Icons.check_circle
-                      : Icons.error,
-                  color: result.status == ExecutionStatus.passed
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.error,
+                  isPassed ? Icons.check_circle : Icons.error,
+                  color: isPassed ? colorScheme.primary : colorScheme.error,
                 ),
                 AppSpacing.w16,
-                // Phase 3, Step 1: Wrap dynamic text in Expanded + TextOverflow.ellipsis
                 Expanded(
                   child: Text(
                     claim,
@@ -91,6 +82,14 @@ class SduiNodeRenderer extends ConsumerWidget {
   }
 
   Widget _buildExtractedValueCard(BuildContext context, String claim) {
+    final extracted = result.extractedData;
+    final hasUnit = extracted?.unit != null && extracted!.unit!.isNotEmpty;
+    final formattedValue = extracted != null
+        ? (hasUnit
+              ? '${extracted.value} ${extracted.unit}'
+              : '${extracted.value}')
+        : null;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return Card(
@@ -105,11 +104,12 @@ class SduiNodeRenderer extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(claim, overflow: TextOverflow.ellipsis),
-                      if (result.extractedData != null) ...[
+                      if (formattedValue != null) ...[
                         AppSpacing.h8,
                         Text(
-                          '${result.extractedData!.value} ${result.extractedData!.unit ?? ''}',
+                          formattedValue,
                           style: Theme.of(context).textTheme.titleMedium,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ],
@@ -124,18 +124,21 @@ class SduiNodeRenderer extends ConsumerWidget {
   }
 
   Widget _buildErrorCard(BuildContext context, String claim) {
+    final theme = Theme.of(context);
+    final onErrorContainer = theme.colorScheme.onErrorContainer;
+    final errorTextStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: onErrorContainer,
+    );
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return Card(
-          color: Theme.of(context).colorScheme.errorContainer,
+          color: theme.colorScheme.errorContainer,
           child: Padding(
             padding: AppSpacing.p16,
             child: Row(
               children: [
-                Icon(
-                  Icons.warning,
-                  color: Theme.of(context).colorScheme.onErrorContainer,
-                ),
+                Icon(Icons.warning, color: onErrorContainer),
                 AppSpacing.w16,
                 Expanded(
                   child: Column(
@@ -143,20 +146,14 @@ class SduiNodeRenderer extends ConsumerWidget {
                     children: [
                       Text(
                         claim,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onErrorContainer,
-                        ),
+                        style: errorTextStyle,
                         overflow: TextOverflow.ellipsis,
                       ),
                       if (result.errorDetails != null) ...[
                         AppSpacing.h8,
                         Text(
                           result.errorDetails!.message,
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onErrorContainer,
-                          ),
+                          style: errorTextStyle,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
@@ -176,10 +173,11 @@ class SduiNodeRenderer extends ConsumerWidget {
     String claim,
     List<String> cascadeReasons,
   ) {
+    final theme = Theme.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         return Card(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          color: theme.colorScheme.surfaceContainerHighest,
           child: Padding(
             padding: AppSpacing.p16,
             child: Row(
@@ -193,7 +191,9 @@ class SduiNodeRenderer extends ConsumerWidget {
                       Text(
                         claim,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontStyle: FontStyle.italic),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                       if (cascadeReasons.isNotEmpty) ...[
                         AppSpacing.h8,
@@ -201,12 +201,10 @@ class SduiNodeRenderer extends ConsumerWidget {
                           AppLocalizations.of(
                             context,
                           )!.lblNaCascadeReason(cascadeReasons.join(', ')),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ],
