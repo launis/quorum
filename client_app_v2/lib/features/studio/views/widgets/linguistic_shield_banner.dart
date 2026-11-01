@@ -61,18 +61,18 @@ class LinguisticShieldBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!LinguisticShieldDetector.hasLinguisticAnomaly(text)) {
-      return const SizedBox.shrink();
+      return const SizedBox();
     }
 
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
-      margin: const EdgeInsets.only(top: 8),
+      margin: const EdgeInsets.only(top: AppSpacing.s8),
       padding: AppSpacing.p12,
       decoration: BoxDecoration(
         color: theme.colorScheme.tertiaryContainer,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppSpacing.s8),
         border: Border.all(
           color: theme.colorScheme.tertiary.withValues(alpha: 0.3),
         ),
@@ -83,13 +83,14 @@ class LinguisticShieldBanner extends StatelessWidget {
           Icon(
             Icons.info_outline,
             color: theme.colorScheme.onTertiaryContainer,
-            size: 20,
+            size: AppSpacing.s16,
           ),
           AppSpacing.w8,
           Expanded(
             child: Text(
-              l10n?.scaleLinguisticShieldWarning ??
-                  'Non-English characters or words detected. Ensure the evaluation assertion is written in English.',
+              l10n.scaleLinguisticShieldWarning,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 3,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onTertiaryContainer,
                 height: 1.3,

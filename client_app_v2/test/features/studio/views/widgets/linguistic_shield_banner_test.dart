@@ -5,15 +5,16 @@ import 'package:client_app/features/studio/views/widgets/linguistic_shield_banne
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
-  Widget createTestWidget(Widget child) {
+  Widget createTestWidget(Widget child, {Locale locale = const Locale('en')}) {
     return MaterialApp(
+      locale: locale,
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('en')],
+      supportedLocales: const [Locale('en'), Locale('fi')],
       home: Scaffold(body: child),
     );
   }
@@ -39,6 +40,44 @@ void main() {
       );
     });
 
+    testWidgets(
+      'ISTQB Boundary: empty or whitespace-only text returns false and does not mount banner',
+      (tester) async {
+        expect(LinguisticShieldDetector.hasLinguisticAnomaly(''), isFalse);
+        expect(
+          LinguisticShieldDetector.hasLinguisticAnomaly('   \t\n '),
+          isFalse,
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(const LinguisticShieldBanner(text: '   ')),
+        );
+        expect(find.byIcon(Icons.info_outline), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'ISTQB Boundary: single stopword match (count == 1 < 2 threshold) does not trigger anomaly',
+      (tester) async {
+        // "on" is a single stopword shared with English prepositions
+        expect(
+          LinguisticShieldDetector.hasLinguisticAnomaly(
+            'Focus on the primary architectural invariant.',
+          ),
+          isFalse,
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            const LinguisticShieldBanner(
+              text: 'Focus on the primary architectural invariant.',
+            ),
+          ),
+        );
+        expect(find.byIcon(Icons.info_outline), findsNothing);
+      },
+    );
+
     testWidgets('ISTQB Negative: non-ASCII characters mount warning banner', (
       tester,
     ) async {
@@ -62,7 +101,7 @@ void main() {
     testWidgets(
       'ISTQB Negative: Finnish stopwords in ASCII text trigger stopword gate',
       (tester) async {
-        // "on" and "ja" are structural Finnish stopwords
+        // "on" and "ja" are structural Finnish stopwords (count == 2 >= 2 threshold)
         await tester.pumpWidget(
           createTestWidget(
             const LinguisticShieldBanner(
@@ -96,5 +135,26 @@ void main() {
 
       expect(find.byIcon(Icons.info_outline), findsNothing);
     });
+
+    testWidgets(
+      'Multi-Locale Stress Gate: Finnish (fi) locale renders without RenderFlex overflow at 360px width',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestWidget(
+            const SizedBox(
+              width: 360,
+              child: LinguisticShieldBanner(
+                text: 'Tämä väite sisältää ääkkösiä.',
+              ),
+            ),
+            locale: const Locale('fi'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.byIcon(Icons.info_outline), findsOneWidget);
+      },
+    );
   });
 }
