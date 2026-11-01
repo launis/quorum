@@ -99,9 +99,9 @@ def compute_census_counts(repo_root: Path | None = None) -> ResidualDebtCeilings
             p_str = p.as_posix()
             if "/fakes/" in p_str or "test_ast_engine_dispatch_guardrails" in p_str:
                 continue
-            for line in p.read_text(encoding="utf-8", errors="ignore").splitlines():
-                m = re.search(r"^\s*class\s+(\w*Repo\w*)\b", line)
-                if m and not re.search(r"Report|Response", m.group(1)):
+            text = p.read_text(encoding="utf-8", errors="ignore")
+            for m in re.finditer(r"^\s*class\s+(\w*Repo\w*)\b", text, re.MULTILINE):
+                if not re.search(r"Report|Response", m.group(1)):
                     k_count += 1
 
     # Census F: String-target repository patches
@@ -111,7 +111,7 @@ def compute_census_counts(repo_root: Path | None = None) -> ResidualDebtCeilings
             if "/tests/unit/scripts/" in p.as_posix():
                 continue
             text = p.read_text(encoding="utf-8", errors="ignore")
-            f_count += len(re.findall(r"patch\(\s*[\"'][\w\.]*\.(\w*Repository)[\"']", text))
+            f_count += len(re.findall(r"patch\s*\(\s*[\"'][\w\.]*\.(\w*Repository)[\"']", text))
 
     # Census D: Keyword-injected repository mocks
     d_count = 0
@@ -120,7 +120,7 @@ def compute_census_counts(repo_root: Path | None = None) -> ResidualDebtCeilings
             if "/tests/unit/scripts/" in p.as_posix():
                 continue
             text = p.read_text(encoding="utf-8", errors="ignore")
-            for m in re.finditer(r"\b(\w*repo\w*)=(AsyncMock|MagicMock|Mock)\(", text):
+            for m in re.finditer(r"\b(\w*repo\w*)=(AsyncMock|MagicMock|Mock)\s*\(", text):
                 if not re.search(r"report|response", m.group(1), re.IGNORECASE):
                     d_count += 1
 
@@ -184,20 +184,24 @@ def compute_census_counts(repo_root: Path | None = None) -> ResidualDebtCeilings
                 except tokenize.TokenError, SyntaxError:
                     pass
 
-    # Census R: Non-codec Map<String, dynamic> in Dart
+    # Census R: Non-codec Map<String, dynamic> in Dart (multi-line codec-aware)
     r_count = 0
     client_lib = root / "client_app_v2" / "lib"
+    dart_codec_regex = re.compile(
+        r"fromJson\s*\(\s*Map\s*<\s*String\s*,\s*dynamic\s*>\s+\w+\s*,?\s*\)"
+        r"|Map\s*<\s*String\s*,\s*dynamic\s*>\s+toJson\s*\("
+    )
+    dart_map_regex = re.compile(r"\bMap\s*<\s*String\s*,\s*dynamic\s*>")
     if client_lib.exists():
         for p in client_lib.rglob("*.dart"):
             if p.name.endswith(".g.dart") or p.name.endswith(".freezed.dart"):
                 continue
             text = p.read_text(encoding="utf-8", errors="ignore")
-            for line in text.splitlines():
-                if re.search(r"Map<String,\s*dynamic>", line):
-                    if not re.search(
-                        r"fromJson\(\s*Map<String,\s*dynamic>\s+\w+\s*\)|Map<String,\s*dynamic>\s+toJson\(", line
-                    ):
-                        r_count += 1
+            codec_spans = [m.span() for m in dart_codec_regex.finditer(text)]
+            for m in dart_map_regex.finditer(text):
+                pos = m.start()
+                if not any(start <= pos < end for start, end in codec_spans):
+                    r_count += 1
 
     return ResidualDebtCeilingsDTO(
         d=d_count,

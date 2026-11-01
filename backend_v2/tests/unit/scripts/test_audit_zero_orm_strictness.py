@@ -101,10 +101,11 @@ def test_zorm003_and_zorm005_broad_except_and_llm_calls(tmp_path: Path) -> None:
 
 
 def test_zorm004_unapproved_sql_table_and_zorm006_column_drift(tmp_path: Path) -> None:
-    """Verify ZORM004 rejects unknown SQL tables or TEXT primary keys and ZORM006 rejects unapproved row subscripts."""
+    """Verify ZORM004 rejects unknown SQL tables or TEXT primary keys (including multi-line DDL) and ZORM006 rejects unapproved row subscripts."""
     bad_sql = tmp_path / "bad_schema.sql"
     bad_sql.write_text(
-        "CREATE TABLE legacy_tinydb_dump (id TEXT);\nCREATE TABLE workflows (\n    id TEXT PRIMARY KEY\n);\n",
+        "CREATE TABLE\n    legacy_tinydb_dump (\n    id TEXT\n);\n"
+        "CREATE TABLE workflows (\n    id\n    TEXT\n    PRIMARY KEY\n);\n",
         encoding="utf-8",
     )
     sql_findings = audit_sql_migration_file(bad_sql)

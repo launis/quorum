@@ -2,7 +2,7 @@
 
 Single Source of Truth static audit script verifying Flutter Theme Sovereignty across Quorum UI widgets.
 Asserts zero occurrences of prohibited raw static colors (Color(0x...), Color.fromARGB, Color.fromRGBO,
-Colors.*) and standalone TextStyle(...) declarations in target Dart UI widgets.
+Colors.*) and standalone TextStyle(...) declarations across full multi-line Dart UI widget sources.
 Ensures 100% adherence to ThemeData tokens (colorScheme, textTheme, AppSemanticColors ThemeExtension).
 
 Usage:
@@ -42,10 +42,14 @@ __all__ = [
     "scan_theme_sovereignty",
 ]
 
-# Prohibited patterns
+_DART_STRING_OR_COMMENT_PATTERN = re.compile(
+    r'("""[\s\S]*?"""|\'\'\'[\s\S]*?\'\'\'|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|//[^\n]*|/\*[\s\S]*?\*/)'
+)
+
+# Prohibited patterns (multi-line whitespace aware)
 COLOR_HEX_PATTERN = re.compile(r"\bColor\s*\(\s*0x[0-9a-fA-F]+")
-COLOR_FACTORY_PATTERN = re.compile(r"\bColor\.(?:fromARGB|fromRGBO)\s*\(")
-COLORS_PALETTE_PATTERN = re.compile(r"\bColors\.[a-zA-Z0-9_]+")
+COLOR_FACTORY_PATTERN = re.compile(r"\bColor\s*\.\s*(?:fromARGB|fromRGBO)\s*\(")
+COLORS_PALETTE_PATTERN = re.compile(r"\bColors\s*\.\s*[a-zA-Z0-9_]+")
 TEXT_STYLE_PATTERN = re.compile(r"\b(?:const\s+)?TextStyle\s*\(")
 
 DEFAULT_TARGET_FILES = [
@@ -61,7 +65,15 @@ DEFAULT_TARGET_FILES = [
 
 
 class ThemeViolationDTO(BaseModel):
-    """Pydantic V2 DTO representing a Theme Sovereignty violation."""
+    """Pydantic V2 DTO representing a Theme Sovereignty violation.
+
+    Attributes:
+        file_path: Target Dart file path.
+        line_number: 1-indexed line number.
+        line_content: Content of the violating line.
+        violation_type: Classification of the theme violation.
+        remediation: Remediation guidance.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -73,7 +85,13 @@ class ThemeViolationDTO(BaseModel):
 
 
 class ThemeAuditReportDTO(BaseModel):
-    """Pydantic V2 DTO representing aggregate Theme Sovereignty audit results."""
+    """Pydantic V2 DTO representing aggregate Theme Sovereignty audit results.
+
+    Attributes:
+        total_files_scanned: Total number of scanned files.
+        total_violations: Total count of theme violations.
+        violations: List of detected violations.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -82,8 +100,50 @@ class ThemeAuditReportDTO(BaseModel):
     violations: Annotated[list[ThemeViolationDTO], Field(default_factory=list, description="List of violations")]
 
 
+def _strip_dart_comments(source_text: str) -> str:
+    """Replace Dart line and block comments with spaces while preserving string literals and newlines.
+
+    Args:
+        source_text: Raw Dart source text.
+
+    Returns:
+        Comment-stripped source text with identical line numbers and character offsets.
+    """
+
+    def _replace_match(match: re.Match[str]) -> str:
+        token = match.group(0)
+        if token.startswith("//") or token.startswith("/*"):
+            return "".join("\n" if ch == "\n" else " " for ch in token)
+        return token
+
+    return _DART_STRING_OR_COMMENT_PATTERN.sub(_replace_match, source_text)
+
+
+def _line_info_from_offset(content: str, lines: list[str], offset: int) -> tuple[int, str]:
+    """Compute 1-indexed line number and stripped line text from a character offset.
+
+    Args:
+        content: Full file text.
+        lines: Pre-split lines of the file.
+        offset: 0-based character offset in content.
+
+    Returns:
+        2-tuple of (1-indexed line number, stripped line text).
+    """
+    line_idx = content.count("\n", 0, offset) + 1
+    line_str = lines[line_idx - 1].strip() if 1 <= line_idx <= len(lines) else ""
+    return line_idx, line_str
+
+
 def scan_theme_sovereignty(target_paths: list[str]) -> ThemeAuditReportDTO:
-    """Scans target Dart files for Theme Sovereignty and direct styling violations."""
+    """Scan target Dart files across full multi-line source for Theme Sovereignty violations.
+
+    Args:
+        target_paths: List of Dart file path strings to inspect.
+
+    Returns:
+        ThemeAuditReportDTO containing scanned file count and detected violations.
+    """
     violations: list[ThemeViolationDTO] = []
     scanned_count = 0
 
@@ -111,84 +171,94 @@ def scan_theme_sovereignty(target_paths: list[str]) -> ThemeAuditReportDTO:
             )
             continue
 
-        for line_idx, line in enumerate(content.splitlines(), start=1):
-            stripped = line.strip()
-            # Skip single-line comments
-            if stripped.startswith("//") or stripped.startswith("/*") or stripped.startswith("*"):
-                continue
+        lines = content.splitlines()
+        uncommented = _strip_dart_comments(content)
+        file_violations: list[ThemeViolationDTO] = []
 
-            if is_theme_definition:
-                # In theme definition files (AppSemanticColors), Color(0x...) is permitted to define tokens.
-                # Prohibit raw Colors.* palette access (e.g. Colors.green) or static intent fields.
-                if COLORS_PALETTE_PATTERN.search(line):
-                    violations.append(
-                        ThemeViolationDTO(
-                            file_path=str(path),
-                            line_number=line_idx,
-                            line_content=stripped,
-                            violation_type="PROHIBITED_STATIC_COLORS_PALETTE",
-                            remediation="Do not reference Colors.* directly. Define concrete token colors or derive from ColorScheme.",
-                        )
-                    )
-                if TEXT_STYLE_PATTERN.search(line):
-                    violations.append(
-                        ThemeViolationDTO(
-                            file_path=str(path),
-                            line_number=line_idx,
-                            line_content=stripped,
-                            violation_type="PROHIBITED_TEXT_STYLE",
-                            remediation="Do not instantiate naked TextStyle in theme token files.",
-                        )
-                    )
-                continue
-
-            # In UI widgets, assert zero raw hex colors
-            if COLOR_HEX_PATTERN.search(line):
-                violations.append(
+        if is_theme_definition:
+            # In theme definition files (AppSemanticColors), Color(0x...) is permitted to define tokens.
+            # Prohibit raw Colors.* palette access (e.g. Colors.green) or static intent fields.
+            for match in COLORS_PALETTE_PATTERN.finditer(uncommented):
+                line_idx, line_str = _line_info_from_offset(content, lines, match.start())
+                file_violations.append(
                     ThemeViolationDTO(
                         file_path=str(path),
                         line_number=line_idx,
-                        line_content=stripped,
-                        violation_type="PROHIBITED_RAW_HEX_COLOR",
-                        remediation="Replace raw Color(0x...) with Theme.of(context).colorScheme tokens or context.semanticColors.",
-                    )
-                )
-
-            # In UI widgets, assert zero factory colors (fromARGB, fromRGBO)
-            if COLOR_FACTORY_PATTERN.search(line):
-                violations.append(
-                    ThemeViolationDTO(
-                        file_path=str(path),
-                        line_number=line_idx,
-                        line_content=stripped,
-                        violation_type="PROHIBITED_COLOR_FACTORY",
-                        remediation="Replace Color.fromARGB/fromRGBO with Theme.of(context).colorScheme tokens.",
-                    )
-                )
-
-            # In UI widgets, assert zero Colors.* palette access
-            if COLORS_PALETTE_PATTERN.search(line):
-                violations.append(
-                    ThemeViolationDTO(
-                        file_path=str(path),
-                        line_number=line_idx,
-                        line_content=stripped,
+                        line_content=line_str,
                         violation_type="PROHIBITED_STATIC_COLORS_PALETTE",
-                        remediation="Replace Colors.* with Theme.of(context).colorScheme tokens.",
+                        remediation="Do not reference Colors.* directly. Define concrete token colors or derive from ColorScheme.",
                     )
                 )
-
-            # In primary UI widgets, assert zero naked TextStyle
-            if not is_specialist_section and TEXT_STYLE_PATTERN.search(line):
-                violations.append(
+            for match in TEXT_STYLE_PATTERN.finditer(uncommented):
+                line_idx, line_str = _line_info_from_offset(content, lines, match.start())
+                file_violations.append(
                     ThemeViolationDTO(
                         file_path=str(path),
                         line_number=line_idx,
-                        line_content=stripped,
+                        line_content=line_str,
+                        violation_type="PROHIBITED_TEXT_STYLE",
+                        remediation="Do not instantiate naked TextStyle in theme token files.",
+                    )
+                )
+            file_violations.sort(key=lambda v: v.line_number)
+            violations.extend(file_violations)
+            continue
+
+        # In UI widgets, assert zero raw hex colors
+        for match in COLOR_HEX_PATTERN.finditer(uncommented):
+            line_idx, line_str = _line_info_from_offset(content, lines, match.start())
+            file_violations.append(
+                ThemeViolationDTO(
+                    file_path=str(path),
+                    line_number=line_idx,
+                    line_content=line_str,
+                    violation_type="PROHIBITED_RAW_HEX_COLOR",
+                    remediation="Replace raw Color(0x...) with Theme.of(context).colorScheme tokens or context.semanticColors.",
+                )
+            )
+
+        # In UI widgets, assert zero factory colors (fromARGB, fromRGBO)
+        for match in COLOR_FACTORY_PATTERN.finditer(uncommented):
+            line_idx, line_str = _line_info_from_offset(content, lines, match.start())
+            file_violations.append(
+                ThemeViolationDTO(
+                    file_path=str(path),
+                    line_number=line_idx,
+                    line_content=line_str,
+                    violation_type="PROHIBITED_COLOR_FACTORY",
+                    remediation="Replace Color.fromARGB/fromRGBO with Theme.of(context).colorScheme tokens.",
+                )
+            )
+
+        # In UI widgets, assert zero Colors.* palette access
+        for match in COLORS_PALETTE_PATTERN.finditer(uncommented):
+            line_idx, line_str = _line_info_from_offset(content, lines, match.start())
+            file_violations.append(
+                ThemeViolationDTO(
+                    file_path=str(path),
+                    line_number=line_idx,
+                    line_content=line_str,
+                    violation_type="PROHIBITED_STATIC_COLORS_PALETTE",
+                    remediation="Replace Colors.* with Theme.of(context).colorScheme tokens.",
+                )
+            )
+
+        # In primary UI widgets, assert zero naked TextStyle
+        if not is_specialist_section:
+            for match in TEXT_STYLE_PATTERN.finditer(uncommented):
+                line_idx, line_str = _line_info_from_offset(content, lines, match.start())
+                file_violations.append(
+                    ThemeViolationDTO(
+                        file_path=str(path),
+                        line_number=line_idx,
+                        line_content=line_str,
                         violation_type="PROHIBITED_NAKED_TEXT_STYLE",
                         remediation="Replace naked TextStyle(...) with Theme.of(context).textTheme tokens (e.g. titleMedium, bodyMedium).",
                     )
                 )
+
+        file_violations.sort(key=lambda v: v.line_number)
+        violations.extend(file_violations)
 
     return ThemeAuditReportDTO(
         total_files_scanned=scanned_count,
@@ -198,7 +268,11 @@ def scan_theme_sovereignty(target_paths: list[str]) -> ThemeAuditReportDTO:
 
 
 def main(argv: list[str] | None = None) -> None:
-    """CLI entrypoint for Theme Sovereignty audit."""
+    """Execute the CLI entrypoint for the Theme Sovereignty audit.
+
+    Args:
+        argv: Optional list of command-line arguments.
+    """
     parser = argparse.ArgumentParser(
         description="Verify Flutter Theme Sovereignty and direct styling eradication.",
         formatter_class=argparse.RawDescriptionHelpFormatter,

@@ -227,3 +227,35 @@ def test_default_target_files_constant() -> None:
     """Verify DEFAULT_TARGET_FILES list is defined and non-empty."""
     assert len(DEFAULT_TARGET_FILES) >= 5
     assert "client_app_v2/lib/theme/app_colors.dart" in DEFAULT_TARGET_FILES
+
+
+def test_scan_theme_sovereignty_multiline_violations(tmp_path: Path) -> None:
+    """Verify multi-line Color(0xFF...), Color.fromARGB, Colors.amber, and const TextStyle are detected."""
+    multiline_file = tmp_path / "multiline_widget.dart"
+    multiline_file.write_text(
+        """
+class MultilineWidget {
+  void render() {
+    final c1 = Color(
+      0xFFABCDEF,
+    );
+    final c2 = Color
+        .fromARGB(255, 1, 2, 3);
+    final c3 = Colors
+        .amber;
+    final s1 = const
+        TextStyle(fontSize: 12);
+  }
+}
+""",
+        encoding="utf-8",
+    )
+    report = scan_theme_sovereignty([str(multiline_file)])
+    assert report.total_violations == 4
+    types = {v.violation_type for v in report.violations}
+    assert types == {
+        "PROHIBITED_RAW_HEX_COLOR",
+        "PROHIBITED_COLOR_FACTORY",
+        "PROHIBITED_STATIC_COLORS_PALETTE",
+        "PROHIBITED_NAKED_TEXT_STYLE",
+    }

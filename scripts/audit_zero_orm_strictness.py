@@ -553,8 +553,30 @@ def audit_python_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
     return visitor.findings
 
 
+_SQL_STRING_OR_COMMENT_REGEX = re.compile(r"('(?:''|[^'])*'|\"(?:\"\"|[^\"])*\"|--[^\n]*|/\*[\s\S]*?\*/)")
+
+
+def _strip_sql_comments(sql_text: str) -> str:
+    """Replace SQL line and block comments with spaces while preserving string literals and newlines.
+
+    Args:
+        sql_text: Raw SQL DDL source text.
+
+    Returns:
+        Comment-stripped SQL text with identical line numbers and character offsets.
+    """
+
+    def _replace_match(match: re.Match[str]) -> str:
+        token = match.group(0)
+        if token.startswith("--") or token.startswith("/*"):
+            return "".join("\n" if ch == "\n" else " " for ch in token)
+        return token
+
+    return _SQL_STRING_OR_COMMENT_REGEX.sub(_replace_match, sql_text)
+
+
 def audit_sql_migration_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
-    """Audit a SQL DDL migration file against rule ZORM004 (closed 12-table topology).
+    """Audit a SQL DDL migration file across full multi-line source against rule ZORM004.
 
     Args:
         filepath: Path to the SQL DDL file.
@@ -564,36 +586,39 @@ def audit_sql_migration_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
     """
     findings: list[ZeroOrmFindingDTO] = []
     content = filepath.read_text(encoding="utf-8")
-    for idx, line in enumerate(content.splitlines(), start=1):
-        stripped = line.strip()
-        if stripped.startswith("--"):
-            continue
-        for match in _CREATE_TABLE_REGEX.finditer(line):
-            table_name = match.group(1).lower()
-            if table_name not in CLOSED_POSTGRES_TABLES:
-                findings.append(
-                    ZeroOrmFindingDTO(
-                        filepath=str(filepath),
-                        lineno=idx,
-                        rule_code=ZeroOrmRuleCode.ZORM004,
-                        message=(
-                            f"Table '{table_name}' is outside the closed 12-table PostgreSQL topology: "
-                            f"{sorted(CLOSED_POSTGRES_TABLES)}."
-                        ),
-                    )
-                )
-        if _BANNED_TEXT_PK_REGEX.search(line):
+    uncommented = _strip_sql_comments(content)
+
+    for match in _CREATE_TABLE_REGEX.finditer(uncommented):
+        table_name = match.group(1).lower()
+        if table_name not in CLOSED_POSTGRES_TABLES:
+            lineno = content.count("\n", 0, match.start()) + 1
             findings.append(
                 ZeroOrmFindingDTO(
                     filepath=str(filepath),
-                    lineno=idx,
+                    lineno=lineno,
                     rule_code=ZeroOrmRuleCode.ZORM004,
                     message=(
-                        "SQL table declares 'id TEXT PRIMARY KEY'; all 12 PostgreSQL 19 tables "
-                        "must use 'id UUID PRIMARY KEY DEFAULT uuidv7()'."
+                        f"Table '{table_name}' is outside the closed 12-table PostgreSQL topology: "
+                        f"{sorted(CLOSED_POSTGRES_TABLES)}."
                     ),
                 )
             )
+
+    for match in _BANNED_TEXT_PK_REGEX.finditer(uncommented):
+        lineno = content.count("\n", 0, match.start()) + 1
+        findings.append(
+            ZeroOrmFindingDTO(
+                filepath=str(filepath),
+                lineno=lineno,
+                rule_code=ZeroOrmRuleCode.ZORM004,
+                message=(
+                    "SQL table declares 'id TEXT PRIMARY KEY'; all 12 PostgreSQL 19 tables "
+                    "must use 'id UUID PRIMARY KEY DEFAULT uuidv7()'."
+                ),
+            )
+        )
+
+    findings.sort(key=lambda f: f.lineno)
     return findings
 
 

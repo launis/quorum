@@ -303,7 +303,6 @@ final w = switch (state) {
     assert len(dgr003) == 0
 
 
-
 # ==============================================================================
 # Partition 5: DGR004 Banned Dart Lint Suppressions
 # ==============================================================================
@@ -351,6 +350,9 @@ def test_dgr005_codec_signatures_exempt() -> None:
     code = """
 class MyDto {
   factory MyDto.fromJson(Map<String, dynamic> json) => _$MyDtoFromJson(json);
+  factory MyDtoWithLongName.fromJson(
+    Map<String, dynamic> json,
+  ) => _$MyDtoFromJson(json);
   Map<String, dynamic> toJson() => _$MyDtoToJson(this);
 }
 """
@@ -359,9 +361,18 @@ class MyDto {
     assert len(dgr005) == 0
 
 
-def test_dgr005_object_map_allowed() -> None:
-    code = "final Map<String, Object?> safeData = {};\n"
+def test_dgr005_object_map_loophole_flagged_outside_boundary() -> None:
+    code = "final Map<String, Object?> loopholeData = {};\n"
     violations = _scan_snippet(code, filepath="client_app_v2/lib/features/execution/views/start.dart", strict=True)
+    dgr005 = [v for v in violations if v.rule_code == "DGR005"]
+    assert len(dgr005) == 1
+    assert dgr005[0].severity == GuardrailSeverity.FATAL
+    assert "Map<String, Object?>" in dgr005[0].message
+
+
+def test_dgr005_object_map_boundary_exempt_allowed() -> None:
+    code = "final response = await _dio.get<Map<String, Object?>>('/api/v2/runs');\n"
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/core/api/execution_client.dart", strict=True)
     dgr005 = [v for v in violations if v.rule_code == "DGR005"]
     assert len(dgr005) == 0
 
@@ -812,3 +823,48 @@ def test_dgr000_os_error_on_read_bytes(tmp_path: Path) -> None:
     assert violations[0].rule_code == "DGR000"
     assert violations[0].severity == GuardrailSeverity.FATAL
     assert "Fatal OS read error" in violations[0].message
+
+
+def test_multiline_constructs_and_expanded_shared_router_scopes() -> None:
+    multiline_api = """
+class StudioClient {
+  Future<List<Map<String, Object?>>>
+      fetchUntypedItems(String id) async => [];
+
+  Future<void> sendPayload() async {
+    await dio.post(
+      '/api/v2/items',
+      data: <String, Object?>{
+        'key': 'val',
+      },
+    );
+  }
+}
+"""
+    api_violations = _scan_snippet(multiline_api, filepath="client_app_v2/lib/core/api/custom_client.dart", strict=True)
+    assert any(v.rule_code == "DGR001" for v in api_violations)
+    assert any(v.rule_code == "DGR005" for v in api_violations)
+    assert any(v.rule_code == "DGR006" for v in api_violations)
+
+    shared_and_router_ui = """
+Widget buildShared(BuildContext context) {
+  final c = Color(
+    0xFF112233,
+  ).withOpacity(0.4);
+  return Text(
+    'First part of unlocalized text '
+    'second part of unlocalized text',
+  );
+}
+"""
+    shared_violations = _scan_snippet(
+        shared_and_router_ui, filepath="client_app_v2/lib/shared/widgets/custom_banner.dart", strict=True
+    )
+    assert len([v for v in shared_violations if v.rule_code == "DGR003"]) == 1
+    assert len([v for v in shared_violations if v.rule_code == "DGR007"]) == 2
+
+    router_violations = _scan_snippet(
+        shared_and_router_ui, filepath="client_app_v2/lib/router/app_router.dart", strict=True
+    )
+    assert len([v for v in router_violations if v.rule_code == "DGR003"]) == 1
+    assert len([v for v in router_violations if v.rule_code == "DGR007"]) == 2

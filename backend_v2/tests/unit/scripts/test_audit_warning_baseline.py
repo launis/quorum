@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
 from scripts._ast_guardrails import GuardrailSeverity, GuardrailViolation
 from scripts.audit_warning_baseline import (
+    CURRENT_RESIDUAL_CEILINGS,
     BaselineLedgerReportDTO,
     ResidualDebtCeilingsDTO,
     RuleWarningStatDTO,
+    compute_census_counts,
     format_report_table,
     generate_baseline_report,
     main,
@@ -382,3 +385,90 @@ def test_verify_residual_debt_ceilings_detects_lowered() -> None:
     is_valid, msgs = verify_residual_debt_ceilings(live, ceil)
     assert is_valid is False
     assert any("RATCHET NEEDED" in m for m in msgs)
+
+
+def test_compute_census_counts_multiline_and_categories(tmp_path: Path) -> None:
+    """Verify compute_census_counts across synthetic repo_root including multi-line Dart fromJson."""
+    tests_unit = tmp_path / "backend_v2" / "tests" / "unit" / "services"
+    tests_unit.mkdir(parents=True)
+    fakes_dir = tmp_path / "backend_v2" / "tests" / "fakes"
+    fakes_dir.mkdir(parents=True)
+    scripts_tests_dir = tmp_path / "backend_v2" / "tests" / "unit" / "scripts"
+    scripts_tests_dir.mkdir(parents=True)
+
+    # Concatenate tokens so real repo census scans do not match literals in this test file
+    skip_marker = "@pytest.mark." + "skip"
+    repo_cls = "class " + "CustomRepo:"
+    dict_ann = "dict" + "[str, Any]"
+    mapping_ann = "Mapping" + "[str, Any]"
+    type_ign = "# " + "type: ignore"
+    noqa_tok = "# " + "noqa: F401"
+
+    (fakes_dir / "fake_repo.py").write_text(f"{repo_cls}\n    pass\n", encoding="utf-8")
+    (scripts_tests_dir / "ignored_script_test.py").write_text(
+        'patch("pkg.UserRepository")\nService(user_repo=AsyncMock())\ncast(Any, x)\n',
+        encoding="utf-8",
+    )
+    (tests_unit / "sample_test.py").write_text(
+        f"{skip_marker}\n"
+        f"{repo_cls}\n    pass\n"
+        'patch("backend_v2.services.UserRepository")\n'
+        "Service(user_repo=AsyncMock())\n"
+        f"x: {dict_ann} = {{}}  {type_ign}\n",
+        encoding="utf-8",
+    )
+
+    prod_dir = tmp_path / "backend_v2" / "services"
+    prod_dir.mkdir(parents=True)
+    (prod_dir / "svc.py").write_text(
+        f"def f(a: {mapping_ann}) -> None:\n    cast(Any, a)  {noqa_tok}\n",
+        encoding="utf-8",
+    )
+
+    core_dir = tmp_path / "backend_v2" / "core"
+    core_dir.mkdir(parents=True)
+    (core_dir / "test_settings.py").write_text(f"s: {dict_ann} = {{}}\n", encoding="utf-8")
+
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir(parents=True)
+    (scripts_dir / "tool.py").write_text(f"y: {dict_ann} = {{}}\n", encoding="utf-8")
+
+    dart_dir = tmp_path / "client_app_v2" / "lib" / "models"
+    dart_dir.mkdir(parents=True)
+    (dart_dir / "model.g.dart").write_text("Map<String, dynamic> ignored = {};\n", encoding="utf-8")
+    (dart_dir / "model.dart").write_text(
+        "class Model {\n"
+        "  factory Model.fromJson(\n"
+        "    Map<String, dynamic> json,\n"
+        "  ) => Model();\n"
+        "  Map<String, dynamic> toJson() => {};\n"
+        "  final Map<String, dynamic> nonCodec = {};\n"
+        "}\n",
+        encoding="utf-8",
+    )
+
+    counts = compute_census_counts(repo_root=tmp_path)
+    assert counts.s == 1
+    assert counts.k == 1
+    assert counts.f == 1
+    assert counts.d == 1
+    assert counts.x == 1
+    assert counts.t == 1
+    assert counts.p == 2
+    assert counts.m == 2
+    assert counts.n == 1
+    assert counts.r == 1
+
+
+def test_main_cli_with_check_residual(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verify CLI execution with --check-residual prints residual table and exits 0 when matching."""
+    fake_violations: list[GuardrailViolation] = []
+    with (
+        patch("scripts.audit_warning_baseline.scan_files_for_guardrails", return_value=(fake_violations, True)),
+        patch("scripts.audit_warning_baseline.compute_census_counts", return_value=CURRENT_RESIDUAL_CEILINGS),
+    ):
+        with pytest.raises(SystemExit) as exc_info:
+            main(["--target", "backend_v2", "--check-residual"])
+        assert exc_info.value.code == 0
+        out, _ = capsys.readouterr()
+        assert "RESIDUAL DEBT CEILINGS" in out

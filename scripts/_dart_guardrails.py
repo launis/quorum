@@ -1,7 +1,9 @@
 """Automated Dart Codebase Guardrails Engine (DGR001-DGR010).
 
 Single Source of Truth for static Dart architectural rules enforcement across Quorum Flutter client.
-Scans handwritten client code for loose Map types, anonymous HTTP payloads, UI error concealment, unlocalized strings, lint suppressions, hardcoded hex colors, manual string clippings, missing error boundaries, and unguarded async values.
+Scans handwritten client code across full multi-line source text for loose Map types, anonymous HTTP
+payloads, UI error concealment, unlocalized strings, lint suppressions, hardcoded hex colors, manual
+string clippings, missing error boundaries, and unguarded async values.
 Guarantees 100% false-positive immunity for generated files (*.freezed.dart, *.g.dart, .dart_tool/, build/).
 """
 
@@ -34,9 +36,11 @@ except ImportError:
 setup_script_environment()
 
 __all__ = [
+    "DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES",
     "DartViolation",
     "GuardrailSeverity",
     "format_dart_violations_table",
+    "is_dgr005_object_map_exempt",
     "is_generated_dart_file",
     "main",
     "scan_dart_file",
@@ -71,11 +75,72 @@ class DartViolation(BaseModel):
     is_suppressed: Annotated[bool, Field(description="Whether violation is suppressed")]
 
 
+# Locked boundary and open-JSON exemption ledger for Map<String, Object?> (analogous to QGR027).
+# Any file outside this set using Map<String, Object?> triggers a FATAL DGR005 violation.
+DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES: frozenset[str] = frozenset(
+    {
+        # HTTP / SSE / Error transport boundaries
+        "client_app_v2/lib/core/api/execution_client.dart",
+        "client_app_v2/lib/core/api/reports_client.dart",
+        "client_app_v2/lib/core/api/sse_client.dart",
+        "client_app_v2/lib/core/api/studio_client.dart",
+        "client_app_v2/lib/core/api/workflow_client.dart",
+        "client_app_v2/lib/core/error/app_exception.dart",
+        "client_app_v2/lib/core/network/interceptors/error_interceptor.dart",
+        "client_app_v2/lib/features/auth/data/auth_repository.dart",
+        "client_app_v2/lib/features/auth/data/repositories/user_repository.dart",
+        # Open-JSON DTO models (raw_inputs, context_variables, mcp_tool_params, extensions, trace)
+        "client_app_v2/lib/features/execution/models/distilled_evaluation.dart",
+        "client_app_v2/lib/features/execution/models/execution_create_request_dto.dart",
+        "client_app_v2/lib/features/execution/models/execution_metadata.dart",
+        "client_app_v2/lib/features/execution/models/execution_record.dart",
+        "client_app_v2/lib/features/execution/models/frozen_context_snapshot.dart",
+        "client_app_v2/lib/features/execution/models/report_data_v2_dto.dart",
+        "client_app_v2/lib/features/execution/models/workflow_inputs.dart",
+        "client_app_v2/lib/features/studio/models/model_config.dart",
+        "client_app_v2/lib/features/studio/models/prompt_block.dart",
+        "client_app_v2/lib/features/studio/models/prompt_block_simulation.dart",
+        "client_app_v2/lib/features/studio/models/step_simulation.dart",
+        "client_app_v2/lib/features/studio/models/workflow.dart",
+        "client_app_v2/lib/features/studio/models/workflow_simulation.dart",
+        # Locked residual open-JSON consumers and dynamic schema renderers
+        "client_app_v2/lib/features/execution/controllers/execution_controller.dart",
+        "client_app_v2/lib/features/execution/views/dashboard_view.dart",
+        "client_app_v2/lib/features/execution/views/dynamic_start_screen.dart",
+        "client_app_v2/lib/features/execution/views/new_execution_view.dart",
+        "client_app_v2/lib/features/studio/controllers/blueprint_editor_controller.dart",
+        "client_app_v2/lib/features/studio/controllers/output_profile_controller.dart",
+        "client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart",
+        "client_app_v2/lib/features/studio/utils/workflow_cloner.dart",
+        "client_app_v2/lib/features/studio/views/blueprint_editor_view.dart",
+        "client_app_v2/lib/features/studio/views/model_registry_view.dart",
+        "client_app_v2/lib/features/studio/views/step_builder_view.dart",
+        "client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart",
+        "client_app_v2/lib/shared/widgets/audit_trail_viewer.dart",
+        "client_app_v2/lib/shared/widgets/comparison_matrix.dart",
+        "client_app_v2/lib/shared/widgets/dynamic_form.dart",
+        "client_app_v2/lib/shared/widgets/generic_grid.dart",
+        "client_app_v2/lib/shared/widgets/pre_mortem_card.dart",
+        "client_app_v2/lib/shared/widgets/result_dashboard.dart",
+        "client_app_v2/lib/shared/widgets/schema_mapper.dart",
+        "client_app_v2/lib/shared/widgets/score_card_radar.dart",
+        "client_app_v2/lib/shared/widgets/specialist_section.dart",
+        "client_app_v2/lib/shared/widgets/validation_timeline_widget.dart",
+        "client_app_v2/lib/shared/widgets/workflow_selector.dart",
+    }
+)
+
+
 # ==============================================================================
-# Rule Patterns
+# Multi-Line Capable Rule Patterns
 # ==============================================================================
 
-# DGR001: Loose Map return types in API clients, models, controllers, or providers
+# Tokenizer pattern matching Dart string literals or single/multi-line comments
+_DART_STRING_OR_COMMENT_PATTERN = re.compile(
+    r'("""[\s\S]*?"""|\'\'\'[\s\S]*?\'\'\'|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|//[^\n]*|/\*[\s\S]*?\*/)'
+)
+
+# DGR001: Loose Map return types in API clients, models, controllers, or providers (single or multi-line)
 DGR001_PATTERN = re.compile(
     r"\b(Future\s*<\s*List\s*<\s*Map(?:\s*<[^>]+>)?\s*>\s*>|"
     r"FutureOr\s*<\s*List\s*<\s*Map(?:\s*<[^>]+>)?\s*>\s*>|"
@@ -85,43 +150,87 @@ DGR001_PATTERN = re.compile(
     r"Map\s*<[A-Za-z0-9_?,\s]+>)\s+([A-Za-z0-9_]+)\s*\("
 )
 
-# DGR002: SizedBox.shrink() concealment
-DGR002_PATTERN = re.compile(r"\b(?:const\s+)?SizedBox\.shrink\s*\(\s*\)")
+# DGR002: SizedBox.shrink() concealment (single or multi-line)
+DGR002_PATTERN = re.compile(r"\b(?:const\s+)?SizedBox\s*\.\s*shrink\s*\(\s*\)")
 
-# DGR003: Raw hardcoded string literals in Text("...") widgets (single-line and multi-line) and raw exception .toString()
-DGR003_PATTERN = re.compile(r"\b(?:const\s+)?Text\s*\(\s*(['\"])(.*?)\1\s*[,)]")
-DGR003_MULTILINE_PATTERN = re.compile(r"\b(?:const\s+)?Text\s*\(\s*\n\s*(['\"])([^\n]*)\1\s*[,)]")
+# DGR003: Raw hardcoded string literals in Text(...) widgets (single-line, multi-line, and adjacent string literals)
+DGR003_TEXT_LITERAL_PATTERN = re.compile(r"\b(?:const\s+)?Text\s*\(\s*((?:(['\"])(?:\\.|(?!\2)[^\n\\])*\2\s*)+)\s*[,)]")
+_DGR003_STRING_SEGMENT_PATTERN = re.compile(r"(['\"])((?:\\.|(?!\1)[^\n\\])*)\1")
+
 DGR003_RAW_ERROR_PATTERN = re.compile(
-    r"\b(?:l10n\.\w+\s*\(\s*(?:(?:e|err|error)\.toString\s*\(\s*\)|['\"]\$(?:e|err|error)['\"])"
-    r"|AsyncError\s*\([^)]*\)\s*=>\s*(?:const\s+)?Text\s*\(\s*(?:e|err|error)\.toString\s*\(\s*\))",
+    r"\b(?:l10n\.\w+\s*\(\s*(?:(?:e|err|error)\s*\.\s*toString\s*\(\s*\)|['\"]\$(?:e|err|error)['\"])"
+    r"|AsyncError\s*\([^)]*\)\s*=>\s*(?:const\s+)?Text\s*\(\s*(?:e|err|error)\s*\.\s*toString\s*\(\s*\))",
     re.DOTALL,
 )
 
 # DGR004: Dart lint suppressions (// ignore: or // ignore_for_file:)
 DGR004_PATTERN = re.compile(r"//\s*(?:ignore_for_file|ignore):")
 
-# DGR005: Non-codec Map<String, dynamic> in handwritten Dart code
-DGR005_PATTERN = re.compile(r"Map<\s*String\s*,\s*dynamic\s*>")
+# DGR005: Non-codec Map<String, dynamic>, Map<String, Object?>, Map<Object?, Object?>, or Map<dynamic, dynamic>
+DGR005_DYNAMIC_MAP_PATTERN = re.compile(
+    r"\bMap\s*<\s*(?:String|dynamic|Object\??)\s*,\s*dynamic\s*>"
+    r"|\bMap\s*<\s*dynamic\s*,\s*[A-Za-z0-9_?\s]+\s*>"
+)
+DGR005_OBJECT_MAP_PATTERN = re.compile(r"\bMap\s*<\s*(?:String|Object\??|dynamic)\s*,\s*Object\??\s*>")
 DGR005_CODEC_EXEMPT_PATTERN = re.compile(
-    r"fromJson\(\s*Map<\s*String\s*,\s*dynamic\s*>\s+\w+\s*\)|Map<\s*String\s*,\s*dynamic\s*>\s+toJson\("
+    r"fromJson\s*\(\s*Map\s*<\s*String\s*,\s*(?:dynamic|Object\??)\s*>\s+\w+\s*,?\s*\)"
+    r"|Map\s*<\s*String\s*,\s*(?:dynamic|Object\??)\s*>\s+toJson\s*\("
 )
 
-# DGR006: Anonymous Map literals in HTTP request payloads
-DGR006_PATTERN = re.compile(r"\b(?:data|queryParameters):\s*\{")
+# DGR006: Anonymous Map literals in HTTP request payloads (single or multi-line, with optional type args)
+DGR006_PATTERN = re.compile(r"\b(?:data|queryParameters)\s*:\s*(?:<[^>]+>\s*)?\{")
 
-# DGR007: Banned hardcoded hex colors, direct Colors.* calls, or deprecated .withOpacity(...) in feature widgets
-DGR007_PATTERN = re.compile(r"\bColor\s*\(\s*0x[0-9a-fA-F]+\s*\)|\bColors\.[a-zA-Z]+")
-DGR007_WITH_OPACITY_PATTERN = re.compile(r"\.withOpacity\s*\(")
+# DGR007: Banned hardcoded hex colors, direct Colors.* calls, or deprecated .withOpacity(...) in UI widgets
+DGR007_PATTERN = re.compile(r"\bColor\s*\(\s*0x[0-9a-fA-F]+\s*,?\s*\)|\bColors\s*\.\s*[a-zA-Z]+")
+DGR007_WITH_OPACITY_PATTERN = re.compile(r"\.\s*withOpacity\s*\(")
 
 # DGR008: Banned manual string clippings via .substring() and legacy Uuid().v4()
-DGR008_PATTERN = re.compile(r"\.substring\s*\(")
-DGR008_UUID_V4_PATTERN = re.compile(r"\.v4\s*\(")
+DGR008_PATTERN = re.compile(r"\.\s*substring\s*\(")
+DGR008_UUID_V4_PATTERN = re.compile(r"\.\s*v4\s*\(")
 
 # DGR010: Missing AsyncValue guards on dynamic AsyncNotifierProvider consumers
-DGR010_PATTERN = re.compile(r"\.requireValue\b")
+DGR010_PATTERN = re.compile(r"\.\s*requireValue\b")
 
 # Ignored trivial string literals for DGR003 (pure symbols or separators)
 PUNCTUATION_OR_EMPTY_PATTERN = re.compile(r"^[\s\-:–—|/\\.,;*+~#_!?@$%^&()\[\]{}'\"0-9→←↑↓↳•×+%=<>]*$")
+
+
+def _strip_dart_comments(source_text: str) -> str:
+    """Replace Dart line and block comments with spaces while preserving string literals and newlines.
+
+    Preserving newline characters ensures that character offsets in the returned string map 1:1
+    to the exact 1-based line numbers and column offsets in the original source text.
+
+    Args:
+        source_text: Raw Dart source text.
+
+    Returns:
+        Source text with all comments replaced by whitespace of identical length and line structure.
+    """
+
+    def _replace_match(match: re.Match[str]) -> str:
+        token = match.group(0)
+        if token.startswith("//") or token.startswith("/*"):
+            return "".join("\n" if ch == "\n" else " " for ch in token)
+        return token
+
+    return _DART_STRING_OR_COMMENT_PATTERN.sub(_replace_match, source_text)
+
+
+def _offset_to_line_col(source_text: str, offset: int) -> tuple[int, int]:
+    """Convert a 0-based character offset in source_text to (1-based lineno, 0-based col_offset).
+
+    Args:
+        source_text: Full source text string.
+        offset: 0-based character index into source_text.
+
+    Returns:
+        2-tuple of (lineno, col_offset).
+    """
+    lineno = source_text.count("\n", 0, offset) + 1
+    last_nl = source_text.rfind("\n", 0, offset)
+    col_offset = offset if last_nl == -1 else offset - last_nl - 1
+    return lineno, max(0, col_offset)
 
 
 def _strip_dart_interpolations(text: str) -> str:
@@ -137,6 +246,21 @@ def _strip_dart_interpolations(text: str) -> str:
     without_vars = re.sub(r"\$[a-zA-Z_][a-zA-Z0-9_]*", "", without_braces)
     without_escapes = without_vars.replace("\\n", " ")
     return re.sub(r"\bms\b", "", without_escapes).strip()
+
+
+def is_dgr005_object_map_exempt(filepath: str) -> bool:
+    """Check whether a file path is in the locked DGR005 Map<String, Object?> boundary/open-JSON exemption set.
+
+    Args:
+        filepath: File path string to evaluate.
+
+    Returns:
+        True if the file is an exempted transport boundary, open-JSON DTO, or locked residual file.
+    """
+    normalized = filepath.replace("\\", "/").strip("/")
+    if normalized in DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES:
+        return True
+    return any(normalized.endswith("/" + exempt) for exempt in DGR005_BOUNDARY_AND_OPEN_JSON_EXEMPT_FILES)
 
 
 def is_generated_dart_file(filepath: Path | str, source_text: str | None = None) -> bool:
@@ -176,38 +300,44 @@ def is_generated_dart_file(filepath: Path | str, source_text: str | None = None)
     return False
 
 
-def _check_api_and_codec_line_rules(
+def _check_api_and_codec_multiline_rules(
     filepath: str,
-    lineno: int,
-    line: str,
+    source_text: str,
+    uncommented_text: str,
     *,
     is_api_or_model_scope: bool,
     is_test_scope: bool,
 ) -> list[DartViolation]:
-    """Evaluate API return type, Map<String, dynamic>, and HTTP payload rules on a single line.
+    """Evaluate DGR001, DGR005, and DGR006 across full comment-stripped multi-line Dart source.
 
     Args:
         filepath: Target file path being scanned.
-        lineno: 1-indexed line number.
-        line: Raw source code line.
+        source_text: Original decoded UTF-8 source text.
+        uncommented_text: Source text with comments replaced by spaces preserving line breaks.
         is_api_or_model_scope: Whether the file resides in an API, model, controller, or provider directory.
         is_test_scope: Whether the file resides in a test directory.
 
     Returns:
-        List of DartViolation instances detected on the line.
+        List of DartViolation instances detected in the file.
     """
     violations: list[DartViolation] = []
+    codec_exempt_spans = [m.span() for m in DGR005_CODEC_EXEMPT_PATTERN.finditer(uncommented_text)]
+
+    def _is_inside_codec_span(offset: int) -> bool:
+        return any(start <= offset < end for start, end in codec_exempt_spans)
 
     if is_api_or_model_scope:
-        dgr001_match = DGR001_PATTERN.search(line)
-        if dgr001_match:
-            ret_type = dgr001_match.group(1).strip()
+        for dgr001_match in DGR001_PATTERN.finditer(uncommented_text):
+            if _is_inside_codec_span(dgr001_match.start()):
+                continue
+            ret_type = re.sub(r"\s+", " ", dgr001_match.group(1).strip())
             method_name = dgr001_match.group(2).strip()
+            lineno, col_offset = _offset_to_line_col(source_text, dgr001_match.start())
             violations.append(
                 DartViolation(
                     filepath=filepath,
                     lineno=lineno,
-                    col_offset=dgr001_match.start(),
+                    col_offset=col_offset,
                     rule_code="DGR001",
                     message=f"Banned loose Map return type `{ret_type}` in method `{method_name}`.",
                     remediation="Return strongly typed Freezed DTOs or domain models instead of raw Map<String, dynamic> in API clients.",
@@ -216,29 +346,54 @@ def _check_api_and_codec_line_rules(
                 )
             )
 
-    dgr005_match = DGR005_PATTERN.search(line)
-    if dgr005_match and not DGR005_CODEC_EXEMPT_PATTERN.search(line):
+    seen_dgr005_offsets: set[int] = set()
+    for dgr005_match in DGR005_DYNAMIC_MAP_PATTERN.finditer(uncommented_text):
+        start_pos = dgr005_match.start()
+        if _is_inside_codec_span(start_pos):
+            continue
+        seen_dgr005_offsets.add(start_pos)
+        lineno, col_offset = _offset_to_line_col(source_text, start_pos)
         violations.append(
             DartViolation(
                 filepath=filepath,
                 lineno=lineno,
-                col_offset=dgr005_match.start(),
+                col_offset=col_offset,
                 rule_code="DGR005",
                 message="Banned non-codec `Map<String, dynamic>` detected in handwritten Dart code.",
-                remediation="Retype to a strongly typed Freezed DTO or `Map<String, Object?>`.",
+                remediation="Retype to a strongly typed Freezed DTO or domain model instead of raw Map.",
                 severity=GuardrailSeverity.FATAL,
                 is_suppressed=False,
             )
         )
 
-    if not is_test_scope:
-        dgr006_match = DGR006_PATTERN.search(line)
-        if dgr006_match:
+    if not is_test_scope and not is_dgr005_object_map_exempt(filepath):
+        for obj_map_match in DGR005_OBJECT_MAP_PATTERN.finditer(uncommented_text):
+            start_pos = obj_map_match.start()
+            if start_pos in seen_dgr005_offsets or _is_inside_codec_span(start_pos):
+                continue
+            matched_token = re.sub(r"\s+", " ", obj_map_match.group(0).strip())
+            lineno, col_offset = _offset_to_line_col(source_text, start_pos)
             violations.append(
                 DartViolation(
                     filepath=filepath,
                     lineno=lineno,
-                    col_offset=dgr006_match.start(),
+                    col_offset=col_offset,
+                    rule_code="DGR005",
+                    message=f"Banned untyped `{matched_token}` map loophole detected in handwritten Dart code.",
+                    remediation="Retype to a strongly typed Freezed DTO or domain model instead of `Map<String, Object?>`.",
+                    severity=GuardrailSeverity.FATAL,
+                    is_suppressed=False,
+                )
+            )
+
+    if not is_test_scope:
+        for dgr006_match in DGR006_PATTERN.finditer(uncommented_text):
+            lineno, col_offset = _offset_to_line_col(source_text, dgr006_match.start())
+            violations.append(
+                DartViolation(
+                    filepath=filepath,
+                    lineno=lineno,
+                    col_offset=col_offset,
                     rule_code="DGR006",
                     message="Banned anonymous Map literal in HTTP request payload `data: { ... }` or `queryParameters: { ... }`.",
                     remediation="Serialize a strongly typed Freezed DTO via `request.toJson()` instead of passing an inline Map literal.",
@@ -250,40 +405,42 @@ def _check_api_and_codec_line_rules(
     return violations
 
 
-def _check_ui_and_feature_line_rules(
+def _check_ui_and_feature_multiline_rules(
     filepath: str,
-    lineno: int,
-    line: str,
+    source_text: str,
+    uncommented_text: str,
     *,
     is_ui_scope: bool,
     is_feature_widget_scope: bool,
+    is_theme_scope: bool,
     is_test_scope: bool,
     default_severity: GuardrailSeverity,
 ) -> list[DartViolation]:
-    """Evaluate UI widget, localization, color token, substring, and AsyncValue rules on a single line.
+    """Evaluate DGR002, DGR003, DGR007, DGR008, and DGR010 across full comment-stripped Dart source.
 
     Args:
         filepath: Target file path being scanned.
-        lineno: 1-indexed line number.
-        line: Raw source code line.
-        is_ui_scope: Whether the file resides in features or shared UI directories.
-        is_feature_widget_scope: Whether the file is a non-test feature widget file.
+        source_text: Original decoded UTF-8 source text.
+        uncommented_text: Source text with comments replaced by spaces preserving line breaks.
+        is_ui_scope: Whether the file resides in features, shared, or router UI directories.
+        is_feature_widget_scope: Whether the file is a non-test UI widget file (features, shared, or router).
+        is_theme_scope: Whether the file is a theme token definition file.
         is_test_scope: Whether the file resides in a test directory.
         default_severity: Default severity tier (WARNING or FATAL when strict).
 
     Returns:
-        List of DartViolation instances detected on the line.
+        List of DartViolation instances detected across single-line and multi-line constructs.
     """
     violations: list[DartViolation] = []
 
     if is_ui_scope:
-        dgr002_match = DGR002_PATTERN.search(line)
-        if dgr002_match:
+        for dgr002_match in DGR002_PATTERN.finditer(uncommented_text):
+            lineno, col_offset = _offset_to_line_col(source_text, dgr002_match.start())
             violations.append(
                 DartViolation(
                     filepath=filepath,
                     lineno=lineno,
-                    col_offset=dgr002_match.start(),
+                    col_offset=col_offset,
                     rule_code="DGR002",
                     message="Banned `SizedBox.shrink()` UI error or layout concealment detected.",
                     remediation="Use `AppErrorBoundary`, typed error state widgets, or explicit empty placeholders instead of `SizedBox.shrink()`.",
@@ -292,64 +449,86 @@ def _check_ui_and_feature_line_rules(
                 )
             )
 
+        for err_match in DGR003_RAW_ERROR_PATTERN.finditer(uncommented_text):
+            lineno, col_offset = _offset_to_line_col(source_text, err_match.start())
+            violations.append(
+                DartViolation(
+                    filepath=filepath,
+                    lineno=lineno,
+                    col_offset=col_offset,
+                    rule_code="DGR003",
+                    message="Banned raw exception `.toString()` or `'$e'` in UI localization/error widget.",
+                    remediation="Use `AppExceptionX.extractLocalizedHint(error, l10n)` instead of passing raw `error.toString()` or `'$e'` to UI strings.",
+                    severity=default_severity,
+                    is_suppressed=False,
+                )
+            )
+
     if is_feature_widget_scope:
-        dgr003_match = DGR003_PATTERN.search(line)
-        if dgr003_match:
-            raw_text = dgr003_match.group(2)
-            if not PUNCTUATION_OR_EMPTY_PATTERN.match(raw_text):
+        for dgr003_match in DGR003_TEXT_LITERAL_PATTERN.finditer(uncommented_text):
+            literal_cluster = dgr003_match.group(1)
+            segments = _DGR003_STRING_SEGMENT_PATTERN.findall(literal_cluster)
+            raw_text = "".join(seg[1] for seg in segments)
+            static_residue = _strip_dart_interpolations(raw_text)
+            if not PUNCTUATION_OR_EMPTY_PATTERN.match(static_residue):
+                lineno, col_offset = _offset_to_line_col(source_text, dgr003_match.start())
+                is_multiline = "\n" in dgr003_match.group(0)
+                prefix_label = (
+                    "Banned multi-line hardcoded string literal" if is_multiline else "Banned hardcoded string literal"
+                )
                 violations.append(
                     DartViolation(
                         filepath=filepath,
                         lineno=lineno,
-                        col_offset=dgr003_match.start(),
+                        col_offset=col_offset,
                         rule_code="DGR003",
-                        message=f'Banned hardcoded string literal `"{raw_text}"` in `Text()` widget.',
+                        message=f'{prefix_label} `"{raw_text}"` in `Text()` widget.',
                         remediation="Use `AppLocalizations.of(context)` or `.arb` localization keys instead of raw hardcoded strings in `Text(...)` widgets.",
                         severity=default_severity,
                         is_suppressed=False,
                     )
                 )
 
-        dgr007_match = DGR007_PATTERN.search(line)
-        if dgr007_match:
-            matched_color = dgr007_match.group(0)
-            violations.append(
-                DartViolation(
-                    filepath=filepath,
-                    lineno=lineno,
-                    col_offset=dgr007_match.start(),
-                    rule_code="DGR007",
-                    message=f"Banned hardcoded hex color or direct Colors.* call `{matched_color}` in feature widget.",
-                    remediation="Use Theme.of(context).colorScheme tokens or DesignTokens instead of hardcoded Color(0x...) or Colors.*.",
-                    severity=default_severity,
-                    is_suppressed=False,
+        if not is_theme_scope:
+            for dgr007_match in DGR007_PATTERN.finditer(uncommented_text):
+                matched_color = re.sub(r"\s+", " ", dgr007_match.group(0).strip())
+                lineno, col_offset = _offset_to_line_col(source_text, dgr007_match.start())
+                violations.append(
+                    DartViolation(
+                        filepath=filepath,
+                        lineno=lineno,
+                        col_offset=col_offset,
+                        rule_code="DGR007",
+                        message=f"Banned hardcoded hex color or direct Colors.* call `{matched_color}` in feature widget.",
+                        remediation="Use Theme.of(context).colorScheme tokens or DesignTokens instead of hardcoded Color(0x...) or Colors.*.",
+                        severity=default_severity,
+                        is_suppressed=False,
+                    )
                 )
-            )
 
-        # Phase 1, Step 1: Detect deprecated .withOpacity( calls under DGR007
-        opacity_match = DGR007_WITH_OPACITY_PATTERN.search(line)
-        if opacity_match:
-            violations.append(
-                DartViolation(
-                    filepath=filepath,
-                    lineno=lineno,
-                    col_offset=opacity_match.start(),
-                    rule_code="DGR007",
-                    message="Banned deprecated `.withOpacity(...)` call detected in feature widget.",
-                    remediation="Use .withValues(alpha: ...) instead of deprecated .withOpacity(...) for Impeller wide-gamut color precision.",
-                    severity=default_severity,
-                    is_suppressed=False,
+            for opacity_match in DGR007_WITH_OPACITY_PATTERN.finditer(uncommented_text):
+                lineno, col_offset = _offset_to_line_col(source_text, opacity_match.start())
+                violations.append(
+                    DartViolation(
+                        filepath=filepath,
+                        lineno=lineno,
+                        col_offset=col_offset,
+                        rule_code="DGR007",
+                        message="Banned deprecated `.withOpacity(...)` call detected in feature widget.",
+                        remediation="Use .withValues(alpha: ...) instead of deprecated .withOpacity(...) for Impeller wide-gamut color precision.",
+                        severity=default_severity,
+                        is_suppressed=False,
+                    )
                 )
-            )
 
     if not is_test_scope:
-        dgr008_match = DGR008_PATTERN.search(line)
-        if dgr008_match:
+        for dgr008_match in DGR008_PATTERN.finditer(uncommented_text):
+            lineno, col_offset = _offset_to_line_col(source_text, dgr008_match.start())
             violations.append(
                 DartViolation(
                     filepath=filepath,
                     lineno=lineno,
-                    col_offset=dgr008_match.start(),
+                    col_offset=col_offset,
                     rule_code="DGR008",
                     message="Banned manual string clipping via `.substring()` detected.",
                     remediation="Use LinguisticShield, safeTruncate(), or character boundary utilities instead of manual `.substring()`.",
@@ -358,13 +537,13 @@ def _check_ui_and_feature_line_rules(
                 )
             )
 
-        v4_match = DGR008_UUID_V4_PATTERN.search(line)
-        if v4_match:
+        for v4_match in DGR008_UUID_V4_PATTERN.finditer(uncommented_text):
+            lineno, col_offset = _offset_to_line_col(source_text, v4_match.start())
             violations.append(
                 DartViolation(
                     filepath=filepath,
                     lineno=lineno,
-                    col_offset=v4_match.start(),
+                    col_offset=col_offset,
                     rule_code="DGR008",
                     message="Banned legacy `Uuid().v4()` version-4 UUID generation detected.",
                     remediation="Use `generateOpaqueUuid7(prefix)` or `const Uuid().v7()` to enforce 32-hex RFC 9562 UUIDv7 parity.",
@@ -373,14 +552,13 @@ def _check_ui_and_feature_line_rules(
                 )
             )
 
-        dgr010_match = DGR010_PATTERN.search(line)
-        if dgr010_match:
-            # Phase 1, Step 1: Mandate Dart 3 native switch pattern matching in DGR010 remediation
+        for dgr010_match in DGR010_PATTERN.finditer(uncommented_text):
+            lineno, col_offset = _offset_to_line_col(source_text, dgr010_match.start())
             violations.append(
                 DartViolation(
                     filepath=filepath,
                     lineno=lineno,
-                    col_offset=dgr010_match.start(),
+                    col_offset=col_offset,
                     rule_code="DGR010",
                     message="Missing AsyncValue guard: direct `.requireValue` access detected on dynamic AsyncValue consumer.",
                     remediation="Use Dart 3 native switch pattern matching (switch (asyncVal) { AsyncData(:final value) => ..., AsyncError(:final error) => ..., AsyncLoading() => ... }) or .valueOrNull instead of .requireValue.",
@@ -397,6 +575,7 @@ def _check_master_view_error_boundary(
     normalized_path: str,
     path_parts: set[str],
     source_text: str,
+    uncommented_text: str,
     default_severity: GuardrailSeverity,
 ) -> list[DartViolation]:
     """Verify DGR009 mandatory AppErrorBoundary wrapping on feature master views.
@@ -406,6 +585,7 @@ def _check_master_view_error_boundary(
         normalized_path: Forward-slash normalized file path.
         path_parts: Set of path directory segments.
         source_text: Decoded UTF-8 source text of the Dart file.
+        uncommented_text: Comment-stripped Dart source text.
         default_severity: Default severity tier (WARNING or FATAL when strict).
 
     Returns:
@@ -414,17 +594,21 @@ def _check_master_view_error_boundary(
     is_master_view_file = (
         "features" in path_parts
         and "test" not in path_parts
-        and ("master_view" in normalized_path.lower() or bool(re.search(r"\bclass\s+\w*MasterView\b", source_text)))
+        and (
+            "master_view" in normalized_path.lower() or bool(re.search(r"\bclass\s+\w*MasterView\b", uncommented_text))
+        )
     )
-    if is_master_view_file and "AppErrorBoundary" not in source_text:
-        match = re.search(r"\bclass\s+\w*MasterView\b", source_text)
-        class_lineno = source_text[: match.start()].count("\n") + 1 if match else 1
-        col_offset = (match.start() - source_text[: match.start()].rfind("\n") - 1) if match else 0
+    if is_master_view_file and "AppErrorBoundary" not in uncommented_text:
+        match = re.search(r"\bclass\s+\w*MasterView\b", uncommented_text)
+        if match:
+            class_lineno, col_offset = _offset_to_line_col(source_text, match.start())
+        else:
+            class_lineno, col_offset = 1, 0
         return [
             DartViolation(
                 filepath=filepath,
                 lineno=class_lineno,
-                col_offset=max(0, col_offset),
+                col_offset=col_offset,
                 rule_code="DGR009",
                 message="Feature master view is missing mandatory AppErrorBoundary wrapping.",
                 remediation="Wrap the root body or view content in an AppErrorBoundary widget to isolate unexpected UI crashes.",
@@ -435,70 +619,8 @@ def _check_master_view_error_boundary(
     return []
 
 
-def _check_multiline_and_raw_error_ui_rules(
-    filepath: str,
-    source_text: str,
-    *,
-    is_ui_scope: bool,
-    is_feature_widget_scope: bool,
-    default_severity: GuardrailSeverity,
-) -> list[DartViolation]:
-    """Evaluate multi-line DGR003 hardcoded Text literals and raw exception .toString() leaks.
-
-    Args:
-        filepath: Target file path being scanned.
-        source_text: Decoded UTF-8 source text of the Dart file.
-        is_ui_scope: Whether the file resides in features or shared UI directories.
-        is_feature_widget_scope: Whether the file is a non-test feature widget file.
-        default_severity: Default severity tier (WARNING or FATAL when strict).
-
-    Returns:
-        List of DartViolation instances detected across multi-line constructs.
-    """
-    violations: list[DartViolation] = []
-
-    if is_feature_widget_scope:
-        for match in DGR003_MULTILINE_PATTERN.finditer(source_text):
-            raw_text = match.group(2)
-            static_residue = _strip_dart_interpolations(raw_text)
-            if not PUNCTUATION_OR_EMPTY_PATTERN.match(static_residue):
-                lineno = source_text[: match.start()].count("\n") + 1
-                col_offset = max(0, match.start() - source_text[: match.start()].rfind("\n") - 1)
-                violations.append(
-                    DartViolation(
-                        filepath=filepath,
-                        lineno=lineno,
-                        col_offset=col_offset,
-                        rule_code="DGR003",
-                        message=f'Banned multi-line hardcoded string literal `"{raw_text}"` in `Text()` widget.',
-                        remediation="Use `AppLocalizations.of(context)` or `.arb` localization keys instead of raw hardcoded strings in `Text(...)` widgets.",
-                        severity=default_severity,
-                        is_suppressed=False,
-                    )
-                )
-
-    if is_ui_scope:
-        for match in DGR003_RAW_ERROR_PATTERN.finditer(source_text):
-            lineno = source_text[: match.start()].count("\n") + 1
-            col_offset = max(0, match.start() - source_text[: match.start()].rfind("\n") - 1)
-            violations.append(
-                DartViolation(
-                    filepath=filepath,
-                    lineno=lineno,
-                    col_offset=col_offset,
-                    rule_code="DGR003",
-                    message="Banned raw exception `.toString()` or `'$e'` in UI localization/error widget.",
-                    remediation="Use `AppExceptionX.extractLocalizedHint(error, l10n)` instead of passing raw `error.toString()` or `'$e'` to UI strings.",
-                    severity=default_severity,
-                    is_suppressed=False,
-                )
-            )
-
-    return violations
-
-
 def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -> list[DartViolation]:
-    """Scan Dart source code bytes for architectural violations.
+    """Scan Dart source code bytes for architectural violations across single and multi-line constructs.
 
     Args:
         filepath: File path string associated with the source bytes.
@@ -506,7 +628,7 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
         strict: Whether to escalate warning-level violations to FATAL severity.
 
     Returns:
-        List of detected DartViolation instances.
+        List of detected DartViolation instances ordered by line and column.
     """
     try:
         source_text = source_bytes.decode("utf-8")
@@ -538,16 +660,14 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
         or "providers" in path_parts
         or "core/api" in normalized_path
     )
-    is_ui_scope = "features" in path_parts or "shared" in path_parts
     is_test_scope = "test" in path_parts
-    is_feature_widget_scope = "features" in path_parts and not is_test_scope
+    is_ui_scope = ("features" in path_parts or "shared" in path_parts or "router" in path_parts) and not is_test_scope
+    is_feature_widget_scope = is_ui_scope
+    is_theme_scope = "theme" in path_parts or Path(filepath).name.lower() == "app_colors.dart"
     default_severity = GuardrailSeverity.FATAL if strict else GuardrailSeverity.WARNING
 
+    # DGR004 scans raw lines specifically to catch // ignore: and // ignore_for_file: comments
     for lineno, line in enumerate(source_text.splitlines(), start=1):
-        stripped = line.strip()
-        if not stripped:
-            continue
-
         dgr004_match = DGR004_PATTERN.search(line)
         if dgr004_match:
             violations.append(
@@ -563,36 +683,26 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
                 )
             )
 
-        if stripped.startswith("//") or stripped.startswith("/*") or stripped.startswith("*"):
-            continue
-
-        violations.extend(
-            _check_api_and_codec_line_rules(
-                filepath,
-                lineno,
-                line,
-                is_api_or_model_scope=is_api_or_model_scope,
-                is_test_scope=is_test_scope,
-            )
-        )
-        violations.extend(
-            _check_ui_and_feature_line_rules(
-                filepath,
-                lineno,
-                line,
-                is_ui_scope=is_ui_scope,
-                is_feature_widget_scope=is_feature_widget_scope,
-                is_test_scope=is_test_scope,
-                default_severity=default_severity,
-            )
-        )
+    uncommented_text = _strip_dart_comments(source_text)
 
     violations.extend(
-        _check_multiline_and_raw_error_ui_rules(
+        _check_api_and_codec_multiline_rules(
             filepath,
             source_text,
+            uncommented_text,
+            is_api_or_model_scope=is_api_or_model_scope,
+            is_test_scope=is_test_scope,
+        )
+    )
+    violations.extend(
+        _check_ui_and_feature_multiline_rules(
+            filepath,
+            source_text,
+            uncommented_text,
             is_ui_scope=is_ui_scope,
             is_feature_widget_scope=is_feature_widget_scope,
+            is_theme_scope=is_theme_scope,
+            is_test_scope=is_test_scope,
             default_severity=default_severity,
         )
     )
@@ -602,10 +712,12 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
             normalized_path,
             path_parts,
             source_text,
+            uncommented_text,
             default_severity,
         )
     )
 
+    violations.sort(key=lambda v: (v.lineno, v.col_offset, v.rule_code))
     return violations
 
 
@@ -712,15 +824,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="""Client-Side Static Dart Guardrail Analyzer (DGR001-DGR010).
 
-Enforces Flutter client architecture and static type safety invariants:
+Enforces Flutter client architecture and static type safety invariants across full multi-line source:
   DGR001: Loose Map return types in API clients, models, controllers, or providers (FATAL)
   DGR002: SizedBox.shrink() concealment (WARNING)
-  DGR003: Raw hardcoded string literals in Text widgets (WARNING)
+  DGR003: Raw hardcoded string literals in Text widgets across features/, shared/, and router/ (WARNING)
   DGR004: Dart lint suppressions (FATAL)
-  DGR005: Non-codec Map<String, dynamic> in handwritten Dart code (FATAL)
+  DGR005: Non-codec Map<String, dynamic> or unexempted Map<String, Object?> in handwritten Dart code (FATAL)
   DGR006: Anonymous Map literals in HTTP request payloads (FATAL)
-  DGR007: Banned hardcoded hex colors or direct Colors.* calls in feature widgets (WARNING)
-  DGR008: Banned manual string clippings via .substring() (WARNING)
+  DGR007: Banned hardcoded hex colors or direct Colors.* calls in UI widgets (WARNING)
+  DGR008: Banned manual string clippings via .substring() and legacy Uuid().v4() (WARNING)
   DGR009: Missing AppErrorBoundary wrapping on feature master views (WARNING)
   DGR010: Missing AsyncValue guards on dynamic AsyncNotifierProvider consumers (WARNING)
 
