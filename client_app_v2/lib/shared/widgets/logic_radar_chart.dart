@@ -137,9 +137,10 @@ class LogicRadarChart extends ConsumerWidget {
         ),
       ];
 
-      final hiddenTicksStyle = (textTheme.labelSmall ?? const TextStyle())
-          .copyWith(color: transparentColor);
-      final titleStyle = (textTheme.labelSmall ?? const TextStyle()).copyWith(
+      final hiddenTicksStyle = textTheme.labelSmall?.copyWith(
+        color: transparentColor,
+      );
+      final titleStyle = textTheme.labelSmall?.copyWith(
         color: colorScheme.onSurfaceVariant,
         fontWeight: FontWeight.bold,
       );

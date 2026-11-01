@@ -112,7 +112,9 @@ class ErrorView extends StatelessWidget {
           if (kDebugMode && technicalDetails != null) ...[
             AppSpacing.h16,
             Theme(
-              data: theme.copyWith(dividerColor: Colors.transparent),
+              data: theme.copyWith(
+                dividerColor: theme.colorScheme.surface.withValues(alpha: 0.0),
+              ),
               child: ExpansionTile(
                 title: Text(
                   l10n.technicalDetails,

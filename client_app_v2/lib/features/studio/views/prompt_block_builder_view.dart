@@ -207,7 +207,9 @@ class PromptBlockBuilderView extends HookConsumerWidget {
             },
             child: Text(
               l10n.delete,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Theme.of(context).colorScheme.error,
+              ),
             ),
           ),
         ],
@@ -362,9 +364,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
               MaterialBanner(
                 content: Text(simulationError.value!),
                 backgroundColor: Theme.of(context).colorScheme.errorContainer,
-                contentTextStyle: TextStyle(
-                  color: Theme.of(context).colorScheme.onErrorContainer,
-                ),
+                contentTextStyle: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                    ),
                 actions: [
                   TextButton(
                     onPressed: () => simulationError.value = null,
@@ -393,22 +396,25 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                 children: [
                                   Text(
                                     l10n.promptBlockConfigTitle,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                   AppSpacing.h16,
                                   if (payload.id.isNotEmpty == true) ...[
                                     Text(
                                       l10n.opaqueIdLabel(payload.id),
-                                      style: TextStyle(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
-                                        fontFamily: 'monospace',
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                            fontFamily: 'monospace',
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
                                     AppSpacing.h24,
                                   ],
@@ -429,10 +435,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                 children: [
                                   Text(
                                     l10n.promptBlockPropertiesTitle,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                   AppSpacing.h16,
 
@@ -761,9 +767,12 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                         children: [
                                           Text(
                                             l10n.dataTypeExecutionConstraints,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                           ),
                                           AppSpacing.h12,
                                           Wrap(
@@ -896,9 +905,12 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                           AppSpacing.h16,
                                           Text(
                                             l10n.xaiOutputExtensionsTitle,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                           ),
                                           AppSpacing.h8,
                                           Wrap(
@@ -983,9 +995,12 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                       child: SwitchListTile(
                                         title: Text(
                                           l10n.allowContextualOverrideLabel,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                         ),
                                         subtitle: Padding(
                                           padding: const EdgeInsets.only(
@@ -1024,9 +1039,12 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                     child: SwitchListTile(
                                       title: Text(
                                         l10n.promptBlockEnsembleToggle,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                       ),
                                       subtitle: Padding(
                                         padding: const EdgeInsets.only(
@@ -1072,9 +1090,13 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                             Expanded(
                                               child: Text(
                                                 l10n.theoryGroundingTitle,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodyMedium
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
@@ -1294,10 +1316,8 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       AppSpacing.h8,
                       actions,
@@ -1311,10 +1331,8 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     Expanded(
                       child: Text(
                         title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -1446,10 +1464,8 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       AppSpacing.h8,
                       actions,
@@ -1463,10 +1479,8 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     Expanded(
                       child: Text(
                         title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -1592,10 +1606,8 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     children: [
                       Text(
                         l10n.barsScalesTitle,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       AppSpacing.h8,
                       action,
@@ -1609,10 +1621,8 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     Expanded(
                       child: Text(
                         l10n.barsScalesTitle,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -1817,10 +1827,8 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         children: [
                           Text(
                             l10n.toneDirectivesTitle,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           AppSpacing.h8,
                           addBtn,
@@ -1834,10 +1842,8 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         Expanded(
                           child: Text(
                             l10n.toneDirectivesTitle,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -1982,7 +1988,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
             Expanded(
               child: Text(
                 l10n.matrixPromptNotice,
-                style: TextStyle(
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
