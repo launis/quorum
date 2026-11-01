@@ -1,3 +1,4 @@
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 
 /// Renders a graceful degradation card when an XAI extension is missing or malformed.
@@ -17,18 +18,22 @@ class FallbackErrorCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      padding: const EdgeInsets.all(12.0),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+      padding: AppSpacing.p12,
       decoration: BoxDecoration(
         color: theme.colorScheme.errorContainer.withValues(alpha: 0.5),
         border: Border(
-          left: BorderSide(color: theme.colorScheme.error, width: 4.0),
+          left: BorderSide(
+            color: theme.colorScheme.error,
+            width: AppSpacing.s4,
+          ),
           top: BorderSide(color: theme.dividerColor),
           right: BorderSide(color: theme.dividerColor),
           bottom: BorderSide(color: theme.dividerColor),
         ),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -36,9 +41,9 @@ class FallbackErrorCard extends StatelessWidget {
               Icon(
                 Icons.warning_amber_rounded,
                 color: theme.colorScheme.error,
-                size: 18.0,
+                size: AppSpacing.s16,
               ),
-              const SizedBox(width: 8.0),
+              AppSpacing.w8,
               Expanded(
                 child: Text(
                   title,
@@ -52,7 +57,7 @@ class FallbackErrorCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 4.0),
+          AppSpacing.h4,
           Text(
             message,
             style: theme.textTheme.bodySmall?.copyWith(

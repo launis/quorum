@@ -56,7 +56,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_step_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_steps_tab.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_strictness_tab.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/xai/fallback_error_card.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/xai/fallback_error_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/xai/matrix_observability_accordion.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/base_block_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/bibliography_block_card.dart]
