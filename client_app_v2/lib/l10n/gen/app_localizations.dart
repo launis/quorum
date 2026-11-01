@@ -10331,6 +10331,12 @@ abstract class AppLocalizations {
   /// **'{count}/{min} chars'**
   String contrastiveCharCounter(int count, int min);
 
+  /// No description provided for @staleTargetBlockChipLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from workflow: {blockId}'**
+  String staleTargetBlockChipLabel(String blockId);
+
   /// No description provided for @virtualStepParsingFailure.
   ///
   /// In en, this message translates to:

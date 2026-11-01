@@ -204,6 +204,37 @@ void main() {
         expect(deleted, isTrue);
       },
     );
+
+    testWidgets(
+      'test_matrix_graph_item_editor_renders_and_removes_stale_target_block_chip',
+      (WidgetTester tester) async {
+        const String staleBlkId = 'blk_stale_2';
+        MatrixSynthesisGroup currentGroup = const MatrixSynthesisGroup(
+          id: validGrpId,
+          title: I18nText(translations: {'en': 'Test Group'}),
+          targetBlocks: [validBlkId1, staleBlkId],
+          viewType: PresetView.compare2d,
+        );
+
+        await tester.pumpWidget(
+          buildTestableWidget(
+            group: currentGroup,
+            onUpdate: (updated) => currentGroup = updated,
+            allowedBlockIds: const {validBlkId1},
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Matrix 1'), findsOneWidget);
+        expect(find.text('Removed from workflow: $staleBlkId'), findsOneWidget);
+        expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+
+        await tester.tap(find.text('Removed from workflow: $staleBlkId'));
+        await tester.pumpAndSettle();
+
+        expect(currentGroup.targetBlocks, equals([validBlkId1]));
+      },
+    );
   });
 
   group('MatrixGraphItemEditor ISTQB Negative & Boundary Tests', () {

@@ -5784,6 +5784,11 @@ class AppLocalizationsFi extends AppLocalizations {
   }
 
   @override
+  String staleTargetBlockChipLabel(String blockId) {
+    return 'Poistettu työnkulusta: $blockId';
+  }
+
+  @override
   String virtualStepParsingFailure(String error) {
     return '[Virtuaalivaiheen jäsennysvirhe]\nDynaamista vaiheinjektiota ei voitu jäsentää: $error';
   }

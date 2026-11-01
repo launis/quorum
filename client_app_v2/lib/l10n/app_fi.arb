@@ -2221,6 +2221,14 @@
       }
     }
   },
+  "staleTargetBlockChipLabel": "Poistettu työnkulusta: {blockId}",
+  "@staleTargetBlockChipLabel": {
+    "placeholders": {
+      "blockId": {
+        "type": "String"
+      }
+    }
+  },
   "virtualStepParsingFailure": "[Virtuaalivaiheen jäsennysvirhe]\nDynaamista vaiheinjektiota ei voitu jäsentää: {error}",
   "@virtualStepParsingFailure": {
     "placeholders": {

@@ -2971,6 +2971,14 @@
       }
     }
   },
+  "staleTargetBlockChipLabel": "Removed from workflow: {blockId}",
+  "@staleTargetBlockChipLabel": {
+    "placeholders": {
+      "blockId": {
+        "type": "String"
+      }
+    }
+  },
   "virtualStepParsingFailure": "[Virtual Step Parsing Failure]\nDynamic step injection could not be parsed: {error}",
   "@virtualStepParsingFailure": {
     "placeholders": {

@@ -63,6 +63,9 @@ class ProfileSectionConfigTab extends ConsumerWidget {
                 if (step.extractionProtocolBlockId != null) {
                   allowedBlockIds.add(step.extractionProtocolBlockId!);
                 }
+                if (step.executionPersonaBlockId != null) {
+                  allowedBlockIds.add(step.executionPersonaBlockId!);
+                }
                 allowedBlockIds.addAll(step.criteriaBlockIds);
               }
             }

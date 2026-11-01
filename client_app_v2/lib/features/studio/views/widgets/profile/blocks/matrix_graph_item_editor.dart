@@ -53,6 +53,10 @@ class MatrixGraphItemEditor extends StatelessWidget {
     }).toList();
 
     final targetBlocks = List<String>.from(group.targetBlocks);
+    // Phase 2, Step 2.2: Identify stale targetBlock IDs no longer present in allowedBlockIds
+    final staleBlockIds = allowedBlockIds.isEmpty
+        ? const <String>[]
+        : targetBlocks.where((id) => !allowedBlockIds.contains(id)).toList();
     final currentViewType = group.viewType;
 
     // Slot capacity per view type
@@ -244,7 +248,7 @@ class MatrixGraphItemEditor extends StatelessWidget {
                   ],
                 ),
                 AppSpacing.h8,
-                if (matrixBlocks.isEmpty)
+                if (matrixBlocks.isEmpty && staleBlockIds.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       vertical: AppSpacing.s8,
@@ -260,43 +264,74 @@ class MatrixGraphItemEditor extends StatelessWidget {
                   Wrap(
                     spacing: AppSpacing.s8,
                     runSpacing: AppSpacing.s4,
-                    children: matrixBlocks.map((block) {
-                      final isSelected = targetBlocks.contains(block.id);
-                      final canSelectMore = targetBlocks.length < maxSlots;
-                      final localeCode = Localizations.localeOf(
-                        context,
-                      ).languageCode;
-                      final label = block.label.get(localeCode, fallback: 'en');
+                    children: [
+                      ...matrixBlocks.map((block) {
+                        final isSelected = targetBlocks.contains(block.id);
+                        final canSelectMore = targetBlocks.length < maxSlots;
+                        final localeCode = Localizations.localeOf(
+                          context,
+                        ).languageCode;
+                        final label = block.label.get(
+                          localeCode,
+                          fallback: 'en',
+                        );
 
-                      final onSelectedCallback =
-                          (isSelected || canSelectMore || maxSlots == 1)
-                          ? (bool selected) {
-                              final newTargets = List<String>.from(
-                                targetBlocks,
-                              );
-                              if (selected) {
-                                if (maxSlots == 1) {
-                                  newTargets.clear();
-                                  newTargets.add(block.id);
-                                } else if (canSelectMore) {
-                                  newTargets.add(block.id);
+                        final onSelectedCallback =
+                            (isSelected || canSelectMore || maxSlots == 1)
+                            ? (bool selected) {
+                                final newTargets = List<String>.from(
+                                  targetBlocks,
+                                );
+                                if (selected) {
+                                  if (maxSlots == 1) {
+                                    newTargets.clear();
+                                    newTargets.add(block.id);
+                                  } else if (canSelectMore) {
+                                    newTargets.add(block.id);
+                                  }
+                                } else {
+                                  newTargets.remove(block.id);
                                 }
-                              } else {
-                                newTargets.remove(block.id);
+                                onUpdate(
+                                  group.copyWith(targetBlocks: newTargets),
+                                );
                               }
-                              onUpdate(
-                                group.copyWith(targetBlocks: newTargets),
-                              );
-                            }
-                          : null;
+                            : null;
 
-                      return FilterChip(
-                        label: Text(label),
-                        tooltip: block.id,
-                        selected: isSelected,
-                        onSelected: onSelectedCallback,
-                      );
-                    }).toList(),
+                        return FilterChip(
+                          label: Text(label),
+                          tooltip: block.id,
+                          selected: isSelected,
+                          onSelected: onSelectedCallback,
+                        );
+                      }),
+                      ...staleBlockIds.map((staleId) {
+                        return FilterChip(
+                          selected: true,
+                          showCheckmark: false,
+                          selectedColor: colorScheme.errorContainer,
+                          checkmarkColor: colorScheme.onErrorContainer,
+                          side: BorderSide(color: colorScheme.error),
+                          avatar: Icon(
+                            Icons.warning_amber_rounded,
+                            size: AppSpacing.s16,
+                            color: colorScheme.onErrorContainer,
+                          ),
+                          label: Text(
+                            l10n.staleTargetBlockChipLabel(staleId),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: colorScheme.onErrorContainer,
+                            ),
+                          ),
+                          tooltip: staleId,
+                          onSelected: (_) {
+                            final newTargets = List<String>.from(targetBlocks)
+                              ..remove(staleId);
+                            onUpdate(group.copyWith(targetBlocks: newTargets));
+                          },
+                        );
+                      }),
+                    ],
                   ),
               ],
             ),

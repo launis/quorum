@@ -5742,6 +5742,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String staleTargetBlockChipLabel(String blockId) {
+    return 'Removed from workflow: $blockId';
+  }
+
+  @override
   String virtualStepParsingFailure(String error) {
     return '[Virtual Step Parsing Failure]\nDynamic step injection could not be parsed: $error';
   }
