@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:client_app/core/state/mutation.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/models/mcp_gateway.dart';
@@ -21,23 +22,9 @@ import 'widgets/workflow/workflow_inputs_tab.dart';
 import 'widgets/workflow/workflow_steps_tab.dart';
 import 'widgets/workflow/workflow_strictness_tab.dart';
 
-/// **Workflow DAG Builder (Gold Standard Phase 9)**
-///
 /// CRUD interface for managing Semantic Routing & DAG structures.
-/// Admin can define global inputs (`expected_inputs`) and sequence
+/// Admin configures global inputs (`expected_inputs`) and sequences
 /// processing steps (`steps`) including `depends_on` and `input_mappings`.
-/// Componentized to enforce Flat MVC architecture using the Sub-Tabs pattern.
-final _workflowClonePayload =
-    NotifierProvider<WorkflowClonePayloadNotifier, Workflow?>(
-      WorkflowClonePayloadNotifier.new,
-    );
-
-class WorkflowClonePayloadNotifier extends Notifier<Workflow?> {
-  @override
-  Workflow? build() => null;
-  void setPayload(Workflow? payload) => state = payload;
-}
-
 class WorkflowBuilderView extends HookConsumerWidget {
   final String? id;
   final String? slug;
@@ -47,65 +34,61 @@ class WorkflowBuilderView extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final wfId = (id ?? '').isEmpty ? 'new' : id!;
+    final wfId = (id == null || id!.isEmpty) ? 'new' : id!;
 
     final formState = ref.watch(workflowFormProvider(wfId));
     final stepsAsync = ref.watch(allBlueprintsProvider);
     final mcpGatewaysAsync = ref.watch(mcpGatewaysControllerProvider);
 
-    return switch (formState) {
-      AsyncData(:final value) => () {
-        // Absolute Fail-Fast with safe Scaffold ErrorView presentation
-        if (stepsAsync.hasError) {
-          return Scaffold(
+    return AppErrorBoundary(
+      child: switch (formState) {
+        AsyncData(:final value) => switch ((stepsAsync, mcpGatewaysAsync)) {
+          (AsyncError(:final error, :final stackTrace), _) => Scaffold(
             appBar: AppBar(title: Text(l10n.workflowEditTitle)),
             body: ErrorView(
-              error: stepsAsync.error!,
-              stackTrace: stepsAsync.stackTrace,
+              error: error,
+              stackTrace: stackTrace,
               compact: false,
               onRetry: () => ref.invalidate(allBlueprintsProvider),
             ),
-          );
-        }
-        if (mcpGatewaysAsync.hasError) {
-          return Scaffold(
+          ),
+          (_, AsyncError(:final error, :final stackTrace)) => Scaffold(
             appBar: AppBar(title: Text(l10n.workflowEditTitle)),
             body: ErrorView(
-              error: mcpGatewaysAsync.error!,
-              stackTrace: mcpGatewaysAsync.stackTrace,
+              error: error,
+              stackTrace: stackTrace,
               compact: false,
               onRetry: () => ref.invalidate(mcpGatewaysControllerProvider),
             ),
-          );
-        }
-        if (!stepsAsync.hasValue || !mcpGatewaysAsync.hasValue) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        return _BuilderScaffoldWrapper(
-          wfId: wfId,
-          payload: value,
-          blueprints: stepsAsync.value!,
-          mcpGateways: mcpGatewaysAsync.value ?? [],
-          l10n: l10n,
-        );
-      }(),
-      AsyncError(:final error, :final stackTrace) => Scaffold(
-        appBar: AppBar(title: Text(l10n.workflowEditTitle)),
-        body: ErrorView(
-          error: error,
-          stackTrace: stackTrace,
-          compact: false,
-          onRetry: () => ref.invalidate(workflowFormProvider(wfId)),
+          ),
+          (
+            AsyncData(value: final blueprints),
+            AsyncData(value: final mcpGateways),
+          ) =>
+            _BuilderScaffoldWrapper(
+              wfId: wfId,
+              payload: value,
+              blueprints: blueprints,
+              mcpGateways: mcpGateways,
+              l10n: l10n,
+            ),
+          _ => const Scaffold(body: Center(child: CircularProgressIndicator())),
+        },
+        AsyncError(:final error, :final stackTrace) => Scaffold(
+          appBar: AppBar(title: Text(l10n.workflowEditTitle)),
+          body: ErrorView(
+            error: error,
+            stackTrace: stackTrace,
+            compact: false,
+            onRetry: () => ref.invalidate(workflowFormProvider(wfId)),
+          ),
         ),
-      ),
-      _ => Scaffold(
-        appBar: AppBar(title: Text(l10n.workflowEditTitle)),
-        body: const Center(child: CircularProgressIndicator()),
-      ),
-    };
+        AsyncLoading() => Scaffold(
+          appBar: AppBar(title: Text(l10n.workflowEditTitle)),
+          body: const Center(child: CircularProgressIndicator()),
+        ),
+      },
+    );
   }
 }
 
@@ -129,41 +112,39 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
     WidgetRef ref,
     Workflow currentPayload,
   ) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.workflowCloneBtn),
         content: Text(l10n.workflowSharedBlueprintWarning),
         actions: [
           TextButton(
+            style: TextButton.styleFrom(
+              enabledMouseCursor: SystemMouseCursors.click,
+            ),
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(l10n.cancel),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(
+              enabledMouseCursor: SystemMouseCursors.click,
+            ),
             onPressed: () async {
               Navigator.of(ctx).pop();
-              final messenger = ScaffoldMessenger.of(context);
 
               try {
-                // SSoT Mandate: Backend performs the cloning to generate valid sr_ opaque IDs.
                 final clonedWorkflow = await ref
                     .read(workflowsControllerProvider.notifier)
                     .cloneWorkflow(currentPayload.id);
 
-                ref
-                    .read(_workflowClonePayload.notifier)
-                    .setPayload(clonedWorkflow); // keep track for snapshot
-
-                if (context.mounted) {
-                  final fallbackSlug = clonedWorkflow.slug.isNotEmpty
-                      ? clonedWorkflow.slug
-                      : 'copy';
-                  context.go(
-                    '/admin/workflow/edit/${clonedWorkflow.id}/$fallbackSlug',
-                  );
-                }
-
-                messenger.showSnackBar(
+                if (!context.mounted) return;
+                final fallbackSlug = clonedWorkflow.slug.isNotEmpty
+                    ? clonedWorkflow.slug
+                    : 'copy';
+                context.go(
+                  '/admin/workflow/edit/${clonedWorkflow.id}/$fallbackSlug',
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(l10n.workflowCloneSuccess)),
                 );
               } catch (e) {
@@ -198,18 +179,19 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
     final idStr = payload.id;
     if (idStr.isEmpty) return;
 
-    final nameToDisplay =
-        payload.name.translations['fi'] ??
-        payload.name.translations['en'] ??
-        idStr;
+    final currentLocale = Localizations.localeOf(context).languageCode;
+    final nameToDisplay = payload.name.get(currentLocale);
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.workflowDeleteConfirmTitle),
         content: Text(l10n.workflowDeleteConfirmDesc(nameToDisplay)),
         actions: [
           TextButton(
+            style: TextButton.styleFrom(
+              enabledMouseCursor: SystemMouseCursors.click,
+            ),
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(l10n.cancel),
           ),
@@ -232,26 +214,16 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final idController = useTextEditingController(text: payload.id);
     final slugController = useTextEditingController(text: payload.slug);
+    final syncedWorkflowId = useRef<String?>(null);
 
-    // Hydrate clone payload exactly once if it's a clone process
     useEffect(() {
-      final cloneData = ref.read(_workflowClonePayload);
-      if (cloneData != null && wfId == 'new') {
-        if (payload.id.isEmpty) {
-          Future.microtask(() {
-            idController.text = cloneData.id;
-            slugController.text = cloneData.slug;
-
-            // Clear clone payload so it doesn't trigger again
-            ref.read(_workflowClonePayload.notifier).setPayload(null);
-            ref
-                .read(workflowFormProvider(wfId).notifier)
-                .forceRebuild(cloneData);
-          });
-        }
+      if (syncedWorkflowId.value != payload.id) {
+        idController.text = payload.id;
+        slugController.text = payload.slug;
+        syncedWorkflowId.value = payload.id;
       }
       return null;
-    }, const []);
+    }, [payload.id, payload.slug]);
 
     final simulationBanner = useState<WorkflowSimulationResponse?>(null);
 
@@ -350,155 +322,176 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
 
     return DefaultTabController(
       length: 4,
-      child: AppExceptionBoundary(
-        child: Scaffold(
-          appBar: AppBar(
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              tooltip: 'Back to Studio',
-              onPressed: () => context.go('/admin'),
-            ),
-            title: Builder(
-              builder: (context) {
-                final titleStr = payload.name.get(
-                  Localizations.localeOf(context).languageCode,
-                  fallback: 'en',
-                );
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            mouseCursor: SystemMouseCursors.click,
+            icon: const Icon(Icons.arrow_back),
+            tooltip: l10n.backToStudioTooltip,
+            onPressed: () => context.go('/admin'),
+          ),
+          title: Builder(
+            builder: (context) {
+              final currentLocale = Localizations.localeOf(
+                context,
+              ).languageCode;
+              final hasValidName =
+                  payload.name.has(currentLocale) || payload.name.has('en');
 
-                if (titleStr.isEmpty && payload.id.isNotEmpty) {
+              if (!hasValidName) {
+                if (payload.id.isNotEmpty) {
                   return Text(
                     l10n.workflowNameMissingError,
-                    style: TextStyle(
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: Theme.of(context).colorScheme.error,
                     ),
                   );
                 }
                 return Text(
-                  titleStr.isEmpty ? l10n.workflowEditTitle : titleStr,
+                  l10n.workflowEditTitle,
+                  overflow: TextOverflow.ellipsis,
                 );
-              },
-            ),
-            actions: [
-              if (payload.id.isNotEmpty) ...[
-                IconButton(
-                  onPressed: () => _cloneWorkflow(context, ref, payload),
-                  icon: const Icon(Icons.content_copy),
-                  tooltip: l10n.workflowCloneBtn,
-                ),
-                IconButton(
-                  onPressed: () =>
-                      _deleteWorkflow(context, ref, deleteMutation),
-                  icon: Icon(
-                    Icons.delete,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  tooltip: l10n.delete,
-                ),
-              ],
-              IconButton(
-                onPressed: validateMutation.isLoading
-                    ? null
-                    : () {
-                        validateMutation.mutate(() async {
-                          return await ref
-                              .read(workflowsControllerProvider.notifier)
-                              .simulateWorkflow(payload);
-                        });
-                      },
-                icon: validateMutation.isLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(
-                        Icons.bug_report,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                tooltip: l10n.validateDagBtn,
-              ),
-              TextButton.icon(
-                onPressed: saveWorkflow,
-                icon: const Icon(Icons.save),
-                label: Text(l10n.studioSaveButton),
-              ),
-              const SizedBox(width: 16),
-            ],
-            bottom: TabBar(
-              tabs: [
-                Tab(
-                  icon: const Icon(Icons.settings),
-                  text: l10n.workflowTabGeneral,
-                ),
-                Tab(
-                  icon: const Icon(Icons.input),
-                  text: l10n.workflowTabInputs,
-                ),
-                Tab(
-                  icon: const Icon(Icons.account_tree),
-                  text: l10n.workflowTabSteps,
-                ),
-                Tab(
-                  icon: const Icon(Icons.balance),
-                  text: l10n.workflowTabStrictness,
-                ),
-              ],
-            ),
+              }
+
+              final titleStr = payload.name.get(currentLocale);
+              return Text(titleStr, overflow: TextOverflow.ellipsis);
+            },
           ),
-          body: Column(
-            children: [
-              if (simulationBanner.value != null) ...[
-                MaterialBanner(
-                  content: Text(
-                    simulationBanner.value!.valid
-                        ? l10n.simulatorValidDag
-                        : l10n.simulatorDagErrors(
-                            simulationBanner.value!.errors.join(', '),
-                          ),
-                  ),
-                  backgroundColor: simulationBanner.value!.valid
-                      ? Theme.of(context).colorScheme.primaryContainer
-                      : Theme.of(context).colorScheme.errorContainer,
-                  contentTextStyle: TextStyle(
-                    color: simulationBanner.value!.valid
-                        ? Theme.of(context).colorScheme.onPrimaryContainer
-                        : Theme.of(context).colorScheme.onErrorContainer,
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => simulationBanner.value = null,
-                      child: Text(l10n.cancelButton),
-                    ),
-                  ],
+          actions: [
+            if (payload.id.isNotEmpty) ...[
+              IconButton(
+                mouseCursor: SystemMouseCursors.click,
+                onPressed: () => _cloneWorkflow(context, ref, payload),
+                icon: const Icon(Icons.content_copy),
+                tooltip: l10n.workflowCloneBtn,
+              ),
+              IconButton(
+                mouseCursor: SystemMouseCursors.click,
+                onPressed: () => _deleteWorkflow(context, ref, deleteMutation),
+                icon: Icon(
+                  Icons.delete,
+                  color: Theme.of(context).colorScheme.error,
                 ),
-              ],
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    WorkflowGeneralTab(
-                      workflow: payload,
-                      idController: idController,
-                      slugController: slugController,
-                      onChanged: triggerUpdate,
-                    ),
-                    WorkflowInputsTab(
-                      workflow: payload,
-                      onChanged: triggerUpdate,
-                    ),
-                    WorkflowStepsTab(
-                      workflow: payload,
-                      blueprints: blueprints,
-                      mcpGateways: mcpGateways,
-                      onChanged: triggerUpdate,
-                    ),
-                    WorkflowStrictnessTab(
-                      workflow: payload,
-                      onChanged: triggerUpdate,
-                    ),
-                  ],
-                ),
+                tooltip: l10n.delete,
               ),
             ],
+            IconButton(
+              mouseCursor: SystemMouseCursors.click,
+              onPressed: validateMutation.isLoading
+                  ? null
+                  : () {
+                      validateMutation.mutate(() async {
+                        return await ref
+                            .read(workflowsControllerProvider.notifier)
+                            .simulateWorkflow(payload);
+                      });
+                    },
+              icon: validateMutation.isLoading
+                  ? const SizedBox(
+                      width: AppSpacing.s16,
+                      height: AppSpacing.s16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: AppSpacing.s2,
+                      ),
+                    )
+                  : Icon(
+                      Icons.bug_report,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              tooltip: l10n.validateDagBtn,
+            ),
+            TextButton.icon(
+              style: TextButton.styleFrom(
+                enabledMouseCursor: SystemMouseCursors.click,
+              ),
+              onPressed: saveWorkflow,
+              icon: const Icon(Icons.save),
+              label: Text(l10n.studioSaveButton),
+            ),
+            AppSpacing.w16,
+          ],
+          bottom: TabBar(
+            tabs: [
+              Tab(
+                icon: const Icon(Icons.settings),
+                text: l10n.workflowTabGeneral,
+              ),
+              Tab(icon: const Icon(Icons.input), text: l10n.workflowTabInputs),
+              Tab(
+                icon: const Icon(Icons.account_tree),
+                text: l10n.workflowTabSteps,
+              ),
+              Tab(
+                icon: const Icon(Icons.balance),
+                text: l10n.workflowTabStrictness,
+              ),
+            ],
+          ),
+        ),
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Column(
+              children: [
+                if (simulationBanner.value != null) ...[
+                  MaterialBanner(
+                    content: Text(
+                      simulationBanner.value!.valid
+                          ? l10n.simulatorValidDag
+                          : l10n.simulatorDagErrors(
+                              simulationBanner.value!.errors.join(', '),
+                            ),
+                    ),
+                    backgroundColor: simulationBanner.value!.valid
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Theme.of(context).colorScheme.errorContainer,
+                    contentTextStyle: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(
+                          color: simulationBanner.value!.valid
+                              ? Theme.of(context).colorScheme.onPrimaryContainer
+                              : Theme.of(context).colorScheme.onErrorContainer,
+                        ),
+                    actions: [
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          enabledMouseCursor: SystemMouseCursors.click,
+                        ),
+                        onPressed: () => simulationBanner.value = null,
+                        child: Text(l10n.cancelButton),
+                      ),
+                    ],
+                  ),
+                ],
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      WorkflowGeneralTab(
+                        workflow: payload,
+                        idController: idController,
+                        slugController: slugController,
+                        onChanged: triggerUpdate,
+                      ),
+                      WorkflowInputsTab(
+                        workflow: payload,
+                        onChanged: triggerUpdate,
+                      ),
+                      WorkflowStepsTab(
+                        workflow: payload,
+                        blueprints: blueprints,
+                        mcpGateways: mcpGateways,
+                        onChanged: triggerUpdate,
+                      ),
+                      WorkflowStrictnessTab(
+                        workflow: payload,
+                        onChanged: triggerUpdate,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

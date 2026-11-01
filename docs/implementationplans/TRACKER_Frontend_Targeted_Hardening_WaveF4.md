@@ -35,7 +35,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/workflows_master_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/contrastive_pair_editor.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/dag_canvas_view.dart]

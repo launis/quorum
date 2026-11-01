@@ -23,7 +23,7 @@ void main() {
   late MockStudioClient mockClient;
   late MockLoggerService mockLogger;
 
-  const testWfId = 'wor_01b1d71000000001';
+  const testWfId = 'wor_01965b10000070008000000000000001';
 
   final testWorkflow = Workflow(
     id: testWfId,
@@ -34,7 +34,7 @@ void main() {
     description: const I18nText(
       translations: {'en': 'Test Desc', 'fi': 'Testikuvaus'},
     ),
-    modelRegistryId: 'mr_test',
+    modelRegistryId: 'mr_01965b10000070008000000000000001',
     steps: const [],
     expectedInputs: const [],
   );
@@ -97,14 +97,12 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pumpAndSettle();
 
-        // Verify TabBar with 4 tabs exists
         expect(find.byType(TabBar), findsOneWidget);
         expect(find.text('1. Yleiset & Tulosteet'), findsOneWidget);
         expect(find.text('2. Syötteet'), findsOneWidget);
         expect(find.text('3. Stepit & Riippuvuudet'), findsOneWidget);
         expect(find.text('4. Arvioinnin ankaruus'), findsOneWidget);
 
-        // Verify title in AppBar shows localized workflow name
         expect(
           find.descendant(
             of: find.byType(AppBar),
@@ -127,17 +125,15 @@ void main() {
         await tester.pumpWidget(createTestWidget(id: ''));
         await tester.pumpAndSettle();
 
-        // Tap save button
         await tester.tap(find.byIcon(Icons.save));
         await tester.pumpAndSettle();
 
-        // Expect ID required snackbar
         expect(find.text('ID on pakollinen.'), findsOneWidget);
       },
     );
 
     testWidgets(
-      'renders ErrorView when stepsController fails to load steps (Negative Partition 3)',
+      'renders ErrorView when blueprints fail to load (Negative Partition 3)',
       (tester) async {
         when(
           () => mockClient.getWorkflow(testWfId),
@@ -148,6 +144,23 @@ void main() {
         when(
           () => mockClient.getSteps(),
         ).thenThrow(Exception('Failed to load steps'));
+
+        await tester.pumpWidget(createTestWidget());
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ErrorView), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'renders ErrorView when MCP gateways fail to load (Negative Partition 4)',
+      (tester) async {
+        when(
+          () => mockClient.getWorkflow(testWfId),
+        ).thenAnswer((_) async => testWorkflow);
+        when(
+          () => mockClient.getMcpGateways(),
+        ).thenThrow(Exception('Failed to load MCP gateways'));
 
         await tester.pumpWidget(createTestWidget());
         await tester.pumpAndSettle();
