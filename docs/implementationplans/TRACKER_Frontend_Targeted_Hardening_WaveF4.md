@@ -70,7 +70,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/variance_block_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart]

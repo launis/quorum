@@ -26,12 +26,26 @@ class MockWorkflowsController extends WorkflowsController {
   }
 }
 
+class MockErrorWorkflowsController extends WorkflowsController {
+  @override
+  FutureOr<List<Workflow>> build() {
+    throw StateError('Workflow repository unavailable');
+  }
+}
+
 class TestValidOutputProfileForm extends OutputProfileForm {
   final OutputProfile _profile;
+  OutputProfile? lastUpdatedPayload;
   TestValidOutputProfileForm(this._profile);
 
   @override
   FutureOr<OutputProfile> build(String id) => _profile;
+
+  @override
+  void updatePayload(OutputProfile updated) {
+    lastUpdatedPayload = updated;
+    state = AsyncData(updated);
+  }
 }
 
 void main() {
@@ -142,6 +156,72 @@ void main() {
       expect(
         find.text('Variance validation synthesis directive'),
         findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'ProfileGeneralTab renders localized workflow error state and normalizes whitespace-only directives to null',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 3000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final profile = OutputProfile(
+        id: 'prf_boundary',
+        workflowId: 'wf_dangling',
+        slug: 'prf-boundary',
+        name: const I18nText(translations: {'en': 'Boundary Profile'}),
+        toneInstruction: 'Initial tone',
+        matrix1dSynthesisDirective: 'Initial 1D',
+      );
+      final formNotifier = TestValidOutputProfileForm(profile);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            outputProfileFormProvider(
+              'prf_boundary',
+            ).overrideWith(() => formNotifier),
+            workflowsControllerProvider.overrideWith(
+              () => MockErrorWorkflowsController(),
+            ),
+          ],
+          child: const MaterialApp(
+            locale: Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(body: ProfileGeneralTab(id: 'prf_boundary')),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Negative check: Workflows AsyncError displays localized error text
+      expect(
+        find.textContaining('Workflow repository unavailable'),
+        findsOneWidget,
+      );
+
+      // Boundary check: Whitespace-only input in toneInstruction and 1D directive normalizes to null
+      await tester.enterText(
+        find.byKey(const Key('profile_tone_instruction_field')),
+        '   ',
+      );
+      await tester.pump();
+      expect(formNotifier.lastUpdatedPayload?.toneInstruction, isNull);
+
+      await tester.enterText(
+        find.byKey(const Key('profile_matrix_1d_directive_field')),
+        '   ',
+      );
+      await tester.pump();
+      expect(
+        formNotifier.lastUpdatedPayload?.matrix1dSynthesisDirective,
+        isNull,
       );
     },
   );

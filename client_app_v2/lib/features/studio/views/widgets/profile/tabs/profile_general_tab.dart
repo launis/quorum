@@ -157,7 +157,7 @@ class ProfileGeneralTab extends ConsumerWidget {
           ),
         ),
 
-        // Card 2: Tone & Style (EPIC 148 Pure Natural Language)
+        // Card 2: Tone & Style
         Card(
           elevation: 2,
           margin: const EdgeInsets.only(bottom: AppSpacing.s16),
@@ -220,7 +220,7 @@ class ProfileGeneralTab extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: l10n.profileToneInstructionLabel,
                     border: const OutlineInputBorder(),
-                    hintText: 'Always write prompt logic in English',
+                    hintText: l10n.rowAiRuleHelper,
                   ),
                   maxLines: 3,
                   onChanged: (val) {
@@ -236,9 +236,8 @@ class ProfileGeneralTab extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: AppSpacing.s8),
                   child: Text(
                     l10n.adminAiDescriptionHint,
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.error,
-                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -247,9 +246,8 @@ class ProfileGeneralTab extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: AppSpacing.s4),
                   child: Text(
                     l10n.adminPromptBestPracticesHint,
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 12,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -304,7 +302,7 @@ class ProfileGeneralTab extends ConsumerWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.s4),
+                AppSpacing.h4,
                 Text(
                   l10n.profileMatrixViewDirectivesSubtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
