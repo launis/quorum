@@ -556,7 +556,8 @@ def audit_python_file(filepath: Path, *, is_db_scope: bool = True) -> list[ZeroO
             )
         ]
 
-    is_adapter = filepath.name in {"graph_adapter.py", "entity_adapter.py"}
+    # Phase 1, Step 1: Enforce ZORM006 column subscript parity across entity_adapter sub-modules
+    is_adapter = filepath.name in {"graph_adapter.py", "entity_adapter.py"} or "entity_adapter" in filepath.parts
     visitor = _ZeroOrmAstVisitor(
         filepath=str(filepath),
         is_adapter_file=is_adapter,

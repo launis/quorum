@@ -9,16 +9,66 @@ and report_binaries).
 from __future__ import annotations
 
 import logging
-import uuid
 from collections.abc import Mapping, Sequence
-from datetime import datetime
-from decimal import Decimal
-from typing import Annotated
+from pathlib import Path
 
 from fastapi import status
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
-from pydantic_core import from_json, to_json
+from pydantic import BaseModel, JsonValue
+from pydantic_core import to_json
 
+# Phase 1, Step 2: Declare __path__ so entity_adapter sub-modules resolve while entity_adapter.py exists
+__path__: list[str] = [str(Path(__file__).resolve().with_suffix(""))]
+if __spec__ is not None:
+    __spec__.submodule_search_locations = __path__
+
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _COLLECTION_TO_TABLE_MAP as _COLLECTION_TO_TABLE_MAP,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _ROOT_SYSTEM_ORG_UUID7 as _ROOT_SYSTEM_ORG_UUID7,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _SYSTEM_ORG_UUID7 as _SYSTEM_ORG_UUID7,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _TABLE_TO_ENTITY_PREFIX as _TABLE_TO_ENTITY_PREFIX,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    CANONICAL_SEED_TABLES as CANONICAL_SEED_TABLES,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _coerce_float as _coerce_float,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _coerce_uuid_or_str as _coerce_uuid_or_str,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _decode_jsonb_column as _decode_jsonb_column,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _encode_optional_jsonb as _encode_optional_jsonb,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _format_optional_uuid7 as _format_optional_uuid7,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _format_org_uuid7 as _format_org_uuid7,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _parse_optional_uuid7 as _parse_optional_uuid7,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _parse_org_uuid7 as _parse_org_uuid7,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    _ReportBinaryRowDTO as _ReportBinaryRowDTO,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    execute_entity_upsert as execute_entity_upsert,
+)
+from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
+    resolve_effective_timeout as resolve_effective_timeout,
+)
 from backend_v2.database.postgres.pool import (
     AsyncPgConnectionProtocol,
     AsyncPgRecordProtocol,
@@ -26,8 +76,6 @@ from backend_v2.database.postgres.pool import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import Organization, User
 from backend_v2.models.core_base import (
-    OPAQUE_STRIPE_ID_REGEX,
-    V2CoreBase,
     format_prefixed_uuid7,
     parse_prefixed_uuid7,
 )
@@ -63,53 +111,6 @@ __all__ = [
     "CANONICAL_SEED_TABLES",
     "PostgresEntityAdapter",
 ]
-
-CANONICAL_SEED_TABLES: tuple[str, ...] = (
-    "organizations",
-    "users",
-    "system_configs",
-    "prompt_blocks",
-    "steps",
-    "workflows",
-    "output_profiles",
-    "executions",
-    "report_artifacts",
-    "report_binaries",
-)
-
-_COLLECTION_TO_TABLE_MAP: dict[str, str] = {
-    "organizations": "organizations",
-    "users": "users",
-    "system_config": "system_configs",
-    "system_configs": "system_configs",
-    "prompt_blocks": "prompt_blocks",
-    "components": "prompt_blocks",
-    "agents": "prompt_blocks",
-    "steps": "steps",
-    "task_blueprints": "steps",
-    "workflows": "workflows",
-    "output_profiles": "output_profiles",
-    "executions": "executions",
-    "report_artifacts": "report_artifacts",
-    "report_binaries": "report_binaries",
-}
-
-# Phase 3, Step 3: Canonical table-to-EntityPrefix map and deterministic SYSTEM organization UUIDv7 bridge
-_TABLE_TO_ENTITY_PREFIX: dict[str, EntityPrefix] = {
-    "organizations": EntityPrefix.ORGANIZATION,
-    "users": EntityPrefix.USER,
-    "system_configs": EntityPrefix.SYSTEM_CONFIG,
-    "prompt_blocks": EntityPrefix.PROMPT_BLOCK,
-    "steps": EntityPrefix.STEP,
-    "workflows": EntityPrefix.WORKFLOW,
-    "output_profiles": EntityPrefix.OUTPUT_PROFILE,
-    "executions": EntityPrefix.EXECUTION,
-    "report_artifacts": EntityPrefix.REPORT,
-    "report_binaries": EntityPrefix.REPORT,
-}
-
-_SYSTEM_ORG_UUID7: uuid.UUID = uuid.UUID("0195f3a0-0000-7000-8000-000000000000")
-_ROOT_SYSTEM_ORG_UUID7: uuid.UUID = uuid.UUID("0195f3a0-0000-7000-8000-000000000001")
 
 _SAVE_REPORT_BINARY_SQL: str = """
 INSERT INTO report_binaries (report_id, mime_type, pdf_bytes, size_bytes, created_at)
@@ -760,164 +761,6 @@ FROM report_artifacts
 """
 
 
-class _ReportBinaryRowDTO(V2CoreBase):
-    """Strict internal boundary DTO for hydrating a ReportBinaryPayloadDTO row.
-
-    Attributes:
-        report_id: Formatted rep_<uuid7_hex> identifier.
-        mime_type: MIME type string.
-        pdf_bytes: Raw binary PDF payload.
-        size_bytes: Exact byte length.
-        created_at: Creation timestamp.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    report_id: Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Report ID.")]
-    mime_type: Annotated[str, Field(min_length=1, description="MIME type.")]
-    pdf_bytes: Annotated[bytes, Field(description="PDF binary bytes.")]
-    size_bytes: Annotated[int, Field(ge=0, description="Byte size.")]
-    created_at: Annotated[datetime, Field(description="Creation timestamp.")]
-
-
-def _coerce_uuid_or_str(raw: object) -> uuid.UUID | str:
-    """Narrow a raw database UUID or string column value to uuid.UUID | str.
-
-    Args:
-        raw: Database value from an asyncpg record column.
-
-    Returns:
-        Value narrowed to uuid.UUID or str.
-    """
-    if isinstance(raw, (uuid.UUID, str)):
-        return raw
-    return str(raw)
-
-
-def _parse_optional_uuid7(raw: str | None, prefix: EntityPrefix) -> uuid.UUID | None:
-    """Parse an optional Opaque Stripe ID into a 16-byte UUIDv7 or None.
-
-    Args:
-        raw: Optional canonical {prefix}_{32_hex} string or None.
-        prefix: Expected EntityPrefix for the foreign key column.
-
-    Returns:
-        Validated uuid.UUID or None.
-
-    Raises:
-        AppException: With VALIDATION_FAILED if raw is non-None and invalid.
-    """
-    if raw is None:
-        return None
-    return parse_prefixed_uuid7(raw, prefix)
-
-
-def _format_optional_uuid7(raw: object, prefix: EntityPrefix) -> str | None:
-    """Format an optional database UUID column value into a {prefix}_{32_hex} string or None.
-
-    Args:
-        raw: Database column value (uuid.UUID, str, or None).
-        prefix: Target EntityPrefix for formatting.
-
-    Returns:
-        Canonical {prefix}_{32_hex} string or None.
-
-    Raises:
-        AppException: With VALIDATION_FAILED if raw is non-None and not a valid UUIDv7.
-    """
-    if raw is None:
-        return None
-    return format_prefixed_uuid7(_coerce_uuid_or_str(raw), prefix)
-
-
-def _parse_org_uuid7(raw: str | None) -> uuid.UUID | None:
-    """Parse an optional organization_id into a 16-byte UUIDv7, bridging 'SYSTEM' deterministically.
-
-    Args:
-        raw: Organization identifier ('org_<32_hex>', 'org_system000000', 'SYSTEM', or None).
-
-    Returns:
-        16-byte version-7 uuid.UUID or None.
-
-    Raises:
-        AppException: With VALIDATION_FAILED if raw is an invalid organization ID.
-    """
-    if raw is None or raw == "SYSTEM":
-        return None
-    if raw == "org_system000000":
-        return _ROOT_SYSTEM_ORG_UUID7
-    return parse_prefixed_uuid7(raw, EntityPrefix.ORGANIZATION)
-
-
-def _format_org_uuid7(raw: object, *, default_system: bool = False) -> str | None:
-    """Format a database organization_id UUID column into 'org_<32_hex>', 'org_system000000', 'SYSTEM', or None.
-
-    Args:
-        raw: Database organization_id value (uuid.UUID, str, or None).
-        default_system: Whether None should reconstitute to 'SYSTEM' for system-defaulted entities.
-
-    Returns:
-        Canonical 'org_<32_hex>', 'org_system000000', 'SYSTEM', or None.
-
-    Raises:
-        AppException: With VALIDATION_FAILED if raw is non-None and invalid.
-    """
-    if raw is None:
-        return "SYSTEM" if default_system else None
-    coerced = _coerce_uuid_or_str(raw)
-    if coerced == _SYSTEM_ORG_UUID7 or str(coerced) in {str(_SYSTEM_ORG_UUID7), "SYSTEM"}:
-        return "SYSTEM"
-    if coerced == _ROOT_SYSTEM_ORG_UUID7 or str(coerced) in {str(_ROOT_SYSTEM_ORG_UUID7), "org_system000000"}:
-        return "org_system000000"
-    return format_prefixed_uuid7(coerced, EntityPrefix.ORGANIZATION)
-
-
-def _decode_jsonb_column(raw: object) -> object:
-    """Decode a JSONB column value if returned as raw UTF-8 string or bytes.
-
-    Args:
-        raw: Column value returned by asyncpg or InMemoryAsyncPgConnection.
-
-    Returns:
-        Decoded Python structure ready for Pydantic validation.
-    """
-    if raw is None:
-        return None
-    if isinstance(raw, (str, bytes, bytearray)):
-        return from_json(raw)
-    if isinstance(raw, memoryview):
-        return from_json(bytes(raw))
-    return raw
-
-
-def _encode_optional_jsonb(val: object) -> str | None:
-    """Encode an optional value to a UTF-8 JSON string for asyncpg JSONB parameters.
-
-    Args:
-        val: Value to encode, or None.
-
-    Returns:
-        UTF-8 JSON string or None.
-    """
-    if val is None:
-        return None
-    return to_json(val).decode("utf-8")
-
-
-def _coerce_float(raw: object) -> float:
-    """Convert a database NUMERIC/Decimal or float column value to float.
-
-    Args:
-        raw: Database numeric column value.
-
-    Returns:
-        Python float value.
-    """
-    if isinstance(raw, (float, int, Decimal)):
-        return float(raw)
-    return float(str(raw))
-
-
 class PostgresEntityAdapter:
     """Zero-ORM PostgreSQL 19 adapter implementing EntityPersistencePort.
 
@@ -1279,25 +1122,15 @@ class PostgresEntityAdapter:
         Raises:
             AppException: With STORAGE_ACCESS_FAILED if the database command fails.
         """
-        try:
-            await self._conn.execute(sql, *args, timeout=self.command_timeout_seconds)
-        except Exception as exc:
-            if isinstance(exc, AppException):
-                raise
-            msg = f"Failed to upsert {entity_label} '{entity_id}': {exc}"
-            logger.error(
-                "[PostgresEntityAdapter] %s: %s",
-                ErrorCodes.STORAGE_ACCESS_FAILED.name,
-                msg,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "entity_id": entity_id},
-            )
-            raise AppException(
-                message=msg,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
-            ) from exc
-        return entity_id
+        # Phase 1, Step 2: Delegate _execute_upsert to execute_entity_upsert
+        return await execute_entity_upsert(
+            self._conn,
+            self.command_timeout_seconds,
+            sql,
+            *args,
+            entity_id=entity_id,
+            entity_label=entity_label,
+        )
 
     def _hydrate_organization_row(self, row: AsyncPgRecordProtocol) -> Organization:
         """Hydrate an Organization from a database row.
