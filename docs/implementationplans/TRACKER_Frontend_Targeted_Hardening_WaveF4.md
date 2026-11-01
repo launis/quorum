@@ -42,7 +42,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/widgets/dynamic_item_list_editor.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/expected_input_editor_box.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/inspector_pane.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/inspector_pane.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/linguistic_shield_banner.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/prompt_preview_dialog.dart]
