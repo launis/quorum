@@ -15,7 +15,7 @@ extension AppExceptionX on AppException {
     }
     if (errorCode == 'CANCELLED') return l10n.cancel;
     if (errorCode == 'TIMEOUT' && detail.isNotEmpty) {
-      return detail;
+      return detail == 'The request timed out.' ? l10n.errorNetwork : detail;
     }
 
     // Map specific structured payloads or error codes
@@ -30,7 +30,9 @@ extension AppExceptionX on AppException {
               : '${l10n.actionHintCheckInput} (${ambiguousMatch['filename']})';
           return '${l10n.errValidationFailed}\n\n$detailText';
         }
-        if (detail.isNotEmpty && detail != 'Unknown error') {
+        if (detail.isNotEmpty &&
+            detail != 'Unknown error' &&
+            detail != 'Validation failed') {
           return '$locCode\n\n$detail';
         }
       }
@@ -92,11 +94,14 @@ extension AppExceptionX on AppException {
       // General
       'INTERNAL_SERVER_ERROR' =>
         '${l10n.errorServer}\n\n${l10n.actionHintTryAgainLater}',
+      'SERVER_ERROR' => l10n.errorServer,
       'UNKNOWN_ERROR' => l10n.errorUnknown,
       'SSE_CONNECTION_ABORTED' => l10n.errorSseConnectionAborted,
 
       // Workflow errors
       'WORKFLOW_NOT_FOUND' => l10n.errorNotFound,
+      'RESOURCE_NOT_FOUND' =>
+        '${l10n.errorNotFound}\n\n${l10n.actionHintContactSupport}',
       'WORKFLOW_EXECUTION_FAILED' => l10n.errorServer,
       'MISSING_WORKFLOW_ID' => l10n.fieldRequired,
       'WORKFLOW_CLONE_FAILED' => l10n.workflowCloneErrorMissingDep,

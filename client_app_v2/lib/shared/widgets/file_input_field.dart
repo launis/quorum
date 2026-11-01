@@ -1,3 +1,4 @@
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
@@ -69,9 +70,13 @@ class _FileInputFieldState extends ConsumerState<FileInputField> {
       ref
           .read(loggerServiceProvider)
           .error('FileInputField', 'File Error: $e', e, st);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.errorReadingFile('$e'))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.errorReadingFile(AppExceptionX.extractLocalizedHint(e, l10n)),
+          ),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

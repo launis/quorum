@@ -319,7 +319,7 @@ void main() {
 
         expect(find.byType(MaterialBanner), findsOneWidget);
         expect(
-          find.textContaining('Discovery endpoint unreachable'),
+          find.textContaining('Network error. Please check your connection.'),
           findsOneWidget,
         );
       },

@@ -11,6 +11,7 @@ import 'package:client_app/features/studio/views/widgets/profile/layout_editor_c
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -139,7 +140,9 @@ class ProfileEditorView extends HookConsumerWidget {
             .error('Studio', 'Failed to save user profile: $e', e, st);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.saveFailedError(e.toString())),
+            content: Text(
+              l10n.saveFailedError(AppExceptionX.extractLocalizedHint(e, l10n)),
+            ),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -526,7 +529,7 @@ class ProfileEditorView extends HookConsumerWidget {
                             ),
                             AsyncError(:final error) => Text(
                               l10n.studioViewsErrorLoadingExtensions(
-                                error.toString(),
+                                AppExceptionX.extractLocalizedHint(error, l10n),
                               ),
                             ),
                           },

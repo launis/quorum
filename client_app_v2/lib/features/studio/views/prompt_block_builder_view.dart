@@ -78,7 +78,9 @@ class PromptBlockBuilderView extends HookConsumerWidget {
           ref
               .read(loggerServiceProvider)
               .error('Studio', 'Failed to validate prompt block: $e', e);
-          simulationError.value = l10n.simulatorFailedError(e.toString());
+          simulationError.value = l10n.simulatorFailedError(
+            AppExceptionX.extractLocalizedHint(e, l10n),
+          );
         }
       },
     );
@@ -271,7 +273,11 @@ class PromptBlockBuilderView extends HookConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(l10n.saveFailedError(e.toString())),
+              content: Text(
+                l10n.saveFailedError(
+                  AppExceptionX.extractLocalizedHint(e, l10n),
+                ),
+              ),
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );

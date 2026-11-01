@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
@@ -40,14 +41,14 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _error == null) {
+          final l10n = AppLocalizations.of(context);
           final messenger = ScaffoldMessenger.maybeOf(context);
-          if (messenger != null && Scaffold.maybeOf(context) != null) {
+          if (l10n != null &&
+              messenger != null &&
+              Scaffold.maybeOf(context) != null) {
             messenger.showSnackBar(
               SnackBar(
-                content: Text(
-                  AppLocalizations.of(context)?.errorUnknown ??
-                      'Data Corruption / Render Error',
-                ),
+                content: Text(l10n.errorUnknown),
                 behavior: SnackBarBehavior.floating,
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
@@ -85,24 +86,23 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
 
   Widget _buildDiagnosticNode(BuildContext context, Object error) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
-    String displayError = error.toString();
+    String displayError = AppExceptionX.extractLocalizedHint(error, l10n);
+    final rawErrorStr = error.toString();
     if (error is CheckedFromJsonException) {
-      final key = error.key ?? 'unknown';
+      final key = error.key ?? l10n.errorUnknown;
       if (error.innerError != null) {
-        displayError =
-            l10n?.errorDataType(key, error.innerError.toString()) ??
-            '[Type Error in field "$key"]\n${error.innerError}';
+        displayError = l10n.errorDataType(key, error.innerError.toString());
       } else {
-        displayError =
-            l10n?.errorDataMapping(key, error.message ?? 'null') ??
-            '[Mapping Error in field "$key"]\n${error.message}';
+        displayError = l10n.errorDataMapping(
+          key,
+          error.message ?? l10n.errorUnknown,
+        );
       }
-    } else if (displayError.contains('stp_') ||
-        displayError.toLowerCase().contains('missing rule')) {
-      displayError =
-          '[Virtual Step Parsing Failure]\nDynamic step injection could not be parsed: $displayError';
+    } else if (rawErrorStr.contains('stp_') ||
+        rawErrorStr.toLowerCase().contains('missing rule')) {
+      displayError = l10n.virtualStepParsingFailure(rawErrorStr);
     }
 
     return Material(
@@ -131,7 +131,7 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
                 AppSpacing.w8,
                 Expanded(
                   child: Text(
-                    l10n?.errorUnknown ?? 'Data Corruption / Render Error',
+                    l10n.errorUnknown,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.onErrorContainer,
@@ -141,7 +141,7 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
                 ),
                 Semantics(
                   button: true,
-                  label: 'Reset',
+                  label: l10n.retry,
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: InkWell(

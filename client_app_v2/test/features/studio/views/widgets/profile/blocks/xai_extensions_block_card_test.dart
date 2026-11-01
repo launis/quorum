@@ -270,7 +270,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Error message rendered, no FilterChips shown
-        expect(find.textContaining('Extension lookup failed'), findsOneWidget);
+        expect(find.textContaining('Unknown error'), findsOneWidget);
         expect(find.byType(FilterChip), findsNothing);
 
         // Whitespace-only directive normalizes to null

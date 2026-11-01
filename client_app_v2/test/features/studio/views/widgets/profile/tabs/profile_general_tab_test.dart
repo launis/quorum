@@ -201,10 +201,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Negative check: Workflows AsyncError displays localized error text
-      expect(
-        find.textContaining('Workflow repository unavailable'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Unknown error'), findsOneWidget);
 
       // Boundary check: Whitespace-only input in toneInstruction and 1D directive normalizes to null
       await tester.enterText(

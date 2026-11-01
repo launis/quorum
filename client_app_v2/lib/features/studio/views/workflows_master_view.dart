@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
@@ -106,7 +107,7 @@ class _WorkflowsMasterViewState extends ConsumerState<WorkflowsMasterView> {
                       if (!context.mounted) return;
                       setState(() {
                         _bannerError = l10n.studioViewsFailedToCreate(
-                          e.toString(),
+                          AppExceptionX.extractLocalizedHint(e, l10n),
                         );
                       });
                     }

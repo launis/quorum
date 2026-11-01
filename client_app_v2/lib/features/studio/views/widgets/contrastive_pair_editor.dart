@@ -129,7 +129,9 @@ class _ContrastivePairEditorState extends State<ContrastivePairEditor> {
         Align(
           alignment: Alignment.centerRight,
           child: Text(
-            '$count/$minChars chars',
+            AppLocalizations.of(
+              context,
+            )!.contrastiveCharCounter(count, minChars),
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.labelSmall?.copyWith(
               color: counterColor,

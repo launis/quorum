@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
@@ -209,7 +210,9 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
                 child: CircularProgressIndicator(),
               ),
             ),
-            AsyncError(:final error) => Text(error.toString()),
+            AsyncError(:final error) => Text(
+              AppExceptionX.extractLocalizedHint(error, l10n),
+            ),
           },
           AppSpacing.h16,
           Row(

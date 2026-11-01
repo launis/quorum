@@ -149,7 +149,7 @@ void main() {
         find.text('Kausaalilöydökset ja virheanalyysi: Juurisyy jäljitetty'),
         findsOneWidget,
       );
-      expect(find.text('8 / 10 Intact'), findsOneWidget);
+      expect(find.text('8 / 10 ehjää'), findsOneWidget);
     });
 
     testWidgets('opens CausalInspectorModal when clicking inspector button', (

@@ -2117,5 +2117,116 @@
   "mockLoginAdminBtn": "Testikirjautuminen (Admin)",
   "mockLoginAnalystBtn": "Testikirjautuminen (Analyst)",
   "mockLoginMemberBtn": "Testikirjautuminen (Member)",
-  "mockLoginViewerBtn": "Testikirjautuminen (Viewer)"
+  "mockLoginViewerBtn": "Testikirjautuminen (Viewer)",
+  "causalIntactCountBadge": "{intact} / {total} ehjää",
+  "@causalIntactCountBadge": {
+    "placeholders": {
+      "intact": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "causalCriticalPathHeader": "KRIITTINEN SYY-SEURAUSPOLKU & RIIPPUVUUDET",
+  "causalNoCriticalNodes": "Tässä ajossa ei havaittu kriittisen polun solmuja.",
+  "causalParagraphRefLabel": "Viite: {ref}",
+  "@causalParagraphRefLabel": {
+    "placeholders": {
+      "ref": {
+        "type": "String"
+      }
+    }
+  },
+  "causalNodeStatusPassed": "LÄPÄISTY",
+  "causalNodeStatusFault": "VIRHE",
+  "causalFaultPropagationLabel": "kausaalinen virheen eteneminen",
+  "causalCriticalEdgesHeader": "KRIITTISET SYY-SEURAUSKAARET",
+  "causalSelectNodePrompt": "Valitse solmu tarkastellaksesi sitaatteja ja korjaustoimenpiteitä.",
+  "causalNodeDetailsTitle": "Solmun tiedot",
+  "causalRootCauseDiagnosisHeader": "JUURISYYDIAGNOOSI",
+  "causalFaultChainLabel": "Virheketju: {parentId} → {failingId}",
+  "@causalFaultChainLabel": {
+    "placeholders": {
+      "parentId": {
+        "type": "String"
+      },
+      "failingId": {
+        "type": "String"
+      }
+    }
+  },
+  "causalPenaltyAttributionLabel": "Pistevähennys: -{points} p",
+  "@causalPenaltyAttributionLabel": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "causalRemediationSimulationHeader": "KORJAUSSIMULAATIO",
+  "causalUnlocksDownstreamLabel": "Vapauttaa jatkosolmut: {nodes}",
+  "@causalUnlocksDownstreamLabel": {
+    "placeholders": {
+      "nodes": {
+        "type": "String"
+      }
+    }
+  },
+  "causalPotentialRecoveryLabel": "Potentiaalinen palautuma: +{points} p",
+  "@causalPotentialRecoveryLabel": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "causalFairScoringSummary": "Reilu pisteytys: {independent} itsenäistä, {cascading} ketjuuntuvaa | Vähennetty: -{deduplicated} p (säästetty {saved} p)",
+  "@causalFairScoringSummary": {
+    "placeholders": {
+      "independent": {
+        "type": "int"
+      },
+      "cascading": {
+        "type": "int"
+      },
+      "deduplicated": {
+        "type": "String"
+      },
+      "saved": {
+        "type": "String"
+      }
+    }
+  },
+  "causalCohesionSummary": "Koheesiopisteet: {cohesion}% | Tukemattomat väitteet: {unsupported}",
+  "@causalCohesionSummary": {
+    "placeholders": {
+      "cohesion": {
+        "type": "String"
+      },
+      "unsupported": {
+        "type": "int"
+      }
+    }
+  },
+  "contrastiveCharCounter": "{count}/{min} merkkiä",
+  "@contrastiveCharCounter": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "virtualStepParsingFailure": "[Virtuaalivaiheen jäsennysvirhe]\nDynaamista vaiheinjektiota ei voitu jäsentää: {error}",
+  "@virtualStepParsingFailure": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }

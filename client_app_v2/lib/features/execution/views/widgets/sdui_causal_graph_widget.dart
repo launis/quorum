@@ -73,7 +73,10 @@ class SduiCausalGraphWidget extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          '${block.intactClaimsCount} / ${block.totalClaimsCount} Intact',
+                          AppLocalizations.of(context)!.causalIntactCountBadge(
+                            block.intactClaimsCount,
+                            block.totalClaimsCount,
+                          ),
                           style: textTheme.labelSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: colorScheme.onPrimaryContainer,

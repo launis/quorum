@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/features/execution/models/human_override_request_dto.dart';
 import 'package:client_app/core/api/execution_client.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -139,7 +140,9 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = l10n.humanOverrideSaveFailed(e.toString());
+          _errorMessage = l10n.humanOverrideSaveFailed(
+            AppExceptionX.extractLocalizedHint(e, l10n),
+          );
         });
       }
     } finally {

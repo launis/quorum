@@ -172,7 +172,10 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
               ),
             ),
             child: Text(
-              '${widget.block.intactClaimsCount} / ${widget.block.totalClaimsCount} Intact',
+              l10n.causalIntactCountBadge(
+                widget.block.intactClaimsCount,
+                widget.block.totalClaimsCount,
+              ),
               style: textTheme.labelSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: colorScheme.onPrimaryContainer,
@@ -198,6 +201,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
     TextTheme textTheme,
     AppSemanticColors semanticColors,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLowest,
@@ -216,7 +220,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'CRITICAL CAUSAL PATH & DEPENDENCIES',
+                  l10n.causalCriticalPathHeader,
                   style: textTheme.labelSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.8,
@@ -228,7 +232,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                   Padding(
                     padding: const EdgeInsets.all(AppSpacing.s16),
                     child: Text(
-                      'No critical path nodes discovered in this execution.',
+                      l10n.causalNoCriticalNodes,
                       style: textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -327,7 +331,9 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                                             node.paragraphRef!.isNotEmpty) ...[
                                           AppSpacing.h4,
                                           Text(
-                                            'Ref: ${node.paragraphRef}',
+                                            l10n.causalParagraphRefLabel(
+                                              node.paragraphRef!,
+                                            ),
                                             style: textTheme.labelSmall
                                                 ?.copyWith(
                                                   color: colorScheme
@@ -356,7 +362,9 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                                         ),
                                       ),
                                       child: Text(
-                                        isPassed ? 'PASSED' : 'FAULT',
+                                        isPassed
+                                            ? l10n.causalNodeStatusPassed
+                                            : l10n.causalNodeStatusFault,
                                         style: textTheme.labelSmall?.copyWith(
                                           fontWeight: FontWeight.bold,
                                           color: isPassed
@@ -390,7 +398,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                                 AppSpacing.w8,
                                 Flexible(
                                   child: Text(
-                                    'causal fault propagation',
+                                    l10n.causalFaultPropagationLabel,
                                     style: textTheme.labelSmall?.copyWith(
                                       color: colorScheme.outline,
                                       fontStyle: FontStyle.italic,
@@ -409,7 +417,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                 if (widget.block.criticalEdges.isNotEmpty) ...[
                   AppSpacing.h16,
                   Text(
-                    'CRITICAL CAUSAL EDGES',
+                    l10n.causalCriticalEdgesHeader,
                     style: textTheme.labelSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.8,
@@ -480,7 +488,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
       child: node == null
           ? Center(
               child: Text(
-                'Select a node to inspect citations and remediations.',
+                l10n.causalSelectNodePrompt,
                 style: textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -516,7 +524,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                       AppSpacing.w8,
                       Expanded(
                         child: Text(
-                          'Node Details',
+                          l10n.causalNodeDetailsTitle,
                           style: textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: colorScheme.onSurface,
@@ -587,11 +595,13 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
                     ),
                   ],
                   ..._buildMatchingDiagnoses(
+                    l10n,
                     node.nodeId,
                     colorScheme,
                     textTheme,
                   ),
                   ..._buildMatchingRemediations(
+                    l10n,
                     node.nodeId,
                     colorScheme,
                     textTheme,
@@ -603,6 +613,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
   }
 
   List<Widget> _buildMatchingDiagnoses(
+    AppLocalizations l10n,
     String nodeId,
     ColorScheme colorScheme,
     TextTheme textTheme,
@@ -618,7 +629,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
     return [
       AppSpacing.h12,
       Text(
-        'ROOT CAUSE DIAGNOSIS',
+        l10n.causalRootCauseDiagnosisHeader,
         style: textTheme.labelSmall?.copyWith(
           fontWeight: FontWeight.bold,
           letterSpacing: 0.6,
@@ -641,7 +652,10 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Fault Chain: ${diag.rootCauseParentId} → ${diag.failingNodeId}',
+                l10n.causalFaultChainLabel(
+                  diag.rootCauseParentId,
+                  diag.failingNodeId,
+                ),
                 style: textTheme.labelSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: colorScheme.error,
@@ -657,7 +671,9 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
               if (diag.penaltyPoints > 0) ...[
                 AppSpacing.h4,
                 Text(
-                  'Penalty Attribution: -${diag.penaltyPoints.toStringAsFixed(1)} pts',
+                  l10n.causalPenaltyAttributionLabel(
+                    diag.penaltyPoints.toStringAsFixed(1),
+                  ),
                   style: textTheme.labelSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.error,
@@ -672,6 +688,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
   }
 
   List<Widget> _buildMatchingRemediations(
+    AppLocalizations l10n,
     String nodeId,
     ColorScheme colorScheme,
     TextTheme textTheme,
@@ -685,7 +702,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
     return [
       AppSpacing.h12,
       Text(
-        'REMEDIATION SIMULATION',
+        l10n.causalRemediationSimulationHeader,
         style: textTheme.labelSmall?.copyWith(
           fontWeight: FontWeight.bold,
           letterSpacing: 0.6,
@@ -720,7 +737,9 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
               if (rem.unlocksNodeIds.isNotEmpty) ...[
                 AppSpacing.h4,
                 Text(
-                  'Unlocks downstream: ${rem.unlocksNodeIds.join(", ")}',
+                  l10n.causalUnlocksDownstreamLabel(
+                    rem.unlocksNodeIds.join(', '),
+                  ),
                   style: textTheme.labelSmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -729,7 +748,9 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
               if (rem.potentialScoreImpact > 0) ...[
                 AppSpacing.h4,
                 Text(
-                  'Potential Recovery: +${rem.potentialScoreImpact.toStringAsFixed(1)} pts',
+                  l10n.causalPotentialRecoveryLabel(
+                    rem.potentialScoreImpact.toStringAsFixed(1),
+                  ),
                   style: textTheme.labelSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.primary,
@@ -749,6 +770,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
     TextTheme textTheme,
     AppSemanticColors semanticColors,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final fairScoring = widget.block.fairScoring;
     final antiFluff = widget.block.antiFluffAudit;
 
@@ -766,14 +788,22 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
           Expanded(
             child: fairScoring != null
                 ? Text(
-                    'Fair Scoring: ${fairScoring.independentErrorCount} independent, ${fairScoring.cascadingFaultCount} cascading | Deduplicated: -${fairScoring.deduplicatedPenaltyPoints.toStringAsFixed(1)} pts (saved ${fairScoring.dampenedSavingsPoints.toStringAsFixed(1)} pts)',
+                    l10n.causalFairScoringSummary(
+                      fairScoring.independentErrorCount,
+                      fairScoring.cascadingFaultCount,
+                      fairScoring.deduplicatedPenaltyPoints.toStringAsFixed(1),
+                      fairScoring.dampenedSavingsPoints.toStringAsFixed(1),
+                    ),
                     style: textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                     overflow: TextOverflow.ellipsis,
                   )
                 : Text(
-                    'Cohesion Score: ${(antiFluff.logicalCohesionScore * 100).toStringAsFixed(0)}% | Unsupported Claims: ${antiFluff.unsupportedClaimsCount}',
+                    l10n.causalCohesionSummary(
+                      (antiFluff.logicalCohesionScore * 100).toStringAsFixed(0),
+                      antiFluff.unsupportedClaimsCount,
+                    ),
                     style: textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -783,7 +813,7 @@ class _CausalInspectorModalState extends State<CausalInspectorModal> {
           AppSpacing.w8,
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(AppLocalizations.of(context)!.close),
+            child: Text(l10n.close),
           ),
         ],
       ),

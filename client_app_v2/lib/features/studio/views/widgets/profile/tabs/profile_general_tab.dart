@@ -4,6 +4,7 @@ import 'package:client_app/features/studio/controllers/output_profile_controller
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -128,7 +129,9 @@ class ProfileGeneralTab extends ConsumerWidget {
                     child: CircularProgressIndicator(),
                   ),
                   AsyncError(:final error) => Text(
-                    l10n.studioViewsErrorLoadingWorkflows(error.toString()),
+                    l10n.studioViewsErrorLoadingWorkflows(
+                      AppExceptionX.extractLocalizedHint(error, l10n),
+                    ),
                   ),
                 },
                 AppSpacing.h16,

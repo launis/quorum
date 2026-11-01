@@ -10211,6 +10211,131 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mock Login (Viewer)'**
   String get mockLoginViewerBtn;
+
+  /// No description provided for @causalIntactCountBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{intact} / {total} Intact'**
+  String causalIntactCountBadge(int intact, int total);
+
+  /// No description provided for @causalCriticalPathHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'CRITICAL CAUSAL PATH & DEPENDENCIES'**
+  String get causalCriticalPathHeader;
+
+  /// No description provided for @causalNoCriticalNodes.
+  ///
+  /// In en, this message translates to:
+  /// **'No critical path nodes discovered in this execution.'**
+  String get causalNoCriticalNodes;
+
+  /// No description provided for @causalParagraphRefLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ref: {ref}'**
+  String causalParagraphRefLabel(String ref);
+
+  /// No description provided for @causalNodeStatusPassed.
+  ///
+  /// In en, this message translates to:
+  /// **'PASSED'**
+  String get causalNodeStatusPassed;
+
+  /// No description provided for @causalNodeStatusFault.
+  ///
+  /// In en, this message translates to:
+  /// **'FAULT'**
+  String get causalNodeStatusFault;
+
+  /// No description provided for @causalFaultPropagationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'causal fault propagation'**
+  String get causalFaultPropagationLabel;
+
+  /// No description provided for @causalCriticalEdgesHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'CRITICAL CAUSAL EDGES'**
+  String get causalCriticalEdgesHeader;
+
+  /// No description provided for @causalSelectNodePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a node to inspect citations and remediations.'**
+  String get causalSelectNodePrompt;
+
+  /// No description provided for @causalNodeDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Node Details'**
+  String get causalNodeDetailsTitle;
+
+  /// No description provided for @causalRootCauseDiagnosisHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'ROOT CAUSE DIAGNOSIS'**
+  String get causalRootCauseDiagnosisHeader;
+
+  /// No description provided for @causalFaultChainLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Fault Chain: {parentId} → {failingId}'**
+  String causalFaultChainLabel(String parentId, String failingId);
+
+  /// No description provided for @causalPenaltyAttributionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Penalty Attribution: -{points} pts'**
+  String causalPenaltyAttributionLabel(String points);
+
+  /// No description provided for @causalRemediationSimulationHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'REMEDIATION SIMULATION'**
+  String get causalRemediationSimulationHeader;
+
+  /// No description provided for @causalUnlocksDownstreamLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlocks downstream: {nodes}'**
+  String causalUnlocksDownstreamLabel(String nodes);
+
+  /// No description provided for @causalPotentialRecoveryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Potential Recovery: +{points} pts'**
+  String causalPotentialRecoveryLabel(String points);
+
+  /// No description provided for @causalFairScoringSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Fair Scoring: {independent} independent, {cascading} cascading | Deduplicated: -{deduplicated} pts (saved {saved} pts)'**
+  String causalFairScoringSummary(
+    int independent,
+    int cascading,
+    String deduplicated,
+    String saved,
+  );
+
+  /// No description provided for @causalCohesionSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Cohesion Score: {cohesion}% | Unsupported Claims: {unsupported}'**
+  String causalCohesionSummary(String cohesion, int unsupported);
+
+  /// No description provided for @contrastiveCharCounter.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}/{min} chars'**
+  String contrastiveCharCounter(int count, int min);
+
+  /// No description provided for @virtualStepParsingFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'[Virtual Step Parsing Failure]\nDynamic step injection could not be parsed: {error}'**
+  String virtualStepParsingFailure(String error);
 }
 
 class _AppLocalizationsDelegate

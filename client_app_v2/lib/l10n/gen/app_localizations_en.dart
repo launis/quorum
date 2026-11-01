@@ -5658,4 +5658,91 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mockLoginViewerBtn => 'Mock Login (Viewer)';
+
+  @override
+  String causalIntactCountBadge(int intact, int total) {
+    return '$intact / $total Intact';
+  }
+
+  @override
+  String get causalCriticalPathHeader => 'CRITICAL CAUSAL PATH & DEPENDENCIES';
+
+  @override
+  String get causalNoCriticalNodes =>
+      'No critical path nodes discovered in this execution.';
+
+  @override
+  String causalParagraphRefLabel(String ref) {
+    return 'Ref: $ref';
+  }
+
+  @override
+  String get causalNodeStatusPassed => 'PASSED';
+
+  @override
+  String get causalNodeStatusFault => 'FAULT';
+
+  @override
+  String get causalFaultPropagationLabel => 'causal fault propagation';
+
+  @override
+  String get causalCriticalEdgesHeader => 'CRITICAL CAUSAL EDGES';
+
+  @override
+  String get causalSelectNodePrompt =>
+      'Select a node to inspect citations and remediations.';
+
+  @override
+  String get causalNodeDetailsTitle => 'Node Details';
+
+  @override
+  String get causalRootCauseDiagnosisHeader => 'ROOT CAUSE DIAGNOSIS';
+
+  @override
+  String causalFaultChainLabel(String parentId, String failingId) {
+    return 'Fault Chain: $parentId → $failingId';
+  }
+
+  @override
+  String causalPenaltyAttributionLabel(String points) {
+    return 'Penalty Attribution: -$points pts';
+  }
+
+  @override
+  String get causalRemediationSimulationHeader => 'REMEDIATION SIMULATION';
+
+  @override
+  String causalUnlocksDownstreamLabel(String nodes) {
+    return 'Unlocks downstream: $nodes';
+  }
+
+  @override
+  String causalPotentialRecoveryLabel(String points) {
+    return 'Potential Recovery: +$points pts';
+  }
+
+  @override
+  String causalFairScoringSummary(
+    int independent,
+    int cascading,
+    String deduplicated,
+    String saved,
+  ) {
+    return 'Fair Scoring: $independent independent, $cascading cascading | Deduplicated: -$deduplicated pts (saved $saved pts)';
+  }
+
+  @override
+  String causalCohesionSummary(String cohesion, int unsupported) {
+    return 'Cohesion Score: $cohesion% | Unsupported Claims: $unsupported';
+  }
+
+  @override
+  String contrastiveCharCounter(int count, int min) {
+    return '$count/$min chars';
+  }
+
+  @override
+  String virtualStepParsingFailure(String error) {
+    return '[Virtual Step Parsing Failure]\nDynamic step injection could not be parsed: $error';
+  }
 }

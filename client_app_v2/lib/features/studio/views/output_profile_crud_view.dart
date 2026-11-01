@@ -9,6 +9,7 @@ import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_sc
 import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart';
 import 'package:client_app/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -155,7 +156,9 @@ class OutputProfileCrudView extends HookConsumerWidget {
           .error('Studio', 'Failed to save profile: $e', e, st);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.saveFailedError(e.toString())),
+          content: Text(
+            l10n.saveFailedError(AppExceptionX.extractLocalizedHint(e, l10n)),
+          ),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
@@ -208,7 +211,11 @@ class OutputProfileCrudView extends HookConsumerWidget {
             .error('Studio', 'Failed to delete profile: $e', e, st);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.deleteFailedError(e.toString())),
+            content: Text(
+              l10n.deleteFailedError(
+                AppExceptionX.extractLocalizedHint(e, l10n),
+              ),
+            ),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );

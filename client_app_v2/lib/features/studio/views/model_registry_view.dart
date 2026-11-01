@@ -7,6 +7,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/features/studio/models/gcp_location.dart';
 import 'package:client_app/features/studio/models/model_config.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
@@ -142,7 +143,11 @@ class ModelRegistryView extends HookConsumerWidget {
               .error('Studio', 'Failed to delete registry config: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(l10n.deleteFailedError(e.toString())),
+              content: Text(
+                l10n.deleteFailedError(
+                  AppExceptionX.extractLocalizedHint(e, l10n),
+                ),
+              ),
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
@@ -169,7 +174,11 @@ class ModelRegistryView extends HookConsumerWidget {
               .error('Studio', 'Failed to save registry config: $e', e);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(l10n.saveFailedError(e.toString())),
+              content: Text(
+                l10n.saveFailedError(
+                  AppExceptionX.extractLocalizedHint(e, l10n),
+                ),
+              ),
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
@@ -238,7 +247,9 @@ class ModelRegistryView extends HookConsumerWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              l10n.studioViewsFailedToClone(e.toString()),
+                              l10n.studioViewsFailedToClone(
+                                AppExceptionX.extractLocalizedHint(e, l10n),
+                              ),
                             ),
                             backgroundColor: Theme.of(
                               context,

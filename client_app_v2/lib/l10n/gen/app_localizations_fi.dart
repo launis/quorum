@@ -5699,4 +5699,92 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get mockLoginViewerBtn => 'Testikirjautuminen (Viewer)';
+
+  @override
+  String causalIntactCountBadge(int intact, int total) {
+    return '$intact / $total ehjää';
+  }
+
+  @override
+  String get causalCriticalPathHeader =>
+      'KRIITTINEN SYY-SEURAUSPOLKU & RIIPPUVUUDET';
+
+  @override
+  String get causalNoCriticalNodes =>
+      'Tässä ajossa ei havaittu kriittisen polun solmuja.';
+
+  @override
+  String causalParagraphRefLabel(String ref) {
+    return 'Viite: $ref';
+  }
+
+  @override
+  String get causalNodeStatusPassed => 'LÄPÄISTY';
+
+  @override
+  String get causalNodeStatusFault => 'VIRHE';
+
+  @override
+  String get causalFaultPropagationLabel => 'kausaalinen virheen eteneminen';
+
+  @override
+  String get causalCriticalEdgesHeader => 'KRIITTISET SYY-SEURAUSKAARET';
+
+  @override
+  String get causalSelectNodePrompt =>
+      'Valitse solmu tarkastellaksesi sitaatteja ja korjaustoimenpiteitä.';
+
+  @override
+  String get causalNodeDetailsTitle => 'Solmun tiedot';
+
+  @override
+  String get causalRootCauseDiagnosisHeader => 'JUURISYYDIAGNOOSI';
+
+  @override
+  String causalFaultChainLabel(String parentId, String failingId) {
+    return 'Virheketju: $parentId → $failingId';
+  }
+
+  @override
+  String causalPenaltyAttributionLabel(String points) {
+    return 'Pistevähennys: -$points p';
+  }
+
+  @override
+  String get causalRemediationSimulationHeader => 'KORJAUSSIMULAATIO';
+
+  @override
+  String causalUnlocksDownstreamLabel(String nodes) {
+    return 'Vapauttaa jatkosolmut: $nodes';
+  }
+
+  @override
+  String causalPotentialRecoveryLabel(String points) {
+    return 'Potentiaalinen palautuma: +$points p';
+  }
+
+  @override
+  String causalFairScoringSummary(
+    int independent,
+    int cascading,
+    String deduplicated,
+    String saved,
+  ) {
+    return 'Reilu pisteytys: $independent itsenäistä, $cascading ketjuuntuvaa | Vähennetty: -$deduplicated p (säästetty $saved p)';
+  }
+
+  @override
+  String causalCohesionSummary(String cohesion, int unsupported) {
+    return 'Koheesiopisteet: $cohesion% | Tukemattomat väitteet: $unsupported';
+  }
+
+  @override
+  String contrastiveCharCounter(int count, int min) {
+    return '$count/$min merkkiä';
+  }
+
+  @override
+  String virtualStepParsingFailure(String error) {
+    return '[Virtuaalivaiheen jäsennysvirhe]\nDynaamista vaiheinjektiota ei voitu jäsentää: $error';
+  }
 }

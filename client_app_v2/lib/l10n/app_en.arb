@@ -2867,6 +2867,117 @@
   "mockLoginAdminBtn": "Mock Login (Admin)",
   "mockLoginAnalystBtn": "Mock Login (Analyst)",
   "mockLoginMemberBtn": "Mock Login (Member)",
-  "mockLoginViewerBtn": "Mock Login (Viewer)"
+  "mockLoginViewerBtn": "Mock Login (Viewer)",
+  "causalIntactCountBadge": "{intact} / {total} Intact",
+  "@causalIntactCountBadge": {
+    "placeholders": {
+      "intact": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "causalCriticalPathHeader": "CRITICAL CAUSAL PATH & DEPENDENCIES",
+  "causalNoCriticalNodes": "No critical path nodes discovered in this execution.",
+  "causalParagraphRefLabel": "Ref: {ref}",
+  "@causalParagraphRefLabel": {
+    "placeholders": {
+      "ref": {
+        "type": "String"
+      }
+    }
+  },
+  "causalNodeStatusPassed": "PASSED",
+  "causalNodeStatusFault": "FAULT",
+  "causalFaultPropagationLabel": "causal fault propagation",
+  "causalCriticalEdgesHeader": "CRITICAL CAUSAL EDGES",
+  "causalSelectNodePrompt": "Select a node to inspect citations and remediations.",
+  "causalNodeDetailsTitle": "Node Details",
+  "causalRootCauseDiagnosisHeader": "ROOT CAUSE DIAGNOSIS",
+  "causalFaultChainLabel": "Fault Chain: {parentId} → {failingId}",
+  "@causalFaultChainLabel": {
+    "placeholders": {
+      "parentId": {
+        "type": "String"
+      },
+      "failingId": {
+        "type": "String"
+      }
+    }
+  },
+  "causalPenaltyAttributionLabel": "Penalty Attribution: -{points} pts",
+  "@causalPenaltyAttributionLabel": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "causalRemediationSimulationHeader": "REMEDIATION SIMULATION",
+  "causalUnlocksDownstreamLabel": "Unlocks downstream: {nodes}",
+  "@causalUnlocksDownstreamLabel": {
+    "placeholders": {
+      "nodes": {
+        "type": "String"
+      }
+    }
+  },
+  "causalPotentialRecoveryLabel": "Potential Recovery: +{points} pts",
+  "@causalPotentialRecoveryLabel": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "causalFairScoringSummary": "Fair Scoring: {independent} independent, {cascading} cascading | Deduplicated: -{deduplicated} pts (saved {saved} pts)",
+  "@causalFairScoringSummary": {
+    "placeholders": {
+      "independent": {
+        "type": "int"
+      },
+      "cascading": {
+        "type": "int"
+      },
+      "deduplicated": {
+        "type": "String"
+      },
+      "saved": {
+        "type": "String"
+      }
+    }
+  },
+  "causalCohesionSummary": "Cohesion Score: {cohesion}% | Unsupported Claims: {unsupported}",
+  "@causalCohesionSummary": {
+    "placeholders": {
+      "cohesion": {
+        "type": "String"
+      },
+      "unsupported": {
+        "type": "int"
+      }
+    }
+  },
+  "contrastiveCharCounter": "{count}/{min} chars",
+  "@contrastiveCharCounter": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "virtualStepParsingFailure": "[Virtual Step Parsing Failure]\nDynamic step injection could not be parsed: {error}",
+  "@virtualStepParsingFailure": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
 }
 

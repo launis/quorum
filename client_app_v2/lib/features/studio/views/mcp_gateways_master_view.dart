@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/features/studio/views/widgets/studio_master_header.dart';
@@ -101,7 +102,7 @@ class _McpGatewaysMasterViewState extends ConsumerState<McpGatewaysMasterView> {
                       if (!context.mounted) return;
                       setState(() {
                         _bannerError = l10n.studioViewsFailedToCreate(
-                          e.toString(),
+                          AppExceptionX.extractLocalizedHint(e, l10n),
                         );
                       });
                     }
