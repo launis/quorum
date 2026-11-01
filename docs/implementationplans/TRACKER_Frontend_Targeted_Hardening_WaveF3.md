@@ -55,7 +55,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/log_viewer.dart]
   - [x] @[client_app_v2/lib/shared/widgets/logic_matrix_chart.dart]
   - [x] @[client_app_v2/lib/shared/widgets/logic_radar_chart.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/omni_input_box.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/omni_input_box.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/output_renderer.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/pdf_export_guide_dialog.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/pre_mortem_card.dart]
