@@ -60,7 +60,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/pdf_export_guide_dialog.dart]
   - [x] @[client_app_v2/lib/shared/widgets/pre_mortem_card.dart]
   - [x] @[client_app_v2/lib/shared/widgets/quadrant_matrix_chart.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/result_dashboard.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/result_dashboard.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/schema_mapper.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/score_card.dart]
   - [ ] @[client_app_v2/lib/shared/widgets/score_card_radar.dart]

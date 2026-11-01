@@ -1,65 +1,70 @@
-import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:client_app/shared/widgets/generic_grid.dart';
-import 'package:client_app/shared/widgets/score_card_radar.dart';
-
-import 'package:client_app/shared/widgets/output_renderer.dart';
-import 'package:client_app/shared/widgets/validation_timeline_widget.dart';
-import 'package:client_app/shared/widgets/specialist_section.dart';
-import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/core/ui/error_view.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/shared/widgets/generic_grid.dart';
+import 'package:client_app/shared/widgets/output_renderer.dart';
+import 'package:client_app/shared/widgets/score_card_radar.dart';
+import 'package:client_app/shared/widgets/specialist_section.dart';
+import 'package:client_app/shared/widgets/validation_timeline_widget.dart';
+import 'package:client_app/theme/app_colors.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ResultDashboard extends StatelessWidget {
+class ResultDashboard extends ConsumerWidget {
   final Map<String, Object?> rawResult;
   final Map<String, Object?>? reportView;
 
   const ResultDashboard({super.key, required this.rawResult, this.reportView});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return DefaultTabController(
       length: 3,
       child: Column(
         children: [
           TabBar(
-            labelColor: Theme.of(context).colorScheme.primary,
-            unselectedLabelColor: Theme.of(
-              context,
-            ).colorScheme.onSurfaceVariant,
+            labelColor: colorScheme.primary,
+            unselectedLabelColor: colorScheme.onSurfaceVariant,
             tabs: [
-              Tab(icon: Icon(Icons.dashboard_outlined), text: 'Raportti'),
               Tab(
-                icon: Icon(Icons.description_outlined),
-                text: 'Tiivistetty Data (Flat)',
+                icon: const Icon(Icons.dashboard_outlined),
+                text: l10n.report,
               ),
               Tab(
-                icon: Icon(Icons.data_object_outlined),
-                text: 'Koko Raakadata',
+                icon: const Icon(Icons.description_outlined),
+                text: l10n.sharedTabFlatData,
+              ),
+              Tab(
+                icon: const Icon(Icons.data_object_outlined),
+                text: l10n.sharedTabRawData,
               ),
             ],
           ),
           Expanded(
             child: TabBarView(
               children: [
-                // Tab 1: Server-Driven Dashboard (BFF)
                 if (reportView != null)
-                  _buildDynamicDashboard(context, reportView!)
+                  _buildDynamicDashboard(context, ref, reportView!)
                 else
                   Center(
                     child: Text(
-                      AppLocalizations.of(context)?.sharedNoReportData ??
-                          "Raporttidataa ei ole saatavilla.",
+                      l10n.sharedNoReportData,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
-
-                // Tab 2: Flat Report JSON
-                _buildFlatDataView(context, rawResult),
-
-                // Tab 3: Complete Raw JSON
+                _buildFlatDataView(context, ref, rawResult),
                 _buildRawDataView(context, rawResult),
               ],
             ),
@@ -71,61 +76,132 @@ class ResultDashboard extends StatelessWidget {
 
   Widget _buildDynamicDashboard(
     BuildContext context,
+    WidgetRef ref,
     Map<String, Object?> view,
   ) {
-    // 1. SDUI Protocol: We respect backend signals without string parsing
-    final metrics = view['metrics'] as Map<String, Object?>?;
-    final bool isHitlRequired = metrics?['hitl_required'] == true;
-    final bool hasWarning = metrics?['has_warning'] == true;
+    try {
+      final rawMetrics = view['metrics'];
+      if (rawMetrics != null && rawMetrics is! Map<String, Object?>) {
+        throw AppException.validation(
+          'Fail-Fast: reportView["metrics"] must be a Map<String, Object?>.',
+        );
+      }
+      final metrics = rawMetrics as Map<String, Object?>?;
 
-    final bool showWarning = isHitlRequired || hasWarning;
+      final rawSystemNotification = view['systemNotification'];
+      if (rawSystemNotification != null &&
+          rawSystemNotification is! Map<String, Object?>) {
+        throw AppException.validation(
+          'Fail-Fast: reportView["systemNotification"] must be a Map<String, Object?>.',
+        );
+      }
+      final systemNotification = rawSystemNotification as Map<String, Object?>?;
 
-    // We only display feedback exactly as given by backend
-    final String? feedback =
-        metrics?['coach_feedback']?.toString() ??
-        metrics?['warning_message']?.toString();
+      final rawBlocks = view['blocks'];
+      if (rawBlocks != null && rawBlocks is! List<dynamic>) {
+        throw AppException.validation(
+          'Fail-Fast: reportView["blocks"] must be a List.',
+        );
+      }
+      final blocksList = rawBlocks as List<dynamic>? ?? const <dynamic>[];
+      final parsedBlocks = <Map<String, Object?>>[];
+      for (var i = 0; i < blocksList.length; i++) {
+        final item = blocksList[i];
+        if (item is! Map<String, Object?>) {
+          throw AppException.validation(
+            'Fail-Fast: Block at index $i must be a Map<String, Object?>.',
+          );
+        }
+        parsedBlocks.add(item);
+      }
 
-    final systemNotification =
-        view['systemNotification'] as Map<String, Object?>?;
-    final blocks = view['blocks'] as List<dynamic>? ?? [];
-    final references = view['references'] as List<dynamic>? ?? [];
+      final rawReferences = view['references'];
+      if (rawReferences != null && rawReferences is! List<dynamic>) {
+        throw AppException.validation(
+          'Fail-Fast: reportView["references"] must be a List.',
+        );
+      }
+      final referencesList =
+          rawReferences as List<dynamic>? ?? const <dynamic>[];
+      final parsedReferences = <Map<String, Object?>>[];
+      for (var i = 0; i < referencesList.length; i++) {
+        final item = referencesList[i];
+        if (item is! Map<String, Object?>) {
+          throw AppException.validation(
+            'Fail-Fast: Reference at index $i must be a Map<String, Object?>.',
+          );
+        }
+        final refId = item['id']?.toString().trim() ?? '';
+        if (refId.isEmpty) {
+          throw AppException.validation(
+            'Fail-Fast: Reference at index $i is missing a valid non-empty "id".',
+          );
+        }
+        parsedReferences.add(item);
+      }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildHeader(context, view),
-          const SizedBox(height: 16),
-          if (showWarning) ...[
-            _buildWarningBanner(context, isHitlRequired, hasWarning, feedback),
-            const SizedBox(height: 24),
+      final isHitlRequired = metrics?['hitl_required'] == true;
+      final hasWarning = metrics?['has_warning'] == true;
+      final showWarning = isHitlRequired || hasWarning;
+
+      final feedback =
+          metrics?['coach_feedback']?.toString() ??
+          metrics?['warning_message']?.toString();
+
+      return SingleChildScrollView(
+        padding: AppSpacing.p16,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildHeader(context, view),
+            AppSpacing.h16,
+            if (showWarning) ...[
+              _buildWarningBanner(
+                context,
+                isHitlRequired,
+                hasWarning,
+                feedback,
+              ),
+              AppSpacing.h24,
+            ],
+            if (systemNotification != null) ...[
+              _buildSystemNotificationBanner(context, systemNotification),
+              AppSpacing.h24,
+            ],
+            ...parsedBlocks.map(
+              (block) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.s24),
+                child: _renderBlock(context, ref, block, view),
+              ),
+            ),
+            if (parsedReferences.isNotEmpty) ...[
+              const Divider(height: AppSpacing.s24),
+              AppSpacing.h16,
+              _buildReferencesSection(context, parsedReferences),
+            ],
           ],
-          if (systemNotification != null) ...[
-            _buildSystemNotificationBanner(context, systemNotification),
-            const SizedBox(height: 24),
-          ],
-          ...blocks.map((blockRaw) {
-            final block = blockRaw as Map<String, Object?>;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 24.0),
-              child: _renderBlock(context, block, view),
-            );
-          }),
-          if (references.isNotEmpty) ...[
-            const Divider(height: 48),
-            _buildReferencesSection(context, references),
-          ],
-        ],
-      ),
-    );
+        ),
+      );
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error(
+            'ResultDashboard',
+            'VALIDATION_FAILED: Failed to render dynamic dashboard',
+            e,
+            st,
+          );
+      return ErrorView(error: e, stackTrace: st, compact: true);
+    }
   }
 
   Widget _buildReferencesSection(
     BuildContext context,
-    List<dynamic> references,
+    List<Map<String, Object?>> references,
   ) {
-    // Group by intent
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
     final searchRefs = references
         .where((r) => r['intent'] == 'search')
         .toList();
@@ -140,25 +216,32 @@ class ResultDashboard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Lähdeluettelo & Viitteet',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          l10n.sharedReferencesSectionTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        const SizedBox(height: 16),
+        AppSpacing.h16,
         if (searchRefs.isNotEmpty)
-          _buildRefGroup(context, 'Analytiikan Haut', Icons.search, searchRefs),
+          _buildRefGroup(
+            context,
+            l10n.sharedRefGroupSearch,
+            Icons.search,
+            searchRefs,
+          ),
         if (groundRefs.isNotEmpty)
           _buildRefGroup(
             context,
-            'Faktantarkistus (Vertex AI Grounding)',
+            l10n.sharedRefGroupGrounding,
             Icons.public,
             groundRefs,
           ),
         if (kbRefs.isNotEmpty)
           _buildRefGroup(
             context,
-            'Organisaation Linjaukset & Tietopankki',
+            l10n.sharedRefGroupKnowledgeBase,
             Icons.library_books,
             kbRefs,
           ),
@@ -170,19 +253,20 @@ class ResultDashboard extends StatelessWidget {
     BuildContext context,
     String title,
     IconData icon,
-    List<dynamic> refs,
+    List<Map<String, Object?>> refs,
   ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 24.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.s24),
       child: Container(
-        padding: EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(8.0),
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(AppSpacing.s8),
           border: Border.all(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
           ),
         ),
         child: Column(
@@ -190,30 +274,29 @@ class ResultDashboard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  icon,
-                  color: Theme.of(context).colorScheme.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8.0),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Icon(icon, color: colorScheme.primary, size: AppSpacing.s24),
+                AppSpacing.w8,
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16.0),
-            ...refs.map((refRaw) {
-              final ref = refRaw as Map<String, Object?>;
-              final refTitle = ref['title']?.toString();
-              final refId = ref['id']?.toString() ?? 'Reference';
-              final refSnippet = ref['snippet']?.toString() ?? '';
-              final refUrl = ref['url']?.toString();
+            AppSpacing.h16,
+            ...refs.map((ref) {
+              final refTitle = ref['title']?.toString().trim();
+              final refId = ref['id']!.toString().trim();
+              final refSnippet = ref['snippet']?.toString().trim() ?? '';
+              final refUrl = ref['url']?.toString().trim();
 
               return Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
+                padding: const EdgeInsets.only(bottom: AppSpacing.s16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -221,36 +304,34 @@ class ResultDashboard extends StatelessWidget {
                       (refTitle != null && refTitle.isNotEmpty)
                           ? '$refId - $refTitle'
                           : refId,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        height: 1.4,
                       ),
                     ),
                     if (refSnippet.isNotEmpty) ...[
-                      const SizedBox(height: 6.0),
+                      AppSpacing.h4,
                       Text(
                         refSnippet,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          height: 1.5,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurface,
                         ),
                         softWrap: true,
                         overflow: TextOverflow.visible,
                       ),
                     ],
                     if (refUrl != null && refUrl.isNotEmpty) ...[
-                      const SizedBox(height: 6.0),
+                      AppSpacing.h4,
                       InkWell(
+                        mouseCursor: SystemMouseCursors.click,
                         onTap: () {
-                          // Allow copying URL in a real app or use url_launcher
+                          Clipboard.setData(ClipboardData(text: refUrl));
                         },
                         child: Text(
                           refUrl,
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
-                                decoration: TextDecoration.underline,
-                              ),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colorScheme.primary,
+                            decoration: TextDecoration.underline,
+                          ),
                           softWrap: true,
                           overflow: TextOverflow.visible,
                         ),
@@ -259,7 +340,7 @@ class ResultDashboard extends StatelessWidget {
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -270,42 +351,68 @@ class ResultDashboard extends StatelessWidget {
     BuildContext context,
     Map<String, Object?> notification,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final semanticColors = context.semanticColors;
+
     final level = notification['level']?.toString() ?? 'info';
     final isDanger = level == 'danger';
-    final bgColor = isDanger
-        ? Theme.of(context).colorScheme.error
-        : Theme.of(context).colorScheme.error;
-    final borderColor = isDanger
-        ? Theme.of(context).colorScheme.error
-        : Theme.of(context).colorScheme.error;
-    final iconColor = isDanger
-        ? Theme.of(context).colorScheme.error
-        : Theme.of(context).colorScheme.error;
-    final textColor = isDanger
-        ? Theme.of(context).colorScheme.error
-        : Theme.of(context).colorScheme.onErrorContainer;
+    final isWarning = level == 'warning';
+
+    final Color bgColor;
+    final Color borderColor;
+    final Color iconColor;
+    final Color textColor;
+
+    if (isDanger) {
+      bgColor = colorScheme.errorContainer;
+      borderColor = colorScheme.error;
+      iconColor = colorScheme.error;
+      textColor = colorScheme.onErrorContainer;
+    } else if (isWarning) {
+      bgColor = semanticColors.warning.withValues(alpha: 0.15);
+      borderColor = semanticColors.warning;
+      iconColor = semanticColors.warning;
+      textColor = colorScheme.onSurface;
+    } else {
+      bgColor = colorScheme.secondaryContainer;
+      borderColor = colorScheme.secondary;
+      iconColor = colorScheme.secondary;
+      textColor = colorScheme.onSecondaryContainer;
+    }
+
+    final rawTitle = notification['title']?.toString().trim() ?? '';
+    final effectiveTitle = rawTitle.isNotEmpty
+        ? rawTitle
+        : l10n.sharedSystemNotificationDefaultTitle;
+    final rawMessage = notification['message']?.toString() ?? '';
 
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
-        border: Border(left: BorderSide(color: borderColor, width: 4)),
+        border: Border(
+          left: BorderSide(color: borderColor, width: AppSpacing.s4),
+        ),
         borderRadius: const BorderRadius.only(
-          topRight: Radius.circular(8),
-          bottomRight: Radius.circular(8),
+          topRight: Radius.circular(AppSpacing.s8),
+          bottomRight: Radius.circular(AppSpacing.s8),
         ),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: AppSpacing.p16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: iconColor),
-              const SizedBox(width: 8),
+              AppSpacing.w8,
               Expanded(
                 child: Text(
-                  notification['title']?.toString() ?? 'Notification',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  effectiveTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
                     color: iconColor,
                     fontWeight: FontWeight.bold,
                   ),
@@ -313,12 +420,10 @@ class ResultDashboard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 8),
+          AppSpacing.h8,
           Text(
-            notification['message']?.toString() ?? '',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: textColor),
+            rawMessage,
+            style: theme.textTheme.bodySmall?.copyWith(color: textColor),
           ),
         ],
       ),
@@ -331,40 +436,48 @@ class ResultDashboard extends StatelessWidget {
     bool backendWarning,
     String? feedback,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    String title = "Huomioitavaa";
-    if (hitl)
-      title = "Ihmisen tarkistus vaaditaan (HITL)";
-    else if (backendWarning)
-      title = "Järjestelmän varoitus";
+    String title = l10n.sharedWarningTitleDefault;
+    if (hitl) {
+      title = l10n.sharedWarningTitleHitl;
+    } else if (backendWarning) {
+      title = l10n.sharedWarningTitleSystem;
+    }
 
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
         border: Border.all(color: colorScheme.error),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: AppSpacing.p16,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_rounded, color: colorScheme.error, size: 28),
-          const SizedBox(width: 16),
+          Icon(
+            Icons.warning_amber_rounded,
+            color: colorScheme.error,
+            size: AppSpacing.s24,
+          ),
+          AppSpacing.w16,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: colorScheme.onErrorContainer,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                if (feedback != null && feedback.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                AppSpacing.h8,
+                if (feedback != null && feedback.isNotEmpty)
                   Text(
                     feedback,
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -372,18 +485,16 @@ class ResultDashboard extends StatelessWidget {
                         alpha: 0.9,
                       ),
                     ),
-                  ),
-                ] else ...[
-                  const SizedBox(height: 8),
+                  )
+                else
                   Text(
-                    "Järjestelmä suosittelee tulosten manuaalista tarkistamista rakenteellisten tai loogisten poikkeamien vuoksi.",
+                    l10n.sharedWarningDefaultMessage,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colorScheme.onErrorContainer.withValues(
                         alpha: 0.8,
                       ),
                     ),
                   ),
-                ],
               ],
             ),
           ),
@@ -393,44 +504,49 @@ class ResultDashboard extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, Map<String, Object?> view) {
-    final intent = view['intent']?.toString();
-    Color statusColor = Theme.of(context).colorScheme.onSurfaceVariant;
-    if (intent == 'success')
-      statusColor = Theme.of(context).colorScheme.primary;
-    else if (intent == 'warning')
-      statusColor = Theme.of(context).colorScheme.error;
-    else if (intent == 'danger')
-      statusColor = Theme.of(context).colorScheme.error;
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final semanticColors = context.semanticColors;
 
-    final l10n = AppLocalizations.of(context);
+    final intent = view['intent']?.toString();
+    Color statusColor = colorScheme.onSurfaceVariant;
+    if (intent == 'success') {
+      statusColor = semanticColors.success;
+    } else if (intent == 'warning') {
+      statusColor = semanticColors.warning;
+    } else if (intent == 'danger') {
+      statusColor = colorScheme.error;
+    }
+
+    final rawTitle = view['title']?.toString().trim() ?? '';
+    final headerTitle = rawTitle.isNotEmpty
+        ? rawTitle.toUpperCase()
+        : l10n.reportTitleFallback;
 
     return Card(
-      elevation: 4,
+      elevation: AppSpacing.s4,
       shape: RoundedRectangleBorder(
-        side: BorderSide(color: statusColor, width: 2),
-        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: statusColor, width: AppSpacing.s2),
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: AppSpacing.p24,
         child: Column(
           children: [
             Text(
-              view['title']?.toString().toUpperCase() ??
-                  (l10n != null ? l10n.reportTitleFallback : 'REPORT'),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              headerTitle,
+              style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
                 color: statusColor,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            AppSpacing.h8,
             Text(
-              l10n != null
-                  ? l10n.printedAtTimestamp(_formatDateTime(DateTime.now()))
-                  : 'Printed: ${_formatDateTime(DateTime.now())}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              l10n.printedAtTimestamp(_formatDateTime(DateTime.now())),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -447,181 +563,229 @@ class ResultDashboard extends StatelessWidget {
 
   Widget _renderBlock(
     BuildContext context,
+    WidgetRef ref,
     Map<String, Object?> block,
     Map<String, Object?> view,
   ) {
-    final blockType = block['type']?.toString();
-    final blockId = block['id']?.toString() ?? '';
-    final blockLabel = block['label']?.toString() ?? '';
-    final blockValue = block['value'];
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    switch (blockType) {
-      case 'card':
-        try {
-          if (blockValue != null &&
-              blockValue is Map &&
-              blockValue.containsKey('dimensions')) {
-            return ScoreCardRadar(cardData: blockValue as Map<String, Object?>);
+    try {
+      final blockType = block['type']?.toString().trim() ?? '';
+      final blockId = block['id']?.toString().trim() ?? '';
+      final blockLabel = block['label']?.toString().trim() ?? '';
+      final blockValue = block['value'];
+
+      switch (blockType) {
+        case 'card':
+          if (blockValue is! Map<String, Object?>) {
+            throw AppException.validation(
+              'Fail-Fast: Card block "$blockId" value must be a Map<String, Object?>.',
+            );
           }
-        } catch (e) {
-          ProviderScope.containerOf(context)
-              .read(loggerServiceProvider)
-              .error('Report', 'Error rendering ScoreCard: $e', e);
-          return ErrorView(
-            error: "Error rendering ScoreCard: $e",
-            compact: true,
+          if (blockValue.containsKey('dimensions')) {
+            return ScoreCardRadar(cardData: blockValue);
+          }
+          final rawMetrics = view['metrics'];
+          final metricsMap = rawMetrics is Map<String, Object?>
+              ? rawMetrics
+              : const <String, Object?>{};
+          return SpecialistSection(
+            title: blockLabel,
+            type: blockId,
+            data: blockValue,
+            metrics: metricsMap,
           );
-        }
-        return SpecialistSection(
-          title: blockLabel,
-          type: blockId,
-          data: blockValue is Map<String, Object?> ? blockValue : {},
-          metrics: view['metrics'] as Map<String, Object?>? ?? {},
-        );
 
-      case 'metric':
-        return GenericGrid(
-          title: blockLabel,
-          data: blockValue is Map<String, Object?> ? blockValue : {},
-        );
+        case 'metric':
+          if (blockValue is! Map<String, Object?>) {
+            throw AppException.validation(
+              'Fail-Fast: Metric block "$blockId" value must be a Map<String, Object?>.',
+            );
+          }
+          return GenericGrid(title: blockLabel, data: blockValue);
 
-      case 'paragraph':
-        final content = blockValue is Map<String, Object?>
-            ? blockValue['content'] as String? ?? ''
-            : blockValue?.toString() ?? '';
+        case 'paragraph':
+          final String content;
+          if (blockValue is Map<String, Object?>) {
+            content = blockValue['content']?.toString() ?? '';
+          } else {
+            content = blockValue?.toString() ?? '';
+          }
 
-        if (blockId == 'coach-markdown') {
-          return Card(
-            elevation: 2,
-            margin: const EdgeInsets.only(bottom: 16.0),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.secondary,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+          if (blockId == 'coach-markdown') {
+            return Card(
+              elevation: AppSpacing.s2,
+              margin: const EdgeInsets.only(bottom: AppSpacing.s16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.s12),
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      colorScheme.primaryContainer.withValues(alpha: 0.25),
+                      colorScheme.secondaryContainer.withValues(alpha: 0.25),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(AppSpacing.s12),
+                  border: Border.all(
+                    color: colorScheme.primary,
+                    width: AppSpacing.s2,
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.primary,
-                  width: 2,
+                padding: AppSpacing.p16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: AppSpacing.p8,
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.psychology_alt,
+                            color: colorScheme.onPrimary,
+                            size: AppSpacing.s24,
+                          ),
+                        ),
+                        AppSpacing.w12,
+                        Expanded(
+                          child: Text(
+                            blockLabel.isNotEmpty ? blockLabel : l10n.stepCoach,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    AppSpacing.h16,
+                    Divider(color: colorScheme.primary),
+                    AppSpacing.h16,
+                    OutputRenderer(markdownContent: content),
+                  ],
                 ),
               ),
-              padding: const EdgeInsets.all(20.0),
+            );
+          }
+
+          return Card(
+            child: Padding(
+              padding: AppSpacing.p16,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.psychology_alt,
-                          color: Theme.of(context).colorScheme.surface,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          blockLabel.isNotEmpty
-                              ? blockLabel
-                              : AppLocalizations.of(context)!.stepCoach,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Divider(color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(height: 16),
+                  if (blockLabel.isNotEmpty) ...[
+                    Text(
+                      blockLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const Divider(),
+                  ],
                   OutputRenderer(markdownContent: content),
                 ],
               ),
             ),
           );
-        }
 
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (blockLabel.isNotEmpty) ...[
-                  Text(
-                    blockLabel,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const Divider(),
-                ],
-                OutputRenderer(markdownContent: content),
-              ],
-            ),
-          ),
-        );
+        case 'list':
+          if (blockValue is! Map<String, Object?>) {
+            throw AppException.validation(
+              'Fail-Fast: List block "$blockId" value must be a Map<String, Object?>.',
+            );
+          }
+          if (blockId == 'timeline-feed') {
+            final rawEvents = blockValue['events'];
+            if (rawEvents != null && rawEvents is! List<dynamic>) {
+              throw AppException.validation(
+                'Fail-Fast: Timeline block events must be a List.',
+              );
+            }
+            final events = rawEvents as List<dynamic>? ?? const <dynamic>[];
+            return ValidationTimelineWidget(title: blockLabel, events: events);
+          }
 
-      case 'list':
-        if (blockId == 'timeline-feed') {
-          final events = blockValue is Map<String, Object?>
-              ? blockValue['events'] as List<dynamic>? ?? []
-              : [];
-          return ValidationTimelineWidget(title: blockLabel, events: events);
-        }
+          final rawItems = blockValue['items'];
+          if (rawItems != null && rawItems is! List<dynamic>) {
+            throw AppException.validation(
+              'Fail-Fast: List block items must be a List.',
+            );
+          }
+          final items = rawItems as List<dynamic>? ?? const <dynamic>[];
+          final parsedItems = <Map<String, Object?>>[];
+          for (var i = 0; i < items.length; i++) {
+            final item = items[i];
+            if (item is! Map<String, Object?>) {
+              throw AppException.validation(
+                'Fail-Fast: List block item at index $i must be a Map<String, Object?>.',
+              );
+            }
+            parsedItems.add(item);
+          }
 
-        final items = blockValue is Map<String, Object?>
-            ? blockValue['items'] as List<dynamic>? ?? []
-            : [];
-        return Card(
-          child: Semantics(
-            excludeSemantics: Platform.isWindows,
-            child: ExpansionTile(
-              title: Text(blockLabel),
-              children: items.map<Widget>((e) {
-                final itemObj = e is Map ? e : {};
-                return ListTile(
-                  leading: Icon(
-                    Icons.source_outlined,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  title: Text(
-                    itemObj['source']?.toString() ??
-                        AppLocalizations.of(context)!.lblSource,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+          return Card(
+            child: Semantics(
+              excludeSemantics: Platform.isWindows,
+              child: ExpansionTile(
+                title: Text(
+                  blockLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                children: parsedItems.map<Widget>((itemObj) {
+                  final rawSource = itemObj['source']?.toString().trim() ?? '';
+                  final rawContent = itemObj['content']?.toString() ?? '';
+                  return ListTile(
+                    leading: Icon(
+                      Icons.source_outlined,
+                      color: colorScheme.onSurfaceVariant,
                     ),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Text(itemObj['content']?.toString() ?? ''),
-                  ),
-                  dense: true,
-                );
-              }).toList(),
+                    title: Text(
+                      rawSource.isNotEmpty ? rawSource : l10n.lblSource,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.s4),
+                      child: Text(rawContent),
+                    ),
+                    dense: true,
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-        );
+          );
 
-      default:
-        debugPrint('UI FALLBACK ACTIVATED: Unknown Block Type: $blockType');
-        return ErrorView(
-          error: "Unknown Block Type: $blockType",
-          compact: true,
-        );
+        default:
+          throw AppException.validation(
+            'Fail-Fast: Unknown or unsupported block type "$blockType".',
+          );
+      }
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error(
+            'ResultDashboard',
+            'VALIDATION_FAILED: Failed to render report block',
+            e,
+            st,
+          );
+      return ErrorView(error: e, stackTrace: st, compact: true);
     }
   }
 
@@ -632,7 +796,6 @@ class ResultDashboard extends StatelessWidget {
   ) {
     source.forEach((key, value) {
       final lKey = key.toLowerCase();
-      // Skip massive trace fields, inputs, IDs, and raw thoughts or history logs
       if (lKey.contains('thought') ||
           lKey.contains('trace') ||
           lKey.contains('history') ||
@@ -641,21 +804,23 @@ class ResultDashboard extends StatelessWidget {
           lKey == 'inputs' ||
           lKey == 'step_names' ||
           lKey == 'step_results' ||
-          lKey.endsWith('_text') || // e.g. history_text, reflection_text
+          lKey.endsWith('_text') ||
           lKey == 'id' ||
-          lKey.endsWith('_id'))
+          lKey.endsWith('_id')) {
         return;
+      }
 
-      // Convert snake_case to PascalCase
       final parts = key.split('_');
       final pascalKey = parts
           .map((p) {
             if (p.isEmpty) return p;
-            return p[0].toUpperCase() + p.substring(1);
+            return p.replaceFirstMapped(
+              RegExp(r'^.'),
+              (m) => m.group(0)!.toUpperCase(),
+            );
           })
           .join('');
 
-      // Avoid redundant prefixes (e.g. StepJudgeJudgeScore -> StepJudgeScore)
       String effectiveKey = pascalKey;
       if (prefix.isNotEmpty) {
         if (pascalKey.startsWith(prefix)) {
@@ -665,20 +830,19 @@ class ResultDashboard extends StatelessWidget {
         }
       }
 
-      // Strip UUID prefixes (with optional dashes and optional 'V' or 'v' suffix)
       final uuidRegex = RegExp(
         r'^[a-fA-F0-9]{8}-?[a-fA-F0-9]{4}-?[a-fA-F0-9]{4}-?[a-fA-F0-9]{4}-?[a-fA-F0-9]{12}V?',
         caseSensitive: false,
       );
       effectiveKey = effectiveKey.replaceAll(uuidRegex, '');
 
-      // If the key becomes completely empty, fallback backwards
-      if (effectiveKey.isEmpty) effectiveKey = pascalKey;
+      if (effectiveKey.isEmpty) {
+        effectiveKey = pascalKey;
+      }
 
-      if (value is Map) {
-        // Skip massive metadata maps or raw tool returns
+      if (value is Map<String, Object?>) {
         if (key == 'metadata' || key == 'tool_calls') return;
-        _flattenMap(value as Map<String, Object?>, target, effectiveKey);
+        _flattenMap(value, target, effectiveKey);
       } else if (value is List) {
         if (value.isEmpty) {
           target[effectiveKey] = '[]';
@@ -689,7 +853,6 @@ class ResultDashboard extends StatelessWidget {
         }
       } else if (value != null && value.toString().isNotEmpty) {
         final strVal = value.toString();
-        // Skip adding if the EXACT SAME string value is already in the target, preventing workflow traversal repetition
         if (!target.containsValue(strVal)) {
           target[effectiveKey] = value;
         }
@@ -697,34 +860,56 @@ class ResultDashboard extends StatelessWidget {
     });
   }
 
-  Widget _buildFlatDataView(BuildContext context, Map<String, Object?> data) {
+  Widget _buildFlatDataView(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, Object?> data,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     final Map<String, Object?> dataToShow = {};
+
     try {
       if (data.containsKey('context_variables')) {
-        final ctx = data['context_variables'] as Map<String, Object?>;
-        _flattenMap(ctx, dataToShow, '');
+        final rawCtx = data['context_variables'];
+        if (rawCtx is! Map<String, Object?>) {
+          throw AppException.validation(
+            'Fail-Fast: rawResult["context_variables"] must be a Map<String, Object?>.',
+          );
+        }
+        _flattenMap(rawCtx, dataToShow, '');
       } else if (data.containsKey('step_results')) {
-        final steps = data['step_results'] as Map<String, Object?>;
-        _flattenMap(steps, dataToShow, '');
+        final rawSteps = data['step_results'];
+        if (rawSteps is! Map<String, Object?>) {
+          throw AppException.validation(
+            'Fail-Fast: rawResult["step_results"] must be a Map<String, Object?>.',
+          );
+        }
+        _flattenMap(rawSteps, dataToShow, '');
       } else {
         _flattenMap(data, dataToShow, '');
       }
-    } catch (e) {
-      ProviderScope.containerOf(context)
+
+      if (dataToShow.isEmpty) {
+        dataToShow['_info'] = l10n.sharedFlatReportNoData;
+      }
+    } catch (e, st) {
+      ref
           .read(loggerServiceProvider)
-          .error('Report', 'Flat Report parsing failed: $e', e);
-      dataToShow['_info'] =
-          AppLocalizations.of(context)?.sharedFlatReportNoData ??
-          'Flat Report dataa ei löytynyt tästä ajosta.';
+          .error(
+            'ResultDashboard',
+            'VALIDATION_FAILED: Flat Report parsing failed',
+            e,
+            st,
+          );
+      return ErrorView(error: e, stackTrace: st, compact: true);
     }
 
     const encoder = JsonEncoder.withIndent('  ');
     final jsonString = encoder.convert(dataToShow);
 
-    final theme = Theme.of(context);
-
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: AppSpacing.p16,
       child: SelectableText(
         jsonString,
         style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
@@ -733,18 +918,12 @@ class ResultDashboard extends StatelessWidget {
   }
 
   Widget _buildRawDataView(BuildContext context, Map<String, Object?> data) {
-    // User specifically requested to see the full raw workflow output data
-    // rather than just the narrowed down flat_report.
-    final dataToShow = data;
-
-    // Use JsonEncoder to pretty print
-    const encoder = JsonEncoder.withIndent('  ');
-    final jsonString = encoder.convert(dataToShow);
-
     final theme = Theme.of(context);
+    const encoder = JsonEncoder.withIndent('  ');
+    final jsonString = encoder.convert(data);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: AppSpacing.p16,
       child: SelectableText(
         jsonString,
         style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
