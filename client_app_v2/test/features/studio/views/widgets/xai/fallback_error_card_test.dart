@@ -34,7 +34,10 @@ void main() {
             body: SingleChildScrollView(
               child: SizedBox(
                 width: 120.0,
-                child: FallbackErrorCard(title: longTitle, message: longMessage),
+                child: FallbackErrorCard(
+                  title: longTitle,
+                  message: longMessage,
+                ),
               ),
             ),
           ),

@@ -3,8 +3,6 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
-import 'package:client_app/core/models/enums.dart';
-import 'package:client_app/core/models/prompt_block_category.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/main.dart';
@@ -19,7 +21,7 @@ class RecordingLoggerService implements LoggerService {
   errorLogs = [];
 
   @override
-  Future<void> init() async {}
+  Future<void> init({File? logFile}) async {}
 
   @override
   void debug(String context, String message) {

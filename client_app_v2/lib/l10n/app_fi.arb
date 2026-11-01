@@ -1122,6 +1122,8 @@
   "sharedFlatReportNoData": "Flat Report dataa ei löytynyt tästä ajosta.",
   "sharedAnalysisPerformed": "Analyysi suoritettu: ",
   "sharedNoComparisonData": "Vertailudataa ei ole saatavilla.",
+  "sharedComparativeEvaluation": "Vertaileva arviointi",
+  "sharedDeltaColumnHeader": "Erotus",
   "sharedMoreInfoTooltip": "Lisätietoa",
   "sharedOk": "OK",
   "sharedUploading": "Ladataan...",
@@ -2012,8 +2014,108 @@
   },
   "mcpToolParamsUseDefaultOption": "Oletus (Ei kiinnitetty)",
   "mcpToolParamsResetButton": "Palauta",
+  "reportFormatPdf": "PDF",
+  "reportFormatExcel": "Excel",
+  "reportFormatCsv": "CSV",
+  "reportSearchHint": "Hae raportteja...",
+  "reportMetaSectionExecution": "Suorituksen & Telemetrian Metatiedot",
+  "reportMetaId": "Raportin ID",
+  "reportMetaExecutionId": "Suorituksen ID",
+  "reportMetaWorkflowId": "Työnkulun ID",
+  "reportMetaProfileId": "Esitysprofiili",
+  "reportMetaCreatedAt": "Luotu",
+  "reportMetaUpdatedAt": "Päivitetty",
+  "reportMetaSectionFinOps": "FinOps & LLM -kulutus",
+  "reportMetaCostUsd": "Kustannus (USD)",
+  "reportMetaDuration": "Kesto",
+  "reportMetaTokensUsed": "Tokeneita käytetty",
+  "reportMetaThinkingTokens": "Päättelytokeneita",
+  "reportMetaModelName": "Mallin nimi",
+  "reportMetaProvider": "Palveluntarjoaja",
+  "reportMetaSectionStoragePaths": "Tiedostopolut levyltä",
+  "reportMetaPdfPath": "PDF-polku",
+  "reportMetaSduiJsonPath": "SDUI JSON -polku",
+  "reportMetaExcelPath": "Excel-polku",
+  "reportMetaCsvPath": "CSV-polku",
+  "sharedNoLogsAvailable": "Lokeja ei ole saatavilla.",
+  "matrixChartXAxisLabel": "X: {name} ({score} / {scaleMax})",
+  "@matrixChartXAxisLabel": {
+    "description": "2D-hajontakaavion X-akselin otsikko",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      },
+      "scaleMax": {
+        "type": "String"
+      }
+    }
+  },
+  "matrixChartYAxisLabel": "Y: {name} ({score} / {scaleMax})",
+  "@matrixChartYAxisLabel": {
+    "description": "2D-hajontakaavion Y-akselin otsikko",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      },
+      "scaleMax": {
+        "type": "String"
+      }
+    }
+  },
+  "matrixChartZAxisLabel": "Z (Pallon Koko): {name} ({score} / {scaleMax})",
+  "@matrixChartZAxisLabel": {
+    "description": "2D-hajontakaavion Z-akselin pallon koon otsikko",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      },
+      "scaleMax": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedTabFlatData": "Tiivistetty Data (Flat)",
+  "sharedTabRawData": "Koko Raakadata",
+  "sharedReferencesSectionTitle": "Lähdeluettelo & Viitteet",
+  "sharedRefGroupSearch": "Analytiikan Haut",
+  "sharedRefGroupGrounding": "Faktantarkistus (Vertex AI Grounding)",
+  "sharedRefGroupKnowledgeBase": "Organisaation Linjaukset & Tietopankki",
+  "sharedWarningTitleDefault": "Huomioitavaa",
+  "sharedWarningTitleHitl": "Ihmisen tarkistus vaaditaan (HITL)",
+  "sharedWarningTitleSystem": "Järjestelmän varoitus",
+  "sharedWarningDefaultMessage": "Järjestelmä suosittelee tulosten manuaalista tarkistamista rakenteellisten tai loogisten poikkeamien vuoksi.",
+  "sharedSystemNotificationDefaultTitle": "Ilmoitus",
   "causalInspectorLocationPrefix": "Sijainti: ",
   "@causalInspectorLocationPrefix": {
     "description": "Sijaintikoordinaatin etuliite sitaattitodisteissa"
-  }
+  },
+  "sharedIdentifiedStrategies": "Tunnistetut Strategiat:",
+  "sharedHighDependency": "Korkea Riippuvuus",
+  "sharedImperativeCommandsCount": "Suoria käskyjä (Imperative): {count}",
+  "@sharedImperativeCommandsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sharedDeviationsFromAlignment": "Poikkeamat Linjasta",
+  "loginBrandTitle": "Cognitive Quorum",
+  "devToolsHeader": "Kehitystyökalut",
+  "customMockUserIdLabel": "Mukautettu testikäyttäjän ID",
+  "mockLoginCustomIdBtn": "Testikirjautuminen (Mukautettu ID)",
+  "mockLoginRootMasterBtn": "Testikirjautuminen (Root Master)",
+  "mockLoginAdminBtn": "Testikirjautuminen (Admin)",
+  "mockLoginAnalystBtn": "Testikirjautuminen (Analyst)",
+  "mockLoginMemberBtn": "Testikirjautuminen (Member)",
+  "mockLoginViewerBtn": "Testikirjautuminen (Viewer)"
 }

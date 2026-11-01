@@ -29,7 +29,7 @@ void main() {
           {
             'text': 'Item 1',
             'citations': [1],
-            'exact_quotes': [],
+            'exact_quotes': <Object?>[],
           },
         ],
       };

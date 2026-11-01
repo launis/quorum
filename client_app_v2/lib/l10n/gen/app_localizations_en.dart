@@ -3473,6 +3473,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sharedNoComparisonData => 'No comparison data available.';
 
   @override
+  String get sharedComparativeEvaluation => 'Comparative Evaluation';
+
+  @override
+  String get sharedDeltaColumnHeader => 'Delta';
+
+  @override
   String get sharedMoreInfoTooltip => 'More information';
 
   @override
@@ -5488,5 +5494,168 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mcpToolParamsResetButton => 'Reset';
 
   @override
+  String get reportFormatPdf => 'PDF';
+
+  @override
+  String get reportFormatExcel => 'Excel';
+
+  @override
+  String get reportFormatCsv => 'CSV';
+
+  @override
+  String get reportSearchHint => 'Search reports...';
+
+  @override
+  String get reportMetaSectionExecution => 'Execution & Telemetry Metadata';
+
+  @override
+  String get reportMetaId => 'Report ID';
+
+  @override
+  String get reportMetaExecutionId => 'Execution ID';
+
+  @override
+  String get reportMetaWorkflowId => 'Workflow ID';
+
+  @override
+  String get reportMetaProfileId => 'Output Profile';
+
+  @override
+  String get reportMetaCreatedAt => 'Created';
+
+  @override
+  String get reportMetaUpdatedAt => 'Updated';
+
+  @override
+  String get reportMetaSectionFinOps => 'FinOps & LLM Consumption';
+
+  @override
+  String get reportMetaCostUsd => 'Cost (USD)';
+
+  @override
+  String get reportMetaDuration => 'Duration';
+
+  @override
+  String get reportMetaTokensUsed => 'Tokens Used';
+
+  @override
+  String get reportMetaThinkingTokens => 'Thinking Tokens';
+
+  @override
+  String get reportMetaModelName => 'Model Name';
+
+  @override
+  String get reportMetaProvider => 'Provider';
+
+  @override
+  String get reportMetaSectionStoragePaths => 'Disk Storage Paths';
+
+  @override
+  String get reportMetaPdfPath => 'PDF Path';
+
+  @override
+  String get reportMetaSduiJsonPath => 'SDUI JSON Path';
+
+  @override
+  String get reportMetaExcelPath => 'Excel Path';
+
+  @override
+  String get reportMetaCsvPath => 'CSV Path';
+
+  @override
+  String get sharedNoLogsAvailable => 'No logs available.';
+
+  @override
+  String matrixChartXAxisLabel(String name, String score, String scaleMax) {
+    return 'X: $name ($score / $scaleMax)';
+  }
+
+  @override
+  String matrixChartYAxisLabel(String name, String score, String scaleMax) {
+    return 'Y: $name ($score / $scaleMax)';
+  }
+
+  @override
+  String matrixChartZAxisLabel(String name, String score, String scaleMax) {
+    return 'Z (Bubble Size): $name ($score / $scaleMax)';
+  }
+
+  @override
+  String get sharedTabFlatData => 'Condensed Data (Flat)';
+
+  @override
+  String get sharedTabRawData => 'Full Raw Data';
+
+  @override
+  String get sharedReferencesSectionTitle => 'Bibliography & References';
+
+  @override
+  String get sharedRefGroupSearch => 'Analytics Searches';
+
+  @override
+  String get sharedRefGroupGrounding => 'Fact-Checking (Vertex AI Grounding)';
+
+  @override
+  String get sharedRefGroupKnowledgeBase =>
+      'Organizational Guidelines & Knowledge Base';
+
+  @override
+  String get sharedWarningTitleDefault => 'Notice';
+
+  @override
+  String get sharedWarningTitleHitl => 'Human Review Required (HITL)';
+
+  @override
+  String get sharedWarningTitleSystem => 'System Warning';
+
+  @override
+  String get sharedWarningDefaultMessage =>
+      'The system recommends manual review of the results due to structural or logical anomalies.';
+
+  @override
+  String get sharedSystemNotificationDefaultTitle => 'Notification';
+
+  @override
   String get causalInspectorLocationPrefix => 'Location: ';
+
+  @override
+  String get sharedIdentifiedStrategies => 'Identified Strategies:';
+
+  @override
+  String get sharedHighDependency => 'High Dependency';
+
+  @override
+  String sharedImperativeCommandsCount(int count) {
+    return 'Imperative Commands: $count';
+  }
+
+  @override
+  String get sharedDeviationsFromAlignment => 'Deviations from Alignment';
+
+  @override
+  String get loginBrandTitle => 'Cognitive Quorum';
+
+  @override
+  String get devToolsHeader => 'Development Tools';
+
+  @override
+  String get customMockUserIdLabel => 'Custom Mock User ID';
+
+  @override
+  String get mockLoginCustomIdBtn => 'Mock Login (Custom ID)';
+
+  @override
+  String get mockLoginRootMasterBtn => 'Mock Login (Root Master)';
+
+  @override
+  String get mockLoginAdminBtn => 'Mock Login (Admin)';
+
+  @override
+  String get mockLoginAnalystBtn => 'Mock Login (Analyst)';
+
+  @override
+  String get mockLoginMemberBtn => 'Mock Login (Member)';
+
+  @override
+  String get mockLoginViewerBtn => 'Mock Login (Viewer)';
 }

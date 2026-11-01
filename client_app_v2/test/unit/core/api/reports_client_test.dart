@@ -117,47 +117,44 @@ void main() {
       },
     );
 
-    test(
-      'Positive 3: getReport fetches report artifact detail',
-      () async {
-        final reportDetailJson = <String, Object?>{
-          'id': testReportId,
-          'execution_id': testExecutionId,
-          'workflow_id': testWorkflowId,
-          'profile_id': testProfileId,
-          'locale': 'fi',
-          'title': 'Test Report',
-          'status': 'ready',
-          'storage_paths': <String, Object?>{
-            'pdf_path': '/files/test.pdf',
-            'excel_path': '/files/test.xlsx',
-            'csv_path': '/files/test.csv',
-            'sdui_json_path': '/files/test.json',
-          },
-          'metadata': <String, Object?>{'duration_ms': 1234},
-          'created_at': '2026-09-21T12:00:00.000Z',
-          'updated_at': '2026-09-21T12:00:00.000Z',
-        };
+    test('Positive 3: getReport fetches report artifact detail', () async {
+      final reportDetailJson = <String, Object?>{
+        'id': testReportId,
+        'execution_id': testExecutionId,
+        'workflow_id': testWorkflowId,
+        'profile_id': testProfileId,
+        'locale': 'fi',
+        'title': 'Test Report',
+        'status': 'ready',
+        'storage_paths': <String, Object?>{
+          'pdf_path': '/files/test.pdf',
+          'excel_path': '/files/test.xlsx',
+          'csv_path': '/files/test.csv',
+          'sdui_json_path': '/files/test.json',
+        },
+        'metadata': <String, Object?>{'duration_ms': 1234},
+        'created_at': '2026-09-21T12:00:00.000Z',
+        'updated_at': '2026-09-21T12:00:00.000Z',
+      };
 
-        when(
-          () => mockDio.get<Map<String, Object?>>('/reports/$testReportId'),
-        ).thenAnswer(
-          (_) async => Response<Map<String, Object?>>(
-            requestOptions: RequestOptions(path: '/reports/$testReportId'),
-            data: reportDetailJson,
-            statusCode: 200,
-          ),
-        );
+      when(
+        () => mockDio.get<Map<String, Object?>>('/reports/$testReportId'),
+      ).thenAnswer(
+        (_) async => Response<Map<String, Object?>>(
+          requestOptions: RequestOptions(path: '/reports/$testReportId'),
+          data: reportDetailJson,
+          statusCode: 200,
+        ),
+      );
 
-        final result = await client.getReport(testReportId);
-        expect(result.id, equals(testReportId));
-        expect(result.title, equals('Test Report'));
-        expect(result.status, equals(ReportStatus.ready));
-        verify(
-          () => mockDio.get<Map<String, Object?>>('/reports/$testReportId'),
-        ).called(1);
-      },
-    );
+      final result = await client.getReport(testReportId);
+      expect(result.id, equals(testReportId));
+      expect(result.title, equals('Test Report'));
+      expect(result.status, equals(ReportStatus.ready));
+      verify(
+        () => mockDio.get<Map<String, Object?>>('/reports/$testReportId'),
+      ).called(1);
+    });
 
     test(
       'Positive 4: getReportSdui fetches report data dto via safeIsolateRun',
@@ -169,9 +166,8 @@ void main() {
         };
 
         when(
-          () => mockDio.get<Map<String, Object?>>(
-            '/reports/$testReportId/sdui',
-          ),
+          () =>
+              mockDio.get<Map<String, Object?>>('/reports/$testReportId/sdui'),
         ).thenAnswer(
           (_) async => Response<Map<String, Object?>>(
             requestOptions: RequestOptions(path: '/reports/$testReportId/sdui'),
@@ -184,9 +180,8 @@ void main() {
         expect(result.executionId, equals(testExecutionId));
         expect(result.profileId, equals(testProfileId));
         verify(
-          () => mockDio.get<Map<String, Object?>>(
-            '/reports/$testReportId/sdui',
-          ),
+          () =>
+              mockDio.get<Map<String, Object?>>('/reports/$testReportId/sdui'),
         ).called(1);
       },
     );

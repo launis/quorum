@@ -115,7 +115,7 @@ void main() {
           },
           'ai_description':
               'LEGACY RULE: Must fail fail-fast parser immediately',
-          'tda_assertions': [],
+          'tda_assertions': <Object?>[],
         };
 
         expect(

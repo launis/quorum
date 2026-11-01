@@ -48,17 +48,18 @@ class AuthRepository {
       final token = await firebaseUser.getIdToken();
 
       // 3. Verify with Backend to get full profile (Role, OrgID)
-      final response = await _client.post(
+      final response = await _client.post<Map<String, Object?>>(
         '/iam/auth/verify',
         data: VerifyTokenRequest(token: token ?? '').toJson(),
       );
 
-      if (response.data == null || response.data['user'] == null) {
-        return Left(AppException(detail: ''));
+      final userJson = response.data?['user'] as Map<String, Object?>?;
+      if (userJson == null) {
+        return const Left(AppException(detail: ''));
       }
 
       // 4. Return Hydrated User
-      return Right(User.fromJson(response.data['user']));
+      return Right(User.fromJson(userJson));
     } on firebase.FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found' || e.code == 'wrong-password') {
         return Left(AppException.unauthorized());
@@ -92,7 +93,7 @@ class AuthRepository {
         return Left(AppException.unauthorized());
       }
 
-      return Left(AppException(detail: ''));
+      return const Left(AppException(detail: ''));
     } catch (e) {
       return Left(AppException.unknown());
     }
@@ -102,20 +103,21 @@ class AuthRepository {
   Future<Either<AppException, User>> debugSignInWithMockToken(String id) async {
     try {
       // 1. Verify with Backend (using special mock-token prefix logic)
-      final response = await _client.post(
+      final response = await _client.post<Map<String, Object?>>(
         '/iam/auth/verify',
         data: VerifyTokenRequest(token: 'mock-token:$id').toJson(),
       );
 
-      if (response.data == null || response.data['user'] == null) {
-        return Left(AppException(detail: ''));
+      final userJson = response.data?['user'] as Map<String, Object?>?;
+      if (userJson == null) {
+        return const Left(AppException(detail: ''));
       }
 
       // 2. Return Hydrated User
       // Note: We don't have a Firebase User, so the calls to `authStateChanges` stream
       // won't fire. The Controller must handle this manually or we create a fake internal session.
       // For Phase 2, we will just return the User and let the Controller manage state.
-      return Right(User.fromJson(response.data['user']));
+      return Right(User.fromJson(userJson));
     } catch (e) {
       // DEBUG: Return raw error to UI
       return Left(AppException(detail: "Debug Login Failed: $e"));

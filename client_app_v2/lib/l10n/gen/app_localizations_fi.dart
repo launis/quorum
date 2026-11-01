@@ -3502,6 +3502,12 @@ class AppLocalizationsFi extends AppLocalizations {
   String get sharedNoComparisonData => 'Vertailudataa ei ole saatavilla.';
 
   @override
+  String get sharedComparativeEvaluation => 'Vertaileva arviointi';
+
+  @override
+  String get sharedDeltaColumnHeader => 'Erotus';
+
+  @override
   String get sharedMoreInfoTooltip => 'Lisätietoa';
 
   @override
@@ -5528,5 +5534,169 @@ class AppLocalizationsFi extends AppLocalizations {
   String get mcpToolParamsResetButton => 'Palauta';
 
   @override
+  String get reportFormatPdf => 'PDF';
+
+  @override
+  String get reportFormatExcel => 'Excel';
+
+  @override
+  String get reportFormatCsv => 'CSV';
+
+  @override
+  String get reportSearchHint => 'Hae raportteja...';
+
+  @override
+  String get reportMetaSectionExecution =>
+      'Suorituksen & Telemetrian Metatiedot';
+
+  @override
+  String get reportMetaId => 'Raportin ID';
+
+  @override
+  String get reportMetaExecutionId => 'Suorituksen ID';
+
+  @override
+  String get reportMetaWorkflowId => 'Työnkulun ID';
+
+  @override
+  String get reportMetaProfileId => 'Esitysprofiili';
+
+  @override
+  String get reportMetaCreatedAt => 'Luotu';
+
+  @override
+  String get reportMetaUpdatedAt => 'Päivitetty';
+
+  @override
+  String get reportMetaSectionFinOps => 'FinOps & LLM -kulutus';
+
+  @override
+  String get reportMetaCostUsd => 'Kustannus (USD)';
+
+  @override
+  String get reportMetaDuration => 'Kesto';
+
+  @override
+  String get reportMetaTokensUsed => 'Tokeneita käytetty';
+
+  @override
+  String get reportMetaThinkingTokens => 'Päättelytokeneita';
+
+  @override
+  String get reportMetaModelName => 'Mallin nimi';
+
+  @override
+  String get reportMetaProvider => 'Palveluntarjoaja';
+
+  @override
+  String get reportMetaSectionStoragePaths => 'Tiedostopolut levyltä';
+
+  @override
+  String get reportMetaPdfPath => 'PDF-polku';
+
+  @override
+  String get reportMetaSduiJsonPath => 'SDUI JSON -polku';
+
+  @override
+  String get reportMetaExcelPath => 'Excel-polku';
+
+  @override
+  String get reportMetaCsvPath => 'CSV-polku';
+
+  @override
+  String get sharedNoLogsAvailable => 'Lokeja ei ole saatavilla.';
+
+  @override
+  String matrixChartXAxisLabel(String name, String score, String scaleMax) {
+    return 'X: $name ($score / $scaleMax)';
+  }
+
+  @override
+  String matrixChartYAxisLabel(String name, String score, String scaleMax) {
+    return 'Y: $name ($score / $scaleMax)';
+  }
+
+  @override
+  String matrixChartZAxisLabel(String name, String score, String scaleMax) {
+    return 'Z (Pallon Koko): $name ($score / $scaleMax)';
+  }
+
+  @override
+  String get sharedTabFlatData => 'Tiivistetty Data (Flat)';
+
+  @override
+  String get sharedTabRawData => 'Koko Raakadata';
+
+  @override
+  String get sharedReferencesSectionTitle => 'Lähdeluettelo & Viitteet';
+
+  @override
+  String get sharedRefGroupSearch => 'Analytiikan Haut';
+
+  @override
+  String get sharedRefGroupGrounding => 'Faktantarkistus (Vertex AI Grounding)';
+
+  @override
+  String get sharedRefGroupKnowledgeBase =>
+      'Organisaation Linjaukset & Tietopankki';
+
+  @override
+  String get sharedWarningTitleDefault => 'Huomioitavaa';
+
+  @override
+  String get sharedWarningTitleHitl => 'Ihmisen tarkistus vaaditaan (HITL)';
+
+  @override
+  String get sharedWarningTitleSystem => 'Järjestelmän varoitus';
+
+  @override
+  String get sharedWarningDefaultMessage =>
+      'Järjestelmä suosittelee tulosten manuaalista tarkistamista rakenteellisten tai loogisten poikkeamien vuoksi.';
+
+  @override
+  String get sharedSystemNotificationDefaultTitle => 'Ilmoitus';
+
+  @override
   String get causalInspectorLocationPrefix => 'Sijainti: ';
+
+  @override
+  String get sharedIdentifiedStrategies => 'Tunnistetut Strategiat:';
+
+  @override
+  String get sharedHighDependency => 'Korkea Riippuvuus';
+
+  @override
+  String sharedImperativeCommandsCount(int count) {
+    return 'Suoria käskyjä (Imperative): $count';
+  }
+
+  @override
+  String get sharedDeviationsFromAlignment => 'Poikkeamat Linjasta';
+
+  @override
+  String get loginBrandTitle => 'Cognitive Quorum';
+
+  @override
+  String get devToolsHeader => 'Kehitystyökalut';
+
+  @override
+  String get customMockUserIdLabel => 'Mukautettu testikäyttäjän ID';
+
+  @override
+  String get mockLoginCustomIdBtn => 'Testikirjautuminen (Mukautettu ID)';
+
+  @override
+  String get mockLoginRootMasterBtn => 'Testikirjautuminen (Root Master)';
+
+  @override
+  String get mockLoginAdminBtn => 'Testikirjautuminen (Admin)';
+
+  @override
+  String get mockLoginAnalystBtn => 'Testikirjautuminen (Analyst)';
+
+  @override
+  String get mockLoginMemberBtn => 'Testikirjautuminen (Member)';
+
+  @override
+  String get mockLoginViewerBtn => 'Testikirjautuminen (Viewer)';
 }

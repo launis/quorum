@@ -57,10 +57,7 @@ void main() {
       'Boundary 1 (Min=0, Max=4): accurately highlights active icons at lower and upper valid index bounds',
       (WidgetTester tester) async {
         await tester.pumpWidget(
-          _buildTestWidget(
-            selectedIndex: 0,
-            onDestinationSelected: (_) {},
-          ),
+          _buildTestWidget(selectedIndex: 0, onDestinationSelected: (_) {}),
         );
         await tester.pumpAndSettle();
 
@@ -85,10 +82,7 @@ void main() {
       'Negative/Boundary 2 (Below min=-1): throws AssertionError when selectedIndex is negative',
       (WidgetTester tester) async {
         await tester.pumpWidget(
-          _buildTestWidget(
-            selectedIndex: -1,
-            onDestinationSelected: (_) {},
-          ),
+          _buildTestWidget(selectedIndex: -1, onDestinationSelected: (_) {}),
         );
         expect(tester.takeException(), isA<AssertionError>());
       },
@@ -98,10 +92,7 @@ void main() {
       'Negative/Boundary 3 (Above max=5): throws AssertionError when selectedIndex exceeds destination count',
       (WidgetTester tester) async {
         await tester.pumpWidget(
-          _buildTestWidget(
-            selectedIndex: 5,
-            onDestinationSelected: (_) {},
-          ),
+          _buildTestWidget(selectedIndex: 5, onDestinationSelected: (_) {}),
         );
         expect(tester.takeException(), isA<AssertionError>());
       },

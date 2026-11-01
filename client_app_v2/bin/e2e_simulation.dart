@@ -47,10 +47,12 @@ void main(List<String> args) async {
   String workflowId = '';
   String profileId = '';
 
-  final wRes = await dio.get('/studio/workflows/');
-  if (wRes.data is List && wRes.data.isNotEmpty) {
-    workflowId = wRes.data[0]['id'];
-    profileId = wRes.data[0]['default_profile_id'];
+  final wRes = await dio.get<List<dynamic>>('/studio/workflows/');
+  final wData = wRes.data;
+  if (wData != null && wData.isNotEmpty) {
+    final firstItem = wData[0] as Map<String, dynamic>;
+    workflowId = firstItem['id'] as String;
+    profileId = firstItem['default_profile_id'] as String;
   } else {
     print('Failed to fetch workflow dynamically. Response data: ${wRes.data}');
     throw Exception(
@@ -71,7 +73,7 @@ void main(List<String> args) async {
 
   try {
     // 4. API Call
-    final response = await dio.post(
+    final response = await dio.post<Map<String, dynamic>>(
       '/execution/executions/',
       data: {
         'workflow_id': workflowId,
@@ -82,10 +84,10 @@ void main(List<String> args) async {
     );
 
     // 5. Parse using Isolate.run() simulation (fail-fast JSON parsing)
-    final responseData = response.data as Map<String, dynamic>;
+    final responseData = response.data!;
     logInfo(
       'NETWORK',
-      "Received successful execution response: \${responseData['execution_id']}",
+      "Received successful execution response: ${responseData['execution_id']}",
     );
 
     // Basic Fail-Fast validation of payload structure

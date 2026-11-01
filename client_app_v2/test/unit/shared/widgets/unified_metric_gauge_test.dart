@@ -53,9 +53,7 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SingleChildScrollView(
-            child: width != null
-                ? SizedBox(width: width, child: gauge)
-                : gauge,
+            child: width != null ? SizedBox(width: width, child: gauge) : gauge,
           ),
         ),
       ),
@@ -94,10 +92,7 @@ void main() {
           find.text('Measures cognitive depth along Bloom taxonomy.'),
           findsOneWidget,
         );
-        expect(
-          find.text('Secondary bilingual explanation.'),
-          findsOneWidget,
-        );
+        expect(find.text('Secondary bilingual explanation.'), findsOneWidget);
         expect(find.byIcon(Icons.info_outline), findsOneWidget);
 
         // Dismiss dialog

@@ -28,7 +28,7 @@ void main() {
 
   Widget buildTestApp(
     Workflow workflow, {
-    required Function(Workflow) onChanged,
+    required void Function(Workflow) onChanged,
     Locale locale = const Locale('en'),
   }) {
     return ProviderScope(

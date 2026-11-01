@@ -238,7 +238,7 @@ void main() {
         'name': {
           'translations': {'en': 'Test Profile'},
         },
-        'layouts': [],
+        'layouts': <Object?>[],
       };
 
       expect(
@@ -256,7 +256,7 @@ void main() {
         },
         'metric'
                 '_mappings':
-            {},
+            <String, Object?>{},
       };
 
       expect(
@@ -272,7 +272,7 @@ void main() {
         'name': {
           'translations': {'en': 'Test Profile'},
         },
-        'synthesis': {},
+        'synthesis': <String, Object?>{},
       };
 
       expect(

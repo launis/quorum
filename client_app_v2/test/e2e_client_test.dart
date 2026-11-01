@@ -82,9 +82,11 @@ void main() {
         if (Platform.environment['TEST_WORKFLOW_ID'] == null ||
             Platform.environment['TEST_WORKFLOW_ID']!.isEmpty) {
           try {
-            final wRes = await dio.get('/studio/workflows/');
-            if (wRes.data is List && wRes.data.isNotEmpty) {
-              workflowId = wRes.data[0]['id'];
+            final wRes = await dio.get<List<dynamic>>('/studio/workflows/');
+            final wData = wRes.data;
+            if (wData != null && wData.isNotEmpty) {
+              final firstItem = wData[0] as Map<String, dynamic>;
+              workflowId = firstItem['id'] as String;
             }
           } catch (e) {
             logger.w(
@@ -93,7 +95,7 @@ void main() {
           }
         }
 
-        final response = await dio.post(
+        final response = await dio.post<Map<String, dynamic>>(
           '/execution/executions/',
           data: {
             'workflow_id': workflowId,

@@ -33,16 +33,12 @@ void main() {
     );
   }
 
-  Widget createTestWidget({
-    required Widget child,
-    List<dynamic> overrides = const [],
-  }) {
+  Widget createTestWidget({required Widget child}) {
     return ProviderScope(
       overrides: [
         workflowAvailableExtensionsProvider(
           'wf_test',
         ).overrideWith((ref) async => ['citation', 'justification']),
-        ...overrides,
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,

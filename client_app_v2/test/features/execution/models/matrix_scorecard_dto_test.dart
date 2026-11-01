@@ -48,8 +48,8 @@ void main() {
           'level': 1,
           'level_name': 'T1',
           'claim_label': 'Test Claim',
-          'extracted_facts': {},
-          'exact_quotes': [],
+          'extracted_facts': <String, Object?>{},
+          'exact_quotes': <Object?>[],
           'internal_logic_en': {
             'step_1_identify_premise': 'p',
             'step_2_scan_source': 's',
@@ -78,8 +78,8 @@ void main() {
           'level': 1,
           'level_name': 'T1',
           'claim_label': 'Test Claim',
-          'extracted_facts': {},
-          'exact_quotes': [],
+          'extracted_facts': <String, Object?>{},
+          'exact_quotes': <Object?>[],
           'internal_logic_en': {
             'step_1_identify_premise': 'p',
             'step_2_scan_source': 's',
@@ -104,7 +104,7 @@ void main() {
         final json = {
           'new_status': 'SUPER_PASS',
           'reason': 'Because',
-          'evidence_quotes': [],
+          'evidence_quotes': <Object?>[],
           'overridden_by': 'Test User',
           'overridden_at': '2023-01-01T00:00:00Z',
         };
@@ -131,8 +131,8 @@ void main() {
             'level': 1,
             'level_name': 'T1',
             'claim_label': 'A',
-            'extracted_facts': {},
-            'exact_quotes': [],
+            'extracted_facts': <String, Object?>{},
+            'exact_quotes': <Object?>[],
             'internal_logic_en': {
               'step_1_identify_premise': 'p',
               'step_2_scan_source': 's',
@@ -151,8 +151,8 @@ void main() {
             'level': 1,
             'level_name': 'T1',
             'claim_label': 'B',
-            'extracted_facts': {},
-            'exact_quotes': [],
+            'extracted_facts': <String, Object?>{},
+            'exact_quotes': <Object?>[],
             'internal_logic_en': {
               'step_1_identify_premise': 'p',
               'step_2_scan_source': 's',
@@ -171,8 +171,8 @@ void main() {
             'level': 2,
             'level_name': 'T2',
             'claim_label': 'C',
-            'extracted_facts': {},
-            'exact_quotes': [],
+            'extracted_facts': <String, Object?>{},
+            'exact_quotes': <Object?>[],
             'internal_logic_en': {
               'step_1_identify_premise': 'p',
               'step_2_scan_source': 's',

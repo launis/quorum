@@ -97,8 +97,8 @@ void main() {
         'id': 'gw_0195f3a0000070008000000000000001',
         'type': 'stdio',
         'slug': 'filesystem_gateway',
-        'allowed_tools': [], // Hallucinated key
-        'tools': [],
+        'allowed_tools': <Object?>[], // Hallucinated key
+        'tools': <Object?>[],
       };
 
       final hallucinatedJson2 = {
@@ -106,7 +106,7 @@ void main() {
         'type': 'stdio',
         'slug': 'filesystem_gateway',
         'is_active': true, // Hallucinated key
-        'tools': [],
+        'tools': <Object?>[],
       };
 
       // Expected: Throws CheckedFromJsonException/FormatException due to strict schema lockdown
@@ -126,7 +126,7 @@ void main() {
         'id': 'gw_short_id', // Fails 32-hex UUIDv7 boundary check
         'type': 'mcp_gateways',
         'slug': 'filesystem_gateway',
-        'tools': [],
+        'tools': <Object?>[],
       };
 
       expect(
@@ -165,4 +165,3 @@ void main() {
     });
   });
 }
-

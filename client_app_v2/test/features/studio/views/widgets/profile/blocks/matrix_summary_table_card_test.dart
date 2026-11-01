@@ -192,13 +192,17 @@ void main() {
         await tester.pumpAndSettle();
 
         // Select 'criteria' chip
-        await tester.tap(find.widgetWithText(FilterChip, l10n.studioMatrixColCriteria));
+        await tester.tap(
+          find.widgetWithText(FilterChip, l10n.studioMatrixColCriteria),
+        );
         await tester.pumpAndSettle();
         expect(payload.matrixVisibleColumns, contains('criteria'));
         expect(payload.matrixVisibleColumns, contains('label'));
 
         // Deselect 'label' chip
-        await tester.tap(find.widgetWithText(FilterChip, l10n.studioMatrixColLabel));
+        await tester.tap(
+          find.widgetWithText(FilterChip, l10n.studioMatrixColLabel),
+        );
         await tester.pumpAndSettle();
         expect(payload.matrixVisibleColumns, isNot(contains('label')));
         expect(payload.matrixVisibleColumns, contains('criteria'));
@@ -233,7 +237,10 @@ void main() {
 
         await tester.enterText(directiveFinder, '  Explain score variance  ');
         await tester.pumpAndSettle();
-        expect(payload.rowExplanationDirective, equals('Explain score variance'));
+        expect(
+          payload.rowExplanationDirective,
+          equals('Explain score variance'),
+        );
 
         await tester.enterText(lengthFinder, '400');
         await tester.pumpAndSettle();

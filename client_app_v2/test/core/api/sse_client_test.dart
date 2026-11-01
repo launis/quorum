@@ -157,14 +157,10 @@ void main() {
           );
         }
 
-        verify(
-          () => mockLogger.error(any(), any(), any(), any()),
-        ).called(4);
+        verify(() => mockLogger.error(any(), any(), any(), any())).called(4);
         verifyNever(
-          () => mockDio.get<ResponseBody>(
-            any(),
-            options: any(named: 'options'),
-          ),
+          () =>
+              mockDio.get<ResponseBody>(any(), options: any(named: 'options')),
         );
       },
     );

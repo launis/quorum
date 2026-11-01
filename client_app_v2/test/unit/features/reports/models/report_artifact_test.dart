@@ -80,7 +80,10 @@ void main() {
         expect(item.score, equals(4.5));
         expect(item.maxScale, equals(5.0));
         expect(item.weight, equals(1.25));
-        expect(item.reasoning, equals('Clear executive alignment demonstrated.'));
+        expect(
+          item.reasoning,
+          equals('Clear executive alignment demonstrated.'),
+        );
         expect(item.quote, equals('We prioritized core architectural goals.'));
         expect(item.isInverseEvidence, isTrue);
         expect(item.toJson(), equals(rowJson));

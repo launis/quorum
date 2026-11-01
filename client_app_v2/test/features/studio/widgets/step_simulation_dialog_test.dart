@@ -22,7 +22,7 @@ void main() {
     registerFallbackValue(FakeStepSimulationRequest());
   });
 
-  Widget createTestWidget(Widget child, {List overrides = const []}) {
+  Widget createTestWidget(Widget child, {List<Object?> overrides = const []}) {
     final mockLogger = MockLoggerService();
     return ProviderScope(
       overrides: [
@@ -304,7 +304,7 @@ void main() {
             Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () {
-                  showDialog(
+                  showDialog<void>(
                     context: context,
                     builder: (ctx) => StepSimulationDialog(step: step),
                   );
@@ -366,7 +366,7 @@ void main() {
             Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () {
-                  showDialog(
+                  showDialog<void>(
                     context: context,
                     builder: (ctx) => StepSimulationDialog(step: step),
                   );

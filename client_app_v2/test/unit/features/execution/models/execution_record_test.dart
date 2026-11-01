@@ -131,8 +131,8 @@ void main() {
         expect(record.stepStates?[stepId]?.label, equals('Analysis Step'));
         expect(record.progress, equals(100));
 
-        final serialized = jsonDecode(jsonEncode(record.toJson()))
-            as Map<String, Object?>;
+        final serialized =
+            jsonDecode(jsonEncode(record.toJson())) as Map<String, Object?>;
         final roundtripped = ExecutionRecord.fromJson(serialized);
         expect(roundtripped.id, equals(execId));
         expect(roundtripped.workflowId, equals(wfId));

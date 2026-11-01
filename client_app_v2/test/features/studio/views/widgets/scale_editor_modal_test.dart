@@ -27,7 +27,7 @@ void main() {
     registerFallbackValue(FakePromptBlockSimulationRequest());
   });
 
-  Widget createTestWidget(Widget child, {List overrides = const []}) {
+  Widget createTestWidget(Widget child, {List<Object?> overrides = const []}) {
     final mockLogger = MockLoggerService();
     return ProviderScope(
       overrides: [
@@ -105,7 +105,7 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (ctx) =>
                           ScaleEditorModal(initialScale: sampleScale),
@@ -292,7 +292,7 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (ctx) =>
                           ScaleEditorModal(initialScale: sampleScale),
@@ -346,7 +346,7 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (ctx) =>
                           ScaleEditorModal(initialScale: sampleScale),
@@ -562,7 +562,7 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (ctx) =>
                           ScaleEditorModal(initialScale: sampleScale),
@@ -609,7 +609,7 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (ctx) =>
                           ScaleEditorModal(initialScale: sampleScale),
@@ -667,7 +667,7 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (ctx) =>
                           ScaleEditorModal(initialScale: sampleScale),
@@ -707,7 +707,7 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (ctx) =>
                           ScaleEditorModal(initialScale: nullNameScale),
@@ -747,7 +747,7 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (ctx) =>
                           ScaleEditorModal(initialScale: sampleScale),
@@ -796,7 +796,7 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (ctx) =>
                           ScaleEditorModal(initialScale: sampleScale),
@@ -831,7 +831,7 @@ void main() {
             builder: (context) {
               return ElevatedButton(
                 onPressed: () {
-                  showDialog(
+                  showDialog<void>(
                     context: context,
                     builder: (ctx) =>
                         ScaleEditorModal(initialScale: sampleScale),
@@ -886,7 +886,7 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (ctx) =>
                           ScaleEditorModal(initialScale: sampleScale),
@@ -933,7 +933,7 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (ctx) =>
                           ScaleEditorModal(initialScale: sampleScale),

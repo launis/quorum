@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:client_app/core/logging/app_logger_observer.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,7 +18,7 @@ class _RecordingLoggerService implements LoggerService {
   errorLogs = [];
 
   @override
-  Future<void> init() async {}
+  Future<void> init({File? logFile}) async {}
 
   @override
   void debug(String context, String message) {
@@ -79,11 +81,10 @@ void main() {
       () async {
         final logger = _RecordingLoggerService();
         final observer = AppLoggerObserver(logger);
-        final notifierProvider =
-            AsyncNotifierProvider<_TestAsyncNotifier, int>(
-              _TestAsyncNotifier.new,
-              name: 'counterAsyncProvider',
-            );
+        final notifierProvider = AsyncNotifierProvider<_TestAsyncNotifier, int>(
+          _TestAsyncNotifier.new,
+          name: 'counterAsyncProvider',
+        );
 
         final container = ProviderContainer(observers: [observer]);
         await container.read(notifierProvider.future);
@@ -107,11 +108,10 @@ void main() {
         final logger = _RecordingLoggerService();
         final observer = AppLoggerObserver(logger);
 
-        final notifierProvider =
-            AsyncNotifierProvider<_TestAsyncNotifier, int>(
-              _TestAsyncNotifier.new,
-              name: 'faultyAsyncProvider',
-            );
+        final notifierProvider = AsyncNotifierProvider<_TestAsyncNotifier, int>(
+          _TestAsyncNotifier.new,
+          name: 'faultyAsyncProvider',
+        );
         final crashingSyncProvider = Provider<int>((ref) {
           throw StateError('Fail-Fast synchronous provider build failure');
         }, name: 'crashingSyncProvider');
@@ -125,10 +125,7 @@ void main() {
             .read(notifierProvider.notifier)
             .emitError(ArgumentError('Invalid state transition'), customStack);
 
-        expect(
-          () => container.read(crashingSyncProvider),
-          throwsA(anything),
-        );
+        expect(() => container.read(crashingSyncProvider), throwsA(anything));
 
         expect(logger.errorLogs, hasLength(3));
         expect(
@@ -182,7 +179,8 @@ void main() {
         );
         expect(
           logger.debugLogs.where(
-            (entry) => entry.message.startsWith('Initialized: Provider<String>'),
+            (entry) =>
+                entry.message.startsWith('Initialized: Provider<String>'),
           ),
           hasLength(2),
         );

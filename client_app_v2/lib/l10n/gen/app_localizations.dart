@@ -6354,6 +6354,18 @@ abstract class AppLocalizations {
   /// **'No comparison data available.'**
   String get sharedNoComparisonData;
 
+  /// No description provided for @sharedComparativeEvaluation.
+  ///
+  /// In en, this message translates to:
+  /// **'Comparative Evaluation'**
+  String get sharedComparativeEvaluation;
+
+  /// No description provided for @sharedDeltaColumnHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Delta'**
+  String get sharedDeltaColumnHeader;
+
   /// No description provided for @sharedMoreInfoTooltip.
   ///
   /// In en, this message translates to:
@@ -9888,11 +9900,317 @@ abstract class AppLocalizations {
   /// **'Reset'**
   String get mcpToolParamsResetButton;
 
+  /// No description provided for @reportFormatPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF'**
+  String get reportFormatPdf;
+
+  /// No description provided for @reportFormatExcel.
+  ///
+  /// In en, this message translates to:
+  /// **'Excel'**
+  String get reportFormatExcel;
+
+  /// No description provided for @reportFormatCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV'**
+  String get reportFormatCsv;
+
+  /// No description provided for @reportSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search reports...'**
+  String get reportSearchHint;
+
+  /// No description provided for @reportMetaSectionExecution.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution & Telemetry Metadata'**
+  String get reportMetaSectionExecution;
+
+  /// No description provided for @reportMetaId.
+  ///
+  /// In en, this message translates to:
+  /// **'Report ID'**
+  String get reportMetaId;
+
+  /// No description provided for @reportMetaExecutionId.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution ID'**
+  String get reportMetaExecutionId;
+
+  /// No description provided for @reportMetaWorkflowId.
+  ///
+  /// In en, this message translates to:
+  /// **'Workflow ID'**
+  String get reportMetaWorkflowId;
+
+  /// No description provided for @reportMetaProfileId.
+  ///
+  /// In en, this message translates to:
+  /// **'Output Profile'**
+  String get reportMetaProfileId;
+
+  /// No description provided for @reportMetaCreatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Created'**
+  String get reportMetaCreatedAt;
+
+  /// No description provided for @reportMetaUpdatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated'**
+  String get reportMetaUpdatedAt;
+
+  /// No description provided for @reportMetaSectionFinOps.
+  ///
+  /// In en, this message translates to:
+  /// **'FinOps & LLM Consumption'**
+  String get reportMetaSectionFinOps;
+
+  /// No description provided for @reportMetaCostUsd.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost (USD)'**
+  String get reportMetaCostUsd;
+
+  /// No description provided for @reportMetaDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get reportMetaDuration;
+
+  /// No description provided for @reportMetaTokensUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Tokens Used'**
+  String get reportMetaTokensUsed;
+
+  /// No description provided for @reportMetaThinkingTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking Tokens'**
+  String get reportMetaThinkingTokens;
+
+  /// No description provided for @reportMetaModelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Model Name'**
+  String get reportMetaModelName;
+
+  /// No description provided for @reportMetaProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider'**
+  String get reportMetaProvider;
+
+  /// No description provided for @reportMetaSectionStoragePaths.
+  ///
+  /// In en, this message translates to:
+  /// **'Disk Storage Paths'**
+  String get reportMetaSectionStoragePaths;
+
+  /// No description provided for @reportMetaPdfPath.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF Path'**
+  String get reportMetaPdfPath;
+
+  /// No description provided for @reportMetaSduiJsonPath.
+  ///
+  /// In en, this message translates to:
+  /// **'SDUI JSON Path'**
+  String get reportMetaSduiJsonPath;
+
+  /// No description provided for @reportMetaExcelPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Excel Path'**
+  String get reportMetaExcelPath;
+
+  /// No description provided for @reportMetaCsvPath.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV Path'**
+  String get reportMetaCsvPath;
+
+  /// No description provided for @sharedNoLogsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No logs available.'**
+  String get sharedNoLogsAvailable;
+
+  /// X-axis label for 2D scatter matrix chart
+  ///
+  /// In en, this message translates to:
+  /// **'X: {name} ({score} / {scaleMax})'**
+  String matrixChartXAxisLabel(String name, String score, String scaleMax);
+
+  /// Y-axis label for 2D scatter matrix chart
+  ///
+  /// In en, this message translates to:
+  /// **'Y: {name} ({score} / {scaleMax})'**
+  String matrixChartYAxisLabel(String name, String score, String scaleMax);
+
+  /// Z-axis bubble size label for 2D scatter matrix chart
+  ///
+  /// In en, this message translates to:
+  /// **'Z (Bubble Size): {name} ({score} / {scaleMax})'**
+  String matrixChartZAxisLabel(String name, String score, String scaleMax);
+
+  /// No description provided for @sharedTabFlatData.
+  ///
+  /// In en, this message translates to:
+  /// **'Condensed Data (Flat)'**
+  String get sharedTabFlatData;
+
+  /// No description provided for @sharedTabRawData.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Raw Data'**
+  String get sharedTabRawData;
+
+  /// No description provided for @sharedReferencesSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bibliography & References'**
+  String get sharedReferencesSectionTitle;
+
+  /// No description provided for @sharedRefGroupSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytics Searches'**
+  String get sharedRefGroupSearch;
+
+  /// No description provided for @sharedRefGroupGrounding.
+  ///
+  /// In en, this message translates to:
+  /// **'Fact-Checking (Vertex AI Grounding)'**
+  String get sharedRefGroupGrounding;
+
+  /// No description provided for @sharedRefGroupKnowledgeBase.
+  ///
+  /// In en, this message translates to:
+  /// **'Organizational Guidelines & Knowledge Base'**
+  String get sharedRefGroupKnowledgeBase;
+
+  /// No description provided for @sharedWarningTitleDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Notice'**
+  String get sharedWarningTitleDefault;
+
+  /// No description provided for @sharedWarningTitleHitl.
+  ///
+  /// In en, this message translates to:
+  /// **'Human Review Required (HITL)'**
+  String get sharedWarningTitleHitl;
+
+  /// No description provided for @sharedWarningTitleSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System Warning'**
+  String get sharedWarningTitleSystem;
+
+  /// No description provided for @sharedWarningDefaultMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The system recommends manual review of the results due to structural or logical anomalies.'**
+  String get sharedWarningDefaultMessage;
+
+  /// No description provided for @sharedSystemNotificationDefaultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification'**
+  String get sharedSystemNotificationDefaultTitle;
+
   /// Prefix label for location coordinate in citation evidence
   ///
   /// In en, this message translates to:
   /// **'Location: '**
   String get causalInspectorLocationPrefix;
+
+  /// No description provided for @sharedIdentifiedStrategies.
+  ///
+  /// In en, this message translates to:
+  /// **'Identified Strategies:'**
+  String get sharedIdentifiedStrategies;
+
+  /// No description provided for @sharedHighDependency.
+  ///
+  /// In en, this message translates to:
+  /// **'High Dependency'**
+  String get sharedHighDependency;
+
+  /// No description provided for @sharedImperativeCommandsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Imperative Commands: {count}'**
+  String sharedImperativeCommandsCount(int count);
+
+  /// No description provided for @sharedDeviationsFromAlignment.
+  ///
+  /// In en, this message translates to:
+  /// **'Deviations from Alignment'**
+  String get sharedDeviationsFromAlignment;
+
+  /// No description provided for @loginBrandTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cognitive Quorum'**
+  String get loginBrandTitle;
+
+  /// No description provided for @devToolsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Development Tools'**
+  String get devToolsHeader;
+
+  /// No description provided for @customMockUserIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Mock User ID'**
+  String get customMockUserIdLabel;
+
+  /// No description provided for @mockLoginCustomIdBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Mock Login (Custom ID)'**
+  String get mockLoginCustomIdBtn;
+
+  /// No description provided for @mockLoginRootMasterBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Mock Login (Root Master)'**
+  String get mockLoginRootMasterBtn;
+
+  /// No description provided for @mockLoginAdminBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Mock Login (Admin)'**
+  String get mockLoginAdminBtn;
+
+  /// No description provided for @mockLoginAnalystBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Mock Login (Analyst)'**
+  String get mockLoginAnalystBtn;
+
+  /// No description provided for @mockLoginMemberBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Mock Login (Member)'**
+  String get mockLoginMemberBtn;
+
+  /// No description provided for @mockLoginViewerBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Mock Login (Viewer)'**
+  String get mockLoginViewerBtn;
 }
 
 class _AppLocalizationsDelegate

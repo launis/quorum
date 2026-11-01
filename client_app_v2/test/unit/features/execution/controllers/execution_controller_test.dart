@@ -115,10 +115,7 @@ class MockExplicitErrorCodeSseClient implements SseClient {
 class MockMalformedPayloadSseClient implements SseClient {
   @override
   Stream<Map<String, Object?>> subscribeToExecution(String executionId) async* {
-    yield {
-      'id': executionId,
-      'unrecognized_illegal_field': 'boom',
-    };
+    yield {'id': executionId, 'unrecognized_illegal_field': 'boom'};
   }
 }
 
@@ -276,9 +273,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           executionClientProvider.overrideWithValue(MockExecutionClient()),
-          sseClientProvider.overrideWithValue(
-            MockExplicitErrorCodeSseClient(),
-          ),
+          sseClientProvider.overrideWithValue(MockExplicitErrorCodeSseClient()),
           loggerServiceProvider.overrideWithValue(logger),
         ],
       );
@@ -296,7 +291,7 @@ void main() {
       expect(state.hasError, isTrue);
       expect(state.error, isA<AppException>());
       final appErr = state.error as AppException;
-      expect(appErr.extensions?['error_code'], 'QUOTA_EXCEEDED');
+      expect(appErr.extensions['error_code'], 'QUOTA_EXCEEDED');
     },
   );
 
@@ -325,7 +320,7 @@ void main() {
       expect(state.hasError, isTrue);
       expect(state.error, isA<AppException>());
       final appErr = state.error as AppException;
-      expect(appErr.extensions?['error_code'], 'SSE_DESERIALIZATION_FAILED');
+      expect(appErr.extensions['error_code'], 'SSE_DESERIALIZATION_FAILED');
     },
   );
 
@@ -470,7 +465,7 @@ void main() {
       final state = container.read(executionControllerProvider);
       expect(state.hasError, isTrue);
       final appErr = state.error as AppException;
-      expect(appErr.extensions?['error_code'], 'SSE_CONNECTION_ABORTED');
+      expect(appErr.extensions['error_code'], 'SSE_CONNECTION_ABORTED');
     },
   );
 

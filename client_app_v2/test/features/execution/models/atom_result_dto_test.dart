@@ -44,7 +44,7 @@ void main() {
           'message': 'Assertion failed',
         },
         'extensions': {'meta_k': 'meta_v'},
-        'depends_on_tda_ids': [],
+        'depends_on_tda_ids': <Object?>[],
         'short_circuit_reason_tda_ids': ['tda_blocker'],
       };
 

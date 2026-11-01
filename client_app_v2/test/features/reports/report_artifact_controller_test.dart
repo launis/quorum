@@ -139,7 +139,7 @@ void main() {
         expect(callCount, equals(1));
 
         // Wait for 2s self-invalidation timer
-        await Future.delayed(const Duration(milliseconds: 2100));
+        await Future<void>.delayed(const Duration(milliseconds: 2100));
 
         final secondResult = await container.read(
           executionReportsProvider(testExecutionId).future,
@@ -181,7 +181,7 @@ void main() {
         expect(callCount, equals(1));
 
         // Wait for 2s self-invalidation timer
-        await Future.delayed(const Duration(milliseconds: 2100));
+        await Future<void>.delayed(const Duration(milliseconds: 2100));
 
         final secondResult = await container.read(
           reportDetailProvider(testReportId).future,

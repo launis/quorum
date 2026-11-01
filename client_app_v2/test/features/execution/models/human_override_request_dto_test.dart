@@ -60,7 +60,7 @@ void main() {
       final json = {
         'new_status': 'PASSED',
         'reason': 'Verified by auditor',
-        'evidence_quotes': [],
+        'evidence_quotes': <Object?>[],
       };
 
       final dto = HumanOverrideRequestDto.fromJson(json);
@@ -73,7 +73,7 @@ void main() {
       final hallucinatedJson = {
         'new_status': 'PASSED',
         'reason': 'Verified',
-        'evidence_quotes': [],
+        'evidence_quotes': <Object?>[],
         'illegal_field': 'malformed_extra_data',
       };
 
@@ -90,29 +90,32 @@ void main() {
       );
     });
 
-    test('test_human_override_request_dto_missing_required_reason_fails_fast', () {
-      final missingReasonJson = {
-        'new_status': 'PASSED',
-        'evidence_quotes': [],
-      };
+    test(
+      'test_human_override_request_dto_missing_required_reason_fails_fast',
+      () {
+        final missingReasonJson = {
+          'new_status': 'PASSED',
+          'evidence_quotes': <Object?>[],
+        };
 
-      expect(
-        () => HumanOverrideRequestDto.fromJson(missingReasonJson),
-        throwsA(
-          anyOf(
-            isA<TypeError>(),
-            isA<CheckedFromJsonException>(),
-            isA<MissingRequiredKeysException>(),
+        expect(
+          () => HumanOverrideRequestDto.fromJson(missingReasonJson),
+          throwsA(
+            anyOf(
+              isA<TypeError>(),
+              isA<CheckedFromJsonException>(),
+              isA<MissingRequiredKeysException>(),
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
 
     test('test_human_override_request_dto_invalid_enum_status_fails_fast', () {
       final invalidEnumJson = {
         'new_status': 'INVALID_STATUS_VALUE',
         'reason': 'Audit check',
-        'evidence_quotes': [],
+        'evidence_quotes': <Object?>[],
       };
 
       expect(

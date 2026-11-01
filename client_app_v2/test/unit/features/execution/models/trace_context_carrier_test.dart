@@ -23,9 +23,7 @@ void main() {
         );
         expect(carrier.toJson(), equals(fullJson));
 
-        final minimalJson = <String, Object?>{
-          'traceparent': validTraceparent,
-        };
+        final minimalJson = <String, Object?>{'traceparent': validTraceparent};
         final minimalCarrier = TraceContextCarrier.fromJson(minimalJson);
         expect(minimalCarrier.traceparent, equals(validTraceparent));
         expect(minimalCarrier.tracestate, isNull);

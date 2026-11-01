@@ -19,14 +19,16 @@ class UserRepository {
 
   Future<Either<AppException, User>> fetchCurrentUser() async {
     try {
-      final response = await _client.get('/iam/users/me');
-      if (response.data == null) return Left(const AppException(detail: ''));
+      final response = await _client.get<Map<String, Object?>>('/iam/users/me');
+      if (response.data == null) return const Left(AppException(detail: ''));
       return Right(User.fromJson(response.data!));
     } on DioException catch (e) {
-      if (e.response?.statusCode == 404)
+      if (e.response?.statusCode == 404) {
         return Left(AppException.notFound('User not found'));
-      if (e.response?.statusCode == 401)
+      }
+      if (e.response?.statusCode == 401) {
         return Left(AppException.unauthorized());
+      }
 
       // Preserve RFC 7807 ErrorInterceptor payload
       if (e.error is AppException) return Left(e.error as AppException);
@@ -42,8 +44,11 @@ class UserRepository {
     Map<String, Object?> data,
   ) async {
     try {
-      final response = await _client.patch('/iam/users/me', data: data);
-      if (response.data == null) return Left(const AppException(detail: ''));
+      final response = await _client.patch<Map<String, Object?>>(
+        '/iam/users/me',
+        data: data,
+      );
+      if (response.data == null) return const Left(AppException(detail: ''));
       return Right(User.fromJson(response.data!));
     } on DioException catch (e) {
       if (e.response?.statusCode == 400) {

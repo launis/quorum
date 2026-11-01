@@ -22,7 +22,7 @@ void main() {
             },
             'scan_for_performative_patterns': true,
             'ai_description': 'Executive strategy report',
-            'questionnaire_definition': [],
+            'questionnaire_definition': <Object?>[],
           },
         ],
       };
@@ -43,7 +43,7 @@ void main() {
 
     test('test_workflow_ui_schema_hallucinated_fields_fail_fast', () {
       final hallucinatedJson = {
-        'expected_inputs': [],
+        'expected_inputs': <Object?>[],
         'hallucinated_property': 'illegal_payload',
       };
 

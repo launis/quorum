@@ -26,9 +26,9 @@ void main() {
       final hallucinatedJson = {
         'valid': true,
         'errors': <String>[],
-        'step_status': {},
-        'execution_order': [],
-        'trace': {},
+        'step_status': <String, Object?>{},
+        'execution_order': <Object?>[],
+        'trace': <String, Object?>{},
         'hallucinated_key': 'fail',
       };
 
@@ -47,10 +47,10 @@ void main() {
     test('test_workflow_simulation_response_invalid_type_fail_fast', () {
       final invalidTypeJson = {
         'valid': 'not_a_bool',
-        'errors': [],
-        'step_status': {},
-        'execution_order': [],
-        'trace': {},
+        'errors': <Object?>[],
+        'step_status': <String, Object?>{},
+        'execution_order': <Object?>[],
+        'trace': <String, Object?>{},
       };
 
       expect(

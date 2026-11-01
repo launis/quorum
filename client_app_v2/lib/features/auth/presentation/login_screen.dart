@@ -1,13 +1,15 @@
-import 'package:client_app/features/auth/presentation/auth_controller.dart';
-import 'package:flutter/material.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:client_app/core/error/app_exception.dart';
-import 'package:client_app/core/error/app_error_ext.dart';
-import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/core/state/mutation.dart';
-import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/environment/env.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/state/mutation.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/core/ui/error_view.dart';
+import 'package:client_app/features/auth/presentation/auth_controller.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/theme/app_colors.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class LoginScreen extends HookConsumerWidget {
   const LoginScreen({super.key});
@@ -39,7 +41,7 @@ class LoginScreen extends HookConsumerWidget {
         child: SingleChildScrollView(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 400),
-            padding: const EdgeInsets.all(24),
+            padding: AppSpacing.p24,
             child: Form(
               key: formKey,
               child: Column(
@@ -47,14 +49,14 @@ class LoginScreen extends HookConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Cognitive Quorum',
+                    l10n.loginBrandTitle,
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.primary,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
+                  AppSpacing.h8,
                   Text(
                     l10n.signInSubtitle,
                     style: theme.textTheme.bodyLarge?.copyWith(
@@ -62,12 +64,12 @@ class LoginScreen extends HookConsumerWidget {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 32),
+                  AppSpacing.h24,
 
                   // Standard Fail-Fast inline rendering for non-fatal auth errors
                   if (loginMutation.hasError) ...[
                     ErrorView(error: loginMutation.error!, compact: true),
-                    const SizedBox(height: 16),
+                    AppSpacing.h16,
                   ],
 
                   TextFormField(
@@ -89,7 +91,7 @@ class LoginScreen extends HookConsumerWidget {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  AppSpacing.h16,
                   TextFormField(
                     controller: passwordController,
                     decoration: InputDecoration(
@@ -107,21 +109,23 @@ class LoginScreen extends HookConsumerWidget {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 24),
+                  AppSpacing.h24,
 
                   MutationButton<void>(
                     mutation: loginMutation,
                     action: () => submit(),
                     label: l10n.signInButton,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: AppSpacing.s16,
+                      ),
                       child: Text(l10n.signInButton),
                     ),
                   ),
 
-                  // Debug Feature: Mock Login (Ignored per user constraint rule)
+                  // Debug Feature: Mock Login
                   if (Env.allowMockTokens) ...[
-                    const SizedBox(height: 24),
+                    AppSpacing.h24,
                     const MockLoginPanel(),
                   ],
                 ],
@@ -141,6 +145,8 @@ class MockLoginPanel extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final mockIdController = useTextEditingController();
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final semanticColors = context.semanticColors;
     final isMockLoading = useState(false);
 
     Future<void> mockLogin(String id) async {
@@ -148,11 +154,9 @@ class MockLoginPanel extends HookConsumerWidget {
       try {
         await ref.read(authControllerProvider.notifier).debugMockLogin(id);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Mock Login Successful! Redirecting...'),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.mockLoginSuccess)));
         }
       } catch (e) {
         if (context.mounted) {
@@ -172,22 +176,26 @@ class MockLoginPanel extends HookConsumerWidget {
     return Column(
       children: [
         const Divider(),
-        const Text(
-          'Development Tools',
-          style: TextStyle(fontSize: 12, color: Colors.grey),
+        Text(
+          l10n.devToolsHeader,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
-        const SizedBox(height: 8),
+        AppSpacing.h8,
         TextFormField(
           controller: mockIdController,
-          decoration: const InputDecoration(
-            labelText: 'Custom Mock User ID',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.customMockUserIdLabel,
+            border: const OutlineInputBorder(),
             isDense: true,
           ),
         ),
-        const SizedBox(height: 8),
+        AppSpacing.h8,
         TextButton(
-          style: TextButton.styleFrom(foregroundColor: Colors.teal),
+          style: TextButton.styleFrom(
+            foregroundColor: theme.colorScheme.secondary,
+          ),
           onPressed: isMockLoading.value
               ? null
               : () {
@@ -195,52 +203,58 @@ class MockLoginPanel extends HookConsumerWidget {
                     mockLogin(mockIdController.text.trim());
                   }
                 },
-          child: const Text('Mock Login (Custom ID)'),
+          child: Text(l10n.mockLoginCustomIdBtn),
         ),
         TextButton(
-          style: TextButton.styleFrom(foregroundColor: Colors.purple),
+          style: TextButton.styleFrom(
+            foregroundColor: theme.colorScheme.tertiary,
+          ),
           onPressed: isMockLoading.value
               ? null
               : () => mockLogin(
                   Env.mockRootUserId, // ROOT
                 ),
-          child: const Text('Mock Login (Root Master)'),
+          child: Text(l10n.mockLoginRootMasterBtn),
         ),
         TextButton(
-          style: TextButton.styleFrom(foregroundColor: Colors.orange),
+          style: TextButton.styleFrom(foregroundColor: semanticColors.warning),
           onPressed: isMockLoading.value
               ? null
               : () => mockLogin(
                   Env.mockAdminUserId, // ADMIN
                 ),
-          child: const Text('Mock Login (Admin)'),
+          child: Text(l10n.mockLoginAdminBtn),
         ),
         TextButton(
-          style: TextButton.styleFrom(foregroundColor: Colors.green),
+          style: TextButton.styleFrom(foregroundColor: semanticColors.success),
           onPressed: isMockLoading.value
               ? null
               : () => mockLogin(
                   Env.mockAnalystUserId, // ANALYST
                 ),
-          child: const Text('Mock Login (Analyst)'),
+          child: Text(l10n.mockLoginAnalystBtn),
         ),
         TextButton(
-          style: TextButton.styleFrom(foregroundColor: Colors.blue),
+          style: TextButton.styleFrom(
+            foregroundColor: theme.colorScheme.primary,
+          ),
           onPressed: isMockLoading.value
               ? null
               : () => mockLogin(
                   Env.mockMemberUserId, // MEMBER
                 ),
-          child: const Text('Mock Login (Member)'),
+          child: Text(l10n.mockLoginMemberBtn),
         ),
         TextButton(
-          style: TextButton.styleFrom(foregroundColor: Colors.grey),
+          style: TextButton.styleFrom(
+            foregroundColor: theme.colorScheme.onSurfaceVariant,
+          ),
           onPressed: isMockLoading.value
               ? null
               : () => mockLogin(
                   Env.mockViewerUserId, // VIEWER
                 ),
-          child: const Text('Mock Login (Viewer)'),
+          child: Text(l10n.mockLoginViewerBtn),
         ),
       ],
     );

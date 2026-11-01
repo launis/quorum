@@ -2,13 +2,9 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/models/enums.dart';
-import 'package:client_app/features/studio/models/mcp_gateway.dart';
-import 'package:client_app/features/studio/models/model_config.dart';
-import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/models/prompt_block_simulation.dart';
 import 'package:client_app/features/studio/models/step_simulation.dart';
-import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -124,8 +120,9 @@ void main() {
         expect(blocks.first, isA<SystemRulePromptBlock>());
 
         when(
-          () =>
-              mockDio.get<Map<String, Object?>>('studio/prompt-blocks/$testBlockId'),
+          () => mockDio.get<Map<String, Object?>>(
+            'studio/prompt-blocks/$testBlockId',
+          ),
         ).thenAnswer(
           (_) async => Response<Map<String, Object?>>(
             requestOptions: RequestOptions(
@@ -784,10 +781,7 @@ void main() {
           ),
         );
 
-        expect(
-          () => client.getPromptBlocks(),
-          throwsA(isA<DioException>()),
-        );
+        expect(() => client.getPromptBlocks(), throwsA(isA<DioException>()));
       },
     );
   });

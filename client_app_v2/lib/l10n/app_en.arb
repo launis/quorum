@@ -1804,6 +1804,8 @@
   "sharedFlatReportNoData": "No Flat Report data found for this execution.",
   "sharedAnalysisPerformed": "Analysis Performed: ",
   "sharedNoComparisonData": "No comparison data available.",
+  "sharedComparativeEvaluation": "Comparative Evaluation",
+  "sharedDeltaColumnHeader": "Delta",
   "sharedMoreInfoTooltip": "More information",
   "sharedOk": "OK",
   "sharedUploading": "Uploading...",
@@ -2762,9 +2764,109 @@
   },
   "mcpToolParamsUseDefaultOption": "Default (Unset)",
   "mcpToolParamsResetButton": "Reset",
+  "reportFormatPdf": "PDF",
+  "reportFormatExcel": "Excel",
+  "reportFormatCsv": "CSV",
+  "reportSearchHint": "Search reports...",
+  "reportMetaSectionExecution": "Execution & Telemetry Metadata",
+  "reportMetaId": "Report ID",
+  "reportMetaExecutionId": "Execution ID",
+  "reportMetaWorkflowId": "Workflow ID",
+  "reportMetaProfileId": "Output Profile",
+  "reportMetaCreatedAt": "Created",
+  "reportMetaUpdatedAt": "Updated",
+  "reportMetaSectionFinOps": "FinOps & LLM Consumption",
+  "reportMetaCostUsd": "Cost (USD)",
+  "reportMetaDuration": "Duration",
+  "reportMetaTokensUsed": "Tokens Used",
+  "reportMetaThinkingTokens": "Thinking Tokens",
+  "reportMetaModelName": "Model Name",
+  "reportMetaProvider": "Provider",
+  "reportMetaSectionStoragePaths": "Disk Storage Paths",
+  "reportMetaPdfPath": "PDF Path",
+  "reportMetaSduiJsonPath": "SDUI JSON Path",
+  "reportMetaExcelPath": "Excel Path",
+  "reportMetaCsvPath": "CSV Path",
+  "sharedNoLogsAvailable": "No logs available.",
+  "matrixChartXAxisLabel": "X: {name} ({score} / {scaleMax})",
+  "@matrixChartXAxisLabel": {
+    "description": "X-axis label for 2D scatter matrix chart",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      },
+      "scaleMax": {
+        "type": "String"
+      }
+    }
+  },
+  "matrixChartYAxisLabel": "Y: {name} ({score} / {scaleMax})",
+  "@matrixChartYAxisLabel": {
+    "description": "Y-axis label for 2D scatter matrix chart",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      },
+      "scaleMax": {
+        "type": "String"
+      }
+    }
+  },
+  "matrixChartZAxisLabel": "Z (Bubble Size): {name} ({score} / {scaleMax})",
+  "@matrixChartZAxisLabel": {
+    "description": "Z-axis bubble size label for 2D scatter matrix chart",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      },
+      "scaleMax": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedTabFlatData": "Condensed Data (Flat)",
+  "sharedTabRawData": "Full Raw Data",
+  "sharedReferencesSectionTitle": "Bibliography & References",
+  "sharedRefGroupSearch": "Analytics Searches",
+  "sharedRefGroupGrounding": "Fact-Checking (Vertex AI Grounding)",
+  "sharedRefGroupKnowledgeBase": "Organizational Guidelines & Knowledge Base",
+  "sharedWarningTitleDefault": "Notice",
+  "sharedWarningTitleHitl": "Human Review Required (HITL)",
+  "sharedWarningTitleSystem": "System Warning",
+  "sharedWarningDefaultMessage": "The system recommends manual review of the results due to structural or logical anomalies.",
+  "sharedSystemNotificationDefaultTitle": "Notification",
   "causalInspectorLocationPrefix": "Location: ",
   "@causalInspectorLocationPrefix": {
     "description": "Prefix label for location coordinate in citation evidence"
-  }
+  },
+  "sharedIdentifiedStrategies": "Identified Strategies:",
+  "sharedHighDependency": "High Dependency",
+  "sharedImperativeCommandsCount": "Imperative Commands: {count}",
+  "@sharedImperativeCommandsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sharedDeviationsFromAlignment": "Deviations from Alignment",
+  "loginBrandTitle": "Cognitive Quorum",
+  "devToolsHeader": "Development Tools",
+  "customMockUserIdLabel": "Custom Mock User ID",
+  "mockLoginCustomIdBtn": "Mock Login (Custom ID)",
+  "mockLoginRootMasterBtn": "Mock Login (Root Master)",
+  "mockLoginAdminBtn": "Mock Login (Admin)",
+  "mockLoginAnalystBtn": "Mock Login (Analyst)",
+  "mockLoginMemberBtn": "Mock Login (Member)",
+  "mockLoginViewerBtn": "Mock Login (Viewer)"
 }
 

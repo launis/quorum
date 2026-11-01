@@ -84,14 +84,8 @@ void main() {
         final decoded = jsonDecode(lines.first) as Map<String, Object?>;
         expect(decoded['level'], 'INFO');
         expect(decoded['logger'], 'client');
-        expect(
-          decoded['context_id'],
-          'exe_0195f000000070008000000000000001',
-        );
-        expect(
-          decoded['execution_id'],
-          'exe_0195f000000070008000000000000001',
-        );
+        expect(decoded['context_id'], 'exe_0195f000000070008000000000000001');
+        expect(decoded['execution_id'], 'exe_0195f000000070008000000000000001');
         expect(decoded['message'], 'Execution started');
         expect(decoded['error'], 'Minor warning');
       },
@@ -101,7 +95,10 @@ void main() {
       'Negative / Boundary 1: JsonPrinter handles malformed unprefixed message and empty context brackets',
       () {
         final printer = JsonPrinter();
-        final unprefixedEvent = LogEvent(Level.error, 'Raw unformatted message');
+        final unprefixedEvent = LogEvent(
+          Level.error,
+          'Raw unformatted message',
+        );
         final unprefixedDecoded =
             jsonDecode(printer.log(unprefixedEvent).first)
                 as Map<String, Object?>;
@@ -150,7 +147,10 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 20));
 
         expect(memoryOutput.lines, isNotEmpty);
-        expect(memoryOutput.lines.first, contains('[NETWORK] | client | Connection dropped'));
+        expect(
+          memoryOutput.lines.first,
+          contains('[NETWORK] | client | Connection dropped'),
+        );
         expect(interceptor.lastOptions, isNotNull);
         expect(
           interceptor.lastOptions!.path,
@@ -189,13 +189,16 @@ void main() {
       },
     );
 
-    test('Provider: loggerServiceProvider instantiates singleton LoggerService', () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
+    test(
+      'Provider: loggerServiceProvider instantiates singleton LoggerService',
+      () {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
 
-      final first = container.read(loggerServiceProvider);
-      final second = container.read(loggerServiceProvider);
-      expect(identical(first, second), isTrue);
-    });
+        final first = container.read(loggerServiceProvider);
+        final second = container.read(loggerServiceProvider);
+        expect(identical(first, second), isTrue);
+      },
+    );
   });
 }

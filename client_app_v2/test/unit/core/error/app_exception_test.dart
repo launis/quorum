@@ -12,7 +12,8 @@ void main() {
           'title': 'Execution Not Found',
           'status': 404,
           'detail': 'Execution exe_0195f3a0000070008000000000000001 not found.',
-          'instance': '/api/v2/execution/executions/exe_0195f3a0000070008000000000000001',
+          'instance':
+              '/api/v2/execution/executions/exe_0195f3a0000070008000000000000001',
           'request_id': 'req_0195f3a0000070008000000000000099',
           'extensions': <String, Object?>{
             'error_code': 'EXECUTION_NOT_FOUND',
@@ -135,10 +136,7 @@ void main() {
         const slugDerived = AppException(
           type: 'https://api.quorum.fi/errors/workflow-compilation-error',
         );
-        expect(
-          slugDerived.errorCode,
-          equals('WORKFLOW_COMPILATION_ERROR'),
-        );
+        expect(slugDerived.errorCode, equals('WORKFLOW_COMPILATION_ERROR'));
 
         // Null or whitespace error_code in extensions falls back to URI slug
         const nullExtCode = AppException(

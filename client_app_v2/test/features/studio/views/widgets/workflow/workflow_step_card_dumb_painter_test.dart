@@ -85,7 +85,7 @@ void main() {
       required StepRule stepDef,
       required List<StepRule> allSteps,
       List<NodeStrategy>? customBlueprints,
-      Function(StepRule)? onChanged,
+      ValueChanged<StepRule>? onChanged,
       VoidCallback? onDelete,
       VoidCallback? onCopy,
       Locale locale = const Locale('en'),

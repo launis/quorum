@@ -40,7 +40,7 @@ void main() {
       () {
         final hallucinatedJson = {
           'block': samplePromptBlockJson,
-          'mock_inputs': {},
+          'mock_inputs': <String, Object?>{},
           'hallucinated_field': 'invalid_value',
         };
 
@@ -84,7 +84,7 @@ void main() {
           'valid': true,
           'errors': <String>[],
           'rendered_prompt': 'Output',
-          'trace': {},
+          'trace': <String, Object?>{},
           'unexpected_token': 999,
         };
 

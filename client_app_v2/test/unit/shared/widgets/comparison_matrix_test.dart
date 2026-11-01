@@ -133,9 +133,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text(l10n.sharedNoComparisonData), findsOneWidget);
 
-        await tester.pumpWidget(
-          buildTestHarness(const {'rows': <Object?>[]}),
-        );
+        await tester.pumpWidget(buildTestHarness(const {'rows': <Object?>[]}));
         await tester.pumpAndSettle();
         expect(find.text(l10n.sharedNoComparisonData), findsOneWidget);
       },

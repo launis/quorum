@@ -20,8 +20,10 @@ class _StubAuthController extends AuthController {
     state = _initialState;
     return switch (_initialState) {
       AsyncData(:final value) => value,
-      AsyncError(:final error, :final stackTrace) =>
-        Future<User?>.error(error, stackTrace),
+      AsyncError(:final error, :final stackTrace) => Future<User?>.error(
+        error,
+        stackTrace,
+      ),
       AsyncLoading() => Completer<User?>().future,
     };
   }
@@ -128,7 +130,10 @@ void main() {
 
         expect(find.byType(NavigationRail), findsOneWidget);
         expect(find.byType(NavigationBar), findsNothing);
-        expect(find.byIcon(Icons.admin_panel_settings_outlined), findsOneWidget);
+        expect(
+          find.byIcon(Icons.admin_panel_settings_outlined),
+          findsOneWidget,
+        );
         expect(find.text('Branch 0: Dashboard'), findsOneWidget);
 
         // Tap Branch 1 (New Analysis)

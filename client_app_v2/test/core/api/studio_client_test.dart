@@ -120,8 +120,9 @@ void main() {
         expect(blocks.first, isA<SystemRulePromptBlock>());
 
         when(
-          () =>
-              mockDio.get<Map<String, Object?>>('studio/prompt-blocks/$testBlockId'),
+          () => mockDio.get<Map<String, Object?>>(
+            'studio/prompt-blocks/$testBlockId',
+          ),
         ).thenAnswer(
           (_) async => Response<Map<String, Object?>>(
             requestOptions: RequestOptions(
@@ -780,10 +781,7 @@ void main() {
           ),
         );
 
-        expect(
-          () => client.getPromptBlocks(),
-          throwsA(isA<DioException>()),
-        );
+        expect(() => client.getPromptBlocks(), throwsA(isA<DioException>()));
       },
     );
   });

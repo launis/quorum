@@ -96,10 +96,7 @@ void main() {
     FilePickerPlatform.instance = fakeFilePicker;
   });
 
-  Widget buildHarness({
-    Locale locale = const Locale('fi'),
-    ThemeData? theme,
-  }) {
+  Widget buildHarness({Locale locale = const Locale('fi'), ThemeData? theme}) {
     return ProviderScope(
       overrides: [reportsClientProvider.overrideWithValue(mockClient)],
       child: MaterialApp(
@@ -129,9 +126,7 @@ void main() {
         when(
           () => mockClient.getReport(validReportId),
         ).thenAnswer((_) async => readyReport);
-        when(
-          () => mockClient.getReportSdui(validReportId),
-        ).thenAnswer(
+        when(() => mockClient.getReportSdui(validReportId)).thenAnswer(
           (_) async => const ReportDataDto(
             executionId: validExecutionId,
             workflowId: validWorkflowId,
@@ -260,10 +255,7 @@ void main() {
         expect(tester.takeException(), isNull);
 
         final l10nFi = await AppLocalizations.delegate.load(const Locale('fi'));
-        expect(
-          find.text(l10nFi.reportGenerationFailedNotice),
-          findsOneWidget,
-        );
+        expect(find.text(l10nFi.reportGenerationFailedNotice), findsOneWidget);
         expect(
           find.text('SYNTHESIS_ERROR: Missing upstream matrix state.'),
           findsOneWidget,

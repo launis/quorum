@@ -15,7 +15,7 @@ void main() {
         },
         'category_id': 'matrix',
         'allow_contextual_override': true,
-        'scales': [],
+        'scales': <Object?>[],
       };
 
       // We expect it to parse successfully because allow_contextual_override is now in PromptBlock

@@ -22,7 +22,10 @@ void main() {
     registerFallbackValue(FakeHumanOverrideRequestDto());
   });
 
-  Widget createTestWidget({required Widget child, List overrides = const []}) {
+  Widget createTestWidget({
+    required Widget child,
+    List<Object?> overrides = const [],
+  }) {
     return ProviderScope(
       overrides: overrides.cast(),
       child: MaterialApp(
@@ -92,7 +95,7 @@ void main() {
           child: Builder(
             builder: (context) => ElevatedButton(
               onPressed: () {
-                showDialog(
+                showDialog<void>(
                   context: context,
                   builder: (_) => HumanOverrideDialog(
                     atom: atom,
@@ -162,7 +165,7 @@ void main() {
           child: Builder(
             builder: (context) => ElevatedButton(
               onPressed: () {
-                showDialog(
+                showDialog<void>(
                   context: context,
                   builder: (_) => HumanOverrideDialog(
                     atom: atom,
@@ -203,7 +206,7 @@ void main() {
           child: Builder(
             builder: (context) => ElevatedButton(
               onPressed: () {
-                showDialog(
+                showDialog<void>(
                   context: context,
                   builder: (_) => HumanOverrideDialog(
                     atom: atom,
@@ -251,7 +254,7 @@ void main() {
           child: Builder(
             builder: (context) => ElevatedButton(
               onPressed: () {
-                showDialog(
+                showDialog<void>(
                   context: context,
                   builder: (_) => HumanOverrideDialog(
                     atom: atom,
@@ -299,7 +302,7 @@ void main() {
           child: Builder(
             builder: (context) => ElevatedButton(
               onPressed: () {
-                showDialog(
+                showDialog<void>(
                   context: context,
                   builder: (_) => HumanOverrideDialog(
                     atom: atom,

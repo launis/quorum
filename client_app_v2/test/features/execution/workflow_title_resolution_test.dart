@@ -18,7 +18,7 @@ void main() {
         };
 
         final nameMapRaw = rawWorkflow['name'];
-        final nameMap = nameMapRaw is Map ? nameMapRaw : {};
+        final nameMap = nameMapRaw is Map ? nameMapRaw : <String, Object?>{};
 
         // Legacy indexing:
         final legacyKey =

@@ -151,11 +151,11 @@ void main() {
 
   Widget createWidgetUnderTest({
     required String profileId,
-    required dynamic overrides,
+    required Iterable<Object?> overrides,
     Size viewportSize = const Size(1920, 1080),
   }) {
     return ProviderScope(
-      overrides: overrides,
+      overrides: List.from(overrides),
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -707,88 +707,86 @@ void main() {
       expect(find.textContaining('Simulated save failure'), findsOneWidget);
     });
 
-    testWidgets(
-      'test_crud_view_rejects_whitespace_only_profile_id_on_save',
-      (WidgetTester tester) async {
-        final profile = createValidProfile(id: '   ');
-        final mockLogger = MockLoggerService();
+    testWidgets('test_crud_view_rejects_whitespace_only_profile_id_on_save', (
+      WidgetTester tester,
+    ) async {
+      final profile = createValidProfile(id: '   ');
+      final mockLogger = MockLoggerService();
 
-        final overrides = [
-          loggerServiceProvider.overrideWithValue(mockLogger),
-          outputProfileFormProvider('   ').overrideWith(
-            () => TestOutputProfileForm(AsyncData(profile)),
+      final overrides = [
+        loggerServiceProvider.overrideWithValue(mockLogger),
+        outputProfileFormProvider(
+          '   ',
+        ).overrideWith(() => TestOutputProfileForm(AsyncData(profile))),
+        promptBlocksControllerProvider.overrideWith(
+          () => MockPromptBlocksController(),
+        ),
+        workflowsControllerProvider.overrideWith(
+          () => MockWorkflowsController(),
+        ),
+        stepsControllerProvider.overrideWith(() => MockStepsController()),
+        workflowAvailableExtensionsProvider(
+          'wf_test',
+        ).overrideWith((ref) async => []),
+      ];
+
+      await tester.pumpWidget(
+        createWidgetUnderTest(profileId: '   ', overrides: overrides),
+      );
+      await tester.pumpAndSettle();
+
+      final saveBtn = find.widgetWithText(TextButton, 'Save');
+      await tester.tap(saveBtn);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.textContaining('Profile ID is required'), findsOneWidget);
+    });
+
+    testWidgets('test_crud_view_handles_delete_failure_gracefully', (
+      WidgetTester tester,
+    ) async {
+      final profile = createValidProfile();
+      final mockLogger = MockLoggerService();
+
+      final overrides = [
+        loggerServiceProvider.overrideWithValue(mockLogger),
+        outputProfilesControllerProvider.overrideWith(
+          () => MockOutputProfilesController(
+            onDeleteProfile: (id) async {
+              throw AppException.validation('Simulated delete failure');
+            },
           ),
-          promptBlocksControllerProvider.overrideWith(
-            () => MockPromptBlocksController(),
-          ),
-          workflowsControllerProvider.overrideWith(
-            () => MockWorkflowsController(),
-          ),
-          stepsControllerProvider.overrideWith(() => MockStepsController()),
-          workflowAvailableExtensionsProvider(
-            'wf_test',
-          ).overrideWith((ref) async => []),
-        ];
+        ),
+        outputProfileFormProvider(
+          'prf_test',
+        ).overrideWith(() => TestOutputProfileForm(AsyncData(profile))),
+        promptBlocksControllerProvider.overrideWith(
+          () => MockPromptBlocksController(),
+        ),
+        workflowsControllerProvider.overrideWith(
+          () => MockWorkflowsController(),
+        ),
+        stepsControllerProvider.overrideWith(() => MockStepsController()),
+        workflowAvailableExtensionsProvider(
+          'wf_test',
+        ).overrideWith((ref) async => []),
+      ];
 
-        await tester.pumpWidget(
-          createWidgetUnderTest(profileId: '   ', overrides: overrides),
-        );
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        createWidgetUnderTest(profileId: 'prf_test', overrides: overrides),
+      );
+      await tester.pumpAndSettle();
 
-        final saveBtn = find.widgetWithText(TextButton, 'Save');
-        await tester.tap(saveBtn);
-        await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.delete));
+      await tester.pumpAndSettle();
 
-        expect(find.byType(SnackBar), findsOneWidget);
-        expect(find.textContaining('Profile ID is required'), findsOneWidget);
-      },
-    );
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
 
-    testWidgets(
-      'test_crud_view_handles_delete_failure_gracefully',
-      (WidgetTester tester) async {
-        final profile = createValidProfile();
-        final mockLogger = MockLoggerService();
-
-        final overrides = [
-          loggerServiceProvider.overrideWithValue(mockLogger),
-          outputProfilesControllerProvider.overrideWith(
-            () => MockOutputProfilesController(
-              onDeleteProfile: (id) async {
-                throw AppException.validation('Simulated delete failure');
-              },
-            ),
-          ),
-          outputProfileFormProvider(
-            'prf_test',
-          ).overrideWith(() => TestOutputProfileForm(AsyncData(profile))),
-          promptBlocksControllerProvider.overrideWith(
-            () => MockPromptBlocksController(),
-          ),
-          workflowsControllerProvider.overrideWith(
-            () => MockWorkflowsController(),
-          ),
-          stepsControllerProvider.overrideWith(() => MockStepsController()),
-          workflowAvailableExtensionsProvider(
-            'wf_test',
-          ).overrideWith((ref) async => []),
-        ];
-
-        await tester.pumpWidget(
-          createWidgetUnderTest(profileId: 'prf_test', overrides: overrides),
-        );
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.byIcon(Icons.delete));
-        await tester.pumpAndSettle();
-
-        expect(find.byType(AlertDialog), findsOneWidget);
-        await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
-        await tester.pumpAndSettle();
-
-        expect(find.byType(SnackBar), findsOneWidget);
-        expect(find.textContaining('Simulated delete failure'), findsOneWidget);
-      },
-    );
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.textContaining('Simulated delete failure'), findsOneWidget);
+    });
   });
 }
