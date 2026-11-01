@@ -61,11 +61,11 @@ class ReportArtifactCard extends StatelessWidget {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: Card(
-          elevation: isSelected ? 4 : 1,
+          elevation: isSelected ? AppSpacing.s4 : AppSpacing.s2,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppSpacing.s12),
             side: isSelected
-                ? BorderSide(color: colorScheme.primary, width: 2)
+                ? BorderSide(color: colorScheme.primary, width: AppSpacing.s2)
                 : BorderSide(
                     color: colorScheme.outlineVariant.withValues(alpha: 0.5),
                   ),
@@ -74,7 +74,7 @@ class ReportArtifactCard extends StatelessWidget {
               ? colorScheme.primaryContainer.withValues(alpha: 0.15)
               : colorScheme.surface,
           child: InkWell(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppSpacing.s12),
             onTap: onSelect,
             child: Padding(
               padding: const EdgeInsets.symmetric(
@@ -95,12 +95,14 @@ class ReportArtifactCard extends StatelessWidget {
                               fit: FlexFit.loose,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
+                                  horizontal: AppSpacing.s6,
+                                  vertical: AppSpacing.s2,
                                 ),
                                 decoration: BoxDecoration(
                                   color: badgeColor,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.s12,
+                                  ),
                                 ),
                                 child: Text(
                                   statusLabel,
@@ -119,12 +121,14 @@ class ReportArtifactCard extends StatelessWidget {
                               fit: FlexFit.loose,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 2,
+                                  horizontal: AppSpacing.s4,
+                                  vertical: AppSpacing.s2,
                                 ),
                                 decoration: BoxDecoration(
                                   color: colorScheme.surfaceContainerHigh,
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.s4,
+                                  ),
                                 ),
                                 child: Text(
                                   report.locale.toUpperCase(),
@@ -177,12 +181,18 @@ class ReportArtifactCard extends StatelessWidget {
                           report.status == ReportStatus.ready)
                         IconButton(
                           icon: const Icon(Icons.picture_as_pdf_outlined),
-                          iconSize: 18,
+                          iconSize: AppSpacing.s16,
                           style: IconButton.styleFrom(
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
-                            minimumSize: const Size(26, 26),
-                            maximumSize: const Size(26, 26),
+                            minimumSize: const Size(
+                              AppSpacing.s24,
+                              AppSpacing.s24,
+                            ),
+                            maximumSize: const Size(
+                              AppSpacing.s24,
+                              AppSpacing.s24,
+                            ),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           tooltip: l10n.downloadPdfTooltip,
@@ -193,12 +203,18 @@ class ReportArtifactCard extends StatelessWidget {
                           report.status == ReportStatus.ready)
                         IconButton(
                           icon: const Icon(Icons.table_chart_outlined),
-                          iconSize: 18,
+                          iconSize: AppSpacing.s16,
                           style: IconButton.styleFrom(
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
-                            minimumSize: const Size(26, 26),
-                            maximumSize: const Size(26, 26),
+                            minimumSize: const Size(
+                              AppSpacing.s24,
+                              AppSpacing.s24,
+                            ),
+                            maximumSize: const Size(
+                              AppSpacing.s24,
+                              AppSpacing.s24,
+                            ),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           tooltip: l10n.downloadExcelTooltip,
@@ -209,12 +225,18 @@ class ReportArtifactCard extends StatelessWidget {
                           report.status == ReportStatus.ready)
                         IconButton(
                           icon: const Icon(Icons.description_outlined),
-                          iconSize: 18,
+                          iconSize: AppSpacing.s16,
                           style: IconButton.styleFrom(
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
-                            minimumSize: const Size(26, 26),
-                            maximumSize: const Size(26, 26),
+                            minimumSize: const Size(
+                              AppSpacing.s24,
+                              AppSpacing.s24,
+                            ),
+                            maximumSize: const Size(
+                              AppSpacing.s24,
+                              AppSpacing.s24,
+                            ),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           tooltip: l10n.downloadCsvTooltip,
@@ -225,12 +247,18 @@ class ReportArtifactCard extends StatelessWidget {
                           report.status != ReportStatus.generating)
                         IconButton(
                           icon: const Icon(Icons.refresh),
-                          iconSize: 18,
+                          iconSize: AppSpacing.s16,
                           style: IconButton.styleFrom(
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
-                            minimumSize: const Size(26, 26),
-                            maximumSize: const Size(26, 26),
+                            minimumSize: const Size(
+                              AppSpacing.s24,
+                              AppSpacing.s24,
+                            ),
+                            maximumSize: const Size(
+                              AppSpacing.s24,
+                              AppSpacing.s24,
+                            ),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           tooltip: l10n.regenerateReportTooltip,
@@ -243,12 +271,18 @@ class ReportArtifactCard extends StatelessWidget {
                             Icons.delete_outline,
                             color: colorScheme.error,
                           ),
-                          iconSize: 18,
+                          iconSize: AppSpacing.s16,
                           style: IconButton.styleFrom(
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
-                            minimumSize: const Size(26, 26),
-                            maximumSize: const Size(26, 26),
+                            minimumSize: const Size(
+                              AppSpacing.s24,
+                              AppSpacing.s24,
+                            ),
+                            maximumSize: const Size(
+                              AppSpacing.s24,
+                              AppSpacing.s24,
+                            ),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           tooltip: l10n.deleteReportTooltip,
