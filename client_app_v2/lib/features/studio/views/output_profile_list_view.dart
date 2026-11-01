@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
 import 'package:client_app/features/studio/views/widgets/studio_master_header.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -43,51 +45,53 @@ class _OutputProfileListViewState extends ConsumerState<OutputProfileListView> {
       return name.contains(query) || slug.contains(query) || id.contains(query);
     }).toList();
 
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1200),
-        child: Padding(
-          padding: AppSpacing.p16,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (_bannerError != null) ...[
-                MaterialBanner(
-                  content: Text(_bannerError!),
-                  backgroundColor: Theme.of(context).colorScheme.errorContainer,
-                  contentTextStyle: TextStyle(
-                    color: Theme.of(context).colorScheme.onErrorContainer,
+    return AppErrorBoundary(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Padding(
+            padding: AppSpacing.p16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_bannerError != null) ...[
+                  MaterialBanner(
+                    content: Text(_bannerError!),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.errorContainer,
+                    contentTextStyle: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                        ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => setState(() => _bannerError = null),
+                        child: Text(l10n.cancelButton),
+                      ),
+                    ],
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => setState(() => _bannerError = null),
-                      child: Text(l10n.cancelButton),
-                    ),
-                  ],
-                ),
-                AppSpacing.h16,
-              ],
-              StudioMasterHeader(
-                title: l10n.studioViewsOutputProfilesMasterTitle,
-                subtitle: l10n.outputProfilesDictionary,
-                searchQuery: _searchQuery,
-                onSearchChanged: (query) =>
-                    setState(() => _searchQuery = query),
-                itemCount: filtered?.length ?? 0,
-                totalCount: profiles?.length ?? 0,
-                actionLabel: l10n.studioViewsNewProfileBtn,
-                actionIcon: Icons.add,
-                onAction: () async {
-                  try {
-                    final draft = await ref
-                        .read(outputProfilesControllerProvider.notifier)
-                        .createOutputProfileDraft();
-                    if (context.mounted) {
+                  AppSpacing.h16,
+                ],
+                StudioMasterHeader(
+                  title: l10n.studioViewsOutputProfilesMasterTitle,
+                  subtitle: l10n.outputProfilesDictionary,
+                  searchQuery: _searchQuery,
+                  onSearchChanged: (query) =>
+                      setState(() => _searchQuery = query),
+                  itemCount: filtered?.length ?? 0,
+                  totalCount: profiles?.length ?? 0,
+                  actionLabel: l10n.studioViewsNewProfileBtn,
+                  actionIcon: Icons.add,
+                  onAction: () async {
+                    try {
+                      final draft = await ref
+                          .read(outputProfilesControllerProvider.notifier)
+                          .createOutputProfileDraft();
+                      if (!context.mounted) return;
                       OutputProfileEditRoute(id: draft.id).go(context);
-                    }
-                  } catch (e, st) {
-                    if (context.mounted) {
+                    } catch (e, st) {
                       ref
                           .read(loggerServiceProvider)
                           .error(
@@ -96,26 +100,77 @@ class _OutputProfileListViewState extends ConsumerState<OutputProfileListView> {
                             e,
                             st,
                           );
+                      if (!context.mounted) return;
                       setState(() {
                         _bannerError = l10n.studioViewsFailedToCreate(
                           e.toString(),
                         );
                       });
                     }
-                  }
-                },
-              ),
-              AppSpacing.h16,
-              Expanded(
-                child: switch (profilesState) {
-                  AsyncData() =>
-                    profiles!.isEmpty
-                        ? Center(child: Text(l10n.studioViewsNoOutputProfiles))
-                        : filtered!.isEmpty
-                        ? Center(child: Text(l10n.studioMasterNoMatchingItems))
-                        : ListView.builder(
-                            itemCount: filtered.length,
-                            prototypeItem: Card(
+                  },
+                ),
+                AppSpacing.h16,
+                Expanded(
+                  child: Builder(
+                    builder: (context) => switch (profilesState) {
+                      AsyncData() => () {
+                        for (final profile in profiles!) {
+                          if (profile.id.isEmpty) {
+                            throw AppException.validation(
+                              'Fail-Fast: Output profile ID is missing.',
+                            );
+                          }
+                          if (profile.slug.isEmpty) {
+                            throw AppException.validation(
+                              'Fail-Fast: Output profile slug is missing.',
+                            );
+                          }
+                        }
+                        if (profiles.isEmpty) {
+                          return Center(
+                            child: Text(l10n.studioViewsNoOutputProfiles),
+                          );
+                        }
+                        if (filtered!.isEmpty) {
+                          return Center(
+                            child: Text(l10n.studioMasterNoMatchingItems),
+                          );
+                        }
+                        return ListView.builder(
+                          itemCount: filtered.length,
+                          prototypeItem: Card(
+                            child: ListTile(
+                              leading: Icon(
+                                Icons.print,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                              title: Text(
+                                l10n.studioViewsOutputProfilesMasterTitle,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text(
+                                '${l10n.studioViewsSlugSubtitle(l10n.outputProfilesDictionary)}\n${l10n.studioViewsProfileListSubtitle(l10n.studioViewsNone, l10n.studioViewsNone, 0)}',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.copy),
+                                  Icon(Icons.edit_document),
+                                ],
+                              ),
+                            ),
+                          ),
+                          itemBuilder: (context, index) {
+                            final profile = filtered[index];
+                            final groups = profile.matrixSynthesisGroups;
+                            final title = profile.name.get(currentLocale);
+
+                            return Card(
                               child: ListTile(
                                 leading: Icon(
                                   Icons.print,
@@ -123,88 +178,56 @@ class _OutputProfileListViewState extends ConsumerState<OutputProfileListView> {
                                     context,
                                   ).colorScheme.onSurfaceVariant,
                                 ),
-                                title: const Text(
-                                  'Prototype Output Profile Title',
+                                title: Text(
+                                  title,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                  style: Theme.of(context).textTheme.bodyLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold),
                                 ),
-                                subtitle: const Text(
-                                  'Prototype Subtitle\nSecondary Info',
+                                subtitle: Text(
+                                  '${l10n.studioViewsSlugSubtitle(profile.slug)}\n${l10n.studioViewsProfileListSubtitle(profile.id, profile.workflowId.isEmpty ? l10n.studioViewsNone : profile.workflowId, groups.length)}',
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                trailing: const Row(
+                                trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.copy),
-                                    Icon(Icons.edit_document),
+                                    CloneEntityButton(
+                                      onClone: () => ref
+                                          .read(
+                                            outputProfilesControllerProvider
+                                                .notifier,
+                                          )
+                                          .cloneProfile(profile.id),
+                                    ),
+                                    const Icon(Icons.edit_document),
                                   ],
                                 ),
+                                onTap: () {
+                                  OutputProfileEditRoute(
+                                    id: profile.id,
+                                  ).go(context);
+                                },
                               ),
-                            ),
-                            itemBuilder: (context, index) {
-                              final profile = filtered[index];
-                              final groups = profile.matrixSynthesisGroups;
-                              final title = profile.name.get(currentLocale);
-
-                              return Card(
-                                child: ListTile(
-                                  leading: Icon(
-                                    Icons.print,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                                  title: Text(
-                                    title,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    '${l10n.studioViewsSlugSubtitle(profile.slug)}\n${l10n.studioViewsProfileListSubtitle(profile.id, profile.workflowId.isEmpty ? l10n.studioViewsNone : profile.workflowId, groups.length)}',
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      CloneEntityButton(
-                                        onClone: () async {
-                                          final id = profile.id;
-                                          if (id.isEmpty) return;
-                                          await ref
-                                              .read(
-                                                outputProfilesControllerProvider
-                                                    .notifier,
-                                              )
-                                              .cloneProfile(id);
-                                        },
-                                      ),
-                                      const Icon(Icons.edit_document),
-                                    ],
-                                  ),
-                                  onTap: () {
-                                    OutputProfileEditRoute(
-                                      id: profile.id,
-                                    ).go(context);
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                  AsyncLoading() => const Center(
-                    child: CircularProgressIndicator(),
+                            );
+                          },
+                        );
+                      }(),
+                      AsyncLoading() => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                      AsyncError(:final error, :final stackTrace) => ErrorView(
+                        error: error,
+                        stackTrace: stackTrace,
+                        compact: true,
+                        onRetry: () => ref
+                            .read(outputProfilesControllerProvider.notifier)
+                            .refresh(),
+                      ),
+                    },
                   ),
-                  AsyncError(:final error) => ErrorView(
-                    error: error,
-                    compact: true,
-                    onRetry: () => ref
-                        .read(outputProfilesControllerProvider.notifier)
-                        .refresh(),
-                  ),
-                },
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
