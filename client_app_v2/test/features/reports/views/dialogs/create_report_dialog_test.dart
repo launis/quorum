@@ -20,9 +20,10 @@ void main() {
   late MockStudioClient mockStudioClient;
   late MockReportsClient mockReportsClient;
 
-  const testExecutionId = 'exe_01b1d71000000001';
-  const testWorkflowId = 'wor_01b1d71000000001';
-  const testProfileId = 'prf_01b1d71000000001';
+  const testExecutionId = 'exe_0195f3a0000070008000000000000001';
+  const testWorkflowId = 'wor_0195f3a0000070008000000000000001';
+  const testProfileId = 'prf_0195f3a0000070008000000000000001';
+  const testReportId = 'rep_0195f3a0000070008000000000000001';
 
   const testProfile = OutputProfile(
     id: testProfileId,
@@ -31,7 +32,11 @@ void main() {
   );
 
   setUpAll(() {
-    registerFallbackValue(const CreateReportRequest(profileId: 'fallback'));
+    registerFallbackValue(
+      const CreateReportRequest(
+        profileId: 'prf_0195f3a0000070008000000000000099',
+      ),
+    );
   });
 
   setUp(() {
@@ -76,7 +81,7 @@ void main() {
 
       expect(find.text('Luo uusi tuloste'), findsOneWidget);
       expect(find.text('Testiprofiili'), findsOneWidget);
-      expect(find.text('Suomi (FI)'), findsOneWidget);
+      expect(find.text('Suomi (fi)'), findsOneWidget);
     },
   );
 
@@ -93,6 +98,60 @@ void main() {
 
       expect(find.text('Exception: Backend network timeout'), findsOneWidget);
       expect(find.byType(SnackBar), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'CreateReportDialog disables submit button and shows notice when no matching profiles exist',
+    (WidgetTester tester) async {
+      when(
+        () => mockStudioClient.getOutputProfiles(),
+      ).thenAnswer((_) async => const []);
+
+      await tester.pumpWidget(buildTestDialog());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.text('Tälle työnkululle ei löytynyt sopivia tulosteprofiileja.'),
+        findsOneWidget,
+      );
+
+      final generateButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Generoi tuloste'),
+      );
+      expect(generateButton.onPressed, isNull);
+    },
+  );
+
+  testWidgets(
+    'CreateReportDialog displays inline error when report creation fails',
+    (WidgetTester tester) async {
+      when(
+        () => mockStudioClient.getOutputProfiles(),
+      ).thenAnswer((_) async => [testProfile]);
+
+      when(
+        () => mockReportsClient.createReport(
+          executionId: testExecutionId,
+          request: any(named: 'request'),
+        ),
+      ).thenThrow(Exception('Report synthesis queue full'));
+
+      await tester.pumpWidget(buildTestDialog());
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.text('Generoi tuloste'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.text('Exception: Report synthesis queue full'),
+        findsOneWidget,
+      );
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.text('Luo uusi tuloste'), findsOneWidget);
     },
   );
 
@@ -141,7 +200,7 @@ void main() {
       ).thenAnswer((_) async => [testProfile]);
 
       final reportSummary = ReportArtifactSummary(
-        id: 'rep_01b1d71000000001',
+        id: testReportId,
         executionId: testExecutionId,
         profileId: testProfileId,
         locale: 'fi',
@@ -170,11 +229,13 @@ void main() {
       verify(
         () => mockReportsClient.createReport(
           executionId: testExecutionId,
-          request: const CreateReportRequest(
-            profileId: testProfileId,
-            locale: 'fi',
-            forceResynthesis: false,
-            customPrefaceMd: null,
+          request: any(
+            named: 'request',
+            that: isA<CreateReportRequest>()
+                .having((r) => r.profileId, 'profileId', testProfileId)
+                .having((r) => r.locale, 'locale', 'fi')
+                .having((r) => r.forceResynthesis, 'forceResynthesis', false)
+                .having((r) => r.customPrefaceMd, 'customPrefaceMd', isNull),
           ),
         ),
       ).called(1);
@@ -189,7 +250,7 @@ void main() {
       ).thenAnswer((_) async => [testProfile]);
 
       final reportSummary = ReportArtifactSummary(
-        id: 'rep_01b1d71000000001',
+        id: testReportId,
         executionId: testExecutionId,
         profileId: testProfileId,
         locale: 'fi',
@@ -224,11 +285,13 @@ void main() {
       verify(
         () => mockReportsClient.createReport(
           executionId: testExecutionId,
-          request: const CreateReportRequest(
-            profileId: testProfileId,
-            locale: 'fi',
-            forceResynthesis: true,
-            customPrefaceMd: null,
+          request: any(
+            named: 'request',
+            that: isA<CreateReportRequest>()
+                .having((r) => r.profileId, 'profileId', testProfileId)
+                .having((r) => r.locale, 'locale', 'fi')
+                .having((r) => r.forceResynthesis, 'forceResynthesis', true)
+                .having((r) => r.customPrefaceMd, 'customPrefaceMd', isNull),
           ),
         ),
       ).called(1);

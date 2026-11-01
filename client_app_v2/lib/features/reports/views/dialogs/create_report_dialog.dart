@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/reports/controllers/report_artifact_controller.dart';
 import 'package:client_app/features/reports/models/report_artifact.dart';
@@ -38,9 +40,6 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
   final _profileFocusNode = FocusNode();
   final _prefaceFocusNode = FocusNode();
 
-  static const _labelFi = 'Suomi (FI)';
-  static const _labelEn = 'English (EN)';
-
   String? _selectedProfileId;
   String _selectedLocale = 'fi';
   bool _forceResynthesis = false;
@@ -48,7 +47,7 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
   bool _isLoadingProfiles = true;
   String? _inlineError;
   bool _isSaving = false;
-  late final String _initialStateJson;
+  late String _initialStateJson;
 
   @override
   void initState() {
@@ -67,8 +66,14 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
   }
 
   CreateReportRequest _buildRequest() {
+    final profileId = _selectedProfileId;
+    if (profileId == null || profileId.isEmpty) {
+      throw AppException.validation(
+        'Fail-Fast: Output profile ID is required to build CreateReportRequest.',
+      );
+    }
     return CreateReportRequest(
-      profileId: _selectedProfileId ?? '',
+      profileId: profileId,
       locale: _selectedLocale,
       forceResynthesis: _forceResynthesis,
       customPrefaceMd: _prefaceController.text.trim().isEmpty
@@ -78,7 +83,14 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
   }
 
   String _computeStateJson() {
-    return jsonEncode(_buildRequest().toJson());
+    return jsonEncode(<String, Object?>{
+      'profile_id': _selectedProfileId,
+      'locale': _selectedLocale,
+      'force_resynthesis': _forceResynthesis,
+      'custom_preface_md': _prefaceController.text.trim().isEmpty
+          ? null
+          : _prefaceController.text.trim(),
+    });
   }
 
   bool _isModelDirty() => _computeStateJson() != _initialStateJson;
@@ -107,9 +119,18 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
         _isLoadingProfiles = false;
         if (_selectedProfileId == null && profiles.isNotEmpty) {
           _selectedProfileId = profiles.first.id;
+          _initialStateJson = _computeStateJson();
         }
       });
-    } catch (e) {
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error(
+            'CreateReportDialog',
+            'LOAD_PROFILES_FAILED: Failed to load output profiles for execution ${widget.executionId}',
+            e,
+            st,
+          );
       if (!mounted) return;
       setState(() {
         _inlineError = e.toString();
@@ -226,7 +247,7 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
           child: AppErrorBoundary(
             child: Dialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppSpacing.s16),
               ),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(
@@ -272,7 +293,9 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
                               padding: AppSpacing.p12,
                               decoration: BoxDecoration(
                                 color: colorScheme.errorContainer,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(
+                                  AppSpacing.s8,
+                                ),
                                 border: Border.all(color: colorScheme.error),
                               ),
                               child: Row(
@@ -314,7 +337,9 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
                                       decoration: BoxDecoration(
                                         color:
                                             colorScheme.surfaceContainerHighest,
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius: BorderRadius.circular(
+                                          AppSpacing.s8,
+                                        ),
                                         border: Border.all(
                                           color: colorScheme.outlineVariant,
                                         ),
@@ -389,14 +414,20 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
                                         Icons.language_outlined,
                                       ),
                                     ),
-                                    items: const [
+                                    items: [
                                       DropdownMenuItem(
                                         value: 'fi',
-                                        child: Text(_labelFi),
+                                        child: Text(
+                                          l10n.profileLanguageFi,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
                                       DropdownMenuItem(
                                         value: 'en',
-                                        child: Text(_labelEn),
+                                        child: Text(
+                                          l10n.profileLanguageEn,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
                                     ],
                                     onChanged: (val) {
@@ -465,10 +496,10 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
                               FilledButton.icon(
                                 icon: _isSaving
                                     ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
+                                        width: AppSpacing.s16,
+                                        height: AppSpacing.s16,
                                         child: CircularProgressIndicator(
-                                          strokeWidth: 2,
+                                          strokeWidth: AppSpacing.s2,
                                         ),
                                       )
                                     : const Icon(Icons.auto_awesome),
