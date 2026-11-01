@@ -18,6 +18,7 @@ from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _parse_org_uuid7,
     _ReportBinaryRowDTO,
     execute_entity_upsert,
+    resolve_effective_timeout,
 )
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPgRecordProtocol
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -55,7 +56,6 @@ __all__ = [
     "upsert_report_artifact_row",
 ]
 
-# Phase 3, Step 1: Relocate report_binaries, executions, and report_artifacts SQL constants
 _SAVE_REPORT_BINARY_SQL: str = """INSERT INTO report_binaries (report_id, mime_type, pdf_bytes, size_bytes, created_at)
 VALUES ($1::uuid, $2, $3::bytea, $4::bigint, $5::timestamptz)
 ON CONFLICT (report_id) DO UPDATE SET mime_type = EXCLUDED.mime_type, pdf_bytes = EXCLUDED.pdf_bytes,
@@ -121,15 +121,38 @@ _LIST_REPORT_ARTIFACTS_SQL: str = f"SELECT {_REPORT_ARTIFACT_COLS} FROM report_a
 _GET_REPORT_ARTIFACT_SQL: str = f"{_LIST_REPORT_ARTIFACTS_SQL} WHERE id = $1::uuid"
 
 
-async def _fetch_row(conn: _Conn, timeout: float, sql: str, uid: object, eid: str) -> AsyncPgRecordProtocol | None:
-    """Execute fetchrow with timeout and translate driver errors to AppException."""
+async def _fetch_row(
+    conn: _Conn, timeout: float | None, sql: str, uid: object, eid: str
+) -> AsyncPgRecordProtocol | None:
+    """Execute fetchrow with timeout and translate driver errors to AppException.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds, or None to resolve from settings.
+        sql: Parameterized SELECT SQL statement.
+        uid: Parsed 16-byte UUID primary key parameter.
+        eid: Canonical Opaque Stripe ID of the target entity for error reporting.
+
+    Returns:
+        Database record if found, or None.
+
+    Raises:
+        AppException: With STORAGE_ACCESS_FAILED if the database query fails.
+    """
+    effective_timeout = resolve_effective_timeout(timeout)
     try:
-        return await conn.fetchrow(sql, uid, timeout=timeout)
+        return await conn.fetchrow(sql, uid, timeout=effective_timeout)
     except Exception as exc:
         if isinstance(exc, AppException):
             raise
         msg = f"Failed to fetch entity '{eid}': {exc}"
-        logger.error("[PostgresEntityAdapter] %s: %s", ErrorCodes.STORAGE_ACCESS_FAILED.name, msg, exc_info=True)
+        logger.error(
+            "[PostgresEntityAdapter] %s: %s",
+            ErrorCodes.STORAGE_ACCESS_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "entity_id": eid},
+        )
         raise AppException(
             message=msg,
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -137,21 +160,27 @@ async def _fetch_row(conn: _Conn, timeout: float, sql: str, uid: object, eid: st
         ) from exc
 
 
-# Phase 3, Step 1: Extract report binary, execution, and report artifact persistence and hydration functions
-async def save_report_binary_row(conn: _Conn, timeout: float, dto: ReportBinaryPayloadDTO) -> None:
+async def save_report_binary_row(conn: _Conn, timeout: float | None, dto: ReportBinaryPayloadDTO) -> None:
     """Persist a ReportBinaryPayloadDTO into report_binaries (BYTEA TOAST) and mark has_pdf.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
-        timeout: Command execution timeout in seconds.
+        timeout: Command execution timeout in seconds, or None to resolve from settings.
         dto: Validated ReportBinaryPayloadDTO instance.
 
     Raises:
         AppException: With VALIDATION_FAILED on size/ID error or STORAGE_ACCESS_FAILED on DB error.
     """
+    effective_timeout = resolve_effective_timeout(timeout)
     if len(dto.pdf_bytes) != dto.size_bytes:
         msg = f"ReportBinaryPayloadDTO size_bytes ({dto.size_bytes}) != len(pdf_bytes) ({len(dto.pdf_bytes)})."
-        logger.error("[PostgresEntityAdapter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error(
+            "[PostgresEntityAdapter] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "entity_id": dto.report_id},
+        )
         raise AppException(
             message=msg,
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -161,7 +190,7 @@ async def save_report_binary_row(conn: _Conn, timeout: float, dto: ReportBinaryP
     report_uuid = parse_prefixed_uuid7(dto.report_id, EntityPrefix.REPORT)
     await execute_entity_upsert(
         conn,
-        timeout,
+        effective_timeout,
         _SAVE_REPORT_BINARY_SQL,
         report_uuid,
         dto.mime_type,
@@ -170,37 +199,36 @@ async def save_report_binary_row(conn: _Conn, timeout: float, dto: ReportBinaryP
         dto.created_at,
         entity_id=dto.report_id,
     )
-    await execute_entity_upsert(conn, timeout, _MARK_REPORT_ARTIFACT_PDF_SQL, report_uuid, entity_id=dto.report_id)
+    await execute_entity_upsert(
+        conn, effective_timeout, _MARK_REPORT_ARTIFACT_PDF_SQL, report_uuid, entity_id=dto.report_id
+    )
 
 
-async def get_report_binary_row(conn: _Conn, timeout: float, report_id: str) -> ReportBinaryPayloadDTO | None:
+async def get_report_binary_row(conn: _Conn, timeout: float | None, report_id: str) -> ReportBinaryPayloadDTO | None:
     """Retrieve a ReportBinaryPayloadDTO from report_binaries by canonical report_id.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
-        timeout: Command execution timeout in seconds.
+        timeout: Command execution timeout in seconds, or None to resolve from settings.
         report_id: Canonical rep_<uuid7_hex> report identifier.
 
     Returns:
         Hydrated ReportBinaryPayloadDTO if found, or None.
 
     Raises:
-        AppException: With VALIDATION_FAILED on invalid report_id or STORAGE_ACCESS_FAILED on query error.
+        AppException: With VALIDATION_FAILED on invalid report_id or corrupt binary payload,
+            or STORAGE_ACCESS_FAILED on query error.
     """
     report_uuid = parse_prefixed_uuid7(report_id, EntityPrefix.REPORT)
     row = await _fetch_row(conn, timeout, _GET_REPORT_BINARY_SQL, report_uuid, report_id)
     if row is None:
         return None
 
-    raw_bytes = row["pdf_bytes"]
-    pdf_bytes: bytes = b""
-    if isinstance(raw_bytes, (bytes, bytearray, memoryview)):
-        pdf_bytes = bytes(raw_bytes)
     row_dto = _ReportBinaryRowDTO.model_validate(
         {
             "report_id": format_prefixed_uuid7(_coerce_uuid_or_str(row["report_id"]), EntityPrefix.REPORT),
             "mime_type": row["mime_type"],
-            "pdf_bytes": pdf_bytes,
+            "pdf_bytes": row["pdf_bytes"],
             "size_bytes": row["size_bytes"],
             "created_at": row["created_at"],
         },
@@ -217,6 +245,9 @@ def hydrate_execution_row(row: AsyncPgRecordProtocol) -> ExecutionRecord:
 
     Returns:
         Validated ExecutionRecord domain model.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if UUID identifiers cannot be formatted.
     """
     return ExecutionRecord.model_validate(
         {
@@ -364,6 +395,9 @@ def hydrate_report_artifact_row(row: AsyncPgRecordProtocol) -> ReportArtifact:
 
     Returns:
         Validated ReportArtifact domain model.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if UUID identifiers cannot be formatted.
     """
     return ReportArtifact.model_validate(
         {

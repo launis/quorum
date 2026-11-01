@@ -142,6 +142,10 @@ async def test_report_binary_size_mismatch_and_invalid_prefix_raise_validation_f
         with pytest.raises(AppException) as rep_err:
             await get_report_artifact_row(conn, _TIMEOUT, "exe_0195f3a0000070008000000000000001")
         assert rep_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+        with pytest.raises(AppException) as bin_id_err:
+            await get_report_binary_row(conn, None, "exe_0195f3a0000070008000000000000001")
+        assert bin_id_err.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     finally:
         await pool.release(conn)
 
