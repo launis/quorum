@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -85,7 +86,8 @@ class _ContrastivePairEditorState extends State<ContrastivePairEditor> {
   }) {
     final theme = Theme.of(context);
     final count = controller.text.length;
-    final isMinMet = count >= 10;
+    final minChars = SystemUiConstraints.tdaConceptMinLength.value;
+    final isMinMet = count >= minChars;
     final counterColor = count == 0
         ? theme.colorScheme.onSurfaceVariant
         : (isMinMet ? theme.colorScheme.primary : theme.colorScheme.error);
@@ -118,7 +120,7 @@ class _ContrastivePairEditorState extends State<ContrastivePairEditor> {
                 color: isAcceptable
                     ? theme.colorScheme.primary
                     : theme.colorScheme.error,
-                width: 2,
+                width: AppSpacing.s2,
               ),
             ),
           ),
@@ -127,7 +129,8 @@ class _ContrastivePairEditorState extends State<ContrastivePairEditor> {
         Align(
           alignment: Alignment.centerRight,
           child: Text(
-            '$count/10 chars',
+            '$count/$minChars chars',
+            overflow: TextOverflow.ellipsis,
             style: theme.textTheme.labelSmall?.copyWith(
               color: counterColor,
               fontWeight: isMinMet ? FontWeight.bold : FontWeight.normal,
@@ -141,7 +144,7 @@ class _ContrastivePairEditorState extends State<ContrastivePairEditor> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final accText = _acceptableController.text.trim();
     final rejText = _rejectedController.text.trim();
     final isIdentical =
@@ -155,24 +158,25 @@ class _ContrastivePairEditorState extends State<ContrastivePairEditor> {
       children: [
         if (isIdentical)
           Container(
-            margin: const EdgeInsets.only(bottom: 8),
+            margin: const EdgeInsets.only(bottom: AppSpacing.s8),
             padding: AppSpacing.p8,
             decoration: BoxDecoration(
               color: theme.colorScheme.errorContainer,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppSpacing.s8),
             ),
             child: Row(
               children: [
                 Icon(
                   Icons.error_outline,
-                  size: 18,
+                  size: AppSpacing.s16,
                   color: theme.colorScheme.onErrorContainer,
                 ),
                 AppSpacing.w8,
                 Expanded(
                   child: Text(
-                    l10n?.scaleContrastiveIdenticalError ??
-                        'Examples cannot be identical.',
+                    l10n.scaleContrastiveIdenticalError,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onErrorContainer,
                       fontWeight: FontWeight.bold,
@@ -187,23 +191,15 @@ class _ContrastivePairEditorState extends State<ContrastivePairEditor> {
             final acceptableWidget = _buildField(
               context: context,
               controller: _acceptableController,
-              label:
-                  l10n?.scaleAcceptableExampleLabel ??
-                  'Approved Example (Acceptable)',
-              helper:
-                  l10n?.scaleAcceptableExampleHelper ??
-                  'Example satisfying this requirement.',
+              label: l10n.scaleAcceptableExampleLabel,
+              helper: l10n.scaleAcceptableExampleHelper,
               isAcceptable: true,
             );
             final rejectedWidget = _buildField(
               context: context,
               controller: _rejectedController,
-              label:
-                  l10n?.scaleRejectedExampleLabel ??
-                  'Rejected Counterpart (Rejected)',
-              helper:
-                  l10n?.scaleRejectedExampleHelper ??
-                  'Example rejected from this level.',
+              label: l10n.scaleRejectedExampleLabel,
+              helper: l10n.scaleRejectedExampleHelper,
               isAcceptable: false,
             );
 

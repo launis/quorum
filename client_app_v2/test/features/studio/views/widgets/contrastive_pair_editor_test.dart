@@ -115,5 +115,98 @@ void main() {
       ); // Stacked vertically with identical X coordinate
       expect(secondPos.dy, greaterThan(firstPos.dy));
     });
+
+    testWidgets(
+      'ISTQB Negative: clearing both fields emits null to onChanged callback',
+      (tester) async {
+        ContrastivePairDTO? result = const ContrastivePairDTO(
+          acceptable: 'Initial acceptable',
+          rejected: 'Initial rejected',
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            ContrastivePairEditor(
+              initialValue: result,
+              onChanged: (val) => result = val,
+            ),
+          ),
+        );
+
+        final fields = find.byType(TextFormField);
+        await tester.enterText(fields.first, '   ');
+        await tester.pump();
+        expect(result, isNotNull);
+
+        await tester.enterText(fields.last, '');
+        await tester.pump();
+        expect(result, isNull);
+      },
+    );
+
+    testWidgets(
+      'ISTQB Boundary: character counter transitions at 9 vs 10 characters and disabled state blocks input',
+      (tester) async {
+        ContrastivePairDTO? result;
+        await tester.pumpWidget(
+          createTestWidget(
+            ContrastivePairEditor(
+              initialValue: const ContrastivePairDTO(
+                acceptable: '123456789',
+                rejected: '1234567890',
+              ),
+              enabled: false,
+              onChanged: (val) => result = val,
+            ),
+          ),
+        );
+
+        final nineCharCounter = tester.widget<Text>(find.text('9/10 chars'));
+        final tenCharCounter = tester.widget<Text>(find.text('10/10 chars'));
+        expect(nineCharCounter.style?.fontWeight, FontWeight.normal);
+        expect(tenCharCounter.style?.fontWeight, FontWeight.bold);
+
+        final fields = tester.widgetList<TextFormField>(
+          find.byType(TextFormField),
+        );
+        expect(fields.every((f) => f.enabled == false), isTrue);
+        expect(result, isNull);
+      },
+    );
+
+    testWidgets(
+      'syncs text controllers when initialValue changes via didUpdateWidget',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestWidget(
+            ContrastivePairEditor(
+              initialValue: const ContrastivePairDTO(
+                acceptable: 'First acceptable text',
+                rejected: 'First rejected text',
+              ),
+              onChanged: (_) {},
+            ),
+          ),
+        );
+
+        expect(find.text('First acceptable text'), findsOneWidget);
+
+        await tester.pumpWidget(
+          createTestWidget(
+            ContrastivePairEditor(
+              initialValue: const ContrastivePairDTO(
+                acceptable: 'Updated acceptable text',
+                rejected: 'Updated rejected text',
+              ),
+              onChanged: (_) {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Updated acceptable text'), findsOneWidget);
+        expect(find.text('Updated rejected text'), findsOneWidget);
+      },
+    );
   });
 }
