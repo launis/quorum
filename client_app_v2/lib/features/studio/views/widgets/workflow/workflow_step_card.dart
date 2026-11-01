@@ -23,7 +23,7 @@ class WorkflowStepCard extends StatelessWidget {
   final List<McpGateway> mcpGateways;
   final List<ExpectedInput> globalWorkflowInputs;
   final AppLocalizations l10n;
-  final Function(StepRule) onChanged;
+  final ValueChanged<StepRule> onChanged;
   final VoidCallback onDelete;
   final VoidCallback? onCopy;
 
@@ -117,38 +117,49 @@ class WorkflowStepCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      l10n.studioWorkflowStepCount(index + 1),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (isSystemCoreStep) ...[
-                      AppSpacing.w8,
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
                         child: Text(
-                          l10n.studioSystemCoreBadge,
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimaryContainer,
-                              ),
+                          l10n.studioWorkflowStepCount(index + 1),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (isSystemCoreStep) ...[
+                        AppSpacing.w8,
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.s8,
+                              vertical: AppSpacing.s2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.s12,
+                              ),
+                            ),
+                            child: Text(
+                              l10n.studioSystemCoreBadge,
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimaryContainer,
+                                  ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
                 if (!isSystemCoreStep)
                   Row(
@@ -259,12 +270,12 @@ class WorkflowStepCard extends StatelessWidget {
             if (isZoneA) ...[
               // ZONE A: Input Ingestion Anchor (Step 1)
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: AppSpacing.p12,
                 decoration: BoxDecoration(
                   color: Theme.of(
                     context,
                   ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppSpacing.s8),
                   border: Border.all(
                     color: Theme.of(context).colorScheme.outlineVariant,
                   ),
@@ -288,12 +299,12 @@ class WorkflowStepCard extends StatelessWidget {
                     AppSpacing.h8,
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+                        horizontal: AppSpacing.s8,
+                        vertical: AppSpacing.s6,
                       ),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(AppSpacing.s6),
                       ),
                       child: Text(
                         l10n.studioWorkflowStep1OutputBadge,
@@ -311,12 +322,12 @@ class WorkflowStepCard extends StatelessWidget {
             ] else if (isZoneC) ...[
               // ZONE C: Pipeline Funnel Anchors (Protected Automated Steps)
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: AppSpacing.p12,
                 decoration: BoxDecoration(
                   color: Theme.of(
                     context,
                   ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppSpacing.s8),
                   border: Border.all(
                     color: Theme.of(context).colorScheme.outlineVariant,
                   ),
@@ -340,12 +351,12 @@ class WorkflowStepCard extends StatelessWidget {
                     AppSpacing.h8,
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+                        horizontal: AppSpacing.s8,
+                        vertical: AppSpacing.s6,
                       ),
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.tertiaryContainer,
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(AppSpacing.s6),
                       ),
                       child: Text(
                         l10n.studioWorkflowXaiReporterAggregateBadge,
@@ -387,7 +398,7 @@ class WorkflowStepCard extends StatelessWidget {
                 )
               else
                 Wrap(
-                  spacing: 8,
+                  spacing: AppSpacing.s8,
                   children: previousSteps.map((prevId) {
                     final isSelected = dependsOn.contains(prevId);
 
@@ -507,7 +518,7 @@ class WorkflowStepCard extends StatelessWidget {
 
               if (globalWorkflowInputs.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.s4),
                   child: Text(
                     l10n.studioWorkflowNoSelectableInputs,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -517,12 +528,12 @@ class WorkflowStepCard extends StatelessWidget {
                 )
               else
                 Container(
-                  margin: const EdgeInsets.only(bottom: 12),
+                  margin: const EdgeInsets.only(bottom: AppSpacing.s12),
                   decoration: BoxDecoration(
                     border: Border.all(
                       color: Theme.of(context).colorScheme.outlineVariant,
                     ),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppSpacing.s8),
                   ),
                   child: Column(
                     children: globalWorkflowInputs.map((ei) {
@@ -590,7 +601,7 @@ class WorkflowStepCard extends StatelessWidget {
                     border: Border.all(
                       color: Theme.of(context).colorScheme.outlineVariant,
                     ),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppSpacing.s8),
                   ),
                   child: Column(
                     children: dependsOn.map((prevId) {

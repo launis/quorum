@@ -128,7 +128,7 @@ void main() {
       required int index,
       required StepRule stepDef,
       required List<StepRule> allSteps,
-      Function(StepRule)? onChanged,
+      ValueChanged<StepRule>? onChanged,
       VoidCallback? onDelete,
       VoidCallback? onCopy,
       Locale locale = const Locale('fi'),
