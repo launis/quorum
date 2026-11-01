@@ -77,14 +77,14 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: AppSpacing.s4),
+        AppSpacing.h4,
         Text(
           subtitle,
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: AppSpacing.s8),
+        AppSpacing.h8,
         Wrap(
           spacing: AppSpacing.s8,
           runSpacing: AppSpacing.s4,
@@ -162,7 +162,7 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: AppSpacing.s12),
+          AppSpacing.h12,
           switch (availableExtensionsState) {
             AsyncData(value: final availableExtensions) => Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +183,7 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
                     updatePayload: updatePayload,
                     l10n: l10n,
                   ),
-                  const SizedBox(height: AppSpacing.s16),
+                  AppSpacing.h16,
                 ],
                 if (_filterExtensions(
                   _microExtensions,
@@ -211,16 +211,18 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
             ),
             AsyncError(:final error) => Text(error.toString()),
           },
-          const SizedBox(height: AppSpacing.s16),
+          AppSpacing.h16,
           Row(
             children: [
               Expanded(
+                flex: 3,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       l10n.maxExtensionItemsCount(payload.maxExtensionItems),
                       style: Theme.of(context).textTheme.bodySmall,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Slider(
                       value: clampedSliderVal,
@@ -237,9 +239,9 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.s16),
-              SizedBox(
-                width: 80,
+              AppSpacing.w16,
+              Expanded(
+                flex: 1,
                 child: TextFormField(
                   key: ValueKey('max_ext_${payload.maxExtensionItems}'),
                   initialValue: payload.maxExtensionItems.toString(),

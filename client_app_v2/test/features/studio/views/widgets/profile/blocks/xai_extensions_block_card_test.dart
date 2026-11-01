@@ -162,5 +162,133 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+
+    testWidgets(
+      'rejects out-of-bounds (min-1, max+1) and non-integer maxExtensionItems inputs (BVA negative)',
+      (WidgetTester tester) async {
+        final formKey = GlobalKey<FormState>();
+        OutputProfile payload = createSampleProfile();
+        int mutationCount = 0;
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              workflowAvailableExtensionsProvider(
+                'wf_1',
+              ).overrideWithValue(const AsyncValue.data(['citation'])),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(
+                body: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: XaiExtensionsBlockCard(
+                      payload: payload,
+                      updatePayload: (updated) {
+                        payload = updated;
+                        mutationCount++;
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final maxField = find.byKey(const ValueKey('max_ext_3'));
+        expect(maxField, findsOneWidget);
+
+        final minAllowed = SystemUiConstraints.maxExtensionItemsSliderMin.value;
+        final maxAllowed =
+            SystemUiConstraints.maxExtensionItemsAbsoluteMax.value;
+
+        // Boundary min - 1 (0 < 1)
+        await tester.enterText(maxField, '${minAllowed - 1}');
+        await tester.pump();
+        expect(mutationCount, 0);
+        expect(formKey.currentState!.validate(), isFalse);
+
+        // Boundary max + 1 (101 > 100)
+        await tester.enterText(maxField, '${maxAllowed + 1}');
+        await tester.pump();
+        expect(mutationCount, 0);
+        expect(formKey.currentState!.validate(), isFalse);
+
+        // Non-integer input
+        await tester.enterText(maxField, 'abc');
+        await tester.pump();
+        expect(mutationCount, 0);
+        expect(formKey.currentState!.validate(), isFalse);
+
+        // Valid upper boundary (100)
+        await tester.enterText(maxField, '$maxAllowed');
+        await tester.pump();
+        expect(mutationCount, 1);
+        expect(payload.maxExtensionItems, maxAllowed);
+        expect(formKey.currentState!.validate(), isTrue);
+      },
+    );
+
+    testWidgets(
+      'handles AsyncError state and normalizes whitespace/empty optional directives to null (negative)',
+      (WidgetTester tester) async {
+        OutputProfile payload = createSampleProfile().copyWith(
+          xaiSynthesisDirective: 'Initial directive',
+          xaiLengthConstraint: 50,
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              workflowAvailableExtensionsProvider('wf_1').overrideWithValue(
+                AsyncValue.error(
+                  Exception('Extension lookup failed'),
+                  StackTrace.empty,
+                ),
+              ),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(
+                body: SingleChildScrollView(
+                  child: XaiExtensionsBlockCard(
+                    payload: payload,
+                    updatePayload: (updated) {
+                      payload = updated;
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Error message rendered, no FilterChips shown
+        expect(find.textContaining('Extension lookup failed'), findsOneWidget);
+        expect(find.byType(FilterChip), findsNothing);
+
+        // Whitespace-only directive normalizes to null
+        final directiveField = find.byKey(
+          const Key('profile_xai_synthesis_directive_field'),
+        );
+        await tester.enterText(directiveField, '   ');
+        await tester.pump();
+        expect(payload.xaiSynthesisDirective, isNull);
+
+        // Empty length constraint normalizes to null
+        final lengthField = find.byKey(
+          const Key('profile_xai_length_constraint_field'),
+        );
+        await tester.enterText(lengthField, '');
+        await tester.pump();
+        expect(payload.xaiLengthConstraint, isNull);
+      },
+    );
   });
 }
