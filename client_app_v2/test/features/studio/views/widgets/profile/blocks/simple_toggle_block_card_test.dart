@@ -13,8 +13,8 @@ void main() {
       'test_toggle_variance_block_adds_and_removes_variance_validation_extension',
       (WidgetTester tester) async {
         OutputProfile payload = const OutputProfile(
-          id: 'profile_1',
-          workflowId: 'wf_1',
+          id: 'prf_0195f000000070008000000000000001',
+          workflowId: 'wkf_0195f000000070008000000000000001',
           name: I18nText(translations: {'en': 'Test Profile'}),
           targetBlockOrder: [],
           visibleWorkflowExtensions: [],
@@ -84,8 +84,8 @@ void main() {
       WidgetTester tester,
     ) async {
       OutputProfile payload = const OutputProfile(
-        id: 'profile_1',
-        workflowId: 'wf_1',
+        id: 'prf_0195f000000070008000000000000001',
+        workflowId: 'wkf_0195f000000070008000000000000001',
         name: I18nText(translations: {'en': 'Test Profile'}),
         targetBlockOrder: [],
         visibleWorkflowExtensions: [],
@@ -153,8 +153,8 @@ void main() {
       'test_toggle_penalties_block_leaves_workflow_extensions_unchanged',
       (WidgetTester tester) async {
         OutputProfile payload = const OutputProfile(
-          id: 'profile_1',
-          workflowId: 'wf_1',
+          id: 'prf_0195f000000070008000000000000001',
+          workflowId: 'wkf_0195f000000070008000000000000001',
           name: I18nText(translations: {'en': 'Test Profile'}),
           targetBlockOrder: [],
           visibleWorkflowExtensions: [XaiExtensionType.citation],
@@ -200,6 +200,82 @@ void main() {
           payload.targetBlockOrder,
           contains(TargetBlockType.penaltiesBlock),
         );
+        expect(
+          payload.visibleWorkflowExtensions,
+          equals([XaiExtensionType.citation]),
+        );
+      },
+    );
+
+    testWidgets(
+      'test_toggle_already_included_block_prevents_duplicates_in_order_and_extensions',
+      (WidgetTester tester) async {
+        OutputProfile payload = const OutputProfile(
+          id: 'prf_0195f000000070008000000000000001',
+          workflowId: 'wkf_0195f000000070008000000000000001',
+          name: I18nText(translations: {'en': 'Test Profile'}),
+          targetBlockOrder: [TargetBlockType.varianceValidationBlock],
+          visibleWorkflowExtensions: [
+            XaiExtensionType.varianceValidation,
+            XaiExtensionType.citation,
+          ],
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: SingleChildScrollView(
+                child: StatefulBuilder(
+                  builder: (context, setState) {
+                    return SimpleToggleBlockCard(
+                      blockType: TargetBlockType.varianceValidationBlock,
+                      title: 'Variance Validation',
+                      subtitle: 'Variance metrics',
+                      icon: Icons.rule_outlined,
+                      payload: payload,
+                      syncWorkflowExtensions: const [
+                        XaiExtensionType.varianceValidation,
+                      ],
+                      updatePayload: (newPayload) {
+                        setState(() {
+                          payload = newPayload;
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final switchWidget = tester.widget<Switch>(find.byType(Switch));
+        expect(switchWidget.value, isTrue);
+
+        // Programmatically invoke onChanged(true) when already enabled to verify idempotency
+        switchWidget.onChanged!(true);
+        await tester.pumpAndSettle();
+
+        expect(
+          payload.targetBlockOrder,
+          equals([TargetBlockType.varianceValidationBlock]),
+        );
+        expect(
+          payload.visibleWorkflowExtensions,
+          equals([
+            XaiExtensionType.varianceValidation,
+            XaiExtensionType.citation,
+          ]),
+        );
+
+        // Toggle OFF removes only the synced extension while preserving unrelated ones
+        await tester.tap(find.byType(Switch));
+        await tester.pumpAndSettle();
+
+        expect(payload.targetBlockOrder, isEmpty);
         expect(
           payload.visibleWorkflowExtensions,
           equals([XaiExtensionType.citation]),
