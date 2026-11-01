@@ -133,8 +133,8 @@ def test_sliding_window_linker_curly_braces_interpolation() -> None:
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
-async def test_chat_parser_cdata_verbatim_anchor_compatibility(mock_from_strategy: AsyncMock) -> None:
+@patch("backend_v2.services.chat_parser.LLMClient.from_tier")
+async def test_chat_parser_cdata_verbatim_anchor_compatibility(mock_from_tier: AsyncMock) -> None:
     """Verify that ChatParserService extracts verbatim anchors correctly when raw text has XML/CDATA artifacts."""
     mock_client = AsyncMock()
 
@@ -166,7 +166,7 @@ async def test_chat_parser_cdata_verbatim_anchor_compatibility(mock_from_strateg
     mock_config.caching_strategy = "none"
     mock_config.model_copy.return_value = mock_config
     mock_client._config = mock_config
-    mock_from_strategy.return_value = mock_client
+    mock_from_tier.return_value = mock_client
 
     mock_repo = InMemoryUnifiedWorkflowRepository()
     res = await ChatParserService.parse_pasted_chat(raw_paste, mock_repo)

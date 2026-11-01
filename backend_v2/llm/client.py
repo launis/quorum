@@ -311,54 +311,6 @@ class LLMClient:
 
         return cls(config=provider_config)
 
-    @classmethod
-    async def from_strategy(
-        cls,
-        strategy_name: str,
-        repository: Any = None,
-        execution_profile: ExecutionProfile | None = None,
-        pipeline_name: str | None = None,
-        registry_id: str | None = None,
-        provider: LLMProvider | None = None,
-    ) -> Self:
-        """Compatibility bridge: parses strategy_name as CognitiveTier and delegates to from_tier.
-
-        Args:
-            strategy_name: Name of the strategy or tier.
-            repository: Required DB repository instance.
-            execution_profile: Optional execution profile.
-            pipeline_name: Optional explicit pipeline context.
-            registry_id: Optional specific model registry stack ID.
-            provider: Optional explicit provider override.
-
-        Returns:
-            A configured client instance ready for execution.
-
-        Raises:
-            ConfigurationError: If the strategy name is invalid or tier lookup fails (ErrorCodes.CONFIGURATION_ERROR).
-        """
-        try:
-            tier = CognitiveTier(strategy_name.lower())
-        except ValueError as e:
-            logger.error(
-                "Unknown strategy or tier '%s'. Must be a canonical CognitiveTier.",
-                strategy_name,
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-                exc_info=True,
-            )
-            raise ConfigurationError(
-                f"Unknown strategy or tier '{strategy_name}'. Must be a canonical CognitiveTier.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            ) from e
-        return await cls.from_tier(
-            tier=tier,
-            repository=repository,
-            execution_profile=execution_profile,
-            pipeline_name=pipeline_name,
-            registry_id=registry_id,
-            provider=provider,
-        )
-
     async def run_structured_task[T: BaseModel](
         self,
         messages: Sequence[LLMMessageDTO | ChatMessageDTO] | CompiledPrompt,

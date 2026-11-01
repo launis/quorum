@@ -11,7 +11,7 @@ from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
@@ -153,7 +153,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
     # Setup basic valid workflow
     workflow = Workflow(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070058555555555555555",
         slug="wf_test_slug",
@@ -166,10 +166,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
     )
 
     # Execute
-    with (
-        patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock) as mock_strategy,
-        patch("backend_v2.llm.client.LLMClient.from_tier", new_callable=AsyncMock) as mock_tier,
-    ):
+    with patch("backend_v2.llm.client.LLMClient.from_tier", new_callable=AsyncMock) as mock_tier:
         from backend_v2.llm.client import LLMClient
 
         mock_bound_client = AsyncMock(spec=LLMClient)
@@ -184,7 +181,6 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             TokenUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         )
 
-        mock_strategy.return_value = mock_bound_client
         mock_tier.return_value = mock_bound_client
 
         with (
@@ -219,6 +215,9 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
                         contextual_override=True,
                         source_quotes=None,
                         evaluation_reasoning="Because",
+                        extensions={},
+                        depends_on_tda_ids=[],
+                        short_circuit_reason_tda_ids=[],
                     )
                 ],
                 hydrated_references={},
@@ -235,7 +234,9 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
                     status=ExecutionStatus.PENDING,
                     target_locale="fi",
                     output_profile_id="prof_0195f3a00000700d8ddd1111dddd1111",
-                    raw_inputs={"dynamic_inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}},
+                    raw_inputs=WorkflowInputs.model_validate(
+                        {"dynamic_inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}}
+                    ),
                     metadata=ExecutionMetadata(),
                 )
             )

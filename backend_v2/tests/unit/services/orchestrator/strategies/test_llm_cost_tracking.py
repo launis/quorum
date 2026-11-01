@@ -11,8 +11,10 @@ import pytest
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.dag_models import GlobalOntologyMap
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
@@ -108,6 +110,9 @@ async def test_tda_engine_aggregates_token_usage_and_cost(
         anchor_target="target_1",
         is_inverse=False,
         depends_on=(),
+        acceptance_criteria=(),
+        anti_patterns=(),
+        syntactic_anchors=(),
     )
 
     engine_request = EngineExecutionRequest(
@@ -122,6 +127,9 @@ async def test_tda_engine_aggregates_token_usage_and_cost(
             execution_id="exe_abc12345",
             workflow_id="wor_xyz12345",
             metadata=ExecutionMetadata(),
+            global_context_vars=GlobalContextVarsDTO(),
+            context_variables=ContextVariablesDTO(),
+            prompt_blocks=[],
         ),
         global_source_text="Test source text",
         target_locale="fi",
@@ -251,9 +259,6 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
         patch("backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_tier", new_callable=AsyncMock),
-        patch(
-            "backend_v2.services.orchestrator.strategies.llm_strategy.LLMClient.from_strategy", new_callable=AsyncMock
-        ),
         patch("backend_v2.services.orchestrator.strategies.llm_strategy.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
@@ -273,8 +278,9 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
     assert len(traces) == 1
     trace_event = traces[0]
     assert trace_event.event_type == "output"
-    assert "_step_metadata" in trace_event.content
-    step_meta = trace_event.content["_step_metadata"]
+    trace_content = trace_event.model_dump(mode="json")["content"]
+    assert "_step_metadata" in trace_content
+    step_meta = trace_content["_step_metadata"]
     assert "token_usage" in step_meta
     assert step_meta["token_usage"]["total_tokens"] == 600
     assert step_meta["token_usage"]["cost_usd"] == 0.025

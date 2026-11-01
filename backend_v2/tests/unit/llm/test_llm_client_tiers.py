@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -191,32 +192,24 @@ class TestLLMClientCognitiveTiers:
 
     @pytest.mark.asyncio
     @patch("backend_v2.llm.provider.LLMFactory.create_provider")
-    async def test_from_strategy_compatibility_bridge(
+    async def test_from_tier_resolves_deep_tier(
         self,
         mock_create_provider: MagicMock,
         fake_repository: InMemorySystemRepository,
     ) -> None:
-        """Verify legacy from_strategy parses tier string and delegates to from_tier."""
+        """Verify from_tier resolves CognitiveTier.DEEP to configured provider."""
         mock_create_provider.return_value = AsyncMock()
 
-        client = await LLMClient.from_strategy(
-            strategy_name="deep",
+        client = await LLMClient.from_tier(
+            tier=CognitiveTier.DEEP,
             repository=fake_repository,
         )
 
         assert client.provider_name == "ai_studio"
 
-    @pytest.mark.asyncio
-    async def test_from_strategy_invalid_tier_raises_configuration_error(
-        self,
-        fake_repository: InMemorySystemRepository,
-    ) -> None:
-        """Verify legacy from_strategy with invalid tier string raises ConfigurationError."""
-        with pytest.raises(ConfigurationError, match="Unknown strategy or tier 'invalid_unknown'"):
-            await LLMClient.from_strategy(
-                strategy_name="invalid_unknown",
-                repository=fake_repository,
-            )
+    def test_llm_client_has_no_from_strategy_attribute(self) -> None:
+        """Verify legacy from_strategy bridge has been eradicated from LLMClient."""
+        assert "from_strategy" not in dir(LLMClient)
 
 
 class TestLLMClientTiersFailFast:
@@ -246,7 +239,7 @@ class TestLLMClientTiersFailFast:
         """ISTQB Negative Test: repository returning invalid registry triggers ConfigurationError."""
         bad_repo = InMemorySystemRepository()
         bad_repo._model_registries.clear()
-        bad_repo._model_registries["bad"] = {"type": "model_registry"}
+        bad_repo._model_registries["bad"] = cast(SystemConfigModelRegistry, cast(object, {"type": "model_registry"}))
 
         with pytest.raises(ConfigurationError, match="Failed to parse strict SystemConfigModelRegistry"):
             await LLMClient.from_tier(tier=CognitiveTier.FAST, repository=bad_repo)
@@ -261,7 +254,9 @@ class TestLLMClientTiersFailFast:
 
         corrupted_repo = InMemorySystemRepository()
         corrupted_repo._model_registries.clear()
-        corrupted_repo._model_registries[corrupted_registry["id"]] = corrupted_registry
+        corrupted_repo._model_registries[str(corrupted_registry["id"])] = cast(
+            SystemConfigModelRegistry, cast(object, corrupted_registry)
+        )
 
         with pytest.raises(ConfigurationError, match="Failed to parse strict SystemConfigModelRegistry"):
             await LLMClient.from_tier(
@@ -292,7 +287,9 @@ class TestLLMClientTiersFailFast:
 
         corrupted_repo = InMemorySystemRepository()
         corrupted_repo._model_registries.clear()
-        corrupted_repo._model_registries[corrupted_registry["id"]] = corrupted_registry
+        corrupted_repo._model_registries[str(corrupted_registry["id"])] = cast(
+            SystemConfigModelRegistry, cast(object, corrupted_registry)
+        )
 
         with pytest.raises(ConfigurationError, match=expected_match):
             await LLMClient.from_tier(

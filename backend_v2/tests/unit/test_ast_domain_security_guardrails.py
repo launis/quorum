@@ -20,7 +20,7 @@ class DomainSecurityVisitor(ast.NodeVisitor):
         match node.func:
             case ast.Name(id="hasattr"):
                 self.found_hasattr = True
-            case ast.Attribute(value=ast.Name(id="LLMClient"), attr="from_strategy"):
+            case ast.Attribute(value=ast.Name(id="LLMClient"), attr="from_tier"):
                 self.found_llmclient_strategy = True
             case ast.Attribute(attr="run_chat"):
                 self.found_run_chat = True
@@ -227,7 +227,7 @@ def test_ast_required_constructs() -> None:
             if res["streaming_response"]:
                 found_streaming = True
 
-    assert found_llm, "LLMClient.from_strategy not found anywhere"
+    assert found_llm, "LLMClient.from_tier not found anywhere"
     assert found_commit, "_safe_commit or safe_commit_execution_state not found anywhere"
     assert found_streaming, "StreamingResponse not found anywhere"
 

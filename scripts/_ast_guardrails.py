@@ -1192,6 +1192,35 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             severity=GuardrailSeverity.FATAL,
                         )
 
+            # Phase 1, Step 1.3: Ban legacy .from_strategy(...) calls and string-literal LLMClient.from_tier("...") calls
+            if isinstance(node.func, ast.Attribute):
+                if node.func.attr == "from_strategy":
+                    self._add_violation(
+                        node,
+                        "QGR030",
+                        f"Banned legacy `.from_strategy()` call detected: `{ast.unparse(node.func)}(...)`.",
+                        "Use `LLMClient.from_tier(CognitiveTier.<TIER>, ...)` with a typed `CognitiveTier` Enum member.",
+                        severity=GuardrailSeverity.FATAL,
+                    )
+                elif node.func.attr == "from_tier":
+                    if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+                        self._add_violation(
+                            node.args[0],
+                            "QGR030",
+                            f"Banned string literal `{node.args[0].value!r}` passed to `from_tier()`.",
+                            "Pass a `CognitiveTier` Enum member (`CognitiveTier.FAST`) instead of a raw string literal.",
+                            severity=GuardrailSeverity.FATAL,
+                        )
+                    for kw in node.keywords:
+                        if kw.arg == "tier" and isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                            self._add_violation(
+                                kw.value,
+                                "QGR030",
+                                f"Banned string literal `tier={kw.value.value!r}` passed to `from_tier()`.",
+                                "Pass a `CognitiveTier` Enum member (`tier=CognitiveTier.FAST`) instead of a raw string literal.",
+                                severity=GuardrailSeverity.FATAL,
+                            )
+
         # QGR026: Banned pytest.xfail() call
         if (
             isinstance(node.func, ast.Attribute)

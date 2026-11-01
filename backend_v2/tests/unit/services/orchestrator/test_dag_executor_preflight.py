@@ -2,7 +2,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import backend_v2.llm.client
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
@@ -11,7 +10,7 @@ from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
@@ -45,8 +44,9 @@ def mock_compiler() -> MagicMock:
 async def test_dag_executor_preflight_skip(
     mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: MagicMock
 ) -> None:
+    mock_preflight = AsyncMock()
     executor = DAGExecutor(
-        rag_preflight=AsyncMock(),
+        rag_preflight=mock_preflight,
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -59,7 +59,7 @@ async def test_dag_executor_preflight_skip(
     )
 
     workflow = Workflow(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
@@ -92,15 +92,16 @@ async def test_dag_executor_preflight_skip(
             raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         )
 
-        executor.rag_preflight.execute.assert_not_called()
+        mock_preflight.execute.assert_not_called()
 
 
 @pytest.mark.asyncio
 async def test_dag_executor_preflight_execution(
     mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: MagicMock
 ) -> None:
+    mock_preflight = AsyncMock()
     executor = DAGExecutor(
-        rag_preflight=AsyncMock(),
+        rag_preflight=mock_preflight,
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -113,7 +114,7 @@ async def test_dag_executor_preflight_execution(
     )
 
     workflow = Workflow(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
@@ -153,7 +154,7 @@ async def test_dag_executor_preflight_execution(
         mock_hooks.execute = AsyncMock(
             return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=ExecutionInputsDTO()))
         )
-        executor.rag_preflight.execute.return_value = GlobalAtomBlackboard(atoms_by_input={})
+        mock_preflight.execute.return_value = GlobalAtomBlackboard(atoms_by_input={})
 
         record = await executor.execute_workflow(
             execution_id="exe_0195f3a0000070018234567890abcdef",
@@ -161,7 +162,7 @@ async def test_dag_executor_preflight_execution(
             raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         )
 
-        executor.rag_preflight.execute.assert_called_once()
+        mock_preflight.execute.assert_called_once()
         assert "__GLOBAL_ATOM_BLACKBOARD__" in record.context_variables
 
 
@@ -169,8 +170,9 @@ async def test_dag_executor_preflight_execution(
 async def test_dag_executor_preflight_triggered_by_model_strategy(
     mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: MagicMock
 ) -> None:
+    mock_preflight = AsyncMock()
     executor = DAGExecutor(
-        rag_preflight=AsyncMock(),
+        rag_preflight=mock_preflight,
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -183,7 +185,7 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
     )
 
     workflow = Workflow(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
@@ -222,7 +224,7 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
         mock_hooks.execute = AsyncMock(
             return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=ExecutionInputsDTO()))
         )
-        executor.rag_preflight.execute.return_value = GlobalAtomBlackboard(atoms_by_input={})
+        mock_preflight.execute.return_value = GlobalAtomBlackboard(atoms_by_input={})
 
         record = await executor.execute_workflow(
             execution_id="exe_0195f3a0000070018234567890abcdef",
@@ -230,7 +232,7 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
             raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         )
 
-        executor.rag_preflight.execute.assert_called_once()
+        mock_preflight.execute.assert_called_once()
         assert "__GLOBAL_ATOM_BLACKBOARD__" in record.context_variables
 
 
@@ -238,8 +240,9 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
 async def test_dag_executor_virtual_step(
     mock_repo: InMemoryUnifiedWorkflowRepository, mock_compiler: MagicMock
 ) -> None:
+    mock_preflight = AsyncMock()
     executor = DAGExecutor(
-        rag_preflight=AsyncMock(),
+        rag_preflight=mock_preflight,
         exec_repo=mock_repo,
         workflow_repo=mock_repo,
         comp_repo=mock_repo,
@@ -252,7 +255,7 @@ async def test_dag_executor_virtual_step(
     )
 
     workflow = Workflow(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
@@ -292,7 +295,7 @@ async def test_dag_executor_virtual_step(
         mock_hooks.execute = AsyncMock(
             return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=ExecutionInputsDTO()))
         )
-        executor.rag_preflight.execute.return_value = {"atoms_by_input": {}}
+        mock_preflight.execute.return_value = {"atoms_by_input": {}}
 
         record = await executor.execute_workflow(
             execution_id="exe_0195f3a0000070018234567890abcdef",
@@ -327,7 +330,7 @@ async def test_dag_executor_preflight_ignores_system_keys(
     from backend_v2.models.domain.execution import ExecutionRecord
 
     workflow = Workflow(
-        historical_context_mode="DISABLED",
+        historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
         id="wf_0195f3a0000070018234567890abcdef",
         slug="test",
@@ -379,7 +382,6 @@ async def test_dag_executor_preflight_ignores_system_keys(
 
     with (
         patch("backend_v2.llm.client.LLMClient.from_tier") as mock_tier_factory,
-        patch("backend_v2.llm.client.LLMClient.from_strategy"),
         patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_cls,
     ):
         mock_atomizer = mock_atomizer_cls.return_value
@@ -389,7 +391,6 @@ async def test_dag_executor_preflight_ignores_system_keys(
             return_value=(MagicMock(), {"completion_tokens": 0, "prompt_tokens": 0, "total_tokens": 0})
         )
         mock_tier_factory.return_value = mock_client
-        backend_v2.llm.client.LLMClient.from_strategy.return_value = mock_client
         mock_atomizer.execute_phase_0 = AsyncMock(
             return_value=({}, TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
         )
@@ -521,7 +522,6 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
 
     with (
         patch("backend_v2.llm.client.LLMClient.from_tier") as mock_client_factory,
-        patch("backend_v2.llm.client.LLMClient.from_strategy"),
         patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_cls,
     ):
         mock_client = AsyncMock()

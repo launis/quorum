@@ -6,6 +6,7 @@ import pytest
 
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry
+from backend_v2.models.enums import CognitiveTier
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 
 
@@ -40,7 +41,7 @@ async def test_fastdev_frozen_instance_override() -> None:
     os.environ["ENVIRONMENT"] = "development"
 
     try:
-        client = await LLMClient.from_strategy("fast", mock_repo)
+        client = await LLMClient.from_tier(CognitiveTier.FAST, mock_repo)
         assert client is not None
     finally:
         if "ENVIRONMENT" in os.environ:

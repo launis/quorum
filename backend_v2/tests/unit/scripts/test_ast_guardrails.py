@@ -2985,3 +2985,33 @@ def test_qgr017_tripartite_layer_and_protocol_firewall() -> None:
     ):
         v_pkg = _scan_snippet("from backend_v2.database.postgres.uow import PostgresUnitOfWork\n", filepath=rel_path)
         assert any(v.rule_code == "QGR017" and v.severity == GuardrailSeverity.FATAL for v in v_pkg)
+
+
+def test_ast_guardrail_flags_from_strategy_call_as_fatal() -> None:
+    """Verify QGR030 flags legacy .from_strategy(...) calls as FATAL."""
+    snippet = "client = await LLMClient.from_strategy('fast', repository=repo)\n"
+    violations = _scan_snippet(snippet, filepath="backend_v2/services/chat_parser.py")
+    assert any(
+        v.rule_code == "QGR030" and v.severity == GuardrailSeverity.FATAL and "from_strategy" in v.message
+        for v in violations
+    )
+
+
+def test_ast_guardrail_flags_string_literal_in_from_tier_as_fatal() -> None:
+    """Verify QGR030 flags raw string literals passed to LLMClient.from_tier(...) as FATAL."""
+    pos_snippet = "client = await LLMClient.from_tier('fast', repository=repo)\n"
+    pos_violations = _scan_snippet(pos_snippet, filepath="backend_v2/services/chat_parser.py")
+    assert any(
+        v.rule_code == "QGR030" and v.severity == GuardrailSeverity.FATAL and "from_tier" in v.message
+        for v in pos_violations
+    )
+
+    kw_snippet = "client = await LLMClient.from_tier(tier='fast', repository=repo)\n"
+    kw_violations = _scan_snippet(kw_snippet, filepath="backend_v2/services/chat_parser.py")
+    assert any(
+        v.rule_code == "QGR030" and v.severity == GuardrailSeverity.FATAL and "from_tier" in v.message
+        for v in kw_violations
+    )
+
+    valid_snippet = "client = await LLMClient.from_tier(CognitiveTier.FAST, repository=repo)\n"
+    assert _scan_snippet(valid_snippet, filepath="backend_v2/services/chat_parser.py") == []

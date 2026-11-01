@@ -67,7 +67,7 @@ async def test_preflight_inflated_by_chat_xml_and_ai_text() -> None:
         "\n</ai_draft_context>"
     )
 
-    dynamic_inputs: dict[str, str | int] = {
+    dynamic_inputs = {
         "product_text": "lopputuote",
         "chat_log": combined_chat_log,
         "reflection_text": "reflektiodokumentti",
@@ -93,7 +93,7 @@ async def test_preflight_inflated_by_chat_xml_and_ai_text() -> None:
         output_profile_id="prof_0195f3a0000070018234567890abcdef",
         target_locale="fi",
         metadata=ExecutionMetadata(),
-        raw_inputs=WorkflowInputs(dynamic_inputs=dynamic_inputs),
+        raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": dynamic_inputs}),
     )
 
     repo = InMemoryUnifiedWorkflowRepository()
@@ -112,7 +112,7 @@ async def test_preflight_inflated_by_chat_xml_and_ai_text() -> None:
         mock_instance = AsyncMock()
         mock_instance.extract_atoms.return_value = []
         mock_atomizer.return_value = mock_instance
-        mock_llm_client.from_strategy = AsyncMock(return_value=AsyncMock())
+        mock_llm_client.from_tier = AsyncMock(return_value=AsyncMock())
 
         result = await service.execute(
             target_step=step_rule,

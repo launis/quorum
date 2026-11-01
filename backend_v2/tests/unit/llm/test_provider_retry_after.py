@@ -10,11 +10,12 @@ Verifies that:
 from __future__ import annotations
 
 import asyncio
-from typing import Any
-from unittest.mock import AsyncMock
+from typing import Any, cast
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic import BaseModel, JsonValue
+from tenacity import BaseRetrying
 
 from backend_v2.exceptions import ServiceUnavailableError
 from backend_v2.llm.client import LLMClient
@@ -27,6 +28,7 @@ from backend_v2.llm.provider.transient_retry_policy import (
 )
 from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
 from backend_v2.models.enums import CognitiveTier, LLMProvider
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 
@@ -122,7 +124,7 @@ async def test_client_strategy_scoping_in_provider_pacing(monkeypatch: pytest.Mo
     )
     await repo.update_model_registry(registry_config)
 
-    client = await LLMClient.from_strategy("fast", repository=repo, registry_id=registry_config.id)
+    client = await LLMClient.from_tier(CognitiveTier.FAST, repository=repo, registry_id=registry_config.id)
 
     captured_pacing_kwargs: dict[str, JsonValue] = {}
 
@@ -153,7 +155,7 @@ async def test_client_strategy_scoping_in_provider_pacing(monkeypatch: pytest.Mo
     monkeypatch.setattr(Router, "acompletion", AsyncMock(return_value=mock_response))
 
     await client.run_structured_task(
-        messages=[{"role": "user", "content": "hello"}],
+        messages=[LLMMessageDTO(role="user", content="hello")],
         response_model=DummyResponse,
     )
 
@@ -215,7 +217,7 @@ def test_adaptive_wait_clamping_to_max_seconds() -> None:
     outcome = Future(1)
     outcome.set_exception(err)
     retry_state = RetryCallState(
-        retry_object=None,
+        retry_object=cast(BaseRetrying, MagicMock()),
         fn=None,
         args=(),
         kwargs={},
