@@ -166,7 +166,7 @@ class StepBuilderView extends HookConsumerWidget {
       );
     }
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.stepDeleteConfirmTitle),
