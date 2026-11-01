@@ -28,7 +28,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/matrix_editor_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/model_registry_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/model_registry_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/output_profile_list_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]

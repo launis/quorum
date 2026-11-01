@@ -30,6 +30,16 @@ void main() {
     LlmPlatform(id: 'anthropic', label: 'Anthropic', hasRegions: false),
   ];
 
+  const String kStdId = 'cfg_0195f000000070008000000000000001';
+  const String kRawId = 'cfg_0195f000000070008000000000000002';
+  const String kGemId = 'cfg_0195f000000070008000000000000003';
+  const String kDirtyId = 'cfg_0195f000000070008000000000000004';
+  const String kCloneId = 'cfg_0195f000000070008000000000000005';
+  const String kDynId = 'cfg_0195f000000070008000000000000006';
+  const String kSwitchId = 'cfg_0195f000000070008000000000000007';
+  const String kErrId = 'cfg_0195f000000070008000000000000008';
+  const String kValErrId = 'cfg_0195f000000070008000000000000009';
+
   group('ModelRegistryView Desktop Pro Tool UX Tests', () {
     testWidgets(
       'renders standard model with 1200px bounded canvas, name field, 4 canonical tier cards, and sampling controls',
@@ -49,9 +59,9 @@ void main() {
               supportedLocationsProvider.overrideWith(
                 (ref) async => mockLocations,
               ),
-              modelRegistryByIdProvider('syscfg_123').overrideWith(
+              modelRegistryByIdProvider(kStdId).overrideWith(
                 (ref) async => const ModelConfig(
-                  id: 'syscfg_123',
+                  id: kStdId,
                   slug: 'syscfg_123_slug',
                   type: 'model_registry',
                   name: 'Production Sovereign Stack',
@@ -94,13 +104,13 @@ void main() {
             child: MaterialApp(
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: const ModelRegistryView(id: 'syscfg_123'),
+              home: const ModelRegistryView(id: kStdId),
             ),
           ),
         );
 
         await tester.runAsync(() async {
-          await Future.delayed(const Duration(milliseconds: 100));
+          await Future<void>.delayed(const Duration(milliseconds: 100));
         });
         await tester.pumpAndSettle();
 
@@ -165,9 +175,9 @@ void main() {
               supportedLocationsProvider.overrideWith(
                 (ref) async => mockLocations,
               ),
-              modelRegistryByIdProvider('syscfg_raw').overrideWith(
+              modelRegistryByIdProvider(kRawId).overrideWith(
                 (ref) async => const ModelConfig(
-                  id: 'syscfg_raw',
+                  id: kRawId,
                   slug: 'syscfg_raw_slug',
                   type: 'model_registry',
                   defaultProvider: 'vertex_ai',
@@ -207,13 +217,13 @@ void main() {
             child: MaterialApp(
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: const ModelRegistryView(id: 'syscfg_raw'),
+              home: const ModelRegistryView(id: kRawId),
             ),
           ),
         );
 
         await tester.runAsync(() async {
-          await Future.delayed(const Duration(milliseconds: 100));
+          await Future<void>.delayed(const Duration(milliseconds: 100));
         });
         await tester.pumpAndSettle();
 
@@ -238,9 +248,9 @@ void main() {
               supportedLocationsProvider.overrideWith(
                 (ref) async => mockLocations,
               ),
-              modelRegistryByIdProvider('syscfg_gemini38').overrideWith(
+              modelRegistryByIdProvider(kGemId).overrideWith(
                 (ref) async => const ModelConfig(
-                  id: 'syscfg_gemini38',
+                  id: kGemId,
                   slug: 'syscfg_gemini38_slug',
                   type: 'model_registry',
                   defaultProvider: 'ai_studio',
@@ -277,13 +287,13 @@ void main() {
             child: MaterialApp(
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: const ModelRegistryView(id: 'syscfg_gemini38'),
+              home: const ModelRegistryView(id: kGemId),
             ),
           ),
         );
 
         await tester.runAsync(() async {
-          await Future.delayed(const Duration(milliseconds: 100));
+          await Future<void>.delayed(const Duration(milliseconds: 100));
         });
         await tester.pumpAndSettle();
 
@@ -309,7 +319,7 @@ void main() {
         final mockController = MockModelRegistryController();
 
         final router = GoRouter(
-          initialLocation: '/edit/syscfg_dirty',
+          initialLocation: '/edit/$kDirtyId',
           routes: [
             GoRoute(
               path: '/home',
@@ -331,9 +341,9 @@ void main() {
               ),
               availableModelsProvider.overrideWith((ref, _) async => []),
               supportedLocationsProvider.overrideWith((ref) async => []),
-              modelRegistryByIdProvider('syscfg_dirty').overrideWith(
+              modelRegistryByIdProvider(kDirtyId).overrideWith(
                 (ref) async => const ModelConfig(
-                  id: 'syscfg_dirty',
+                  id: kDirtyId,
                   slug: 'syscfg_dirty_slug',
                   type: 'model_registry',
                   name: 'Initial Pristine Stack',
@@ -376,7 +386,7 @@ void main() {
         );
 
         await tester.runAsync(() async {
-          await Future.delayed(const Duration(milliseconds: 100));
+          await Future<void>.delayed(const Duration(milliseconds: 100));
         });
         await tester.pumpAndSettle();
 
@@ -424,7 +434,7 @@ void main() {
       final mockController = MockModelRegistryController();
 
       final router = GoRouter(
-        initialLocation: '/studio/model-registry/edit/syscfg_clone',
+        initialLocation: '/studio/model-registry/edit/$kCloneId',
         routes: [
           GoRoute(
             path: '/studio/model-registry/edit/:id',
@@ -442,9 +452,9 @@ void main() {
             ),
             availableModelsProvider.overrideWith((ref, _) async => []),
             supportedLocationsProvider.overrideWith((ref) async => []),
-            modelRegistryByIdProvider('syscfg_clone').overrideWith(
+            modelRegistryByIdProvider(kCloneId).overrideWith(
               (ref) async => const ModelConfig(
-                id: 'syscfg_clone',
+                id: kCloneId,
                 slug: 'syscfg_clone_slug',
                 type: 'model_registry',
                 name: 'Stack to Clone',
@@ -463,7 +473,7 @@ void main() {
       );
 
       await tester.runAsync(() async {
-        await Future.delayed(const Duration(milliseconds: 100));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
       });
       await tester.pumpAndSettle();
 
@@ -475,7 +485,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(mockController.cloneCalled, isTrue);
-      expect(mockController.clonedId, 'syscfg_clone');
+      expect(mockController.clonedId, kCloneId);
     });
 
     testWidgets(
@@ -501,9 +511,9 @@ void main() {
               supportedLocationsProvider.overrideWith(
                 (ref) async => mockLocations,
               ),
-              modelRegistryByIdProvider('syscfg_dynamic').overrideWith(
+              modelRegistryByIdProvider(kDynId).overrideWith(
                 (ref) async => const ModelConfig(
-                  id: 'syscfg_dynamic',
+                  id: kDynId,
                   slug: 'syscfg_dynamic_slug',
                   type: 'model_registry',
                   defaultProvider: 'vertex_ai',
@@ -523,13 +533,13 @@ void main() {
             child: MaterialApp(
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: const ModelRegistryView(id: 'syscfg_dynamic'),
+              home: const ModelRegistryView(id: kDynId),
             ),
           ),
         );
 
         await tester.runAsync(() async {
-          await Future.delayed(const Duration(milliseconds: 100));
+          await Future<void>.delayed(const Duration(milliseconds: 100));
         });
         await tester.pumpAndSettle();
 
@@ -574,9 +584,9 @@ void main() {
               supportedLocationsProvider.overrideWith(
                 (ref) async => mockLocations,
               ),
-              modelRegistryByIdProvider('syscfg_switch').overrideWith(
+              modelRegistryByIdProvider(kSwitchId).overrideWith(
                 (ref) async => const ModelConfig(
-                  id: 'syscfg_switch',
+                  id: kSwitchId,
                   slug: 'syscfg_switch_slug',
                   type: 'model_registry',
                   defaultProvider: 'ai_studio',
@@ -596,13 +606,13 @@ void main() {
             child: MaterialApp(
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: const ModelRegistryView(id: 'syscfg_switch'),
+              home: const ModelRegistryView(id: kSwitchId),
             ),
           ),
         );
 
         await tester.runAsync(() async {
-          await Future.delayed(const Duration(milliseconds: 100));
+          await Future<void>.delayed(const Duration(milliseconds: 100));
         });
         await tester.pumpAndSettle();
 
@@ -652,9 +662,9 @@ void main() {
               supportedLocationsProvider.overrideWith(
                 (ref) async => mockLocations,
               ),
-              modelRegistryByIdProvider('syscfg_err').overrideWith(
+              modelRegistryByIdProvider(kErrId).overrideWith(
                 (ref) async => const ModelConfig(
-                  id: 'syscfg_err',
+                  id: kErrId,
                   slug: 'syscfg_err_slug',
                   type: 'model_registry',
                   defaultProvider: 'vertex_ai',
@@ -674,13 +684,13 @@ void main() {
             child: MaterialApp(
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: const ModelRegistryView(id: 'syscfg_err'),
+              home: const ModelRegistryView(id: kErrId),
             ),
           ),
         );
 
         await tester.runAsync(() async {
-          await Future.delayed(const Duration(milliseconds: 100));
+          await Future<void>.delayed(const Duration(milliseconds: 100));
         });
         await tester.pumpAndSettle();
 
@@ -690,6 +700,74 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('custom-model-v1'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'negative boundary: rejects non-numeric temperature and non-integer maxTokens inputs on save',
+      (WidgetTester tester) async {
+        final mockController = MockModelRegistryController();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              supportedPlatformsProvider.overrideWith(
+                (ref) async => mockPlatforms,
+              ),
+              availableModelsProvider.overrideWith(
+                (ref, _) async => ['gpt-4o'],
+              ),
+              supportedLocationsProvider.overrideWith(
+                (ref) async => mockLocations,
+              ),
+              modelRegistryByIdProvider(kValErrId).overrideWith(
+                (ref) async => const ModelConfig(
+                  id: kValErrId,
+                  slug: 'syscfg_val_err_slug',
+                  type: 'model_registry',
+                  defaultProvider: 'openai',
+                  tierDefinitions: {
+                    'fast': LlmModelConfig(
+                      modelName: 'gpt-4o',
+                      provider: 'openai',
+                      temperature: 0.5,
+                      maxTokens: 2048,
+                      isActive: true,
+                    ),
+                  },
+                ),
+              ),
+              modelRegistryControllerProvider.overrideWith(
+                () => mockController,
+              ),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const ModelRegistryView(id: kValErrId),
+            ),
+          ),
+        );
+
+        await tester.runAsync(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+
+        final tempField = find.byKey(const ValueKey('fast_temp'));
+        final maxTokensField = find.byKey(const ValueKey('fast_max_tokens'));
+        await tester.ensureVisible(tempField);
+        await tester.enterText(tempField, 'not_a_number');
+        await tester.ensureVisible(maxTokensField);
+        await tester.enterText(maxTokensField, '3.14_not_int');
+        await tester.pumpAndSettle();
+
+        final saveBtn = find.text('Save');
+        await tester.tap(saveBtn);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Must be a number'), findsOneWidget);
+        expect(find.text('Must be an integer'), findsOneWidget);
       },
     );
   });
@@ -704,7 +782,7 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
   Future<List<ModelConfig>> build() async {
     return const [
       ModelConfig(
-        id: 'syscfg_123',
+        id: 'cfg_0195f000000070008000000000000001',
         slug: 'syscfg_123_slug',
         type: 'model_registry',
         name: 'Production Sovereign Stack',
@@ -733,7 +811,7 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
   @override
   Future<ModelConfig> createSystemConfigDraft() async {
     return const ModelConfig(
-      id: 'mock_draft',
+      id: 'cfg_0195f000000070008000000000000010',
       slug: 'mock_draft_slug',
       type: 'model_registry',
     );
@@ -744,7 +822,7 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
     cloneCalled = true;
     clonedId = id;
     return const ModelConfig(
-      id: 'cloned',
+      id: 'cfg_0195f000000070008000000000000011',
       slug: 'cloned_slug',
       type: 'model_registry',
       name: 'Stack to Clone (Copy)',

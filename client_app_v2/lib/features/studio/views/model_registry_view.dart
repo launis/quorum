@@ -11,6 +11,7 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/router/router.dart';
+import 'package:client_app/theme/app_colors.dart';
 
 /// Admin Studio View for managing the Sovereign Model Registry stack.
 /// Uses Desktop Pro Tool UX with 1200px bounded canvas, PopScope dirty checking,
@@ -29,9 +30,9 @@ class ModelRegistryView extends HookConsumerWidget {
     // 1. Data and loading states are read from Riverpod!
     final formState = ref.watch(modelRegistryFormProvider(id));
 
-    formState.whenData((payload) {
+    if (formState case AsyncData(value: final payload)) {
       initialJsonRef.value ??= jsonEncode(payload.toJson());
-    });
+    }
 
     return switch (formState) {
       AsyncLoading() => Scaffold(
@@ -227,9 +228,18 @@ class ModelRegistryView extends HookConsumerWidget {
                         ModelRegistryEditRoute(id: cloned.id).go(context);
                       } catch (e) {
                         if (!context.mounted) return;
+                        ref
+                            .read(loggerServiceProvider)
+                            .error(
+                              'Studio',
+                              'Failed to clone registry config: $e',
+                              e,
+                            );
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Failed to clone: $e'),
+                            content: Text(
+                              l10n.studioViewsFailedToClone(e.toString()),
+                            ),
                             backgroundColor: Theme.of(
                               context,
                             ).colorScheme.error,
@@ -263,7 +273,7 @@ class ModelRegistryView extends HookConsumerWidget {
               child: ListView(
                 padding: AppSpacing.p16,
                 children: [
-                  _buildSystemAttributes(ref, l10n, payload),
+                  _buildSystemAttributes(context, ref, l10n, payload),
                   AppSpacing.h24,
                   _buildTierCardsSection(context, ref, l10n, payload),
                 ],
@@ -276,6 +286,7 @@ class ModelRegistryView extends HookConsumerWidget {
   }
 
   Widget _buildSystemAttributes(
+    BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
     ModelConfig data,
@@ -288,7 +299,9 @@ class ModelRegistryView extends HookConsumerWidget {
           children: [
             Text(
               l10n.systemMetaTitle,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
             AppSpacing.h16,
             TextFormField(
@@ -314,6 +327,7 @@ class ModelRegistryView extends HookConsumerWidget {
             DropdownButtonFormField<String>(
               key: const ValueKey('model_registry_default_provider_field'),
               initialValue: data.defaultProvider,
+              isExpanded: true,
               decoration: InputDecoration(
                 labelText: l10n.modelRegistryDefaultProviderLabel,
                 border: const OutlineInputBorder(),
@@ -321,19 +335,31 @@ class ModelRegistryView extends HookConsumerWidget {
               items: [
                 DropdownMenuItem(
                   value: 'vertex_ai',
-                  child: Text(l10n.platformVertexAi),
+                  child: Text(
+                    l10n.platformVertexAi,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 DropdownMenuItem(
                   value: 'ai_studio',
-                  child: Text(l10n.platformAiStudio),
+                  child: Text(
+                    l10n.platformAiStudio,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 DropdownMenuItem(
                   value: 'openai',
-                  child: Text(l10n.platformOpenAi),
+                  child: Text(
+                    l10n.platformOpenAi,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 DropdownMenuItem(
                   value: 'anthropic',
-                  child: Text(l10n.platformAnthropic),
+                  child: Text(
+                    l10n.platformAnthropic,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
               onChanged: (val) {
@@ -357,7 +383,7 @@ class ModelRegistryView extends HookConsumerWidget {
             ),
             if (data.defaultProvider == 'vertex_ai') ...[
               AppSpacing.h12,
-              _buildLocationDropdown(ref, l10n, data),
+              _buildLocationDropdown(context, ref, l10n, data),
             ],
             AppSpacing.h12,
             TextFormField(
@@ -372,6 +398,7 @@ class ModelRegistryView extends HookConsumerWidget {
   }
 
   Widget _buildLocationDropdown(
+    BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
     ModelConfig data,
@@ -399,21 +426,23 @@ class ModelRegistryView extends HookConsumerWidget {
           children: [
             if (supportedLocationsAsync.isLoading)
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.s8),
                 child: SizedBox(
-                  width: 16,
-                  height: 16,
+                  width: AppSpacing.s16,
+                  height: AppSpacing.s16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
               ),
             if (supportedLocationsAsync.hasError)
               Tooltip(
                 message: l10n.discoveryErrorTooltip,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s8,
+                  ),
                   child: Icon(
                     Icons.warning_amber_rounded,
-                    color: Colors.amber,
+                    color: context.semanticColors.warning,
                     size: 20,
                   ),
                 ),
@@ -431,10 +460,13 @@ class ModelRegistryView extends HookConsumerWidget {
             !locations.any((GcpLocation loc) => loc.id == currentLocation))
           DropdownMenuItem(
             value: currentLocation,
-            child: Text(currentLocation),
+            child: Text(currentLocation, overflow: TextOverflow.ellipsis),
           ),
         ...locations.map((GcpLocation loc) {
-          return DropdownMenuItem(value: loc.id, child: Text(loc.label));
+          return DropdownMenuItem(
+            value: loc.id,
+            child: Text(loc.label, overflow: TextOverflow.ellipsis),
+          );
         }),
       ],
       onChanged: (val) {
@@ -485,7 +517,9 @@ class ModelRegistryView extends HookConsumerWidget {
       children: [
         Text(
           l10n.providerSettings,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
         AppSpacing.h16,
         ...canonicalTiers.map((tierTuple) {
@@ -545,12 +579,11 @@ class ModelRegistryView extends HookConsumerWidget {
                               avatar: Icon(tierIcon, size: 16),
                               label: Text(
                                 tierKey.toUpperCase(),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            AppSpacing.w12,
                             Flexible(
                               child: Text(
                                 tierLabel,
@@ -569,7 +602,7 @@ class ModelRegistryView extends HookConsumerWidget {
                       ),
                     ],
                   ),
-                  const Divider(height: 24),
+                  const Divider(height: AppSpacing.s24),
                   DropdownButtonFormField<String>(
                     key: ValueKey('${tierKey}_model_name'),
                     initialValue: currentModel.isNotEmpty
@@ -585,10 +618,12 @@ class ModelRegistryView extends HookConsumerWidget {
                         children: [
                           if (modelsAsync.isLoading)
                             const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8.0),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: AppSpacing.s8,
+                              ),
                               child: SizedBox(
-                                width: 16,
-                                height: 16,
+                                width: AppSpacing.s16,
+                                height: AppSpacing.s16,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                 ),
@@ -597,11 +632,13 @@ class ModelRegistryView extends HookConsumerWidget {
                           if (modelsAsync.hasError)
                             Tooltip(
                               message: l10n.discoveryErrorTooltip,
-                              child: const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.s8,
+                                ),
                                 child: Icon(
                                   Icons.warning_amber_rounded,
-                                  color: Colors.amber,
+                                  color: context.semanticColors.warning,
                                   size: 18,
                                 ),
                               ),
@@ -634,7 +671,7 @@ class ModelRegistryView extends HookConsumerWidget {
                   if (isReasoning) ...[
                     AppSpacing.h12,
                     Container(
-                      padding: const EdgeInsets.all(AppSpacing.s12),
+                      padding: AppSpacing.p12,
                       decoration: BoxDecoration(
                         color: Theme.of(
                           context,
@@ -653,15 +690,17 @@ class ModelRegistryView extends HookConsumerWidget {
                             color: Theme.of(context).colorScheme.primary,
                             size: 20,
                           ),
-                          const SizedBox(width: AppSpacing.s8),
+                          AppSpacing.w8,
                           Expanded(
                             child: Text(
                               l10n.reasoningModelNotice,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                             ),
                           ),
                         ],
@@ -674,40 +713,53 @@ class ModelRegistryView extends HookConsumerWidget {
                           child: _buildIntField(
                             ValueKey('${tierKey}_thinking_budget'),
                             cfg.thinkingBudgetTokens,
-                            'Thinking Budget Tokens',
+                            l10n.thinkingBudgetTokensLabel,
                             l10n,
                             (val) => updateTier(
                               tierKey,
                               cfg.copyWith(thinkingBudgetTokens: val),
                             ),
-                            helperText: 'Reasoning tokens (e.g. 8192)',
+                            helperText: l10n.thinkingBudgetHelper,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        AppSpacing.w12,
                         Expanded(
                           child: DropdownButtonFormField<String?>(
                             initialValue: cfg.reasoningEffort,
-                            decoration: const InputDecoration(
-                              labelText: 'Reasoning Effort',
-                              border: OutlineInputBorder(),
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              labelText: l10n.lblReasoning,
+                              border: const OutlineInputBorder(),
                               isDense: true,
                             ),
-                            items: const [
+                            items: [
                               DropdownMenuItem(
                                 value: null,
-                                child: Text('Default / None'),
+                                child: Text(
+                                  l10n.mcpToolParamsUseDefaultOption,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'low',
-                                child: Text('Low'),
+                                child: Text(
+                                  l10n.stratLow,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'medium',
-                                child: Text('Medium'),
+                                child: Text(
+                                  l10n.stratMedium,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'high',
-                                child: Text('High'),
+                                child: Text(
+                                  l10n.stratHigh,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                             onChanged: (val) {
@@ -726,7 +778,7 @@ class ModelRegistryView extends HookConsumerWidget {
                           child: _buildDoubleField(
                             ValueKey('${tierKey}_temp'),
                             cfg.temperature,
-                            'Temperature',
+                            l10n.temperatureLabel,
                             l10n,
                             (val) => updateTier(
                               tierKey,
@@ -734,12 +786,12 @@ class ModelRegistryView extends HookConsumerWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        AppSpacing.w12,
                         Expanded(
                           child: _buildDoubleField(
                             ValueKey('${tierKey}_topP'),
                             cfg.topP,
-                            'Top-P (Nucleus Sampling)',
+                            l10n.topPLabel,
                             l10n,
                             (val) =>
                                 updateTier(tierKey, cfg.copyWith(topP: val)),
@@ -754,18 +806,18 @@ class ModelRegistryView extends HookConsumerWidget {
                           child: _buildIntField(
                             ValueKey('${tierKey}_topK'),
                             cfg.topK,
-                            'Top-K (Candidates)',
+                            l10n.topKLabel,
                             l10n,
                             (val) =>
                                 updateTier(tierKey, cfg.copyWith(topK: val)),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        AppSpacing.w12,
                         Expanded(
                           child: _buildDoubleField(
                             ValueKey('${tierKey}_freq_penalty'),
                             cfg.frequencyPenalty,
-                            'Frequency Penalty',
+                            l10n.frequencyPenaltyLabel,
                             l10n,
                             (val) => updateTier(
                               tierKey,
@@ -773,12 +825,12 @@ class ModelRegistryView extends HookConsumerWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        AppSpacing.w12,
                         Expanded(
                           child: _buildDoubleField(
                             ValueKey('${tierKey}_pres_penalty'),
                             cfg.presencePenalty,
-                            'Presence Penalty',
+                            l10n.presencePenaltyLabel,
                             l10n,
                             (val) => updateTier(
                               tierKey,
@@ -796,33 +848,43 @@ class ModelRegistryView extends HookConsumerWidget {
                         child: _buildIntField(
                           ValueKey('${tierKey}_max_tokens'),
                           cfg.maxTokens,
-                          'Max Tokens',
+                          l10n.maxTokensLabel,
                           l10n,
                           (val) =>
                               updateTier(tierKey, cfg.copyWith(maxTokens: val)),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      AppSpacing.w12,
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           initialValue: cfg.parsingMode,
+                          isExpanded: true,
                           decoration: InputDecoration(
                             labelText: l10n.parsingModeLabel,
                             border: const OutlineInputBorder(),
                             isDense: true,
                           ),
-                          items: const [
+                          items: [
                             DropdownMenuItem(
                               value: 'AUTO',
-                              child: Text('Auto'),
+                              child: Text(
+                                l10n.presetAutomatic,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                             DropdownMenuItem(
                               value: 'NONE',
-                              child: Text('None'),
+                              child: Text(
+                                l10n.studioViewsNone,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                             DropdownMenuItem(
                               value: 'STRUCTURED_JSON',
-                              child: Text('Structured JSON'),
+                              child: Text(
+                                l10n.workflowTypeJson,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                           onChanged: (val) {
@@ -839,7 +901,7 @@ class ModelRegistryView extends HookConsumerWidget {
                   ),
                   _buildBoolField(
                     cfg.supportsGrounding,
-                    'Supports Grounding / Search',
+                    l10n.supportsGroundingLabel,
                     (val) => updateTier(
                       tierKey,
                       cfg.copyWith(supportsGrounding: val),
@@ -859,7 +921,7 @@ class ModelRegistryView extends HookConsumerWidget {
     double? initialValue,
     String label,
     AppLocalizations l10n,
-    Function(double) onChanged, {
+    ValueChanged<double> onChanged, {
     String? helperText,
   }) {
     return Padding(
@@ -893,7 +955,7 @@ class ModelRegistryView extends HookConsumerWidget {
     int? initialValue,
     String label,
     AppLocalizations l10n,
-    Function(int) onChanged, {
+    ValueChanged<int> onChanged, {
     String? helperText,
   }) {
     return Padding(
@@ -925,7 +987,7 @@ class ModelRegistryView extends HookConsumerWidget {
   Widget _buildBoolField(
     bool initialValue,
     String label,
-    Function(bool) onChanged,
+    ValueChanged<bool> onChanged,
   ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s8),
