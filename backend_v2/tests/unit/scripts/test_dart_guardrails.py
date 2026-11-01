@@ -248,6 +248,62 @@ final t4 = Text(" | ");
     assert len(dgr003) == 0
 
 
+def test_dgr003_multiline_hardcoded_string_literal_flagged() -> None:
+    code = """
+return const Text(
+  'CRITICAL PATH & FAULT NODES',
+  style: TextStyle(fontWeight: FontWeight.bold),
+);
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/execution/modal.dart", strict=True)
+    dgr003 = [v for v in violations if v.rule_code == "DGR003"]
+    assert len(dgr003) == 1
+    assert dgr003[0].severity == GuardrailSeverity.FATAL
+    assert "CRITICAL PATH & FAULT NODES" in dgr003[0].message
+
+
+def test_dgr003_multiline_interpolation_only_allowed() -> None:
+    code = """
+return Text(
+  '$displayName (${workflow.id})',
+  overflow: TextOverflow.ellipsis,
+);
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/view.dart", strict=True)
+    dgr003 = [v for v in violations if v.rule_code == "DGR003"]
+    assert len(dgr003) == 0
+
+
+def test_dgr003_raw_error_tostring_in_l10n_and_async_error_flagged() -> None:
+    code = """
+final msg1 = l10n.saveFailedError(e.toString());
+final msg2 = l10n.cloneFailedError('$e');
+final w = switch (state) {
+  AsyncError(:final error) => Text(error.toString()),
+  _ => const SizedBox(width: 1, height: 1),
+};
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/view.dart", strict=True)
+    dgr003 = [v for v in violations if v.rule_code == "DGR003"]
+    assert len(dgr003) == 3
+    assert all(v.severity == GuardrailSeverity.FATAL for v in dgr003)
+    assert all("AppExceptionX.extractLocalizedHint" in v.remediation for v in dgr003)
+
+
+def test_dgr003_extract_localized_hint_allowed() -> None:
+    code = """
+final msg = l10n.saveFailedError(AppExceptionX.extractLocalizedHint(e, l10n));
+final w = switch (state) {
+  AsyncError(:final error) => Text(AppExceptionX.extractLocalizedHint(error, l10n)),
+  _ => const SizedBox(width: 1, height: 1),
+};
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/features/studio/view.dart", strict=True)
+    dgr003 = [v for v in violations if v.rule_code == "DGR003"]
+    assert len(dgr003) == 0
+
+
+
 # ==============================================================================
 # Partition 5: DGR004 Banned Dart Lint Suppressions
 # ==============================================================================

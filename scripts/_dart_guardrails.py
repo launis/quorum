@@ -88,8 +88,14 @@ DGR001_PATTERN = re.compile(
 # DGR002: SizedBox.shrink() concealment
 DGR002_PATTERN = re.compile(r"\b(?:const\s+)?SizedBox\.shrink\s*\(\s*\)")
 
-# DGR003: Raw hardcoded string literals in Text("...") widgets
+# DGR003: Raw hardcoded string literals in Text("...") widgets (single-line and multi-line) and raw exception .toString()
 DGR003_PATTERN = re.compile(r"\b(?:const\s+)?Text\s*\(\s*(['\"])(.*?)\1\s*[,)]")
+DGR003_MULTILINE_PATTERN = re.compile(r"\b(?:const\s+)?Text\s*\(\s*\n\s*(['\"])([^\n]*)\1\s*[,)]")
+DGR003_RAW_ERROR_PATTERN = re.compile(
+    r"\b(?:l10n\.\w+\s*\(\s*(?:(?:e|err|error)\.toString\s*\(\s*\)|['\"]\$(?:e|err|error)['\"])"
+    r"|AsyncError\s*\([^)]*\)\s*=>\s*(?:const\s+)?Text\s*\(\s*(?:e|err|error)\.toString\s*\(\s*\))",
+    re.DOTALL,
+)
 
 # DGR004: Dart lint suppressions (// ignore: or // ignore_for_file:)
 DGR004_PATTERN = re.compile(r"//\s*(?:ignore_for_file|ignore):")
@@ -115,7 +121,22 @@ DGR008_UUID_V4_PATTERN = re.compile(r"\.v4\s*\(")
 DGR010_PATTERN = re.compile(r"\.requireValue\b")
 
 # Ignored trivial string literals for DGR003 (pure symbols or separators)
-PUNCTUATION_OR_EMPTY_PATTERN = re.compile(r"^[\s\-:–—|/\\.,;*+~#_!?@$%^&()\[\]{}'\"0-9]*$")
+PUNCTUATION_OR_EMPTY_PATTERN = re.compile(r"^[\s\-:–—|/\\.,;*+~#_!?@$%^&()\[\]{}'\"0-9→←↑↓↳•×+%=<>]*$")
+
+
+def _strip_dart_interpolations(text: str) -> str:
+    """Strip Dart string interpolations and numeric unit suffixes from a string literal.
+
+    Args:
+        text: Raw string literal contents extracted from a Text widget.
+
+    Returns:
+        Remaining static text after removing ${...}, $ident, escaped newlines, and 'ms' unit tokens.
+    """
+    without_braces = re.sub(r"\$\{[^}]*\}", "", text)
+    without_vars = re.sub(r"\$[a-zA-Z_][a-zA-Z0-9_]*", "", without_braces)
+    without_escapes = without_vars.replace("\\n", " ")
+    return re.sub(r"\bms\b", "", without_escapes).strip()
 
 
 def is_generated_dart_file(filepath: Path | str, source_text: str | None = None) -> bool:
@@ -414,6 +435,68 @@ def _check_master_view_error_boundary(
     return []
 
 
+def _check_multiline_and_raw_error_ui_rules(
+    filepath: str,
+    source_text: str,
+    *,
+    is_ui_scope: bool,
+    is_feature_widget_scope: bool,
+    default_severity: GuardrailSeverity,
+) -> list[DartViolation]:
+    """Evaluate multi-line DGR003 hardcoded Text literals and raw exception .toString() leaks.
+
+    Args:
+        filepath: Target file path being scanned.
+        source_text: Decoded UTF-8 source text of the Dart file.
+        is_ui_scope: Whether the file resides in features or shared UI directories.
+        is_feature_widget_scope: Whether the file is a non-test feature widget file.
+        default_severity: Default severity tier (WARNING or FATAL when strict).
+
+    Returns:
+        List of DartViolation instances detected across multi-line constructs.
+    """
+    violations: list[DartViolation] = []
+
+    if is_feature_widget_scope:
+        for match in DGR003_MULTILINE_PATTERN.finditer(source_text):
+            raw_text = match.group(2)
+            static_residue = _strip_dart_interpolations(raw_text)
+            if not PUNCTUATION_OR_EMPTY_PATTERN.match(static_residue):
+                lineno = source_text[: match.start()].count("\n") + 1
+                col_offset = max(0, match.start() - source_text[: match.start()].rfind("\n") - 1)
+                violations.append(
+                    DartViolation(
+                        filepath=filepath,
+                        lineno=lineno,
+                        col_offset=col_offset,
+                        rule_code="DGR003",
+                        message=f'Banned multi-line hardcoded string literal `"{raw_text}"` in `Text()` widget.',
+                        remediation="Use `AppLocalizations.of(context)` or `.arb` localization keys instead of raw hardcoded strings in `Text(...)` widgets.",
+                        severity=default_severity,
+                        is_suppressed=False,
+                    )
+                )
+
+    if is_ui_scope:
+        for match in DGR003_RAW_ERROR_PATTERN.finditer(source_text):
+            lineno = source_text[: match.start()].count("\n") + 1
+            col_offset = max(0, match.start() - source_text[: match.start()].rfind("\n") - 1)
+            violations.append(
+                DartViolation(
+                    filepath=filepath,
+                    lineno=lineno,
+                    col_offset=col_offset,
+                    rule_code="DGR003",
+                    message="Banned raw exception `.toString()` or `'$e'` in UI localization/error widget.",
+                    remediation="Use `AppExceptionX.extractLocalizedHint(error, l10n)` instead of passing raw `error.toString()` or `'$e'` to UI strings.",
+                    severity=default_severity,
+                    is_suppressed=False,
+                )
+            )
+
+    return violations
+
+
 def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -> list[DartViolation]:
     """Scan Dart source code bytes for architectural violations.
 
@@ -504,6 +587,15 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
             )
         )
 
+    violations.extend(
+        _check_multiline_and_raw_error_ui_rules(
+            filepath,
+            source_text,
+            is_ui_scope=is_ui_scope,
+            is_feature_widget_scope=is_feature_widget_scope,
+            default_severity=default_severity,
+        )
+    )
     violations.extend(
         _check_master_view_error_boundary(
             filepath,

@@ -77,7 +77,7 @@ description: Tier 2 (Frontend Hardening) - Step-by-step auditing loop for Flutte
 
         PROFILE B: DUMB PAINTER VIEWS, WIDGETS &amp; RENDERERS (`views`, `widgets`, `renderers`, `components`):
         1. FLUTTER THEME SOVEREIGNTY: Total ban on direct `Color(0x...)` and naked `TextStyle(...)`; resolve strictly via `Theme.of(context).colorScheme`, `Theme.of(context).extension<AppSemanticColors>()`, or `AppSpacing`.
-        2. DUAL-AXIS LOCALIZATION (ICU/ARB): Mandate `context.l10n.<key>` or `AppLocalizations.of(context)`; ban hardcoded UI strings.
+        2. DUAL-AXIS LOCALIZATION (ICU/ARB): Mandate `context.l10n.<key>` or `AppLocalizations.of(context)`; ban single-line and multi-line hardcoded UI strings (`DGR003`), and ban passing raw `e.toString()`, `error.toString()`, or `'$e'` into `Text(...)` or `l10n.*(...)` (always use `AppExceptionX.extractLocalizedHint(error, l10n)`).
         3. DESKTOP PRO UX &amp; OVERFLOW CONTAINMENT: Wrap dynamic text/dropdowns inside `Row`/grid layouts in `Expanded` or `Flexible` with `overflow: TextOverflow.ellipsis`; set `isExpanded: true` on dropdowns.
         4. DUMB PAINTER SDUI CONTRACT &amp; 32-HEX UUIDV7: Zero business/semantic math in widgets; parse SDUI blocks via `SduiBlockDTO` wrapped in `AppErrorBoundary`; ban `Uuid().v4()`, `.substring(0, 16)`, and `.take(16)` in favor of `generateOpaqueUuid7(prefix)` (`DGR008`).
         5. FAIL-FAST UI BOUNDARY DEFENSE: Total ban on `SizedBox.shrink()` masking broken UI or empty `catch (e) {}` blocks.

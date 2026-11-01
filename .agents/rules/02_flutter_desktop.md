@@ -111,7 +111,7 @@
     </rule_block>
 
     <rule_block id="no_magic_strings_l10n">
-        <mandate>NEVER hardcode literal UI text, pixel padding constants, or simulated dictionary keys. UI strings MUST be evaluated exclusively via `AppLocalizations` (`.arb` runtime logic). Dynamic elements map API Backend Enums directly. Layout padding MUST use App Theme Tokens.</mandate>
+        <mandate>NEVER hardcode literal UI text (single-line or multi-line), pixel padding constants, simulated dictionary keys, or pass raw exception strings (`e.toString()`, `error.toString()`, `'$e'`) into `Text(...)` or `l10n.*(...)` methods. UI strings MUST be evaluated exclusively via `AppLocalizations` (`.arb` runtime logic), and all runtime exceptions displayed in UI widgets or SnackBars MUST be resolved via `AppExceptionX.extractLocalizedHint(error, l10n)`. Dynamic elements map API Backend Enums directly. Layout padding MUST use App Theme Tokens.</mandate>
     </rule_block>
 
     <rule_block id="strict_translation_fallback_mandate">
