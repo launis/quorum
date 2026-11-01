@@ -44,7 +44,7 @@ class SduiAlertBoxWidget extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
-      padding: const EdgeInsets.all(AppSpacing.s12),
+      padding: AppSpacing.p12,
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(AppSpacing.s8),
@@ -55,7 +55,7 @@ class SduiAlertBoxWidget extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: borderColor, size: 24),
+          Icon(icon, color: borderColor, size: AppSpacing.s24),
           AppSpacing.w8,
           Expanded(child: OutputRenderer(markdownContent: block.text)),
         ],
