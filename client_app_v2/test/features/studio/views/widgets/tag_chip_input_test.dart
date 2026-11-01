@@ -174,5 +174,40 @@ void main() {
         expect(find.text('Keyword has already been added.'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'ISTQB Boundary/Negative: empty or comma-only input is ignored and does not add chip',
+      (tester) async {
+        List<String> tags = [];
+        await tester.pumpWidget(
+          createTestWidget(TagChipInput(onChanged: (val) => tags = val)),
+        );
+
+        final input = find.byType(TextField);
+        await tester.enterText(input, '   ,  ');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+
+        expect(tags, isEmpty);
+        expect(find.byType(InputChip), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'ISTQB Negative: disabled state prevents chip deletion and text entry',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestWidget(
+            const TagChipInput(initialTags: ['locked_tag'], enabled: false),
+          ),
+        );
+
+        final chip = tester.widget<InputChip>(find.byType(InputChip));
+        expect(chip.onDeleted, isNull);
+
+        final textField = tester.widget<TextField>(find.byType(TextField));
+        expect(textField.enabled, isFalse);
+      },
+    );
   });
 }

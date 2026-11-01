@@ -79,12 +79,11 @@ class TagChipInputState extends State<TagChipInput> {
       return true;
     }
 
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final exists = _tags.any((t) => t.toLowerCase() == token.toLowerCase());
     if (exists) {
       setState(() {
-        _duplicateError =
-            l10n?.scaleAnchorDuplicateError ?? 'Keyword already added.';
+        _duplicateError = l10n.scaleAnchorDuplicateError;
       });
       return false;
     }
@@ -126,7 +125,7 @@ class TagChipInputState extends State<TagChipInput> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return FormField<List<String>>(
       initialValue: _tags,
@@ -151,8 +150,8 @@ class TagChipInputState extends State<TagChipInput> {
             errorText: errorText,
             border: const OutlineInputBorder(),
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
+              horizontal: AppSpacing.s12,
+              vertical: AppSpacing.s8,
             ),
           ),
           child: Column(
@@ -161,7 +160,7 @@ class TagChipInputState extends State<TagChipInput> {
             children: [
               if (_tags.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.s8),
                   child: Wrap(
                     spacing: AppSpacing.s8,
                     runSpacing: AppSpacing.s4,
@@ -190,9 +189,7 @@ class TagChipInputState extends State<TagChipInput> {
                   enabled: widget.enabled,
                   decoration: InputDecoration(
                     hintText:
-                        widget.hintText ??
-                        l10n?.scaleAnchorChipPlaceholder ??
-                        'Type word and press Enter...',
+                        widget.hintText ?? l10n.scaleAnchorChipPlaceholder,
                     isDense: true,
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.zero,
