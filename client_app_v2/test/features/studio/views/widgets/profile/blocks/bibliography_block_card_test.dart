@@ -104,4 +104,93 @@ void main() {
       expect(payload.showSourcesSummaryBox, isFalse);
     },
   );
+
+  testWidgets(
+    'BibliographyBlockCard suppresses body controls when excluded and enables cleanly without duplicate entries (negative/boundary)',
+    (WidgetTester tester) async {
+      OutputProfile payload = const OutputProfile(
+        id: 'profile_1',
+        workflowId: 'wf_1',
+        name: I18nText(translations: {'en': 'Test Profile'}),
+        targetBlockOrder: [TargetBlockType.metadataBlock],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  return BibliographyBlockCard(
+                    payload: payload,
+                    updatePayload: (newPayload) {
+                      setState(() {
+                        payload = newPayload;
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // When excluded, only the header switch is shown; body controls are hidden
+      expect(find.byType(Switch), findsOneWidget);
+      expect(find.byType(SegmentedButton<SourcesDisplayMode>), findsNothing);
+
+      // Enable the block via header switch
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
+
+      expect(
+        payload.targetBlockOrder
+            .where((b) => b == TargetBlockType.printableSourcesBlock)
+            .length,
+        1,
+      );
+      expect(find.byType(SegmentedButton<SourcesDisplayMode>), findsOneWidget);
+      expect(find.byType(Switch), findsNWidgets(2));
+    },
+  );
+
+  testWidgets(
+    'BibliographyBlockCard renders without overflow in narrow viewport with dragHandle (boundary)',
+    (WidgetTester tester) async {
+      const payload = OutputProfile(
+        id: 'profile_1',
+        workflowId: 'wf_1',
+        name: I18nText(translations: {'en': 'Test Profile'}),
+        targetBlockOrder: [TargetBlockType.printableSourcesBlock],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: SizedBox(
+                width: 300,
+                child: BibliographyBlockCard(
+                  payload: payload,
+                  updatePayload: (_) {},
+                  dragHandle: const Icon(Icons.drag_indicator),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byIcon(Icons.drag_indicator), findsOneWidget);
+      expect(find.byType(SegmentedButton<SourcesDisplayMode>), findsOneWidget);
+    },
+  );
 }

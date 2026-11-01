@@ -67,13 +67,19 @@ class BibliographyBlockCard extends StatelessWidget {
               ButtonSegment<SourcesDisplayMode>(
                 value: SourcesDisplayMode.verifiedEvidence,
                 icon: const Icon(Icons.verified_outlined),
-                label: Text(l10n.sourcesDisplayModeVerifiedEvidence),
+                label: Text(
+                  l10n.sourcesDisplayModeVerifiedEvidence,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 tooltip: l10n.sourcesDisplayModeVerifiedEvidenceDesc,
               ),
               ButtonSegment<SourcesDisplayMode>(
                 value: SourcesDisplayMode.simpleBibliography,
                 icon: const Icon(Icons.format_list_bulleted_outlined),
-                label: Text(l10n.sourcesDisplayModeSimpleBibliography),
+                label: Text(
+                  l10n.sourcesDisplayModeSimpleBibliography,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 tooltip: l10n.sourcesDisplayModeSimpleBibliographyDesc,
               ),
             ],
