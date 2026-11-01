@@ -93,7 +93,7 @@ class GuardrailViolation(BaseModel):
 BOUNDARY_EXEMPTION_FILES: frozenset[str] = frozenset(
     {
         "backend_v2/database/postgres/storage_driver.py",
-        "backend_v2/database/postgres/entity_adapter.py",
+        "backend_v2/database/postgres/entity_adapter/__init__.py",
         "backend_v2/database/postgres/graph_adapter.py",
         "backend_v2/database/driver.py",
         "backend_v2/llm/provider/__init__.py",
@@ -963,6 +963,17 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 "QGR017",
                 "Banned legacy God file `backend_v2/services/orchestrator/dag_executor.py` detected.",
                 "DAG orchestration functionality must reside exclusively in the modular package `backend_v2.services.orchestrator.dag_executor` (`backend_v2/services/orchestrator/dag_executor/`).",
+                severity=GuardrailSeverity.FATAL,
+            )
+        elif norm_path == "backend_v2/database/postgres/entity_adapter.py" or norm_path.endswith(
+            "/backend_v2/database/postgres/entity_adapter.py"
+        ):
+            # Phase 4, Step 3: Lock retired path backend_v2/database/postgres/entity_adapter.py under QGR017
+            self._add_violation(
+                node,
+                "QGR017",
+                "Banned legacy God file `backend_v2/database/postgres/entity_adapter.py` detected.",
+                "Entity persistence functionality must reside exclusively in the modular package `backend_v2.database.postgres.entity_adapter` (`backend_v2/database/postgres/entity_adapter/`).",
                 severity=GuardrailSeverity.FATAL,
             )
         else:

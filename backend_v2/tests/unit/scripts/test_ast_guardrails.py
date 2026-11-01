@@ -1294,7 +1294,7 @@ def test_purged_boundary_exemption_files() -> None:
     assert BOUNDARY_EXEMPTION_FILES == frozenset(
         {
             "backend_v2/database/postgres/storage_driver.py",
-            "backend_v2/database/postgres/entity_adapter.py",
+            "backend_v2/database/postgres/entity_adapter/__init__.py",
             "backend_v2/database/postgres/graph_adapter.py",
             "backend_v2/database/driver.py",
             "backend_v2/llm/provider/__init__.py",
@@ -1692,6 +1692,34 @@ def test_qgr017_banned_dag_executor_god_file_path_fatal() -> None:
     assert "backend_v2/services/orchestrator/dag_executor.py" in qgr017[0].message
 
 
+# Phase 4, Step 3: Test Contracts for QGR017 on backend_v2/database/postgres/entity_adapter
+def test_qgr017_modular_entity_adapter_package_allowed() -> None:
+    """QGR017: scanning backend_v2/database/postgres/entity_adapter/__init__.py and its 6 submodules produces zero QGR017 violations."""
+    code = "from backend_v2.database.postgres.entity_adapter import PostgresEntityAdapter\n"
+    for pkg_file in (
+        "backend_v2/database/postgres/entity_adapter/__init__.py",
+        "backend_v2/database/postgres/entity_adapter/coercion_and_constants.py",
+        "backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py",
+        "backend_v2/database/postgres/entity_adapter/prompt_block_and_step_stage.py",
+        "backend_v2/database/postgres/entity_adapter/workflow_and_profile_stage.py",
+        "backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py",
+        "backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py",
+    ):
+        violations = _scan_snippet(code, filepath=pkg_file)
+        qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+        assert len(qgr017) == 0
+
+
+def test_qgr017_banned_entity_adapter_god_file_path_fatal() -> None:
+    """QGR017: scanning retired path backend_v2/database/postgres/entity_adapter.py triggers a FATAL QGR017 violation."""
+    code = "x = 1\n"
+    violations = _scan_snippet(code, filepath="backend_v2/database/postgres/entity_adapter.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2/database/postgres/entity_adapter.py" in qgr017[0].message
+
+
 def test_qgr017_eradicated_mcp_wrappers_fatal() -> None:
     """QGR017: importing or scanning eradicated legacy MCP static wrapper modules emits FATAL violation."""
     banned_imports = [
@@ -1771,7 +1799,7 @@ def test_qgr018_typeadapter_mapping_laundering_fatal() -> None:
 def test_boundary_exemption_files_preserved() -> None:
     """Verify QGR001 reflection calls inside boundary exemption files still emit FATAL severity."""
     code = "val = getattr(obj, 'k', None)\n"
-    for exempt_file in ["storage_driver.py", "entity_adapter.py", "graph_adapter.py", "logging_config.py"]:
+    for exempt_file in ["storage_driver.py", "entity_adapter/__init__.py", "graph_adapter.py", "logging_config.py"]:
         violations = _scan_snippet(code, filepath=f"backend_v2/database/postgres/{exempt_file}")
         assert all(v.severity == GuardrailSeverity.FATAL for v in violations)
 
@@ -2933,7 +2961,7 @@ def test_qgr017_tripartite_layer_and_protocol_firewall() -> None:
 
     # Negative 2: PostgreSQL database/ importing upward from services, hooks, api, or workers
     bad_db_upward = "from backend_v2.services.studio import WorkflowService\n"
-    v_db_upward = _scan_snippet(bad_db_upward, filepath="backend_v2/database/postgres/entity_adapter.py")
+    v_db_upward = _scan_snippet(bad_db_upward, filepath="backend_v2/database/postgres/entity_adapter/__init__.py")
     assert any(v.rule_code == "QGR017" and v.severity == GuardrailSeverity.FATAL for v in v_db_upward)
 
     # Negative 3: Python services/, hooks/, or api/routers/ importing asyncpg or concrete database modules
