@@ -59,7 +59,7 @@
 ### Post-Implementation Gates
 
 - [ ] **[NOK] Tier 2 Hardening (Backend)** (`[NEW]` sub-modules & 1-hop callers): Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/entity_adapter_decomposition_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"`
-  - [ ] [NEW] @[backend_v2/database/postgres/entity_adapter/coercion_and_constants.py]
+  - [x] [NEW] @[backend_v2/database/postgres/entity_adapter/coercion_and_constants.py]
   - [ ] [NEW] @[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]
   - [ ] [NEW] @[backend_v2/database/postgres/entity_adapter/prompt_block_and_step_stage.py]
   - [ ] [NEW] @[backend_v2/database/postgres/entity_adapter/workflow_and_profile_stage.py]

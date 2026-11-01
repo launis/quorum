@@ -44,7 +44,6 @@ __all__ = [
     "resolve_effective_timeout",
 ]
 
-# Phase 1, Step 1: Relocate canonical seed table and prefix constants
 CANONICAL_SEED_TABLES: tuple[str, ...] = (
     "organizations",
     "users",
@@ -127,28 +126,67 @@ class _ReportBinaryRowDTO(V2CoreBase):
 
 
 def _coerce_uuid_or_str(raw: object) -> uuid.UUID | str:
-    """Narrow a raw database UUID or string column value to uuid.UUID | str."""
+    """Narrow a raw database UUID or string column value to uuid.UUID | str.
+
+    Args:
+        raw: Raw database column value to coerce.
+
+    Returns:
+        Original uuid.UUID or str instance, or string representation of raw.
+    """
     if isinstance(raw, (uuid.UUID, str)):
         return raw
     return str(raw)
 
 
 def _parse_optional_uuid7(raw: str | None, prefix: EntityPrefix) -> uuid.UUID | None:
-    """Parse an optional Opaque Stripe ID into a 16-byte UUIDv7 or None."""
+    """Parse an optional Opaque Stripe ID into a 16-byte UUIDv7 or None.
+
+    Args:
+        raw: Optional canonical Opaque Stripe ID string.
+        prefix: Expected EntityPrefix for validation.
+
+    Returns:
+        Parsed 16-byte uuid.UUID instance, or None when raw is None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if raw does not match the prefix or 32-hex UUID format.
+    """
     if raw is None:
         return None
     return parse_prefixed_uuid7(raw, prefix)
 
 
 def _format_optional_uuid7(raw: object, prefix: EntityPrefix) -> str | None:
-    """Format an optional database UUID column value into a {prefix}_{32_hex} string or None."""
+    """Format an optional database UUID column value into a {prefix}_{32_hex} string or None.
+
+    Args:
+        raw: Optional raw database UUID or string column value.
+        prefix: Target EntityPrefix to prepend.
+
+    Returns:
+        Formatted Opaque Stripe ID string, or None when raw is None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if raw cannot be formatted as a valid UUID.
+    """
     if raw is None:
         return None
     return format_prefixed_uuid7(_coerce_uuid_or_str(raw), prefix)
 
 
 def _parse_org_uuid7(raw: str | None) -> uuid.UUID | None:
-    """Parse an optional organization_id into a 16-byte UUIDv7, bridging 'SYSTEM' deterministically."""
+    """Parse an optional organization_id into a 16-byte UUIDv7, bridging 'SYSTEM' deterministically.
+
+    Args:
+        raw: Optional organization identifier ('SYSTEM', 'org_system000000', or 'org_<32_hex>').
+
+    Returns:
+        Parsed 16-byte uuid.UUID instance, or None for global/SYSTEM scope.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if raw is not a valid organization identifier.
+    """
     if raw is None or raw == "SYSTEM":
         return None
     if raw == "org_system000000":
@@ -157,7 +195,18 @@ def _parse_org_uuid7(raw: str | None) -> uuid.UUID | None:
 
 
 def _format_org_uuid7(raw: object, *, default_system: bool = False) -> str | None:
-    """Format a database organization_id UUID column into 'org_<32_hex>', 'org_system000000', 'SYSTEM', or None."""
+    """Format a database organization_id UUID column into 'org_<32_hex>', 'org_system000000', 'SYSTEM', or None.
+
+    Args:
+        raw: Raw database organization_id column value or None.
+        default_system: Whether None should resolve to 'SYSTEM' instead of None.
+
+    Returns:
+        Canonical organization identifier string or None.
+
+    Raises:
+        AppException: With VALIDATION_FAILED if raw cannot be formatted as a valid organization UUID.
+    """
     if raw is None:
         return "SYSTEM" if default_system else None
     coerced = _coerce_uuid_or_str(raw)
@@ -169,7 +218,14 @@ def _format_org_uuid7(raw: object, *, default_system: bool = False) -> str | Non
 
 
 def _decode_jsonb_column(raw: object) -> object:
-    """Decode a JSONB column value if returned as raw UTF-8 string or bytes."""
+    """Decode a JSONB column value if returned as raw UTF-8 string or bytes.
+
+    Args:
+        raw: Raw JSONB column payload from asyncpg or in-memory driver.
+
+    Returns:
+        Decoded Python object, or None when raw is None.
+    """
     if raw is None:
         return None
     if isinstance(raw, (str, bytes, bytearray)):
@@ -180,14 +236,31 @@ def _decode_jsonb_column(raw: object) -> object:
 
 
 def _encode_optional_jsonb(val: object) -> str | None:
-    """Encode an optional value to a UTF-8 JSON string for asyncpg JSONB parameters."""
+    """Encode an optional value to a UTF-8 JSON string for asyncpg JSONB parameters.
+
+    Args:
+        val: Optional serializable Python value.
+
+    Returns:
+        UTF-8 JSON string, or None when val is None.
+    """
     if val is None:
         return None
     return to_json(val).decode("utf-8")
 
 
 def _coerce_float(raw: object) -> float:
-    """Convert a database NUMERIC/Decimal or float column value to float."""
+    """Convert a database NUMERIC/Decimal or float column value to float.
+
+    Args:
+        raw: Database numeric column value (float, int, Decimal, or numeric string).
+
+    Returns:
+        Converted Python float value.
+
+    Raises:
+        ValueError: If the string representation of raw cannot be converted to float.
+    """
     if isinstance(raw, (float, int, Decimal)):
         return float(raw)
     return float(str(raw))
