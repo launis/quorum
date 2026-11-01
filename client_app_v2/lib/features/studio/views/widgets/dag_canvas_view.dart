@@ -1,11 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 
-/// InteractiveViewer 2D Canvas for Workflow DAGs
+const double _kCanvasDimension = 8000.0;
+const double _kCanvasDefaultCoord = 4000.0;
+const double _kMinScale = 0.1;
+const double _kMaxScale = 2.0;
+const double _kNodeWidth = 200.0;
+const double _kNodeEstimatedHeight = 72.0;
+const double _kNodeIconSize = 16.0;
+const double _kNodeBlurRadius = 10.0;
+const double _kEdgeStrokeWidth = 2.0;
+const EdgeInsets _kCanvasBoundaryMargin = EdgeInsets.all(_kCanvasDefaultCoord);
+
+/// Interactive 2D canvas for visualizing and positioning Workflow DAG step nodes.
 class DagCanvasView extends StatefulWidget {
   final Workflow workflow;
-  final Function(String stepId) onNodeSelected;
-  final Function(Workflow updatedWorkflow) onWorkflowUpdated;
+  final ValueChanged<String> onNodeSelected;
+  final ValueChanged<Workflow> onWorkflowUpdated;
 
   const DagCanvasView({
     super.key,
@@ -24,10 +38,24 @@ class _DagCanvasViewState extends State<DagCanvasView> {
 
   Workflow get _workflow => widget.workflow;
 
+  @override
+  void dispose() {
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  static double _resolveCoord(double rawCoord) {
+    return rawCoord == 0.0 ? _kCanvasDefaultCoord : rawCoord;
+  }
+
   void _updateNodePosition(String stepId, double x, double y) {
-    final updatedSteps = _workflow.steps.map((step) {
+    const double maxAllowedCoord = _kCanvasDimension - _kNodeWidth;
+    final double clampedX = x.clamp(0.0, maxAllowedCoord);
+    final double clampedY = y.clamp(0.0, maxAllowedCoord);
+
+    final List<StepRule> updatedSteps = _workflow.steps.map((StepRule step) {
       if (step.id == stepId) {
-        return step.copyWith(uiPosX: x, uiPosY: y);
+        return step.copyWith(uiPosX: clampedX, uiPosY: clampedY);
       }
       return step;
     }).toList();
@@ -35,52 +63,95 @@ class _DagCanvasViewState extends State<DagCanvasView> {
     widget.onWorkflowUpdated(_workflow.copyWith(steps: updatedSteps));
   }
 
+  void _validateWorkflowInvariants(Workflow workflow) {
+    if (workflow.id.trim().isEmpty) {
+      throw AppException.validation(
+        'Fail-Fast: Workflow ID cannot be empty in DagCanvasView.',
+      );
+    }
+    for (final StepRule step in workflow.steps) {
+      if (step.id.trim().isEmpty) {
+        throw AppException.validation(
+          'Fail-Fast: Step ID cannot be empty in DagCanvasView.',
+        );
+      }
+      if (!step.uiPosX.isFinite ||
+          !step.uiPosY.isFinite ||
+          step.uiPosX < 0.0 ||
+          step.uiPosY < 0.0 ||
+          step.uiPosX > _kCanvasDimension ||
+          step.uiPosY > _kCanvasDimension) {
+        throw AppException.validation(
+          'Fail-Fast: Step ${step.id} has out-of-bounds or non-finite canvas coordinates (${step.uiPosX}, ${step.uiPosY}).',
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final steps = _workflow.steps;
+    _validateWorkflowInvariants(_workflow);
+
+    final List<StepRule> steps = _workflow.steps;
+    final ThemeData theme = Theme.of(context);
 
     return LayoutBuilder(
-      builder: (context, constraints) {
+      builder: (BuildContext context, BoxConstraints constraints) {
         return Scaffold(
           body: InteractiveViewer(
             transformationController: _transformationController,
-            constrained: false, // Infinite Canvas
-            minScale: 0.1,
-            maxScale: 2.0,
-            boundaryMargin: const EdgeInsets.all(4000), // Very large boundary
+            constrained: false,
+            minScale: _kMinScale,
+            maxScale: _kMaxScale,
+            boundaryMargin: _kCanvasBoundaryMargin,
             child: SizedBox(
-              width: 8000,
-              height: 8000,
+              width: _kCanvasDimension,
+              height: _kCanvasDimension,
               child: Stack(
                 clipBehavior: Clip.none,
-                children: [
-                  // TODO: Draw Edges (CustomPaint) based on depends_on
-
-                  // Draw Nodes
-                  ...steps.map((step) {
-                    final stepId = step.id;
-                    final double posX = step.uiPosX == 0.0
-                        ? 4000.0
-                        : step.uiPosX;
-                    final double posY = step.uiPosY == 0.0
-                        ? 4000.0
-                        : step.uiPosY;
+                children: <Widget>[
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _DagEdgesPainter(
+                        steps: steps,
+                        edgeColor: theme.colorScheme.outlineVariant,
+                      ),
+                    ),
+                  ),
+                  ...steps.map((StepRule step) {
+                    final String stepId = step.id;
+                    final double posX = _resolveCoord(step.uiPosX);
+                    final double posY = _resolveCoord(step.uiPosY);
 
                     return Positioned(
+                      key: ValueKey<String>('dag_node_pos_$stepId'),
                       left: posX,
                       top: posY,
-                      child: GestureDetector(
-                        onTap: () => widget.onNodeSelected(stepId),
-                        onPanUpdate: (details) {
-                          _updateNodePosition(
-                            stepId,
-                            posX + details.delta.dx,
-                            posY + details.delta.dy,
-                          );
+                      child: FocusableActionDetector(
+                        key: ValueKey<String>('dag_node_focus_$stepId'),
+                        mouseCursor: SystemMouseCursors.click,
+                        actions: <Type, Action<Intent>>{
+                          ActivateIntent: CallbackAction<ActivateIntent>(
+                            onInvoke: (ActivateIntent intent) {
+                              widget.onNodeSelected(stepId);
+                              return null;
+                            },
+                          ),
                         },
-                        child: _DagNodeWidget(
-                          stepId: stepId,
-                          blueprintId: step.taskBlueprint,
+                        child: GestureDetector(
+                          key: ValueKey<String>('dag_node_gesture_$stepId'),
+                          onTap: () => widget.onNodeSelected(stepId),
+                          onPanUpdate: (DragUpdateDetails details) {
+                            _updateNodePosition(
+                              stepId,
+                              posX + details.delta.dx,
+                              posY + details.delta.dy,
+                            );
+                          },
+                          child: _DagNodeWidget(
+                            stepId: stepId,
+                            blueprintId: step.taskBlueprint,
+                          ),
                         ),
                       ),
                     );
@@ -95,6 +166,52 @@ class _DagCanvasViewState extends State<DagCanvasView> {
   }
 }
 
+class _DagEdgesPainter extends CustomPainter {
+  final List<StepRule> steps;
+  final Color edgeColor;
+
+  const _DagEdgesPainter({required this.steps, required this.edgeColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (steps.length < 2) {
+      return;
+    }
+
+    final Map<String, Offset> nodeCenters = <String, Offset>{
+      for (final StepRule step in steps)
+        step.id: Offset(
+          _DagCanvasViewState._resolveCoord(step.uiPosX) + (_kNodeWidth / 2.0),
+          _DagCanvasViewState._resolveCoord(step.uiPosY) +
+              (_kNodeEstimatedHeight / 2.0),
+        ),
+    };
+
+    final Paint paint = Paint()
+      ..color = edgeColor
+      ..strokeWidth = _kEdgeStrokeWidth
+      ..style = PaintingStyle.stroke;
+
+    for (final StepRule step in steps) {
+      final Offset? targetCenter = nodeCenters[step.id];
+      if (targetCenter == null) {
+        continue;
+      }
+      for (final String depId in step.dependsOn) {
+        final Offset? sourceCenter = nodeCenters[depId];
+        if (sourceCenter != null) {
+          canvas.drawLine(sourceCenter, targetCenter, paint);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DagEdgesPainter oldDelegate) {
+    return oldDelegate.edgeColor != edgeColor || oldDelegate.steps != steps;
+  }
+}
+
 class _DagNodeWidget extends StatelessWidget {
   final String stepId;
   final String blueprintId;
@@ -103,47 +220,57 @@ class _DagNodeWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final String resolvedBlueprint = blueprintId.trim().isNotEmpty
+        ? blueprintId
+        : l10n.studioViewsNone;
+    final String blueprintLabel =
+        '${l10n.studioWorkflowTaskProfileTitle}: $resolvedBlueprint';
+
     return Container(
-      width: 200,
-      padding: EdgeInsets.all(12),
+      width: _kNodeWidth,
+      padding: AppSpacing.p12,
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).colorScheme.outline),
-        boxShadow: [
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
+        border: Border.all(color: theme.colorScheme.outline),
+        boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Theme.of(context).colorScheme.surfaceContainer,
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            color: theme.colorScheme.surfaceContainer,
+            blurRadius: _kNodeBlurRadius,
+            offset: const Offset(0, AppSpacing.s4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: <Widget>[
           Row(
-            children: [
+            children: <Widget>[
               Icon(
                 Icons.hub,
-                size: 16,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                size: _kNodeIconSize,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(width: 8),
+              AppSpacing.w8,
               Expanded(
                 child: Text(
                   stepId,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          AppSpacing.h8,
           Text(
-            'Blueprint: ${blueprintId.isNotEmpty ? blueprintId : "Unassigned"}',
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            blueprintLabel,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

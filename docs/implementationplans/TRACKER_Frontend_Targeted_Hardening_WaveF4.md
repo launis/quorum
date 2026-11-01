@@ -38,7 +38,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/workflows_master_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/contrastive_pair_editor.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/dag_canvas_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/dag_canvas_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/dynamic_item_list_editor.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/expected_input_editor_box.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/i18n_text_field.dart]
