@@ -59,7 +59,7 @@ class BaseBlockCard extends StatelessWidget {
                       ? colorScheme.primary
                       : colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(width: AppSpacing.s12),
+                AppSpacing.w12,
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,8 +67,7 @@ class BaseBlockCard extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
-                          fontSize: 15,
+                        style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: isIncluded
                               ? colorScheme.onSurface
@@ -77,7 +76,7 @@ class BaseBlockCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       if (subtitle != null && subtitle!.isNotEmpty) ...[
-                        const SizedBox(height: 2),
+                        AppSpacing.h2,
                         Text(
                           subtitle!,
                           style: theme.textTheme.bodySmall?.copyWith(
@@ -90,16 +89,13 @@ class BaseBlockCard extends StatelessWidget {
                   ),
                 ),
                 Switch(value: isIncluded, onChanged: onToggle),
-                if (dragHandle != null) ...[
-                  const SizedBox(width: AppSpacing.s8),
-                  dragHandle!,
-                ],
+                if (dragHandle != null) ...[AppSpacing.w8, dragHandle!],
               ],
             ),
             if (isIncluded && body != null) ...[
-              const SizedBox(height: AppSpacing.s8),
+              AppSpacing.h8,
               const Divider(),
-              const SizedBox(height: AppSpacing.s8),
+              AppSpacing.h8,
               body!,
             ],
           ],
