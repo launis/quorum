@@ -64,7 +64,7 @@
   - [x] [NEW] @[backend_v2/database/postgres/entity_adapter/prompt_block_and_step_stage.py]
   - [x] [NEW] @[backend_v2/database/postgres/entity_adapter/workflow_and_profile_stage.py]
   - [x] [NEW] @[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py]
-  - [ ] [NEW] @[backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py]
+  - [x] [NEW] @[backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py]
   - [ ] [NEW] @[backend_v2/database/postgres/entity_adapter/__init__.py]
   - [ ] `@[backend_v2/database/postgres/uow.py#L218-L234]`
   - [ ] `@[backend_v2/database/postgres/storage_driver.py#L218-L247]`
