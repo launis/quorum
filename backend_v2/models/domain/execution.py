@@ -211,6 +211,11 @@ class ExecutionRecord(ExecutionCoreFields):
     id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")
     workflow_version: int = Field(default=1, ge=1, description="Version number of the executing workflow")
+    # Phase 4, Step 4.1: Add monotonic optimistic concurrency control state_version
+    state_version: Annotated[
+        int,
+        Field(ge=1, default=1, description="Monotonically increasing optimistic concurrency control version"),
+    ] = 1
     active_profile_id: str | None = Field(
         default=None, description="The ID of the output profile selected for formatting and printing."
     )

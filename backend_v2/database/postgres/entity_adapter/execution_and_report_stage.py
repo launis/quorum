@@ -75,13 +75,13 @@ _EXECUTION_COLS: str = """id, workflow_id, workflow_version, active_profile_id, 
     execution_trace_storage_path, context_variables, context_variables_storage_path, is_resumable,
     prompt_tokens, completion_tokens, cached_tokens, reasoning_tokens, cumulative_synthesis_tokens,
     dag_cost_usd, cumulative_synthesis_cost, cost_estimate, models_used, execution_summary, metadata,
-    duration_ms, error, created_at, updated_at, completed_at, created_by, organization_id"""
+    duration_ms, error, created_at, updated_at, completed_at, created_by, organization_id, state_version"""
 
 _SAVE_EXECUTION_SQL: str = f"""INSERT INTO executions ({_EXECUTION_COLS}) VALUES (
     $1::uuid, $2::uuid, $3, $4::uuid, $5::uuid, $6, $7, $8, $9, $10::jsonb, $11::jsonb, $12, $13, $14::jsonb,
     $15::jsonb, $16::jsonb, $17::jsonb, $18::jsonb, $19, $20::jsonb, $21, $22, $23::bigint, $24::bigint,
     $25::bigint, $26::bigint, $27::bigint, $28::numeric, $29::numeric, $30::numeric, $31::jsonb, $32::jsonb,
-    $33::jsonb, $34::bigint, $35, $36::timestamptz, $37::timestamptz, $38::timestamptz, $39, $40::uuid
+    $33::jsonb, $34::bigint, $35, $36::timestamptz, $37::timestamptz, $38::timestamptz, $39, $40::uuid, $41
 ) ON CONFLICT (id) DO UPDATE SET
     workflow_id = EXCLUDED.workflow_id, workflow_version = EXCLUDED.workflow_version,
     active_profile_id = EXCLUDED.active_profile_id, output_profile_id = EXCLUDED.output_profile_id,
@@ -100,7 +100,8 @@ _SAVE_EXECUTION_SQL: str = f"""INSERT INTO executions ({_EXECUTION_COLS}) VALUES
     models_used = EXCLUDED.models_used, execution_summary = EXCLUDED.execution_summary,
     metadata = EXCLUDED.metadata, duration_ms = EXCLUDED.duration_ms, error = EXCLUDED.error,
     updated_at = EXCLUDED.updated_at, completed_at = EXCLUDED.completed_at,
-    created_by = EXCLUDED.created_by, organization_id = EXCLUDED.organization_id"""
+    created_by = EXCLUDED.created_by, organization_id = EXCLUDED.organization_id,
+    state_version = EXCLUDED.state_version"""
 
 _LIST_EXECUTIONS_SQL: str = f"SELECT {_EXECUTION_COLS} FROM executions"
 _GET_EXECUTION_SQL: str = f"{_LIST_EXECUTIONS_SQL} WHERE id = $1::uuid"
@@ -291,30 +292,72 @@ def hydrate_execution_row(row: AsyncPgRecordProtocol) -> ExecutionRecord:
             "completed_at": row["completed_at"],
             "created_by": row["created_by"],
             "organization_id": _format_org_uuid7(row["organization_id"]),
+            "state_version": int(str(row["state_version"])),
         },
         strict=False,
     )
 
 
-async def save_execution_row(conn: AsyncPgConnectionProtocol, timeout: float, record: ExecutionRecord) -> str:
-    """Persist an ExecutionRecord into the PostgreSQL 19 executions table.
+async def save_execution_row(
+    conn: AsyncPgConnectionProtocol,
+    timeout: float,
+    record: ExecutionRecord,
+    *,
+    expected_state_version: int | None = None,
+) -> str:
+    """Persist an ExecutionRecord into the PostgreSQL 19 executions table with OCC enforcement.
 
     Args:
         conn: Active database connection conforming to AsyncPgConnectionProtocol.
         timeout: Command execution timeout in seconds.
         record: Validated ExecutionRecord domain model.
+        expected_state_version: Optional expected state_version for optimistic concurrency control.
 
     Returns:
         Canonical exe_<uuid7_hex> execution identifier.
 
     Raises:
-        AppException: With VALIDATION_FAILED on invalid ID or STORAGE_ACCESS_FAILED if persistence fails.
+        AppException: With VALIDATION_FAILED on invalid ID, CONFLICT on OCC version mismatch,
+            or STORAGE_ACCESS_FAILED if persistence fails.
     """
     exec_uuid = parse_prefixed_uuid7(record.id, EntityPrefix.EXECUTION)
     wf_uuid = parse_prefixed_uuid7(record.workflow_id, EntityPrefix.WORKFLOW)
     active_prf_uuid = _parse_optional_uuid7(record.active_profile_id, EntityPrefix.OUTPUT_PROFILE)
     output_prf_uuid = _parse_optional_uuid7(record.output_profile_id, EntityPrefix.OUTPUT_PROFILE)
     org_uuid = _parse_org_uuid7(record.organization_id)
+    # Phase 4, Step 4.1: Enforce conditional expected_state_version OCC check and atomic increment
+    persisted_state_version = record.state_version
+    if expected_state_version is not None:
+        existing = await get_execution_row(conn, timeout, record.id)
+        actual_state_version = 1
+        if existing is not None:
+            actual_state_version = existing.state_version
+        if actual_state_version != expected_state_version:
+            msg = (
+                f"Optimistic concurrency conflict for execution '{record.id}': "
+                f"expected state_version={expected_state_version}, actual state_version={actual_state_version}."
+            )
+            logger.error(
+                "[PostgresEntityAdapter] %s: %s",
+                ErrorCodes.CONFLICT.name,
+                msg,
+                extra={
+                    "error_code": ErrorCodes.CONFLICT.value,
+                    "execution_id": record.id,
+                    "expected_state_version": expected_state_version,
+                    "actual_state_version": actual_state_version,
+                },
+            )
+            raise AppException(
+                message=msg,
+                status_code=status.HTTP_409_CONFLICT,
+                details={
+                    "error_code": ErrorCodes.CONFLICT.value,
+                    "expected_state_version": expected_state_version,
+                    "actual_state_version": actual_state_version,
+                },
+            )
+        persisted_state_version = actual_state_version + 1
     dumped = record.model_dump(mode="json", exclude_none=True)
 
     return await execute_entity_upsert(
@@ -361,6 +404,7 @@ async def save_execution_row(conn: AsyncPgConnectionProtocol, timeout: float, re
         record.completed_at,
         record.created_by,
         org_uuid,
+        persisted_state_version,
         entity_id=record.id,
         entity_label="execution",
     )

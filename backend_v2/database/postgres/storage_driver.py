@@ -336,6 +336,7 @@ class PostgresStorageDriver(StorageDriver):
 
         Raises:
             AppException: With ErrorCodes.VALIDATION_FAILED if collection or doc_id is empty,
+                ErrorCodes.CONFLICT on execution state_version mismatch,
                 or ErrorCodes.STORAGE_ACCESS_FAILED on database errors.
         """
         norm_col = _normalize_collection_name(collection)
@@ -345,7 +346,44 @@ class PostgresStorageDriver(StorageDriver):
         if existing is None:
             return False
 
+        # Phase 4, Step 4.1: Enforce optimistic concurrency control and state_version increment for executions
+        if norm_col == "executions":
+            actual_version = 1
+            if "state_version" in existing and isinstance(existing["state_version"], int):
+                actual_version = int(existing["state_version"])
+            if "expected_state_version" in updates and updates["expected_state_version"] is not None:
+                expected_version = updates["expected_state_version"]
+                if expected_version != actual_version:
+                    msg = (
+                        f"Optimistic concurrency conflict for execution '{clean_id}': "
+                        f"expected state_version={expected_version}, actual state_version={actual_version}."
+                    )
+                    logger.error(
+                        "[PostgresStorageDriver] %s: %s",
+                        ErrorCodes.CONFLICT.name,
+                        msg,
+                        extra={
+                            "error_code": ErrorCodes.CONFLICT.value,
+                            "execution_id": clean_id,
+                            "expected_state_version": expected_version,
+                            "actual_state_version": actual_version,
+                        },
+                    )
+                    raise AppException(
+                        message=msg,
+                        status_code=status.HTTP_409_CONFLICT,
+                        details={
+                            "error_code": ErrorCodes.CONFLICT.value,
+                            "expected_state_version": expected_version,
+                            "actual_state_version": actual_version,
+                        },
+                    )
+            if "state_version" not in updates or updates["state_version"] is None:
+                existing["state_version"] = actual_version + 1
+
         for key, val in updates.items():
+            if key == "expected_state_version":
+                continue
             existing[key] = copy.deepcopy(val)
         existing["id"] = clean_id
 

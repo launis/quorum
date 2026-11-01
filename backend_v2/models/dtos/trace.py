@@ -116,6 +116,15 @@ class ExecutionUpdateDTO(BaseDTO):
     created_at: Annotated[datetime | None, Field(default=None, description="Creation timestamp")] = None
     updated_at: Annotated[datetime | None, Field(default=None, description="Update timestamp")] = None
     completed_at: Annotated[datetime | None, Field(default=None, description="Completion timestamp")] = None
+    # Phase 4, Step 4.1: Optimistic concurrency control fields for partial execution updates
+    expected_state_version: Annotated[
+        int | None,
+        Field(ge=1, default=None, description="Expected OCC state_version for conditional update"),
+    ] = None
+    state_version: Annotated[
+        int | None,
+        Field(ge=1, default=None, description="Updated OCC state_version"),
+    ] = None
 
 
 class StepTraceMetadataDTO(BaseDTO):

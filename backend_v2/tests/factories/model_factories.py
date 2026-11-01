@@ -870,6 +870,8 @@ class CausalGraphPayloadDTOFactory(ModelFactory[CausalGraphPayloadDTO]):
                 status=ExecutionStatus.PASSED,
                 blame_parent_ids=[],
                 dependent_child_ids=["tda_0195f3a0000070008000000000000002"],
+                short_circuited_by_claims=[],
+                falsified_warrant_claims=[],
             ),
             CausalNodeDTO(
                 node_id="tda_0195f3a0000070008000000000000002",
@@ -879,6 +881,8 @@ class CausalGraphPayloadDTOFactory(ModelFactory[CausalGraphPayloadDTO]):
                 status=ExecutionStatus.PASSED,
                 blame_parent_ids=[],
                 dependent_child_ids=[],
+                short_circuited_by_claims=[],
+                falsified_warrant_claims=[],
             ),
         ]
 

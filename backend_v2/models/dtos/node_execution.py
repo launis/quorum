@@ -38,6 +38,8 @@ class NodeExecutionUpdateDTO(V2CoreBase):
         context_variables: Context variables mapping.
         error: Error message if failed.
         steps: Execution steps list.
+        expected_state_version: Expected OCC state_version for conditional update.
+        state_version: Updated OCC state_version.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
@@ -54,6 +56,15 @@ class NodeExecutionUpdateDTO(V2CoreBase):
     ] = None
     error: Annotated[str | None, Field(default=None, description="Error message if failed")] = None
     steps: Annotated[list[ExecutionStep] | None, Field(default=None, description="Execution steps list")] = None
+    # Phase 4, Step 4.1: Optimistic concurrency control fields for DAG commit_trace updates
+    expected_state_version: Annotated[
+        int | None,
+        Field(ge=1, default=None, description="Expected OCC state_version for conditional update"),
+    ] = None
+    state_version: Annotated[
+        int | None,
+        Field(ge=1, default=None, description="Updated OCC state_version"),
+    ] = None
 
     def to_execution_update_dto(self) -> ExecutionUpdateDTO:
         """Convert to ExecutionUpdateDTO for repository persistence.
@@ -69,6 +80,8 @@ class NodeExecutionUpdateDTO(V2CoreBase):
             context_variables=self.context_variables,
             error=self.error,
             steps=self.steps,
+            expected_state_version=self.expected_state_version,
+            state_version=self.state_version,
         )
 
 

@@ -114,6 +114,7 @@ APPROVED_ADAPTER_RECORD_COLUMNS: frozenset[str] = frozenset(
         "updated_at",
         "workflow_id",
         "workflow_version",
+        "state_version",
         "active_profile_id",
         "output_profile_id",
         "status",

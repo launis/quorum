@@ -284,7 +284,7 @@ class ExecutionRepositoryImpl(BaseRepository):
         return await self.driver.upsert("executions", data, doc_id)
 
     async def update_execution(self, execution_id: str, updates: ExecutionUpdateDTO) -> bool:
-        """Updates an existing execution record.
+        """Updates an existing execution record with optimistic concurrency control.
 
         Args:
             execution_id: The ID of the execution to update.
@@ -294,10 +294,50 @@ class ExecutionRepositoryImpl(BaseRepository):
             True if the update succeeded, False otherwise.
 
         Raises:
-            AppException: If FrozenContext validation fails (ErrorCodes.VALIDATION_FAILED)
+            AppException: If FrozenContext validation fails (ErrorCodes.VALIDATION_FAILED),
+                optimistic concurrency version mismatches (ErrorCodes.CONFLICT),
                 or payload offloading fails (ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         data = updates.model_dump(mode="json", exclude_unset=True)
+        # Phase 4, Step 4.1: Enforce expected_state_version OCC conflict detection and atomic increment
+        if updates.expected_state_version is not None:
+            existing_doc = await self.driver.get("executions", execution_id)
+            if not existing_doc:
+                return False
+            actual_version = 1
+            if "state_version" in existing_doc and isinstance(existing_doc["state_version"], int):
+                actual_version = int(existing_doc["state_version"])
+            if actual_version != updates.expected_state_version:
+                msg = (
+                    f"Optimistic concurrency conflict for execution '{execution_id}': "
+                    f"expected state_version={updates.expected_state_version}, "
+                    f"actual state_version={actual_version}."
+                )
+                logger.error(
+                    "[ExecutionRepository] %s: %s",
+                    ErrorCodes.CONFLICT.name,
+                    msg,
+                    extra={
+                        "error_code": ErrorCodes.CONFLICT.value,
+                        "execution_id": execution_id,
+                        "expected_state_version": updates.expected_state_version,
+                        "actual_state_version": actual_version,
+                    },
+                )
+                raise AppException(
+                    message=msg,
+                    status_code=409,
+                    details={
+                        "error_code": ErrorCodes.CONFLICT.value,
+                        "expected_state_version": updates.expected_state_version,
+                        "actual_state_version": actual_version,
+                    },
+                )
+            data["state_version"] = actual_version + 1
+            if "expected_state_version" in data:
+                del data["expected_state_version"]
+        elif "expected_state_version" in data:
+            del data["expected_state_version"]
         await self._offload_payloads(execution_id, data)
         return await self.driver.update("executions", execution_id, data)
 

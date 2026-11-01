@@ -234,6 +234,7 @@ CREATE TABLE IF NOT EXISTS executions (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE RESTRICT,
     workflow_version INTEGER NOT NULL DEFAULT 1,
+    state_version INTEGER NOT NULL DEFAULT 1,
     active_profile_id UUID REFERENCES output_profiles(id) ON DELETE SET NULL,
     output_profile_id UUID REFERENCES output_profiles(id) ON DELETE SET NULL,
     status TEXT NOT NULL DEFAULT 'PENDING',

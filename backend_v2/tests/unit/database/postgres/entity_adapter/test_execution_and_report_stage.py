@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.database.postgres.entity_adapter.execution_and_report_stage import (
     get_execution_row,
@@ -223,3 +224,73 @@ async def test_collection_crud_and_report_artifact_fault_translation() -> None:
         await pool.release(conn)
     assert callable(hydrate_execution_row)
     assert callable(hydrate_report_artifact_row)
+
+
+@pytest.mark.asyncio
+async def test_save_execution_row_increments_state_version_on_matching_expected_state_version() -> None:
+    """Verify save_execution_row increments state_version when expected_state_version matches."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        exec_rec = ExecutionRecordFactory.build(
+            active_profile_id=None,
+            output_profile_id=None,
+            state_version=1,
+        )
+        await save_execution_row(conn, _TIMEOUT, exec_rec)
+        initial = await get_execution_row(conn, _TIMEOUT, exec_rec.id)
+        assert initial is not None
+        assert initial.state_version == 1
+
+        await save_execution_row(
+            conn,
+            _TIMEOUT,
+            exec_rec.model_copy(update={"progress": 50}),
+            expected_state_version=1,
+        )
+        updated = await get_execution_row(conn, _TIMEOUT, exec_rec.id)
+        assert updated is not None
+        assert updated.state_version == 2
+        assert updated.progress == 50
+    finally:
+        await pool.release(conn)
+
+
+@pytest.mark.asyncio
+async def test_save_execution_row_raises_conflict_409_on_stale_expected_state_version() -> None:
+    """Verify save_execution_row raises AppException(CONFLICT, 409) when expected_state_version is stale."""
+    pool = InMemoryAsyncPgPool()
+    conn = await pool.acquire()
+    try:
+        exec_rec = ExecutionRecordFactory.build(
+            active_profile_id=None,
+            output_profile_id=None,
+            state_version=2,
+            progress=40,
+        )
+        await save_execution_row(conn, _TIMEOUT, exec_rec)
+
+        with pytest.raises(AppException) as conflict_err:
+            await save_execution_row(
+                conn,
+                _TIMEOUT,
+                exec_rec.model_copy(update={"progress": 90}),
+                expected_state_version=1,
+            )
+        assert conflict_err.value.status_code == 409
+        assert conflict_err.value.details["error_code"] == ErrorCodes.CONFLICT.value
+        assert conflict_err.value.details["expected_state_version"] == 1
+        assert conflict_err.value.details["actual_state_version"] == 2
+
+        persisted = await get_execution_row(conn, _TIMEOUT, exec_rec.id)
+        assert persisted is not None
+        assert persisted.state_version == 2
+        assert persisted.progress == 40
+    finally:
+        await pool.release(conn)
+
+
+def test_execution_record_rejects_state_version_less_than_one() -> None:
+    """Verify ExecutionRecord boundary validation rejects state_version=0 (ge=1)."""
+    with pytest.raises(ValidationError):
+        ExecutionRecordFactory.build(state_version=0)

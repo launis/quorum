@@ -161,19 +161,30 @@ class PostgresEntityAdapter:
         """
         return await get_report_binary_row(self._conn, self.command_timeout_seconds, report_id)
 
-    async def save_execution(self, record: ExecutionRecord) -> str:
+    async def save_execution(
+        self,
+        record: ExecutionRecord,
+        *,
+        expected_state_version: int | None = None,
+    ) -> str:
         """Persist an ExecutionRecord into the PostgreSQL 19 executions table.
 
         Args:
             record: Validated ExecutionRecord domain model.
+            expected_state_version: Optional expected state_version for optimistic concurrency control.
 
         Returns:
             Canonical exe_<32_hex> execution identifier.
 
         Raises:
-            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+            AppException: With VALIDATION_FAILED, CONFLICT, or STORAGE_ACCESS_FAILED on persistence failure.
         """
-        return await save_execution_row(self._conn, self.command_timeout_seconds, record)
+        return await save_execution_row(
+            self._conn,
+            self.command_timeout_seconds,
+            record,
+            expected_state_version=expected_state_version,
+        )
 
     async def get_execution(self, execution_id: str) -> ExecutionRecord | None:
         """Retrieve and reconstitute an ExecutionRecord from PostgreSQL by execution_id.
