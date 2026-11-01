@@ -134,7 +134,7 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
       _errorMessage = null;
     });
 
-    final mockInputs = <String, dynamic>{};
+    final mockInputs = <String, Object?>{};
     for (final entry in _inputControllers.entries) {
       mockInputs[entry.key] = entry.value.text;
     }
@@ -211,13 +211,13 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
               ),
               actions: [
                 Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
+                  padding: const EdgeInsets.only(right: AppSpacing.s16),
                   child: FilledButton.icon(
                     onPressed: _isRunning ? null : _runSimulation,
                     icon: _isRunning
                         ? const SizedBox(
-                            width: 16,
-                            height: 16,
+                            width: AppSpacing.s16,
+                            height: AppSpacing.s16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.play_arrow),
@@ -285,7 +285,7 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
               margin: const EdgeInsets.only(bottom: AppSpacing.s16),
               decoration: BoxDecoration(
                 color: theme.colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppSpacing.s8),
               ),
               child: Row(
                 children: [
@@ -298,9 +298,8 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
                   Expanded(
                     child: Text(
                       _errorMessage!,
-                      style: TextStyle(
+                      style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onErrorContainer,
-                        fontSize: 13,
                       ),
                     ),
                   ),
@@ -322,26 +321,37 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
                 child: Text(
                   l10n.targetLocaleLabel,
                   style: theme.textTheme.titleSmall,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              DropdownButton<String>(
-                value: _targetLocale,
-                isDense: true,
-                items: [
-                  DropdownMenuItem(
-                    value: 'en',
-                    child: Text(l10n.profileLanguageEn),
-                  ),
-                  DropdownMenuItem(
-                    value: 'fi',
-                    child: Text(l10n.profileLanguageFi),
-                  ),
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _targetLocale = val);
-                  }
-                },
+              AppSpacing.w8,
+              Flexible(
+                child: DropdownButton<String>(
+                  value: _targetLocale,
+                  isDense: true,
+                  isExpanded: true,
+                  items: [
+                    DropdownMenuItem(
+                      value: 'en',
+                      child: Text(
+                        l10n.profileLanguageEn,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'fi',
+                      child: Text(
+                        l10n.profileLanguageFi,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => _targetLocale = val);
+                    }
+                  },
+                ),
               ),
             ],
           ),
@@ -377,7 +387,7 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
             ...widget.step.expectedInputs.map((inputName) {
               final controller = _inputControllers[inputName]!;
               return Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
+                padding: const EdgeInsets.only(bottom: AppSpacing.s12),
                 child: TextFormField(
                   controller: controller,
                   decoration: InputDecoration(
@@ -452,18 +462,27 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
             ),
           ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s16,
+            vertical: AppSpacing.s8,
+          ),
           color: theme.colorScheme.surfaceContainerLowest,
           child: Row(
             children: [
-              Text(
-                '${l10n.stepSimulationExecutionTime}: ${result.trace.executionTimeMs.toStringAsFixed(1)} ms',
-                style: theme.textTheme.labelSmall,
+              Flexible(
+                child: Text(
+                  '${l10n.stepSimulationExecutionTime}: ${result.trace.executionTimeMs.toStringAsFixed(1)} ms',
+                  style: theme.textTheme.labelSmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               AppSpacing.w16,
-              Text(
-                '${l10n.stepSimulationEstimatedTokens}: ~${result.trace.estimatedTokens}',
-                style: theme.textTheme.labelSmall,
+              Flexible(
+                child: Text(
+                  '${l10n.stepSimulationEstimatedTokens}: ~${result.trace.estimatedTokens}',
+                  style: theme.textTheme.labelSmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -508,7 +527,7 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
         padding: AppSpacing.p16,
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppSpacing.s8),
           border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
         child: content.isEmpty
