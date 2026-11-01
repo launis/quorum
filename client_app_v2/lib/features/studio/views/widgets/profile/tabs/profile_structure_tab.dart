@@ -16,12 +16,12 @@ class ProfileStructureTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final formState = ref.watch(outputProfileFormProvider(id));
-    final payload = formState.value;
-    if (payload == null) {
-      throw StateError(
+    final payload = switch (formState) {
+      AsyncData(:final value) => value,
+      AsyncLoading() || AsyncError() => throw StateError(
         'Profile payload must not be null when rendering ProfileStructureTab',
-      );
-    }
+      ),
+    };
 
     void updatePayload(OutputProfile p) {
       ref.read(outputProfileFormProvider(id).notifier).updatePayload(p);
@@ -45,20 +45,27 @@ class ProfileStructureTab extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              l10n.reportVisualBlocksHeader,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                l10n.reportVisualBlocksHeader,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            Text(
-              l10n.activeBlocksCount(activeBlocks.length),
-              style: Theme.of(context).textTheme.bodySmall,
+            AppSpacing.w8,
+            Flexible(
+              child: Text(
+                l10n.activeBlocksCount(activeBlocks.length),
+                style: Theme.of(context).textTheme.bodySmall,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.s4),
+        AppSpacing.h4,
         Text(
           l10n.targetBlockOrderSubtitle,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -119,14 +126,17 @@ class ProfileStructureTab extends ConsumerWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.s8),
+                  AppSpacing.h8,
                   Wrap(
                     spacing: AppSpacing.s8,
                     runSpacing: AppSpacing.s4,
                     children: inactiveBlocks.map((b) {
                       return ActionChip(
-                        avatar: const Icon(Icons.add, size: 16),
-                        label: Text(BlockCardRegistry.getBlockTitle(b, l10n)),
+                        avatar: const Icon(Icons.add, size: AppSpacing.s16),
+                        label: Text(
+                          BlockCardRegistry.getBlockTitle(b, l10n),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         onPressed: () {
                           final newOrder = List<TargetBlockType>.from(
                             payload.targetBlockOrder,
