@@ -5,7 +5,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 
-/// **Dynaaminen I18n-syöttö**
+/// **Dynamic I18n Input**
 ///
 /// A compound widget that captures translations dictionary for multiple languages.
 /// Emits pure `I18nText` representations adhering to the
@@ -245,46 +245,52 @@ class _I18nTextFieldState extends State<I18nTextField> {
   void _showAddTranslationDialog() {
     final langController = TextEditingController();
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) {
+        final theme = Theme.of(context);
+        final l10n = AppLocalizations.of(context)!;
         return AlertDialog(
-          title: Text(AppLocalizations.of(context)!.i18nAddLanguageVersion),
+          title: Text(l10n.i18nAddLanguageVersion),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: langController,
                 decoration: InputDecoration(
-                  labelText: AppLocalizations.of(
-                    context,
-                  )!.i18nLanguageCodePlaceholder,
+                  labelText: l10n.i18nLanguageCodePlaceholder,
                 ),
                 maxLength: 2,
               ),
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               Text(
-                AppLocalizations.of(context)!.i18nLanguageCodeHelp,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                l10n.i18nLanguageCodeHelp,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
           ),
           actions: [
             TextButton(
+              style: TextButton.styleFrom(
+                enabledMouseCursor: SystemMouseCursors.click,
+              ),
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(AppLocalizations.of(context)!.i18nCancel),
+              child: Text(l10n.i18nCancel),
             ),
             FilledButton(
+              style: FilledButton.styleFrom(
+                enabledMouseCursor: SystemMouseCursors.click,
+              ),
               onPressed: () {
-                if (langController.text.isNotEmpty) {
-                  _addTranslation(langController.text.toLowerCase().trim(), '');
+                final normalizedCode = langController.text.toLowerCase().trim();
+                if (normalizedCode.isNotEmpty) {
+                  _addTranslation(normalizedCode, '');
                   Navigator.of(context).pop();
                 }
               },
-              child: Text(AppLocalizations.of(context)!.i18nCreate),
+              child: Text(l10n.i18nCreate),
             ),
           ],
         );
@@ -294,15 +300,18 @@ class _I18nTextFieldState extends State<I18nTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
     return Card(
       elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: theme.colorScheme.surfaceContainerHighest,
       shape: RoundedRectangleBorder(
-        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -312,15 +321,28 @@ class _I18nTextFieldState extends State<I18nTextField> {
                 Expanded(
                   child: Text(
                     widget.label,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: _showAddTranslationDialog,
-                  icon: const Icon(Icons.add_circle_outline, size: 16),
-                  label: Text(AppLocalizations.of(context)!.i18nAddTranslation),
+                AppSpacing.w8,
+                Flexible(
+                  child: TextButton.icon(
+                    style: TextButton.styleFrom(
+                      enabledMouseCursor: SystemMouseCursors.click,
+                    ),
+                    onPressed: _showAddTranslationDialog,
+                    icon: const Icon(
+                      Icons.add_circle_outline,
+                      size: AppSpacing.s16,
+                    ),
+                    label: Text(
+                      l10n.i18nAddTranslation,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -333,12 +355,10 @@ class _I18nTextFieldState extends State<I18nTextField> {
                     controller: _defaultController,
                     focusNode: _defaultFocusNode,
                     decoration: InputDecoration(
-                      labelText: AppLocalizations.of(
-                        context,
-                      )!.i18nDefaultFormLabel('EN'),
+                      labelText: l10n.i18nDefaultFormLabel('EN'),
                       border: const OutlineInputBorder(),
                       filled: true,
-                      fillColor: Theme.of(context).colorScheme.surface,
+                      fillColor: theme.colorScheme.surface,
                     ),
                     minLines: 1,
                     maxLines: null,
@@ -370,37 +390,35 @@ class _I18nTextFieldState extends State<I18nTextField> {
                 controller: _defaultController,
                 focusNode: _defaultFocusNode,
                 decoration: InputDecoration(
-                  labelText: AppLocalizations.of(
-                    context,
-                  )!.i18nDefaultFormLabel('EN'),
+                  labelText: l10n.i18nDefaultFormLabel('EN'),
                   border: const OutlineInputBorder(),
                   filled: true,
-                  fillColor: Theme.of(context).colorScheme.surface,
+                  fillColor: theme.colorScheme.surface,
                 ),
                 minLines: 1,
                 maxLines: null,
               ),
             if (_translationControllers.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               Text(
-                AppLocalizations.of(context)!.i18nOtherTranslations,
-                style: const TextStyle(
-                  fontSize: 12,
+                l10n.i18nOtherTranslations,
+                style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
+              AppSpacing.h8,
               ..._translationControllers.entries.map((entry) {
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.s12),
                   child: Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: AppSpacing.p12,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
+                      color: theme.colorScheme.surface,
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant,
+                        color: theme.colorScheme.outlineVariant,
                       ),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppSpacing.s8),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,50 +426,48 @@ class _I18nTextFieldState extends State<I18nTextField> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                entry.key.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimaryContainer,
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.s8,
+                                  vertical: AppSpacing.s4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.s4,
+                                  ),
+                                ),
+                                child: Text(
+                                  entry.key.toUpperCase(),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onPrimaryContainer,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ),
                             IconButton(
+                              mouseCursor: SystemMouseCursors.click,
                               icon: Icon(
                                 Icons.delete_outline,
-                                size: 20,
-                                color: Theme.of(context).colorScheme.error,
+                                size: AppSpacing.s16,
+                                color: theme.colorScheme.error,
                               ),
                               onPressed: () => _removeTranslation(entry.key),
-                              tooltip: AppLocalizations.of(
-                                context,
-                              )!.i18nDeleteTranslation,
+                              tooltip: l10n.i18nDeleteTranslation,
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        AppSpacing.h8,
                         TextField(
                           controller: entry.value,
                           focusNode: _translationFocusNodes[entry.key],
                           decoration: InputDecoration(
-                            hintText: AppLocalizations.of(context)!
-                                .i18nTranslateToPlaceholder(
-                                  entry.key.toUpperCase(),
-                                ),
+                            hintText: l10n.i18nTranslateToPlaceholder(
+                              entry.key.toUpperCase(),
+                            ),
                             border: InputBorder.none,
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
@@ -466,7 +482,7 @@ class _I18nTextFieldState extends State<I18nTextField> {
               }),
             ],
             if (widget.bottomInput != null) ...[
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               SizedBox(width: double.infinity, child: widget.bottomInput!),
             ],
           ],
