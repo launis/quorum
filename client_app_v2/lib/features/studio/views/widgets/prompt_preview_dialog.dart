@@ -22,42 +22,8 @@ class PromptPreviewFormatter {
     return buffer.toString().trim();
   }
 
-  /// Legacy adaptor for dynamic messages (used during transitions or raw maps).
-  static String formatMessagesFromRaw(dynamic messages) {
-    if (messages == null) return '';
-    if (messages is List) {
-      final buffer = StringBuffer();
-      for (final msg in messages) {
-        if (msg is Map) {
-          final role = msg['role']?.toString();
-          final content = msg['content'];
-          if (role != null) {
-            buffer.writeln('--- Role: $role ---');
-          }
-          if (content is String) {
-            buffer.writeln(content);
-          } else if (content != null) {
-            buffer.writeln(const JsonEncoder.withIndent('  ').convert(content));
-          }
-          buffer.writeln();
-        } else if (msg is LlmMessageDto) {
-          buffer.writeln('--- Role: ${msg.role} ---');
-          buffer.writeln(msg.content);
-          buffer.writeln();
-        } else {
-          buffer.writeln(msg.toString());
-        }
-      }
-      return buffer.toString().trim();
-    }
-    if (messages is Map) {
-      return const JsonEncoder.withIndent('  ').convert(messages);
-    }
-    return messages.toString();
-  }
-
-  /// Formats raw tool/schema dynamic object or fallback string.
-  static String formatSchema(dynamic tools, String? fallback) {
+  /// Formats raw tool/schema object or fallback string.
+  static String formatSchema(Object? tools, String? fallback) {
     if (tools != null) {
       if (tools is Map || tools is List) {
         return const JsonEncoder.withIndent('  ').convert(tools);
@@ -166,7 +132,7 @@ class _PromptPreviewDialogState extends State<PromptPreviewDialog>
                 ),
                 label: Text(
                   _isCopied ? l10n.copiedToClipboard : l10n.copyToClipboardBtn,
-                  style: TextStyle(
+                  style: theme.textTheme.labelLarge?.copyWith(
                     color: _isCopied ? theme.colorScheme.primary : null,
                   ),
                 ),
@@ -205,7 +171,7 @@ class _PromptPreviewDialogState extends State<PromptPreviewDialog>
         padding: AppSpacing.p16,
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppSpacing.s8),
           border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
         child: content.isEmpty

@@ -45,7 +45,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/widgets/inspector_pane.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/linguistic_shield_banner.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/mcp_tool_params_panel.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/prompt_preview_dialog.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/prompt_preview_dialog.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/row_editor_modal.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]
