@@ -118,6 +118,7 @@ class StudioOutputProfileService:
 
         # Delegate permission calculation to the Domain Model
         allowed_blocks = workflow.get_allowed_layout_targets(all_steps)
+        allowed_prompt_blocks = workflow.get_allowed_prompt_block_targets(all_steps)
 
         for group in profile.matrix_synthesis_groups:
             for comp in group.target_blocks:
@@ -135,6 +136,39 @@ class StudioOutputProfileService:
                     raise AppException(
                         message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED}
                     )
+
+        # Phase 2, Step 2.1: Validate variance_target_block and user_role_target_block against allowed_prompt_blocks
+        if profile.variance_target_block is not None and profile.variance_target_block not in allowed_prompt_blocks:
+            msg = (
+                f"Variance Target Block '{profile.variance_target_block}' does not exist in the context "
+                f"of Workflow '{workflow.id}'."
+            )
+            logger.error(
+                "[StudioOutputProfileService] %s: %s (Initiator: %s, Profile: %s)",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                initiator.id,
+                profile.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "profile_id": profile.id},
+            )
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+
+        if profile.user_role_target_block is not None and profile.user_role_target_block not in allowed_prompt_blocks:
+            msg = (
+                f"User Role Target Block '{profile.user_role_target_block}' does not exist in the context "
+                f"of Workflow '{workflow.id}'."
+            )
+            logger.error(
+                "[StudioOutputProfileService] %s: %s (Initiator: %s, Profile: %s)",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                initiator.id,
+                profile.id,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "profile_id": profile.id},
+            )
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         if profile.id != id:
             profile = profile.model_copy(update={"id": id})

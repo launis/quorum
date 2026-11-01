@@ -17,16 +17,19 @@ from backend_v2.models.domain.matrix import MatrixScale
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, ProtocolPromptBlock
 from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import (
     BlockDataType,
     CognitiveTier,
     EntityPrefix,
     HistoricalContextMode,
+    PresetView,
     PromptBlockCategory,
     StepFilterScope,
     StepType,
     TargetBlockType,
+    XaiExtensionType,
 )
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
 from backend_v2.tests.fakes.in_memory_repositories import (
@@ -1144,3 +1147,127 @@ async def test_delete_step_force_delete_bypasses_workflow_usage_check(
     await workflow_service.delete_step(admin_token, step_data.id, force_delete=True)
     persisted = await mock_workflow_repo.get_step_by_id(step_data.id)
     assert persisted is None
+
+
+async def test_save_workflow_prunes_stale_target_blocks_and_coerces_view_type_on_linked_output_profiles(
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
+) -> None:
+    """Phase 2, Step 2.1: Saving workflow prunes stale target_blocks, variance_target_block, and user_role_target_block and coerces view_type."""
+    blk_1 = "blk_0195f3a0000070008000012345678901"
+    blk_2 = "blk_0195f3a0000070008000012345678902"
+    blk_3_deleted = "blk_0195f3a0000070008000012345678903"
+
+    step_1 = _valid_step("stp_0195f3a0000070008000012345678901", org_id="org_123").model_copy(
+        update={"criteria_block_ids": [blk_1], "extraction_protocol_block_id": blk_1}
+    )
+    step_2 = _valid_step("stp_0195f3a0000070008000012345678902", org_id="org_123").model_copy(
+        update={"criteria_block_ids": [blk_2], "extraction_protocol_block_id": blk_2}
+    )
+    step_3 = _valid_step("stp_0195f3a0000070008000012345678903", org_id="org_123").model_copy(
+        update={"criteria_block_ids": [blk_3_deleted], "extraction_protocol_block_id": blk_3_deleted}
+    )
+    await mock_workflow_repo.save_step(step_1)
+    await mock_workflow_repo.save_step(step_2)
+    await mock_workflow_repo.save_step(step_3)
+
+    wf_id = "wf_0195f3a00000700080000123456789ab"
+    prf_id = "prf_0195f3a00000700080000123456789ab"
+    linked_profile = OutputProfile(
+        id=prf_id,
+        slug="prf_linked",
+        workflow_id=wf_id,
+        name=I18nText(translations={"en": "Linked Profile"}),
+        organization_id="org_123",
+        target_block_order=[
+            TargetBlockType.GLOBAL_SCORE_BLOCK,
+            TargetBlockType.MATRIX_GRAPHS_BLOCK,
+            TargetBlockType.VARIANCE_VALIDATION_BLOCK,
+        ],
+        visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
+        variance_target_block=blk_3_deleted,
+        user_role_target_block=blk_3_deleted,
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_0195f3a0000070008000012345678901",
+                title=I18nText(translations={"en": "3D Group"}),
+                target_blocks=[blk_1, blk_2, blk_3_deleted],
+                view_type=PresetView.MATRIX_3D,
+            ),
+            MatrixSynthesisGroup(
+                id="grp_0195f3a0000070008000012345678902",
+                title=I18nText(translations={"en": "2D Group"}),
+                target_blocks=[blk_1, blk_3_deleted],
+                view_type=PresetView.COMPARE_2D,
+            ),
+        ],
+    )
+    await mock_output_profile_repo.create_output_profile(linked_profile)
+
+    wf_updated = _valid_workflow(wf_id=wf_id, org_id="org_123").model_copy(
+        update={
+            "steps": [
+                StepRule(id="sr_0195f3a0000070008000012345678901", task_blueprint=step_1.id),
+                StepRule(id="sr_0195f3a0000070008000012345678902", task_blueprint=step_2.id),
+            ]
+        }
+    )
+    saved_dto = await workflow_service.save_workflow(admin_token, wf_id, wf_updated)
+
+    persisted_profile = await mock_output_profile_repo.get_output_profile_by_id(prf_id)
+    assert persisted_profile is not None
+    assert len(persisted_profile.matrix_synthesis_groups) == 2
+    assert persisted_profile.matrix_synthesis_groups[0].target_blocks == [blk_1, blk_2]
+    assert persisted_profile.matrix_synthesis_groups[0].view_type == PresetView.COMPARE_2D
+    assert persisted_profile.matrix_synthesis_groups[1].target_blocks == [blk_1]
+    assert persisted_profile.matrix_synthesis_groups[1].view_type == PresetView.METRICS_1D
+    assert persisted_profile.variance_target_block is None
+    assert persisted_profile.user_role_target_block is None
+    assert TargetBlockType.VARIANCE_VALIDATION_BLOCK not in persisted_profile.target_block_order
+    assert XaiExtensionType.VARIANCE_VALIDATION not in persisted_profile.visible_workflow_extensions
+    assert saved_dto.output_profiles[prf_id].variance_target_block is None
+    assert saved_dto.output_profiles[prf_id].matrix_synthesis_groups[0].view_type == PresetView.COMPARE_2D
+
+
+async def test_save_workflow_removes_empty_matrix_synthesis_group_and_matrix_graphs_block_when_all_targets_deleted(
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: InMemoryWorkflowRepository,
+    mock_output_profile_repo: InMemoryOutputProfileRepository,
+) -> None:
+    """Phase 2, Step 2.1 Boundary: Removing all matrix blocks removes empty groups and MATRIX_GRAPHS_BLOCK from target_block_order."""
+    blk_deleted = "blk_0195f3a0000070008000012345678999"
+    wf_id = "wf_0195f3a00000700080000123456789ab"
+    prf_id = "prf_0195f3a00000700080000123456789ab"
+
+    linked_profile = OutputProfile(
+        id=prf_id,
+        slug="prf_empty_groups",
+        workflow_id=wf_id,
+        name=I18nText(translations={"en": "Empty Groups Profile"}),
+        organization_id="org_123",
+        target_block_order=[
+            TargetBlockType.GLOBAL_SCORE_BLOCK,
+            TargetBlockType.MATRIX_GRAPHS_BLOCK,
+        ],
+        matrix_synthesis_groups=[
+            MatrixSynthesisGroup(
+                id="grp_0195f3a0000070008000012345678901",
+                title=I18nText(translations={"en": "Single Block Group"}),
+                target_blocks=[blk_deleted],
+                view_type=PresetView.METRICS_1D,
+            )
+        ],
+    )
+    await mock_output_profile_repo.create_output_profile(linked_profile)
+
+    wf_empty = _valid_workflow(wf_id=wf_id, org_id="org_123").model_copy(update={"steps": []})
+    await workflow_service.save_workflow(admin_token, wf_id, wf_empty)
+
+    persisted_profile = await mock_output_profile_repo.get_output_profile_by_id(prf_id)
+    assert persisted_profile is not None
+    assert persisted_profile.matrix_synthesis_groups == []
+    assert TargetBlockType.MATRIX_GRAPHS_BLOCK not in persisted_profile.target_block_order
+    assert TargetBlockType.GLOBAL_SCORE_BLOCK in persisted_profile.target_block_order

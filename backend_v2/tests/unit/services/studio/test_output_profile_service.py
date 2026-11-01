@@ -70,6 +70,7 @@ async def test_save_output_profile_allows_target_block_types(
     workflow.get_allowed_layout_targets = Mock(
         return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value, cohesion_block_id}
     )
+    workflow.get_allowed_prompt_block_targets = Mock(return_value={cohesion_block_id})
 
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
@@ -112,6 +113,7 @@ async def test_save_output_profile_unmapped_block_fails(
     workflow.slug = "test_wf"
     workflow.steps = []
     workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
+    workflow.get_allowed_prompt_block_targets = Mock(return_value=set())
 
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
@@ -358,6 +360,7 @@ async def test_save_output_profile_invalid_target_component_raises_app_exception
     workflow.id = "wf_0195f3a00000700080001234567890ab"
     workflow.steps = []
     workflow.get_allowed_layout_targets = Mock(return_value={"blk_0195f3a0000070008000000000000001"})
+    workflow.get_allowed_prompt_block_targets = Mock(return_value={"blk_0195f3a0000070008000000000000001"})
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
 
@@ -438,6 +441,7 @@ async def test_save_output_profile_normalizes_mismatched_id_in_place(
     workflow.id = "wf_0195f3a00000700080001234567890ab"
     workflow.steps = []
     workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
+    workflow.get_allowed_prompt_block_targets = Mock(return_value=set())
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
 
@@ -474,6 +478,7 @@ async def test_save_output_profile_raises_when_missing_after_save(
     workflow.id = "wf_0195f3a00000700080001234567890ab"
     workflow.steps = []
     workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
+    workflow.get_allowed_prompt_block_targets = Mock(return_value=set())
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
 
@@ -585,3 +590,71 @@ async def test_save_and_draft_output_profile_resolves_system_core_step_blocks() 
         cohesion_block_id,
         "blk_0195f3a0000070008000000000000002",
     }
+
+
+@pytest.mark.asyncio
+async def test_save_output_profile_rejects_stale_variance_target_block_with_validation_failed(
+    service: StudioOutputProfileService, mock_workflow_service: AsyncMock
+) -> None:
+    """Phase 2, Step 2.1 Negative: Rejects stale variance_target_block absent from allowed_prompt_blocks."""
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
+
+    workflow = AsyncMock()
+    workflow.id = "wf_0195f3a00000700080001234567890ab"
+    workflow.steps = []
+    workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
+    workflow.get_allowed_prompt_block_targets = Mock(return_value={"blk_01960000000070008000000000000001"})
+    mock_workflow_service.get_workflow.return_value = workflow
+    mock_workflow_service.list_steps.return_value = []
+
+    profile = _make_valid_profile(
+        "prf_0195f3a0000070008000111111111111",
+        "opt_1",
+        "wf_0195f3a00000700080001234567890ab",
+        "org_0195f3a0000070008000000000000001",
+        "Test",
+    ).model_copy(update={"variance_target_block": "blk_01960000000070008000000000000099"})
+
+    with pytest.raises(AppException) as exc_info:
+        await service.save_output_profile(initiator, profile.id, profile)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED
+
+
+@pytest.mark.asyncio
+async def test_save_output_profile_rejects_stale_user_role_target_block_with_validation_failed(
+    service: StudioOutputProfileService, mock_workflow_service: AsyncMock
+) -> None:
+    """Phase 2, Step 2.1 Negative: Rejects stale user_role_target_block absent from allowed_prompt_blocks."""
+    initiator = TokenData(
+        id="test_user",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000001",
+    )
+
+    workflow = AsyncMock()
+    workflow.id = "wf_0195f3a00000700080001234567890ab"
+    workflow.steps = []
+    workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
+    workflow.get_allowed_prompt_block_targets = Mock(return_value={"blk_01960000000070008000000000000001"})
+    mock_workflow_service.get_workflow.return_value = workflow
+    mock_workflow_service.list_steps.return_value = []
+
+    profile = _make_valid_profile(
+        "prf_0195f3a0000070008000111111111111",
+        "opt_1",
+        "wf_0195f3a00000700080001234567890ab",
+        "org_0195f3a0000070008000000000000001",
+        "Test",
+    ).model_copy(update={"user_role_target_block": "blk_01960000000070008000000000000098"})
+
+    with pytest.raises(AppException) as exc_info:
+        await service.save_output_profile(initiator, profile.id, profile)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED

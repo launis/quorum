@@ -16,6 +16,7 @@ from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.studio import WorkflowResponseDTO
@@ -24,9 +25,12 @@ from backend_v2.models.enums import (
     CognitiveTier,
     EntityPrefix,
     HistoricalContextMode,
+    PresetView,
     PromptBlockCategory,
     StepFilterScope,
     StepType,
+    TargetBlockType,
+    XaiExtensionType,
 )
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.services.studio.auth_validator import (
@@ -317,8 +321,90 @@ class StudioWorkflowService:
             )
             raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
 
+        # Phase 2, Step 2.1: Automatically prune stale block references from linked OutputProfile entities
+        await self._sync_output_profiles_for_workflow(saved)
+
         stitched = await self._stitch_profiles_to_workflows([saved])
         return stitched[0]
+
+    async def _sync_output_profiles_for_workflow(self, workflow: Workflow) -> None:
+        """Prune stale block references from linked output profiles when a workflow is saved.
+
+        Args:
+            workflow: The saved workflow domain model.
+        """
+        all_steps = await self.workflow_repo.get_all_steps()
+        all_profiles = await self.output_profile_repo.get_all_output_profiles()
+        allowed_prompt_blocks = workflow.get_allowed_prompt_block_targets(all_steps)
+        allowed_layout_targets = workflow.get_allowed_layout_targets(all_steps)
+
+        for profile in all_profiles:
+            if profile.workflow_id != workflow.id:
+                continue
+
+            changed = False
+            updated_groups: list[MatrixSynthesisGroup] = []
+            for group in profile.matrix_synthesis_groups:
+                filtered_targets = [b for b in group.target_blocks if b in allowed_layout_targets]
+                if len(filtered_targets) != len(group.target_blocks):
+                    changed = True
+                if not filtered_targets:
+                    changed = True
+                    continue
+                coerced_view_type = group.view_type
+                if group.view_type == PresetView.MATRIX_3D and len(filtered_targets) == 2:
+                    coerced_view_type = PresetView.COMPARE_2D
+                    changed = True
+                elif group.view_type in (PresetView.COMPARE_2D, PresetView.MATRIX_3D) and len(filtered_targets) == 1:
+                    coerced_view_type = PresetView.METRICS_1D
+                    changed = True
+
+                if filtered_targets != group.target_blocks or coerced_view_type != group.view_type:
+                    updated_groups.append(
+                        group.model_copy(
+                            update={
+                                "target_blocks": filtered_targets,
+                                "view_type": coerced_view_type,
+                            }
+                        )
+                    )
+                else:
+                    updated_groups.append(group)
+
+            updated_target_block_order = list(profile.target_block_order)
+            if not updated_groups and TargetBlockType.MATRIX_GRAPHS_BLOCK in updated_target_block_order:
+                updated_target_block_order = [
+                    b for b in updated_target_block_order if b != TargetBlockType.MATRIX_GRAPHS_BLOCK
+                ]
+                changed = True
+
+            updated_variance_target = profile.variance_target_block
+            updated_extensions = list(profile.visible_workflow_extensions)
+            if updated_variance_target is not None and updated_variance_target not in allowed_prompt_blocks:
+                updated_variance_target = None
+                updated_target_block_order = [
+                    b for b in updated_target_block_order if b != TargetBlockType.VARIANCE_VALIDATION_BLOCK
+                ]
+                updated_extensions = [ext for ext in updated_extensions if ext != XaiExtensionType.VARIANCE_VALIDATION]
+                changed = True
+
+            updated_user_role_target = profile.user_role_target_block
+            if updated_user_role_target is not None and updated_user_role_target not in allowed_prompt_blocks:
+                updated_user_role_target = None
+                changed = True
+
+            if changed:
+                updated_profile = profile.model_copy(
+                    update={
+                        "matrix_synthesis_groups": updated_groups,
+                        "target_block_order": updated_target_block_order,
+                        "visible_workflow_extensions": updated_extensions,
+                        "variance_target_block": updated_variance_target,
+                        "user_role_target_block": updated_user_role_target,
+                    }
+                )
+                validated_profile = OutputProfile.model_validate(updated_profile.model_dump())
+                await self.output_profile_repo.create_output_profile(validated_profile)
 
     async def delete_workflow(self, initiator: TokenData, id: str) -> None:
         """Delete a workflow by ID.
