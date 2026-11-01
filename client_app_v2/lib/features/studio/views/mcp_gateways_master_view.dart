@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
 import 'package:client_app/features/studio/views/widgets/studio_master_header.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -38,7 +39,8 @@ class _McpGatewaysMasterViewState extends ConsumerState<McpGatewaysMasterView> {
       if (_searchQuery.isEmpty) return true;
       final query = _searchQuery.toLowerCase();
       final id = g.id.toLowerCase();
-      return id.contains(query);
+      final slug = g.slug.toLowerCase();
+      return id.contains(query) || slug.contains(query);
     }).toList();
 
     return AppErrorBoundary(
@@ -85,25 +87,23 @@ class _McpGatewaysMasterViewState extends ConsumerState<McpGatewaysMasterView> {
                       final draft = await ref
                           .read(mcpGatewaysControllerProvider.notifier)
                           .createMcpGatewayDraft();
-                      if (context.mounted) {
-                        McpGatewayEditRoute(id: draft.id).go(context);
-                      }
+                      if (!context.mounted) return;
+                      McpGatewayEditRoute(id: draft.id).go(context);
                     } catch (e, st) {
-                      if (context.mounted) {
-                        ref
-                            .read(loggerServiceProvider)
-                            .error(
-                              'McpGatewaysMasterView',
-                              'Failed to mint',
-                              e,
-                              st,
-                            );
-                        setState(() {
-                          _bannerError = l10n.studioViewsFailedToCreate(
-                            e.toString(),
+                      ref
+                          .read(loggerServiceProvider)
+                          .error(
+                            'McpGatewaysMasterView',
+                            'Failed to mint',
+                            e,
+                            st,
                           );
-                        });
-                      }
+                      if (!context.mounted) return;
+                      setState(() {
+                        _bannerError = l10n.studioViewsFailedToCreate(
+                          e.toString(),
+                        );
+                      });
                     }
                   },
                 ),
@@ -128,13 +128,13 @@ class _McpGatewaysMasterViewState extends ConsumerState<McpGatewaysMasterView> {
                                     ).colorScheme.onSurfaceVariant,
                                   ),
                                   title: Text(
-                                    'Prototype Gateway ID',
+                                    l10n.studioDashboardGatewaysTitle,
                                     overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context).textTheme.bodyLarge
                                         ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
-                                  subtitle: const Text(
-                                    'Prototype Subtitle',
+                                  subtitle: Text(
+                                    l10n.studioDashboardGatewaysDesc,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   trailing: const Row(
@@ -148,6 +148,11 @@ class _McpGatewaysMasterViewState extends ConsumerState<McpGatewaysMasterView> {
                               ),
                               itemBuilder: (context, index) {
                                 final gateway = filtered[index];
+                                if (gateway.id.isEmpty) {
+                                  throw AppException.validation(
+                                    'Fail-Fast: MCP Gateway ID is missing.',
+                                  );
+                                }
                                 final tools = gateway.tools.length;
 
                                 return Card(
@@ -159,9 +164,7 @@ class _McpGatewaysMasterViewState extends ConsumerState<McpGatewaysMasterView> {
                                       ).colorScheme.onSurfaceVariant,
                                     ),
                                     title: Text(
-                                      gateway.id.isNotEmpty
-                                          ? gateway.id
-                                          : l10n.unnamedGateway,
+                                      gateway.id,
                                       overflow: TextOverflow.ellipsis,
                                       style: Theme.of(context)
                                           .textTheme
@@ -181,16 +184,12 @@ class _McpGatewaysMasterViewState extends ConsumerState<McpGatewaysMasterView> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         CloneEntityButton(
-                                          onClone: () async {
-                                            final id = gateway.id;
-                                            if (id.isEmpty) return;
-                                            await ref
-                                                .read(
-                                                  mcpGatewaysControllerProvider
-                                                      .notifier,
-                                                )
-                                                .cloneGateway(id);
-                                          },
+                                          onClone: () => ref
+                                              .read(
+                                                mcpGatewaysControllerProvider
+                                                    .notifier,
+                                              )
+                                              .cloneGateway(gateway.id),
                                         ),
                                         const Icon(Icons.settings_ethernet),
                                       ],
@@ -207,8 +206,9 @@ class _McpGatewaysMasterViewState extends ConsumerState<McpGatewaysMasterView> {
                     AsyncLoading() => const Center(
                       child: CircularProgressIndicator(),
                     ),
-                    AsyncError(:final error) => ErrorView(
+                    AsyncError(:final error, :final stackTrace) => ErrorView(
                       error: error,
+                      stackTrace: stackTrace,
                       compact: true,
                       onRetry: () => ref
                           .read(mcpGatewaysControllerProvider.notifier)
