@@ -184,7 +184,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
       );
     }
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.stepDeleteConfirmTitle),
@@ -1323,6 +1323,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
               ...payload.rows!.asMap().entries.map((entry) {
                 final index = entry.key;
                 final item = entry.value;
+                final itemNumber = index + 1;
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8.0),
@@ -1333,7 +1334,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         Localizations.localeOf(context).languageCode,
                       ),
                     ),
-                    subtitle: Text('#${index + 1}'),
+                    subtitle: Text(itemNumber.toString()),
                     trailing: IconButton(
                       icon: Icon(
                         Icons.delete,
@@ -1474,6 +1475,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
               ...payload.columns!.asMap().entries.map((entry) {
                 final index = entry.key;
                 final item = entry.value;
+                final itemNumber = index + 1;
 
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8.0),
@@ -1482,7 +1484,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     title: Text(
                       item.get(Localizations.localeOf(context).languageCode),
                     ),
-                    subtitle: Text('#${index + 1}'),
+                    subtitle: Text(itemNumber.toString()),
                     trailing: IconButton(
                       icon: Icon(
                         Icons.delete,

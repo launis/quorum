@@ -32,7 +32,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/output_profile_crud_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/output_profile_list_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]
