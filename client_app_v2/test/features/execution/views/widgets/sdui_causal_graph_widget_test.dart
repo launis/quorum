@@ -297,5 +297,48 @@ void main() {
         expect(summaryTextWidget.maxLines, 2);
       },
     );
+
+    testWidgets(
+      'boundary: renders and deduplicates shortCircuitedByClaims and falsifiedWarrantClaims while ignoring whitespace-only entries',
+      (tester) async {
+        const lineageBlock = SduiCausalGraphBlock(
+          id: 'blk_lineage_boundary',
+          summary: I18nText(translations: {'en': 'Lineage Causal Summary'}),
+          intactClaimsCount: 1,
+          totalClaimsCount: 3,
+          criticalPathNodes: [],
+          criticalEdges: [],
+          rootCauseDiagnoses: [],
+          antiFluffAudit: AntiFluffAuditDto(
+            isolatedConceptCount: 0,
+            cycleDetected: false,
+            unsupportedClaimsCount: 0,
+            logicalCohesionScore: 0.5,
+            detectedHollowTerms: [],
+          ),
+          prescriptiveRemediations: [],
+          fairScoring: null,
+          shortCircuitedByClaims: [
+            '  Prerequisite Gate Blocked  ',
+            'Prerequisite Gate Blocked',
+            '   ',
+            '',
+          ],
+          falsifiedWarrantClaims: [
+            '  Toulmin Warrant Rebutted  ',
+            'Toulmin Warrant Rebutted',
+            '  ',
+          ],
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest(lineageBlock));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Prerequisite Gate Blocked'), findsOneWidget);
+        expect(find.byIcon(Icons.block), findsOneWidget);
+        expect(find.text('Toulmin Warrant Rebutted'), findsOneWidget);
+        expect(find.byIcon(Icons.gavel), findsOneWidget);
+      },
+    );
   });
 }

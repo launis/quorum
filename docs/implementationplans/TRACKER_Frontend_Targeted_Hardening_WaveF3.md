@@ -33,7 +33,7 @@
   - [x] @[client_app_v2/lib/features/execution/views/widgets/report_renderer_v2_widget.dart]
   - [x] @[client_app_v2/lib/features/execution/views/widgets/sdui_alert_box_widget.dart]
   - [x] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_grid_widget.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_node_renderer.dart]
