@@ -18,7 +18,7 @@ from backend_v2.models.domain.system_config import SystemConfigMCPGateways, Syst
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.settings import get_settings
 
-# Phase 4, Step 2: Explicit redundant re-exports (Symbol as Symbol) across all 6 stage sub-modules
+# Explicit redundant re-exports (Symbol as Symbol) across all 6 stage sub-modules
 from .coercion_and_constants import _COLLECTION_TO_TABLE_MAP as _COLLECTION_TO_TABLE_MAP
 from .coercion_and_constants import _ROOT_SYSTEM_ORG_UUID7 as _ROOT_SYSTEM_ORG_UUID7
 from .coercion_and_constants import _SYSTEM_ORG_UUID7 as _SYSTEM_ORG_UUID7
@@ -107,7 +107,11 @@ __all__ = ["CANONICAL_SEED_TABLES", "PostgresEntityAdapter"]
 
 
 class PostgresEntityAdapter:
-    """Zero-ORM PostgreSQL 19 adapter implementing EntityPersistencePort."""
+    """Zero-ORM PostgreSQL 19 adapter implementing EntityPersistencePort.
+
+    Attributes:
+        command_timeout_seconds: Timeout in seconds for PostgreSQL command execution.
+    """
 
     _hydrate_execution_row = staticmethod(hydrate_execution_row)
     _hydrate_organization_row = staticmethod(hydrate_organization_row)
@@ -120,7 +124,12 @@ class PostgresEntityAdapter:
     _hydrate_report_artifact_row = staticmethod(hydrate_report_artifact_row)
 
     def __init__(self, connection: AsyncPgConnectionProtocol, command_timeout_seconds: float | None = None) -> None:
-        """Initialize the PostgreSQL entity adapter over an active connection."""
+        """Initialize the PostgreSQL entity adapter over an active connection.
+
+        Args:
+            connection: Active PostgreSQL connection conforming to AsyncPgConnectionProtocol.
+            command_timeout_seconds: Optional command timeout override in seconds.
+        """
         self._conn: AsyncPgConnectionProtocol = connection
         if command_timeout_seconds is not None:
             self.command_timeout_seconds: float = command_timeout_seconds
@@ -128,115 +137,397 @@ class PostgresEntityAdapter:
             self.command_timeout_seconds = get_settings().postgres_command_timeout_seconds
 
     async def save_report_binary(self, payload: ReportBinaryPayloadDTO) -> None:
-        """Persist a ReportBinaryPayloadDTO into report_binaries and mark has_pdf."""
+        """Persist a ReportBinaryPayloadDTO into report_binaries and mark has_pdf.
+
+        Args:
+            payload: Validated ReportBinaryPayloadDTO containing PDF bytes.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
         await save_report_binary_row(self._conn, self.command_timeout_seconds, payload)
 
     async def get_report_binary(self, report_id: str) -> ReportBinaryPayloadDTO | None:
-        """Retrieve a ReportBinaryPayloadDTO from report_binaries by canonical report_id."""
+        """Retrieve a ReportBinaryPayloadDTO from report_binaries by canonical report_id.
+
+        Args:
+            report_id: Canonical rep_<32_hex> identifier.
+
+        Returns:
+            Hydrated ReportBinaryPayloadDTO instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
         return await get_report_binary_row(self._conn, self.command_timeout_seconds, report_id)
 
     async def save_execution(self, record: ExecutionRecord) -> str:
-        """Persist an ExecutionRecord into the PostgreSQL 19 executions table."""
+        """Persist an ExecutionRecord into the PostgreSQL 19 executions table.
+
+        Args:
+            record: Validated ExecutionRecord domain model.
+
+        Returns:
+            Canonical exe_<32_hex> execution identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
         return await save_execution_row(self._conn, self.command_timeout_seconds, record)
 
     async def get_execution(self, execution_id: str) -> ExecutionRecord | None:
-        """Retrieve and reconstitute an ExecutionRecord from PostgreSQL by execution_id."""
+        """Retrieve and reconstitute an ExecutionRecord from PostgreSQL by execution_id.
+
+        Args:
+            execution_id: Canonical exe_<32_hex> identifier.
+
+        Returns:
+            Reconstituted ExecutionRecord instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
         return await get_execution_row(self._conn, self.command_timeout_seconds, execution_id)
 
     async def _execute_upsert(self, sql: str, *args: object, entity_label: str, entity_id: str) -> str:
-        """Execute a parameterized upsert statement and translate transport errors to AppException."""
+        """Execute a parameterized upsert statement and translate transport errors to AppException.
+
+        Args:
+            sql: Parameterized INSERT ... ON CONFLICT DO UPDATE SQL statement.
+            *args: Positional SQL bind arguments.
+            entity_label: Human-readable entity type label for structured error logging.
+            entity_id: Canonical Opaque Stripe ID of the entity being persisted.
+
+        Returns:
+            Canonical entity_id persisted into PostgreSQL 19.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED if the database command fails.
+        """
         return await execute_entity_upsert(
             self._conn, self.command_timeout_seconds, sql, *args, entity_id=entity_id, entity_label=entity_label
         )
 
     async def upsert_organization(self, org: Organization) -> str:
-        """Persist an Organization into the organizations table."""
+        """Persist an Organization into the organizations table.
+
+        Args:
+            org: Validated Organization domain model.
+
+        Returns:
+            Canonical Organization identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
         return await upsert_organization_row(self._conn, self.command_timeout_seconds, org)
 
     async def get_organization(self, org_id: str) -> Organization | None:
-        """Fetch an Organization by ID."""
+        """Fetch an Organization by ID.
+
+        Args:
+            org_id: Canonical Organization identifier.
+
+        Returns:
+            Hydrated Organization instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
         return await get_organization_row(self._conn, self.command_timeout_seconds, org_id)
 
     async def upsert_user(self, user: User) -> str:
-        """Persist a User into the users table."""
+        """Persist a User into the users table.
+
+        Args:
+            user: Validated User domain model.
+
+        Returns:
+            Canonical usr_<32_hex> identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
         return await upsert_user_row(self._conn, self.command_timeout_seconds, user)
 
     async def get_user(self, user_id: str) -> User | None:
-        """Fetch a User by ID."""
+        """Fetch a User by ID.
+
+        Args:
+            user_id: Canonical usr_<32_hex> identifier.
+
+        Returns:
+            Hydrated User instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
         return await get_user_row(self._conn, self.command_timeout_seconds, user_id)
 
     async def upsert_system_config(self, cfg: AnySystemConfig) -> str:
-        """Persist a SystemConfigModelRegistry or SystemConfigMCPGateways into system_configs."""
+        """Persist a SystemConfigModelRegistry or SystemConfigMCPGateways into system_configs.
+
+        Args:
+            cfg: Validated SystemConfigModelRegistry or SystemConfigMCPGateways model.
+
+        Returns:
+            Canonical sys_<32_hex> identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
         return await upsert_system_config_row(self._conn, self.command_timeout_seconds, cfg)
 
     async def get_system_config(self, config_id: str) -> AnySystemConfig | None:
-        """Fetch a SystemConfig by ID."""
+        """Fetch a SystemConfig by ID.
+
+        Args:
+            config_id: Canonical sys_<32_hex> identifier.
+
+        Returns:
+            Hydrated SystemConfigModelRegistry or SystemConfigMCPGateways instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
         return await get_system_config_row(self._conn, self.command_timeout_seconds, config_id)
 
     async def upsert_prompt_block(self, block: AnyPromptBlock) -> str:
-        """Persist a polymorphic AnyPromptBlock into prompt_blocks."""
+        """Persist a polymorphic AnyPromptBlock into prompt_blocks.
+
+        Args:
+            block: Validated polymorphic AnyPromptBlock model.
+
+        Returns:
+            Canonical blk_<32_hex> identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
         return await upsert_prompt_block_row(self._conn, self.command_timeout_seconds, block)
 
     async def get_prompt_block(self, block_id: str) -> AnyPromptBlock | None:
-        """Fetch an AnyPromptBlock by ID."""
+        """Fetch an AnyPromptBlock by ID.
+
+        Args:
+            block_id: Canonical blk_<32_hex> identifier.
+
+        Returns:
+            Hydrated polymorphic AnyPromptBlock instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
         return await get_prompt_block_row(self._conn, self.command_timeout_seconds, block_id)
 
     async def upsert_step(self, step: Step) -> str:
-        """Persist a Step into steps."""
+        """Persist a Step into steps.
+
+        Args:
+            step: Validated Step domain model.
+
+        Returns:
+            Canonical stp_<32_hex> identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
         return await upsert_step_row(self._conn, self.command_timeout_seconds, step)
 
     async def get_step(self, step_id: str) -> Step | None:
-        """Fetch a Step by ID."""
+        """Fetch a Step by ID.
+
+        Args:
+            step_id: Canonical stp_<32_hex> identifier.
+
+        Returns:
+            Hydrated Step instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
         return await get_step_row(self._conn, self.command_timeout_seconds, step_id)
 
     async def upsert_workflow(self, wf: Workflow) -> str:
-        """Persist a Workflow into workflows."""
+        """Persist a Workflow into workflows.
+
+        Args:
+            wf: Validated Workflow domain model.
+
+        Returns:
+            Canonical wor_<32_hex> identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
         return await upsert_workflow_row(self._conn, self.command_timeout_seconds, wf)
 
     async def get_workflow(self, workflow_id: str) -> Workflow | None:
-        """Fetch a Workflow by ID."""
+        """Fetch a Workflow by ID.
+
+        Args:
+            workflow_id: Canonical wor_<32_hex> identifier.
+
+        Returns:
+            Hydrated Workflow instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
         return await get_workflow_row(self._conn, self.command_timeout_seconds, workflow_id)
 
     async def upsert_output_profile(self, profile: OutputProfile) -> str:
-        """Persist an OutputProfile into output_profiles."""
+        """Persist an OutputProfile into output_profiles.
+
+        Args:
+            profile: Validated OutputProfile domain model.
+
+        Returns:
+            Canonical prf_<32_hex> identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
         return await upsert_output_profile_row(self._conn, self.command_timeout_seconds, profile)
 
     async def get_output_profile(self, profile_id: str) -> OutputProfile | None:
-        """Fetch an OutputProfile by ID."""
+        """Fetch an OutputProfile by ID.
+
+        Args:
+            profile_id: Canonical prf_<32_hex> identifier.
+
+        Returns:
+            Hydrated OutputProfile instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
         return await get_output_profile_row(self._conn, self.command_timeout_seconds, profile_id)
 
     async def upsert_report_artifact(self, artifact: ReportArtifact) -> str:
-        """Persist a ReportArtifact into report_artifacts."""
+        """Persist a ReportArtifact into report_artifacts.
+
+        Args:
+            artifact: Validated ReportArtifact domain model.
+
+        Returns:
+            Canonical rep_<32_hex> identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
         return await upsert_report_artifact_row(self._conn, self.command_timeout_seconds, artifact)
 
     async def get_report_artifact(self, report_id: str) -> ReportArtifact | None:
-        """Fetch a ReportArtifact by ID."""
+        """Fetch a ReportArtifact by ID.
+
+        Args:
+            report_id: Canonical rep_<32_hex> identifier.
+
+        Returns:
+            Hydrated ReportArtifact instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
         return await get_report_artifact_row(self._conn, self.command_timeout_seconds, report_id)
 
     async def seed_collection_batch(self, collection_name: str, items: Sequence[BaseModel]) -> int:
-        """Idempotently upsert a validated batch of domain entities into PostgreSQL 19."""
+        """Idempotently upsert a validated batch of domain entities into PostgreSQL 19.
+
+        Args:
+            collection_name: Target collection or table name.
+            items: Sequence of validated Pydantic domain models to persist.
+
+        Returns:
+            Count of persisted entities.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on batch persistence failure.
+        """
         return await seed_collection_batch_rows(self._conn, self.command_timeout_seconds, collection_name, items)
 
     async def verify_seed_table_counts(self, expected_counts: Mapping[str, int]) -> dict[str, int]:
-        """Verify row counts across the 10 core PostgreSQL 19 tables via SELECT count(*)."""
+        """Verify row counts across the 10 core PostgreSQL 19 tables via SELECT count(*).
+
+        Args:
+            expected_counts: Mapping of canonical table/collection names to minimum expected row counts.
+
+        Returns:
+            Dictionary mapping canonical table names to verified row counts.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED if verification fails.
+        """
         return await verify_seed_table_counts_rows(self._conn, self.command_timeout_seconds, expected_counts)
 
     async def list_collection_documents(self, collection_name: str) -> list[dict[str, JsonValue]]:
-        """List all documents from a canonical PostgreSQL 19 table as JSON-compatible dictionaries."""
+        """List all documents from a canonical PostgreSQL 19 table as JSON-compatible dictionaries.
+
+        Args:
+            collection_name: Canonical collection or table name.
+
+        Returns:
+            List of serialized JSON-compatible document dictionaries.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
         return await list_collection_documents_rows(self._conn, self.command_timeout_seconds, collection_name)
 
     async def get_collection_document(self, collection_name: str, doc_id: str) -> dict[str, JsonValue] | None:
-        """Fetch a single document by ID from a canonical PostgreSQL 19 table."""
+        """Fetch a single document by ID from a canonical PostgreSQL 19 table.
+
+        Args:
+            collection_name: Canonical collection or table name.
+            doc_id: Canonical Opaque Stripe ID of the target document.
+
+        Returns:
+            Serialized JSON-compatible document dictionary, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
         return await get_collection_document_row(self._conn, self.command_timeout_seconds, collection_name, doc_id)
 
     async def upsert_collection_document(self, col: str, doc_id: str, data: Mapping[str, JsonValue]) -> bool:
-        """Validate and upsert a document dictionary into its canonical PostgreSQL 19 table."""
+        """Validate and upsert a document dictionary into its canonical PostgreSQL 19 table.
+
+        Args:
+            col: Canonical collection or table name.
+            doc_id: Canonical Opaque Stripe ID of the target document.
+            data: Raw JSON-compatible document mapping to validate and persist.
+
+        Returns:
+            True if the document was validated and persisted, False otherwise.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED if the underlying SQL execution fails.
+        """
         return await upsert_collection_document_row(self._conn, self.command_timeout_seconds, col, doc_id, data)
 
     async def delete_collection_document(self, collection_name: str, doc_id: str) -> bool:
-        """Delete a row by ID from a canonical PostgreSQL 19 table."""
+        """Delete a row by ID from a canonical PostgreSQL 19 table.
+
+        Args:
+            collection_name: Canonical collection or table name.
+            doc_id: Canonical Opaque Stripe ID of the target document.
+
+        Returns:
+            True if a matching row was deleted, False otherwise.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED if the DELETE command fails.
+        """
         return await delete_collection_document_row(self._conn, self.command_timeout_seconds, collection_name, doc_id)
 
     async def clear_collection_documents(self, collection_name: str) -> None:
-        """Delete all rows from a canonical PostgreSQL 19 table."""
+        """Delete all rows from a canonical PostgreSQL 19 table.
+
+        Args:
+            collection_name: Canonical collection or table name.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED if the DELETE command fails.
+        """
         await clear_collection_documents_rows(self._conn, self.command_timeout_seconds, collection_name)
