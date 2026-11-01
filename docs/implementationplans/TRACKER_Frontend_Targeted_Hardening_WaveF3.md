@@ -20,7 +20,7 @@
 ### Post-Implementation Gates
 
 - [x] **[SKIPPED] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]" --gate backend --model gemini-4-argon-medium` (Zero backend targets in frontend targeted hardening).
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF3.md]" --gate frontend --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`
   - [x] @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]
   - [x] @[client_app_v2/lib/features/execution/views/dashboard_view.dart]
   - [x] @[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]
@@ -67,7 +67,7 @@
   - [x] @[client_app_v2/lib/shared/widgets/specialist_section.dart]
   - [x] @[client_app_v2/lib/shared/widgets/unified_metric_gauge.dart]
   - [x] @[client_app_v2/lib/shared/widgets/validation_timeline_widget.dart]
-  - [ ] @[client_app_v2/lib/shared/widgets/workflow_selector.dart]
+  - [x] @[client_app_v2/lib/shared/widgets/workflow_selector.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify widget test coverage and 100% theme sovereignty across all 47 hardened Wave F3 views and SDUI widgets.
 
