@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import time
 from collections.abc import Awaitable, Callable
@@ -408,6 +410,20 @@ async def _persist_anomaly_retry_status(
         )
 
 
+def _compute_retry_output_digest(final_dict: dict[str, DomainInputValue]) -> str:
+    """Compute canonical SHA-256 digest of post-hook step output excluding retry trigger flag.
+
+    Args:
+        final_dict: Normalized step output dictionary returned by post-hooks.
+
+    Returns:
+        Hexadecimal SHA-256 digest string representing the canonical output payload.
+    """
+    filtered = {k: v for k, v in final_dict.items() if k != "llm_anomaly_retry_requested"}
+    serialized = json.dumps(filtered, sort_keys=True, default=str)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
 async def execute_engine_retry_stage(
     *,
     stage1: BlueprintStageResult,
@@ -489,6 +505,7 @@ async def execute_engine_retry_stage(
     engine_result: EngineExecutionResult | None = None
     dynamic_schema = stage2.dynamic_schema
     usage_agg, post_hook_state = retrieval_usage, stage2.hook_state
+    seen_anomaly_digests: set[str] = set()
 
     while retry_count <= max_retries:
         telemetry_start_time = time.time()
@@ -535,7 +552,8 @@ async def execute_engine_retry_stage(
 
         latency_ms = int((time.time() - telemetry_start_time) * 1000)
         engine_usage = engine_result.usage if engine_result.usage is not None else _ZERO_USAGE
-        usage_agg = retrieval_usage + engine_usage
+        # Phase 3, Step 3.1: Accumulate usage_agg across all anomaly retry attempts
+        usage_agg = usage_agg + engine_usage
 
         post_outcome = await _run_step_post_hooks(
             step_obj=stage1.step_obj,
@@ -550,6 +568,18 @@ async def execute_engine_retry_stage(
         final_dict = post_outcome.final_dict
 
         if "llm_anomaly_retry_requested" in final_dict and final_dict["llm_anomaly_retry_requested"]:
+            # Phase 3, Step 3.1: Canonical SHA-256 semantic oscillation short-circuit
+            current_digest = _compute_retry_output_digest(final_dict)
+            if current_digest in seen_anomaly_digests:
+                step_logger.warning(
+                    "[LLMStrategy] Semantic oscillation detected for step '%s' (digest=%s). Aborting retry loop.",
+                    step.id,
+                    current_digest,
+                )
+                final_dict["anomaly_unresolved"] = True
+                del final_dict["llm_anomaly_retry_requested"]
+                break
+            seen_anomaly_digests.add(current_digest)
             retry_count += 1
             if retry_count > max_retries:
                 step_logger.warning(

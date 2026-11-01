@@ -202,7 +202,7 @@ def _build_stage1_and_stage2(
             atom_to_block_ids={},
         ),
         user_payload=user_payload,
-        target_chunks=[["chunk_0"]],
+        target_chunks=[None],
         dynamic_schema=None,
         is_synthesis_step=False,
         source_doc_ctx=[],
@@ -367,7 +367,7 @@ async def test_execute_anomaly_retry_flow(
     assert result.final_dict["summary_title"] == "Second Attempt Resolved"
     assert "llm_anomaly_retry_requested" not in result.final_dict
     assert len(result.post_events) == 1
-    assert result.usage_agg.total_tokens == 30
+    assert result.usage_agg.total_tokens == 45
 
     # Verify stateful roundtrip persistence on ExecutionRecord.step_states
     persisted_exec = await in_memory_repo.get_execution("exe_0195f3a0000070008123456789abcdef")
@@ -476,6 +476,8 @@ async def test_engine_retry_stage_mcp_retrieval_synthesis_matrix_and_max_retries
         )
     )
 
+    hook_attempt = 0
+
     async def _always_retry_post_hook(
         *,
         step_obj: Step,
@@ -483,7 +485,9 @@ async def test_engine_retry_stage_mcp_retrieval_synthesis_matrix_and_max_retries
         hook_state: HookState,
         hook_deps: HookDependencies,
     ) -> tuple[HookState, list[TraceEvent]]:
-        raw_inputs_payload: Any = {"llm_anomaly_retry_requested": True, "results": []}
+        nonlocal hook_attempt
+        hook_attempt += 1
+        raw_inputs_payload: Any = {"llm_anomaly_retry_requested": True, "results": [], "attempt": hook_attempt}
         updated = HookState.model_construct(
             execution_id=hook_state.execution_id,
             workflow_id=hook_state.workflow_id,
@@ -519,7 +523,7 @@ async def test_engine_retry_stage_mcp_retrieval_synthesis_matrix_and_max_retries
     assert "llm_anomaly_retry_requested" not in res_matrix.final_dict
     assert res_matrix.final_dict["evaluative_matrices"] == {"m1": 5.0}
     assert len(res_matrix.mcp_audit_traces) == 1
-    assert res_matrix.usage_agg.total_tokens == 30
+    assert res_matrix.usage_agg.total_tokens == 50
 
     # 2. SynthesisEngine branch with CausalGraphPayloadDTO output and non-empty initial payload
     rule_blk = _create_rule_block()
@@ -634,3 +638,188 @@ async def test_engine_retry_stage_mcp_retrieval_synthesis_matrix_and_max_retries
             assert res_other.final_dict == {}
         else:
             assert res_other.final_dict == {"k1": "v1"}
+
+
+@pytest.mark.asyncio
+async def test_execute_engine_retry_stage_accumulates_token_usage_across_retries(
+    in_memory_repo: InMemoryUnifiedWorkflowRepository,
+    strategy_deps: StrategyDependencies,
+) -> None:
+    """Verify usage_agg accumulates retrieval_usage and all retry engine_usage attempts (100 + 200 + 300 = 600)."""
+    gateway = SystemConfigMCPGateways(
+        id="sys_0195f3a0000070008123456789abcdef",
+        slug="search_gateway",
+        endpoint_url="https://mcp.example.com/sse",
+        tools=[],
+    )
+    in_memory_repo.set_mcp_gateways([gateway])
+
+    matrix_blk = _create_matrix_block()
+    stage1, stage2 = _build_stage1_and_stage2(
+        repo=in_memory_repo,
+        criteria_blocks=[matrix_blk],
+        allowed_mcp_tools=["web_search"],
+        user_payload="User payload",
+        global_source_text="Source text",
+    )
+    step = StepRule(
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
+        input_mappings={},
+    )
+    ctx = _create_ctx()
+
+    audit_trace = MCPAuditTrace(
+        tool_id="web_search",
+        step_name="sr_0195f3a0000070008123456789abcdef",
+        query="quorum",
+        duration_ms=10,
+    )
+    mcp_res = MCPRetrievalResultDTO(
+        evidence_payload="<mcp_evidence>Fact</mcp_evidence>",
+        audit_traces=[audit_trace],
+        usage=TokenUsage(prompt_tokens=60, completion_tokens=40, total_tokens=100, cost_usd=0.01),
+    )
+
+    mock_engine = MagicMock()
+    mock_engine.execute = AsyncMock(
+        side_effect=[
+            EngineExecutionResult.model_construct(
+                results=[],
+                hydrated_references={},
+                synthesis_output=None,
+                usage=TokenUsage(prompt_tokens=120, completion_tokens=80, total_tokens=200, cost_usd=0.02),
+            ),
+            EngineExecutionResult.model_construct(
+                results=[],
+                hydrated_references={},
+                synthesis_output=None,
+                usage=TokenUsage(prompt_tokens=180, completion_tokens=120, total_tokens=300, cost_usd=0.03),
+            ),
+        ]
+    )
+
+    call_idx = 0
+
+    async def _retry_once_then_resolve(
+        *,
+        step_obj: Step,
+        step: StepRule,
+        hook_state: HookState,
+        hook_deps: HookDependencies,
+    ) -> tuple[HookState, list[TraceEvent]]:
+        nonlocal call_idx
+        call_idx += 1
+        if call_idx == 1:
+            payload: Any = {"llm_anomaly_retry_requested": True, "results": []}
+        else:
+            payload = {"results": ["resolved"]}
+        updated = HookState.model_construct(
+            execution_id=hook_state.execution_id,
+            workflow_id=hook_state.workflow_id,
+            step_id=hook_state.step_id,
+            task_blueprint=hook_state.task_blueprint,
+            metadata=hook_state.metadata,
+            global_context_vars=hook_state.global_context_vars,
+            inputs=payload,
+        )
+        return updated, []
+
+    mock_settings = MagicMock()
+    mock_settings.llm_max_retries = 2
+
+    with patch(
+        "backend_v2.services.orchestrator.strategies.llm_strategy.engine_retry_stage.LLMClient.from_tier",
+        new=AsyncMock(return_value=MagicMock(spec=LLMClient, model_name="gemini-2.5-pro")),
+    ):
+        res = await execute_engine_retry_stage(
+            stage1=stage1,
+            stage2=stage2,
+            step=step,
+            context=ctx,
+            deps=strategy_deps,
+            engine=mock_engine,
+            run_post_hooks_fn=_retry_once_then_resolve,
+            mcp_retrieval_fn=AsyncMock(return_value=mcp_res),
+            settings_getter=lambda: mock_settings,
+        )
+
+    assert mock_engine.execute.await_count == 2
+    assert res.usage_agg.total_tokens == 600
+    assert res.usage_agg.prompt_tokens == 360
+    assert res.usage_agg.completion_tokens == 240
+    assert "llm_anomaly_retry_requested" not in res.final_dict
+    assert "anomaly_unresolved" not in res.final_dict
+
+
+@pytest.mark.asyncio
+async def test_execute_engine_retry_stage_aborts_immediately_on_duplicate_sha256_oscillation(
+    in_memory_repo: InMemoryUnifiedWorkflowRepository,
+    strategy_deps: StrategyDependencies,
+) -> None:
+    """Verify execute_engine_retry_stage short-circuits immediately when retry emits duplicate SHA-256 output digest."""
+    matrix_blk = _create_matrix_block()
+    stage1, stage2 = _build_stage1_and_stage2(
+        repo=in_memory_repo,
+        criteria_blocks=[matrix_blk],
+        allowed_mcp_tools=[],
+        user_payload="User payload",
+        global_source_text="Source text",
+    )
+    step = StepRule(
+        id="sr_0195f3a0000070008123456789abcdef",
+        task_blueprint="stp_0195f3a0000070008123456789abcdef",
+        input_mappings={},
+    )
+    ctx = _create_ctx()
+
+    mock_engine = MagicMock()
+    mock_engine.execute = AsyncMock(
+        return_value=EngineExecutionResult.model_construct(
+            results=[],
+            hydrated_references={},
+            synthesis_output=None,
+            usage=TokenUsage(prompt_tokens=50, completion_tokens=50, total_tokens=100, cost_usd=0.01),
+        )
+    )
+
+    async def _identical_oscillating_post_hook(
+        *,
+        step_obj: Step,
+        step: StepRule,
+        hook_state: HookState,
+        hook_deps: HookDependencies,
+    ) -> tuple[HookState, list[TraceEvent]]:
+        raw_inputs_payload: Any = {"llm_anomaly_retry_requested": True, "results": ["identical_bad_output"]}
+        return HookState.model_construct(
+            execution_id=hook_state.execution_id,
+            workflow_id=hook_state.workflow_id,
+            step_id=hook_state.step_id,
+            task_blueprint=hook_state.task_blueprint,
+            metadata=hook_state.metadata,
+            global_context_vars=hook_state.global_context_vars,
+            inputs=raw_inputs_payload,
+        ), []
+
+    mock_settings = MagicMock()
+    mock_settings.llm_max_retries = 3
+
+    with patch(
+        "backend_v2.services.orchestrator.strategies.llm_strategy.engine_retry_stage.LLMClient.from_tier",
+        new=AsyncMock(return_value=MagicMock(spec=LLMClient, model_name="gemini-2.5-pro")),
+    ):
+        res = await execute_engine_retry_stage(
+            stage1=stage1,
+            stage2=stage2,
+            step=step,
+            context=ctx,
+            deps=strategy_deps,
+            engine=mock_engine,
+            run_post_hooks_fn=_identical_oscillating_post_hook,
+            settings_getter=lambda: mock_settings,
+        )
+
+    assert mock_engine.execute.await_count == 2
+    assert res.final_dict["anomaly_unresolved"] is True
+    assert "llm_anomaly_retry_requested" not in res.final_dict
+    assert res.usage_agg.total_tokens == 200
