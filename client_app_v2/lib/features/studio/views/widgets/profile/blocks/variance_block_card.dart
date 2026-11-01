@@ -34,7 +34,10 @@ class VarianceBlockCard extends StatelessWidget {
       TargetBlockType.varianceValidationBlock,
     );
 
-    final blocks = promptBlocksState.value ?? [];
+    final blocks = switch (promptBlocksState) {
+      AsyncData(:final value) => value,
+      _ => const <PromptBlock>[],
+    };
     final matrixBlocks = blocks.where((b) {
       final isCategoryMatrix = b is MatrixPromptBlock;
       if (allowedBlockIds.isEmpty) {

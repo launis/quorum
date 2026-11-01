@@ -67,7 +67,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_summary_table_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/metadata_block_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/simple_toggle_block_card.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/variance_block_card.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/variance_block_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/xai_extensions_block_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart]
