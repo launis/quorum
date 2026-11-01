@@ -72,7 +72,7 @@
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/layout_editor_card.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_general_tab.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify widget test coverage, Studio Unified Visual Design System adherence, and 100% theme sovereignty across all 53 hardened Wave F4 Studio views and editors.

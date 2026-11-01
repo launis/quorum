@@ -258,6 +258,75 @@ void main() {
         expect(find.textContaining('Causal Cohesion Matrix'), findsWidgets);
       },
     );
+
+    testWidgets(
+      'renders workflowSelectWarning when workflowId is empty (Boundary)',
+      (WidgetTester tester) async {
+        final profile = _createProfile(workflowId: '');
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              outputProfileFormProvider(
+                'prf_test',
+              ).overrideWith(() => TestOutputProfileForm(AsyncData(profile))),
+              workflowsControllerProvider.overrideWith(
+                () => MockWorkflowsController(),
+              ),
+              promptBlocksControllerProvider.overrideWith(
+                () => MockPromptBlocksController(),
+              ),
+              stepsControllerProvider.overrideWith(() => MockStepsController()),
+              allBlueprintsProvider.overrideWith((ref) async => []),
+            ],
+            child: const MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(body: ProfileSectionConfigTab(id: 'prf_test')),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(ProfileSectionConfigTab)),
+        )!;
+        expect(find.text(l10n.workflowSelectWarning), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'renders noDetailedSectionsActive card when targetBlockOrder has no detailed blocks (Boundary)',
+      (WidgetTester tester) async {
+        final profile = _createProfile(targetBlockOrder: const []);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              outputProfileFormProvider(
+                'prf_test',
+              ).overrideWith(() => TestOutputProfileForm(AsyncData(profile))),
+              workflowsControllerProvider.overrideWith(
+                () => MockWorkflowsController(),
+              ),
+              promptBlocksControllerProvider.overrideWith(
+                () => MockPromptBlocksController(),
+              ),
+              stepsControllerProvider.overrideWith(() => MockStepsController()),
+              allBlueprintsProvider.overrideWith((ref) async => []),
+            ],
+            child: const MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(body: ProfileSectionConfigTab(id: 'prf_test')),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byIcon(Icons.tune_outlined), findsOneWidget);
+      },
+    );
   });
 }
 

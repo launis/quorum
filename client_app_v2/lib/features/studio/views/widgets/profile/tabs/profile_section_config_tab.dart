@@ -40,30 +40,32 @@ class ProfileSectionConfigTab extends ConsumerWidget {
     final String selectedWorkflowId = payload.workflowId;
     final Set<String> allowedBlockIds = {};
 
-    if (selectedWorkflowId.isNotEmpty &&
-        workflowsState.hasValue &&
-        stepsState.hasValue) {
-      final workflows = workflowsState.value!.cast<Workflow>();
-      final steps = stepsState.value!.cast<NodeStrategy>();
+    if (selectedWorkflowId.isNotEmpty) {
+      if (workflowsState case AsyncData(value: final rawWorkflows)) {
+        if (stepsState case AsyncData(value: final rawSteps)) {
+          final workflows = rawWorkflows.cast<Workflow>();
+          final steps = rawSteps.cast<NodeStrategy>();
 
-      final Workflow? workflow = workflows
-          .where((w) => w.id == selectedWorkflowId)
-          .firstOrNull;
+          final Workflow? workflow = workflows
+              .where((w) => w.id == selectedWorkflowId)
+              .firstOrNull;
 
-      if (workflow != null) {
-        final taskBlueprintIds = workflow.steps
-            .map((s) => s.taskBlueprint)
-            .toSet();
+          if (workflow != null) {
+            final taskBlueprintIds = workflow.steps
+                .map((s) => s.taskBlueprint)
+                .toSet();
 
-        for (final step in steps) {
-          if (taskBlueprintIds.contains(step.id)) {
-            if (step.roleBlockId != null) {
-              allowedBlockIds.add(step.roleBlockId!);
+            for (final step in steps) {
+              if (taskBlueprintIds.contains(step.id)) {
+                if (step.roleBlockId != null) {
+                  allowedBlockIds.add(step.roleBlockId!);
+                }
+                if (step.extractionProtocolBlockId != null) {
+                  allowedBlockIds.add(step.extractionProtocolBlockId!);
+                }
+                allowedBlockIds.addAll(step.criteriaBlockIds);
+              }
             }
-            if (step.extractionProtocolBlockId != null) {
-              allowedBlockIds.add(step.extractionProtocolBlockId!);
-            }
-            allowedBlockIds.addAll(step.criteriaBlockIds);
           }
         }
       }
@@ -83,7 +85,7 @@ class ProfileSectionConfigTab extends ConsumerWidget {
               child: Center(
                 child: Text(
                   l10n.workflowSelectWarning,
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.error,
                     fontWeight: FontWeight.bold,
                   ),
@@ -202,7 +204,7 @@ class ProfileSectionConfigTab extends ConsumerWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: AppSpacing.s4),
+        AppSpacing.h4,
         Text(
           l10n.sectionConfigSubtitle,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -217,7 +219,7 @@ class ProfileSectionConfigTab extends ConsumerWidget {
 
           return Card(
             elevation: 2,
-            margin: const EdgeInsets.only(bottom: AppSpacing.s12),
+            margin: const EdgeInsets.only(bottom: AppSpacing.s16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -232,10 +234,9 @@ class ProfileSectionConfigTab extends ConsumerWidget {
               ),
               title: Text(
                 title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.s4),
