@@ -115,7 +115,7 @@ class TokenService:
                 ErrorCodes.AUTHENTICATION_FAILED if verification fails or user is inactive.
             ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED if pre-provisioned email is bound to another UID.
         """
-        # Phase 2, Step 2.1: Hybrid Session Upgrade (Firebase 2FA OR Headless CLI Exchange)
+        # Upgrade interactive Firebase 2FA or headless CLI credentials into a signed Quorum Local JWT.
         settings = self._resolve_settings()
         if payload.firebase_token is not None:
             user = await self._resolve_interactive_firebase_user(payload.firebase_token, settings)
@@ -124,6 +124,7 @@ class TokenService:
                 logger.error(
                     "[TokenService] %s: Missing target_user_id in headless exchange.",
                     ErrorCodes.AUTHENTICATION_FAILED.name,
+                    exc_info=True,
                 )
                 raise AuthenticationError(
                     message="Missing target_user_id in token exchange request.",
@@ -187,6 +188,7 @@ class TokenService:
             logger.error(
                 "[TokenService] %s: Firebase Admin SDK is not initialized for interactive token exchange.",
                 ErrorCodes.AUTHENTICATION_FAILED.name,
+                exc_info=True,
             )
             raise AuthenticationError(
                 message="Firebase authentication is not available.",
@@ -209,7 +211,11 @@ class TokenService:
 
         self._enforce_firebase_mfa_claim(decoded_token, settings)
         if "uid" not in decoded_token or not decoded_token["uid"]:
-            logger.error("[TokenService] %s: Firebase token missing 'uid'.", ErrorCodes.AUTHENTICATION_FAILED.name)
+            logger.error(
+                "[TokenService] %s: Firebase token missing 'uid'.",
+                ErrorCodes.AUTHENTICATION_FAILED.name,
+                exc_info=True,
+            )
             raise AuthenticationError(
                 message="Invalid Firebase token: missing 'uid' claim.",
                 details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
@@ -242,6 +248,7 @@ class TokenService:
             logger.error(
                 "[TokenService] %s: Interactive login rejected because firebase.sign_in_second_factor is missing.",
                 ErrorCodes.MFA_REQUIRED.name,
+                exc_info=True,
             )
             raise AuthenticationError(
                 message="Multi-Factor Authentication (2FA) is required to establish a Quorum session.",
@@ -282,6 +289,7 @@ class TokenService:
                 "[TokenService] %s: Pre-provisioned user %s already bound to a different Firebase UID.",
                 ErrorCodes.USER_ALREADY_ASSIGNED.name,
                 user.id,
+                exc_info=True,
             )
             raise ConflictError(
                 message="User account is already bound to a different identity provider UID.",
@@ -322,6 +330,7 @@ class TokenService:
                 "[TokenService] %s: Unauthorized headless CLI token exchange attempt for user %s.",
                 ErrorCodes.PERMISSION_DENIED.name,
                 target_user_id,
+                exc_info=True,
             )
             raise AuthenticationError(
                 message="Headless token exchange is forbidden without a valid service authentication secret.",
@@ -346,6 +355,7 @@ class TokenService:
             logger.error(
                 "[TokenService] %s: Token exchange rejected because user is missing, inactive, or soft-deleted.",
                 ErrorCodes.AUTHENTICATION_FAILED.name,
+                exc_info=True,
             )
             raise AuthenticationError(
                 message="User account is not found or inactive.",
@@ -385,7 +395,7 @@ class TokenService:
         Returns:
             Signed Quorum Local JWT string.
         """
-        # Phase 2, Step 2.2: RFC 8693 Section 4.1 Break-Glass Impersonation JWT
+        # Issue an RFC 8693 Section 4.1 break-glass impersonation JWT with optional actor claim.
         settings = self._resolve_settings()
         now_epoch = int(time.time())
         jti_str = str(generate_uuid7())
@@ -436,7 +446,7 @@ class TokenService:
                 ErrorCodes.MFA_REQUIRED if require_mfa is True and mfa claim is not True, or
                 ErrorCodes.AUTHENTICATION_FAILED if signature or claims are invalid.
         """
-        # Phase 2, Step 2.1: 0.1 ms RAM-only Quorum Local JWT verification with zero DB queries
+        # Verify Quorum Local JWT signature in RAM with zero database queries.
         settings = self._resolve_settings()
         try:
             payload = jwt.decode(
@@ -445,7 +455,11 @@ class TokenService:
                 algorithms=[settings.jwt_algorithm],
             )
         except jwt.ExpiredSignatureError:
-            logger.error("[TokenService] %s: Quorum Local JWT expired.", ErrorCodes.AUTH_TOKEN_EXPIRED.name)
+            logger.error(
+                "[TokenService] %s: Quorum Local JWT expired.",
+                ErrorCodes.AUTH_TOKEN_EXPIRED.name,
+                exc_info=True,
+            )
             raise AuthenticationError(
                 message="Token expired",
                 details={"error_code": ErrorCodes.AUTH_TOKEN_EXPIRED.value},
@@ -455,6 +469,7 @@ class TokenService:
                 "[TokenService] %s: Invalid JWT token: %s",
                 ErrorCodes.AUTHENTICATION_FAILED.name,
                 jwt_err,
+                exc_info=True,
             )
             raise AuthenticationError(
                 message=f"Invalid JWT token: {jwt_err}",
@@ -478,7 +493,11 @@ class TokenService:
                 ErrorCodes.AUTHENTICATION_FAILED if required claims are missing or malformed.
         """
         if "sub" not in payload or not payload["sub"]:
-            logger.error("[TokenService] %s: Invalid token: missing 'sub'.", ErrorCodes.AUTHENTICATION_FAILED.name)
+            logger.error(
+                "[TokenService] %s: Invalid token: missing 'sub'.",
+                ErrorCodes.AUTHENTICATION_FAILED.name,
+                exc_info=True,
+            )
             raise AuthenticationError(
                 message="Invalid internal token: missing 'sub'.",
                 details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
@@ -491,6 +510,7 @@ class TokenService:
             logger.error(
                 "[TokenService] %s: Token rejected because 'mfa' claim is not True.",
                 ErrorCodes.MFA_REQUIRED.name,
+                exc_info=True,
             )
             raise AuthenticationError(
                 message="Multi-Factor Authentication (2FA) is required.",
@@ -498,7 +518,11 @@ class TokenService:
             )
 
         if "role" not in payload or not payload["role"]:
-            logger.error("[TokenService] %s: Invalid token: missing 'role'.", ErrorCodes.AUTHENTICATION_FAILED.name)
+            logger.error(
+                "[TokenService] %s: Invalid token: missing 'role'.",
+                ErrorCodes.AUTHENTICATION_FAILED.name,
+                exc_info=True,
+            )
             raise AuthenticationError(
                 message="Invalid token: missing 'role' claim.",
                 details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},

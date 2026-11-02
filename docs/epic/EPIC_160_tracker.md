@@ -120,7 +120,7 @@
   - [x] @[backend_v2/database/postgres/uow.py]
   - [x] @[backend_v2/database/repositories/identity.py]
   - [x] @[backend_v2/services/auth/repositories.py]
-  - [ ] @[backend_v2/services/auth/token_service.py]
+  - [x] @[backend_v2/services/auth/token_service.py]
   - [ ] @[backend_v2/services/auth/user_service.py]
   - [ ] @[backend_v2/services/auth/organization_service.py]
   - [ ] [NEW] @[backend_v2/services/auth/secret_service.py]
