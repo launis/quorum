@@ -92,7 +92,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_160/06_phase6_plan.md]
 - [x] **[OK] Create Plan:** Plan generated in @[docs/epic/tasks_EPIC_160/06_phase6_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]` (`21f866e09`)
   - [x] Step 0: PRE-FLIGHT & SELF-HYDRATION
   - [x] Step 6.1: Mandatory 2FA Enrollment/Challenge Flow, `AuthInterceptor`, Session Upgrade Handshake, 13-Minute Silent Refresh & 5-Step Logout Pipeline
   - [x] Step 6.2: Adaptive Navigation Logout Action, Separated User Profile View (`UserProfileSettingsView`), Organization IAM Studio UI (`OrganizationIamSettingsView`), Direct Task Assignment Builder in `NewExecutionView` & Task Assignment Portal (`TaskAssignmentPortalView`)
@@ -107,7 +107,7 @@
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_160_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"` across existing and `[NEW]` backend targets.
-  - [ ] @[backend_v2/settings.py]
+  - [x] @[backend_v2/settings.py]
   - [ ] @[backend_v2/models/enums.py]
   - [ ] @[backend_v2/exceptions.py]
   - [ ] @[backend_v2/models/auth.py]
