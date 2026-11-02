@@ -139,7 +139,7 @@
   - [x] @[backend_v2/api/routers/iam/auth.py]
   - [x] @[backend_v2/api/routers/iam/users.py]
   - [x] @[backend_v2/api/routers/iam/organizations.py]
-  - [ ] @[backend_v2/api/routers/execution/executions.py]
+  - [x] @[backend_v2/api/routers/execution/executions.py]
   - [ ] @[scripts/sanitize_seed_vault.py]
   - [ ] @[scripts/audit_zero_orm_strictness.py]
   - [ ] @[scripts/_ast_guardrails.py]
