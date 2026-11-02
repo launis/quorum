@@ -8,7 +8,7 @@ import sys
 import time
 from typing import Any, override
 
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential_jitter
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
@@ -30,6 +30,7 @@ from backend_v2.llm.provider.transient_retry_policy import (
     _format_attempt_error,
     _is_transient_llm_error,
 )
+from backend_v2.models.auth import ResolvedCredentialDTO
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig, LLMResponse
 from backend_v2.services.usage_service import UsageService
 from backend_v2.settings import get_settings
@@ -84,34 +85,52 @@ class LiteLLMProvider(LLMProvider):
     def __init__(
         self,
         model_name: str,
-        api_key: str | None = None,
+        api_key: str | SecretStr | None = None,
         settings: Any = None,
         usage_service: UsageService | None = None,
         organization_id: str | None = None,
         limits: dict[str, int] | None = None,
         supports_grounding: bool = False,
         config: LLMProviderConfig | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> None:
         """Initialize the LiteLLM provider.
 
+        # Phase 3, Step 3.2: Bind tenant-resolved API keys strictly to request scope or tenant-isolated provider key
+
         Args:
             model_name: The model identifier.
-            api_key: API Key.
+            api_key: API Key or SecretStr.
             settings: System settings object.
             usage_service: Service for cost tracking.
             organization_id: Context organization ID.
             limits: Override TPM/RPM limits (specifically from Organization or ModelProfile).
             supports_grounding: Whether this model strategy requires Vertex Grounding.
             config: Strict configuration object.
+            resolved_credential: Optional tenant-scoped ResolvedCredentialDTO from SecretService.
 
         Raises:
             ConfigurationError: If strict tpm/rpm limits are not provided.
         """
         self.model_name = model_name
-        self.api_key = api_key
+        self._resolved_credential = resolved_credential
+        resolved_org_id = organization_id
+        if resolved_org_id is None and resolved_credential is not None:
+            resolved_org_id = resolved_credential.organization_id
+        self.organization_id = "UNKNOWN_ORG" if not resolved_org_id else resolved_org_id
+
+        unwrapped_key: str | None = None
+        if isinstance(api_key, SecretStr):
+            unwrapped_key = api_key.get_secret_value()
+        elif isinstance(api_key, str):
+            unwrapped_key = api_key
+        elif resolved_credential is not None:
+            cred_raw = resolved_credential.secret_value.get_secret_value()
+            if resolved_credential.is_tenant_byok or cred_raw != "vertex-adc-managed":
+                unwrapped_key = cred_raw
+        self.api_key = unwrapped_key
         self.settings = settings
         self.usage_service = usage_service
-        self.organization_id = "UNKNOWN_ORG" if not organization_id else organization_id
         self.supports_grounding = supports_grounding
         self._config = config
 
@@ -137,7 +156,8 @@ class LiteLLMProvider(LLMProvider):
             logger.error("[LiteLLMProvider] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
-        cache_key = f"{model_name}_{tpm}_{rpm}"
+        scoped_model_key = f"{model_name}:{self.organization_id}" if resolved_credential is not None else model_name
+        cache_key = f"{scoped_model_key}_{tpm}_{rpm}"
         self.cache_key = cache_key
 
         active_settings_fn = _resolve_get_settings()
@@ -145,7 +165,7 @@ class LiteLLMProvider(LLMProvider):
             self.router = self.__class__._router_cache[cache_key]
         else:
             litellm_params: dict[str, Any] = {"model": model_name, "tpm": tpm, "rpm": rpm}
-            if self.api_key is not None:
+            if self.api_key is not None and resolved_credential is None:
                 litellm_params["api_key"] = self.api_key
 
             model_config = {
@@ -310,7 +330,11 @@ class LiteLLMProvider(LLMProvider):
                 "drop_params": True,
                 "timeout": kwargs["timeout"] if "timeout" in kwargs else default_timeout,
             }
-            if self.api_key is not None:
+            if self._resolved_credential is not None:
+                cred_val = self._resolved_credential.secret_value.get_secret_value()
+                if self._resolved_credential.is_tenant_byok or cred_val != "vertex-adc-managed":
+                    call_kwargs["api_key"] = cred_val
+            elif self.api_key is not None:
                 call_kwargs["api_key"] = self.api_key
 
             call_kwargs.update(kwargs)

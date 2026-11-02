@@ -15,21 +15,30 @@ from backend_v2.exceptions import (
     PermissionDeniedError,
     ResourceNotFoundError,
 )
+from backend_v2.llm.provider.litellm_provider import LiteLLMProvider
+from backend_v2.llm.provider.provider_factory import LLMFactory
 from backend_v2.models.auth import (
+    ResolvedCredentialDTO,
     SystemOrganizations,
     TenantSecretCreateDTO,
     TenantSecretDTO,
     TokenData,
 )
-from backend_v2.models.core_base import generate_opaque_id
-from backend_v2.models.domain.system_config import SystemConfigMCPGateways
+from backend_v2.models.core_base import I18nText, generate_opaque_id
+from backend_v2.models.domain.system_config import AllowedMCPTool, SystemConfigMCPGateways
+from backend_v2.models.dtos.mcp import (
+    MCPToolInputSchemaDTO,
+    MCPToolSchemaPropertyDTO,
+)
 from backend_v2.models.enums import (
     EntityPrefix,
+    JSONSchemaPropertyType,
     LLMProvider,
     MCPAuthType,
     MCPTransportType,
     SecretScope,
     SecretStorageMode,
+    ToolCapability,
     UserRole,
 )
 from backend_v2.services.auth.secret_service import (
@@ -39,6 +48,8 @@ from backend_v2.services.auth.secret_service import (
     SecretService,
     get_secret_service,
 )
+from backend_v2.services.mcp.dispatcher import ToolDispatcher
+from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
@@ -498,3 +509,144 @@ async def test_secret_service_kms_and_platform_mcp_failures_negative(
     with pytest.raises(ConfigurationError) as inc_exc:
         await no_fetcher_service.resolve_llm_key(organization_id=org_id, provider=LLMProvider.LOCAL)
     assert inc_exc.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
+
+
+def test_generic_mcp_client_missing_resolved_credential_negative() -> None:
+    """Negative: Verify GenericMCPClient._build_request_headers raises ConfigurationError when resolved_credential is None."""
+    client = GenericMCPClient()
+    gateway = _make_mcp_gateway(auth_type=MCPAuthType.BEARER, auth_env_var="MCP_GATEWAY_TOKEN")
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        client._build_request_headers(gateway, resolved_credential=None)
+
+    assert exc_info.value.details["error_code"] == ErrorCodes.SECRET_RESOLUTION_FAILED.value
+    assert exc_info.value.details["gateway_id"] == gateway.id
+
+
+@pytest.mark.asyncio
+async def test_llm_factory_and_dispatcher_byok_request_scoped_injection_positive() -> None:
+    """Positive: Verify LLMFactory, LiteLLMProvider, ToolDispatcher, and GenericMCPClient isolate BYOK keys per tenant."""
+    LiteLLMProvider._router_cache.clear()
+    LiteLLMProvider._semaphores.clear()
+
+    uow = InMemoryUnitOfWork()
+    service = SecretService(entity_adapter=uow.entities)
+
+    org_a = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    org_b = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    admin_a = _make_token_data(role=UserRole.ADMIN, organization_id=org_a)
+    admin_b = _make_token_data(role=UserRole.ADMIN, organization_id=org_b)
+
+    await service.upsert_tenant_secret(
+        initiator=admin_a,
+        organization_id=org_a,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.OPENAI.value,
+            plaintext_secret=SecretStr("sk-tenant-a-byok-1111"),
+        ),
+    )
+    await service.upsert_tenant_secret(
+        initiator=admin_b,
+        organization_id=org_b,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.LLM_PROVIDER,
+            target_identifier=LLMProvider.OPENAI.value,
+            plaintext_secret=SecretStr("sk-tenant-b-byok-2222"),
+        ),
+    )
+
+    cred_a = await service.resolve_llm_key(organization_id=org_a, provider=LLMProvider.OPENAI)
+    cred_b = await service.resolve_llm_key(organization_id=org_b, provider=LLMProvider.OPENAI)
+
+    prov_a = LLMFactory.create_provider(
+        "openai",
+        "openai/gpt-4o",
+        limits={"tpm": 50000, "rpm": 60},
+        resolved_credential=cred_a,
+    )
+    prov_b = LLMFactory.create_provider(
+        "openai",
+        "openai/gpt-4o",
+        limits={"tpm": 50000, "rpm": 60},
+        resolved_credential=cred_b,
+    )
+
+    assert isinstance(prov_a, LiteLLMProvider)
+    assert isinstance(prov_b, LiteLLMProvider)
+    assert prov_a.organization_id == org_a
+    assert prov_b.organization_id == org_b
+    assert prov_a.cache_key != prov_b.cache_key
+    assert prov_a.router is not prov_b.router
+    assert prov_a.api_key == "sk-tenant-a-byok-1111"
+    assert prov_b.api_key == "sk-tenant-b-byok-2222"
+
+    # Verify MCP credential injection in ToolDispatcher and GenericMCPClient with zero audit trace leakage
+    search_tool = AllowedMCPTool(
+        tool_id="search_docs",
+        capability=ToolCapability.SEARCH,
+        name=I18nText(translations={"en": "Search Docs", "fi": "Hae dokumentit"}),
+        description="Search enterprise docs.",
+        input_schema=MCPToolInputSchemaDTO(
+            properties={"query": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.STRING)},
+            required=["query"],
+        ),
+        enabled=True,
+    )
+    gateway = SystemConfigMCPGateways(
+        id=generate_opaque_id(EntityPrefix.SYSTEM_CONFIG),
+        slug="ent_search",
+        endpoint_url="https://mcp.example.com/v1/mcp",
+        transport_type=MCPTransportType.STREAMABLE_HTTP,
+        auth_type=MCPAuthType.BEARER,
+        auth_env_var="MCP_GATEWAY_TOKEN",
+        timeout_seconds=10,
+        tools=[search_tool],
+    )
+
+    await service.upsert_tenant_secret(
+        initiator=admin_a,
+        organization_id=org_a,
+        payload=TenantSecretCreateDTO(
+            scope=SecretScope.MCP_GATEWAY,
+            target_identifier=gateway.id,
+            plaintext_secret=SecretStr("mcp-bearer-secret-9999"),
+        ),
+    )
+
+    mcp_cred = await service.resolve_mcp_credential(organization_id=org_a, gateway=gateway)
+    client = GenericMCPClient(secret_service=service)
+    headers = client._build_request_headers(gateway, resolved_credential=mcp_cred)
+    assert headers["Authorization"] == "Bearer mcp-bearer-secret-9999"
+
+    captured_cred: list[ResolvedCredentialDTO | None] = []
+
+    class _StubMCPClient(GenericMCPClient):
+        async def call_tool(
+            self,
+            gw: SystemConfigMCPGateways,
+            invocation: object,
+            *,
+            organization_id: str | None = None,
+            resolved_credential: ResolvedCredentialDTO | None = None,
+        ) -> str:
+            captured_cred.append(resolved_credential)
+            return "<![CDATA[Evidence from https://docs.example.com/1]]>"
+
+    dispatcher = ToolDispatcher(
+        [gateway],
+        mcp_client=_StubMCPClient(secret_service=service),
+        secret_service=service,
+        organization_id=org_a,
+    )
+    alias = "ent_search__search_docs"
+    audit_trace = await dispatcher.execute_tool(
+        tool_id=alias,
+        raw_arguments={"query": "quarterly revenue"},
+        allowed_step_tools={alias},
+        step_name="stp_audit",
+    )
+    assert len(captured_cred) == 1
+    assert captured_cred[0] is not None
+    assert captured_cred[0].secret_value.get_secret_value() == "mcp-bearer-secret-9999"
+    assert "mcp-bearer-secret-9999" not in str(audit_trace.model_dump(mode="json"))

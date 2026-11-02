@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import os
 from urllib.parse import urljoin
 
 import httpx
@@ -24,7 +23,8 @@ from backend_v2.exceptions import (
 
 # Phase 4, Step 2: Import _is_transient_llm_error from transient_retry_policy submodule
 from backend_v2.llm.provider.transient_retry_policy import _is_transient_llm_error
-from backend_v2.models.core_base import I18nText
+from backend_v2.models.auth import ResolvedCredentialDTO, SystemOrganizations
+from backend_v2.models.core_base import I18nText, PrefixedUUID7
 from backend_v2.models.domain.system_config import AllowedMCPTool, SystemConfigMCPGateways
 from backend_v2.models.dtos.mcp import (
     MCPInitializeClientInfoDTO,
@@ -39,6 +39,7 @@ from backend_v2.models.dtos.mcp import (
     MCPToolsListResultDTO,
 )
 from backend_v2.models.enums import MCPAuthType, MCPTransportType, ToolCapability
+from backend_v2.services.auth.secret_service import SecretService, get_secret_service
 from backend_v2.services.length_budget_enforcer import enforce_sentence_boundary_budget
 from backend_v2.services.mcp.url_validator import MCPUrlValidator
 from backend_v2.settings import get_settings
@@ -54,21 +55,36 @@ _TRANSIENT_STATUS_CODES: frozenset[int] = frozenset({429, 502, 503, 504})
 class GenericMCPClient:
     """Executes JSON-RPC 2.0 tool discovery and invocation against external MCP servers."""
 
-    def __init__(self, transport: httpx.AsyncBaseTransport | None = None) -> None:
-        """Initialize the MCP client with an optional custom HTTP transport.
+    def __init__(
+        self,
+        transport: httpx.AsyncBaseTransport | None = None,
+        secret_service: SecretService | None = None,
+    ) -> None:
+        """Initialize the MCP client with an optional custom HTTP transport and SecretService.
 
         Args:
             transport: Optional httpx.AsyncBaseTransport for deterministic testing.
+            secret_service: Optional SecretService for asynchronous BYOK/platform credential resolution.
         """
         self._transport = transport
+        self._secret_service = secret_service if secret_service is not None else get_secret_service()
 
-    async def initialize(self, gateway: SystemConfigMCPGateways) -> MCPInitializeResultDTO:
+    async def initialize(
+        self,
+        gateway: SystemConfigMCPGateways,
+        *,
+        organization_id: PrefixedUUID7 | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
+    ) -> MCPInitializeResultDTO:
         """Execute the MCP 'initialize' handshake against the configured gateway.
 
         # Phase 2, Step 2.2: Protocol-Agnostic GenericMCPClient initialize handshake
+        # Phase 3, Step 3.2: Resolve MCP credentials asynchronously prior to header assembly
 
         Args:
             gateway: Target MCP gateway configuration.
+            organization_id: Optional tenant organization ID for BYOK credential resolution.
+            resolved_credential: Optional pre-resolved ResolvedCredentialDTO.
 
         Returns:
             Validated MCPInitializeResultDTO returned by the server.
@@ -84,7 +100,13 @@ class GenericMCPClient:
             gateway.endpoint_url,
             allow_private_networks=settings.mcp_allow_private_networks,
         )
-        headers = self._build_request_headers(gateway)
+        active_credential = resolved_credential
+        if gateway.auth_type != MCPAuthType.NONE and active_credential is None:
+            active_credential = await self._resolve_gateway_credential(
+                gateway=gateway,
+                organization_id=organization_id,
+            )
+        headers = self._build_request_headers(gateway, resolved_credential=active_credential)
         discovery_timeout = min(
             float(gateway.timeout_seconds),
             float(settings.mcp_discovery_timeout_seconds),
@@ -110,13 +132,22 @@ class GenericMCPClient:
             )
             return init_result
 
-    async def list_tools(self, gateway: SystemConfigMCPGateways) -> list[AllowedMCPTool]:
+    async def list_tools(
+        self,
+        gateway: SystemConfigMCPGateways,
+        *,
+        organization_id: PrefixedUUID7 | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
+    ) -> list[AllowedMCPTool]:
         """Discover all available tools exposed by the remote MCP gateway via 'tools/list'.
 
         # Phase 2, Step 2.2: Protocol-Agnostic GenericMCPClient list_tools discovery
+        # Phase 3, Step 3.2: Resolve MCP credentials asynchronously prior to header assembly
 
         Args:
             gateway: Target MCP gateway configuration.
+            organization_id: Optional tenant organization ID for BYOK credential resolution.
+            resolved_credential: Optional pre-resolved ResolvedCredentialDTO.
 
         Returns:
             List of AllowedMCPTool domain objects with recursive input_schema definitions.
@@ -132,7 +163,13 @@ class GenericMCPClient:
             gateway.endpoint_url,
             allow_private_networks=settings.mcp_allow_private_networks,
         )
-        headers = self._build_request_headers(gateway)
+        active_credential = resolved_credential
+        if gateway.auth_type != MCPAuthType.NONE and active_credential is None:
+            active_credential = await self._resolve_gateway_credential(
+                gateway=gateway,
+                organization_id=organization_id,
+            )
+        headers = self._build_request_headers(gateway, resolved_credential=active_credential)
         discovery_timeout = min(
             float(gateway.timeout_seconds),
             float(settings.mcp_discovery_timeout_seconds),
@@ -171,14 +208,20 @@ class GenericMCPClient:
         self,
         gateway: SystemConfigMCPGateways,
         invocation: MCPToolInvocationDTO,
+        *,
+        organization_id: PrefixedUUID7 | None = None,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> str:
         """Invoke a remote MCP tool via 'tools/call', enforce sentence budget, and encapsulate in CDATA.
 
         # Phase 2, Step 2.2: Protocol-Agnostic GenericMCPClient call_tool with sentence budget and CDATA
+        # Phase 3, Step 3.2: Request-scoped SecretStr injection into outbound MCP headers
 
         Args:
             gateway: Target MCP gateway configuration.
             invocation: Validated tool invocation payload.
+            organization_id: Optional tenant organization ID for BYOK credential resolution.
+            resolved_credential: Optional pre-resolved ResolvedCredentialDTO.
 
         Returns:
             CDATA-shielded and character-budgeted tool response string.
@@ -194,7 +237,13 @@ class GenericMCPClient:
             gateway.endpoint_url,
             allow_private_networks=settings.mcp_allow_private_networks,
         )
-        headers = self._build_request_headers(gateway)
+        active_credential = resolved_credential
+        if gateway.auth_type != MCPAuthType.NONE and active_credential is None:
+            active_credential = await self._resolve_gateway_credential(
+                gateway=gateway,
+                organization_id=organization_id,
+            )
+        headers = self._build_request_headers(gateway, resolved_credential=active_credential)
         exec_timeout = float(gateway.timeout_seconds)
 
         async with httpx.AsyncClient(
@@ -234,17 +283,62 @@ class GenericMCPClient:
         raw_text = self._extract_tool_call_text(rpc_response=rpc_response, invocation=invocation)
         return self._apply_budget_and_cdata(raw_text=raw_text, max_chars=settings.mcp_max_response_chars)
 
-    def _build_request_headers(self, gateway: SystemConfigMCPGateways) -> dict[str, str]:
-        """Resolve authentication secrets from os.environ and build outbound HTTP headers.
+    async def _resolve_gateway_credential(
+        self,
+        *,
+        gateway: SystemConfigMCPGateways,
+        organization_id: PrefixedUUID7 | None,
+    ) -> ResolvedCredentialDTO:
+        """Resolve an MCP gateway credential via SecretService prior to synchronous header assembly.
 
         Args:
             gateway: Target MCP gateway configuration.
+            organization_id: Optional tenant organization ID.
+
+        Returns:
+            Non-nullable ResolvedCredentialDTO for the gateway.
+
+        Raises:
+            ConfigurationError: If credential resolution fails.
+        """
+        target_org_id: PrefixedUUID7 = (
+            organization_id if organization_id is not None else SystemOrganizations.ROOT_SYSTEM
+        )
+        try:
+            return await self._secret_service.resolve_mcp_credential(
+                organization_id=target_org_id,
+                gateway=gateway,
+            )
+        except ConfigurationError as exc:
+            if organization_id is None and "secret_id" not in exc.details:
+                raise ConfigurationError(
+                    message=exc.message,
+                    details={
+                        **exc.details,
+                        "error_code": ErrorCodes.CONFIGURATION_ERROR.value,
+                    },
+                ) from exc
+            raise
+
+    def _build_request_headers(
+        self,
+        gateway: SystemConfigMCPGateways,
+        resolved_credential: ResolvedCredentialDTO | None = None,
+    ) -> dict[str, str]:
+        """Build outbound HTTP headers from a pre-resolved ResolvedCredentialDTO.
+
+        # Phase 3, Step 3.2: Require non-nullable ResolvedCredentialDTO when gateway.auth_type != MCPAuthType.NONE
+
+        Args:
+            gateway: Target MCP gateway configuration.
+            resolved_credential: Pre-resolved tenant or platform credential from SecretService.
 
         Returns:
             Dictionary of HTTP request headers.
 
         Raises:
-            ConfigurationError: If required auth_env_var or auth_header_name is missing or empty.
+            ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if resolved_credential is missing
+                or empty when auth_type != NONE, or ErrorCodes.CONFIGURATION_ERROR if auth_header_name is missing.
         """
         headers: dict[str, str] = {
             "Content-Type": "application/json",
@@ -253,27 +347,35 @@ class GenericMCPClient:
         if gateway.auth_type == MCPAuthType.NONE:
             return headers
 
-        env_var_name = gateway.auth_env_var
-        if env_var_name is None or not env_var_name.strip():
+        if resolved_credential is None:
+            msg = f"MCP gateway '{gateway.id}' requires a resolved credential for auth_type '{gateway.auth_type}'."
             logger.error(
-                "MCP gateway missing auth_env_var configuration",
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "gateway_id": gateway.id},
+                "[GenericMCPClient] %s: %s",
+                ErrorCodes.SECRET_RESOLUTION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value, "gateway_id": gateway.id},
+                exc_info=True,
             )
             raise ConfigurationError(
-                f"MCP gateway '{gateway.id}' requires auth_env_var for auth_type '{gateway.auth_type}'."
+                message=msg,
+                details={"error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value, "gateway_id": gateway.id},
             )
 
-        clean_env_name = env_var_name.strip()
-        if clean_env_name not in os.environ or not os.environ[clean_env_name].strip():
+        secret_value = resolved_credential.secret_value.get_secret_value().strip()
+        if not secret_value:
+            msg = f"Resolved MCP credential for gateway '{gateway.id}' cannot be empty."
             logger.error(
-                "MCP gateway secret environment variable is not set",
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "gateway_id": gateway.id},
+                "[GenericMCPClient] %s: %s",
+                ErrorCodes.SECRET_RESOLUTION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value, "gateway_id": gateway.id},
+                exc_info=True,
             )
             raise ConfigurationError(
-                f"Environment variable '{clean_env_name}' required by MCP gateway '{gateway.id}' is not set."
+                message=msg,
+                details={"error_code": ErrorCodes.SECRET_RESOLUTION_FAILED.value, "gateway_id": gateway.id},
             )
 
-        secret_value = os.environ[clean_env_name].strip()
         if gateway.auth_type == MCPAuthType.BEARER:
             headers["Authorization"] = f"Bearer {secret_value}"
             return headers
@@ -283,9 +385,11 @@ class GenericMCPClient:
             logger.error(
                 "MCP gateway missing auth_header_name for api_key_header",
                 extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "gateway_id": gateway.id},
+                exc_info=True,
             )
             raise ConfigurationError(
-                f"MCP gateway '{gateway.id}' requires auth_header_name when auth_type is api_key_header."
+                f"MCP gateway '{gateway.id}' requires auth_header_name when auth_type is api_key_header.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "gateway_id": gateway.id},
             )
 
         headers[header_name.strip()] = secret_value

@@ -22,7 +22,8 @@ from pydantic import BaseModel, JsonValue, ValidationError
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.core_base import generate_uuid7
+from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.core_base import PrefixedUUID7, generate_uuid7
 from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
     MCPAuditTrace,
@@ -36,9 +37,10 @@ from backend_v2.models.dtos.mcp import (
     MCPToolInputSchemaDTO,
     MCPToolInvocationDTO,
 )
-from backend_v2.models.enums import JSONSchemaPropertyType, ToolCapability
+from backend_v2.models.enums import JSONSchemaPropertyType, MCPAuthType, ToolCapability
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts import MCP_JIT_ARGUMENT_SYNTHESIS_SYSTEM_INSTRUCTION
+from backend_v2.services.auth.secret_service import SecretService, get_secret_service
 from backend_v2.services.mcp.alias_registry import AliasRegistry
 from backend_v2.services.mcp.generic_mcp_client import GenericMCPClient
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
@@ -61,19 +63,25 @@ class ToolDispatcher:
         self,
         gateways: Sequence[SystemConfigMCPGateways],
         mcp_client: GenericMCPClient | None = None,
+        secret_service: SecretService | None = None,
+        organization_id: PrefixedUUID7 | None = None,
     ) -> None:
         """Initialize the dispatcher from active SystemConfigMCPGateways definitions.
 
         Args:
             gateways: Sequence of SystemConfigMCPGateways domain models.
             mcp_client: Optional GenericMCPClient instance for protocol execution.
+            secret_service: Optional SecretService for asynchronous BYOK/platform credential resolution.
+            organization_id: Optional default tenant organization ID for MCP secret resolution.
 
         Raises:
             AppException: If any enabled tool has an invalid slug or malformed input_schema
                 (ErrorCodes.VALIDATION_FAILED).
         """
+        self._secret_service = secret_service if secret_service is not None else get_secret_service()
+        self._organization_id = organization_id
         if mcp_client is None:
-            self._mcp_client = GenericMCPClient()
+            self._mcp_client = GenericMCPClient(secret_service=self._secret_service)
         else:
             self._mcp_client = mcp_client
 
@@ -535,8 +543,11 @@ class ToolDispatcher:
         step_name: str,
         claim_text: str | None = None,
         reasoning: str = "",
+        organization_id: PrefixedUUID7 | None = None,
     ) -> MCPAuditTrace:
         """Validate permissions and arguments, then dispatch tool execution via GenericMCPClient.
+
+        # Phase 3, Step 3.2: Resolve MCP credentials asynchronously via SecretService with zero trace leakage
 
         Args:
             tool_id: Namespaced tool alias ('{gateway_slug}__{tool_name}') to execute.
@@ -545,6 +556,7 @@ class ToolDispatcher:
             step_name: Identifier of the executing step or hook.
             claim_text: Optional verbatim claim text being verified.
             reasoning: Optional reasoning string explaining why the tool was invoked.
+            organization_id: Optional tenant organization ID for BYOK credential resolution.
 
         Returns:
             MCPAuditTrace recording provenance, latency, and CDATA-shielded response summary.
@@ -574,6 +586,12 @@ class ToolDispatcher:
         timeout_sec = float(gateway.timeout_seconds)
         tracer = get_tracer(__name__)
 
+        target_org_id: PrefixedUUID7 = SystemOrganizations.ROOT_SYSTEM
+        if organization_id is not None:
+            target_org_id = organization_id
+        elif self._organization_id is not None:
+            target_org_id = self._organization_id
+
         with tracer.start_as_current_span("mcp.tool_call") as span:
             span.set_attribute("mcp.tool_id", descriptor.tool_id)
             span.set_attribute("mcp.gateway_id", gateway.id)
@@ -583,7 +601,19 @@ class ToolDispatcher:
             start_time = time.perf_counter()
             try:
                 async with asyncio.timeout(timeout_sec):
-                    response_summary = await self._mcp_client.call_tool(gateway, invocation_dto)
+                    if gateway.auth_type != MCPAuthType.NONE:
+                        resolved_credential = await self._secret_service.resolve_mcp_credential(
+                            organization_id=target_org_id,
+                            gateway=gateway,
+                        )
+                        response_summary = await self._mcp_client.call_tool(
+                            gateway,
+                            invocation_dto,
+                            organization_id=target_org_id,
+                            resolved_credential=resolved_credential,
+                        )
+                    else:
+                        response_summary = await self._mcp_client.call_tool(gateway, invocation_dto)
             except TimeoutError as te:
                 span.record_exception(te)
                 span.set_status(trace.StatusCode.ERROR, f"MCP tool execution timed out after {timeout_sec}s")

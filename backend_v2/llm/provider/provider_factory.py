@@ -12,6 +12,7 @@ from backend_v2.exceptions import (
 )
 from backend_v2.llm.provider.base_and_mock_provider import LLMProvider, MockProvider
 from backend_v2.llm.provider.env_and_schema_utils import _safe_static_getattr
+from backend_v2.models.auth import ResolvedCredentialDTO
 from backend_v2.models.enums import LLMProviderName
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.services.usage_service import UsageService
@@ -110,14 +111,18 @@ class LLMFactory:
         model_name: str,
         api_key: str | None,
         settings: Settings,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> str | None:
-        """Resolve and validate the provider API key from explicit overrides or environment settings.
+        """Resolve and validate the provider API key from ResolvedCredentialDTO, explicit overrides, or settings.
+
+        # Phase 3, Step 3.2: Receive non-nullable ResolvedCredentialDTO from SecretService
 
         Args:
             provider_type: Provider identifier string.
             model_name: Target model identifier string.
             api_key: Optional explicit API key override.
             settings: Active application settings instance.
+            resolved_credential: Optional tenant-scoped ResolvedCredentialDTO from SecretService.
 
         Returns:
             Resolved API key string or None for keyless providers (such as Vertex AI ADC).
@@ -125,6 +130,12 @@ class LLMFactory:
         Raises:
             ConfigurationError: If a required provider API key is missing (ErrorCodes.CONFIGURATION_ERROR).
         """
+        if resolved_credential is not None:
+            is_vertex = provider_type.lower() in (LLMProviderName.VERTEX_AI.value, "vertex_ai")
+            if is_vertex and not resolved_credential.is_tenant_byok:
+                return None
+            return resolved_credential.secret_value.get_secret_value()
+
         resolved_api_key = api_key
         match provider_type.lower():
             case LLMProviderName.VERTEX_AI.value | "vertex_ai":
@@ -187,8 +198,11 @@ class LLMFactory:
         config: LLMProviderConfig | None = None,
         tools: Sequence[Any] | None = None,
         enable_grounding: bool = False,
+        resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> LLMProvider:
         """Create a configured LLMProvider instance from explicit parameters or LLMProviderConfig.
+
+        # Phase 3, Step 3.2: Bind tenant-resolved ResolvedCredentialDTO into LiteLLMProvider
 
         Args:
             provider_type: Provider type key (specifically 'vertex_ai', 'ai_studio', 'openai', 'anthropic', 'litellm', 'mock').
@@ -201,6 +215,7 @@ class LLMFactory:
             config: Strict database-driven provider configuration object.
             tools: Optional sequence of tool definitions to validate grounding capabilities.
             enable_grounding: Explicit flag indicating whether grounding is requested.
+            resolved_credential: Optional non-nullable ResolvedCredentialDTO from SecretService.
 
         Returns:
             Configured LLMProvider instance.
@@ -232,6 +247,9 @@ class LLMFactory:
             limits = LLMFactory._resolve_config_limits(config=config, limits=limits)
             if config.api_key:
                 api_key = config.api_key
+
+        if resolved_credential is not None and not organization_id:
+            organization_id = resolved_credential.organization_id
 
         mock_model_name = "mock"
         if model_name:
@@ -270,6 +288,7 @@ class LLMFactory:
             model_name=model_name,
             api_key=api_key,
             settings=settings,
+            resolved_credential=resolved_credential,
         )
 
         active_litellm_provider_cls = _safe_static_getattr(provider_mod, "LiteLLMProvider", None)
@@ -288,14 +307,18 @@ class LLMFactory:
         if config is not None:
             supports_grounding = config.supports_grounding
 
-        res: LLMProvider = active_litellm_provider_cls(
-            model_name=model_name,
-            api_key=resolved_api_key,
-            settings=settings,
-            usage_service=usage_service,
-            organization_id=organization_id,
-            limits=limits,
-            supports_grounding=supports_grounding,
-            config=config,
-        )
+        provider_kwargs: dict[str, Any] = {
+            "model_name": model_name,
+            "api_key": resolved_api_key,
+            "settings": settings,
+            "usage_service": usage_service,
+            "organization_id": organization_id,
+            "limits": limits,
+            "supports_grounding": supports_grounding,
+            "config": config,
+        }
+        if resolved_credential is not None:
+            provider_kwargs["resolved_credential"] = resolved_credential
+
+        res: LLMProvider = active_litellm_provider_cls(**provider_kwargs)
         return res
