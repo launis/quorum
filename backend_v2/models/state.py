@@ -203,7 +203,10 @@ class TraceEvent(V2CoreBase):
     metadata: Annotated[
         TraceEventMetadataDTO,
         "Additional metadata.",
-    ] = Field(default_factory=TraceEventMetadataDTO, description="Additional metadata.")
+    ] = Field(
+        default_factory=lambda: TraceEventMetadataDTO(mcp_audit_traces=[]),
+        description="Additional metadata.",
+    )
     mcp_audit_traces: Annotated[
         list[MCPAuditTrace],
         "Associated MCP tool audit traces.",

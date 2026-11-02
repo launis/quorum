@@ -72,7 +72,7 @@ class LogicNodeStrategy(NodeStrategy):
         current_steps: list[Any] = []
         if isinstance(snapshot_data, list):
             current_steps = list(snapshot_data)
-        current_state = LogicNodeStateDTO(steps=current_steps)
+        current_state = LogicNodeStateDTO(steps=current_steps, dynamic_inputs={})
 
         blueprint_id = step.task_blueprint
         if not blueprint_id:

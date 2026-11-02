@@ -228,6 +228,7 @@ def build_llm_step_trace_events(
         context_char_length=stage3.context_char_length,
         prompt_contexts=stage3.prompt_contexts,
         generated_schema=generated_schema,
+        mcp_audit_traces=stage3.mcp_audit_traces,
     )
     output_event = TraceEvent(
         step_name=step.id,

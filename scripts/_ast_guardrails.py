@@ -41,6 +41,7 @@ __all__ = [
     "_is_dict_type_node",
     "_is_pytest_fixture_decorator",
     "_is_repository_identifier",
+    "_matches_residual_set",
     "format_violations_table",
     "is_boundary_exempt",
     "is_open_json_exempt",
@@ -213,6 +214,7 @@ RESIDUAL_BARE_FIELD_FILES: frozenset[str] = frozenset(
         "backend_v2/core/hook_registry.py",
         "backend_v2/core/registry.py",
         "backend_v2/exceptions.py",
+        "backend_v2/models/chunking.py",
         "backend_v2/models/domain/execution.py",
         "backend_v2/models/domain/inputs.py",
         "backend_v2/models/domain/matrix.py",
@@ -221,12 +223,17 @@ RESIDUAL_BARE_FIELD_FILES: frozenset[str] = frozenset(
         "backend_v2/models/domain/step.py",
         "backend_v2/models/domain/system_config.py",
         "backend_v2/models/domain/workflow.py",
+        "backend_v2/models/dtos/context_variables.py",
         "backend_v2/models/dtos/engine.py",
         "backend_v2/models/dtos/hook_state.py",
         "backend_v2/models/dtos/quote_evidence.py",
         "backend_v2/models/dtos/report_data.py",
+        "backend_v2/models/dtos/schema_manifest.py",
         "backend_v2/models/dtos/theory_manifest.py",
+        "backend_v2/models/dtos/workflow_schema.py",
+        "backend_v2/models/execution_core.py",
         "backend_v2/models/llm.py",
+        "backend_v2/models/state.py",
         "backend_v2/models/view/sdui.py",
         "backend_v2/services/chat_parser.py",
         "backend_v2/services/execution/ingress_service.py",
@@ -2573,13 +2580,13 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Remove redundant `= Field(...)` assignment or replace with literal/factory default per `pydantic_annotated_fields_mandate`.",
                     severity=GuardrailSeverity.FATAL,
                 )
-            # Phase 1, Step 1: QGR020 Check 20B - Bare Field(...) assignment without Annotated[...] on Pydantic classes
+            # Phase 1, Step 1: QGR020 Check 20B - Bare Field(...) assignment without Annotated[T, Field(...)] on Pydantic classes
             elif (
                 self._current_class_name in self._pydantic_base_classes_in_file
                 and self._function_depth == 0
                 and node.value is not None
                 and _is_field_call(node.value)
-                and not _is_annotated_subscript(node.annotation)
+                and not _has_annotated_field(node.annotation)
                 and not _matches_residual_set(self._normalized_path, RESIDUAL_BARE_FIELD_FILES)
             ):
                 self._add_violation(

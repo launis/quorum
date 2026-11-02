@@ -164,6 +164,16 @@ class LLMClient:
             )
             raise ConfigurationError("Repository dependency must be provided to LLMClient.from_tier.")
 
+        if not isinstance(tier, CognitiveTier):
+            logger.error(
+                "Invalid tier type passed to LLMClient.from_tier: expected CognitiveTier Enum, got %s.",
+                type(tier).__name__,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+            raise ConfigurationError(
+                f"LLMClient.from_tier requires a CognitiveTier Enum instance, got {type(tier).__name__}."
+            )
+
         # 0. Load Execution Pipelines from static registry
         if pipeline_name and pipeline_name in PIPELINE_REGISTRY:
             pipeline = PIPELINE_REGISTRY[pipeline_name]
@@ -214,8 +224,7 @@ class LLMClient:
             raise ConfigurationError(f"ModelRegistry is severely corrupted or empty: {registry}")
 
         # 3. Resolve Tier directly from flat tier_definitions in O(1)
-        tier_enum = tier if isinstance(tier, CognitiveTier) else CognitiveTier(str(tier).lower())
-        if tier_enum not in registry.tier_definitions:
+        if tier not in registry.tier_definitions:
             logger.error(
                 "CognitiveTier '%s' not found in registry '%s' tier_definitions.",
                 tier,
@@ -227,7 +236,7 @@ class LLMClient:
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
-        target_strategy = registry.tier_definitions[tier_enum]
+        target_strategy = registry.tier_definitions[tier]
 
         # Fail-Fast check on provider override mismatch if explicitly specified
         if provider is not None and provider != target_strategy.provider:

@@ -301,9 +301,10 @@ class TraceEventMetadataDTO(V2CoreBase):
         dict[str, JsonValue] | None, Field(default=None, description="Dynamic generated schema")
     ] = None
     is_context_update: Annotated[bool, Field(default=False, description="Indicates context update decision")] = False
-    mcp_audit_traces: Annotated[list[MCPAuditTrace], "MCP tool audit traces"] = Field(
-        default_factory=list, description="MCP tool audit traces"
-    )
+    mcp_audit_traces: Annotated[
+        list[MCPAuditTrace],
+        Field(default_factory=list, description="MCP tool audit traces"),
+    ]
     estimated_token_count: Annotated[int | None, Field(default=None, description="Estimated token count")] = None
     step_metadata: Annotated[
         StepTraceMetadataDTO | None,

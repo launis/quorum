@@ -28,7 +28,7 @@ if _workspace_root not in sys.path:
     sys.path.insert(0, _workspace_root)
 
 from scripts._ast_boundary_utils import extract_target_files
-from scripts._ast_guardrails import is_boundary_exempt
+from scripts._ast_guardrails import RESIDUAL_BARE_FIELD_FILES, _matches_residual_set, is_boundary_exempt
 from scripts._dart_guardrails import scan_dart_source
 from scripts._script_base import ANSIColors, GuardrailSeverity, get_repo_root, setup_script_environment
 
@@ -197,6 +197,17 @@ def _has_annotated_field(node: ast.AST | None) -> bool:
     return False
 
 
+def _is_annotated_subscript(node: ast.AST | None) -> bool:
+    """Checks whether an annotation is an Annotated[...] subscript."""
+    if isinstance(node, ast.Subscript):
+        match node.value:
+            case ast.Name(id="Annotated") | ast.Attribute(attr="Annotated"):
+                return True
+            case _:
+                return False
+    return False
+
+
 def _is_empty_or_pass_body(body: list[ast.stmt]) -> bool:
     """Checks if an AST statement list consists solely of pass or docstrings."""
     if not body:
@@ -217,11 +228,13 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         self.filepath = filepath
         self.findings: list[TechnicalDebtFindingDTO] = []
         normalized = filepath.replace("\\", "/")
+        self.normalized_path = normalized
         path_parts = set(normalized.strip("/").split("/"))
         self.is_test = "backend_v2/tests/" in normalized or "tests" in path_parts
         self.is_exempt = is_boundary_exempt(filepath)
         self.current_class_name: str | None = None
         self.test_function_names: list[str] = []
+        self._dict_literal_vars: set[str] = set()
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         prev_class = self.current_class_name
@@ -244,7 +257,13 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
                             debt_category="python_ast_mutable_defaults",
                         )
                     )
-                if _has_annotated_field(item.annotation) and _is_field_call(item.value):
+                if (
+                    _has_annotated_field(item.annotation)
+                    or (
+                        _is_annotated_subscript(item.annotation)
+                        and not _matches_residual_set(self.normalized_path, RESIDUAL_BARE_FIELD_FILES)
+                    )
+                ) and _is_field_call(item.value):
                     self.findings.append(
                         TechnicalDebtFindingDTO(
                             rule_code="QGR020",
@@ -277,17 +296,41 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
         self.generic_visit(node)
         self.current_class_name = prev_class
 
+    def visit_Assign(self, node: ast.Assign) -> None:
+        is_dict_lit = isinstance(node.value, ast.Dict)
+        for t in node.targets:
+            if isinstance(t, ast.Name):
+                if is_dict_lit:
+                    self._dict_literal_vars.add(t.id)
+                else:
+                    self._dict_literal_vars.discard(t.id)
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        if isinstance(node.target, ast.Name):
+            if isinstance(node.value, ast.Dict):
+                self._dict_literal_vars.add(node.target.id)
+            else:
+                self._dict_literal_vars.discard(node.target.id)
+        self.generic_visit(node)
+
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         self._check_function_defaults(node)
         if node.name.startswith("test_"):
             self.test_function_names.append(node.name)
+        saved_dict_vars = set(self._dict_literal_vars)
+        self._dict_literal_vars.clear()
         self.generic_visit(node)
+        self._dict_literal_vars = saved_dict_vars
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         self._check_function_defaults(node)
         if node.name.startswith("test_"):
             self.test_function_names.append(node.name)
+        saved_dict_vars = set(self._dict_literal_vars)
+        self._dict_literal_vars.clear()
         self.generic_visit(node)
+        self._dict_literal_vars = saved_dict_vars
 
     def _check_function_defaults(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         # Item 4: Mutable default arguments
@@ -362,7 +405,7 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
                 match receiver:
                     case ast.Attribute(value=ast.Name(id="os"), attr="environ") | ast.Name(id="environ"):
                         exempt = True
-                    case ast.Attribute(attr="headers") | ast.Name(id="headers"):
+                    case ast.Attribute(attr="headers" | "driver") | ast.Name(id="headers"):
                         exempt = True
                     case ast.Name(id=name) if name in {
                         "client",
@@ -400,7 +443,10 @@ class _PythonTechnicalDebtVisitor(ast.NodeVisitor):
                 isinstance(node.func, ast.Attribute)
                 and node.func.attr == "model_validate"
                 and node.args
-                and isinstance(node.args[0], ast.Dict)
+                and (
+                    isinstance(node.args[0], ast.Dict)
+                    or (isinstance(node.args[0], ast.Name) and node.args[0].id in self._dict_literal_vars)
+                )
             ):
                 self.findings.append(
                     TechnicalDebtFindingDTO(

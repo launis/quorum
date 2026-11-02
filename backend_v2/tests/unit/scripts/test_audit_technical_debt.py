@@ -151,10 +151,11 @@ from pydantic import BaseModel, Field
 class MyModel(BaseModel):
     items: list[str] = []
     field_dup: Annotated[int, Field(ge=0)] = Field(default=0)
+    field_str_annotated: Annotated[int, "description"] = Field(default=0)
 """
     findings = scan_python_technical_debt("backend_v2/models/sample.py", source_text=code)
     qgr020_findings = [f for f in findings if f.rule_code == "QGR020"]
-    assert len(qgr020_findings) >= 2
+    assert len(qgr020_findings) >= 3
 
 
 def test_scan_python_technical_debt_clean_python_code() -> None:
@@ -214,10 +215,13 @@ from backend_v2.models.domain.workflow import Workflow
 
 def test_create_workflow():
     wf = Workflow.model_validate({"id": "wf_123", "name": "Test"})
-    assert wf.id == "wf_123"
+    raw_var = {"id": "wf_456", "name": "Test2"}
+    wf2 = Workflow.model_validate(raw_var)
+    assert wf.id == "wf_123" and wf2.id == "wf_456"
 """
     findings = scan_python_technical_debt("backend_v2/tests/unit/test_workflow.py", source_text=code)
-    assert any(f.rule_code == "TD_MODEL_FACTORY" for f in findings)
+    td_factory_findings = [f for f in findings if f.rule_code == "TD_MODEL_FACTORY"]
+    assert len(td_factory_findings) == 2
 
 
 def test_scan_dart_technical_debt_clean(tmp_path: Path) -> None:

@@ -111,7 +111,7 @@ def _append_causal_fusion_and_cohesion_events(
             )
         )
         gvar_evt = GlobalContextVarsDTO(evaluative_matrices={m_id: eval_dto.score_result.score})
-        meta_upd = TraceEventMetadataDTO(is_context_update=True)
+        meta_upd = TraceEventMetadataDTO(is_context_update=True, mcp_audit_traces=[])
         events.append(TraceEvent(step_name=src_step_id, event_type="decision", metadata=meta_upd, content=gvar_evt))
 
 

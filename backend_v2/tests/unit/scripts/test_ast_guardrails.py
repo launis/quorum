@@ -2653,6 +2653,7 @@ def test_qgr020_bare_field_without_annotated_raises_fatal() -> None:
     # Phase 1, Step 3: Verify bare Field(...) on Pydantic model without Annotated[...] triggers QGR020
     code = '''"""Module docstring."""
 
+from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -2661,11 +2662,12 @@ class SampleDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid")
     count: int = Field(default=1, ge=0)
+    string_annotated: Annotated[int, "dummy string"] = Field(default=1)
 '''
     violations = _scan_snippet(code, filepath="backend_v2/models/dtos/new_sample.py")
     qgr020 = [v for v in violations if v.rule_code == "QGR020"]
-    assert len(qgr020) == 1
-    assert qgr020[0].severity == GuardrailSeverity.FATAL
+    assert len(qgr020) == 2
+    assert all(v.severity == GuardrailSeverity.FATAL for v in qgr020)
     assert "Bare `= Field(...)` assignment without PEP 593 `Annotated[...]`" in qgr020[0].message
 
 

@@ -171,7 +171,10 @@ def reduce_hook_delta(
                     step_name=effective_step,
                     event_type="decision",
                     content={"estimated_token_count": meta_delta.estimated_token_count},
-                    metadata=TraceEventMetadataDTO(estimated_token_count=meta_delta.estimated_token_count),
+                    metadata=TraceEventMetadataDTO(
+                        estimated_token_count=meta_delta.estimated_token_count,
+                        mcp_audit_traces=[],
+                    ),
                 )
             )
 
@@ -192,7 +195,7 @@ def reduce_hook_delta(
                     step_name=effective_step,
                     event_type="decision",
                     content={"passivity_detected": delta.passivity_detected},
-                    metadata=TraceEventMetadataDTO(is_context_update=True),
+                    metadata=TraceEventMetadataDTO(is_context_update=True, mcp_audit_traces=[]),
                 )
             )
         elif isinstance(delta, AnomalyRetryResultDTO):
@@ -237,7 +240,7 @@ def reduce_hook_delta(
                     step_name=effective_step,
                     event_type="decision",
                     content={"evaluative_matrices": cast(JsonValue, merged_eval)},
-                    metadata=TraceEventMetadataDTO(is_context_update=True),
+                    metadata=TraceEventMetadataDTO(is_context_update=True, mcp_audit_traces=[]),
                 )
             )
         elif isinstance(delta, (AnalystOutput, EvaluationResult)):
@@ -278,7 +281,7 @@ def reduce_hook_delta(
                     step_name=effective_step,
                     event_type="decision",
                     content={"step_linguistics": delta.model_dump(mode="json")},
-                    metadata=TraceEventMetadataDTO(is_context_update=True),
+                    metadata=TraceEventMetadataDTO(is_context_update=True, mcp_audit_traces=[]),
                 )
             )
         elif isinstance(delta, LLMProviderConfig):
@@ -296,7 +299,7 @@ def reduce_hook_delta(
                     step_name=effective_step,
                     event_type="decision",
                     content=delta.model_dump(mode="json"),
-                    metadata=TraceEventMetadataDTO(is_context_update=True),
+                    metadata=TraceEventMetadataDTO(is_context_update=True, mcp_audit_traces=[]),
                 )
             )
 

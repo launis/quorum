@@ -222,6 +222,16 @@ class TestLLMClientTiersFailFast:
             await LLMClient.from_tier(tier=CognitiveTier.FAST, repository=None)
 
     @pytest.mark.asyncio
+    async def test_non_enum_tier_string_raises_configuration_error(
+        self,
+        fake_repository: InMemorySystemRepository,
+    ) -> None:
+        """ISTQB Negative Test: passing a raw string instead of CognitiveTier Enum raises ConfigurationError."""
+        raw_tier = cast(CognitiveTier, cast(object, "fast"))
+        with pytest.raises(ConfigurationError, match="requires a CognitiveTier Enum instance"):
+            await LLMClient.from_tier(tier=raw_tier, repository=fake_repository)
+
+    @pytest.mark.asyncio
     async def test_unconfigured_provider_raises_configuration_error(
         self,
         fake_repository: InMemorySystemRepository,
