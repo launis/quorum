@@ -338,12 +338,15 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
                 target_dir = Path(target_clean.strip("/"))
                 test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:])
                 test_file = Path("backend_v2/tests/unit") / "/".join(parts[1:-1]) / f"test_{target_stem}.py"
-                if test_dir.exists():
+                has_test_dir = test_dir.exists()
+                if has_test_dir and len(parts) <= 2:
                     test_path = str(test_dir).replace("\\", "/")
                 elif test_file.exists():
                     test_path = str(test_file).replace("\\", "/")
                 else:
                     discovered_tests: list[str] = []
+                    if has_test_dir:
+                        discovered_tests.append(str(test_dir).replace("\\", "/"))
                     parent_test_dir = Path("backend_v2/tests/unit") / "/".join(parts[1:-1])
                     if parent_test_dir.exists():
                         for m in sorted(parent_test_dir.glob(f"test_{target_stem}*.py")):
