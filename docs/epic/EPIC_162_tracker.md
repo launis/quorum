@@ -86,7 +86,7 @@
   - [x] @[backend_v2/services/orchestrator/dag_executor/execution_committer.py]
   - [x] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]
   - [x] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
-  - [ ] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
+  - [x] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py]
   - [ ] @[backend_v2/services/studio/output_profile_service.py]
   - [ ] @[backend_v2/services/studio/workflow_service.py]
