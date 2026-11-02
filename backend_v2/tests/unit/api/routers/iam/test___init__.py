@@ -20,9 +20,17 @@ from backend_v2.tests.unit import test_organizations as org_tests
 from backend_v2.tests.unit import test_users as user_tests
 from backend_v2.tests.unit.test_auth import (
     mock_repo as mock_repo,
+)
+from backend_v2.tests.unit.test_auth import (
     test_auth_router_exchange_logout_and_impersonate_flow as test_auth_router_exchange_logout_and_impersonate_flow,
+)
+from backend_v2.tests.unit.test_auth import (
     test_auth_router_get_my_profile as test_auth_router_get_my_profile,
+)
+from backend_v2.tests.unit.test_auth import (
     test_auth_router_impersonate_and_profile_negative as test_auth_router_impersonate_and_profile_negative,
+)
+from backend_v2.tests.unit.test_auth import (
     test_auth_router_list_roles as test_auth_router_list_roles,
 )
 

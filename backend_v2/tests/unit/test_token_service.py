@@ -278,9 +278,7 @@ async def test_verify_token_ram_decode_zero_db_queries_positive(
         get_settings_fn=lambda: mock_settings,
     )
 
-    exchange_res = await token_service.exchange_firebase_token(
-        TokenExchangeRequestDTO(target_user_id=user.id)
-    )
+    exchange_res = await token_service.exchange_firebase_token(TokenExchangeRequestDTO(target_user_id=user.id))
     calls_before_verify = mock_repo.get_call_count("get_user")
     assert calls_before_verify == 1
 
@@ -477,23 +475,17 @@ async def test_exchange_firebase_token_inactive_deleted_or_revoked_user_negative
 
     # Inactive user
     with pytest.raises(AuthenticationError) as exc_inactive:
-        await token_service.exchange_firebase_token(
-            TokenExchangeRequestDTO(target_user_id=inactive_user.id)
-        )
+        await token_service.exchange_firebase_token(TokenExchangeRequestDTO(target_user_id=inactive_user.id))
     assert exc_inactive.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
 
     # Soft-deleted user
     with pytest.raises(AuthenticationError) as exc_deleted:
-        await token_service.exchange_firebase_token(
-            TokenExchangeRequestDTO(target_user_id=deleted_user.id)
-        )
+        await token_service.exchange_firebase_token(TokenExchangeRequestDTO(target_user_id=deleted_user.id))
     assert exc_deleted.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
 
     # Revoked user lock in RevocationCache
     with pytest.raises(AuthenticationError) as exc_revoked:
-        await token_service.exchange_firebase_token(
-            TokenExchangeRequestDTO(target_user_id=revoked_user.id)
-        )
+        await token_service.exchange_firebase_token(TokenExchangeRequestDTO(target_user_id=revoked_user.id))
     assert exc_revoked.value.error_code == ErrorCodes.AUTH_TOKEN_EXPIRED
 
 

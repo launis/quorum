@@ -10,20 +10,24 @@ import itertools
 import json
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
-from pydantic import JsonValue
+from pydantic import JsonValue, ValidationError
 
+from backend_v2.models.auth import SYSTEM_ROOT_USER_ID, CliSessionStateDTO, TokenExchangeResponseDTO, User
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.step import ExpectedInput
+from backend_v2.models.enums import SystemLocale, UserRole
 from backend_v2.services.chat_normalizer import ChatNormalizerService
 from scripts.run_e2e_variance_test import (
     UNICODE_SPACE_REGISTRY,
     _ensure_user_turn_marker,
+    _get_or_refresh_cli_session,
     _match_input_key,
     check_backend,
     force_kill_services,
@@ -36,6 +40,23 @@ from scripts.run_e2e_variance_test import (
     trigger_execution,
     validate_execution_kelvollisuus,
 )
+
+
+@pytest.fixture(autouse=True)
+def _default_cli_session_patch(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stub _get_or_refresh_cli_session by default outside TestCliSessionTokenExchange."""
+    if request.cls is not None and request.cls.__name__ == "TestCliSessionTokenExchange":
+        return
+    default_session = CliSessionStateDTO(
+        access_token="quorum.local.jwt.token",
+        expires_at_monotonic=999999999.0,
+        user_id=SYSTEM_ROOT_USER_ID,
+    )
+    monkeypatch.setattr(
+        "scripts.run_e2e_variance_test._get_or_refresh_cli_session",
+        lambda base_url, target_user_id, current_session=None: default_session,
+        raising=False,
+    )
 
 
 class TestRunMarkerInjection:
@@ -1690,3 +1711,131 @@ class TestCoverageExpansion:
 
         with pytest.raises(AssertionError, match="chimera acceptance rate"):
             verify_offline_ablation_benchmark(min_pass_rate=0.0, max_chimera_rate=-1.0, selected_configs=[1])
+
+
+class TestCliSessionTokenExchange:
+    """Unit tests for _get_or_refresh_cli_session and 13-minute CLI session auto-refresh."""
+
+    @staticmethod
+    def _build_exchange_response_dto(
+        user_id: str = SYSTEM_ROOT_USER_ID, token: str = "jwt.access.token.12345"
+    ) -> TokenExchangeResponseDTO:
+        """Build a valid TokenExchangeResponseDTO instance."""
+        user = User(
+            id=user_id,
+            email="admin@quorum.ai",
+            name="Admin",
+            role=UserRole.ROOT,
+            organization_id="org_0195f3a0000070008000000000000001",
+            is_active=True,
+            language=SystemLocale.FI,
+            theme_mode="system",
+            created_at=datetime.now(UTC),
+        )
+        return TokenExchangeResponseDTO(
+            access_token=token,
+            token_type="bearer",
+            expires_in_seconds=900,
+            user=user,
+        )
+
+    def test_get_or_refresh_cli_session_initial_exchange_positive(self) -> None:
+        """Positive: Initial call with current_session=None exchanges target_user_id for 15-min JWT with 13-min refresh horizon."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = self._build_exchange_response_dto(token="jwt.initial.token.12345").model_dump(
+            mode="json"
+        )
+
+        with (
+            patch("scripts.run_e2e_variance_test.requests.post", return_value=mock_resp) as mock_post,
+            patch("scripts.run_e2e_variance_test.time.monotonic", return_value=1000.0),
+        ):
+            session = _get_or_refresh_cli_session(
+                base_url="http://127.0.0.1:8000/api/v2",
+                target_user_id=SYSTEM_ROOT_USER_ID,
+                current_session=None,
+            )
+
+        assert session.access_token == "jwt.initial.token.12345"
+        assert session.user_id == SYSTEM_ROOT_USER_ID
+        assert session.expires_at_monotonic == 1780.0
+        mock_post.assert_called_once()
+        call_url = mock_post.call_args[0][0]
+        assert call_url == "http://127.0.0.1:8000/api/v2/iam/auth/exchange"
+        sent_json = mock_post.call_args[1]["json"]
+        assert sent_json["target_user_id"] == SYSTEM_ROOT_USER_ID
+
+    def test_get_or_refresh_cli_session_reuses_valid_session_boundary(self) -> None:
+        """Boundary: Reuses existing session without HTTP call when time.monotonic() < expires_at_monotonic."""
+        existing = CliSessionStateDTO(
+            access_token="jwt.cached.token.12345",
+            expires_at_monotonic=1780.0,
+            user_id=SYSTEM_ROOT_USER_ID,
+        )
+        with (
+            patch("scripts.run_e2e_variance_test.requests.post") as mock_post,
+            patch("scripts.run_e2e_variance_test.time.monotonic", return_value=1779.9),
+        ):
+            session = _get_or_refresh_cli_session(
+                base_url="http://127.0.0.1:8000/api/v2",
+                target_user_id=SYSTEM_ROOT_USER_ID,
+                current_session=existing,
+            )
+
+        assert session == existing
+        mock_post.assert_not_called()
+
+    def test_get_or_refresh_cli_session_refreshes_at_13_minute_horizon_boundary(self) -> None:
+        """Boundary: Automatically refreshes token when time.monotonic() >= expires_at_monotonic."""
+        expiring = CliSessionStateDTO(
+            access_token="jwt.old.token.12345",
+            expires_at_monotonic=1780.0,
+            user_id=SYSTEM_ROOT_USER_ID,
+        )
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = self._build_exchange_response_dto(token="jwt.refreshed.token.67890").model_dump(
+            mode="json"
+        )
+
+        with (
+            patch("scripts.run_e2e_variance_test.requests.post", return_value=mock_resp) as mock_post,
+            patch("scripts.run_e2e_variance_test.time.monotonic", return_value=1780.0),
+        ):
+            session = _get_or_refresh_cli_session(
+                base_url="http://127.0.0.1:8000/api/v2",
+                target_user_id=SYSTEM_ROOT_USER_ID,
+                current_session=expiring,
+            )
+
+        assert session.access_token == "jwt.refreshed.token.67890"
+        assert session.expires_at_monotonic == 1780.0 + 900.0 - 120.0
+        mock_post.assert_called_once()
+
+    def test_get_or_refresh_cli_session_http_error_negative(self) -> None:
+        """Negative: Propagates requests.HTTPError when token exchange fails with 401."""
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status.side_effect = requests.HTTPError("401 Unauthorized")
+
+        with patch("scripts.run_e2e_variance_test.requests.post", return_value=mock_resp):
+            with pytest.raises(requests.HTTPError, match="401 Unauthorized"):
+                _get_or_refresh_cli_session(
+                    base_url="http://127.0.0.1:8000/api/v2",
+                    target_user_id=SYSTEM_ROOT_USER_ID,
+                    current_session=None,
+                )
+
+    def test_get_or_refresh_cli_session_invalid_response_schema_negative(self) -> None:
+        """Negative: Raises ValidationError when exchange endpoint returns malformed payload."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"unexpected": "payload"}
+
+        with patch("scripts.run_e2e_variance_test.requests.post", return_value=mock_resp):
+            with pytest.raises(ValidationError):
+                _get_or_refresh_cli_session(
+                    base_url="http://127.0.0.1:8000/api/v2",
+                    target_user_id=SYSTEM_ROOT_USER_ID,
+                    current_session=None,
+                )

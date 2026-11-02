@@ -21,6 +21,7 @@ import requests
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.auth import SYSTEM_ROOT_USER_ID
 from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.matrix import AntiPattern, ContrastivePairDTO, MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
@@ -85,6 +86,7 @@ from backend_v2.services.orchestrator.synthesis_payload_compressor import Synthe
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.sdui.sdui_mapper_service import SduiMapperService
 from backend_v2.settings import get_settings
+from scripts.run_e2e_variance_test import _get_or_refresh_cli_session
 
 logger = logging.getLogger(__name__)
 
@@ -786,20 +788,16 @@ def test_integration_real_llm_topological_deficit_and_brief_validation_negative(
     """Negative & Boundary: Verify MatrixFailureDeficitDTO, CausalSynthesisBriefDTO, and compressor reject invalid inputs."""
     # Phase 4, Step 4.3: Negative & boundary validation for topological synthesis contracts
     with pytest.raises(ValidationError):
-        MatrixFailureDeficitDTO.model_validate(
-            {
-                "claim": "Invalid Passed Deficit",
-                "status": "PASSED",
-                "scale_score": 1,
-            }
+        MatrixFailureDeficitDTO(
+            claim="Invalid Passed Deficit",
+            status=ExecutionStatus.PASSED,
+            scale_score=1,
         )
 
     with pytest.raises(ValidationError):
-        CausalSynthesisBriefDTO.model_validate(
-            {
-                "intact_propositions": -1,
-                "total_propositions": 2,
-            }
+        CausalSynthesisBriefDTO(
+            intact_propositions=-1,
+            total_propositions=2,
         )
 
     with pytest.raises(AppException) as exc_info:
@@ -912,13 +910,18 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
     else:
         logger.info("Backend is already running. Re-using active instance.")
 
+    # Phase 2, Step 2.3: Exchange headless CLI target_user_id for 15-minute Quorum Local JWT with 13-minute auto-refresh
+    base_api_url = "http://127.0.0.1:8000/api/v2"
+    admin_user_id = "usr_0195f3a00000700188a0d5f6151349a5"
+    cli_session = _get_or_refresh_cli_session(base_api_url, admin_user_id)
+    root_session = _get_or_refresh_cli_session(base_api_url, SYSTEM_ROOT_USER_ID)
     headers = {
-        "Authorization": "Bearer mock-token:usr_0195f3a00000700188a0d5f6151349a5",
+        "Authorization": f"Bearer {cli_session.access_token}",
         "Content-Type": "application/json",
         "Accept-Language": "fi",
     }
     root_headers = {
-        "Authorization": "Bearer mock-token:usr_0195f3a00000700a83fd6b3d77c748f4",
+        "Authorization": f"Bearer {root_session.access_token}",
         "Content-Type": "application/json",
         "Accept-Language": "fi",
     }
@@ -926,7 +929,7 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
 
     try:
         gw_get_res = requests.get(
-            f"http://127.0.0.1:8000/api/v2/studio/mcp-gateways/{DEFAULT_GATEWAY_ID}",
+            f"{base_api_url}/studio/mcp-gateways/{DEFAULT_GATEWAY_ID}",
             headers=root_headers,
             timeout=15,
         )
@@ -934,7 +937,7 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
             original_gateway = SystemConfigMCPGateways.model_validate_json(gw_get_res.text)
             updated_gateway = original_gateway.model_copy(update={"endpoint_url": f"http://127.0.0.1:{mcp_port}/mcp"})
             gw_put_res = requests.put(
-                f"http://127.0.0.1:8000/api/v2/studio/mcp-gateways/{DEFAULT_GATEWAY_ID}",
+                f"{base_api_url}/studio/mcp-gateways/{DEFAULT_GATEWAY_ID}",
                 data=updated_gateway.model_dump_json(),
                 headers=root_headers,
                 timeout=15,
@@ -953,9 +956,9 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
         payload = {"workflow_id": workflow_id, "target_locale": "fi", "raw_inputs": {"dynamic_inputs": dynamic_inputs}}
 
         logger.info("Sending execution POST request to backend...")
-        response = requests.post(
-            "http://127.0.0.1:8000/api/v2/execution/executions/", json=payload, headers=headers, timeout=30
-        )
+        cli_session = _get_or_refresh_cli_session(base_api_url, admin_user_id, cli_session)
+        headers["Authorization"] = f"Bearer {cli_session.access_token}"
+        response = requests.post(f"{base_api_url}/execution/executions/", json=payload, headers=headers, timeout=30)
 
         assert response.status_code == 202, f"Failed to start execution: {response.text}"
 
@@ -967,8 +970,10 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
         completed = False
 
         while time.time() - start_time < WAIT_TIMEOUT:
+            cli_session = _get_or_refresh_cli_session(base_api_url, admin_user_id, cli_session)
+            headers["Authorization"] = f"Bearer {cli_session.access_token}"
             status_res = requests.get(
-                f"http://127.0.0.1:8000/api/v2/execution/executions/{execution_id}", headers=headers, timeout=30
+                f"{base_api_url}/execution/executions/{execution_id}", headers=headers, timeout=30
             )
 
             assert status_res.status_code == 200, f"Failed to get execution status: {status_res.text}"
@@ -989,8 +994,10 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
         assert completed, f"Execution {execution_id} timed out after {WAIT_TIMEOUT} seconds."
 
         logger.info("Requesting report generation via canonical reports endpoint...")
+        cli_session = _get_or_refresh_cli_session(base_api_url, admin_user_id, cli_session)
+        headers["Authorization"] = f"Bearer {cli_session.access_token}"
         create_report_res = requests.post(
-            f"http://127.0.0.1:8000/api/v2/executions/{execution_id}/reports",
+            f"{base_api_url}/executions/{execution_id}/reports",
             json={"profile_id": "prf_0195f3a0000070058d6e7f8091a2b3c4"},
             headers=headers,
             timeout=30,
@@ -1005,8 +1012,10 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
         render_start = time.time()
         pdf_ready = False
         while time.time() - render_start < 120:
+            cli_session = _get_or_refresh_cli_session(base_api_url, admin_user_id, cli_session)
+            headers["Authorization"] = f"Bearer {cli_session.access_token}"
             status_res = requests.get(
-                f"http://127.0.0.1:8000/api/v2/reports/{report_id}",
+                f"{base_api_url}/reports/{report_id}",
                 headers=headers,
                 timeout=30,
             )
@@ -1029,8 +1038,10 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
         assert pdf_ready, f"Report generation timed out for {report_id}"
 
         logger.info("Verifying generated PDF via canonical reports PDF endpoint...")
+        cli_session = _get_or_refresh_cli_session(base_api_url, admin_user_id, cli_session)
+        headers["Authorization"] = f"Bearer {cli_session.access_token}"
         pdf_res = requests.get(
-            f"http://127.0.0.1:8000/api/v2/reports/{report_id}/pdf",
+            f"{base_api_url}/reports/{report_id}/pdf",
             headers=headers,
             timeout=30,
         )
@@ -1051,8 +1062,10 @@ async def test_real_llm_pdf_execution() -> None:  # pragma: no cover
     finally:
         if original_gateway is not None and is_backend_running():
             try:
+                root_session = _get_or_refresh_cli_session(base_api_url, SYSTEM_ROOT_USER_ID, root_session)
+                root_headers["Authorization"] = f"Bearer {root_session.access_token}"
                 requests.put(
-                    f"http://127.0.0.1:8000/api/v2/studio/mcp-gateways/{DEFAULT_GATEWAY_ID}",
+                    f"{base_api_url}/studio/mcp-gateways/{DEFAULT_GATEWAY_ID}",
                     data=original_gateway.model_dump_json(),
                     headers=root_headers,
                     timeout=10,

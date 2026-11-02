@@ -43,13 +43,13 @@
 ### Phase 2: Session Upgrade, Token Exchange Engine, Headless CLI Governance & Multi-Role Guard
 **Plan:** @[docs/epic/tasks_EPIC_160/02_phase2_plan.md]
 - [x] **[OK] Create Plan:** Plan generated in @[docs/epic/tasks_EPIC_160/02_phase2_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`
   - [x] Step 0: PRE-FLIGHT & SELF-HYDRATION
   - [x] Step 2.1: `TokenService` Session Upgrade (`exchange_firebase_token`), Mandatory 2FA Enforcement & 0.1 ms RAM Verification
   - [x] Step 2.2: Token Exchange & Logout Router Endpoints, IAM Router SSOT Consolidation & Multi-Role Dependency Guard
-  - [ ] Step 2.3: Headless CLI, E2E Variance Runner (`run_e2e_variance_test.py`) & Background Worker Session Governance
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 2.3: Headless CLI, E2E Variance Runner (`run_e2e_variance_test.py`) & Background Worker Session Governance
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 
 ### Phase 3: Enterprise BYOK & Cloud Secrets Engine for LLM & MCP Services
@@ -196,7 +196,7 @@
 | REQ-160-003 | Extend PostgreSQL 19 Zero-ORM schema (`001_pg19_uuidv7_schema.sql`), `PostgresEntityAdapter`, `PostgresUnitOfWork` (`RESET quorum.current_org`), `audit_zero_orm_strictness.py` (15 tables), and hermetic `in_memory_uow.py` with `invitations`, `tenant_secrets`, and `execution_assignments` | Phase 1, Step 1.3 | [x] Completed |
 | REQ-160-004 | Implement `TokenService.exchange_firebase_token` (enforcing mandatory 2FA `firebase.sign_in_second_factor` and headless CLI `target_user_id` exchange) and refactor `TokenService.verify_token` to 0.1 ms RAM-only decode with zero DB queries and zero `mock-token:` branches | Phase 2, Step 2.1 | [x] Completed |
 | REQ-160-005 | Expose `POST /api/v2/iam/auth/exchange`, `POST /api/v2/iam/auth/logout`, and RFC 8693 `POST /api/v2/iam/auth/impersonate`, remove `verify_user_token` and duplicate `/auth/users*` shadow routes, and upgrade `require_role` to `Sequence[UserRole] \| UserRole` | Phase 2, Step 2.2 | [x] Completed |
-| REQ-160-006 | Migrate `scripts/run_e2e_variance_test.py` and `test_integration_real_llm.py` to `_get_or_refresh_cli_session` (`CliSessionStateDTO` created in Phase 1) with 13-minute auto-refresh and remediate all `TD_DICT_GET` and `TD_MODEL_FACTORY` warnings | Phase 2, Step 2.3 | [ ] Pending |
+| REQ-160-006 | Migrate `scripts/run_e2e_variance_test.py` and `test_integration_real_llm.py` to `_get_or_refresh_cli_session` (`CliSessionStateDTO` created in Phase 1) with 13-minute auto-refresh and remediate all `TD_DICT_GET` and `TD_MODEL_FACTORY` warnings | Phase 2, Step 2.3 | [x] Completed |
 | REQ-160-007 | Create `SecretService` in `[NEW] backend_v2/services/auth/secret_service.py` supporting `CLOUD_SECRET_MANAGER` and `ENVELOPE_KMS` (AES-256-GCM DEK + Cloud KMS KEK with `kek_version`) with a Single-Pipeline Non-Nullable `ResolvedCredentialDTO` contract | Phase 3, Step 3.1 | [ ] Pending |
 | REQ-160-008 | Inject request-scoped `pydantic.SecretStr` credentials dynamically per `organization_id` into `LLMFactory`, `LiteLLMProvider`, `ToolDispatcher`, and `GenericMCPClient` with zero cross-tenant bleed | Phase 3, Step 3.2 | [ ] Pending |
 | REQ-160-009 | Expose organization BYOK endpoints (`GET`, `PUT`, `DELETE` under `/api/v2/iam/organizations/{org_id}/secrets`) and add AST guardrail in `scripts/_ast_guardrails.py` preventing `SecretStr.get_secret_value()` leakage | Phase 3, Step 3.3 | [ ] Pending |
@@ -216,16 +216,21 @@
   - **Step 1.1**: Physically deleted the 4 obsolete IAM draft documents and `@[backend_v2/services/auth/constants.py]`, relocated `SYSTEM_ROOT_USER_ID = "usr_0195f3a00000700a83fd6b3d77c748f4"` to `@[backend_v2/models/auth.py]`, centralized all 16 IAM/JWT/MFA/BYOK/Email/KMS settings on `Settings` in `@[backend_v2/settings.py]`, eradicated the `TD_DICT_GET` warnings in `@[backend_v2/database/repositories/identity.py]` by delegating through `EntityPersistencePort`, and remediated all touched-scope `TD_ISTQB_NEGATIVE` and `TD_MODEL_FACTORY` warnings across IAM test suites (`0` findings on `audit_technical_debt.py`).
   - **Step 1.2**: Migrated `UserRole` and `SubscriptionStatus` to `@[backend_v2/models/enums.py]`, added `InvitationStatus`, `AssignmentStatus`, `AssignmentResultVisibility`, `EmailTransportMode`, `EmailDeliveryStatus`, `SecretScope`, `SecretStorageMode`, and `EntityPrefix` (`INVITATION = "inv"`, `TENANT_SECRET = "sec"`, `ASSIGNMENT = "tsk"`), added the 7 IAM/BYOK/Assignment error codes to `@[backend_v2/exceptions.py]`, demolished `LEGACY_SYSTEM`, `TokenPayload`, and `LoginResponse`, set `SystemOrganizations.ROOT_SYSTEM = "org_0195f3a0000070008000000000000001"`, and created all strict `PrefixedUUID7` IAM, Invitation, Task Assignment, and BYOK DTOs in `@[backend_v2/models/auth.py]` and `@[backend_v2/models/domain/execution.py]`.
   - **Step 1.3**: Extended `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]`, `@[backend_v2/database/postgres/entity_adapter/__init__.py]`, `@[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]`, `@[scripts/audit_zero_orm_strictness.py]` (15 tables), `@[backend_v2/database/postgres/uow.py]` (`RESET quorum.current_org;`), and `@[backend_v2/tests/fakes/in_memory_uow.py]` with `invitations`, `tenant_secrets`, and `execution_assignments` and implemented all 6 `<test_contracts>`.
+- Completed Phase 2 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`):
+  - **Step 2.1**: Implemented `TokenService.exchange_firebase_token(payload: TokenExchangeRequestDTO) -> TokenExchangeResponseDTO` (enforcing mandatory `firebase.sign_in_second_factor` 2FA, 1:1 `firebase_uid` binding with `ConflictError` on collision, and headless CLI `target_user_id` exchange) and refactored `TokenService.verify_token(token: str) -> TokenData` in `@[backend_v2/services/auth/token_service.py]` to perform 0.1 ms RAM-only `Quorum Local JWT` decode with zero database queries and zero `mock-token:` string prefix branches.
+  - **Step 2.2**: Exposed `POST /api/v2/iam/auth/exchange`, `POST /api/v2/iam/auth/logout`, and RFC 8693 `POST /api/v2/iam/auth/impersonate` in `@[backend_v2/api/routers/iam/auth.py]` and `@[backend_v2/services/auth/__init__.py]`, deleted the 4 duplicate `/auth/users*` routes from `@[backend_v2/api/routers/iam/auth.py]`, exposed `POST /api/v2/iam/users` in `@[backend_v2/api/routers/iam/users.py]`, removed catch-all `try ... except Exception` blocks in `@[backend_v2/api/routers/iam/users.py]` and `@[backend_v2/api/routers/iam/organizations.py]`, and upgraded `require_role` in `@[backend_v2/api/dependencies.py]` to accept `Sequence[UserRole] | UserRole`.
+  - **Step 2.3**: Implemented `_get_or_refresh_cli_session` with 13-minute auto-refresh (`expires_in_seconds - 120.0`) in `@[scripts/run_e2e_variance_test.py]`, migrated all `"Bearer mock-token:..."` headers in `@[scripts/run_e2e_variance_test.py]` and `@[backend_v2/tests/integration/test_integration_real_llm.py]`, and remediated all 132 `TD_DICT_GET` warnings and 2 `TD_MODEL_FACTORY` warnings (`0` findings across all 80 Epic 160 targets).
 
 ## Learned
 - `pydantic.mypy` requires `allowed_email_domains=[]` to be explicitly passed when instantiating `Organization(...)` directly in service/fake constructors (`@[backend_v2/services/auth/user_service.py]`, `@[backend_v2/services/auth/organization_service.py]`, `@[backend_v2/tests/fakes/in_memory_repositories.py]`).
 - `@[backend_v2/tests/unit/database/test_postgres.py]` enforces 1:1 column-to-DTO-field naming parity across all 15 tables in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]` (`tenant_secrets` includes a `VIRTUAL` generated `created_at` column).
+- `audit_dict_eradication.py` bans `dict[str, JsonValue]` return type annotations on test helper methods (`unauthorized_open_json_annotations`); fixture helpers in unit tests must return concrete validated Pydantic V2 DTOs (`TokenExchangeResponseDTO`) and call `.model_dump(mode="json")` at the mock boundary.
 
 ## Remaining
-- Run `/tier8-audit-plan` on Phase 1 (`@[docs/epic/tasks_EPIC_160/01_phase1_plan.md]` and `@[docs/epic/EPIC_160_tracker.md]`), then proceed to Phase 2 (`/tier0-research-plan @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`).
+- Run `/tier8-audit-plan` on Phase 2 (`@[docs/epic/tasks_EPIC_160/02_phase2_plan.md]` and `@[docs/epic/EPIC_160_tracker.md]`), then proceed to Phase 3 (`/tier0-research-plan @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_160/01_phase1_plan.md] @[docs/epic/EPIC_160_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]
 ```
 

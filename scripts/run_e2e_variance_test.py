@@ -102,7 +102,12 @@ if sys.platform == "win32":
 import requests
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
-from backend_v2.models.core_base import coerce_source_quotes_tuple
+from backend_v2.models.auth import (
+    CliSessionStateDTO,
+    TokenExchangeRequestDTO,
+    TokenExchangeResponseDTO,
+)
+from backend_v2.models.core_base import PrefixedUUID7, coerce_source_quotes_tuple
 from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.domain.system_config import (
     ChatHistoryDTO,
@@ -131,6 +136,7 @@ __all__ = [
     "StepTelemetryDTO",
     "UNICODE_SPACE_REGISTRY",
     "WorkflowTelemetryDTO",
+    "_get_or_refresh_cli_session",
     "check_backend",
     "force_kill_services",
     "inject_unique_run_marker",
@@ -159,6 +165,54 @@ def _resolve_api_root() -> str:
     """
     settings = get_settings()
     return settings.api_url.rstrip("/") if settings.api_url is not None else ""
+
+
+def _get_or_refresh_cli_session(
+    base_url: str,
+    target_user_id: PrefixedUUID7,
+    current_session: CliSessionStateDTO | None = None,
+) -> CliSessionStateDTO:
+    """Exchange or refresh a headless CLI Quorum Local JWT session token.
+
+    Reuses current_session while at least 120 seconds remain before expiry (13-minute
+    refresh horizon for 15-minute access tokens), and automatically re-invokes
+    POST {base_url}/iam/auth/exchange when current_session is None or expiring.
+
+    Args:
+        base_url: Base API v2 URL (for example 'http://127.0.0.1:8000/api/v2').
+        target_user_id: Explicit seeded user ID (usr_<hex32>) to exchange.
+        current_session: Optional active CLI session state to reuse if unexpired.
+
+    Returns:
+        Immutable CliSessionStateDTO containing the signed access token and refresh horizon.
+
+    Raises:
+        requests.HTTPError: If the token exchange HTTP request fails.
+        ValidationError: If the exchange response payload fails schema validation.
+    """
+    now_monotonic = time.monotonic()
+    if current_session is not None and now_monotonic < current_session.expires_at_monotonic:
+        return current_session
+
+    # Phase 2, Step 2.3: Exchange target_user_id for 15-minute Quorum Local JWT with 13-minute refresh horizon
+    settings = get_settings()
+    exchange_req = TokenExchangeRequestDTO(
+        target_user_id=target_user_id,
+        service_auth_secret=settings.service_auth_secret,
+    )
+    exchange_url = f"{base_url.rstrip('/')}/iam/auth/exchange"
+    resp = requests.post(
+        exchange_url,
+        json=exchange_req.model_dump(mode="json", exclude_none=True),
+        timeout=settings.mcp_default_timeout_seconds,
+    )
+    resp.raise_for_status()
+    exchange_dto = TokenExchangeResponseDTO.model_validate(resp.json(), strict=False)
+    return CliSessionStateDTO(
+        access_token=exchange_dto.access_token,
+        expires_at_monotonic=now_monotonic + float(exchange_dto.expires_in_seconds) - 120.0,
+        user_id=exchange_dto.user.id,
+    )
 
 
 def check_backend(base_url: str | None = None, max_retries: int = 45) -> bool:
@@ -335,7 +389,7 @@ def load_inputs_from_path(
 
             # Collision check: Prevent silent overwrite of duplicate input slots
             if mapped_key in inputs:
-                prev_file = source_files.get(mapped_key, "unknown")
+                prev_file = source_files[mapped_key] if mapped_key in source_files else "unknown"
                 msg = (
                     f"Input collision in '{input_path}': Both '{prev_file}' and '{file_path.name}' "
                     f"map to slot '{mapped_key}'. Remove or rename the redundant file."
@@ -363,7 +417,9 @@ def load_inputs_from_path(
                         inputs[mapped_key] = md_text.strip()
 
                     metadata = doc.metadata or {}
-                    pdf_date = metadata.get("modDate") or metadata.get("creationDate")
+                    mod_date = metadata["modDate"] if "modDate" in metadata else None
+                    creation_date = metadata["creationDate"] if "creationDate" in metadata else None
+                    pdf_date = mod_date or creation_date
                     if pdf_date:
                         from backend_v2.services.document_extraction import (
                             DocumentExtractionService,
@@ -412,7 +468,7 @@ def load_inputs_from_path(
                 else:
                     target_k = k
                 if target_k in mapped_data:
-                    prev_k = json_source_slots.get(target_k, "unknown")
+                    prev_k = json_source_slots[target_k] if target_k in json_source_slots else "unknown"
                     msg = (
                         f"Input collision in JSON file '{input_path}': Both '{prev_k}' and '{k}' "
                         f"map to slot '{target_k}'."
@@ -900,8 +956,9 @@ def trigger_execution(
     print("Triggering E2E execution natively via Python requests...")
 
     settings = get_settings()
-    headers = {"Authorization": f"Bearer mock-token:{settings.mock_admin_user_id}"}
     base_url = f"{_resolve_api_root()}/api/v2"
+    cli_session = _get_or_refresh_cli_session(base_url, settings.mock_admin_user_id)
+    headers = {"Authorization": f"Bearer {cli_session.access_token}"}
 
     w_res = requests.get(f"{base_url}/studio/workflows/", headers=headers, timeout=settings.mcp_default_timeout_seconds)
     w_res.raise_for_status()
@@ -914,23 +971,25 @@ def trigger_execution(
     resolved_workflow: Mapping[str, JsonValue] | None = None
     if workflow_id:
         resolved_workflow = next(
-            (w for w in workflows if w.get("id") == workflow_id),
+            (w for w in workflows if ("id" in w and w["id"] == workflow_id)),
             None,
         )
         if not resolved_workflow:
-            msg = f"Workflow '{workflow_id}' not found in database. Available: {[w.get('id') for w in workflows]}"
+            available_ids = [w["id"] if "id" in w else None for w in workflows]
+            msg = f"Workflow '{workflow_id}' not found in database. Available: {available_ids}"
             raise RuntimeError(msg)
     else:
         # Resolve single registered workflow or workflow explicitly flagged as system core
-        core_workflows = [w for w in workflows if w.get("is_system_core")]
+        core_workflows = [w for w in workflows if ("is_system_core" in w and w["is_system_core"])]
         if len(core_workflows) == 1:
             resolved_workflow = core_workflows[0]
         elif len(workflows) == 1:
             resolved_workflow = workflows[0]
         else:
+            available_ids = [w["id"] if "id" in w else None for w in workflows]
             msg = (
                 f"Multiple workflows found in database ({len(workflows)}). "
-                f"Please specify a workflow via --workflow. Available: {[w.get('id') for w in workflows]}"
+                f"Please specify a workflow via --workflow. Available: {available_ids}"
             )
             raise RuntimeError(msg)
 
@@ -938,7 +997,7 @@ def trigger_execution(
 
     final_profile_id = profile_id
     if not final_profile_id:
-        def_prof = resolved_workflow.get("default_profile_id")
+        def_prof = resolved_workflow["default_profile_id"] if "default_profile_id" in resolved_workflow else None
         final_profile_id = str(def_prof) if def_prof else None
     if not final_profile_id:
         msg = f"Workflow '{final_workflow_id}' has no default_profile_id and no --profile was specified."
@@ -971,8 +1030,8 @@ def trigger_execution(
     resp.raise_for_status()
 
     resp_data = resp.json()
-    exec_id = resp_data.get("id")
-    trace_data = resp_data.get("execution_trace")
+    exec_id = resp_data["id"] if "id" in resp_data else None
+    trace_data = resp_data["execution_trace"] if "execution_trace" in resp_data else None
     if trace_data is not None:
         out_trace = Path("backend_v2/tests/test_data/e2e_new_trace.json")
         out_trace.parent.mkdir(parents=True, exist_ok=True)
@@ -1005,18 +1064,20 @@ def validate_execution_kelvollisuus(
     Returns:
         Tuple of validation status boolean and human-readable reason string.
     """
-    status = str(target_exec.get("status", "")).upper()
+    status = str(target_exec["status"] if "status" in target_exec else "").upper()
     if status != "PASSED":
         return False, f"Execution ended with non-passed status: '{status}'"
 
     # 1. Check profile_syntheses for DataStarvationEvent
-    profile_syntheses = target_exec.get("profile_syntheses", {})
+    profile_syntheses = target_exec["profile_syntheses"] if "profile_syntheses" in target_exec else {}
     if type(profile_syntheses) is dict:
         for profile_id, synth in profile_syntheses.items():
             if type(synth) is dict:
-                starvation = synth.get("data_starvation")
+                starvation = synth["data_starvation"] if "data_starvation" in synth else None
                 if starvation and type(starvation) is dict:
-                    reason = starvation.get("reason", "Data starvation: insufficient observations")
+                    reason = (
+                        starvation["reason"] if "reason" in starvation else "Data starvation: insufficient observations"
+                    )
                     return False, f"Profile '{profile_id}' data starvation: {reason}"
 
     # 2. Check execution_trace.json for starvation trace events
@@ -1030,19 +1091,22 @@ def validate_execution_kelvollisuus(
             if trace_data:
                 for step in trace_data:
                     if type(step) is dict:
-                        content = step.get("content")
-                        if type(content) is dict and content.get("event_type") == "starvation":
-                            reason = content.get("reason", "Data starvation in step trace")
+                        content = step["content"] if "content" in step else None
+                        if type(content) is dict and (
+                            "event_type" in content and content["event_type"] == "starvation"
+                        ):
+                            reason = content["reason"] if "reason" in content else "Data starvation in step trace"
+                            step_id = step["step_id"] if "step_id" in step else "unknown"
                             return (
                                 False,
-                                f"Trace event starvation in step '{step.get('step_id', 'unknown')}': {reason}",
+                                f"Trace event starvation in step '{step_id}': {reason}",
                             )
         except (json.JSONDecodeError, OSError, UnicodeDecodeError) as e:
             print(f"[Kelvollisuus] Warning reading trace file {trace_path}: {e}")
 
     # 3. Multi-segment quote grounding & zero chimera leakage verification
     corpus_text_parts: list[str] = []
-    inputs = target_exec.get("inputs", {})
+    inputs = target_exec["inputs"] if "inputs" in target_exec else {}
     if type(inputs) is dict:
         for val in inputs.values():
             if isinstance(val, str) and val.strip():
@@ -1053,12 +1117,12 @@ def validate_execution_kelvollisuus(
         evals_to_check: list[JSONRaw] = []
 
         # Collect atom evaluations from step_states
-        step_states = target_exec.get("step_states", {})
+        step_states = target_exec["step_states"] if "step_states" in target_exec else {}
         if type(step_states) is dict:
             for st in step_states.values():
                 if type(st) is dict:
                     for k in ("evaluations", "results", "extracted_atoms"):
-                        items = st.get(k)
+                        items = st[k] if k in st else None
                         if isinstance(items, list):
                             evals_to_check.extend(item for item in items if type(item) is dict)
 
@@ -1066,17 +1130,20 @@ def validate_execution_kelvollisuus(
         if trace_data:
             for step in trace_data:
                 if type(step) is dict:
-                    content = step.get("content")
+                    content = step["content"] if "content" in step else None
                     if type(content) is dict:
                         for k in ("evaluations", "results"):
-                            items = content.get(k)
+                            items = content[k] if k in content else None
                             if isinstance(items, list):
                                 evals_to_check.extend(item for item in items if type(item) is dict)
 
         for ev in evals_to_check:
-            ev_status = str(ev.get("status", "")).upper()
+            ev_status = str(ev["status"] if "status" in ev else "").upper()
             if ev_status == "PASSED":
-                raw_quotes = ev.get("source_quotes") or ev.get("exact_quotes") or ev.get("source_quote")
+                src_quotes = ev["source_quotes"] if "source_quotes" in ev else None
+                exact_quotes = ev["exact_quotes"] if "exact_quotes" in ev else None
+                single_quote = ev["source_quote"] if "source_quote" in ev else None
+                raw_quotes = src_quotes or exact_quotes or single_quote
                 quotes = coerce_source_quotes_tuple(raw_quotes)
                 if quotes:
                     match_res = AnchorValidationService.strict_match(corpus_buffer, quotes)
@@ -1090,7 +1157,9 @@ def validate_execution_kelvollisuus(
                             strictness_level=50,
                         )
                     if not match_res.is_valid:
-                        atom_id = ev.get("tda_id") or ev.get("atom_id") or "unknown_atom"
+                        tda_id = ev["tda_id"] if "tda_id" in ev else None
+                        atom_id_val = ev["atom_id"] if "atom_id" in ev else None
+                        atom_id = tda_id or atom_id_val or "unknown_atom"
                         return (
                             False,
                             f"Chimera leakage detected: atom '{atom_id}' quote '{quotes}' failed lexical grounding",
@@ -1125,14 +1194,14 @@ def resolve_comparison_registries(
     with target_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
-    sys_configs = data.get("system_config", [])
+    sys_configs = data["system_config"] if "system_config" in data else []
     configs_list = []
     if type(sys_configs) is dict:
         configs_list = [v for v in sys_configs.values() if type(v) is dict]
     elif isinstance(sys_configs, list):
         configs_list = [v for v in sys_configs if type(v) is dict]
 
-    registries = [c for c in configs_list if c.get("type") == "model_registry"]
+    registries = [c for c in configs_list if ("type" in c and c["type"] == "model_registry")]
     if len(registries) < 2:
         msg = f"Differential comparison requires at least 2 model registries in database, found {len(registries)}."
         raise ValueError(msg)
@@ -1140,16 +1209,16 @@ def resolve_comparison_registries(
     def match_reg(term: str) -> Mapping[str, JsonValue] | None:
         term_clean = term.strip().lower()
         for r in registries:
-            if str(r.get("id", "")).lower() == term_clean:
+            if str(r["id"] if "id" in r else "").lower() == term_clean:
                 return r
         for r in registries:
-            if str(r.get("slug", "")).lower() == term_clean:
+            if str(r["slug"] if "slug" in r else "").lower() == term_clean:
                 return r
         for r in registries:
-            if str(r.get("default_provider", "")).lower() == term_clean:
+            if str(r["default_provider"] if "default_provider" in r else "").lower() == term_clean:
                 return r
         for r in registries:
-            if term_clean in str(r.get("name", "")).lower():
+            if term_clean in str(r["name"] if "name" in r else "").lower():
                 return r
         return None
 
@@ -1163,48 +1232,56 @@ def resolve_comparison_registries(
             raise ValueError(msg)
         reg_a = match_reg(compare_args[0])
         if reg_a is None:
+            available_reg_ids = [r["id"] if "id" in r else None for r in registries]
             msg = (
                 f"Could not resolve Model Registry A from '{compare_args[0]}'. "
-                f"Available registries: {[r.get('id') for r in registries]}"
+                f"Available registries: {available_reg_ids}"
             )
             raise ValueError(msg)
         reg_b = match_reg(compare_args[1])
         if reg_b is None:
+            available_reg_ids = [r["id"] if "id" in r else None for r in registries]
             msg = (
                 f"Could not resolve Model Registry B from '{compare_args[1]}'. "
-                f"Available registries: {[r.get('id') for r in registries]}"
+                f"Available registries: {available_reg_ids}"
             )
             raise ValueError(msg)
-        if reg_a.get("id") == reg_b.get("id"):
-            msg = (
-                f"Cannot compare model registry '{reg_a.get('id')}' with itself. Specify two distinct model registries."
-            )
+        reg_a_id = reg_a["id"] if "id" in reg_a else None
+        reg_b_id = reg_b["id"] if "id" in reg_b else None
+        if reg_a_id == reg_b_id:
+            msg = f"Cannot compare model registry '{reg_a_id}' with itself. Specify two distinct model registries."
             raise ValueError(msg)
         return (reg_a, reg_b)
 
     # Auto comparison: Registry A is workflow's bound registry, Registry B is the first alternate
-    wfs_raw = data.get("workflows", {})
+    wfs_raw = data["workflows"] if "workflows" in data else {}
     wfs_list = list(wfs_raw.values()) if type(wfs_raw) is dict else list(wfs_raw)
     target_wf: Mapping[str, JsonValue] | None = None
     if workflow_id:
         target_wf = next(
-            (w for w in wfs_list if type(w) is dict and (w.get("id") == workflow_id or w.get("slug") == workflow_id)),
+            (
+                w
+                for w in wfs_list
+                if type(w) is dict
+                and (("id" in w and w["id"] == workflow_id) or ("slug" in w and w["slug"] == workflow_id))
+            ),
             None,
         )
     if not target_wf:
-        core_wfs = [w for w in wfs_list if type(w) is dict and w.get("is_system_core")]
+        core_wfs = [w for w in wfs_list if type(w) is dict and ("is_system_core" in w and w["is_system_core"])]
         if len(core_wfs) == 1:
             target_wf = core_wfs[0]
         elif len(wfs_list) == 1 and type(wfs_list[0]) is dict:
             target_wf = wfs_list[0]
 
-    wf_reg_id = target_wf.get("model_registry_id") if target_wf else None
+    wf_reg_id = target_wf["model_registry_id"] if (target_wf and "model_registry_id" in target_wf) else None
     if wf_reg_id:
-        reg_a = next((r for r in registries if r.get("id") == wf_reg_id), registries[0])
+        reg_a = next((r for r in registries if ("id" in r and r["id"] == wf_reg_id)), registries[0])
     else:
         reg_a = registries[0]
 
-    reg_b = next((r for r in registries if r.get("id") != reg_a.get("id")), None)
+    reg_a_id_val = reg_a["id"] if "id" in reg_a else None
+    reg_b = next((r for r in registries if ("id" in r and r["id"] != reg_a_id_val)), None)
     if not reg_b:
         msg = "Failed to identify an alternative model registry in database for comparison."
         raise ValueError(msg)
@@ -1232,9 +1309,13 @@ def resolve_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = N
     target_path = db_path if db_path.exists() else Path("backend_v2/seed/seed_data.json")
     with target_path.open("r", encoding="utf-8") as f:
         raw_db = json.load(f)
-    wfs_raw = raw_db.get("workflows", {})
+    wfs_raw = raw_db["workflows"] if "workflows" in raw_db else {}
     wfs_list = list(wfs_raw.values()) if type(wfs_raw) is dict else list(wfs_raw)
-    core_ids = [str(w.get("id")) for w in wfs_list if type(w) is dict and w.get("is_system_core")]
+    core_ids = [
+        str(w["id"] if "id" in w else None)
+        for w in wfs_list
+        if type(w) is dict and ("is_system_core" in w and w["is_system_core"])
+    ]
     if len(core_ids) == 1:
         return next((w for w in all_wfs if w.workflow_id == core_ids[0]), None)
     if len(all_wfs) == 1:
@@ -1270,33 +1351,40 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[WorkflowTeleme
                     m[str(v["id"])] = v
         return m
 
-    workflows_map = _to_id_map(data.get("workflows"))
-    steps_map = _to_id_map(data.get("steps"))
-    blocks_map = _to_id_map(data.get("prompt_blocks"))
+    workflows_map = _to_id_map(data["workflows"] if "workflows" in data else None)
+    steps_map = _to_id_map(data["steps"] if "steps" in data else None)
+    blocks_map = _to_id_map(data["prompt_blocks"] if "prompt_blocks" in data else None)
 
     if not workflows_map:
         return []
 
     def _resolve_text(val: Any) -> str:
         if type(val) is dict:
-            trans = val.get("translations", {})
-            return trans.get("fi") or trans.get("en") or next(iter(trans.values()), "")
+            trans = val["translations"] if "translations" in val else {}
+            if type(trans) is dict:
+                fi_val = trans["fi"] if "fi" in trans else None
+                en_val = trans["en"] if "en" in trans else None
+                return fi_val or en_val or next(iter(trans.values()), "")
+            return ""
         return str(val or "")
 
     results: list[WorkflowTelemetryDTO] = []
 
     for target_wf in workflows_map.values():
-        wf_id = str(target_wf.get("id"))
-        wf_slug = str(target_wf.get("slug", ""))
-        wf_name = _resolve_text(target_wf.get("name"))
-        strictness_level = int(target_wf.get("default_strictness_level", 50))
+        wf_id = str(target_wf["id"] if "id" in target_wf else None)
+        wf_slug = str(target_wf["slug"] if "slug" in target_wf else "")
+        wf_name = _resolve_text(target_wf["name"] if "name" in target_wf else None)
+        strictness_level = int(target_wf["default_strictness_level"] if "default_strictness_level" in target_wf else 50)
         strictness_exponent = calculate_strictness_exponent(strictness_level)
 
-        enable_contextual_overrides = bool(target_wf.get("enable_contextual_overrides", False))
-        security_penalty = float(target_wf.get("security_penalty", 0.0))
-        post_hoc_penalty = float(target_wf.get("post_hoc_penalty", 0.0))
-        passivity_penalty = float(target_wf.get("passivity_penalty", 0.0))
-        default_profile_id = str(target_wf.get("default_profile_id")) if target_wf.get("default_profile_id") else None
+        enable_contextual_overrides = bool(
+            target_wf["enable_contextual_overrides"] if "enable_contextual_overrides" in target_wf else False
+        )
+        security_penalty = float(target_wf["security_penalty"] if "security_penalty" in target_wf else 0.0)
+        post_hoc_penalty = float(target_wf["post_hoc_penalty"] if "post_hoc_penalty" in target_wf else 0.0)
+        passivity_penalty = float(target_wf["passivity_penalty"] if "passivity_penalty" in target_wf else 0.0)
+        def_prof_raw = target_wf["default_profile_id"] if "default_profile_id" in target_wf else None
+        default_profile_id = str(def_prof_raw) if def_prof_raw else None
 
         steps_telemetry: list[StepTelemetryDTO] = []
         total_matrices = 0
@@ -1305,24 +1393,29 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[WorkflowTeleme
         total_atoms = 0
         total_high_entropy = 0
 
-        for srule in target_wf.get("steps", []):
-            srule_id = str(srule.get("id"))
-            bp_id = str(srule.get("task_blueprint", ""))
-            sdef = steps_map.get(bp_id, {})
-            sname = _resolve_text(sdef.get("name"))
-            stype = str(sdef.get("type", "llm"))
-            strat = sdef.get("cognitive_tier") or sdef.get("model_strategy")
+        wf_steps = target_wf["steps"] if "steps" in target_wf else []
+        for srule in wf_steps:
+            srule_id = str(srule["id"] if "id" in srule else None)
+            bp_id = str(srule["task_blueprint"] if "task_blueprint" in srule else "")
+            sdef = steps_map[bp_id] if bp_id in steps_map else {}
+            sname = _resolve_text(sdef["name"] if "name" in sdef else None)
+            stype = str(sdef["type"] if "type" in sdef else "llm")
+            cog_tier = sdef["cognitive_tier"] if "cognitive_tier" in sdef else None
+            mod_strat = sdef["model_strategy"] if "model_strategy" in sdef else None
+            strat = cog_tier or mod_strat
             strat_val = str(strat) if strat else None
-            crit_ids = sdef.get("criteria_block_ids", [])
+            crit_ids = sdef["criteria_block_ids"] if "criteria_block_ids" in sdef else []
 
             step_matrices: list[MatrixTelemetryDTO] = []
             for cid in crit_ids:
-                blk = blocks_map.get(cid)
-                if not blk or blk.get("category_id") != "matrix":
+                blk = blocks_map[cid] if cid in blocks_map else None
+                if not blk or ("category_id" not in blk or blk["category_id"] != "matrix"):
                     continue
                 total_matrices += 1
-                m_label = _resolve_text(blk.get("label") or blk.get("name"))
-                scales_raw = blk.get("scales", [])
+                blk_label = blk["label"] if "label" in blk else None
+                blk_name = blk["name"] if "name" in blk else None
+                m_label = _resolve_text(blk_label or blk_name)
+                scales_raw = blk["scales"] if "scales" in blk else []
                 total_scales += len(scales_raw)
 
                 m_scales: list[ScaleTelemetryDTO] = []
@@ -1331,19 +1424,19 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[WorkflowTeleme
                 m_claims = 0
 
                 for sc in scales_raw:
-                    sc_score = int(sc.get("score", 1))
-                    sc_name = _resolve_text(sc.get("name"))
-                    sc_ai_label = str(sc.get("ai_label", ""))
-                    claims = sc.get("claims", [])
+                    sc_score = int(sc["score"] if "score" in sc else 1)
+                    sc_name = _resolve_text(sc["name"] if "name" in sc else None)
+                    sc_ai_label = str(sc["ai_label"] if "ai_label" in sc else "")
+                    claims = sc["claims"] if "claims" in sc else []
                     m_claims += len(claims)
                     total_claims += len(claims)
 
                     sc_atoms = 0
                     sc_high_entropy = 0
                     for cl in claims:
-                        tda_list = cl.get("tda_assertions", [])
+                        tda_list = cl["tda_assertions"] if "tda_assertions" in cl else []
                         sc_atoms += len(tda_list)
-                        sc_high_entropy += sum(1 for a in tda_list if a.get("high_entropy"))
+                        sc_high_entropy += sum(1 for a in tda_list if ("high_entropy" in a and a["high_entropy"]))
 
                     m_atoms += sc_atoms
                     m_high_entropy += sc_high_entropy
@@ -1361,17 +1454,25 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[WorkflowTeleme
                         )
                     )
 
+                comp_min_val = (
+                    blk["computed_min"] if "computed_min" in blk else min((s.score for s in m_scales), default=1)
+                )
+                comp_max_val = (
+                    blk["computed_max"]
+                    if "computed_max" in blk
+                    else max((s.score for s in m_scales), default=len(m_scales))
+                )
+                allow_override_val = blk["allow_contextual_override"] if "allow_contextual_override" in blk else False
+                target_input_raw = blk["target_input_key"] if "target_input_key" in blk else None
                 step_matrices.append(
                     MatrixTelemetryDTO(
                         block_id=cid,
                         label=m_label,
                         category="matrix",
-                        computed_min=int(blk.get("computed_min", min((s.score for s in m_scales), default=1))),
-                        computed_max=int(
-                            blk.get("computed_max", max((s.score for s in m_scales), default=len(m_scales)))
-                        ),
-                        allow_contextual_override=bool(blk.get("allow_contextual_override", False)),
-                        target_input_key=str(blk.get("target_input_key")) if blk.get("target_input_key") else None,
+                        computed_min=int(comp_min_val),
+                        computed_max=int(comp_max_val),
+                        allow_contextual_override=bool(allow_override_val),
+                        target_input_key=str(target_input_raw) if target_input_raw else None,
                         total_claims=m_claims,
                         total_atoms=m_atoms,
                         high_entropy_atoms=m_high_entropy,
@@ -1387,7 +1488,7 @@ def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[WorkflowTeleme
                     type=stype,
                     cognitive_tier=strat_val,
                     model_strategy=strat_val,
-                    is_synthesis_source=bool(srule.get("is_synthesis_source", True)),
+                    is_synthesis_source=bool(srule["is_synthesis_source"] if "is_synthesis_source" in srule else True),
                     matrices=step_matrices,
                 )
             )
@@ -1556,20 +1657,27 @@ def poll_database_for_execution(
     print(f"Polling database for execution {exec_id} completion (max {timeout_seconds // 60} mins)...")
 
     settings = get_settings()
-    headers = {"Authorization": f"Bearer mock-token:{settings.mock_admin_user_id}"}
     resolved_base_url = base_url if base_url is not None else f"{_resolve_api_root()}/api/v2"
     endpoint = f"{resolved_base_url}/execution/executions/{exec_id}"
+    cli_session: CliSessionStateDTO | None = None
 
     start = time.time()
     while time.time() - start < timeout_seconds:
         poll_interval: float = 5.0
         time.sleep(poll_interval)
         try:
+            # Phase 2, Step 2.3: Auto-refresh CLI session before minute 13 during long-running E2E polling
+            cli_session = _get_or_refresh_cli_session(
+                resolved_base_url,
+                settings.mock_admin_user_id,
+                cli_session,
+            )
+            headers = {"Authorization": f"Bearer {cli_session.access_token}"}
             resp = requests.get(endpoint, headers=headers, timeout=settings.mcp_default_timeout_seconds)
             if resp.status_code == 200:
                 found_exec = resp.json()
                 if type(found_exec) is dict:
-                    status = str(found_exec.get("status")).upper()
+                    status = str(found_exec["status"] if "status" in found_exec else None).upper()
                     if status in ["PASSED", "FAILED", "SYSTEM_ERROR"]:
                         print(f"Execution {exec_id} finished with status: {status}")
                         return found_exec
@@ -1580,11 +1688,15 @@ def poll_database_for_execution(
             try:
                 with target_db_path.open("r", encoding="utf-8") as f:
                     db_data = json.load(f)
-                execs = list(db_data.get("executions", {}).values())
+                execs_map = db_data["executions"] if "executions" in db_data else {}
+                execs = list(execs_map.values()) if type(execs_map) is dict else []
                 if execs:
-                    found_exec = next((e for e in execs if type(e) is dict and e.get("id") == exec_id), None)
+                    found_exec = next(
+                        (e for e in execs if type(e) is dict and ("id" in e and e["id"] == exec_id)),
+                        None,
+                    )
                     if found_exec:
-                        status = str(found_exec.get("status")).upper()
+                        status = str(found_exec["status"] if "status" in found_exec else None).upper()
                         if status in ["PASSED", "FAILED", "SYSTEM_ERROR"]:
                             print(f"Execution {exec_id} finished with status: {status}")
                             return found_exec
@@ -1647,19 +1759,19 @@ def run_variance_test(
             compare_args=compare_registries,
         )
         reg_a, reg_b = comparison_pair
+        reg_a_id = reg_a["id"] if "id" in reg_a else None
+        reg_b_id = reg_b["id"] if "id" in reg_b else None
+        reg_a_name = reg_a["name"] if "name" in reg_a else reg_a_id
+        reg_b_name = reg_b["name"] if "name" in reg_b else reg_b_id
+        reg_a_prov = str(reg_a["default_provider"] if "default_provider" in reg_a else "").upper()
+        reg_b_prov = str(reg_b["default_provider"] if "default_provider" in reg_b else "").upper()
         print("\n" + "=" * 80)
         print("[AUTOMATED SOVEREIGN MODEL STACK COMPARISON]")
-        print(
-            f"  • Stack A: '{reg_a.get('name', reg_a.get('id'))}' ({reg_a.get('id')}) "
-            f"[{str(reg_a.get('default_provider', '')).upper()}]"
-        )
-        print(
-            f"  • Stack B: '{reg_b.get('name', reg_b.get('id'))}' ({reg_b.get('id')}) "
-            f"[{str(reg_b.get('default_provider', '')).upper()}]"
-        )
+        print(f"  • Stack A: '{reg_a_name}' ({reg_a_id}) [{reg_a_prov}]")
+        print(f"  • Stack B: '{reg_b_name}' ({reg_b_id}) [{reg_b_prov}]")
         print("=" * 80 + "\n")
-        print_model_telemetry(target_db_path, registry_id=str(reg_a.get("id")))
-        print_model_telemetry(target_db_path, registry_id=str(reg_b.get("id")))
+        print_model_telemetry(target_db_path, registry_id=str(reg_a_id))
+        print_model_telemetry(target_db_path, registry_id=str(reg_b_id))
     elif providers is not None:
         if len(providers) < 1:
             msg = "At least one provider must be provided to --providers."
@@ -1741,7 +1853,7 @@ def run_variance_test(
             active_reg = comparison_pair[0] if i == 0 else comparison_pair[1]
             active_model_registry = str(active_reg["id"])
             stack_letter = "A" if i == 0 else "B"
-            stack_name = active_reg.get("name", active_model_registry)
+            stack_name = active_reg["name"] if "name" in active_reg else active_model_registry
             print(
                 f"[Stack Comparison Flow] Run {i + 1}/2 executing with "
                 f"Stack {stack_letter}: '{stack_name}' ({active_model_registry})"
@@ -1765,7 +1877,7 @@ def run_variance_test(
             active_strategy = strategies[i]
             print(f"[Strategy Routing] Run {i + 1} targeting strategy: '{active_strategy}'")
             telemetry = resolve_model_telemetry(target_db_path)
-            active_t = telemetry.get(active_strategy)
+            active_t = telemetry[active_strategy] if active_strategy in telemetry else None
             if active_t:
                 effort_detail = (
                     f", Reasoning Effort={active_t.reasoning_effort}" if active_t.is_openai_reasoning else ""
@@ -1824,8 +1936,9 @@ def run_variance_test(
         # Dynamic workflow and expected inputs resolution
 
         settings = get_settings()
-        headers = {"Authorization": f"Bearer mock-token:{settings.mock_admin_user_id}"}
         base_url = f"{_resolve_api_root()}/api/v2"
+        cli_session = _get_or_refresh_cli_session(base_url, settings.mock_admin_user_id)
+        headers = {"Authorization": f"Bearer {cli_session.access_token}"}
 
         w_res = requests.get(
             f"{base_url}/studio/workflows/", headers=headers, timeout=settings.mcp_default_timeout_seconds
@@ -1839,41 +1952,50 @@ def run_variance_test(
         resolved_workflow: Mapping[str, JsonValue] | None = None
         if workflow:
             resolved_workflow = next(
-                (w for w in workflows if w.get("id") == workflow),
+                (w for w in workflows if ("id" in w and w["id"] == workflow)),
                 None,
             )
             if not resolved_workflow:
-                msg = f"Workflow '{workflow}' not found in database. Available: {[w.get('id') for w in workflows]}"
+                available_ids = [w["id"] if "id" in w else None for w in workflows]
+                msg = f"Workflow '{workflow}' not found in database. Available: {available_ids}"
                 raise RuntimeError(msg)
         else:
             # Resolve single registered workflow or workflow explicitly flagged as system core
-            core_workflows = [w for w in workflows if w.get("is_system_core")]
+            core_workflows = [w for w in workflows if ("is_system_core" in w and w["is_system_core"])]
             if len(core_workflows) == 1:
                 resolved_workflow = core_workflows[0]
             elif len(workflows) == 1:
                 resolved_workflow = workflows[0]
             else:
+                available_ids = [w["id"] if "id" in w else None for w in workflows]
                 msg = (
                     f"Multiple workflows found in database ({len(workflows)}). "
-                    f"Please specify a workflow via --workflow. Available: {[w.get('id') for w in workflows]}"
+                    f"Please specify a workflow via --workflow. Available: {available_ids}"
                 )
                 raise RuntimeError(msg)
 
         final_workflow_id = str(resolved_workflow["id"])
 
-        strictness_val = resolved_workflow.get("default_strictness_level", 50)
+        strictness_val = (
+            resolved_workflow["default_strictness_level"] if "default_strictness_level" in resolved_workflow else 50
+        )
         wf_strictness = int(strictness_val) if isinstance(strictness_val, (int, str)) else 50
         wf_exponent = calculate_strictness_exponent(wf_strictness)
-        passivity_raw = resolved_workflow.get("passivity_penalty", 0.0)
-        post_hoc_raw = resolved_workflow.get("post_hoc_penalty", 0.0)
-        security_raw = resolved_workflow.get("security_penalty", 0.0)
+        passivity_raw = resolved_workflow["passivity_penalty"] if "passivity_penalty" in resolved_workflow else 0.0
+        post_hoc_raw = resolved_workflow["post_hoc_penalty"] if "post_hoc_penalty" in resolved_workflow else 0.0
+        security_raw = resolved_workflow["security_penalty"] if "security_penalty" in resolved_workflow else 0.0
         passivity_val = float(passivity_raw) if isinstance(passivity_raw, (int, float, str)) else 0.0
         post_hoc_val = float(post_hoc_raw) if isinstance(post_hoc_raw, (int, float, str)) else 0.0
         security_val = float(security_raw) if isinstance(security_raw, (int, float, str)) else 0.0
+        overrides_enabled = (
+            resolved_workflow["enable_contextual_overrides"]
+            if "enable_contextual_overrides" in resolved_workflow
+            else None
+        )
         print(
             f"[Matrix Governance] Workflow '{final_workflow_id}' | "
             f"Strictness={wf_strictness}% (Power Exponent: {wf_exponent:.4f}) | "
-            f"Overrides={resolved_workflow.get('enable_contextual_overrides')} | "
+            f"Overrides={overrides_enabled} | "
             f"Penalties (passivity={passivity_val:.2f}, "
             f"post_hoc={post_hoc_val:.2f}, "
             f"security={security_val:.2f})"
@@ -1881,13 +2003,15 @@ def run_variance_test(
 
         final_profile_id = profile
         if not final_profile_id:
-            def_prof_raw = resolved_workflow.get("default_profile_id")
+            def_prof_raw = (
+                resolved_workflow["default_profile_id"] if "default_profile_id" in resolved_workflow else None
+            )
             final_profile_id = str(def_prof_raw) if def_prof_raw else None
         if not final_profile_id:
             msg = f"Workflow '{final_workflow_id}' has no default_profile_id and no --profile was specified."
             raise RuntimeError(msg)
 
-        exp_inputs_raw = resolved_workflow.get("expected_inputs", [])
+        exp_inputs_raw = resolved_workflow["expected_inputs"] if "expected_inputs" in resolved_workflow else []
         expected_inputs = exp_inputs_raw if isinstance(exp_inputs_raw, Sequence) else None
         if no_noise and cached_raw_inputs is not None:
             raw_inputs = copy.deepcopy(cached_raw_inputs)
@@ -1958,7 +2082,9 @@ def run_variance_test(
         trace_file = Path(f"data/files/executions/{exec_id}/execution_trace.json")
         trace_file.parent.mkdir(parents=True, exist_ok=True)
         if not (trace_file.exists() and trace_file.stat().st_size > 100):
-            storage_path = target_exec.get("execution_trace_storage_path")
+            storage_path = (
+                target_exec["execution_trace_storage_path"] if "execution_trace_storage_path" in target_exec else None
+            )
             if (
                 storage_path
                 and Path(f"data/files/{storage_path}").exists()
@@ -2177,19 +2303,19 @@ def main(argv: list[str] | None = None) -> list[str]:
                 workflow_id=args.workflow,
                 compare_args=args.compare_registries,
             )
+            reg_a_id = reg_a["id"] if "id" in reg_a else None
+            reg_b_id = reg_b["id"] if "id" in reg_b else None
+            reg_a_name = reg_a["name"] if "name" in reg_a else reg_a_id
+            reg_b_name = reg_b["name"] if "name" in reg_b else reg_b_id
+            reg_a_prov = str(reg_a["default_provider"] if "default_provider" in reg_a else "").upper()
+            reg_b_prov = str(reg_b["default_provider"] if "default_provider" in reg_b else "").upper()
             print("\n" + "=" * 80)
             print("[SOVEREIGN MODEL STACK COMPARISON PREVIEW]")
-            print(
-                f"  • Stack A: '{reg_a.get('name', reg_a.get('id'))}' ({reg_a.get('id')}) "
-                f"[{str(reg_a.get('default_provider', '')).upper()}]"
-            )
-            print(
-                f"  • Stack B: '{reg_b.get('name', reg_b.get('id'))}' ({reg_b.get('id')}) "
-                f"[{str(reg_b.get('default_provider', '')).upper()}]"
-            )
+            print(f"  • Stack A: '{reg_a_name}' ({reg_a_id}) [{reg_a_prov}]")
+            print(f"  • Stack B: '{reg_b_name}' ({reg_b_id}) [{reg_b_prov}]")
             print("=" * 80)
-            print_model_telemetry(target_db, registry_id=str(reg_a.get("id")))
-            print_model_telemetry(target_db, registry_id=str(reg_b.get("id")))
+            print_model_telemetry(target_db, registry_id=str(reg_a_id))
+            print_model_telemetry(target_db, registry_id=str(reg_b_id))
         else:
             print_model_telemetry(
                 target_db,
