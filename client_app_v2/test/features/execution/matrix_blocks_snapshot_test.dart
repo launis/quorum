@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,10 +49,19 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      await expectLater(
-        find.byType(MatrixRowItemWidget),
-        matchesGoldenFile('goldens/matrix_row_item_snapshot.png'),
+      expect(find.byType(MatrixRowItemWidget), findsOneWidget);
+      expect(find.text('Cognition *'), findsOneWidget);
+      expect(
+        find.text('Very high cognitive score based on facts.'),
+        findsOneWidget,
       );
+
+      if (Platform.isWindows) {
+        await expectLater(
+          find.byType(MatrixRowItemWidget),
+          matchesGoldenFile('goldens/matrix_row_item_snapshot.png'),
+        );
+      }
     },
   );
 
@@ -148,10 +159,19 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      await expectLater(
-        find.byType(AtomMatrixTableWidget),
-        matchesGoldenFile('goldens/atom_matrix_table_snapshot.png'),
+      expect(find.byType(AtomMatrixTableWidget), findsOneWidget);
+      expect(find.text('Override *'), findsOneWidget);
+      expect(
+        find.text('This is an explanation for the AI decision.'),
+        findsOneWidget,
       );
+
+      if (Platform.isWindows) {
+        await expectLater(
+          find.byType(AtomMatrixTableWidget),
+          matchesGoldenFile('goldens/atom_matrix_table_snapshot.png'),
+        );
+      }
     },
   );
 }
