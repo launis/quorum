@@ -140,7 +140,7 @@
   - [x] @[backend_v2/api/routers/iam/users.py]
   - [x] @[backend_v2/api/routers/iam/organizations.py]
   - [x] @[backend_v2/api/routers/execution/executions.py]
-  - [ ] @[scripts/sanitize_seed_vault.py]
+  - [x] @[scripts/sanitize_seed_vault.py]
   - [ ] @[scripts/audit_zero_orm_strictness.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/run_e2e_variance_test.py]
