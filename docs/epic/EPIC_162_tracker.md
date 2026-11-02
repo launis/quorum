@@ -69,7 +69,7 @@
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide verification of zero `from_strategy` calls across `backend_v2/` and `scripts/`, zero unsynchronized `OutputProfile` target block references, and 100% `state_version` OCC enforcement (`scripts/audit_epic_coverage.py --epic docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md`).
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_162_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"`.
   - [x] @[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py]
-  - [ ] @[backend_v2/database/postgres/storage_driver.py]
+  - [x] @[backend_v2/database/postgres/storage_driver.py]
   - [ ] @[backend_v2/database/repositories/execution.py]
   - [ ] @[backend_v2/hooks/interaction_hook.py]
   - [ ] @[backend_v2/hooks/linguistics.py]

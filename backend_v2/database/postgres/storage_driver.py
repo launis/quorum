@@ -346,7 +346,7 @@ class PostgresStorageDriver(StorageDriver):
         if existing is None:
             return False
 
-        # Phase 4, Step 4.1: Enforce optimistic concurrency control and state_version increment for executions
+        # Enforce optimistic concurrency control and state_version increment for executions
         if norm_col == "executions":
             actual_version = 1
             if "state_version" in existing and isinstance(existing["state_version"], int):
@@ -368,6 +368,7 @@ class PostgresStorageDriver(StorageDriver):
                             "expected_state_version": expected_version,
                             "actual_state_version": actual_version,
                         },
+                        exc_info=True,
                     )
                     raise AppException(
                         message=msg,
