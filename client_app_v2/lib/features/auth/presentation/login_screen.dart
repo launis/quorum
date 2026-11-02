@@ -12,8 +12,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-// Phase 6, Step 6.1: Mandatory 2FA TOTP Enrollment and 2FA Challenge resolution in LoginScreen.
-
 class LoginScreen extends HookConsumerWidget {
   const LoginScreen({super.key});
 
@@ -32,29 +30,23 @@ class LoginScreen extends HookConsumerWidget {
 
     Future<void> submitPrimary() async {
       if (!formKey.currentState!.validate()) return;
-      await loginMutation.mutate(() async {
-        await ref
-            .read(authControllerProvider.notifier)
-            .signIn(emailController.text.trim(), passwordController.text);
-      });
+      await ref
+          .read(authControllerProvider.notifier)
+          .signIn(emailController.text.trim(), passwordController.text);
     }
 
     Future<void> submitMfaChallenge() async {
       if (!mfaFormKey.currentState!.validate()) return;
-      await loginMutation.mutate(() async {
-        await ref
-            .read(authControllerProvider.notifier)
-            .verifyMfaChallenge(totpCodeController.text.trim());
-      });
+      await ref
+          .read(authControllerProvider.notifier)
+          .verifyMfaChallenge(totpCodeController.text.trim());
     }
 
     Future<void> submitMfaEnrollment() async {
       if (!mfaFormKey.currentState!.validate()) return;
-      await loginMutation.mutate(() async {
-        await ref
-            .read(authControllerProvider.notifier)
-            .completeMfaEnrollment(totpCodeController.text.trim());
-      });
+      await ref
+          .read(authControllerProvider.notifier)
+          .completeMfaEnrollment(totpCodeController.text.trim());
     }
 
     return AppErrorBoundary(
@@ -142,7 +134,8 @@ class LoginScreen extends HookConsumerWidget {
                         ),
                         obscureText: true,
                         textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => submitPrimary(),
+                        onFieldSubmitted: (_) =>
+                            loginMutation.mutate(submitPrimary),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return l10n.errorEmptyPassword;
@@ -230,7 +223,7 @@ class LoginScreen extends HookConsumerWidget {
             ),
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
-            onFieldSubmitted: (_) => onSubmit(),
+            onFieldSubmitted: (_) => mutation.mutate(onSubmit),
             validator: (value) {
               if (value == null || value.trim().length != 6) {
                 return l10n.mfaTotpCodeError;
@@ -273,13 +266,6 @@ class LoginScreen extends HookConsumerWidget {
     required AppLocalizations l10n,
     required ThemeData theme,
   }) {
-    final secretKeyController = TextEditingController(
-      text: mfaState.secretKey ?? '',
-    );
-    final provisioningUriController = TextEditingController(
-      text: mfaState.provisioningUri ?? '',
-    );
-
     return Form(
       key: formKey,
       child: Column(
@@ -315,7 +301,7 @@ class LoginScreen extends HookConsumerWidget {
           ],
           TextFormField(
             key: const Key('mfa_enrollment_secret_key_field'),
-            controller: secretKeyController,
+            initialValue: mfaState.secretKey,
             readOnly: true,
             decoration: InputDecoration(
               labelText: l10n.mfaSecretKeyLabel,
@@ -326,7 +312,7 @@ class LoginScreen extends HookConsumerWidget {
           AppSpacing.h12,
           TextFormField(
             key: const Key('mfa_enrollment_uri_field'),
-            controller: provisioningUriController,
+            initialValue: mfaState.provisioningUri,
             readOnly: true,
             decoration: InputDecoration(
               labelText: l10n.mfaProvisioningUriLabel,
@@ -345,7 +331,7 @@ class LoginScreen extends HookConsumerWidget {
             ),
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
-            onFieldSubmitted: (_) => onSubmit(),
+            onFieldSubmitted: (_) => mutation.mutate(onSubmit),
             validator: (value) {
               if (value == null || value.trim().length != 6) {
                 return l10n.mfaTotpCodeError;
@@ -387,27 +373,26 @@ class MockLoginPanel extends HookConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final semanticColors = context.semanticColors;
-    final isMockLoading = useState(false);
+    final mockMutation = useMutation<void>(
+      onSuccess: (_) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.mockLoginSuccess)));
+      },
+      onError: (e) {
+        if (!context.mounted) return;
+        final msg = AppExceptionX.extractLocalizedHint(e, l10n);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.mockLoginFailed(msg))));
+      },
+    );
 
     Future<void> mockLogin(String id) async {
-      isMockLoading.value = true;
-      try {
+      await mockMutation.mutate(() async {
         await ref.read(authControllerProvider.notifier).debugMockLogin(id);
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.mockLoginSuccess)));
-        }
-      } catch (e) {
-        if (context.mounted) {
-          final msg = AppExceptionX.extractLocalizedHint(e, l10n);
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.mockLoginFailed(msg))));
-        }
-      } finally {
-        if (context.mounted) isMockLoading.value = false;
-      }
+      });
     }
 
     return Column(
@@ -433,7 +418,7 @@ class MockLoginPanel extends HookConsumerWidget {
           style: TextButton.styleFrom(
             foregroundColor: theme.colorScheme.secondary,
           ),
-          onPressed: isMockLoading.value
+          onPressed: mockMutation.isLoading
               ? null
               : () {
                   if (mockIdController.text.isNotEmpty) {
@@ -446,21 +431,21 @@ class MockLoginPanel extends HookConsumerWidget {
           style: TextButton.styleFrom(
             foregroundColor: theme.colorScheme.tertiary,
           ),
-          onPressed: isMockLoading.value
+          onPressed: mockMutation.isLoading
               ? null
               : () => mockLogin(Env.mockRootUserId),
           child: Text(l10n.mockLoginRootMasterBtn),
         ),
         TextButton(
           style: TextButton.styleFrom(foregroundColor: semanticColors.warning),
-          onPressed: isMockLoading.value
+          onPressed: mockMutation.isLoading
               ? null
               : () => mockLogin(Env.mockAdminUserId),
           child: Text(l10n.mockLoginAdminBtn),
         ),
         TextButton(
           style: TextButton.styleFrom(foregroundColor: semanticColors.success),
-          onPressed: isMockLoading.value
+          onPressed: mockMutation.isLoading
               ? null
               : () => mockLogin(Env.mockAnalystUserId),
           child: Text(l10n.mockLoginAnalystBtn),
@@ -469,7 +454,7 @@ class MockLoginPanel extends HookConsumerWidget {
           style: TextButton.styleFrom(
             foregroundColor: theme.colorScheme.primary,
           ),
-          onPressed: isMockLoading.value
+          onPressed: mockMutation.isLoading
               ? null
               : () => mockLogin(Env.mockMemberUserId),
           child: Text(l10n.mockLoginMemberBtn),
@@ -478,7 +463,7 @@ class MockLoginPanel extends HookConsumerWidget {
           style: TextButton.styleFrom(
             foregroundColor: theme.colorScheme.onSurfaceVariant,
           ),
-          onPressed: isMockLoading.value
+          onPressed: mockMutation.isLoading
               ? null
               : () => mockLogin(Env.mockViewerUserId),
           child: Text(l10n.mockLoginViewerBtn),
