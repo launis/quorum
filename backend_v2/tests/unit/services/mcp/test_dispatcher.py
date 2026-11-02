@@ -763,3 +763,71 @@ async def test_synthesize_search_arguments_llm_failure_raises_app_exception() ->
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
     assert "JIT Micro-LLM argument synthesis failed" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_tool_dispatcher_execute_tool_authenticated_gateway_and_non_string_args() -> None:
+    """Verify execute_tool resolves credentials via SecretService for authenticated gateways and handles non-string args."""
+    mock_client = AsyncMock(spec=GenericMCPClient)
+    mock_client.call_tool.return_value = "<![CDATA[Authenticated response]]>"
+
+    mock_secret_service = MagicMock()
+    mock_secret_service.resolve_mcp_credential = AsyncMock(return_value="resolved_bearer_token")
+
+    numeric_tool = AllowedMCPTool(
+        tool_id="numeric_lookup",
+        capability=ToolCapability.SEARCH,
+        name=I18nText(translations={"en": "Numeric Lookup"}),
+        description="Lookup by numeric ID.",
+        input_schema=MCPToolInputSchemaDTO(
+            properties={"record_id": MCPToolSchemaPropertyDTO(type=JSONSchemaPropertyType.INTEGER)},
+            required=["record_id"],
+        ),
+        enabled=True,
+    )
+    gw = SystemConfigMCPGateways(
+        id="sys_0195f3a0000070018111222233334444",
+        slug="auth_gw",
+        endpoint_url="https://mcp.example.com/v1",
+        transport_type=MCPTransportType.STREAMABLE_HTTP,
+        auth_type=MCPAuthType.BEARER,
+        auth_env_var="MCP_TEST_TOKEN",
+        timeout_seconds=15,
+        tools=[numeric_tool],
+    )
+    default_org = "org_0195f3a0000070008000000000000010"
+    explicit_org = "org_0195f3a0000070008000000000000020"
+    dispatcher = ToolDispatcher(
+        [gw],
+        mcp_client=mock_client,
+        secret_service=mock_secret_service,
+        organization_id=default_org,
+    )
+
+    alias = "auth_gw__numeric_lookup"
+    # 1. Uses dispatcher's default organization_id when organization_id is omitted
+    trace_default = await dispatcher.execute_tool(
+        tool_id=alias,
+        raw_arguments={"record_id": 42},
+        allowed_step_tools={alias},
+        step_name="stp_numeric",
+    )
+    assert trace_default.query == ""
+    mock_secret_service.resolve_mcp_credential.assert_awaited_once_with(
+        organization_id=default_org,
+        gateway=gw,
+    )
+
+    # 2. Uses explicit organization_id override when passed to execute_tool
+    mock_secret_service.resolve_mcp_credential.reset_mock()
+    await dispatcher.execute_tool(
+        tool_id=alias,
+        raw_arguments={"record_id": 99},
+        allowed_step_tools={alias},
+        step_name="stp_numeric",
+        organization_id=explicit_org,
+    )
+    mock_secret_service.resolve_mcp_credential.assert_awaited_once_with(
+        organization_id=explicit_org,
+        gateway=gw,
+    )

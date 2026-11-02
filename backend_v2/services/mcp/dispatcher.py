@@ -547,7 +547,7 @@ class ToolDispatcher:
     ) -> MCPAuditTrace:
         """Validate permissions and arguments, then dispatch tool execution via GenericMCPClient.
 
-        # Phase 3, Step 3.2: Resolve MCP credentials asynchronously via SecretService with zero trace leakage
+        Resolves MCP credentials asynchronously via SecretService with zero trace leakage.
 
         Args:
             tool_id: Namespaced tool alias ('{gateway_slug}__{tool_name}') to execute.
@@ -641,7 +641,7 @@ class ToolDispatcher:
         deduped_urls = list(dict.fromkeys(extracted_urls))
 
         return MCPAuditTrace(
-            # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 trace ID
+            # Generate canonical 32-hex RFC 9562 UUIDv7 trace ID
             id=f"trc_{generate_uuid7().hex}",
             gateway_id=gateway.id,
             gateway_slug=gateway.slug,
