@@ -91,12 +91,12 @@
 ### Phase 6: Flutter Client `AuthInterceptor`, Silent Refresh, Cryptographic Logout Pipeline & Separated User/Organization Views
 **Plan:** @[docs/epic/tasks_EPIC_160/06_phase6_plan.md]
 - [x] **[OK] Create Plan:** Plan generated in @[docs/epic/tasks_EPIC_160/06_phase6_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`
   - [x] Step 0: PRE-FLIGHT & SELF-HYDRATION
   - [x] Step 6.1: Mandatory 2FA Enrollment/Challenge Flow, `AuthInterceptor`, Session Upgrade Handshake, 13-Minute Silent Refresh & 5-Step Logout Pipeline
-  - [ ] Step 6.2: Adaptive Navigation Logout Action, Separated User Profile View (`UserProfileSettingsView`), Organization IAM Studio UI (`OrganizationIamSettingsView`), Direct Task Assignment Builder in `NewExecutionView` & Task Assignment Portal (`TaskAssignmentPortalView`)
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 6.2: Adaptive Navigation Logout Action, Separated User Profile View (`UserProfileSettingsView`), Organization IAM Studio UI (`OrganizationIamSettingsView`), Direct Task Assignment Builder in `NewExecutionView` & Task Assignment Portal (`TaskAssignmentPortalView`)
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
@@ -207,7 +207,7 @@
 | REQ-160-014 | Implement in-place GDPR Soft-Delete anonymization in `UserService.delete_user` and `POST /api/v2/iam/auth/webhooks/firebase-user-deleted` preserving `executions` foreign keys | Phase 5, Step 5.3 | [x] Completed |
 | REQ-160-015 | Create `ExecutionAssignmentService` in `[NEW] backend_v2/services/execution/assignment_service.py` and `/api/v2/execution/executions/assignments` endpoints with SafeLinks-immune `GET .../preview`, JIT user onboarding + 2FA, explicit `POST .../activate`, Dual-Clock expiration, and single-shot submission | Phase 5, Step 5.4 | [x] Completed |
 | REQ-160-016 | Implement mandatory 2FA challenge/enrollment in Flutter `LoginScreen` and `AuthController`, `@Riverpod(keepAlive: true)` `AuthRepository` with Freezed DTOs, `AuthInterceptor` token exchange, 13-minute silent refresh, and the 5-step `signOut` pipeline | Phase 6, Step 6.1 | [x] Completed |
-| REQ-160-017 | Repurpose `ScaffoldWithNav` to **Profiili / Profile** with trailing Sign Out action, and build `UserProfileSettingsView`, `OrganizationIamSettingsView`, Direct Task Assignment Builder in `NewExecutionView`, and `TaskAssignmentPortalView` (`/task/:token`) | Phase 6, Step 6.2 | [ ] Pending |
+| REQ-160-017 | Repurpose `ScaffoldWithNav` to **Profiili / Profile** with trailing Sign Out action, and build `UserProfileSettingsView`, `OrganizationIamSettingsView`, Direct Task Assignment Builder in `NewExecutionView`, and `TaskAssignmentPortalView` (`/task/:token`) | Phase 6, Step 6.2 | [x] Completed |
 
 # Session Handover Context
 
@@ -232,17 +232,21 @@
   - **Step 5.2**: Enforced the 4-Tier RBAC Governance Matrix (`VIEWER`/`MEMBER` vs. `MANAGER` vs. `ADMIN` vs. `ROOT`), self-service profile updates (`name`, `language`, `theme_mode`), soft-delete aware `LAST_ADMIN_PROTECTION`, `OrganizationUpdateDTO`-only `update_organization`, immediate Redis Kill-Switch revocation on privilege mutations, and peer execution isolation in `@[backend_v2/services/auth/user_service.py]`, `@[backend_v2/services/auth/organization_service.py]`, and `@[backend_v2/services/execution/lifecycle_service.py]` (`9d9a42cca`).
   - **Step 5.3**: Implemented in-place GDPR Soft-Delete anonymization in `UserService.delete_user` (`@[backend_v2/services/auth/user_service.py]`) and exposed `POST /api/v2/iam/auth/webhooks/firebase-user-deleted` in `@[backend_v2/api/routers/iam/auth.py]` preserving `executions` foreign keys (`2416a7416`).
   - **Step 5.4**: Created `ExecutionAssignmentService` in `@[backend_v2/services/execution/assignment_service.py]` and exposed `/api/v2/execution/executions/assignments` endpoints in `@[backend_v2/api/routers/execution/executions.py]` implementing single/batch task assignments, SafeLinks-immune `GET .../preview`, JIT user onboarding + 2FA, explicit `POST .../activate`, Dual-Clock expiration, draft checkpointing, single-shot submission via `ExecutionIngressService.start_execution`, and `AssignmentResultVisibility` (`4a17b7736`).
+- Completed Phase 6 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`):
+  - **Step 6.1**: Implemented `@Riverpod(keepAlive: true)` `AuthRepository` with Freezed `TokenExchangeRequestDto`, `TokenExchangeResponseDto`, `LogoutRequestDto`, `LogoutResponseDto`, and `MfaAuthProgressDto` (`@[client_app_v2/lib/features/auth/data/auth_repository.dart]`), mandatory TOTP 2FA enrollment/challenge state machine in `@[client_app_v2/lib/features/auth/presentation/auth_controller.dart]` and `@[client_app_v2/lib/features/auth/presentation/login_screen.dart]`, `AuthInterceptor` session upgrade handshake with single-flight `Completer<String>` lock (`@[client_app_v2/lib/core/network/interceptors/auth_interceptor.dart]`), 13-minute silent refresh timer, and the 5-step `signOut` pipeline with multi-tenant provider invalidation (`75fc4db25`).
+  - **Step 6.2**: Created `@[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]`, `@[client_app_v2/lib/features/settings/presentation/user_profile_settings_view.dart]`, `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]`, and `@[client_app_v2/lib/features/execution/views/task_assignment_portal_view.dart]`, updated `@[client_app_v2/lib/features/execution/views/new_execution_view.dart]` with `assign_as_task_btn` and `_TaskAssignmentConfigDialog`, updated `@[client_app_v2/lib/router/router.dart]` (`/settings`, `/organization`, `/task/:token`) and `@[client_app_v2/lib/router/scaffold_with_nav.dart]` (**Profiili / Profile** + trailing Sign Out + role-aware `/organization` destination), and verified all 4 Phase 6 `<test_contracts>`.
 
 ## Learned
 - `pydantic.mypy` requires `allowed_email_domains=[]` to be explicitly passed when instantiating `Organization(...)` directly in service/fake constructors (`@[backend_v2/services/auth/user_service.py]`, `@[backend_v2/services/auth/organization_service.py]`, `@[backend_v2/tests/fakes/in_memory_repositories.py]`).
 - `@[backend_v2/tests/unit/database/test_postgres.py]` enforces 1:1 column-to-DTO-field naming parity across all 15 tables in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]` (`tenant_secrets` includes a `VIRTUAL` generated `created_at` column).
 - `audit_dict_eradication.py` bans `dict[str, JsonValue]` return type annotations on test helper methods (`unauthorized_open_json_annotations`); fixture helpers in unit tests must return concrete validated Pydantic V2 DTOs (`TokenExchangeResponseDTO`) and call `.model_dump(mode="json")` at the mock boundary.
 - When benchmarking sub-millisecond in-memory `RevocationCache.assert_not_revoked` execution in unit tests, warm up `get_settings()` once before `time.perf_counter_ns()` so cold `.env` disk loading on Windows does not skew the `MGET` latency measurement.
+- In Flutter widget tests overriding `settingsControllerProvider`, stubbing via `class _StubSettingsController extends AsyncNotifier<AppSettingsState> implements SettingsController` avoids invoking `SettingsController`'s `SharedPreferencesAsync()` field initializer and satisfies `depend_on_referenced_packages` lint rules.
 
 ## Remaining
-- Run `/tier8-audit-plan` on Phase 5 (`@[docs/epic/tasks_EPIC_160/05_phase5_plan.md]` and `@[docs/epic/EPIC_160_tracker.md]`), then proceed to Phase 6 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`).
+- Run `/tier8-audit-plan` on Phase 6 (`@[docs/epic/tasks_EPIC_160/06_phase6_plan.md]` and `@[docs/epic/EPIC_160_tracker.md]`), followed by Post-Implementation Gates, `/tier7-describe-architecture`, and `/tier8-audit-epic`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_160/05_phase5_plan.md] @[docs/epic/EPIC_160_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]
 ```

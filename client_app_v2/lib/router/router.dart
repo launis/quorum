@@ -1,30 +1,32 @@
 import 'package:client_app/core/ui/splash_screen.dart';
-import 'package:client_app/features/auth/presentation/login_screen.dart';
-
-import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/features/auth/domain/models/user.dart';
-import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/router/scaffold_with_nav.dart';
-import 'package:client_app/features/studio/views/studio_dashboard_view.dart';
-import 'package:client_app/features/studio/views/workflow_builder_view.dart';
+import 'package:client_app/features/auth/presentation/auth_controller.dart';
+import 'package:client_app/features/auth/presentation/login_screen.dart';
+import 'package:client_app/features/execution/views/dashboard_view.dart';
+import 'package:client_app/features/execution/views/execution_view.dart';
+import 'package:client_app/features/execution/views/new_execution_view.dart';
+import 'package:client_app/features/execution/views/task_assignment_portal_view.dart';
+import 'package:client_app/features/reports/views/execution_reports_view.dart';
+import 'package:client_app/features/settings/presentation/organization_iam_settings_view.dart';
+import 'package:client_app/features/settings/presentation/user_profile_settings_view.dart';
+import 'package:client_app/features/studio/views/matrix_editor_view.dart';
+import 'package:client_app/features/studio/views/mcp_gateway_view.dart';
+import 'package:client_app/features/studio/views/model_registry_view.dart';
+import 'package:client_app/features/studio/views/output_profile_crud_view.dart';
+import 'package:client_app/features/studio/views/profile_editor_view.dart';
 import 'package:client_app/features/studio/views/prompt_block_builder_view.dart';
 import 'package:client_app/features/studio/views/step_builder_view.dart';
-import 'package:client_app/features/studio/views/profile_editor_view.dart';
-import 'package:client_app/features/studio/views/output_profile_crud_view.dart';
-import 'package:client_app/features/studio/views/model_registry_view.dart';
-import 'package:client_app/features/studio/views/mcp_gateway_view.dart';
-import 'package:client_app/features/studio/views/matrix_editor_view.dart';
-
+import 'package:client_app/features/studio/views/studio_dashboard_view.dart';
+import 'package:client_app/features/studio/views/workflow_builder_view.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/router/scaffold_with_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'package:client_app/features/execution/views/new_execution_view.dart';
-import 'package:client_app/features/execution/views/dashboard_view.dart';
-import 'package:client_app/features/execution/views/execution_view.dart';
-import 'package:client_app/features/reports/views/execution_reports_view.dart';
-
 part 'router.g.dart';
+
+// Phase 6, Step 6.2: GoRouter RBAC Role Guards, /organization Branch, and Unauthenticated /task/:token Portal.
 
 // Private keys for navigator state
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -36,20 +38,6 @@ final RouteObserver<ModalRoute<void>> routeObserver =
 /// **Router Provider**
 ///
 /// The central nervous system of the application's navigation.
-///
-/// **Responsibility**:
-/// - Manages the routing table.
-/// - Handles authentication guarding (Redirects).
-/// - Implements the Adaptive Shell (NavRail vs BottomBar).
-///
-/// **Redirect Logic**:
-/// 1.  **Checking Auth**: If not logged in -> Redirect to `/login`.
-/// 2.  **Hydrating Profile**: If logged in but profile loading -> Show Splash.
-/// 3.  **Role Guarding**:
-///     - Admin routes are protected.
-///     - Unknown roles are sent to `/dashboard`.
-/// 4.  **Bootstrapping**:
-///     - `/` redirects to `/dashboard` or `/admin` based on role.
 @Riverpod(keepAlive: true)
 GoRouter router(Ref ref) {
   final authState = ref.watch(authControllerProvider);
@@ -75,6 +63,11 @@ String? resolveAuthRedirect({
 }) {
   final isLoggingIn = location == '/login';
   final isSplash = location == '/splash';
+  final isTaskPortal = location.startsWith('/task/');
+
+  if (isTaskPortal) {
+    return null;
+  }
 
   return switch (authState) {
     AsyncLoading() => isSplash ? null : '/splash',
@@ -93,10 +86,20 @@ String? resolveAuthRedirect({
       // 5. Role Guard
       final isAdminRoute = location.startsWith('/admin');
       final isStudioRoute = location.startsWith('/studio');
+      final isOrganizationRoute = location.startsWith('/organization');
 
       // Strict RBAC: Only ROOT and ADMIN can access /admin or /studio routes
       if (isAdminRoute || isStudioRoute) {
         if (value.role != UserRole.root && value.role != UserRole.admin) {
+          return '/dashboard';
+        }
+      }
+
+      // Only MANAGER, ADMIN, and ROOT can access /organization
+      if (isOrganizationRoute) {
+        if (value.role != UserRole.root &&
+            value.role != UserRole.admin &&
+            value.role != UserRole.manager) {
           return '/dashboard';
         }
       }
@@ -122,6 +125,16 @@ class SplashRoute extends GoRouteData with $SplashRoute {
       const SplashScreen();
 }
 
+@TypedGoRoute<TaskAssignmentRoute>(path: '/task/:token')
+class TaskAssignmentRoute extends GoRouteData with $TaskAssignmentRoute {
+  const TaskAssignmentRoute({required this.token});
+  final String token;
+
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      TaskAssignmentPortalView(token: token);
+}
+
 @TypedStatefulShellRoute<AppShellRoute>(
   branches: <TypedStatefulShellBranch<StatefulShellBranchData>>[
     TypedStatefulShellBranch<DashboardBranch>(
@@ -145,6 +158,11 @@ class SplashRoute extends GoRouteData with $SplashRoute {
     TypedStatefulShellBranch<SettingsBranch>(
       routes: <TypedRoute<RouteData>>[
         TypedGoRoute<SettingsRoute>(path: '/settings'),
+      ],
+    ),
+    TypedStatefulShellBranch<OrganizationBranch>(
+      routes: <TypedRoute<RouteData>>[
+        TypedGoRoute<OrganizationSettingsRoute>(path: '/organization'),
       ],
     ),
   ],
@@ -219,10 +237,20 @@ class SettingsBranch extends StatefulShellBranchData {
 class SettingsRoute extends GoRouteData with $SettingsRoute {
   const SettingsRoute();
   @override
-  Widget build(BuildContext context, GoRouterState state) {
-    final l10n = AppLocalizations.of(context)!;
-    return Scaffold(body: Center(child: Text(l10n.settings)));
-  }
+  Widget build(BuildContext context, GoRouterState state) =>
+      const UserProfileSettingsView();
+}
+
+class OrganizationBranch extends StatefulShellBranchData {
+  const OrganizationBranch();
+}
+
+class OrganizationSettingsRoute extends GoRouteData
+    with $OrganizationSettingsRoute {
+  const OrganizationSettingsRoute();
+  @override
+  Widget build(BuildContext context, GoRouterState state) =>
+      const OrganizationIamSettingsView();
 }
 
 @TypedGoRoute<AdminShellRoute>(

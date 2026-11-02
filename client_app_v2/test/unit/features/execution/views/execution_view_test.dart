@@ -99,6 +99,9 @@ class _StubExecutionClient implements ExecutionClient {
   }) async {
     return const GenericStatusResponseDto(message: 'ok');
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _StubReportsClient implements Fake, ReportsClient {

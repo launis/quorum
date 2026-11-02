@@ -76,9 +76,7 @@ class AuthRepository {
     if (trimmed.isEmpty) {
       return Left(AppException.unauthorized());
     }
-    return exchangeWithPayload(
-      TokenExchangeRequestDto(firebaseToken: trimmed),
-    );
+    return exchangeWithPayload(TokenExchangeRequestDto(firebaseToken: trimmed));
   }
 
   /// Executes `POST /api/v2/iam/auth/exchange` using a typed [TokenExchangeRequestDto].
@@ -131,10 +129,7 @@ class AuthRepository {
       final enrolledFactors = await firebaseUser.multiFactor
           .getEnrolledFactors();
       if (enrolledFactors.isEmpty) {
-        await _prepareEnrollmentForUser(
-          firebaseUser,
-          fallbackEmail: email,
-        );
+        await _prepareEnrollmentForUser(firebaseUser, fallbackEmail: email);
         return const Left(
           AppException(
             status: 403,
@@ -192,7 +187,9 @@ class AuthRepository {
     final trimmedCode = totpCode.trim();
     if (trimmedCode.length != 6) {
       return Left(
-        AppException.validation('A 6-digit TOTP verification code is required.'),
+        AppException.validation(
+          'A 6-digit TOTP verification code is required.',
+        ),
       );
     }
 
@@ -239,7 +236,9 @@ class AuthRepository {
     final trimmedCode = totpCode.trim();
     if (trimmedCode.length != 6) {
       return Left(
-        AppException.validation('A 6-digit TOTP confirmation code is required.'),
+        AppException.validation(
+          'A 6-digit TOTP confirmation code is required.',
+        ),
       );
     }
 

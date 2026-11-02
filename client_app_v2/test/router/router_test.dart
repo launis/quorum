@@ -83,15 +83,29 @@ void main() {
           ),
           isNull,
         );
+        expect(
+          resolveAuthRedirect(
+            authState: unauthenticatedState,
+            location: '/task/tok_01960000000070008000000000000001',
+          ),
+          isNull,
+        );
       },
     );
 
     test(
-      'negative & boundary: blocks non-admin roles from /admin and /studio routes',
+      'negative & boundary: blocks non-admin roles from /admin and /studio routes, and blocks member/viewer from /organization',
       () {
         const memberState = AsyncData<User?>(memberUser);
         expect(
           resolveAuthRedirect(authState: memberState, location: '/admin'),
+          '/dashboard',
+        );
+        expect(
+          resolveAuthRedirect(
+            authState: memberState,
+            location: '/organization',
+          ),
           '/dashboard',
         );
         expect(

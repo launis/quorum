@@ -9,6 +9,7 @@ part of 'router.dart';
 List<RouteBase> get $appRoutes => [
   $loginRoute,
   $splashRoute,
+  $taskAssignmentRoute,
   $appShellRoute,
   $adminShellRoute,
   $rootRoute,
@@ -60,6 +61,35 @@ mixin $SplashRoute on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
+RouteBase get $taskAssignmentRoute => GoRouteData.$route(
+  path: '/task/:token',
+  factory: $TaskAssignmentRoute._fromState,
+);
+
+mixin $TaskAssignmentRoute on GoRouteData {
+  static TaskAssignmentRoute _fromState(GoRouterState state) =>
+      TaskAssignmentRoute(token: state.pathParameters['token']!);
+
+  TaskAssignmentRoute get _self => this as TaskAssignmentRoute;
+
+  @override
+  String get location =>
+      GoRouteData.$location('/task/${Uri.encodeComponent(_self.token)}');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
 RouteBase get $appShellRoute => StatefulShellRouteData.$route(
   factory: $AppShellRouteExtension._fromState,
   branches: [
@@ -94,6 +124,14 @@ RouteBase get $appShellRoute => StatefulShellRouteData.$route(
         GoRouteData.$route(
           path: '/settings',
           factory: $SettingsRoute._fromState,
+        ),
+      ],
+    ),
+    StatefulShellBranchData.$branch(
+      routes: [
+        GoRouteData.$route(
+          path: '/organization',
+          factory: $OrganizationSettingsRoute._fromState,
         ),
       ],
     ),
@@ -217,6 +255,27 @@ mixin $SettingsRoute on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/settings');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $OrganizationSettingsRoute on GoRouteData {
+  static OrganizationSettingsRoute _fromState(GoRouterState state) =>
+      const OrganizationSettingsRoute();
+
+  @override
+  String get location => GoRouteData.$location('/organization');
 
   @override
   void go(BuildContext context) => context.go(location);
@@ -717,20 +776,6 @@ mixin $RootRoute on GoRouteData {
 /// **Router Provider**
 ///
 /// The central nervous system of the application's navigation.
-///
-/// **Responsibility**:
-/// - Manages the routing table.
-/// - Handles authentication guarding (Redirects).
-/// - Implements the Adaptive Shell (NavRail vs BottomBar).
-///
-/// **Redirect Logic**:
-/// 1.  **Checking Auth**: If not logged in -> Redirect to `/login`.
-/// 2.  **Hydrating Profile**: If logged in but profile loading -> Show Splash.
-/// 3.  **Role Guarding**:
-///     - Admin routes are protected.
-///     - Unknown roles are sent to `/dashboard`.
-/// 4.  **Bootstrapping**:
-///     - `/` redirects to `/dashboard` or `/admin` based on role.
 
 @ProviderFor(router)
 final routerProvider = RouterProvider._();
@@ -738,20 +783,6 @@ final routerProvider = RouterProvider._();
 /// **Router Provider**
 ///
 /// The central nervous system of the application's navigation.
-///
-/// **Responsibility**:
-/// - Manages the routing table.
-/// - Handles authentication guarding (Redirects).
-/// - Implements the Adaptive Shell (NavRail vs BottomBar).
-///
-/// **Redirect Logic**:
-/// 1.  **Checking Auth**: If not logged in -> Redirect to `/login`.
-/// 2.  **Hydrating Profile**: If logged in but profile loading -> Show Splash.
-/// 3.  **Role Guarding**:
-///     - Admin routes are protected.
-///     - Unknown roles are sent to `/dashboard`.
-/// 4.  **Bootstrapping**:
-///     - `/` redirects to `/dashboard` or `/admin` based on role.
 
 final class RouterProvider
     extends $FunctionalProvider<GoRouter, GoRouter, GoRouter>
@@ -759,20 +790,6 @@ final class RouterProvider
   /// **Router Provider**
   ///
   /// The central nervous system of the application's navigation.
-  ///
-  /// **Responsibility**:
-  /// - Manages the routing table.
-  /// - Handles authentication guarding (Redirects).
-  /// - Implements the Adaptive Shell (NavRail vs BottomBar).
-  ///
-  /// **Redirect Logic**:
-  /// 1.  **Checking Auth**: If not logged in -> Redirect to `/login`.
-  /// 2.  **Hydrating Profile**: If logged in but profile loading -> Show Splash.
-  /// 3.  **Role Guarding**:
-  ///     - Admin routes are protected.
-  ///     - Unknown roles are sent to `/dashboard`.
-  /// 4.  **Bootstrapping**:
-  ///     - `/` redirects to `/dashboard` or `/admin` based on role.
   RouterProvider._()
     : super(
         from: null,

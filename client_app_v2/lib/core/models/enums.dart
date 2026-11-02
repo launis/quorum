@@ -654,6 +654,8 @@ enum AssignmentStatus {
   activated('ACTIVATED'),
   @JsonValue('SUBMITTED')
   submitted('SUBMITTED'),
+  @JsonValue('COMPLETED')
+  completed('COMPLETED'),
   @JsonValue('EXPIRED')
   expired('EXPIRED'),
   @JsonValue('REVOKED')
@@ -694,12 +696,16 @@ enum EmailTransportMode {
 /// Outbound transactional email delivery status.
 @JsonEnum()
 enum EmailDeliveryStatus {
+  @JsonValue('PENDING')
+  pending('PENDING'),
   @JsonValue('QUEUED')
   queued('QUEUED'),
   @JsonValue('SENT')
   sent('SENT'),
   @JsonValue('MOCK_LOGGED')
   mockLogged('MOCK_LOGGED'),
+  @JsonValue('FAILED')
+  failed('FAILED'),
   @JsonValue('FAILED_TRANSIENT')
   failedTransient('FAILED_TRANSIENT'),
   @JsonValue('FAILED_PERMANENT')

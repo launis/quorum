@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:go_router/go_router.dart';
@@ -13,9 +13,14 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
+import 'package:client_app/features/execution/models/workflow_inputs.dart';
+import 'package:client_app/features/auth/presentation/auth_controller.dart';
+import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
+import 'package:client_app/core/models/enums.dart';
 
 import 'package:client_app/router/router.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
@@ -140,9 +145,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     }
   }
 
-  void _submit() async {
-    if (_selectedWorkflow == null) return;
-
+  void _syncTextControllersToCompiledInputs() {
     _textControllers.forEach((key, controller) {
       if (controller.text.isNotEmpty) {
         if (key.contains('|||')) {
@@ -166,6 +169,28 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
         }
       }
     });
+  }
+
+  Future<void> _openTaskAssignmentDialog() async {
+    final workflow = _selectedWorkflow;
+    if (workflow == null) return;
+    _syncTextControllersToCompiledInputs();
+    final localeCode = Localizations.localeOf(context).languageCode;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => _TaskAssignmentConfigDialog(
+        workflow: workflow,
+        profileId: _selectedProfileId,
+        initialCompiledInputs: Map<String, Object?>.from(_compiledInputs),
+        targetLocale: localeCode,
+      ),
+    );
+  }
+
+  void _submit() async {
+    if (_selectedWorkflow == null) return;
+
+    _syncTextControllersToCompiledInputs();
 
     for (final item in _selectedWorkflow!.expectedInputs) {
       final key = item.inputKey;
@@ -243,17 +268,19 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   Widget build(BuildContext context) {
     final state = ref.watch(newExecutionControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.newAnalysisPipelineTitle),
-        leading: BackButton(onPressed: () => context.go('/dashboard')),
-      ),
-      body: Row(
-        children: [
-          Expanded(flex: 1, child: _buildWorkflowSidebar()),
-          const VerticalDivider(width: 1),
-          Expanded(flex: 2, child: _buildDynamicForm(state)),
-        ],
+    return AppErrorBoundary(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.newAnalysisPipelineTitle),
+          leading: BackButton(onPressed: () => context.go('/dashboard')),
+        ),
+        body: Row(
+          children: [
+            Expanded(flex: 1, child: _buildWorkflowSidebar()),
+            const VerticalDivider(width: 1),
+            Expanded(flex: 2, child: _buildDynamicForm(state)),
+          ],
+        ),
       ),
     );
   }
@@ -303,7 +330,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
         compact: true,
         onRetry: () => ref.invalidate(availableWorkflowsProvider),
       ),
-      _ => const Center(child: CircularProgressIndicator()),
+      AsyncLoading() => const Center(child: CircularProgressIndicator()),
     };
   }
 
@@ -733,19 +760,488 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: FilledButton.icon(
-        onPressed: _submit,
-        icon: const Icon(Icons.rocket_launch),
-        label: Text(
-          AppLocalizations.of(context)!.startAiExecution,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onPrimary,
+    final authUser = ref.watch(authControllerProvider).value;
+    final canAssignTask =
+        authUser != null &&
+        (authUser.role == UserRole.manager ||
+            authUser.role == UserRole.admin ||
+            authUser.role == UserRole.root);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: FilledButton.icon(
+            onPressed: _submit,
+            icon: const Icon(Icons.rocket_launch),
+            label: Text(
+              AppLocalizations.of(context)!.startAiExecution,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onPrimary,
+              ),
+            ),
+          ),
+        ),
+        if (canAssignTask) ...[
+          AppSpacing.h12,
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              key: const Key('assign_as_task_btn'),
+              onPressed: _openTaskAssignmentDialog,
+              icon: const Icon(Icons.assignment_ind_outlined),
+              label: Text(
+                AppLocalizations.of(context)!.assignAsTimeBoundTaskBtn,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Phase 6, Step 6.2: Task Assignment Configuration Dialog in NewExecutionView.
+class _TaskAssignmentConfigDialog extends ConsumerStatefulWidget {
+  final Workflow workflow;
+  final String? profileId;
+  final Map<String, Object?> initialCompiledInputs;
+  final String targetLocale;
+
+  const _TaskAssignmentConfigDialog({
+    required this.workflow,
+    required this.profileId,
+    required this.initialCompiledInputs,
+    required this.targetLocale,
+  });
+
+  @override
+  ConsumerState<_TaskAssignmentConfigDialog> createState() =>
+      _TaskAssignmentConfigDialogState();
+}
+
+class _TaskAssignmentConfigDialogState
+    extends ConsumerState<_TaskAssignmentConfigDialog> {
+  final TextEditingController _singleEmailController = TextEditingController();
+  final TextEditingController _batchEmailsController = TextEditingController();
+  final TextEditingController _deadlineHoursController = TextEditingController(
+    text: '72',
+  );
+  final TextEditingController _durationMinutesController =
+      TextEditingController();
+
+  bool _isBatchMode = false;
+  late Set<String> _assigneeInputKeys;
+  AssignmentResultVisibility _resultVisibility =
+      AssignmentResultVisibility.confirmationOnly;
+  final List<ExecutionAssignmentRecipientDto> _parsedBatchRecipients = [];
+
+  bool _isSubmitting = false;
+  Object? _error;
+  ExecutionAssignmentResponseDto? _createdSingle;
+  ExecutionAssignmentBatchResponseDto? _createdBatch;
+
+  @override
+  void initState() {
+    super.initState();
+    _assigneeInputKeys = {
+      for (final item in widget.workflow.expectedInputs)
+        if (!widget.initialCompiledInputs.containsKey(item.inputKey))
+          item.inputKey,
+    };
+  }
+
+  @override
+  void dispose() {
+    _singleEmailController.dispose();
+    _batchEmailsController.dispose();
+    _deadlineHoursController.dispose();
+    _durationMinutesController.dispose();
+    super.dispose();
+  }
+
+  void _parseBatchText(String raw) {
+    final lines = raw
+        .split(RegExp(r'[\r\n,;]+'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    setState(() {
+      _parsedBatchRecipients
+        ..clear()
+        ..addAll(
+          lines.map((line) => ExecutionAssignmentRecipientDto(email: line)),
+        );
+    });
+  }
+
+  Future<void> _importCsvFile() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['csv', 'txt'],
+      withData: true,
+    );
+    if (!mounted || result == null || result.files.isEmpty) return;
+    final platformFile = result.files.single;
+    Uint8List? bytes = platformFile.bytes;
+    if (bytes == null && platformFile.path != null) {
+      bytes = File(platformFile.path!).readAsBytesSync();
+    }
+    if (bytes == null) return;
+    final content = utf8.decode(bytes);
+    final rows = content
+        .split(RegExp(r'\r?\n'))
+        .map((r) => r.trim())
+        .where((r) => r.isNotEmpty)
+        .toList();
+    final parsed = <ExecutionAssignmentRecipientDto>[];
+    for (final row in rows) {
+      final cols = row.split(',').map((c) => c.trim()).toList();
+      if (cols.isEmpty || cols[0].toLowerCase() == 'email') continue;
+      parsed.add(
+        ExecutionAssignmentRecipientDto(
+          email: cols[0],
+          name: cols.length > 1 && cols[1].isNotEmpty ? cols[1] : null,
+          targetLocale: cols.length > 2 && cols[2].isNotEmpty ? cols[2] : null,
+        ),
+      );
+    }
+    setState(() {
+      _isBatchMode = true;
+      _parsedBatchRecipients
+        ..clear()
+        ..addAll(parsed);
+      _batchEmailsController.text = parsed.map((r) => r.email).join('\n');
+    });
+  }
+
+  Future<void> _submitAssignment() async {
+    final hours = int.tryParse(_deadlineHoursController.text.trim()) ?? 72;
+    final hardDeadline = DateTime.now().toUtc().add(Duration(hours: hours));
+    final durationMinutes = int.tryParse(
+      _durationMinutesController.text.trim(),
+    );
+    final relativeDurationSeconds =
+        durationMinutes != null && durationMinutes > 0
+        ? durationMinutes * 60
+        : null;
+
+    final lockedMap = <String, Object?>{
+      for (final entry in widget.initialCompiledInputs.entries)
+        if (!_assigneeInputKeys.contains(entry.key)) entry.key: entry.value,
+    };
+    final lockedInputs = WorkflowInputs(
+      language: widget.targetLocale,
+      dynamicInputs: lockedMap,
+    );
+
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
+
+    try {
+      final client = ref.read(executionClientProvider);
+      if (_isBatchMode) {
+        if (_parsedBatchRecipients.isEmpty) {
+          _parseBatchText(_batchEmailsController.text);
+        }
+        final batchRes = await client.createAssignmentBatch(
+          ExecutionAssignmentBatchCreateDto(
+            recipients: _parsedBatchRecipients,
+            workflowId: widget.workflow.id,
+            outputProfileId: widget.profileId,
+            targetLocale: widget.targetLocale,
+            lockedInputs: lockedInputs,
+            assigneeInputKeys: _assigneeInputKeys.toList(),
+            resultVisibility: _resultVisibility,
+            hardDeadlineAt: hardDeadline,
+            relativeDurationSeconds: relativeDurationSeconds,
+          ),
+        );
+        if (!mounted) return;
+        setState(() {
+          _createdBatch = batchRes;
+          _isSubmitting = false;
+        });
+      } else {
+        final singleRes = await client.createAssignment(
+          ExecutionAssignmentCreateDto(
+            assignedEmail: _singleEmailController.text.trim(),
+            workflowId: widget.workflow.id,
+            outputProfileId: widget.profileId,
+            targetLocale: widget.targetLocale,
+            lockedInputs: lockedInputs,
+            assigneeInputKeys: _assigneeInputKeys.toList(),
+            resultVisibility: _resultVisibility,
+            hardDeadlineAt: hardDeadline,
+            relativeDurationSeconds: relativeDurationSeconds,
+          ),
+        );
+        if (!mounted) return;
+        setState(() {
+          _createdSingle = singleRes;
+          _isSubmitting = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e;
+        _isSubmitting = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    return AlertDialog(
+      key: const Key('task_assignment_config_dialog'),
+      title: Text(
+        l10n.taskBuilderDialogTitle,
+        style: theme.textTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: AppSpacing.s8,
+                children: [
+                  ChoiceChip(
+                    key: const Key('task_builder_single_mode_chip'),
+                    label: Text(l10n.taskBuilderSingleEmailLabel),
+                    selected: !_isBatchMode,
+                    onSelected: (_) => setState(() => _isBatchMode = false),
+                  ),
+                  ChoiceChip(
+                    key: const Key('task_builder_batch_mode_chip'),
+                    label: Text(l10n.taskBuilderBatchEmailsLabel),
+                    selected: _isBatchMode,
+                    onSelected: (_) => setState(() => _isBatchMode = true),
+                  ),
+                ],
+              ),
+              AppSpacing.h16,
+              if (!_isBatchMode)
+                TextField(
+                  key: const Key('task_builder_single_email_field'),
+                  controller: _singleEmailController,
+                  decoration: InputDecoration(
+                    labelText: l10n.taskBuilderSingleEmailLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                )
+              else ...[
+                TextField(
+                  key: const Key('task_builder_batch_emails_field'),
+                  controller: _batchEmailsController,
+                  maxLines: 3,
+                  onChanged: _parseBatchText,
+                  decoration: InputDecoration(
+                    labelText: l10n.taskBuilderBatchEmailsLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                AppSpacing.h8,
+                OutlinedButton.icon(
+                  key: const Key('task_builder_import_csv_btn'),
+                  onPressed: _importCsvFile,
+                  icon: const Icon(Icons.upload_file),
+                  label: Text(l10n.taskBuilderUploadCsvBtn),
+                ),
+                if (_parsedBatchRecipients.isNotEmpty) ...[
+                  AppSpacing.h8,
+                  Wrap(
+                    spacing: AppSpacing.s8,
+                    runSpacing: AppSpacing.s4,
+                    children: _parsedBatchRecipients.map((recipient) {
+                      return InputChip(
+                        label: Text(recipient.email),
+                        onDeleted: () {
+                          setState(() {
+                            _parsedBatchRecipients.remove(recipient);
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ],
+              AppSpacing.h16,
+              Text(
+                l10n.taskBuilderAssigneeInputsTitle,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              AppSpacing.h8,
+              Wrap(
+                spacing: AppSpacing.s8,
+                runSpacing: AppSpacing.s8,
+                children: widget.workflow.expectedInputs.map((item) {
+                  final key = item.inputKey;
+                  final selected = _assigneeInputKeys.contains(key);
+                  return FilterChip(
+                    key: Key('task_builder_assignee_chip_$key'),
+                    label: Text(key),
+                    selected: selected,
+                    onSelected: (val) {
+                      setState(() {
+                        if (val) {
+                          _assigneeInputKeys.add(key);
+                        } else {
+                          _assigneeInputKeys.remove(key);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+              AppSpacing.h16,
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: const Key('task_builder_deadline_hours_field'),
+                      controller: _deadlineHoursController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: l10n.taskBuilderHardDeadlineLabel,
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  AppSpacing.w12,
+                  Expanded(
+                    child: TextField(
+                      key: const Key('task_builder_duration_minutes_field'),
+                      controller: _durationMinutesController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: l10n.taskBuilderRelativeDurationLabel,
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              AppSpacing.h16,
+              DropdownButtonFormField<AssignmentResultVisibility>(
+                key: const Key('task_builder_visibility_dropdown'),
+                isExpanded: true,
+                initialValue: _resultVisibility,
+                decoration: InputDecoration(
+                  labelText: l10n.taskBuilderResultVisibilityLabel,
+                  border: const OutlineInputBorder(),
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: AssignmentResultVisibility.confirmationOnly,
+                    child: Text(
+                      l10n.taskBuilderVisibilityConfirmation,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: AssignmentResultVisibility.fullReportAccess,
+                    child: Text(
+                      l10n.taskBuilderVisibilityFullReport,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _resultVisibility = val);
+                  }
+                },
+              ),
+              if (_error != null) ...[
+                AppSpacing.h12,
+                ErrorView(error: _error!, compact: true),
+              ],
+              if (_createdSingle != null) ...[
+                AppSpacing.h16,
+                Card(
+                  elevation: 2,
+                  color: theme.colorScheme.primaryContainer,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.s12),
+                  ),
+                  child: Padding(
+                    padding: AppSpacing.p12,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: SelectableText(
+                            key: const Key('task_builder_magic_link_text'),
+                            l10n.taskBuilderMagicLinkReady(
+                              '/task/${_createdSingle!.id}',
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.copy),
+                          onPressed: () {
+                            Clipboard.setData(
+                              ClipboardData(
+                                text: '/task/${_createdSingle!.id}',
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              if (_createdBatch != null) ...[
+                AppSpacing.h16,
+                OutlinedButton.icon(
+                  key: const Key('task_builder_export_csv_btn'),
+                  onPressed: () {
+                    final csvLines = <String>[
+                      'email,assignment_id,magic_link',
+                      for (final item in _createdBatch!.assignments)
+                        '${item.assignedEmail},${item.id},/task/${item.id}',
+                    ].join('\n');
+                    Clipboard.setData(ClipboardData(text: csvLines));
+                  },
+                  icon: const Icon(Icons.download_outlined),
+                  label: Text(l10n.taskBuilderExportCsvBtn),
+                ),
+              ],
+            ],
           ),
         ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        OutlinedButton.icon(
+          key: const Key('task_builder_submit_btn'),
+          onPressed: _isSubmitting ? null : _submitAssignment,
+          icon: const Icon(Icons.send_outlined),
+          label: Text(
+            _isBatchMode
+                ? l10n.taskBuilderSubmitBatchBtn
+                : l10n.taskBuilderSubmitSingleBtn,
+          ),
+        ),
+      ],
     );
   }
 }

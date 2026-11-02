@@ -39,6 +39,12 @@ class _StubSettingsController extends AsyncNotifier<AppSettingsState>
       state = AsyncData(current.copyWith(locale: newLocale));
     }
   }
+
+  @override
+  Future<void> syncFromUserProfile({
+    String? language,
+    String? themeMode,
+  }) async {}
 }
 
 void main() {

@@ -1,21 +1,17 @@
-import 'package:client_app/features/auth/domain/models/user.dart';
+import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/auth/presentation/auth_controller.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+
+// Phase 6, Step 6.2: Adaptive Navigation Shell with Profiili / Profile, Role-Gated Organization & IAM, and Trailing Sign-Out Button.
 
 /// **Adaptive Navigation Scaffold**
 ///
 /// Wraps the main application content with a responsive navigation structure.
-///
-/// **Behavior**:
-/// - **Medium/Large Screens (>= 800dp)**: Displays a [NavigationRail] on the left.
-/// - **Small Screens (< 800dp)**: Displays a [NavigationBar] at the bottom.
-///
-/// **Design Rationale**:
-/// - Adheres to the Quorum Macro-Breakpoint standard via local [LayoutBuilder].
-/// - Ensures optimal space usage on large screens (Quorum is data-heavy).
 class ScaffoldWithNav extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -27,14 +23,15 @@ class ScaffoldWithNav extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
 
-    // Evaluate Admin Role via Dart 3 pattern matching
+    // Evaluate Roles via Dart 3 pattern matching
     final authState = ref.watch(authControllerProvider);
-    final isAdmin = switch (authState) {
-      AsyncData(:final value) =>
-        value != null &&
-            (value.role == UserRole.root || value.role == UserRole.admin),
-      AsyncLoading() || AsyncError() => false,
+    final userRole = switch (authState) {
+      AsyncData(:final value) => value?.role,
+      AsyncLoading() || AsyncError() => null,
     };
+
+    final isAdmin = userRole == UserRole.root || userRole == UserRole.admin;
+    final canManageOrganization = isAdmin || userRole == UserRole.manager;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -44,17 +41,26 @@ class ScaffoldWithNav extends ConsumerWidget {
           body: isWideScreen
               ? _WideScreenLayout(
                   navigationShell: navigationShell,
+                  canManageOrganization: canManageOrganization,
                   isAdmin: isAdmin,
-                  onDestinationSelected: (index) =>
-                      _onItemTapped(index, context, isAdmin),
+                  onDestinationSelected: (index) => _onItemTapped(
+                    index,
+                    context,
+                    canManageOrganization: canManageOrganization,
+                    isAdmin: isAdmin,
+                  ),
                 )
               : navigationShell,
           bottomNavigationBar: isWideScreen
               ? null
               : NavigationBar(
                   selectedIndex: navigationShell.currentIndex,
-                  onDestinationSelected: (index) =>
-                      _onItemTapped(index, context, isAdmin),
+                  onDestinationSelected: (index) => _onItemTapped(
+                    index,
+                    context,
+                    canManageOrganization: canManageOrganization,
+                    isAdmin: isAdmin,
+                  ),
                   destinations: [
                     NavigationDestination(
                       icon: const Icon(Icons.dashboard_outlined),
@@ -67,10 +73,16 @@ class ScaffoldWithNav extends ConsumerWidget {
                       label: l10n.newAnalysis,
                     ),
                     NavigationDestination(
-                      icon: const Icon(Icons.settings_outlined),
-                      selectedIcon: const Icon(Icons.settings),
-                      label: l10n.navSettings,
+                      icon: const Icon(Icons.person_outline),
+                      selectedIcon: const Icon(Icons.person),
+                      label: l10n.navProfile,
                     ),
+                    if (canManageOrganization)
+                      NavigationDestination(
+                        icon: const Icon(Icons.corporate_fare_outlined),
+                        selectedIcon: const Icon(Icons.corporate_fare),
+                        label: l10n.navOrganization,
+                      ),
                     if (isAdmin)
                       NavigationDestination(
                         icon: const Icon(Icons.admin_panel_settings_outlined),
@@ -84,10 +96,27 @@ class ScaffoldWithNav extends ConsumerWidget {
     );
   }
 
-  void _onItemTapped(int index, BuildContext context, bool isAdmin) {
-    // If isAdmin is true, the Admin link is at index 3.
-    if (isAdmin && index == 3) {
+  void _onItemTapped(
+    int index,
+    BuildContext context, {
+    required bool canManageOrganization,
+    required bool isAdmin,
+  }) {
+    final adminIndex = canManageOrganization ? 4 : 3;
+    if (isAdmin && index == adminIndex) {
       context.go('/admin');
+      return;
+    }
+
+    if (canManageOrganization && index == 3) {
+      if (navigationShell.route.branches.length > 3) {
+        navigationShell.goBranch(
+          3,
+          initialLocation: 3 == navigationShell.currentIndex,
+        );
+      } else {
+        context.go('/organization');
+      }
       return;
     }
 
@@ -98,20 +127,24 @@ class ScaffoldWithNav extends ConsumerWidget {
   }
 }
 
-class _WideScreenLayout extends StatelessWidget {
+class _WideScreenLayout extends HookConsumerWidget {
   final StatefulNavigationShell navigationShell;
+  final bool canManageOrganization;
   final bool isAdmin;
   final ValueChanged<int> onDestinationSelected;
 
   const _WideScreenLayout({
     required this.navigationShell,
+    required this.canManageOrganization,
     required this.isAdmin,
     required this.onDestinationSelected,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final signOutFocusNode = useFocusNode();
+
     return Row(
       children: [
         NavigationRail(
@@ -119,6 +152,26 @@ class _WideScreenLayout extends StatelessWidget {
           onDestinationSelected: onDestinationSelected,
           labelType: NavigationRailLabelType.all,
           groupAlignment: -1.0,
+          trailing: Expanded(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.s16),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: IconButton(
+                    key: const Key('nav_rail_sign_out_btn'),
+                    focusNode: signOutFocusNode,
+                    tooltip: l10n.signOutBtn,
+                    icon: const Icon(Icons.logout),
+                    onPressed: () {
+                      ref.read(authControllerProvider.notifier).signOut();
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
           destinations: [
             NavigationRailDestination(
               icon: const Icon(Icons.dashboard_outlined),
@@ -131,10 +184,19 @@ class _WideScreenLayout extends StatelessWidget {
               label: Text(l10n.newAnalysis, overflow: TextOverflow.ellipsis),
             ),
             NavigationRailDestination(
-              icon: const Icon(Icons.settings_outlined),
-              selectedIcon: const Icon(Icons.settings),
-              label: Text(l10n.navSettings, overflow: TextOverflow.ellipsis),
+              icon: const Icon(Icons.person_outline),
+              selectedIcon: const Icon(Icons.person),
+              label: Text(l10n.navProfile, overflow: TextOverflow.ellipsis),
             ),
+            if (canManageOrganization)
+              NavigationRailDestination(
+                icon: const Icon(Icons.corporate_fare_outlined),
+                selectedIcon: const Icon(Icons.corporate_fare),
+                label: Text(
+                  l10n.navOrganization,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             if (isAdmin)
               NavigationRailDestination(
                 icon: const Icon(Icons.admin_panel_settings_outlined),

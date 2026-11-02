@@ -64,6 +64,15 @@ GoRouter _buildTestRouter() {
               ),
             ],
           ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/organization',
+                builder: (context, state) =>
+                    const Center(child: Text('Branch 3: Organization')),
+              ),
+            ],
+          ),
         ],
       ),
       GoRoute(
@@ -168,8 +177,8 @@ void main() {
         expect(find.byType(NavigationRail), findsNothing);
         expect(find.byIcon(Icons.admin_panel_settings_outlined), findsNothing);
 
-        // Tap Settings destination (index 2) on NavigationBar
-        await tester.tap(find.byIcon(Icons.settings_outlined));
+        // Tap Profile destination (index 2) on NavigationBar
+        await tester.tap(find.byIcon(Icons.person_outline));
         await tester.pumpAndSettle();
         expect(find.text('Branch 2: Settings'), findsOneWidget);
       },

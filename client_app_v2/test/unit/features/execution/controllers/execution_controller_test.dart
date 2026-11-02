@@ -72,6 +72,9 @@ class MockExecutionClient implements ExecutionClient {
   }) async {
     return const GenericStatusResponseDto(message: 'ok');
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class MockSseClient implements SseClient {
