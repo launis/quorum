@@ -75,8 +75,6 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["ExecutionAssignmentService", "mask_email_address", "redact_execution_for_confirmation_only"]
 
-_FIREBASE_VERIFY_TIMEOUT_SECONDS: float = 10.0
-
 
 def mask_email_address(email: str) -> str:
     """Mask an email address for public preview responses (e.g. 'j***@example.com').
@@ -1079,7 +1077,7 @@ class ExecutionAssignmentService:
                 )
             fb_auth = self.token_service.firebase_auth
             try:
-                async with asyncio.timeout(_FIREBASE_VERIFY_TIMEOUT_SECONDS):
+                async with asyncio.timeout(settings.email_http_timeout_seconds):
                     decoded = await asyncio.to_thread(fb_auth.verify_id_token, firebase_token)
             except Exception as exc:
                 logger.error(

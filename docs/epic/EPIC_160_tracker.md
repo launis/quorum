@@ -126,7 +126,7 @@
   - [x] [NEW] @[backend_v2/services/auth/secret_service.py]
   - [x] [NEW] @[backend_v2/services/auth/email_service.py]
   - [x] @[backend_v2/services/auth/__init__.py]
-  - [ ] [NEW] @[backend_v2/services/execution/assignment_service.py]
+  - [x] [NEW] @[backend_v2/services/execution/assignment_service.py]
   - [ ] @[backend_v2/services/execution/lifecycle_service.py]
   - [ ] @[backend_v2/services/execution/ingress_service.py]
   - [ ] [NEW] @[backend_v2/core/redis_security.py]
