@@ -35,6 +35,24 @@ router = APIRouter(prefix="/organizations", tags=["Admin IAM V2 - Organizations"
 SecretServiceDep = Annotated[SecretService, Depends(get_secret_service)]
 TenantAdminDep = Annotated[TokenData, Depends(require_role([UserRole.ROOT, UserRole.ADMIN]))]
 
+__all__ = [
+    "SecretServiceDep",
+    "TenantAdminDep",
+    "create_organization",
+    "create_organization_invitation",
+    "create_organization_invitation_batch",
+    "delete_organization",
+    "delete_organization_secret",
+    "get_all_organizations",
+    "get_organization",
+    "list_organization_invitations",
+    "list_organization_secrets",
+    "revoke_organization_invitation",
+    "router",
+    "save_organization",
+    "upsert_organization_secret",
+]
+
 
 @router.get("/", response_model=list[Organization])
 async def get_all_organizations(current_user: CurrentUserDep, auth_service: AuthServiceDep) -> list[Organization]:
