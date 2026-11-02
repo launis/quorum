@@ -1,13 +1,13 @@
 """Unit and boundary tests for PostgreSQL 19 Seed Batching and Collection CRUD stage.
 
 Covers seed_collection_batch_rows, verify_seed_table_counts_rows, and collection
-CRUD operations across all 10 canonical tables, including negative boundaries and
+CRUD operations across all canonical tables, including negative boundaries and
 driver fault translation.
 """
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -25,8 +25,17 @@ from backend_v2.database.postgres.entity_adapter.seed_and_collection_stage impor
 )
 from backend_v2.database.postgres.pool import AsyncPgRecordProtocol
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import Organization, SubscriptionStatus, User, UserRole
+from backend_v2.models.auth import (
+    ExecutionAssignment,
+    Invitation,
+    Organization,
+    SubscriptionStatus,
+    TenantSecretDTO,
+    User,
+    UserRole,
+)
 from backend_v2.models.core_base import I18nText, generate_opaque_id
+from backend_v2.models.domain.execution import WorkflowInputs
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.system_config import (
@@ -36,12 +45,18 @@ from backend_v2.models.domain.system_config import (
     SystemConfigModelRegistry,
 )
 from backend_v2.models.enums import (
+    AssignmentResultVisibility,
+    AssignmentStatus,
     CognitiveTier,
+    EmailDeliveryStatus,
     EngineType,
     EntityPrefix,
+    InvitationStatus,
     LLMProvider,
     MCPAuthType,
     MCPTransportType,
+    SecretScope,
+    SecretStorageMode,
     StepType,
     StepZone,
     SystemLocale,
@@ -140,20 +155,87 @@ def _build_step(block_id: str, org_id: str) -> Step:
     )
 
 
+def _build_invitation(org_id: str, invited_by: str) -> Invitation:
+    """Build a valid Invitation domain model for testing."""
+    now = datetime.now(UTC)
+    return Invitation(
+        id=generate_opaque_id(EntityPrefix.INVITATION),
+        organization_id=org_id,
+        email="invitee@quorum.ai",
+        role=UserRole.MEMBER,
+        token_hash="a" * 64,
+        status=InvitationStatus.PENDING,
+        email_delivery_status=EmailDeliveryStatus.SENT,
+        invited_by=invited_by,
+        expires_at=now + timedelta(days=7),
+        created_at=now,
+    )
+
+
+def _build_tenant_secret(org_id: str) -> TenantSecretDTO:
+    """Build a valid TenantSecretDTO domain model for testing."""
+    return TenantSecretDTO(
+        id=generate_opaque_id(EntityPrefix.TENANT_SECRET),
+        organization_id=org_id,
+        scope=SecretScope.LLM_PROVIDER,
+        target_identifier="google",
+        storage_mode=SecretStorageMode.ENVELOPE_KMS,
+        encrypted_dek=b"wrapped-dek",
+        ciphertext=b"encrypted-secret",
+        nonce=b"12byte-nonce",
+        kek_version="projects/quorum/locations/europe-north1/keyRings/byok/cryptoKeys/master/cryptoKeyVersions/1",
+        masked_hint="AIza...9999",
+        updated_at=datetime.now(UTC),
+    )
+
+
+def _build_assignment(org_id: str, created_by: str, wf_id: str, prf_id: str) -> ExecutionAssignment:
+    """Build a valid ExecutionAssignment domain model for testing."""
+    now = datetime.now(UTC)
+    return ExecutionAssignment(
+        id=generate_opaque_id(EntityPrefix.ASSIGNMENT),
+        batch_id=generate_opaque_id(EntityPrefix.ASSIGNMENT),
+        organization_id=org_id,
+        assigned_email="candidate@quorum.ai",
+        assigned_user_id=None,
+        invited_role=UserRole.MEMBER,
+        workflow_id=wf_id,
+        output_profile_id=prf_id,
+        target_locale=SystemLocale.FI,
+        locked_inputs=WorkflowInputs(dynamic_inputs={"role_context": "Architect"}),
+        assignee_input_keys=["essay"],
+        draft_inputs=WorkflowInputs(dynamic_inputs={"essay": "Draft"}),
+        token_hash="b" * 64,
+        status=AssignmentStatus.PENDING,
+        email_delivery_status=EmailDeliveryStatus.SENT,
+        result_visibility=AssignmentResultVisibility.CONFIRMATION_ONLY,
+        hard_deadline_at=now + timedelta(days=3),
+        relative_duration_seconds=3600,
+        activated_at=None,
+        submitted_at=None,
+        execution_id=None,
+        created_by=created_by,
+        created_at=now,
+    )
+
+
 @pytest.mark.asyncio
 async def test_execution_report_and_seed_collection_roundtrip_parity() -> None:
-    """Verify seed_collection_batch_rows and verify_seed_table_counts_rows across all 10 tables."""
+    """Verify seed_collection_batch_rows and verify_seed_table_counts_rows across all canonical tables."""
     pool = InMemoryAsyncPgPool()
     conn = await pool.acquire()
     try:
         org = _build_org()
         user = _build_user(org.id)
+        inv = _build_invitation(org.id, user.id)
+        sec = _build_tenant_secret(org.id)
         reg_cfg = _build_registry_config()
         mcp_cfg = _build_mcp_config()
         blk = SystemRulePromptBlockFactory.build(organization_id=org.id)
         step = _build_step(blk.id, org.id)
         wf = WorkflowFactory.build(organization_id=org.id, model_registry_id=reg_cfg.id)
         prf = OutputProfileFactory.build(workflow_id=wf.id, organization_id=org.id, content_blocks=[])
+        asg = _build_assignment(org.id, user.id, wf.id, prf.id)
         exec_rec = ExecutionRecordFactory.build(
             workflow_id=wf.id,
             organization_id=org.id,
@@ -171,6 +253,9 @@ async def test_execution_report_and_seed_collection_roundtrip_parity() -> None:
 
         assert await seed_collection_batch_rows(conn, _TIMEOUT, "organizations", [org]) == 1
         assert await seed_collection_batch_rows(conn, _TIMEOUT, "users", [user]) == 1
+        assert await seed_collection_batch_rows(conn, _TIMEOUT, "invitations", [inv]) == 1
+        assert await seed_collection_batch_rows(conn, _TIMEOUT, "tenant_secrets", [sec]) == 1
+        assert await seed_collection_batch_rows(conn, _TIMEOUT, "execution_assignments", [asg]) == 1
         assert await seed_collection_batch_rows(conn, _TIMEOUT, "system_configs", [reg_cfg, mcp_cfg]) == 2
         assert await seed_collection_batch_rows(conn, _TIMEOUT, "prompt_blocks", [blk]) == 1
         assert await seed_collection_batch_rows(conn, _TIMEOUT, "steps", [step]) == 1

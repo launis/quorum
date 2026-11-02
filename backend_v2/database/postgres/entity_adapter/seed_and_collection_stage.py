@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Coroutine, Mapping, Sequence
+from typing import Annotated
 
 from fastapi import status
-from pydantic import BaseModel, JsonValue
+from pydantic import BaseModel, Field, JsonValue, TypeAdapter
 
 import backend_v2.database.postgres.entity_adapter.execution_and_report_stage as _er
 import backend_v2.database.postgres.entity_adapter.iam_and_system_stage as _iam
@@ -95,9 +96,26 @@ _MODEL_CLASSES: dict[str, type[BaseModel]] = {
     "report_artifacts": ReportArtifact,
 }
 
+type _SystemConfigUnion = Annotated[
+    SystemConfigModelRegistry | SystemConfigMCPGateways,
+    Field(discriminator="type"),
+]
+_SYSTEM_CONFIG_ADAPTER: TypeAdapter[SystemConfigModelRegistry | SystemConfigMCPGateways] = TypeAdapter(
+    _SystemConfigUnion
+)
+
 
 def _log_storage_error(msg: str, table: str, *, exc_info: bool = True) -> AppException:
-    """Log a STORAGE_ACCESS_FAILED error and construct the corresponding AppException."""
+    """Log a STORAGE_ACCESS_FAILED error and construct the corresponding AppException.
+
+    Args:
+        msg: Human-readable storage error message.
+        table: Target PostgreSQL table name where the failure occurred.
+        exc_info: Whether to attach active exception traceback information to the log entry.
+
+    Returns:
+        Configured AppException with HTTP 500 status and STORAGE_ACCESS_FAILED error code.
+    """
     code = ErrorCodes.STORAGE_ACCESS_FAILED
     extra = {"error_code": code.value, "table": table}
     logger.error("[PostgresEntityAdapter] %s: %s", code.name, msg, exc_info=exc_info, extra=extra)
@@ -107,14 +125,34 @@ def _log_storage_error(msg: str, table: str, *, exc_info: bool = True) -> AppExc
 
 
 def _log_validation_error(msg: str) -> AppException:
-    """Log a VALIDATION_FAILED error and construct the corresponding AppException."""
+    """Log a VALIDATION_FAILED error and construct the corresponding AppException.
+
+    Args:
+        msg: Human-readable validation error message.
+
+    Returns:
+        Configured AppException with HTTP 400 status and VALIDATION_FAILED error code.
+    """
     code = ErrorCodes.VALIDATION_FAILED
     logger.error("[PostgresEntityAdapter] %s: %s", code.name, msg, extra={"error_code": code.value})
     return AppException(message=msg, status_code=status.HTTP_400_BAD_REQUEST, details={"error_code": code.value})
 
 
 async def _fetch_rows(conn: _Conn, timeout: float, sql: str, table_name: str) -> Sequence[AsyncPgRecordProtocol]:
-    """Execute a table fetch query and translate transport errors to AppException."""
+    """Execute a table fetch query and translate transport errors to AppException.
+
+    Args:
+        conn: Active database connection conforming to AsyncPgConnectionProtocol.
+        timeout: Command execution timeout in seconds.
+        sql: Parameterized SELECT SQL statement to execute.
+        table_name: Canonical PostgreSQL table name for error telemetry.
+
+    Returns:
+        Sequence of database records conforming to AsyncPgRecordProtocol.
+
+    Raises:
+        AppException: With STORAGE_ACCESS_FAILED if the database fetch fails.
+    """
     try:
         return await conn.fetch(sql, timeout=timeout)
     except Exception as exc:
@@ -295,10 +333,8 @@ async def upsert_collection_document_row(
         if table_name in _MODEL_CLASSES:
             model = _MODEL_CLASSES[table_name].model_validate(payload, strict=False)
         elif table_name == "system_configs":
-            if "type" in payload and payload["type"] == "mcp_gateways":
-                model = SystemConfigMCPGateways.model_validate(payload, strict=False)
-            else:
-                model = SystemConfigModelRegistry.model_validate(payload, strict=False)
+            payload.setdefault("type", "model_registry")
+            model = _SYSTEM_CONFIG_ADAPTER.validate_python(payload, strict=False)
         elif table_name == "prompt_blocks":
             model = PromptBlockAdapter.validate_python(payload, strict=False)
         if model is None:
