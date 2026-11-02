@@ -68,7 +68,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_160/04_phase4_plan.md]
 - [x] **[OK] Create Plan:** Plan generated in @[docs/epic/tasks_EPIC_160/04_phase4_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]` (`6b51bcd55`)
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]` (`acb75b876`)
   - [x] Step 0: PRE-FLIGHT & SELF-HYDRATION
   - [x] Step 4.1: Fail-Closed Dual-Key Redis Kill-Switch (`RevocationCache`)
   - [x] Step 4.2: Per-Tenant Redis Sliding-Window Rate Limiter & FinOps Pre-Flight Gatekeeper
@@ -78,14 +78,14 @@
 ### Phase 5: B2B Invitation Flow, Time-Bound Execution Assignments (`ExecutionAssignment`), 4-Tier RBAC Matrix, Self-Service Profile & GDPR Soft-Delete Webhook
 **Plan:** @[docs/epic/tasks_EPIC_160/05_phase5_plan.md]
 - [x] **[OK] Create Plan:** Plan generated in @[docs/epic/tasks_EPIC_160/05_phase5_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/05_phase5_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/05_phase5_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-  - [ ] Step 0: PRE-FLIGHT & SELF-HYDRATION
-  - [ ] Step 5.1: Cryptographic B2B Invitations & 1:1 Flat Identity Collision Guard
-  - [ ] Step 5.2: 4-Tier RBAC Governance (`VIEWER`/`MEMBER` vs. `MANAGER` vs. `ADMIN` vs. `ROOT`) & Self-Service Profile (`name`, `language`, `theme_mode`)
-  - [ ] Step 5.3: GDPR Soft-Delete Anonymization & Firebase Deletion Webhook
-  - [ ] Step 5.4: Time-Bound Execution Assignments (`ExecutionAssignmentService`), SafeLinks-Immune Activation & Combined JIT User Onboarding
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/05_phase5_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/05_phase5_plan.md] @[docs/epic/EPIC_160_tracker.md]` (`4a17b7736`)
+  - [x] Step 0: PRE-FLIGHT & SELF-HYDRATION
+  - [x] Step 5.1: Cryptographic B2B Invitations & 1:1 Flat Identity Collision Guard
+  - [x] Step 5.2: 4-Tier RBAC Governance (`VIEWER`/`MEMBER` vs. `MANAGER` vs. `ADMIN` vs. `ROOT`) & Self-Service Profile (`name`, `language`, `theme_mode`)
+  - [x] Step 5.3: GDPR Soft-Delete Anonymization & Firebase Deletion Webhook
+  - [x] Step 5.4: Time-Bound Execution Assignments (`ExecutionAssignmentService`), SafeLinks-Immune Activation & Combined JIT User Onboarding
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/05_phase5_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 
 ### Phase 6: Flutter Client `AuthInterceptor`, Silent Refresh, Cryptographic Logout Pipeline & Separated User/Organization Views
@@ -202,10 +202,10 @@
 | REQ-160-009 | Expose organization BYOK endpoints (`GET`, `PUT`, `DELETE` under `/api/v2/iam/organizations/{org_id}/secrets`) and add AST guardrail in `scripts/_ast_guardrails.py` preventing `SecretStr.get_secret_value()` leakage | Phase 3, Step 3.3 | [x] Completed |
 | REQ-160-010 | Create `RevocationCache` in `[NEW] backend_v2/core/redis_security.py` executing atomic O(1) Dual-Key Redis `MGET revoked:usr:{id} revoked:jti:{jti}` with strict Fail-Closed `503 Service Unavailable` semantics and wire into `get_current_user_from_header` | Phase 4, Step 4.1 | [x] Completed |
 | REQ-160-011 | Create `TenantRateLimitService` in `[NEW] backend_v2/core/redis_security.py` (per-org `rpm_limit`/`tpm_limit` and edge IP rate limiting) and monthly USD `quota_limit` / `SubscriptionStatus` check in `UsageService.check_quota` | Phase 4, Step 4.2 | [x] Completed |
-| REQ-160-012 | Create `EmailService` in `[NEW] backend_v2/services/auth/email_service.py` and cryptographic single/batch B2B invitations (`create_invitation`, `create_invitation_batch`, `accept_invitation`) with `allowed_email_domains` and 1:1 Flat Identity Collision Guard | Phase 5, Step 5.1 | [ ] Pending |
-| REQ-160-013 | Enforce the 4-Tier RBAC Governance Matrix (`VIEWER`/`MEMBER` vs. `MANAGER` vs. `ADMIN` vs. `ROOT`), self-service profile updates (`name`, `language`, `theme_mode`), soft-delete aware `LAST_ADMIN_PROTECTION`, and immediate Redis Kill-Switch on privilege mutations | Phase 5, Step 5.2 | [ ] Pending |
-| REQ-160-014 | Implement in-place GDPR Soft-Delete anonymization in `UserService.delete_user` and `POST /api/v2/iam/auth/webhooks/firebase-user-deleted` preserving `executions` foreign keys | Phase 5, Step 5.3 | [ ] Pending |
-| REQ-160-015 | Create `ExecutionAssignmentService` in `[NEW] backend_v2/services/execution/assignment_service.py` and `/api/v2/execution/executions/assignments` endpoints with SafeLinks-immune `GET .../preview`, JIT user onboarding + 2FA, explicit `POST .../activate`, Dual-Clock expiration, and single-shot submission | Phase 5, Step 5.4 | [ ] Pending |
+| REQ-160-012 | Create `EmailService` in `[NEW] backend_v2/services/auth/email_service.py` and cryptographic single/batch B2B invitations (`create_invitation`, `create_invitation_batch`, `accept_invitation`) with `allowed_email_domains` and 1:1 Flat Identity Collision Guard | Phase 5, Step 5.1 | [x] Completed |
+| REQ-160-013 | Enforce the 4-Tier RBAC Governance Matrix (`VIEWER`/`MEMBER` vs. `MANAGER` vs. `ADMIN` vs. `ROOT`), self-service profile updates (`name`, `language`, `theme_mode`), soft-delete aware `LAST_ADMIN_PROTECTION`, and immediate Redis Kill-Switch on privilege mutations | Phase 5, Step 5.2 | [x] Completed |
+| REQ-160-014 | Implement in-place GDPR Soft-Delete anonymization in `UserService.delete_user` and `POST /api/v2/iam/auth/webhooks/firebase-user-deleted` preserving `executions` foreign keys | Phase 5, Step 5.3 | [x] Completed |
+| REQ-160-015 | Create `ExecutionAssignmentService` in `[NEW] backend_v2/services/execution/assignment_service.py` and `/api/v2/execution/executions/assignments` endpoints with SafeLinks-immune `GET .../preview`, JIT user onboarding + 2FA, explicit `POST .../activate`, Dual-Clock expiration, and single-shot submission | Phase 5, Step 5.4 | [x] Completed |
 | REQ-160-016 | Implement mandatory 2FA challenge/enrollment in Flutter `LoginScreen` and `AuthController`, `@Riverpod(keepAlive: true)` `AuthRepository` with Freezed DTOs, `AuthInterceptor` token exchange, 13-minute silent refresh, and the 5-step `signOut` pipeline | Phase 6, Step 6.1 | [ ] Pending |
 | REQ-160-017 | Repurpose `ScaffoldWithNav` to **Profiili / Profile** with trailing Sign Out action, and build `UserProfileSettingsView`, `OrganizationIamSettingsView`, Direct Task Assignment Builder in `NewExecutionView`, and `TaskAssignmentPortalView` (`/task/:token`) | Phase 6, Step 6.2 | [ ] Pending |
 
@@ -227,6 +227,11 @@
 - Completed Phase 4 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]`):
   - **Step 4.1**: Created `RevocationCache` in `@[backend_v2/core/redis_security.py]` implementing atomic O(1) Dual-Key Redis `MGET revoked:usr:{user_id} revoked:jti:{jti}` with strict Fail-Closed `503 Service Unavailable` (`ErrorCodes.SERVICE_UNAVAILABLE`) semantics when Redis is unreachable and `401 AuthenticationError` (`ErrorCodes.AUTH_TOKEN_EXPIRED`) when revoked, and wired `await revocation_cache.assert_not_revoked(token_data)` into `get_current_user_from_header` in `@[backend_v2/api/dependencies.py]` (`6b51bcd55`).
   - **Step 4.2**: Created `TenantRateLimitService` and `TenantRateLimitStatusDTO` in `@[backend_v2/core/redis_security.py]` enforcing per-organization `rpm_limit` / `tpm_limit` sliding-window counters and public auth-edge IP rate limiting (`PUBLIC_AUTH_EDGE_SCOPES`) raising `429 TokenLimitExceededError` (`ErrorCodes.RATE_LIMIT_EXCEEDED`), and updated `UsageService.check_quota` in `@[backend_v2/services/usage_service.py]` to enforce `SubscriptionStatus` (`ACTIVE`, `TRIAL`) and monthly USD `quota_limit` (`ErrorCodes.QUOTA_EXCEEDED`, HTTP 402) (`6b51bcd55`).
+- Completed Phase 5 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/05_phase5_plan.md] @[docs/epic/EPIC_160_tracker.md]`):
+  - **Step 5.1**: Created `EmailService` in `@[backend_v2/services/auth/email_service.py]` and implemented single and cohort batch cryptographic B2B invitations (`create_invitation`, `create_invitation_batch`, `accept_invitation`, `revoke_invitation`, `list_invitations`) in `@[backend_v2/services/auth/organization_service.py]` with `allowed_email_domains` and 1:1 Flat Identity Collision Guard (`9e8612164`).
+  - **Step 5.2**: Enforced the 4-Tier RBAC Governance Matrix (`VIEWER`/`MEMBER` vs. `MANAGER` vs. `ADMIN` vs. `ROOT`), self-service profile updates (`name`, `language`, `theme_mode`), soft-delete aware `LAST_ADMIN_PROTECTION`, `OrganizationUpdateDTO`-only `update_organization`, immediate Redis Kill-Switch revocation on privilege mutations, and peer execution isolation in `@[backend_v2/services/auth/user_service.py]`, `@[backend_v2/services/auth/organization_service.py]`, and `@[backend_v2/services/execution/lifecycle_service.py]` (`9d9a42cca`).
+  - **Step 5.3**: Implemented in-place GDPR Soft-Delete anonymization in `UserService.delete_user` (`@[backend_v2/services/auth/user_service.py]`) and exposed `POST /api/v2/iam/auth/webhooks/firebase-user-deleted` in `@[backend_v2/api/routers/iam/auth.py]` preserving `executions` foreign keys (`2416a7416`).
+  - **Step 5.4**: Created `ExecutionAssignmentService` in `@[backend_v2/services/execution/assignment_service.py]` and exposed `/api/v2/execution/executions/assignments` endpoints in `@[backend_v2/api/routers/execution/executions.py]` implementing single/batch task assignments, SafeLinks-immune `GET .../preview`, JIT user onboarding + 2FA, explicit `POST .../activate`, Dual-Clock expiration, draft checkpointing, single-shot submission via `ExecutionIngressService.start_execution`, and `AssignmentResultVisibility` (`4a17b7736`).
 
 ## Learned
 - `pydantic.mypy` requires `allowed_email_domains=[]` to be explicitly passed when instantiating `Organization(...)` directly in service/fake constructors (`@[backend_v2/services/auth/user_service.py]`, `@[backend_v2/services/auth/organization_service.py]`, `@[backend_v2/tests/fakes/in_memory_repositories.py]`).
@@ -235,9 +240,9 @@
 - When benchmarking sub-millisecond in-memory `RevocationCache.assert_not_revoked` execution in unit tests, warm up `get_settings()` once before `time.perf_counter_ns()` so cold `.env` disk loading on Windows does not skew the `MGET` latency measurement.
 
 ## Remaining
-- Run `/tier8-audit-plan` on Phase 4 (`@[docs/epic/tasks_EPIC_160/04_phase4_plan.md]` and `@[docs/epic/EPIC_160_tracker.md]`), then proceed to Phase 5 (`/tier0-research-plan @[docs/epic/tasks_EPIC_160/05_phase5_plan.md] @[docs/epic/EPIC_160_tracker.md]`).
+- Run `/tier8-audit-plan` on Phase 5 (`@[docs/epic/tasks_EPIC_160/05_phase5_plan.md]` and `@[docs/epic/EPIC_160_tracker.md]`), then proceed to Phase 6 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_160/05_phase5_plan.md] @[docs/epic/EPIC_160_tracker.md]
 ```

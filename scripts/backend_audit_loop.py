@@ -341,7 +341,7 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
                 has_test_dir = test_dir.exists()
                 if has_test_dir and len(parts) <= 2:
                     test_path = str(test_dir).replace("\\", "/")
-                elif test_file.exists():
+                elif test_file.exists() and not has_test_dir:
                     test_path = str(test_file).replace("\\", "/")
                 else:
                     discovered_tests: list[str] = []

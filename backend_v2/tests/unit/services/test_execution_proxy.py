@@ -12,6 +12,7 @@ def test_execution_pkg_exports_all_symbols() -> None:
     exec_pkg_dir = dir(exec_pkg)
     assert "__all__" in exec_pkg_dir
     expected = [
+        "ExecutionAssignmentService",
         "ExecutionContextService",
         "ExecutionCreate",
         "ExecutionIngressService",
