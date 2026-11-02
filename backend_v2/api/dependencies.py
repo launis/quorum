@@ -5,7 +5,7 @@ from database drivers to complex service layer instantiations.
 """
 
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from typing import Annotated, Any, cast
 
 from arq.connections import ArqRedis
@@ -45,7 +45,7 @@ from backend_v2.database.repositories.report_artifact import ReportArtifactRepos
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
 from backend_v2.database.repository import UnifiedWorkflowRepository
-from backend_v2.exceptions import AuthenticationError, PermissionDeniedError
+from backend_v2.exceptions import AuthenticationError, ErrorCodes, PermissionDeniedError
 from backend_v2.llm.handler import LLMHandler
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.services.auth import AuthService
@@ -392,14 +392,23 @@ async def get_current_user_from_header(
         Verified token data.
 
     Raises:
-        AuthenticationError: If the token is missing (AUTH_TOKEN_MISSING) or invalid.
+        AuthenticationError: With ErrorCodes.AUTHENTICATION_FAILED if the token is missing or invalid.
     """
-    raw_token = token.credentials if token is not None else token_query
+    raw_token = token_query
+    if token is not None:
+        raw_token = token.credentials
     if not raw_token:
         msg = "Missing authentication token"
-        error_code = "AUTH_TOKEN_MISSING"
-        logger.error("[Dependencies] %s", msg, extra={"error_code": error_code})
-        raise AuthenticationError(message=msg, details={"error_code": error_code})
+        logger.error(
+            "[Dependencies] %s: %s",
+            ErrorCodes.AUTHENTICATION_FAILED.name,
+            msg,
+            extra={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
+        )
+        raise AuthenticationError(
+            message=msg,
+            details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value},
+        )
     return await auth_service.verify_token(raw_token)
 
 
@@ -407,20 +416,24 @@ UserDep = Annotated[TokenData, Depends(get_current_user_from_header)]
 CurrentUserDep = UserDep
 
 
-def require_role(required_role: UserRole) -> Callable[..., Awaitable[TokenData]]:
-    """Return a dependency that validates the user has the required role.
+def require_role(allowed_roles: Sequence[UserRole] | UserRole) -> Callable[..., Awaitable[TokenData]]:
+    """Return a dependency that validates the user possesses one of the allowed roles.
 
-    Implicitly allows ROOT for everything.
+    Implicitly allows ROOT for all operations.
 
     Args:
-        required_role: The minimum user role required.
+        allowed_roles: A single UserRole or sequence of allowed UserRole values.
 
     Returns:
         A FastAPI dependency checker function.
     """
+    role_tuple: tuple[UserRole, ...] = (allowed_roles,) if isinstance(allowed_roles, UserRole) else tuple(allowed_roles)
+    required_display = (
+        allowed_roles.value if isinstance(allowed_roles, UserRole) else ", ".join(r.value for r in role_tuple)
+    )
 
     async def _role_checker(user: TokenData = Depends(get_current_user_from_header)) -> TokenData:
-        """Verify that the authenticated user possesses the required role.
+        """Verify that the authenticated user possesses an allowed role.
 
         Args:
             user: Authenticated user token data.
@@ -429,27 +442,29 @@ def require_role(required_role: UserRole) -> Callable[..., Awaitable[TokenData]]
             Verified user token data.
 
         Raises:
-            PermissionDeniedError: If the user lacks the required role (PERMISSION_DENIED).
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks an allowed role.
         """
-        if user.role == UserRole.ROOT:
+        if user.role == UserRole.ROOT or user.role in role_tuple:
             return user
-        if user.role != required_role:
-            msg = f"Insufficient privileges. Required: {required_role.value}"
-            error_code = "PERMISSION_DENIED"
-            logger.error(
-                "[Dependencies] %s",
-                msg,
-                extra={
-                    "error_code": error_code,
-                    "required_role": required_role.value,
-                    "current_role": user.role.value,
-                },
-            )
-            raise PermissionDeniedError(
-                message=msg,
-                details={"required_role": required_role.value, "current_role": user.role.value},
-            )
-        return user
+        msg = f"Insufficient privileges. Required: {required_display}"
+        logger.error(
+            "[Dependencies] %s: %s",
+            ErrorCodes.PERMISSION_DENIED.name,
+            msg,
+            extra={
+                "error_code": ErrorCodes.PERMISSION_DENIED.value,
+                "required_role": required_display,
+                "current_role": user.role.value,
+            },
+        )
+        raise PermissionDeniedError(
+            message=msg,
+            details={
+                "error_code": ErrorCodes.PERMISSION_DENIED.value,
+                "required_role": required_display,
+                "current_role": user.role.value,
+            },
+        )
 
     return _role_checker
 

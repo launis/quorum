@@ -7,17 +7,32 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from fastapi import Request
 from pydantic import ValidationError
 
-from backend_v2.api.routers.iam.auth import get_my_profile, list_available_roles, list_users
-from backend_v2.exceptions import PermissionDeniedError
+from backend_v2.api.routers.iam.auth import (
+    exchange_firebase_token,
+    get_my_profile,
+    impersonate_user,
+    list_available_roles,
+    logout_user,
+)
+from backend_v2.exceptions import (
+    AuthenticationError,
+    ErrorCodes,
+    PermissionDeniedError,
+    ResourceNotFoundError,
+)
 from backend_v2.models.auth import (
     SYSTEM_ROOT_USER_ID,
+    ImpersonationRequest,
+    LogoutRequestDTO,
     Organization,
     OrganizationCreate,
     SubscriptionStatus,
     SystemOrganizations,
     TokenData,
+    TokenExchangeRequestDTO,
     User,
     UserCreate,
     UserRole,
@@ -175,14 +190,127 @@ async def test_auth_router_get_my_profile(mock_repo: InMemoryUnifiedWorkflowRepo
 
 
 @pytest.mark.asyncio
-async def test_auth_router_list_users(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
-    """Verify list_users endpoint returns empty list when no users exist in tenant."""
-    service = AuthService(mock_repo, use_firebase=False)
-    users = await list_users(
-        current_user=TokenData(id=ADMIN_1_ID, role=UserRole.ADMIN, organization_id=ORG_1_ID),
+async def test_auth_router_exchange_logout_and_impersonate_flow(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify exchange_firebase_token, logout_user, and impersonate_user router endpoints and AuthService methods."""
+    from backend_v2.settings import Settings
+
+    mock_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=False,
+        require_mfa=True,
+    )
+    monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
+    monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: mock_settings)
+
+    mock_audit = MagicMock()
+    mock_audit.log_event = AsyncMock()
+    mock_revocation = MagicMock()
+    mock_revocation.assert_not_revoked = AsyncMock()
+    mock_revocation.revoke_token_jti = AsyncMock()
+    mock_revocation.revoke_user_sessions = AsyncMock()
+    mock_fb = MagicMock()
+
+    service = AuthService(
+        mock_repo,
+        use_firebase=True,
+        audit_service=mock_audit,
+        firebase_auth=mock_fb,
+        revocation_cache=mock_revocation,
+    )
+
+    target_user = User(
+        id=USER_1_ID,
+        email="target@test.com",
+        firebase_uid="fb_uid_logout_1",
+        role=UserRole.ADMIN,
+        is_active=True,
+        organization_id=ORG_1_ID,
+        language=SystemLocale.EN,
+        theme_mode="system",
+        created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
+    )
+    await mock_repo.create_user(target_user)
+
+    mock_req = MagicMock(spec=Request)
+    exchange_res = await exchange_firebase_token(
+        request=mock_req,
+        payload=TokenExchangeRequestDTO(target_user_id=USER_1_ID),
         auth_service=service,
     )
-    assert users == []
+    assert exchange_res.user.id == USER_1_ID
+    assert exchange_res.expires_in_seconds == 900
+
+    verified_token = await service.verify_token(exchange_res.access_token)
+    logout_res = await logout_user(
+        payload=LogoutRequestDTO(revoke_all_sessions=True),
+        current_user=verified_token,
+        auth_service=service,
+    )
+    assert logout_res.status == "logged_out"
+    assert logout_res.revoked_jti == verified_token.jti
+    assert logout_res.all_sessions_revoked is True
+    mock_revocation.revoke_token_jti.assert_awaited_once()
+    mock_revocation.revoke_user_sessions.assert_awaited_once_with(USER_1_ID, ttl_seconds=900)
+    mock_fb.revoke_refresh_tokens.assert_called_once_with("fb_uid_logout_1")
+    mock_audit.log_event.assert_awaited()
+
+    root_token = TokenData(
+        id=SYSTEM_ROOT_USER_ID,
+        role=UserRole.ROOT,
+        organization_id=SystemOrganizations.ROOT_SYSTEM,
+        email="root@test.com",
+    )
+    imp_res = await impersonate_user(
+        payload=ImpersonationRequest(target_id=USER_1_ID, reason="Forensic audit debugging"),
+        current_user=root_token,
+        auth_service=service,
+    )
+    assert imp_res.target_id == USER_1_ID
+    assert imp_res.reason == "Forensic audit debugging"
+    decoded_imp = await service.verify_token(imp_res.access_token)
+    assert decoded_imp.id == USER_1_ID
+    assert decoded_imp.actor_id == SYSTEM_ROOT_USER_ID
+    assert decoded_imp.mfa_verified is True
+
+
+@pytest.mark.asyncio
+async def test_auth_router_impersonate_and_profile_negative(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Negative: Verify non-ROOT impersonation, missing target user, and missing profile raise typed AppExceptions."""
+    service = AuthService(mock_repo, use_firebase=False)
+
+    non_root = TokenData(id=ADMIN_1_ID, role=UserRole.ADMIN, organization_id=ORG_1_ID)
+    with pytest.raises(PermissionDeniedError) as exc_perm:
+        await impersonate_user(
+            payload=ImpersonationRequest(target_id=USER_1_ID, reason="Unauthorized attempt"),
+            current_user=non_root,
+            auth_service=service,
+        )
+    assert exc_perm.value.error_code == ErrorCodes.PERMISSION_DENIED
+
+    root_token = TokenData(
+        id=SYSTEM_ROOT_USER_ID,
+        role=UserRole.ROOT,
+        organization_id=SystemOrganizations.ROOT_SYSTEM,
+    )
+    with pytest.raises(ResourceNotFoundError):
+        await impersonate_user(
+            payload=ImpersonationRequest(target_id=USER_2_ID, reason="Missing user test"),
+            current_user=root_token,
+            auth_service=service,
+        )
+
+    with pytest.raises(AuthenticationError) as exc_me:
+        await get_my_profile(
+            current_user=TokenData(id=USER_2_ID, role=UserRole.MEMBER, organization_id=ORG_1_ID),
+            auth_service=service,
+        )
+    assert exc_me.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
 
 
 def test_system_organizations_is_system() -> None:

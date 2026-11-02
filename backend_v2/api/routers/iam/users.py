@@ -1,7 +1,9 @@
 """Users API Router.
 
-Provides endpoints for managing user profiles securely.
+Provides canonical SSOT endpoints for managing user profiles securely under `/api/v2/iam/users`.
 """
+
+from __future__ import annotations
 
 import logging
 
@@ -9,7 +11,7 @@ from fastapi import APIRouter
 
 from backend_v2.api.dependencies import AuthServiceDep, CurrentUserDep
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import User, UserDeleteResponse, UserUpdate
+from backend_v2.models.auth import User, UserCreate, UserDeleteResponse, UserUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -28,23 +30,35 @@ async def get_all_users(current_user: CurrentUserDep, auth_service: AuthServiceD
         A list of users accessible by the current user.
 
     Raises:
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.
         AppException: If retrieving users fails.
     """
-    try:
-        # AuthService implements tenant filtering internally based on current_user
-        return await auth_service.list_users(current_user)
-    except Exception as e:
-        msg = f"Error retrieving users: {e}"
-        logger.error(
-            "[UserRouter] %s: %s",
-            ErrorCodes.INTERNAL_SERVER_ERROR.name,
-            msg,
-            exc_info=True,
-            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "error": str(e)},
-        )
-        raise AppException(
-            message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
-        ) from e
+    # Phase 2, Step 2.2: Propagate typed AppExceptions directly without catch-all swallowing
+    return await auth_service.list_users(current_user)
+
+
+@router.post("/", response_model=User)
+async def create_user(
+    data: UserCreate,
+    current_user: CurrentUserDep,
+    auth_service: AuthServiceDep,
+) -> User:
+    """Create a new user profile securely via the canonical Users SSOT router.
+
+    Args:
+        data: The user creation payload.
+        current_user: The authenticated user making the request.
+        auth_service: The authentication service dependency.
+
+    Returns:
+        The created User profile.
+
+    Raises:
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.
+        AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.RESOURCE_NOT_FOUND on invalid input.
+    """
+    # Phase 2, Step 2.2: Canonical POST /api/v2/iam/users endpoint
+    return await auth_service.create_user(current_user.id, data)
 
 
 @router.get("/{id}", response_model=User)
@@ -60,17 +74,16 @@ async def get_user(id: str, current_user: CurrentUserDep, auth_service: AuthServ
         The requested user profile.
 
     Raises:
-        ResourceNotFoundError: If the user is not found.
-        PermissionDeniedError: If the requesting user lacks permissions.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the user is not found.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the requesting user lacks permissions.
         AppException: If fetching the user fails.
     """
-    # Service layer ensures target user exists and current_user has right to view it
     return await auth_service.get_user(current_user, id)
 
 
 @router.put("/{id}", response_model=User)
 async def save_user(id: str, data: UserUpdate, current_user: CurrentUserDep, auth_service: AuthServiceDep) -> User:
-    """Update a user's role or organization securely via SSOT Service Layer.
+    """Update a user's role or profile attributes securely via SSOT Service Layer.
 
     Args:
         id: The unique identifier of the user to update.
@@ -82,8 +95,9 @@ async def save_user(id: str, data: UserUpdate, current_user: CurrentUserDep, aut
         The updated user profile.
 
     Raises:
-        PermissionDeniedError: If the requesting user lacks permissions.
-        ResourceNotFoundError: If the user is not found.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the requesting user lacks permissions.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the user is not found.
+        ConflictError: With ErrorCodes.CONFLICT_ERROR if Last Admin Protection is triggered.
         AppException: If updating the user fails.
     """
     return await auth_service.update_user(current_user.id, id, data)
@@ -102,8 +116,8 @@ async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthS
         A UserDeleteResponse indicating success.
 
     Raises:
-        PermissionDeniedError: If the requesting user lacks permissions.
-        ConflictError: If deleting the last admin.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the requesting user lacks permissions.
+        ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the last admin.
         AppException: If deleting the user fails.
     """
     try:

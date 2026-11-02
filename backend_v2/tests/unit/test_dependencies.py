@@ -54,7 +54,7 @@ from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
 from backend_v2.database.repositories.report_artifact import ReportArtifactRepositoryImpl
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
-from backend_v2.exceptions import AuthenticationError, PermissionDeniedError
+from backend_v2.exceptions import AuthenticationError, ErrorCodes, PermissionDeniedError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.enums import EntityPrefix
@@ -110,7 +110,7 @@ async def test_get_current_user_from_header_missing_token(caplog: pytest.LogCapt
         await get_current_user_from_header(auth_service=mock_auth_service, token=None, token_query=None)
 
     assert "Missing authentication token" in str(exc.value)
-    assert exc.value.details == {"error_code": "AUTH_TOKEN_MISSING"}
+    assert exc.value.details == {"error_code": ErrorCodes.AUTHENTICATION_FAILED.value}
     assert any("Missing authentication token" in rec.message for rec in caplog.records)
 
 
@@ -128,7 +128,7 @@ async def test_get_current_user_from_header_empty_string_token_boundary() -> Non
             token_query="",
         )
 
-    assert exc.value.details == {"error_code": "AUTH_TOKEN_MISSING"}
+    assert exc.value.details == {"error_code": ErrorCodes.AUTHENTICATION_FAILED.value}
     mock_auth_service.verify_token.assert_not_called()
 
 
@@ -195,9 +195,37 @@ async def test_require_role_root_and_matches(caplog: pytest.LogCaptureFixture) -
     with caplog.at_level(logging.ERROR), pytest.raises(PermissionDeniedError) as exc:
         await checker(user=member_user)
 
+    assert exc.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value
     assert exc.value.details["required_role"] == UserRole.ADMIN.value
     assert exc.value.details["current_role"] == UserRole.MEMBER.value
-    assert any("Insufficient privileges" in rec.message for rec in caplog.records)
+    assert any(ErrorCodes.PERMISSION_DENIED.name in rec.message for rec in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_require_role_multi_role_sequence_boundary(caplog: pytest.LogCaptureFixture) -> None:
+    """Contract: require_role([UserRole.ADMIN, UserRole.MANAGER]) permits ROOT/ADMIN/MANAGER and rejects MEMBER/VIEWER."""
+    checker = require_role([UserRole.ADMIN, UserRole.MANAGER])
+
+    for allowed_role in (UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER):
+        user = TokenData(
+            id=generate_opaque_id(EntityPrefix.USER),
+            email=f"{allowed_role.value}@test.com",
+            role=allowed_role,
+        )
+        assert await checker(user=user) == user
+
+    for denied_role in (UserRole.MEMBER, UserRole.VIEWER):
+        denied_user = TokenData(
+            id=generate_opaque_id(EntityPrefix.USER),
+            email=f"{denied_role.value}@test.com",
+            role=denied_role,
+        )
+        caplog.clear()
+        with caplog.at_level(logging.ERROR), pytest.raises(PermissionDeniedError) as exc:
+            await checker(user=denied_user)
+        assert exc.value.details["error_code"] == ErrorCodes.PERMISSION_DENIED.value
+        assert exc.value.details["current_role"] == denied_role.value
+        assert any(ErrorCodes.PERMISSION_DENIED.name in rec.message for rec in caplog.records)
 
 
 @pytest.mark.asyncio

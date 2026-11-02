@@ -1,7 +1,9 @@
 """Organizations API Router.
 
-Provides endpoints for managing organizations securely.
+Provides canonical SSOT endpoints for managing organizations securely under `/api/v2/iam/organizations`.
 """
+
+from __future__ import annotations
 
 import logging
 
@@ -28,22 +30,11 @@ async def get_all_organizations(current_user: CurrentUserDep, auth_service: Auth
         A list of organizations accessible by the user.
 
     Raises:
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.
         AppException: If fetching organizations fails.
     """
-    try:
-        return await auth_service.list_organizations(current_user)
-    except Exception as e:
-        msg = f"Error retrieving organizations: {e}"
-        logger.error(
-            "[OrganizationRouter] %s: %s",
-            ErrorCodes.INTERNAL_SERVER_ERROR.name,
-            msg,
-            exc_info=True,
-            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "error": str(e)},
-        )
-        raise AppException(
-            message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
-        ) from e
+    # Phase 2, Step 2.2: Propagate typed AppExceptions directly without catch-all swallowing
+    return await auth_service.list_organizations(current_user)
 
 
 @router.get("/{id}", response_model=Organization)
@@ -59,8 +50,8 @@ async def get_organization(id: str, current_user: CurrentUserDep, auth_service: 
         The requested organization.
 
     Raises:
-        ResourceNotFoundError: If the organization is not found.
-        PermissionDeniedError: If the user lacks permission to view it.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the organization is not found.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks permission to view it.
         AppException: If fetching the organization fails.
     """
     return await auth_service.get_organization(current_user, id)
@@ -82,7 +73,7 @@ async def save_organization(
         The updated or created organization.
 
     Raises:
-        PermissionDeniedError: If the user lacks permission.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks permission.
         AppException: If saving the organization fails.
     """
     return await auth_service.update_organization(current_user, id, data)
@@ -103,8 +94,8 @@ async def delete_organization(
         An OrganizationDeleteResponse confirming deletion.
 
     Raises:
-        ResourceNotFoundError: If the organization is not found.
-        PermissionDeniedError: If the user lacks permission.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the organization is not found.
+        PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks permission.
         AppException: If deleting the organization fails.
     """
     try:

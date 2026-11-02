@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import logging
+import time
 from typing import Any
 
 if importlib.util.find_spec("firebase_admin") is not None:
@@ -12,19 +14,27 @@ else:
     firebase_auth_module = None
 
 from backend_v2.database.interfaces import IIdentityRepository
+from backend_v2.exceptions import AuthenticationError, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import (
     SYSTEM_ROOT_USER_ID as SYSTEM_ROOT_USER_ID,
 )
 from backend_v2.models.auth import (
+    ImpersonationRequest,
+    ImpersonationResponse,
+    LogoutRequestDTO,
+    LogoutResponseDTO,
     Organization,
     OrganizationCreate,
     OrganizationUpdateDTO,
     TokenData,
+    TokenExchangeRequestDTO,
+    TokenExchangeResponseDTO,
     User,
     UserCreate,
     UserRole,
     UserUpdate,
 )
+from backend_v2.models.core_base import generate_uuid7
 from backend_v2.services.auth.organization_service import OrganizationService
 from backend_v2.services.auth.protocols import UserCreatorProtocol
 from backend_v2.services.auth.repositories import OrganizationRepository, UserRepository
@@ -33,7 +43,7 @@ from backend_v2.services.auth.user_service import UserService
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
-
+_FIREBASE_LOGOUT_TIMEOUT_SECONDS: float = 10.0
 __all__ = [
     "AuthService",
     "OrganizationRepository",
@@ -55,6 +65,7 @@ class AuthService:
         use_firebase: bool = False,
         audit_service: Any = None,
         firebase_auth: Any = None,
+        revocation_cache: Any = None,
     ) -> None:
         """Initialize AuthService facade with immutable dependency injection.
 
@@ -63,16 +74,19 @@ class AuthService:
             use_firebase: Boolean flag to enable Firebase authentication.
             audit_service: Optional service for logging audit events.
             firebase_auth: Optional Firebase auth module or mock instance.
+            revocation_cache: Optional Redis revocation cache for kill-switch enforcement.
         """
         self.repo = UserRepository(repo)
         self.org_repo = OrganizationRepository(repo)
         self.audit_service = audit_service
+        self.revocation_cache = revocation_cache
         effective_firebase_module = firebase_auth if firebase_auth is not None else firebase_auth_module
         self.token_service = TokenService(
             repo=self.repo,
             use_firebase=use_firebase,
             firebase_module=effective_firebase_module,
             get_settings_fn=lambda: get_settings(),
+            revocation_cache=revocation_cache,
         )
         if firebase_auth is not None:
             self.token_service.firebase_auth = firebase_auth
@@ -115,9 +129,100 @@ class AuthService:
         """Generates a signed JWT for impersonating a user."""
         return self.token_service.create_impersonation_token(target_id=target_id, duration_seconds=duration_seconds)
 
+    async def exchange_firebase_token(self, payload: TokenExchangeRequestDTO) -> TokenExchangeResponseDTO:
+        """Exchange a Firebase ID token or headless target_user_id for a Quorum Local JWT."""
+        return await self.token_service.exchange_firebase_token(payload)
+
     async def verify_token(self, token: str) -> TokenData:
         """Verifies a Bearer token and returns TokenData."""
         return await self.token_service.verify_token(token)
+
+    async def logout(self, current_user: TokenData, payload: LogoutRequestDTO) -> LogoutResponseDTO:
+        """Revoke the caller's JWT jti and optionally revoke all active sessions for the user."""
+        # Phase 2, Step 2.2: Server-side JWT jti revocation and optional global session kill-switch
+        now_epoch = int(time.time())
+        remaining_ttl = 900 if current_user.exp is None else max(1, min(900, current_user.exp - now_epoch))
+        revoked_jti = str(generate_uuid7()) if current_user.jti is None else current_user.jti
+        if self.revocation_cache is not None:
+            await self.revocation_cache.revoke_token_jti(revoked_jti, ttl_seconds=remaining_ttl)
+        if payload.revoke_all_sessions:
+            if self.revocation_cache is not None:
+                await self.revocation_cache.revoke_user_sessions(current_user.id, ttl_seconds=900)
+            if self.use_firebase and self.token_service.firebase_auth is not None:
+                user = await self.repo.get_by_id(current_user.id)
+                if user is not None and user.firebase_uid is not None:
+                    async with asyncio.timeout(_FIREBASE_LOGOUT_TIMEOUT_SECONDS):
+                        await asyncio.to_thread(
+                            self.token_service.firebase_auth.revoke_refresh_tokens, user.firebase_uid
+                        )
+        if self.audit_service is not None:
+            await self.audit_service.log_event(
+                actor_id=current_user.id,
+                action="USER_LOGGED_OUT",
+                organization_id=current_user.organization_id,
+                target_id=current_user.id,
+                details={"revoked_jti": revoked_jti, "all_sessions_revoked": payload.revoke_all_sessions},
+            )
+        return LogoutResponseDTO(
+            status="logged_out", revoked_jti=revoked_jti, all_sessions_revoked=payload.revoke_all_sessions
+        )
+
+    async def impersonate_user(self, initiator: TokenData, payload: ImpersonationRequest) -> ImpersonationResponse:
+        """Issue an RFC 8693 break-glass impersonation token for a target user (requires ROOT)."""
+        # Phase 2, Step 2.2: Enforce ROOT authority and embed RFC 8693 act claim
+        if initiator.role != UserRole.ROOT:
+            logger.error(
+                "[AuthService] %s: User %s attempted to impersonate without ROOT role.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value, "user_id": initiator.id},
+            )
+            raise PermissionDeniedError(
+                message="Impersonation Denied", details={"error_code": ErrorCodes.PERMISSION_DENIED.value}
+            )
+        target = await self.repo.get_by_id(payload.target_id)
+        if target is None:
+            logger.error(
+                "[AuthService] %s: Impersonation target %s not found.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                payload.target_id,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "target_id": payload.target_id},
+            )
+            raise ResourceNotFoundError("User", payload.target_id)
+        token = self.token_service.create_impersonation_token(
+            target_id=target.id,
+            duration_seconds=900,
+            organization_id=target.organization_id,
+            role=target.role,
+            email=target.email,
+            actor_id=initiator.id,
+        )
+        if self.audit_service is not None:
+            await self.audit_service.log_event(
+                actor_id=initiator.id,
+                action="USER_IMPERSONATION_STARTED",
+                organization_id=target.organization_id,
+                target_id=target.id,
+                details={"reason": payload.reason},
+            )
+        return ImpersonationResponse(
+            access_token=token, token_type="bearer", target_id=target.id, reason=payload.reason
+        )
+
+    async def get_my_profile(self, current_user: TokenData) -> User:
+        """Retrieve the authenticated caller's User profile from persistence."""
+        user = await self.repo.get_by_id(current_user.id)
+        if user is None:
+            logger.error(
+                "[AuthService] %s: Profile for %s not found.",
+                ErrorCodes.AUTHENTICATION_FAILED.name,
+                current_user.id,
+                extra={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value, "user_id": current_user.id},
+            )
+            raise AuthenticationError(
+                message="User not found", details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value}
+            )
+        return user
 
     async def create_organization(self, initiator: TokenData, org_create: OrganizationCreate) -> Organization:
         """Creates a new Tenant Organization and an initial Admin user for it."""
