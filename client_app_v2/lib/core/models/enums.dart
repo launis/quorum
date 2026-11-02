@@ -22,6 +22,7 @@ enum SystemConcurrency {
 }
 
 /// Supported XAI Output Extensions for global visibility.
+@JsonEnum()
 enum XaiExtensionType {
   @JsonValue('citation')
   citation,
@@ -55,6 +56,7 @@ enum XaiExtensionType {
 
 /// Static UI Renderer presets for report blocks.
 /// STRICT PARITY MANDATE: Must precisely match backend Pydantic Literals.
+@JsonEnum()
 enum PresetView {
   @JsonValue('1d_metrics')
   metrics1d,
@@ -73,6 +75,7 @@ enum PresetView {
 
 /// Execution Routing Modes mapping
 /// STRICT PARITY MANDATE: Must match backend Pydantic string equivalents.
+@JsonEnum()
 enum RoutingMode {
   @JsonValue('standard')
   standard,
@@ -133,7 +136,7 @@ class PromptBlockCategoryGroups {
     'text',
   ];
 
-  /// Categories allowed for Matrix Master selection (Cleanup C1).
+  /// Categories allowed for Matrix Master selection.
   static final List<String> matrixCategories = ['matrix'];
 }
 
@@ -566,8 +569,6 @@ enum JsonSchemaPropertyType {
   const JsonSchemaPropertyType(this.backendValue);
   final String backendValue;
 }
-
-// Phase 6, Step 6.1: Synchronize IAM, BYOK, Invitation, and Assignment @JsonEnum taxonomies.
 
 /// Role-based access control (RBAC) user tier taxonomy.
 @JsonEnum()

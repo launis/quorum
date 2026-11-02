@@ -85,4 +85,23 @@ void main() {
       expect(() => TargetSpeaker.values.byName('UNKNOWN'), throwsArgumentError);
     });
   });
+
+  group('UserRole, SecretScope & InvitationStatus Parity', () {
+    test('UserRole.fromString parses valid tiers and throws FormatException on invalid input (negative/boundary)', () {
+      expect(UserRole.fromString('root'), UserRole.root);
+      expect(UserRole.fromString('ADMIN'), UserRole.admin);
+      expect(UserRole.fromString('MANAGER'), UserRole.manager);
+      expect(UserRole.fromString('MEMBER'), UserRole.member);
+      expect(UserRole.fromString('VIEWER'), UserRole.viewer);
+      expect(() => UserRole.fromString('INVALID_ROLE'), throwsFormatException);
+      expect(() => UserRole.fromString(''), throwsFormatException);
+    });
+
+    test('SecretScope and SecretStorageMode expose exact backend string tokens', () {
+      expect(SecretScope.llmProvider.backendValue, 'LLM_PROVIDER');
+      expect(SecretScope.mcpGateway.backendValue, 'MCP_GATEWAY');
+      expect(SecretStorageMode.cloudSecretManager.backendValue, 'CLOUD_SECRET_MANAGER');
+      expect(SecretStorageMode.envelopeKms.backendValue, 'ENVELOPE_KMS');
+    });
+  });
 }
