@@ -73,7 +73,7 @@
   - [x] @[backend_v2/database/repositories/execution.py]
   - [x] @[backend_v2/hooks/interaction_hook.py]
   - [x] @[backend_v2/hooks/linguistics.py]
-  - [ ] @[backend_v2/hooks/source_verification_hook.py]
+  - [x] @[backend_v2/hooks/source_verification_hook.py]
   - [ ] @[backend_v2/llm/client.py]
   - [ ] @[backend_v2/models/domain/execution.py]
   - [ ] @[backend_v2/models/dtos/node_execution.py]

@@ -75,6 +75,12 @@ def _extract_text_from_mapping(inputs: Mapping[str, DomainInputValue]) -> str:
         else:
             if not isinstance(v, str):
                 msg = f"Non-string input '{k}' for source verification extra sections: {type(v)}"
+                logger.error(
+                    "[SourceVerificationHook] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    exc_info=True,
+                )
                 raise AppException(
                     message=msg,
                     status_code=400,
@@ -224,7 +230,7 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
                 ),
             )
 
-        # Phase 1, Step 1.2: Route source verification LLM client initialization through CognitiveTier.FAST
+        # Route source verification LLM client initialization through CognitiveTier.FAST.
         registry_id = state.metadata.model_registry_id
         provider = state.metadata.provider_override
         if registry_id is not None or provider is not None:
