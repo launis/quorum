@@ -195,6 +195,7 @@ class PostgresUnitOfWork:
         topology: Active TopologyResolutionPort bound to the current transaction.
         reasoning: Active CausalReasoningPort bound to the current transaction.
         entities: Active EntityPersistencePort bound to the current transaction.
+        pool_manager: Configured PostgresPoolManager managing asyncpg connections.
     """
 
     graph: GraphMutationPort
@@ -214,6 +215,16 @@ class PostgresUnitOfWork:
         self._tx: AsyncPgTransactionProtocol | None = None
         self._finalized: bool = False
         self._bind_unbound_adapters()
+
+    @property
+    def pool_manager(self) -> PostgresPoolManager:
+        """Return the underlying PostgreSQL connection pool manager.
+
+        Returns:
+            Active PostgresPoolManager instance.
+        """
+        # Phase 1, Step 1: Expose typed pool_manager property for pre-flight migration execution
+        return self._pool_manager
 
     def _bind_unbound_adapters(self) -> None:
         """Bind fail-fast unbound adapters when no transaction is active."""

@@ -9,6 +9,7 @@ vs. Domain DTO Column Naming Parity across all 12 tables, and ISTQB negative bou
 
 from __future__ import annotations
 
+import logging
 import re
 import sys
 import types
@@ -17,10 +18,12 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
+from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import ConfigDict, Field, ValidationError
 
+from backend_v2.database.driver import StorageDriver
 from backend_v2.database.interfaces import QuorumUnitOfWork
 from backend_v2.database.postgres import (
     AsyncPgConnectionProtocol,
@@ -46,8 +49,10 @@ from backend_v2.database.postgres.graph_adapter import (
     _extract_cycle_node_ids,
     _hydrate_payload_dto,
 )
+from backend_v2.database.repositories.identity import IdentityRepositoryImpl
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import Invitation, Organization, SubscriptionStatus, TenantSecretDTO, User
+from backend_v2.main import _validate_database_preflight
+from backend_v2.models.auth import Invitation, Organization, SubscriptionStatus, TenantSecretDTO, User, UserRole
 from backend_v2.models.core_base import (
     I18nText,
     V2CoreBase,
@@ -113,6 +118,7 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
+from backend_v2.seed.run_seed import _seed_postgres
 from backend_v2.settings import Settings
 from backend_v2.tests.fakes.in_memory_uow import (
     InMemoryAsyncPgPool,
@@ -1970,3 +1976,83 @@ def test_qgr017_ast_guardrail_blocks_tinydb_resurrection(tmp_path: Path) -> None
     assert is_success is False
     qgr017_hits = [v for v in violations if v.rule_code == "QGR017"]
     assert len(qgr017_hits) >= 2
+
+
+@pytest.mark.asyncio
+async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> None:
+    """Verify idempotent IAM column migrations, startup/seeder apply_migrations execution, and direct PK lookups."""
+    repo_root = Path(__file__).resolve().parents[4]
+    sql_text = (repo_root / "backend_v2" / "database" / "migrations" / "001_pg19_uuidv7_schema.sql").read_text(
+        encoding="utf-8"
+    )
+    normalized_sql = " ".join(sql_text.lower().split())
+
+    # 1. Verify idempotent ALTER TABLE ADD COLUMN IF NOT EXISTS statements for evolved IAM columns
+    assert "alter table organizations add column if not exists allowed_email_domains" in normalized_sql
+    assert "alter table users add column if not exists firebase_uid" in normalized_sql
+    assert "alter table users add column if not exists deleted_at" in normalized_sql
+
+    # 2. Verify _validate_database_preflight and _seed_postgres apply migrations on PostgresUnitOfWork before table checks
+    pool = InMemoryAsyncPgPool()
+    for table in ("organizations", "users", "system_configs", "workflows", "prompt_blocks", "steps", "output_profiles"):
+        pool.store.seed_tables[table][f"{table[:3]}_0195f3a0000070008000111111111111"] = (
+            f"{table[:3]}_0195f3a0000070008000111111111111",
+        )
+    settings = Settings(
+        storage_backend=StorageBackend.POSTGRES,
+        postgres_host="db.internal",
+        postgres_port=5432,
+        postgres_user="quorum",
+        postgres_db="quorum",
+        postgres_command_timeout_seconds=10.0,
+    )
+    pool_manager = PostgresPoolManager(settings=settings, pool=pool)
+    pg_uow = PostgresUnitOfWork(pool_manager=pool_manager)
+
+    assert pool.store.migrations_applied == 0
+    await _validate_database_preflight(logging.getLogger("test.preflight"), uow=pg_uow)
+    assert pool.store.migrations_applied == 1
+
+    await _seed_postgres({}, dry_run=False, uow=pg_uow)
+    assert pool.store.migrations_applied == 2
+
+    # 3. Verify IdentityRepositoryImpl.get_user and get_organization use O(1) driver.get instead of full-table query
+    mock_driver = AsyncMock(spec=StorageDriver)
+    user_id = "usr_0195f3a00000700a83fd6b3d77c748f4"
+    org_id = "org_0195f3a0000070008000000000000001"
+    expected_user = User(
+        id=user_id,
+        email="root@quorum.ai",
+        role=UserRole.ROOT,
+        organization_id=org_id,
+        is_active=True,
+        language="fi",
+        theme_mode="dark",
+        created_at="2026-01-01T00:00:00Z",
+    )
+    expected_org = Organization(
+        id=org_id,
+        name="Quorum System",
+        is_active=True,
+        tier="enterprise",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=1000.0,
+        tpm_limit=100000,
+        rpm_limit=1000,
+    )
+    mock_driver.get.side_effect = [
+        expected_user.model_dump(mode="json"),
+        expected_org.model_dump(mode="json"),
+    ]
+    identity_repo = IdentityRepositoryImpl(mock_driver)
+    resolved_user = await identity_repo.get_user(user_id)
+    assert resolved_user is not None
+    assert resolved_user.id == user_id
+    mock_driver.get.assert_any_await("users", user_id)
+
+    resolved_org = await identity_repo.get_organization(org_id)
+    assert resolved_org is not None
+    assert resolved_org.id == org_id
+    mock_driver.get.assert_any_await("organizations", org_id)
+    mock_driver.query.assert_not_awaited()
+

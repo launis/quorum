@@ -47,6 +47,7 @@ from backend_v2.database.factory import (
     get_shared_pool_manager,
 )
 from backend_v2.database.interfaces import QuorumUnitOfWork
+from backend_v2.database.postgres.uow import PostgresUnitOfWork
 from backend_v2.exceptions import AppException, ErrorCodes, format_validation_error
 from backend_v2.logging_config import log_startup_system_parameters, setup_logging
 from backend_v2.services.localization import set_language
@@ -150,6 +151,9 @@ async def _validate_database_preflight(
     settings = get_settings()
     resolved_uow = uow if uow is not None else create_unit_of_work(settings)
     try:
+        # Phase 1, Step 1: Apply idempotent PostgreSQL 19 DDL migrations before pre-flight verification
+        if isinstance(resolved_uow, PostgresUnitOfWork):
+            await resolved_uow.pool_manager.apply_migrations()
         async with resolved_uow as active_uow:
             await active_uow.entities.verify_seed_table_counts(
                 {

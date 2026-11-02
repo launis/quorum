@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS organizations (
     allowed_email_domains JSONB NOT NULL DEFAULT '[]'::jsonb,
     CONSTRAINT enforce_organization_uuidv7 CHECK (uuid_extract_version(id) = 7)
 );
+-- Phase 1, Step 1: Ensure allowed_email_domains exists on pre-existing organizations tables
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS allowed_email_domains JSONB NOT NULL DEFAULT '[]'::jsonb;
 
 -- 2. Users (Identity & RBAC)
 CREATE TABLE IF NOT EXISTS users (
@@ -72,6 +74,9 @@ CREATE TABLE IF NOT EXISTS users (
     CONSTRAINT enforce_user_uuidv7 CHECK (uuid_extract_version(id) = 7),
     CONSTRAINT enforce_user_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7)
 );
+-- Phase 1, Step 1: Ensure firebase_uid and deleted_at exist on pre-existing users tables
+ALTER TABLE users ADD COLUMN IF NOT EXISTS firebase_uid VARCHAR(128) UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 
 -- 3. System Configs (Model Registry & Dynamic MCP Gateways with AllowedMCPTool / MCPServerInfoDTO / MCPToolExecutionDTO)
 CREATE TABLE IF NOT EXISTS system_configs (

@@ -28,6 +28,7 @@ USER_ID = "usr_0195f3a0000070018234567890abcdef"
 def mock_driver() -> AsyncMock:
     """Mock storage driver."""
     driver = AsyncMock(spec=StorageDriver)
+    driver.get.return_value = None
     driver.query.return_value = []
     driver.upsert.return_value = ORG_ID
     driver.update.return_value = True
@@ -77,6 +78,7 @@ async def test_organization_crud(
 ) -> None:
     """Positive: tests organization CRUD operations."""
     org_dict = sample_organization.model_dump(mode="json")
+    mock_driver.get.return_value = org_dict
     mock_driver.query.return_value = [org_dict]
 
     org = await repo.get_organization(ORG_ID)
@@ -108,7 +110,7 @@ async def test_organization_corruption_fail_fast(repo: IdentityRepositoryImpl, m
 @pytest.mark.asyncio
 async def test_get_organization_not_found(repo: IdentityRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: returns None when organization is not found."""
-    mock_driver.query.return_value = []
+    mock_driver.get.return_value = None
     assert await repo.get_organization(ORG_ID) is None
 
 
@@ -116,6 +118,7 @@ async def test_get_organization_not_found(repo: IdentityRepositoryImpl, mock_dri
 async def test_user_crud(repo: IdentityRepositoryImpl, mock_driver: AsyncMock, sample_user: User) -> None:
     """Positive: tests user CRUD operations."""
     user_dict = sample_user.model_dump(mode="json")
+    mock_driver.get.return_value = user_dict
     mock_driver.query.return_value = [user_dict]
 
     user = await repo.get_user(USER_ID)
@@ -150,6 +153,7 @@ async def test_user_corruption_fail_fast(repo: IdentityRepositoryImpl, mock_driv
 @pytest.mark.asyncio
 async def test_get_user_not_found(repo: IdentityRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: returns None when user is not found."""
+    mock_driver.get.return_value = None
     mock_driver.query.return_value = []
     assert await repo.get_user(USER_ID) is None
     assert await repo.get_user_by_email("missing@example.com") is None

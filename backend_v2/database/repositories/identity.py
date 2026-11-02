@@ -89,10 +89,11 @@ class IdentityRepositoryImpl(BaseRepository):
         if self._entity_adapter is not None:
             return await self._entity_adapter.get_organization(org_id)
 
-        rows = await self.driver.query("organizations", [Filter("id", "==", org_id)], limit=1)
-        if not rows:
+        # Phase 1, Step 1: Use O(1) primary-key lookup instead of full-table scan
+        raw_org = await self.driver.get("organizations", org_id)
+        if raw_org is None:
             return None
-        return Organization.model_validate(rows[0], strict=False)
+        return Organization.model_validate(raw_org, strict=False)
 
     async def get_organization_model(self, org_id: str) -> Organization | None:
         """Retrieves an organization model by its ID.
@@ -201,10 +202,11 @@ class IdentityRepositoryImpl(BaseRepository):
         if self._entity_adapter is not None:
             return await self._entity_adapter.get_user(user_id)
 
-        rows = await self.driver.query("users", [Filter("id", "==", user_id)], limit=1)
-        if not rows:
+        # Phase 1, Step 1: Use O(1) primary-key lookup instead of full-table scan
+        raw_user = await self.driver.get("users", user_id)
+        if raw_user is None:
             return None
-        return User.model_validate(rows[0], strict=False)
+        return User.model_validate(raw_user, strict=False)
 
     async def get_user_by_email(self, email: str) -> User | None:
         """Retrieves a user by email address.

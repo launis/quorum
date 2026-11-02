@@ -33,6 +33,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from backend_v2.database.factory import create_unit_of_work
 from backend_v2.database.interfaces import QuorumUnitOfWork
+from backend_v2.database.postgres.uow import PostgresUnitOfWork
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import Organization, User
 from backend_v2.models.domain.execution import ExecutionRecord
@@ -317,6 +318,9 @@ async def _seed_postgres(
 
     resolved_uow: QuorumUnitOfWork = uow if uow is not None else create_unit_of_work(get_settings())
     try:
+        # Phase 1, Step 1: Apply idempotent PostgreSQL 19 DDL migrations before transactional seeding
+        if isinstance(resolved_uow, PostgresUnitOfWork):
+            await resolved_uow.pool_manager.apply_migrations()
         async with resolved_uow as active_uow:
             for col_key in TOPOLOGICAL_SEED_ORDER:
                 items = validated_buffers.get_collection(col_key)
