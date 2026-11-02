@@ -141,7 +141,7 @@
   - [x] @[backend_v2/api/routers/iam/organizations.py]
   - [x] @[backend_v2/api/routers/execution/executions.py]
   - [x] @[scripts/sanitize_seed_vault.py]
-  - [ ] @[scripts/audit_zero_orm_strictness.py]
+  - [x] @[scripts/audit_zero_orm_strictness.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/run_e2e_variance_test.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_160_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"` across existing and `[NEW]` frontend targets.
