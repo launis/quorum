@@ -12,8 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-// Phase 6, Step 6.2: Separated User Profile & Session Security View (/settings).
-
+/// Displays user identity, read-only tenant attributes, UI preferences, and session security controls.
 class UserProfileSettingsView extends HookConsumerWidget {
   const UserProfileSettingsView({super.key});
 

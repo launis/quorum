@@ -156,7 +156,7 @@
   - [x] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
   - [x] @[client_app_v2/lib/features/settings/presentation/settings_controller.dart]
   - [x] [NEW] @[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]
-  - [ ] [NEW] @[client_app_v2/lib/features/settings/presentation/user_profile_settings_view.dart]
+  - [x] [NEW] @[client_app_v2/lib/features/settings/presentation/user_profile_settings_view.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/execution/views/task_assignment_portal_view.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.

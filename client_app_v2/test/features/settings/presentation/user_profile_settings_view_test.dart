@@ -253,5 +253,69 @@ void main() {
         expect(authController.state.value?.name, 'Initial Member');
       },
     );
+
+    testWidgets(
+      'negative: renders unauthorized message when authController emits null user',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1440, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final authController = _StubAuthController(null);
+        final settingsController = _StubSettingsController(
+          const AppSettingsState(),
+        );
+        final userRepo = _FakeUserRepository();
+
+        await tester.pumpWidget(
+          _buildTestWidget(
+            authController: authController,
+            settingsController: settingsController,
+            userRepo: userRepo,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('profile_identity_card')), findsNothing);
+        expect(find.byKey(const Key('profile_session_card')), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'boundary: switches layout at 800px mediumBreakpoint (799px Column vs 800px Row) and trims whitespace-only display name to null',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(799, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final authController = _StubAuthController(memberUser);
+        final settingsController = _StubSettingsController(
+          const AppSettingsState(),
+        );
+        final userRepo = _FakeUserRepository();
+
+        await tester.pumpWidget(
+          _buildTestWidget(
+            authController: authController,
+            settingsController: settingsController,
+            userRepo: userRepo,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('profile_identity_card')), findsOneWidget);
+        expect(find.byKey(const Key('profile_session_card')), findsOneWidget);
+
+        // Enter whitespace-only display name (boundary -> normalized to null)
+        await tester.enterText(
+          find.byKey(const Key('profile_display_name_field')),
+          '   ',
+        );
+        await tester.tap(find.byKey(const Key('profile_save_preferences_btn')));
+        await tester.pumpAndSettle();
+
+        expect(userRepo.lastUpdatePayload?.name, isNull);
+      },
+    );
   });
 }
