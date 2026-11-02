@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Any
+from collections.abc import ItemsView
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import ConfigDict, Field, JsonValue
 
@@ -56,7 +57,7 @@ class NodeExecutionUpdateDTO(V2CoreBase):
     ] = None
     error: Annotated[str | None, Field(default=None, description="Error message if failed")] = None
     steps: Annotated[list[ExecutionStep] | None, Field(default=None, description="Execution steps list")] = None
-    # Phase 4, Step 4.1: Optimistic concurrency control fields for DAG commit_trace updates
+    # Enforce optimistic concurrency control for DAG commit_trace updates.
     expected_state_version: Annotated[
         int | None,
         Field(ge=1, default=None, description="Expected OCC state_version for conditional update"),
@@ -97,12 +98,12 @@ class LogicNodeStateDTO(V2CoreBase):
 
     steps: Annotated[
         list[StepOutputDTO],
-        "Projector snapshot steps list",
-    ] = Field(default_factory=list, description="Projector snapshot steps list")
+        Field(default_factory=list, description="Projector snapshot steps list"),
+    ]
     dynamic_inputs: Annotated[
         dict[str, DomainInputValue],
-        "Dynamic inputs dictionary",
-    ] = Field(default_factory=dict, description="Dynamic inputs dictionary")
+        Field(default_factory=dict, description="Dynamic inputs dictionary"),
+    ]
 
 
 class LogicEvaluationContextDTO(V2CoreBase):
@@ -129,12 +130,12 @@ class LogicEvaluationContextDTO(V2CoreBase):
     metadata: Annotated[ExecutionMetadata, Field(description="Execution metadata")]
     global_context_vars: Annotated[
         GlobalContextVarsDTO,
-        "Global context variables",
-    ] = Field(default_factory=GlobalContextVarsDTO, description="Global context variables")
+        Field(default_factory=GlobalContextVarsDTO, description="Global context variables"),
+    ]
     inputs: Annotated[
         ExecutionInputsDTO,
-        "Execution inputs container",
-    ] = Field(default_factory=ExecutionInputsDTO, description="Execution inputs container")
+        Field(default_factory=ExecutionInputsDTO, description="Execution inputs container"),
+    ]
     target_locale: Annotated[str | None, Field(default=None, description="Target locale code")] = None
     user_role: Annotated[str | None, Field(default=None, description="User role")] = None
 
@@ -153,17 +154,38 @@ class StepOutputContentDTO(V2CoreBase):
 
     data: Annotated[
         dict[str, StepOutputContentValue],
-        "Structured event payload content",
-    ] = Field(default_factory=dict, description="Structured event payload content")
+        Field(default_factory=dict, description="Structured event payload content"),
+    ]
 
-    def items(self) -> Any:
-        """Mapping protocol: return data dictionary items."""
+    def items(self) -> ItemsView[str, StepOutputContentValue]:
+        """Return key-value pairs from the payload dictionary.
+
+        Returns:
+            Dictionary items view of the encapsulated payload data.
+        """
         return self.data.items()
 
     def __getitem__(self, key: str) -> StepOutputContentValue:
-        """Mapping protocol: access data dictionary by key."""
+        """Retrieve a payload value by key.
+
+        Args:
+            key: Dictionary key to look up.
+
+        Returns:
+            Payload value associated with the key.
+
+        Raises:
+            KeyError: If the requested key does not exist in data.
+        """
         return self.data[key]
 
     def __contains__(self, key: object) -> bool:
-        """Mapping protocol: check membership in data dictionary."""
+        """Check whether a key exists in the payload dictionary.
+
+        Args:
+            key: Key object to check for membership.
+
+        Returns:
+            True if the key exists in data, False otherwise.
+        """
         return key in self.data
