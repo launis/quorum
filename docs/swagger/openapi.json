@@ -9029,6 +9029,13 @@
             "description": "Version number of the executing workflow",
             "default": 1
           },
+          "state_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "State Version",
+            "description": "Monotonically increasing optimistic concurrency control version",
+            "default": 1
+          },
           "active_profile_id": {
             "anyOf": [
               {
@@ -9456,6 +9463,18 @@
             "title": "Has Warning",
             "description": "Whether the step completed with warnings",
             "default": false
+          },
+          "input_merkle_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Merkle Hash",
+            "description": "Canonical SHA-256 Merkle hash of step inputs, prompt blocks, and tier configuration"
           },
           "scorecard_atoms": {
             "additionalProperties": {
@@ -21157,11 +21176,13 @@
                 "type": "null"
               }
             ],
-            "title": "Task Blueprint"
+            "title": "Task Blueprint",
+            "description": "Task blueprint identifier"
           },
           "model_strategy": {
             "type": "string",
             "title": "Model Strategy",
+            "description": "Model execution strategy",
             "default": "unknown"
           },
           "physical_model": {
@@ -21191,6 +21212,7 @@
           "chunk_size": {
             "type": "integer",
             "title": "Chunk Size",
+            "description": "Number of chunks processed in step",
             "default": 1
           },
           "token_usage": {
@@ -21213,7 +21235,8 @@
                 "type": "null"
               }
             ],
-            "title": "Execution Id"
+            "title": "Execution Id",
+            "description": "Execution record identifier"
           },
           "workflow_id": {
             "anyOf": [
@@ -21224,7 +21247,8 @@
                 "type": "null"
               }
             ],
-            "title": "Workflow Id"
+            "title": "Workflow Id",
+            "description": "Workflow blueprint identifier"
           },
           "step_id": {
             "anyOf": [
@@ -21235,7 +21259,8 @@
                 "type": "null"
               }
             ],
-            "title": "Step Id"
+            "title": "Step Id",
+            "description": "DAG step identifier"
           },
           "initiator_id": {
             "anyOf": [
@@ -21246,7 +21271,8 @@
                 "type": "null"
               }
             ],
-            "title": "Initiator Id"
+            "title": "Initiator Id",
+            "description": "Initiator user identifier"
           },
           "timestamp_isot": {
             "anyOf": [
@@ -21257,7 +21283,8 @@
                 "type": "null"
               }
             ],
-            "title": "Timestamp Isot"
+            "title": "Timestamp Isot",
+            "description": "ISO-8601 UTC timestamp string"
           },
           "unix_time": {
             "anyOf": [
@@ -21268,7 +21295,8 @@
                 "type": "null"
               }
             ],
-            "title": "Unix Time"
+            "title": "Unix Time",
+            "description": "Unix epoch timestamp in seconds"
           },
           "v2_engine": {
             "anyOf": [
@@ -21279,7 +21307,8 @@
                 "type": "null"
               }
             ],
-            "title": "V2 Engine"
+            "title": "V2 Engine",
+            "description": "V2 execution engine flag"
           },
           "cognitive_tier": {
             "anyOf": [
@@ -21290,7 +21319,8 @@
                 "type": "null"
               }
             ],
-            "title": "Cognitive Tier"
+            "title": "Cognitive Tier",
+            "description": "Assigned cognitive tier"
           }
         },
         "additionalProperties": false,
@@ -22818,7 +22848,8 @@
                 "type": "null"
               }
             ],
-            "title": "Coaching"
+            "title": "Coaching",
+            "description": "Coaching feedback narrative"
           },
           "falsification": {
             "anyOf": [
@@ -22829,7 +22860,8 @@
                 "type": "null"
               }
             ],
-            "title": "Falsification"
+            "title": "Falsification",
+            "description": "Counter-evidence falsification note"
           },
           "remediation_steps": {
             "anyOf": [
@@ -22840,7 +22872,8 @@
                 "type": "null"
               }
             ],
-            "title": "Remediation Steps"
+            "title": "Remediation Steps",
+            "description": "Actionable remediation steps"
           },
           "missing_context": {
             "anyOf": [
@@ -22851,7 +22884,8 @@
                 "type": "null"
               }
             ],
-            "title": "Missing Context"
+            "title": "Missing Context",
+            "description": "Identified missing context"
           },
           "emotional_sentiment": {
             "anyOf": [
@@ -22862,7 +22896,8 @@
                 "type": "null"
               }
             ],
-            "title": "Emotional Sentiment"
+            "title": "Emotional Sentiment",
+            "description": "Detected emotional sentiment"
           },
           "theory_link": {
             "anyOf": [
@@ -22873,7 +22908,8 @@
                 "type": "null"
               }
             ],
-            "title": "Theory Link"
+            "title": "Theory Link",
+            "description": "Theoretical framework reference"
           },
           "risk_flag": {
             "anyOf": [
@@ -22884,7 +22920,8 @@
                 "type": "null"
               }
             ],
-            "title": "Risk Flag"
+            "title": "Risk Flag",
+            "description": "Elevated risk indicator flag"
           },
           "confidence": {
             "anyOf": [
@@ -22895,7 +22932,8 @@
                 "type": "null"
               }
             ],
-            "title": "Confidence"
+            "title": "Confidence",
+            "description": "Evaluation confidence score"
           },
           "evidence_type": {
             "anyOf": [
@@ -22906,7 +22944,8 @@
                 "type": "null"
               }
             ],
-            "title": "Evidence Type"
+            "title": "Evidence Type",
+            "description": "Classification of evidence"
           },
           "source_id": {
             "anyOf": [
@@ -22917,7 +22956,8 @@
                 "type": "null"
               }
             ],
-            "title": "Source Id"
+            "title": "Source Id",
+            "description": "Source document identifier"
           },
           "citation": {
             "anyOf": [
@@ -22928,7 +22968,8 @@
                 "type": "null"
               }
             ],
-            "title": "Citation"
+            "title": "Citation",
+            "description": "Direct source citation"
           },
           "google_citation": {
             "anyOf": [
@@ -22939,7 +22980,8 @@
                 "type": "null"
               }
             ],
-            "title": "Google Citation"
+            "title": "Google Citation",
+            "description": "Google grounding citation"
           },
           "contextual_override": {
             "anyOf": [
@@ -22950,7 +22992,8 @@
                 "type": "null"
               }
             ],
-            "title": "Contextual Override"
+            "title": "Contextual Override",
+            "description": "Contextual override flag"
           },
           "semantic_reasoning": {
             "anyOf": [
@@ -22961,7 +23004,8 @@
                 "type": "null"
               }
             ],
-            "title": "Semantic Reasoning"
+            "title": "Semantic Reasoning",
+            "description": "Semantic reasoning trace"
           }
         },
         "additionalProperties": false,
