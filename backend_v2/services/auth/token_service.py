@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import logging
+import re
 import time
 from datetime import datetime, timezone
 from typing import Any
@@ -17,16 +18,17 @@ else:
 
 from backend_v2.exceptions import AuthenticationError, ErrorCodes
 from backend_v2.models.auth import TokenData, User, UserRole
-from backend_v2.models.enums import SystemLocale
-from backend_v2.services.auth.constants import JWT_ALGORITHM, JWT_SECRET
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, generate_opaque_id
+from backend_v2.models.enums import EntityPrefix, SystemLocale
 from backend_v2.services.auth.repositories import UserRepository
-from backend_v2.settings import get_settings
+from backend_v2.settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["TokenService"]
 
 _SENTINEL = object()
+_COMPILED_OPAQUE_ID_REGEX = re.compile(OPAQUE_STRIPE_ID_REGEX)
 
 
 class TokenService:
@@ -57,6 +59,14 @@ class TokenService:
         if self.use_firebase:
             self._init_firebase()
 
+    def _resolve_settings(self) -> Settings:
+        """Resolve active application Settings instance.
+
+        Returns:
+            Resolved Settings instance.
+        """
+        return self._get_settings_fn() if self._get_settings_fn is not None else get_settings()
+
     def _init_firebase(self) -> None:
         """Initializes the Firebase Admin SDK.
 
@@ -81,6 +91,7 @@ class TokenService:
         Returns:
             Signed JWT string.
         """
+        settings = self._resolve_settings()
         payload = {
             "sub": target_id,
             "exp": time.time() + duration_seconds,
@@ -88,7 +99,11 @@ class TokenService:
             "type": "impersonation",
         }
 
-        token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+        token = jwt.encode(
+            payload,
+            settings.jwt_secret_key.get_secret_value(),
+            algorithm=settings.jwt_algorithm,
+        )
         return token
 
     async def verify_token(self, token: str) -> TokenData:
@@ -103,9 +118,14 @@ class TokenService:
         Raises:
             AuthenticationError: If token is invalid, expired, or forbidden.
         """
+        settings = self._resolve_settings()
         # 1. Local Signed Token (Impersonation / Internal)
         try:
-            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            payload = jwt.decode(
+                token,
+                settings.jwt_secret_key.get_secret_value(),
+                algorithms=[settings.jwt_algorithm],
+            )
             if "sub" not in payload or not payload["sub"]:
                 logger.error(
                     "[TokenService] %s: Invalid internal token: missing 'sub'.",
@@ -150,7 +170,6 @@ class TokenService:
             logger.debug("PyJWT decoding failed, falling back: %s", jwt_err)
 
         # 2. Mock/Dev Mode check
-        settings = self._get_settings_fn() if self._get_settings_fn is not None else get_settings()
         is_mock_token = token.startswith("mock-token:")
 
         # Reject mock tokens in production or cloud environments immediately (Fail-Fast)
@@ -187,7 +206,7 @@ class TokenService:
         # 3. Firebase Mode
         try:
             decoded_token = self.firebase_auth.verify_id_token(token)
-            firebase_user_id = decoded_token["uid"]
+            firebase_user_id = str(decoded_token["uid"])
             email = None
             if "email" in decoded_token:
                 email = decoded_token["email"]
@@ -207,8 +226,14 @@ class TokenService:
 
                 logger.info("User %s not found in local DB. Auto-registering as MEMBER (No Org).", firebase_user_id)
 
+                canonical_user_id = (
+                    firebase_user_id
+                    if _COMPILED_OPAQUE_ID_REGEX.match(firebase_user_id) is not None
+                    else generate_opaque_id(EntityPrefix.USER)
+                )
                 new_user = User(
-                    id=firebase_user_id,
+                    id=canonical_user_id,
+                    firebase_uid=firebase_user_id,
                     email=email,
                     role=UserRole.MEMBER,
                     organization_id=None,
@@ -219,7 +244,7 @@ class TokenService:
                 )
 
                 await self.repo.create(new_user)
-                return TokenData(id=firebase_user_id, role=UserRole.MEMBER, email=email, organization_id=None)
+                return TokenData(id=canonical_user_id, role=UserRole.MEMBER, email=email, organization_id=None)
 
             return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
 

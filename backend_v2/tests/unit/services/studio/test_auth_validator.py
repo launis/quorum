@@ -14,8 +14,8 @@ from backend_v2.services.studio.auth_validator import (
     is_resource_accessible,
 )
 
-ORG_ALPHA_ID = generate_opaque_id(EntityPrefix.ORGANIZATION)
-ORG_BETA_ID = generate_opaque_id(EntityPrefix.ORGANIZATION)
+ORG_ALPHA_ID = generate_opaque_id(EntityPrefix.ORG)
+ORG_BETA_ID = generate_opaque_id(EntityPrefix.ORG)
 WORKFLOW_ID = generate_opaque_id(EntityPrefix.WORKFLOW)
 
 
@@ -107,11 +107,11 @@ def test_enforce_tenant_isolation_same_org_allowed(admin_token: TokenData) -> No
 def test_enforce_tenant_isolation_system_allowed_by_default(admin_token: TokenData) -> None:
     """Verify system organization resources are accessible by default."""
     enforce_tenant_isolation(admin_token, SystemOrganizations.ROOT_SYSTEM, "workflow", WORKFLOW_ID)
-    enforce_tenant_isolation(admin_token, SystemOrganizations.LEGACY_SYSTEM, "workflow", WORKFLOW_ID)
+    enforce_tenant_isolation(admin_token, "SYSTEM", "workflow", WORKFLOW_ID)
     enforce_tenant_isolation(admin_token, None, "workflow", WORKFLOW_ID)
 
 
-def test_enforce_tenant_isolation_system_denied_when_disabled(admin_token: TokenData) -> None:
+def test_enforce_tenant_isolation_system_denied_when_disabled_failure(admin_token: TokenData) -> None:
     """Verify system organization resources are denied when allow_system is False."""
     with pytest.raises(PermissionDeniedError):
         enforce_tenant_isolation(
@@ -128,13 +128,13 @@ def test_enforce_tenant_isolation_public_allowed(admin_token: TokenData) -> None
     enforce_tenant_isolation(admin_token, ORG_BETA_ID, "workflow", WORKFLOW_ID, is_public=True)
 
 
-def test_enforce_tenant_isolation_other_org_denied(admin_token: TokenData) -> None:
+def test_enforce_tenant_isolation_other_org_denied_failure(admin_token: TokenData) -> None:
     """Verify non-ROOT user cannot access private resources of another organization."""
     with pytest.raises(PermissionDeniedError):
         enforce_tenant_isolation(admin_token, ORG_BETA_ID, "workflow", WORKFLOW_ID)
 
 
-def test_enforce_modification_rights_user_role_denied(user_token: TokenData, member_token: TokenData) -> None:
+def test_enforce_modification_rights_user_role_denied_error(user_token: TokenData, member_token: TokenData) -> None:
     """Verify VIEWER and MEMBER roles are denied modification rights."""
     with pytest.raises(PermissionDeniedError) as exc_info:
         enforce_modification_rights(user_token, ORG_ALPHA_ID)
@@ -150,7 +150,7 @@ def test_enforce_modification_rights_root_can_modify_system(root_token: TokenDat
     enforce_modification_rights(root_token, SystemOrganizations.ROOT_SYSTEM)
 
 
-def test_enforce_modification_rights_manager_same_org_and_foreign_org(manager_token: TokenData) -> None:
+def test_enforce_modification_rights_manager_same_org_and_foreign_org_failure(manager_token: TokenData) -> None:
     """Verify MANAGER can modify own organization resources but not foreign organization resources."""
     enforce_modification_rights(manager_token, ORG_ALPHA_ID)
     with pytest.raises(PermissionDeniedError) as exc_info:
@@ -179,23 +179,17 @@ def test_enforce_modification_rights_admin_cannot_modify_other_org(admin_token: 
 
 def test_is_resource_accessible_scenarios(root_token: TokenData, admin_token: TokenData, user_token: TokenData) -> None:
     """Verify boolean accessibility checks across role, system, public, and org boundaries."""
-    # Root can access everything
     assert is_resource_accessible(root_token, ORG_BETA_ID) is True
     assert is_resource_accessible(root_token, None) is True
 
-    # Public resources accessible to anyone
     assert is_resource_accessible(user_token, ORG_BETA_ID, is_public=True) is True
 
-    # Same organization accessible
     assert is_resource_accessible(admin_token, ORG_ALPHA_ID) is True
 
-    # System resources accessible by default
     assert is_resource_accessible(admin_token, SystemOrganizations.ROOT_SYSTEM) is True
-    assert is_resource_accessible(admin_token, SystemOrganizations.LEGACY_SYSTEM) is True
+    assert is_resource_accessible(admin_token, "SYSTEM") is True
     assert is_resource_accessible(admin_token, None) is True
 
-    # System resources denied if allow_system=False
     assert is_resource_accessible(admin_token, None, allow_system=False) is False
 
-    # Foreign organization denied
     assert is_resource_accessible(admin_token, ORG_BETA_ID) is False

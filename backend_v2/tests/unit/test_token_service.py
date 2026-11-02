@@ -20,13 +20,17 @@ from backend_v2.models.auth import (
 )
 from backend_v2.models.enums import SystemLocale
 from backend_v2.services.auth import (
-    JWT_ALGORITHM,
-    JWT_SECRET,
+
+
     AuthService,
     TokenService,
     UserRepository,
 )
+from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+JWT_SECRET = get_settings().jwt_secret_key.get_secret_value()
+JWT_ALGORITHM = get_settings().jwt_algorithm
 
 
 @pytest.fixture
@@ -52,19 +56,19 @@ async def test_auth_service_verify_token_mock(
     service = AuthService(mock_repo, use_firebase=False)
 
     test_user = User(
-        id="usr_1234abcd",
+        id="usr_0195f3a000007000800000001234abcd",
         email="test@test.com",
         role=UserRole.MEMBER,
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_1234abcd",
+        organization_id="org_0195f3a000007000800000001234abcd",
     )
     await mock_repo.create_user(test_user)
-    token_data = await service.verify_token("mock-token:usr_1234abcd")
+    token_data = await service.verify_token("mock-token:usr_0195f3a000007000800000001234abcd")
 
-    assert token_data.id == "usr_1234abcd"
+    assert token_data.id == "usr_0195f3a000007000800000001234abcd"
     assert token_data.role == UserRole.MEMBER
 
 
@@ -84,7 +88,7 @@ async def test_auth_service_verify_token_mock_forbidden_in_production(
     service = AuthService(mock_repo, use_firebase=True)
 
     with pytest.raises(AuthenticationError) as exc_info:
-        await service.verify_token("mock-token:usr_1234abcd")
+        await service.verify_token("mock-token:usr_0195f3a000007000800000001234abcd")
     assert "Mock tokens are strictly forbidden in production" in exc_info.value.message
 
 
@@ -112,21 +116,21 @@ async def test_auth_service_verify_token_impersonation_branches(
     """Test verify_token internal impersonation branches and errors."""
     auth = AuthService(mock_repo, use_firebase=False)
     test_user = User(
-        id="usr_impersonated1",
+        id="usr_0195f3a0000070008000000000000101",
         email="imp@test.com",
         role=UserRole.ADMIN,
         is_active=True,
         created_at=datetime.now(timezone.utc),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_test00000001",
+        organization_id="org_0195f3a0000070008000000000000001",
     )
 
     # Valid impersonation token
-    token = auth.create_impersonation_token("usr_impersonated1")
+    token = auth.create_impersonation_token("usr_0195f3a0000070008000000000000101")
     await mock_repo.create_user(test_user)
     token_data = await auth.verify_token(token)
-    assert token_data.id == "usr_impersonated1"
+    assert token_data.id == "usr_0195f3a0000070008000000000000101"
     assert token_data.role == UserRole.ADMIN
 
     # Missing sub claim
@@ -135,14 +139,14 @@ async def test_auth_service_verify_token_impersonation_branches(
         await auth.verify_token(bad_token)
 
     # Impersonated user not found in DB
-    await mock_repo.delete_user("usr_impersonated1")
+    await mock_repo.delete_user("usr_0195f3a0000070008000000000000101")
     with pytest.raises(AuthenticationError) as exc_missing:
         await auth.verify_token(token)
     assert exc_missing.value.error_code == ErrorCodes.AUTH_TOKEN_EXPIRED
 
     # Expired token
     expired_token = jwt.encode(
-        {"sub": "usr_impersonated1", "exp": time.time() - 3600}, JWT_SECRET, algorithm=JWT_ALGORITHM
+        {"sub": "usr_0195f3a0000070008000000000000101", "exp": time.time() - 3600}, JWT_SECRET, algorithm=JWT_ALGORITHM
     )
     with pytest.raises(AuthenticationError) as exc_exp:
         await auth.verify_token(expired_token)
@@ -184,7 +188,7 @@ async def test_auth_service_verify_token_firebase_branches(
     auth = AuthService(mock_repo, use_firebase=True, firebase_auth=mock_fb)
 
     test_user = User(
-        id="usr_fbuser000123",
+        id="usr_0195f3a0000070008000000000000123",
         email="fb@test.com",
         role=UserRole.MEMBER,
         is_active=True,
@@ -195,21 +199,21 @@ async def test_auth_service_verify_token_firebase_branches(
     )
 
     # Case 1: User already in DB
-    mock_fb.verify_id_token.return_value = {"uid": "usr_fbuser000123", "email": "fb@test.com"}
+    mock_fb.verify_id_token.return_value = {"uid": "usr_0195f3a0000070008000000000000123", "email": "fb@test.com"}
     await mock_repo.create_user(test_user)
     res = await auth.verify_token("valid_fb_token")
-    assert res.id == "usr_fbuser000123"
+    assert res.id == "usr_0195f3a0000070008000000000000123"
 
     # Case 2: User not in DB -> Auto-registration
     await mock_repo.delete_user(test_user.id)
     res2 = await auth.verify_token("valid_fb_token")
-    assert res2.id == "usr_fbuser000123"
+    assert res2.id == "usr_0195f3a0000070008000000000000123"
     assert res2.role == UserRole.MEMBER
-    assert (await mock_repo.get_user("usr_fbuser000123")) is not None
+    assert (await mock_repo.get_user("usr_0195f3a0000070008000000000000123")) is not None
 
     # Case 3: User not in DB and missing email claim -> raises AuthenticationError
     await mock_repo.delete_user(test_user.id)
-    mock_fb.verify_id_token.return_value = {"uid": "usr_fbuser000123"}
+    mock_fb.verify_id_token.return_value = {"uid": "usr_0195f3a0000070008000000000000123"}
     with pytest.raises(AuthenticationError) as exc_no_email:
         await auth.verify_token("valid_fb_token_no_email")
     assert exc_no_email.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
@@ -226,9 +230,9 @@ def test_create_impersonation_token_generates_signed_jwt(
 ) -> None:
     """TC-P2-01: create_impersonation_token returns valid signed JWT with sub and type."""
     token_service = TokenService(repo=UserRepository(mock_repo), use_firebase=False)
-    token = token_service.create_impersonation_token(target_id="usr_target12345678", duration_seconds=3600)
+    token = token_service.create_impersonation_token(target_id="usr_0195f3a0000070008000000012345678", duration_seconds=3600)
     decoded = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-    assert decoded["sub"] == "usr_target12345678"
+    assert decoded["sub"] == "usr_0195f3a0000070008000000012345678"
     assert decoded["type"] == "impersonation"
     assert decoded["exp"] > time.time()
 
@@ -241,24 +245,24 @@ async def test_verify_token_impersonation_token_success(
     user_repo = UserRepository(mock_repo)
     token_service = TokenService(repo=user_repo, use_firebase=False)
     user = User(
-        id="usr_imptarget0001",
+        id="usr_0195f3a0000070008000000000000201",
         email="imptarget@test.com",
         role=UserRole.ADMIN,
         is_active=True,
         created_at=datetime.now(timezone.utc),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_test00000001",
+        organization_id="org_0195f3a0000070008000000000000001",
     )
     await mock_repo.create_user(user)
 
-    token = token_service.create_impersonation_token(target_id="usr_imptarget0001", duration_seconds=3600)
+    token = token_service.create_impersonation_token(target_id="usr_0195f3a0000070008000000000000201", duration_seconds=3600)
     token_data = await token_service.verify_token(token)
 
-    assert token_data.id == "usr_imptarget0001"
+    assert token_data.id == "usr_0195f3a0000070008000000000000201"
     assert token_data.role == UserRole.ADMIN
     assert token_data.email == "imptarget@test.com"
-    assert token_data.organization_id == "org_test00000001"
+    assert token_data.organization_id == "org_0195f3a0000070008000000000000001"
 
 
 @pytest.mark.asyncio
@@ -280,7 +284,7 @@ async def test_verify_token_impersonation_user_not_found_raises_authentication_e
 ) -> None:
     """TC-P2-04: verify_token with sub pointing to non-existent user raises AUTH_TOKEN_EXPIRED."""
     token_service = TokenService(repo=UserRepository(mock_repo), use_firebase=False)
-    token = token_service.create_impersonation_token(target_id="usr_nonexistent001", duration_seconds=3600)
+    token = token_service.create_impersonation_token(target_id="usr_0195f3a0000070008000000000000901", duration_seconds=3600)
 
     with pytest.raises(AuthenticationError) as exc_info:
         await token_service.verify_token(token)
@@ -294,8 +298,8 @@ async def test_verify_token_expired_jwt_raises_authentication_error(
     """TC-P2-05: verify_token with expired JWT timestamp raises AUTH_TOKEN_EXPIRED."""
     token_service = TokenService(repo=UserRepository(mock_repo), use_firebase=False)
     expired_token = jwt.encode(
-        {"sub": "usr_target00000001", "exp": time.time() - 3600, "type": "impersonation"},
-        JWT_SECRET,
+        {"sub": "usr_0195f3a0000070008000000000000301", "exp": time.time() - 3600, "type": "impersonation"}, JWT_SECRET,
+    
         algorithm=JWT_ALGORITHM,
     )
 
@@ -378,24 +382,24 @@ async def test_verify_token_mock_token_success_returns_tokendata(
     monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
 
     user = User(
-        id="usr_mockexists001",
+        id="usr_0195f3a0000070008000000000000401",
         email="mockexists@test.com",
         role=UserRole.MEMBER,
         is_active=True,
         created_at=datetime.now(timezone.utc),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_test00000001",
+        organization_id="org_0195f3a0000070008000000000000001",
     )
     await mock_repo.create_user(user)
 
     token_service = TokenService(repo=UserRepository(mock_repo), use_firebase=False)
-    token_data = await token_service.verify_token("mock-token:usr_mockexists001")
+    token_data = await token_service.verify_token("mock-token:usr_0195f3a0000070008000000000000401")
 
-    assert token_data.id == "usr_mockexists001"
+    assert token_data.id == "usr_0195f3a0000070008000000000000401"
     assert token_data.role == UserRole.MEMBER
     assert token_data.email == "mockexists@test.com"
-    assert token_data.organization_id == "org_test00000001"
+    assert token_data.organization_id == "org_0195f3a0000070008000000000000001"
 
 
 @pytest.mark.asyncio
@@ -404,28 +408,28 @@ async def test_verify_token_firebase_token_success_returns_tokendata(
 ) -> None:
     """TC-P2-10: verify_token with valid Firebase token and existing user returns TokenData."""
     user = User(
-        id="usr_fbexist000001",
+        id="usr_0195f3a0000070008000000000000501",
         email="fbexist@test.com",
         role=UserRole.MANAGER,
         is_active=True,
         created_at=datetime.now(timezone.utc),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_test00000001",
+        organization_id="org_0195f3a0000070008000000000000001",
     )
     await mock_repo.create_user(user)
 
     token_service = TokenService(repo=UserRepository(mock_repo), use_firebase=True)
     mock_fb = MagicMock()
-    mock_fb.verify_id_token.return_value = {"uid": "usr_fbexist000001", "email": "fbexist@test.com"}
+    mock_fb.verify_id_token.return_value = {"uid": "usr_0195f3a0000070008000000000000501", "email": "fbexist@test.com"}
     token_service.firebase_auth = mock_fb
 
     token_data = await token_service.verify_token("valid_firebase_jwt_token")
 
-    assert token_data.id == "usr_fbexist000001"
+    assert token_data.id == "usr_0195f3a0000070008000000000000501"
     assert token_data.role == UserRole.MANAGER
     assert token_data.email == "fbexist@test.com"
-    assert token_data.organization_id == "org_test00000001"
+    assert token_data.organization_id == "org_0195f3a0000070008000000000000001"
 
 
 @pytest.mark.asyncio
@@ -435,17 +439,17 @@ async def test_verify_token_firebase_auto_registration_success(
     """TC-P2-11: verify_token with Firebase token for non-existing user auto-registers as MEMBER."""
     token_service = TokenService(repo=UserRepository(mock_repo), use_firebase=True)
     mock_fb = MagicMock()
-    mock_fb.verify_id_token.return_value = {"uid": "usr_fbnewauto0001", "email": "autoreg@test.com"}
+    mock_fb.verify_id_token.return_value = {"uid": "usr_0195f3a0000070008000000000000601", "email": "autoreg@test.com"}
     token_service.firebase_auth = mock_fb
 
     token_data = await token_service.verify_token("valid_firebase_jwt_token")
 
-    assert token_data.id == "usr_fbnewauto0001"
+    assert token_data.id == "usr_0195f3a0000070008000000000000601"
     assert token_data.role == UserRole.MEMBER
     assert token_data.email == "autoreg@test.com"
     assert token_data.organization_id is None
 
-    stored_user = await mock_repo.get_user("usr_fbnewauto0001")
+    stored_user = await mock_repo.get_user("usr_0195f3a0000070008000000000000601")
     assert stored_user is not None
     assert stored_user.role == UserRole.MEMBER
     assert stored_user.email == "autoreg@test.com"

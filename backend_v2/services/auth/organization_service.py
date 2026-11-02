@@ -26,7 +26,6 @@ from backend_v2.models.auth import (
 )
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.enums import EntityPrefix, SystemLocale
-from backend_v2.services.auth.constants import LEGACY_SYSTEM_ORG_ID
 from backend_v2.services.auth.protocols import UserCreatorProtocol
 from backend_v2.services.auth.repositories import (
     OrganizationRepository,
@@ -112,6 +111,7 @@ class OrganizationService:
             quota_limit=500.0,
             tpm_limit=org_create.tpm_limit,
             rpm_limit=org_create.rpm_limit,
+            allowed_email_domains=[],
         )
 
         await self.org_repo.create(new_org)
@@ -190,14 +190,7 @@ class OrganizationService:
             )
             raise PermissionDeniedError("Only ROOT can delete organizations.")
 
-        if target_org_id in (
-            SystemOrganizations.ROOT_SYSTEM,
-            SystemOrganizations.ROOT_SYSTEM.value,
-            SystemOrganizations.LEGACY_SYSTEM,
-            SystemOrganizations.LEGACY_SYSTEM.value,
-            "system",
-            LEGACY_SYSTEM_ORG_ID,
-        ):
+        if SystemOrganizations.is_system(target_org_id) or target_org_id == "system":
             logger.error(
                 "[OrganizationService] %s: Attempted to delete protected system organization %s (initiator=%s).",
                 ErrorCodes.PERMISSION_DENIED.name,

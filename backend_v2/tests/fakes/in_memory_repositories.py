@@ -41,6 +41,7 @@ from backend_v2.models.auth import (
     OrganizationCreate,
     OrganizationUpdateDTO,
     SubscriptionStatus,
+    SystemOrganizations,
     User,
     UserCreate,
     UserUpdate,
@@ -331,7 +332,8 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
             items = [
                 w
                 for w in items
-                if (w.organization_id if isinstance(w, Workflow) else None) in (organization_id, "root_system", None)
+                if (w.organization_id if isinstance(w, Workflow) else None)
+                in (organization_id, SystemOrganizations.ROOT_SYSTEM, None)
             ]
         elif organization_id is not None:
             items = [w for w in items if (w.organization_id if isinstance(w, Workflow) else None) == organization_id]
@@ -505,7 +507,7 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
             org = org_data
             org_id = org.id
         else:
-            org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+            org_id = generate_opaque_id(EntityPrefix.ORG)
             org = Organization(
                 id=org_id,
                 name=org_data.name,
@@ -516,6 +518,7 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
                 quota_limit=100.0,
                 tpm_limit=org_data.tpm_limit,
                 rpm_limit=org_data.rpm_limit,
+                allowed_email_domains=[],
             )
         self._save_isolated(org_id, org)
         return org_id

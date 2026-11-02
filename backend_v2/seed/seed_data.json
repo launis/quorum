@@ -22282,7 +22282,7 @@
   ],
   "organizations": [
     {
-      "id": "org_system000000",
+      "id": "org_0195f3a0000070008000000000000001",
       "slug": "system",
       "name": "System Administration",
       "created_at": "2026-01-01T00:00:00Z",
@@ -22314,7 +22314,7 @@
     {
       "email": "root@example.com",
       "role": "ROOT",
-      "organization_id": "org_system000000",
+      "organization_id": "org_0195f3a0000070008000000000000001",
       "is_active": true,
       "language": "fi",
       "theme_mode": "system",

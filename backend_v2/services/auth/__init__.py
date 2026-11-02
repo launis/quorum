@@ -13,6 +13,9 @@ else:
 
 from backend_v2.database.interfaces import IIdentityRepository
 from backend_v2.models.auth import (
+    SYSTEM_ROOT_USER_ID as SYSTEM_ROOT_USER_ID,
+)
+from backend_v2.models.auth import (
     Organization,
     OrganizationCreate,
     OrganizationUpdateDTO,
@@ -21,14 +24,6 @@ from backend_v2.models.auth import (
     UserCreate,
     UserRole,
     UserUpdate,
-)
-from backend_v2.services.auth.constants import (
-    JWT_ALGORITHM,
-    JWT_SECRET,
-    LEGACY_ROOT_MASTER_ID,
-    LEGACY_SYSTEM_ORG_ID,
-    LEGACY_SYSTEM_ROOT_USER_ID,
-    SYSTEM_ROOT_USER_ID,
 )
 from backend_v2.services.auth.organization_service import OrganizationService
 from backend_v2.services.auth.protocols import UserCreatorProtocol
@@ -41,11 +36,6 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "AuthService",
-    "JWT_ALGORITHM",
-    "JWT_SECRET",
-    "LEGACY_ROOT_MASTER_ID",
-    "LEGACY_SYSTEM_ORG_ID",
-    "LEGACY_SYSTEM_ROOT_USER_ID",
     "OrganizationRepository",
     "OrganizationService",
     "SYSTEM_ROOT_USER_ID",

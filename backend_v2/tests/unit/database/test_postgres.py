@@ -47,7 +47,7 @@ from backend_v2.database.postgres.graph_adapter import (
     _hydrate_payload_dto,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import Organization, SubscriptionStatus, User
+from backend_v2.models.auth import Invitation, Organization, SubscriptionStatus, TenantSecretDTO, User
 from backend_v2.models.core_base import (
     I18nText,
     V2CoreBase,
@@ -55,6 +55,7 @@ from backend_v2.models.core_base import (
     parse_prefixed_uuid7,
 )
 from backend_v2.models.domain.execution import (
+    ExecutionAssignment,
     ExecutionRecord,
     ExecutionStep,
     ExecutionSummarySnapshot,
@@ -569,16 +570,19 @@ async def test_report_binary_toast_and_execution_roundtrip(uow: QuorumUnitOfWork
 
 
 def test_schema_dto_naming_parity() -> None:
-    """Assert 1:1 bi-directional column-to-field naming parity across all 12 tables and MCP JSONB structures."""
+    """Assert 1:1 bi-directional column-to-field naming parity across all 15 tables and MCP JSONB structures."""
     sql_text = _MIGRATION_SQL_PATH.read_text(encoding="utf-8")
     assert "SET default_toast_compression = 'lz4';" in sql_text
     assert "CREATE STATISTICS IF NOT EXISTS stat_quorum_nodes_run_created" in sql_text
     assert "CREATE STATISTICS IF NOT EXISTS stat_quorum_edges_run_created" in sql_text
 
     parsed_tables = _extract_sql_table_columns(sql_text)
-    expected_12_tables = {
+    expected_15_tables = {
         "organizations",
         "users",
+        "invitations",
+        "tenant_secrets",
+        "execution_assignments",
         "system_configs",
         "prompt_blocks",
         "steps",
@@ -590,7 +594,7 @@ def test_schema_dto_naming_parity() -> None:
         "quorum_nodes",
         "quorum_edges",
     }
-    assert set(parsed_tables.keys()) == expected_12_tables
+    assert set(parsed_tables.keys()) == expected_15_tables
 
     # 1. quorum_nodes <-> PropositionNode + NodeDraft.local_key
     assert parsed_tables["quorum_nodes"] == set(PropositionNode.model_fields.keys()) | {"local_key"}
@@ -636,6 +640,15 @@ def test_schema_dto_naming_parity() -> None:
 
     # 12. organizations <-> Organization
     assert parsed_tables["organizations"] == set(Organization.model_fields.keys())
+
+    # 13. invitations <-> Invitation
+    assert parsed_tables["invitations"] == set(Invitation.model_fields.keys())
+
+    # 14. tenant_secrets <-> TenantSecretDTO + VIRTUAL created_at
+    assert parsed_tables["tenant_secrets"] == set(TenantSecretDTO.model_fields.keys()) | {"created_at"}
+
+    # 15. execution_assignments <-> ExecutionAssignment
+    assert parsed_tables["execution_assignments"] == set(ExecutionAssignment.model_fields.keys())
 
     # Verify lossless binary JSONB roundtrip of MCP schemas (AllowedMCPTool, MCPServerInfoDTO, Step.mcp_tool_params)
     server_info = MCPServerInfoDTO(

@@ -31,13 +31,13 @@
 ### Phase 1: Pre-Implementation Technical Debt Cleanups, Zero-ORM Identity Schema & `PrefixedUUID7` DTOs
 **Plan:** @[docs/epic/tasks_EPIC_160/01_phase1_plan.md]
 - [x] **[OK] Create Plan:** Plan generated in @[docs/epic/tasks_EPIC_160/01_phase1_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/01_phase1_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/01_phase1_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-  - [ ] Step 0: PRE-FLIGHT & SELF-HYDRATION
-  - [ ] Step 1.1: Obsolete Document Demolition & Touched-Scope Technical Debt Remediation
-  - [ ] Step 1.2: Taxonomies, ErrorCodes & Strict `PrefixedUUID7` Identity & Assignment Models
-  - [ ] Step 1.3: PostgreSQL 19 Zero-ORM Identity, Invitation, Task Assignment & Secrets Schema + Dual-Layer Tenant Isolation
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/01_phase1_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/01_phase1_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+  - [x] Step 0: PRE-FLIGHT & SELF-HYDRATION
+  - [x] Step 1.1: Obsolete Document Demolition & Touched-Scope Technical Debt Remediation
+  - [x] Step 1.2: Taxonomies, ErrorCodes & Strict `PrefixedUUID7` Identity & Assignment Models
+  - [x] Step 1.3: PostgreSQL 19 Zero-ORM Identity, Invitation, Task Assignment & Secrets Schema + Dual-Layer Tenant Isolation
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/01_phase1_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 
 ### Phase 2: Session Upgrade, Token Exchange Engine, Headless CLI Governance & Multi-Role Guard
@@ -191,9 +191,9 @@
 
 | Requirement | Description | Phase / Plan Step | Status |
 | :--- | :--- | :--- | :--- |
-| REQ-160-001 | Delete four obsolete IAM draft documents and `backend_v2/services/auth/constants.py`, remediate touched-scope technical debt in `identity.py` and IAM test suites, and centralize JWT/MFA/BYOK/email settings in `settings.py` | Phase 1, Step 1.1 | [ ] Pending |
-| REQ-160-002 | Migrate `UserRole` and `SubscriptionStatus` to `enums.py`, add IAM/BYOK/Assignment enums and error codes, and create/define strict `PrefixedUUID7` DTOs (`TokenExchangeRequestDTO`, `TokenExchangeResponseDTO`, `LogoutRequestDTO`, `LogoutResponseDTO`, `CliSessionStateDTO`, `Invitation*`, `ExecutionAssignment*`, `TenantSecret*`, `ResolvedCredentialDTO`) | Phase 1, Step 1.2 | [ ] Pending |
-| REQ-160-003 | Extend PostgreSQL 19 Zero-ORM schema (`001_pg19_uuidv7_schema.sql`), `PostgresEntityAdapter`, `PostgresUnitOfWork` (`RESET quorum.current_org`), `audit_zero_orm_strictness.py` (15 tables), and hermetic `in_memory_uow.py` with `invitations`, `tenant_secrets`, and `execution_assignments` | Phase 1, Step 1.3 | [ ] Pending |
+| REQ-160-001 | Delete four obsolete IAM draft documents and `backend_v2/services/auth/constants.py`, remediate touched-scope technical debt in `identity.py` and IAM test suites, and centralize JWT/MFA/BYOK/email settings in `settings.py` | Phase 1, Step 1.1 | [x] Completed |
+| REQ-160-002 | Migrate `UserRole` and `SubscriptionStatus` to `enums.py`, add IAM/BYOK/Assignment enums and error codes, and create/define strict `PrefixedUUID7` DTOs (`TokenExchangeRequestDTO`, `TokenExchangeResponseDTO`, `LogoutRequestDTO`, `LogoutResponseDTO`, `CliSessionStateDTO`, `Invitation*`, `ExecutionAssignment*`, `TenantSecret*`, `ResolvedCredentialDTO`) | Phase 1, Step 1.2 | [x] Completed |
+| REQ-160-003 | Extend PostgreSQL 19 Zero-ORM schema (`001_pg19_uuidv7_schema.sql`), `PostgresEntityAdapter`, `PostgresUnitOfWork` (`RESET quorum.current_org`), `audit_zero_orm_strictness.py` (15 tables), and hermetic `in_memory_uow.py` with `invitations`, `tenant_secrets`, and `execution_assignments` | Phase 1, Step 1.3 | [x] Completed |
 | REQ-160-004 | Implement `TokenService.exchange_firebase_token` (enforcing mandatory 2FA `firebase.sign_in_second_factor` and headless CLI `target_user_id` exchange) and refactor `TokenService.verify_token` to 0.1 ms RAM-only decode with zero DB queries and zero `mock-token:` branches | Phase 2, Step 2.1 | [ ] Pending |
 | REQ-160-005 | Expose `POST /api/v2/iam/auth/exchange`, `POST /api/v2/iam/auth/logout`, and RFC 8693 `POST /api/v2/iam/auth/impersonate`, remove `verify_user_token` and duplicate `/auth/users*` shadow routes, and upgrade `require_role` to `Sequence[UserRole] \| UserRole` | Phase 2, Step 2.2 | [ ] Pending |
 | REQ-160-006 | Migrate `scripts/run_e2e_variance_test.py` and `test_integration_real_llm.py` to `_get_or_refresh_cli_session` (`CliSessionStateDTO` created in Phase 1) with 13-minute auto-refresh and remediate all `TD_DICT_GET` and `TD_MODEL_FACTORY` warnings | Phase 2, Step 2.3 | [ ] Pending |
@@ -212,25 +212,20 @@
 # Session Handover Context
 
 ## Achieved
-- Executed Tier 1 Epic Planning (`/tier1-planner`) for `@[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` and `@[docs/epic/EPIC_160_audit_report.md]`.
-- Generated all 6 phased implementation plans in `@[docs/epic/tasks_EPIC_160/]`:
-  - `@[docs/epic/tasks_EPIC_160/01_phase1_plan.md]` (Phase 1: Pre-Implementation Technical Debt Cleanups, Zero-ORM Identity Schema & `PrefixedUUID7` DTOs)
-  - `@[docs/epic/tasks_EPIC_160/02_phase2_plan.md]` (Phase 2: Session Upgrade, Token Exchange Engine, Headless CLI Governance & Multi-Role Guard)
-  - `@[docs/epic/tasks_EPIC_160/03_phase3_plan.md]` (Phase 3: Enterprise BYOK & Cloud Secrets Engine for LLM & MCP Services)
-  - `@[docs/epic/tasks_EPIC_160/04_phase4_plan.md]` (Phase 4: Real-Time Dual-Key Redis Kill-Switch (`MGET`) & FinOps Rate Limiting)
-  - `@[docs/epic/tasks_EPIC_160/05_phase5_plan.md]` (Phase 5: B2B Invitation Flow, Time-Bound Execution Assignments (`ExecutionAssignment`), 4-Tier RBAC Matrix, Self-Service Profile & GDPR Soft-Delete Webhook)
-  - `@[docs/epic/tasks_EPIC_160/06_phase6_plan.md]` (Phase 6: Flutter Client `AuthInterceptor`, Silent Refresh, Cryptographic Logout Pipeline & Separated User/Organization Views)
-- Created and synchronized `@[docs/epic/EPIC_160_tracker.md]` with 100% requirements traceability (`REQ-160-001` through `REQ-160-017`).
+- Completed Phase 1 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/01_phase1_plan.md] @[docs/epic/EPIC_160_tracker.md]`):
+  - **Step 1.1**: Physically deleted the 4 obsolete IAM draft documents and `@[backend_v2/services/auth/constants.py]`, relocated `SYSTEM_ROOT_USER_ID = "usr_0195f3a00000700a83fd6b3d77c748f4"` to `@[backend_v2/models/auth.py]`, centralized all 16 IAM/JWT/MFA/BYOK/Email/KMS settings on `Settings` in `@[backend_v2/settings.py]`, eradicated the `TD_DICT_GET` warnings in `@[backend_v2/database/repositories/identity.py]` by delegating through `EntityPersistencePort`, and remediated all touched-scope `TD_ISTQB_NEGATIVE` and `TD_MODEL_FACTORY` warnings across IAM test suites (`0` findings on `audit_technical_debt.py`).
+  - **Step 1.2**: Migrated `UserRole` and `SubscriptionStatus` to `@[backend_v2/models/enums.py]`, added `InvitationStatus`, `AssignmentStatus`, `AssignmentResultVisibility`, `EmailTransportMode`, `EmailDeliveryStatus`, `SecretScope`, `SecretStorageMode`, and `EntityPrefix` (`INVITATION = "inv"`, `TENANT_SECRET = "sec"`, `ASSIGNMENT = "tsk"`), added the 7 IAM/BYOK/Assignment error codes to `@[backend_v2/exceptions.py]`, demolished `LEGACY_SYSTEM`, `TokenPayload`, and `LoginResponse`, set `SystemOrganizations.ROOT_SYSTEM = "org_0195f3a0000070008000000000000001"`, and created all strict `PrefixedUUID7` IAM, Invitation, Task Assignment, and BYOK DTOs in `@[backend_v2/models/auth.py]` and `@[backend_v2/models/domain/execution.py]`.
+  - **Step 1.3**: Extended `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]`, `@[backend_v2/database/postgres/entity_adapter/__init__.py]`, `@[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]`, `@[scripts/audit_zero_orm_strictness.py]` (15 tables), `@[backend_v2/database/postgres/uow.py]` (`RESET quorum.current_org;`), and `@[backend_v2/tests/fakes/in_memory_uow.py]` with `invitations`, `tenant_secrets`, and `execution_assignments` and implemented all 6 `<test_contracts>`.
 
 ## Learned
-- All 9 `<demolish>` symbols (`LEGACY_SYSTEM`, `JWT_SECRET`, `JWT_ALGORITHM`, `LEGACY_SYSTEM_ROOT_USER_ID`, `LEGACY_SYSTEM_ORG_ID`, `LEGACY_ROOT_MASTER_ID`, `TokenPayload`, `LoginResponse`, `verify_user_token` replaced by newly created/defined DTOs), all `141` touched-scope technical debt warnings from `@[docs/epic/EPIC_160_audit_report.md]`, and all `#Lnn-Lmm` AST line boundaries are mapped deterministically across Phases 1–6.
-- Hermetic unit tests for `PostgresEntityAdapter` require extending `_InMemoryPostgresStore.seed_tables` and `InMemoryAsyncPgConnection` in `@[backend_v2/tests/fakes/in_memory_uow.py]` in Phase 1, Step 1.3 alongside the 15-table PostgreSQL 19 DDL in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]` and `@[scripts/audit_zero_orm_strictness.py]`.
+- `pydantic.mypy` requires `allowed_email_domains=[]` to be explicitly passed when instantiating `Organization(...)` directly in service/fake constructors (`@[backend_v2/services/auth/user_service.py]`, `@[backend_v2/services/auth/organization_service.py]`, `@[backend_v2/tests/fakes/in_memory_repositories.py]`).
+- `@[backend_v2/tests/unit/database/test_postgres.py]` enforces 1:1 column-to-DTO-field naming parity across all 15 tables in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]` (`tenant_secrets` includes a `VIRTUAL` generated `created_at` column).
 
 ## Remaining
-- The next agent must run `/tier0-research-plan` to analyze and red-team Phase 1 (`@[docs/epic/tasks_EPIC_160/01_phase1_plan.md]`) before executing Phase 1.
+- Run `/tier8-audit-plan` on Phase 1 (`@[docs/epic/tasks_EPIC_160/01_phase1_plan.md]` and `@[docs/epic/EPIC_160_tracker.md]`), then proceed to Phase 2 (`/tier0-research-plan @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`).
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_160/01_phase1_plan.md] @[docs/epic/EPIC_160_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_160/01_phase1_plan.md] @[docs/epic/EPIC_160_tracker.md]
 ```
 

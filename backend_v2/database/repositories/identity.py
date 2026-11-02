@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import logging
 
-from backend_v2.database.driver import Filter
+from backend_v2.database.driver import Filter, StorageDriver
+from backend_v2.database.interfaces import EntityPersistencePort
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import (
@@ -16,6 +17,8 @@ from backend_v2.models.auth import (
     UserCreate,
     UserUpdate,
 )
+from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.enums import EntityPrefix
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +27,20 @@ __all__ = ["IdentityRepositoryImpl"]
 
 class IdentityRepositoryImpl(BaseRepository):
     """Repository implementation for Users and Organizations."""
+
+    def __init__(
+        self,
+        driver: StorageDriver,
+        entity_adapter: EntityPersistencePort | None = None,
+    ) -> None:
+        """Initializes the identity repository with a storage driver and optional entity persistence port.
+
+        Args:
+            driver: Underlying storage driver instance.
+            entity_adapter: Optional typed PostgreSQL entity persistence port.
+        """
+        super().__init__(driver)
+        self._entity_adapter: EntityPersistencePort | None = entity_adapter
 
     async def list_organizations(self) -> list[Organization]:
         """Retrieves all organizations.
@@ -34,6 +51,9 @@ class IdentityRepositoryImpl(BaseRepository):
         Raises:
             AppException: If an organization record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
+        if self._entity_adapter is not None:
+            return list(await self._entity_adapter.list_organizations())
+
         raw_orgs = await self.driver.query("organizations")
         orgs: list[Organization] = []
         for o in raw_orgs:
@@ -66,10 +86,13 @@ class IdentityRepositoryImpl(BaseRepository):
         Returns:
             The validated Organization domain model if found, otherwise None.
         """
-        data = await self.driver.get("organizations", org_id)
-        if not data:
+        if self._entity_adapter is not None:
+            return await self._entity_adapter.get_organization(org_id)
+
+        rows = await self.driver.query("organizations", [Filter("id", "==", org_id)], limit=1)
+        if not rows:
             return None
-        return Organization.model_validate(data, strict=False)
+        return Organization.model_validate(rows[0], strict=False)
 
     async def get_organization_model(self, org_id: str) -> Organization | None:
         """Retrieves an organization model by its ID.
@@ -91,8 +114,11 @@ class IdentityRepositoryImpl(BaseRepository):
         Returns:
             The created organization ID.
         """
+        if self._entity_adapter is not None and isinstance(org_data, Organization):
+            return await self._entity_adapter.upsert_organization(org_data)
+
         payload = org_data.model_dump(mode="json")
-        doc_id = payload["id"] if "id" in payload else f"org_{payload['name'].lower()}"
+        doc_id = str(payload["id"]) if "id" in payload else generate_opaque_id(EntityPrefix.ORG)
         payload["id"] = doc_id
         return await self.driver.upsert("organizations", payload, doc_id)
 
@@ -134,6 +160,9 @@ class IdentityRepositoryImpl(BaseRepository):
         Raises:
             AppException: If a user record fails validation (ErrorCodes.VALIDATION_FAILED).
         """
+        if self._entity_adapter is not None:
+            return list(await self._entity_adapter.list_users(org_id))
+
         filters = []
         if org_id:
             filters.append(Filter("organization_id", "==", org_id))
@@ -169,10 +198,13 @@ class IdentityRepositoryImpl(BaseRepository):
         Returns:
             The validated User domain model if found, otherwise None.
         """
-        data = await self.driver.get("users", user_id)
-        if not data:
+        if self._entity_adapter is not None:
+            return await self._entity_adapter.get_user(user_id)
+
+        rows = await self.driver.query("users", [Filter("id", "==", user_id)], limit=1)
+        if not rows:
             return None
-        return User.model_validate(data, strict=False)
+        return User.model_validate(rows[0], strict=False)
 
     async def get_user_by_email(self, email: str) -> User | None:
         """Retrieves a user by email address.
@@ -197,8 +229,12 @@ class IdentityRepositoryImpl(BaseRepository):
         Returns:
             The created user ID.
         """
+        if self._entity_adapter is not None and isinstance(user_data, User):
+            return await self._entity_adapter.upsert_user(user_data)
+
         payload = user_data.model_dump(mode="json")
-        doc_id = payload["id"]
+        doc_id = str(payload["id"]) if "id" in payload else generate_opaque_id(EntityPrefix.USER)
+        payload["id"] = doc_id
         return await self.driver.upsert("users", payload, doc_id)
 
     async def update_user(self, user_id: str, updates: UserUpdate) -> bool:

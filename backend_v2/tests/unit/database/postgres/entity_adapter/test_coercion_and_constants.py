@@ -57,7 +57,7 @@ def test_coercion_helpers_and_canonical_seed_tables_parity() -> None:
 
     assert _parse_org_uuid7(None) is None
     assert _parse_org_uuid7("SYSTEM") is None
-    assert _parse_org_uuid7("org_system000000") == _ROOT_SYSTEM_ORG_UUID7
+    assert _parse_org_uuid7("org_0195f3a0000070008000000000000001") == _ROOT_SYSTEM_ORG_UUID7
     org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
     parsed_org = _parse_org_uuid7(org_id)
     assert isinstance(parsed_org, uuid.UUID)
@@ -66,8 +66,8 @@ def test_coercion_helpers_and_canonical_seed_tables_parity() -> None:
     assert _format_org_uuid7(None, default_system=True) == "SYSTEM"
     assert _format_org_uuid7(_SYSTEM_ORG_UUID7) == "SYSTEM"
     assert _format_org_uuid7(str(_SYSTEM_ORG_UUID7)) == "SYSTEM"
-    assert _format_org_uuid7(_ROOT_SYSTEM_ORG_UUID7) == "org_system000000"
-    assert _format_org_uuid7("org_system000000") == "org_system000000"
+    assert _format_org_uuid7(_ROOT_SYSTEM_ORG_UUID7) == "org_0195f3a0000070008000000000000001"
+    assert _format_org_uuid7("org_0195f3a0000070008000000000000001") == "org_0195f3a0000070008000000000000001"
     assert _format_org_uuid7(parsed_org) == org_id
 
     assert _decode_jsonb_column(None) is None

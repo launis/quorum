@@ -111,6 +111,21 @@ class UserRepository:
         """
         return await self.repo.get_user_by_email(email)
 
+    async def get_by_firebase_uid(self, firebase_uid: str) -> User | None:
+        """Fetches an active user by their external Firebase Auth UID.
+
+        Args:
+            firebase_uid: External Firebase Auth UID.
+
+        Returns:
+            The matching User object if found and not soft-deleted, else None.
+        """
+        users = await self.repo.list_users()
+        for user in users:
+            if user.firebase_uid == firebase_uid and user.deleted_at is None:
+                return user
+        return None
+
     async def create(self, user: User) -> User:
         """Creates a new user in the database.
 

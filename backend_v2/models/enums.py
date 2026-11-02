@@ -16,6 +16,8 @@ __all__ = [
     "XAI_EXTENSION_SCOPE",
     "AbductiveConclusion",
     "AlignmentVerdict",
+    "AssignmentResultVisibility",
+    "AssignmentStatus",
     "AuthenticityLevel",
     "BlockDataType",
     "BloomLevel",
@@ -24,6 +26,8 @@ __all__ = [
     "ComponentType",
     "DependencyRelationType",
     "DisplayScale",
+    "EmailDeliveryStatus",
+    "EmailTransportMode",
     "EngineType",
     "EnsembleJitter",
     "EntityPrefix",
@@ -40,6 +44,7 @@ __all__ = [
     "HelpTextKey",
     "HistoricalContextMode",
     "InteractionStrategy",
+    "InvitationStatus",
     "JSONSchemaPropertyType",
     "LLMCachingStrategy",
     "LLMPlatformType",
@@ -48,6 +53,8 @@ __all__ = [
     "LabelKey",
     "LaxAbductiveConclusion",
     "LaxAlignmentVerdict",
+    "LaxAssignmentResultVisibility",
+    "LaxAssignmentStatus",
     "LaxAuthenticityLevel",
     "LaxBlockDataType",
     "LaxBloomLevel",
@@ -56,6 +63,8 @@ __all__ = [
     "LaxComponentType",
     "LaxDependencyRelationType",
     "LaxDisplayScale",
+    "LaxEmailDeliveryStatus",
+    "LaxEmailTransportMode",
     "LaxEngineType",
     "LaxEthicalSeverity",
     "LaxEvaluationRunCount",
@@ -64,6 +73,7 @@ __all__ = [
     "LaxFidelityLevel",
     "LaxHistoricalContextMode",
     "LaxInteractionStrategy",
+    "LaxInvitationStatus",
     "LaxJSONSchemaPropertyType",
     "LaxLLMCachingStrategy",
     "LaxLLMProvider",
@@ -79,6 +89,8 @@ __all__ = [
     "LaxRoleClassification",
     "LaxSDUIComponentType",
     "LaxSearchStatus",
+    "LaxSecretScope",
+    "LaxSecretStorageMode",
     "LaxSimulationType",
     "LaxSourcesDisplayMode",
     "LaxStepFilterScope",
@@ -86,10 +98,12 @@ __all__ = [
     "LaxStepZone",
     "LaxStorageBackend",
     "LaxStrategicDepth",
+    "LaxSubscriptionStatus",
     "LaxSystemLocale",
     "LaxTargetBlockType",
     "LaxToolCapability",
     "LaxUiVariant",
+    "LaxUserRole",
     "LaxVerificationResult",
     "LaxVirtualSystemStepID",
     "LaxVisualIntent",
@@ -111,6 +125,8 @@ __all__ = [
     "RoleClassification",
     "SDUIComponentType",
     "SearchStatus",
+    "SecretScope",
+    "SecretStorageMode",
     "SelfHealingThresholdRatio",
     "SimulationType",
     "SourceSufficiencyThreshold",
@@ -122,6 +138,7 @@ __all__ = [
     "StorageBackend",
     "StrategicDepth",
     "StrictnessAnchor",
+    "SubscriptionStatus",
     "SystemConfigID",
     "SystemLocale",
     "TargetBlockType",
@@ -129,6 +146,7 @@ __all__ = [
     "TitleKey",
     "ToolCapability",
     "UiVariant",
+    "UserRole",
     "ValidationThresholdRatio",
     "VerificationResult",
     "VirtualSystemStepID",
@@ -238,6 +256,10 @@ class EntityPrefix(StrEnum):
     EXECUTION = "exe"
     USER = "usr"
     ORGANIZATION = "org"
+    ORG = "org"
+    INVITATION = "inv"
+    TENANT_SECRET = "sec"
+    ASSIGNMENT = "tsk"
     TDA = "tda"
     REPORT = "rep"
     # Proposition graph node, edge, and scale Opaque Stripe ID prefixes
@@ -1273,3 +1295,120 @@ class JSONSchemaPropertyType(StrEnum):
 
 
 LaxJSONSchemaPropertyType = Annotated[JSONSchemaPropertyType, Field(strict=False)]
+
+
+class UserRole(StrEnum):
+    """Enumeration of user permission roles within the system.
+
+    Attributes:
+        ROOT: System Owner / Platform Admin with unrestricted access.
+        ADMIN: Organization Admin responsible for user management.
+        MANAGER: Workflow/Process Lead managing execution flows.
+        MEMBER: Standard User (Audit Runner).
+        VIEWER: Read-Only Stakeholder.
+    """
+
+    ROOT = "ROOT"
+    ADMIN = "ADMIN"
+    MANAGER = "MANAGER"
+    MEMBER = "MEMBER"
+    VIEWER = "VIEWER"
+
+
+LaxUserRole = Annotated[UserRole, Field(strict=False)]
+
+
+class SubscriptionStatus(StrEnum):
+    """SaaS subscription lifecycle status enumeration.
+
+    Attributes:
+        ACTIVE: Subscription is active and in good standing.
+        PAST_DUE: Subscription payment is past due.
+        CANCELED: Subscription has been canceled.
+        TRIAL: Organization is operating on a trial period.
+    """
+
+    ACTIVE = "active"
+    PAST_DUE = "past_due"
+    CANCELED = "canceled"
+    TRIAL = "trial"
+
+
+LaxSubscriptionStatus = Annotated[SubscriptionStatus, Field(strict=False)]
+
+
+class InvitationStatus(StrEnum):
+    """Organization invitation lifecycle status enumeration."""
+
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    EXPIRED = "expired"
+    REVOKED = "revoked"
+
+
+LaxInvitationStatus = Annotated[InvitationStatus, Field(strict=False)]
+
+
+class AssignmentStatus(StrEnum):
+    """Single-use workflow execution assignment lifecycle status enumeration."""
+
+    PENDING = "pending"
+    ACTIVATED = "activated"
+    SUBMITTED = "submitted"
+    COMPLETED = "completed"
+    EXPIRED = "expired"
+    REVOKED = "revoked"
+
+
+LaxAssignmentStatus = Annotated[AssignmentStatus, Field(strict=False)]
+
+
+class AssignmentResultVisibility(StrEnum):
+    """Visibility policy governing what an assignee sees after submitting a task assignment."""
+
+    CONFIRMATION_ONLY = "confirmation_only"
+    FULL_REPORT_ACCESS = "full_report_access"
+
+
+LaxAssignmentResultVisibility = Annotated[AssignmentResultVisibility, Field(strict=False)]
+
+
+class EmailTransportMode(StrEnum):
+    """Transactional email transport mode enumeration."""
+
+    CONSOLE = "console"
+    HTTP_API = "http_api"
+
+
+LaxEmailTransportMode = Annotated[EmailTransportMode, Field(strict=False)]
+
+
+class EmailDeliveryStatus(StrEnum):
+    """Transactional email delivery status enumeration."""
+
+    PENDING = "pending"
+    SENT = "sent"
+    FAILED = "failed"
+
+
+LaxEmailDeliveryStatus = Annotated[EmailDeliveryStatus, Field(strict=False)]
+
+
+class SecretScope(StrEnum):
+    """Target capability scope for tenant-scoped BYOK secrets."""
+
+    LLM_PROVIDER = "llm_provider"
+    MCP_GATEWAY = "mcp_gateway"
+
+
+LaxSecretScope = Annotated[SecretScope, Field(strict=False)]
+
+
+class SecretStorageMode(StrEnum):
+    """Cryptographic storage backend mode for tenant-scoped BYOK secrets."""
+
+    ENVELOPE_KMS = "envelope_kms"
+    CLOUD_SECRET_MANAGER = "cloud_secret_manager"
+
+
+LaxSecretStorageMode = Annotated[SecretStorageMode, Field(strict=False)]

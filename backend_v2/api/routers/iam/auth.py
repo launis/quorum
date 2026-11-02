@@ -21,8 +21,8 @@ from backend_v2.exceptions import (
 from backend_v2.models.auth import (
     ImpersonationRequest,
     ImpersonationResponse,
-    LoginResponse,
-    TokenPayload,
+    TokenExchangeRequestDTO,
+    TokenExchangeResponseDTO,
     User,
     UserCreate,
     UserDeleteResponse,
@@ -40,25 +40,30 @@ router = APIRouter(prefix="/auth", tags=["Authentication & Users"])
 # CurrentUserDep imported from dependencies now
 
 
-@router.post("/verify", response_model=LoginResponse)
+@router.post("/verify", response_model=TokenExchangeResponseDTO)
 @limiter.limit("5/minute")
-async def verify_user_token(request: Request, payload: TokenPayload, auth_service: AuthServiceDep) -> LoginResponse:
-    """Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.
+async def verify_user_token(
+    request: Request, payload: TokenExchangeRequestDTO, auth_service: AuthServiceDep
+) -> TokenExchangeResponseDTO:
+    """Exchanges a Firebase ID Token or target_user_id for a TokenExchangeResponseDTO.
 
     Args:
         request: The HTTP Request object.
-        payload: The token payload.
+        payload: The token exchange request payload.
         auth_service: Authentication service dependency.
 
     Returns:
-        The authenticated user profile and status.
+        The authenticated user profile and access token.
 
     Raises:
         AuthenticationError: If the token is invalid or profile not initialized.
         AppException: If an unexpected login failure occurs.
     """
     try:
-        token_data = await auth_service.verify_token(payload.token)
+        raw_token = (
+            payload.firebase_token if payload.firebase_token is not None else f"mock-token:{payload.target_user_id}"
+        )
+        token_data = await auth_service.verify_token(raw_token)
         # Fetch full profile
         user = await auth_service.repo.get_by_id(token_data.id)
 
@@ -72,10 +77,12 @@ async def verify_user_token(request: Request, payload: TokenPayload, auth_servic
                 message="Profile not initialized", details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value}
             )
 
-        return LoginResponse(
+        access_token = auth_service.create_impersonation_token(user.id, duration_seconds=900)
+        return TokenExchangeResponseDTO(
+            access_token=access_token,
+            token_type="bearer",
+            expires_in_seconds=900,
             user=user,
-            token_valid=True,
-            debug_msg="Authenticated via Firebase" if auth_service.use_firebase else "Authenticated via Mock",
         )
     except ValueError as e:
         logger.error(
@@ -111,12 +118,12 @@ async def impersonate_user(
     """Generates an impersonation token for the target user. Requires ROOT.
 
     Args:
-        request: Payload containing target_id.
+        request: Payload containing target_id and reason.
         current_user: The requesting user (must be ROOT).
         auth_service: Auth service.
 
     Returns:
-        The access token.
+        The access token and impersonation metadata.
 
     Raises:
         PermissionDeniedError: If the requesting user is not ROOT.
@@ -145,7 +152,7 @@ async def impersonate_user(
         raise ResourceNotFoundError("User", request.target_id)
 
     token = auth_service.create_impersonation_token(target.id)
-    return ImpersonationResponse(access_token=token)
+    return ImpersonationResponse(access_token=token, target_id=target.id, reason=request.reason)
 
 
 @router.get("/roles", response_model=list[str])

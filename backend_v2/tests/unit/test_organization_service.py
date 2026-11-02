@@ -27,7 +27,7 @@ from backend_v2.models.auth import (
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.enums import EntityPrefix, SystemLocale
 from backend_v2.services.auth import (
-    LEGACY_SYSTEM_ORG_ID,
+
     AuthService,
     OrganizationRepository,
     OrganizationService,
@@ -60,14 +60,14 @@ async def test_auth_service_create_organization_branches(
     )
 
     # Non-root initiator raises PermissionDeniedError
-    non_root_token = TokenData(id="usr_member000001", role=UserRole.ADMIN, email="admin@test.com")
+    non_root_token = TokenData(id="usr_0195f3a0000070008000000000000101", role=UserRole.ADMIN, email="admin@test.com")
     with pytest.raises(PermissionDeniedError):
         await auth.create_organization(non_root_token, payload)
 
     # ROOT initiator succeeds
-    root_token = TokenData(id="usr_root00000001", role=UserRole.ROOT, email="root@test.com")
+    root_token = TokenData(id="usr_0195f3a0000070008000000000000102", role=UserRole.ROOT, email="root@test.com")
     root_user = User(
-        id="usr_root00000001",
+        id="usr_0195f3a0000070008000000000000102",
         email="root@test.com",
         role=UserRole.ROOT,
         is_active=True,
@@ -92,33 +92,33 @@ async def test_auth_service_delete_organization_branches(
     mock_audit = MagicMock(log_event=AsyncMock())
     auth = AuthService(mock_repo, use_firebase=False, audit_service=mock_audit)
 
-    root_token = TokenData(id="usr_root00000001", role=UserRole.ROOT, email="root@test.com")
-    non_root_token = TokenData(id="usr_admin000001", role=UserRole.ADMIN, email="admin@test.com")
+    root_token = TokenData(id="usr_0195f3a0000070008000000000000102", role=UserRole.ROOT, email="root@test.com")
+    non_root_token = TokenData(id="usr_0195f3a0000070008000000000000103", role=UserRole.ADMIN, email="admin@test.com")
 
     # 1. Non-root cannot delete organization
     with pytest.raises(PermissionDeniedError):
-        await auth.delete_organization(non_root_token, "org_target000001")
+        await auth.delete_organization(non_root_token, "org_0195f3a0000070008000000000000201")
 
     # 2. Cannot delete system organizations
     with pytest.raises(PermissionDeniedError):
         await auth.delete_organization(root_token, SystemOrganizations.ROOT_SYSTEM)
     with pytest.raises(PermissionDeniedError):
-        await auth.delete_organization(root_token, LEGACY_SYSTEM_ORG_ID)
+        await auth.delete_organization(root_token, SystemOrganizations.ROOT_SYSTEM)
 
     # 3. Non-empty organization without force raises ConflictError
     member = User(
-        id="usr_member000001",
+        id="usr_0195f3a0000070008000000000000101",
         email="m@test.com",
         role=UserRole.MEMBER,
         is_active=True,
         created_at=datetime.now(timezone.utc),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_target000001",
+        organization_id="org_0195f3a0000070008000000000000201",
     )
     await mock_repo.create_organization(
         Organization(
-            id="org_target000001",
+            id="org_0195f3a0000070008000000000000201",
             name="Target Org",
             is_active=True,
             created_at=datetime.now(timezone.utc),
@@ -132,13 +132,13 @@ async def test_auth_service_delete_organization_branches(
     await mock_repo.create_user(member)
 
     with pytest.raises(ConflictError) as exc_not_empty:
-        await auth.delete_organization(root_token, "org_target000001", force=False)
+        await auth.delete_organization(root_token, "org_0195f3a0000070008000000000000201", force=False)
     assert exc_not_empty.value.error_code == ErrorCodes.CONFLICT_ERROR
 
     # 4. Non-empty organization with force=True cascades user deletion and deletes org
-    await auth.delete_organization(root_token, "org_target000001", force=True)
-    assert (await mock_repo.get_user("usr_member000001")) is None
-    assert (await mock_repo.get_organization("org_target000001")) is None
+    await auth.delete_organization(root_token, "org_0195f3a0000070008000000000000201", force=True)
+    assert (await mock_repo.get_user("usr_0195f3a0000070008000000000000101")) is None
+    assert (await mock_repo.get_organization("org_0195f3a0000070008000000000000201")) is None
     mock_audit.log_event.assert_called()
 
 
@@ -149,7 +149,7 @@ async def test_auth_service_organization_read_and_update(
     """Test list_organizations, get_organization, update_organization, and get_users_by_organization."""
     auth = AuthService(mock_repo, use_firebase=False)
     test_org = Organization(
-        id="org_test00000001",
+        id="org_0195f3a0000070008000000000000202",
         name="Test Organization",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -162,12 +162,12 @@ async def test_auth_service_organization_read_and_update(
     await mock_repo.create_organization(test_org)
 
     # 1. list_organizations
-    root_token = TokenData(id="usr_root00000001", role=UserRole.ROOT, email="root@test.com")
+    root_token = TokenData(id="usr_0195f3a0000070008000000000000102", role=UserRole.ROOT, email="root@test.com")
     member_with_org = TokenData(
-        id="usr_member000001", role=UserRole.MEMBER, email="m@test.com", organization_id="org_test00000001"
+        id="usr_0195f3a0000070008000000000000101", role=UserRole.MEMBER, email="m@test.com", organization_id="org_0195f3a0000070008000000000000202"
     )
     member_no_org = TokenData(
-        id="usr_orphan000001", role=UserRole.MEMBER, email="orphan@test.com", organization_id=None
+        id="usr_0195f3a0000070008000000000000104", role=UserRole.MEMBER, email="orphan@test.com", organization_id=None
     )
 
     assert len(await auth.list_organizations(root_token)) == 1
@@ -177,25 +177,25 @@ async def test_auth_service_organization_read_and_update(
     # 2. get_organization
     # Not found
     with pytest.raises(ResourceNotFoundError):
-        await auth.get_organization(root_token, "org_missing00001")
+        await auth.get_organization(root_token, "org_0195f3a0000070008000000000000203")
 
     # Member accessing foreign organization
-    foreign_org = test_org.model_copy(update={"id": "org_foreign00001", "name": "Foreign Org"})
+    foreign_org = test_org.model_copy(update={"id": "org_0195f3a0000070008000000000000204", "name": "Foreign Org"})
     await mock_repo.create_organization(foreign_org)
     with pytest.raises(PermissionDeniedError):
-        await auth.get_organization(member_with_org, "org_foreign00001")
+        await auth.get_organization(member_with_org, "org_0195f3a0000070008000000000000204")
 
     # Success
-    found_org = await auth.get_organization(member_with_org, "org_test00000001")
-    assert found_org.id == "org_test00000001"
+    found_org = await auth.get_organization(member_with_org, "org_0195f3a0000070008000000000000202")
+    assert found_org.id == "org_0195f3a0000070008000000000000202"
 
     # 3. update_organization
     with pytest.raises(PermissionDeniedError):
-        await auth.update_organization(member_with_org, "org_test00000001", OrganizationUpdateDTO(name="New"))
+        await auth.update_organization(member_with_org, "org_0195f3a0000070008000000000000202", OrganizationUpdateDTO(name="New"))
 
     # Root update with OrganizationUpdateDTO
-    updated = await auth.update_organization(root_token, "org_test00000001", OrganizationUpdateDTO(name="Updated Name"))
-    assert updated.id == "org_test00000001"
+    updated = await auth.update_organization(root_token, "org_0195f3a0000070008000000000000202", OrganizationUpdateDTO(name="Updated Name"))
+    assert updated.id == "org_0195f3a0000070008000000000000202"
 
     # Root update with OrganizationCreate
     create_dto = OrganizationCreate(
@@ -206,11 +206,11 @@ async def test_auth_service_organization_read_and_update(
         tpm_limit=50000,
         rpm_limit=500,
     )
-    updated2 = await auth.update_organization(root_token, "org_test00000001", create_dto)
-    assert updated2.id == "org_test00000001"
+    updated2 = await auth.update_organization(root_token, "org_0195f3a0000070008000000000000202", create_dto)
+    assert updated2.id == "org_0195f3a0000070008000000000000202"
 
     # 4. get_users_by_organization
-    users = await auth.get_users_by_organization("org_empty0000001")
+    users = await auth.get_users_by_organization("org_0195f3a0000070008000000000000205")
     assert users == []
 
 
@@ -219,18 +219,18 @@ async def test_create_organization_root_initiator_success(mock_repo: InMemoryUni
     """TC-P3-01: ROOT initiator successfully creates organization and admin user."""
     auth_service = AuthService(mock_repo)
     root_user = User(
-        id="usr_root0000000001",
+        id="usr_0195f3a0000070008000000000000105",
         email="root@test.com",
         name="Root Admin",
         role=UserRole.ROOT,
-        organization_id="org_system000000",
+        organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
         created_at=datetime.now(timezone.utc),
         language=SystemLocale.EN,
         theme_mode="system",
     )
     await mock_repo.create_user(root_user)
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
     payload = OrganizationCreate(
         name="Acme Corp",
         admin_email="admin@acme.com",
@@ -261,7 +261,7 @@ async def test_create_organization_non_root_initiator_raises_permission_denied(
 ) -> None:
     """TC-P3-02: Non-ROOT initiator raises PermissionDeniedError when creating organization."""
     auth_service = AuthService(mock_repo)
-    admin_initiator = TokenData(id="usr_admin000000001", role=UserRole.ADMIN, organization_id="org_test000000001")
+    admin_initiator = TokenData(id="usr_0195f3a0000070008000000000000106", role=UserRole.ADMIN, organization_id="org_0195f3a0000070008000000000000206")
     payload = OrganizationCreate(
         name="Acme Corp",
         admin_email="admin@acme.com",
@@ -284,18 +284,18 @@ async def test_create_organization_logs_audit_event_when_audit_service_configure
     mock_audit = AsyncMock()
     auth_service = AuthService(mock_repo, audit_service=mock_audit)
     root_user = User(
-        id="usr_root0000000001",
+        id="usr_0195f3a0000070008000000000000105",
         email="root@test.com",
         name="Root Admin",
         role=UserRole.ROOT,
-        organization_id="org_system000000",
+        organization_id=SystemOrganizations.ROOT_SYSTEM,
         is_active=True,
         created_at=datetime.now(timezone.utc),
         language=SystemLocale.EN,
         theme_mode="system",
     )
     await mock_repo.create_user(root_user)
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
     payload = OrganizationCreate(
         name="Audit Org",
         admin_email="admin@audit.com",
@@ -313,7 +313,7 @@ async def test_create_organization_logs_audit_event_when_audit_service_configure
     assert "USER_CREATED" in actions
 
     org_created_call = next(c for c in mock_audit.log_event.call_args_list if c.kwargs["action"] == "ORG_CREATED")
-    assert org_created_call.kwargs["actor_id"] == "usr_root0000000001"
+    assert org_created_call.kwargs["actor_id"] == "usr_0195f3a0000070008000000000000105"
     assert org_created_call.kwargs["organization_id"] == org.id
     assert org_created_call.kwargs["target_id"] == org.id
 
@@ -325,7 +325,7 @@ async def test_get_organization_root_initiator_any_org_success(
     """TC-P3-04: ROOT initiator can get any organization."""
     auth_service = AuthService(mock_repo)
     test_org = Organization(
-        id="org_target0000001",
+        id="org_0195f3a0000070008000000000000207",
         name="Target Org",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -336,10 +336,10 @@ async def test_get_organization_root_initiator_any_org_success(
         rpm_limit=500,
     )
     await mock_repo.create_organization(test_org)
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
 
-    org = await auth_service.get_organization(root_initiator, "org_target0000001")
-    assert org.id == "org_target0000001"
+    org = await auth_service.get_organization(root_initiator, "org_0195f3a0000070008000000000000207")
+    assert org.id == "org_0195f3a0000070008000000000000207"
     assert org.name == "Target Org"
 
 
@@ -350,7 +350,7 @@ async def test_get_organization_same_org_member_success(
     """TC-P3-05: Non-root member can view their own organization."""
     auth_service = AuthService(mock_repo)
     test_org = Organization(
-        id="org_member0000001",
+        id="org_0195f3a0000070008000000000000208",
         name="My Org",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -361,10 +361,10 @@ async def test_get_organization_same_org_member_success(
         rpm_limit=500,
     )
     await mock_repo.create_organization(test_org)
-    member_initiator = TokenData(id="usr_member0000001", role=UserRole.MEMBER, organization_id="org_member0000001")
+    member_initiator = TokenData(id="usr_0195f3a0000070008000000000000107", role=UserRole.MEMBER, organization_id="org_0195f3a0000070008000000000000208")
 
-    org = await auth_service.get_organization(member_initiator, "org_member0000001")
-    assert org.id == "org_member0000001"
+    org = await auth_service.get_organization(member_initiator, "org_0195f3a0000070008000000000000208")
+    assert org.id == "org_0195f3a0000070008000000000000208"
     assert org.name == "My Org"
 
 
@@ -375,7 +375,7 @@ async def test_get_organization_foreign_org_member_raises_permission_denied(
     """TC-P3-06: Foreign org member cannot view another organization."""
     auth_service = AuthService(mock_repo)
     test_org = Organization(
-        id="org_foreign000001",
+        id="org_0195f3a0000070008000000000000209",
         name="Foreign Org",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -386,10 +386,10 @@ async def test_get_organization_foreign_org_member_raises_permission_denied(
         rpm_limit=500,
     )
     await mock_repo.create_organization(test_org)
-    foreign_member = TokenData(id="usr_member0000002", role=UserRole.MEMBER, organization_id="org_other00000001")
+    foreign_member = TokenData(id="usr_0195f3a0000070008000000000000108", role=UserRole.MEMBER, organization_id="org_0195f3a0000070008000000000000210")
 
     with pytest.raises(PermissionDeniedError) as exc_info:
-        await auth_service.get_organization(foreign_member, "org_foreign000001")
+        await auth_service.get_organization(foreign_member, "org_0195f3a0000070008000000000000209")
     assert "You do not have permission to view this organization." in str(exc_info.value)
 
 
@@ -399,14 +399,14 @@ async def test_get_organization_non_existent_org_raises_resource_not_found(
 ) -> None:
     """TC-P3-07: Fetching non-existent organization raises ResourceNotFoundError."""
     auth_service = AuthService(mock_repo)
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
 
     with pytest.raises(ResourceNotFoundError) as exc_info:
-        await auth_service.get_organization(root_initiator, "org_missing000001")
+        await auth_service.get_organization(root_initiator, "org_0195f3a0000070008000000000000211")
     assert exc_info.value.status_code == 404
     assert exc_info.value.details is not None
     assert exc_info.value.details["resource_type"] == "organization"
-    assert exc_info.value.details["resource_id"] == "org_missing000001"
+    assert exc_info.value.details["resource_id"] == "org_0195f3a0000070008000000000000211"
 
 
 @pytest.mark.asyncio
@@ -416,7 +416,7 @@ async def test_list_organizations_root_initiator_returns_all_orgs(
     """TC-P3-08: ROOT initiator lists all organizations in the repository."""
     auth_service = AuthService(mock_repo)
     org1 = Organization(
-        id="org_all0000000001",
+        id="org_0195f3a0000070008000000000000212",
         name="Org 1",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -427,7 +427,7 @@ async def test_list_organizations_root_initiator_returns_all_orgs(
         rpm_limit=500,
     )
     org2 = Organization(
-        id="org_all0000000002",
+        id="org_0195f3a0000070008000000000000213",
         name="Org 2",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -439,11 +439,11 @@ async def test_list_organizations_root_initiator_returns_all_orgs(
     )
     await mock_repo.create_organization(org1)
     await mock_repo.create_organization(org2)
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
 
     orgs = await auth_service.list_organizations(root_initiator)
     assert len(orgs) == 2
-    assert {o.id for o in orgs} == {"org_all0000000001", "org_all0000000002"}
+    assert {o.id for o in orgs} == {"org_0195f3a0000070008000000000000212", "org_0195f3a0000070008000000000000213"}
 
 
 @pytest.mark.asyncio
@@ -453,7 +453,7 @@ async def test_list_organizations_tenant_initiator_returns_own_org_only(
     """TC-P3-09: Tenant initiator lists only their own organization."""
     auth_service = AuthService(mock_repo)
     org1 = Organization(
-        id="org_mine00000001",
+        id="org_0195f3a0000070008000000000000214",
         name="My Org",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -464,7 +464,7 @@ async def test_list_organizations_tenant_initiator_returns_own_org_only(
         rpm_limit=500,
     )
     org2 = Organization(
-        id="org_other00000001",
+        id="org_0195f3a0000070008000000000000210",
         name="Other Org",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -476,11 +476,11 @@ async def test_list_organizations_tenant_initiator_returns_own_org_only(
     )
     await mock_repo.create_organization(org1)
     await mock_repo.create_organization(org2)
-    admin_initiator = TokenData(id="usr_admin00000001", role=UserRole.ADMIN, organization_id="org_mine00000001")
+    admin_initiator = TokenData(id="usr_0195f3a0000070008000000000000109", role=UserRole.ADMIN, organization_id="org_0195f3a0000070008000000000000214")
 
     orgs = await auth_service.list_organizations(admin_initiator)
     assert len(orgs) == 1
-    assert orgs[0].id == "org_mine00000001"
+    assert orgs[0].id == "org_0195f3a0000070008000000000000214"
 
 
 @pytest.mark.asyncio
@@ -490,7 +490,7 @@ async def test_list_organizations_tenant_initiator_no_org_id_returns_empty_list(
     """TC-P3-10: Tenant initiator with no organization_id returns empty list."""
     auth_service = AuthService(mock_repo)
     org1 = Organization(
-        id="org_some00000001",
+        id="org_0195f3a0000070008000000000000215",
         name="Some Org",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -501,7 +501,7 @@ async def test_list_organizations_tenant_initiator_no_org_id_returns_empty_list(
         rpm_limit=500,
     )
     await mock_repo.create_organization(org1)
-    member_no_org = TokenData(id="usr_noorg00000001", role=UserRole.MEMBER, organization_id=None)
+    member_no_org = TokenData(id="usr_0195f3a0000070008000000000000110", role=UserRole.MEMBER, organization_id=None)
 
     orgs = await auth_service.list_organizations(member_no_org)
     assert orgs == []
@@ -514,7 +514,7 @@ async def test_update_organization_root_initiator_with_update_dto_success(
     """TC-P3-11: ROOT initiator updates organization with OrganizationUpdateDTO."""
     auth_service = AuthService(mock_repo)
     org = Organization(
-        id="org_update0000001",
+        id="org_0195f3a0000070008000000000000216",
         name="Old Name",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -525,11 +525,11 @@ async def test_update_organization_root_initiator_with_update_dto_success(
         rpm_limit=500,
     )
     await mock_repo.create_organization(org)
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
     dto = OrganizationUpdateDTO(name="New Name", tpm_limit=60000)
 
-    updated = await auth_service.update_organization(root_initiator, "org_update0000001", dto)
-    assert updated.id == "org_update0000001"
+    updated = await auth_service.update_organization(root_initiator, "org_0195f3a0000070008000000000000216", dto)
+    assert updated.id == "org_0195f3a0000070008000000000000216"
     assert updated.name == "New Name"
     assert updated.tpm_limit == 60000
 
@@ -541,7 +541,7 @@ async def test_update_organization_root_initiator_with_create_dto_success(
     """TC-P3-12: ROOT initiator updates organization using OrganizationCreate payload."""
     auth_service = AuthService(mock_repo)
     org = Organization(
-        id="org_update0000002",
+        id="org_0195f3a0000070008000000000000217",
         name="Old Name",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -552,7 +552,7 @@ async def test_update_organization_root_initiator_with_create_dto_success(
         rpm_limit=500,
     )
     await mock_repo.create_organization(org)
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
     create_dto = OrganizationCreate(
         name="Converted Name",
         admin_email="a@b.com",
@@ -562,8 +562,8 @@ async def test_update_organization_root_initiator_with_create_dto_success(
         rpm_limit=700,
     )
 
-    updated = await auth_service.update_organization(root_initiator, "org_update0000002", create_dto)
-    assert updated.id == "org_update0000002"
+    updated = await auth_service.update_organization(root_initiator, "org_0195f3a0000070008000000000000217", create_dto)
+    assert updated.id == "org_0195f3a0000070008000000000000217"
     assert updated.name == "Converted Name"
     assert updated.tpm_limit == 70000
 
@@ -574,11 +574,11 @@ async def test_update_organization_non_root_initiator_raises_permission_denied(
 ) -> None:
     """TC-P3-13: Non-ROOT initiator raises PermissionDeniedError on update."""
     auth_service = AuthService(mock_repo)
-    admin_initiator = TokenData(id="usr_admin00000001", role=UserRole.ADMIN, organization_id="org_test000000001")
+    admin_initiator = TokenData(id="usr_0195f3a0000070008000000000000109", role=UserRole.ADMIN, organization_id="org_0195f3a0000070008000000000000206")
     dto = OrganizationUpdateDTO(name="New Name")
 
     with pytest.raises(PermissionDeniedError) as exc_info:
-        await auth_service.update_organization(admin_initiator, "org_test000000001", dto)
+        await auth_service.update_organization(admin_initiator, "org_0195f3a0000070008000000000000206", dto)
     assert "Only ROOT can update organizations." in str(exc_info.value)
 
 
@@ -588,15 +588,15 @@ async def test_update_organization_non_existent_org_raises_resource_not_found(
 ) -> None:
     """TC-P3-14: Updating non-existent organization raises ResourceNotFoundError."""
     auth_service = AuthService(mock_repo)
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
     dto = OrganizationUpdateDTO(name="New Name")
 
     with pytest.raises(ResourceNotFoundError) as exc_info:
-        await auth_service.update_organization(root_initiator, "org_missing000001", dto)
+        await auth_service.update_organization(root_initiator, "org_0195f3a0000070008000000000000211", dto)
     assert exc_info.value.status_code == 404
     assert exc_info.value.details is not None
     assert exc_info.value.details["resource_type"] == "organization"
-    assert exc_info.value.details["resource_id"] == "org_missing000001"
+    assert exc_info.value.details["resource_id"] == "org_0195f3a0000070008000000000000211"
 
 
 @pytest.mark.asyncio
@@ -607,7 +607,7 @@ async def test_delete_organization_root_empty_org_success(
     mock_audit = AsyncMock()
     auth_service = AuthService(mock_repo, audit_service=mock_audit)
     org = Organization(
-        id="org_delete0000001",
+        id="org_0195f3a0000070008000000000000218",
         name="Delete Me",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -618,16 +618,16 @@ async def test_delete_organization_root_empty_org_success(
         rpm_limit=500,
     )
     await mock_repo.create_organization(org)
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
 
-    await auth_service.delete_organization(root_initiator, "org_delete0000001")
+    await auth_service.delete_organization(root_initiator, "org_0195f3a0000070008000000000000218")
 
-    persisted = await mock_repo.get_organization("org_delete0000001")
+    persisted = await mock_repo.get_organization("org_0195f3a0000070008000000000000218")
     assert persisted is None
     assert mock_audit.log_event.call_count == 1
     call_kwargs = mock_audit.log_event.call_args.kwargs
     assert call_kwargs["action"] == "ORG_DELETED"
-    assert call_kwargs["organization_id"] == "org_delete0000001"
+    assert call_kwargs["organization_id"] == "org_0195f3a0000070008000000000000218"
 
 
 @pytest.mark.asyncio
@@ -636,10 +636,10 @@ async def test_delete_organization_non_root_raises_permission_denied(
 ) -> None:
     """TC-P3-16: Non-ROOT user raises PermissionDeniedError on delete organization."""
     auth_service = AuthService(mock_repo)
-    admin_initiator = TokenData(id="usr_admin00000001", role=UserRole.ADMIN, organization_id="org_test000000001")
+    admin_initiator = TokenData(id="usr_0195f3a0000070008000000000000109", role=UserRole.ADMIN, organization_id="org_0195f3a0000070008000000000000206")
 
     with pytest.raises(PermissionDeniedError) as exc_info:
-        await auth_service.delete_organization(admin_initiator, "org_test000000001")
+        await auth_service.delete_organization(admin_initiator, "org_0195f3a0000070008000000000000206")
     assert "Only ROOT can delete organizations." in str(exc_info.value)
 
 
@@ -649,14 +649,14 @@ async def test_delete_organization_system_org_raises_permission_denied(
 ) -> None:
     """TC-P3-17: Deleting system organization raises PermissionDeniedError."""
     auth_service = AuthService(mock_repo)
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
 
     with pytest.raises(PermissionDeniedError) as exc_info:
         await auth_service.delete_organization(root_initiator, "system")
     assert "protected and CANNOT be deleted" in str(exc_info.value)
 
     with pytest.raises(PermissionDeniedError) as exc_info_legacy:
-        await auth_service.delete_organization(root_initiator, LEGACY_SYSTEM_ORG_ID)
+        await auth_service.delete_organization(root_initiator, SystemOrganizations.ROOT_SYSTEM)
     assert "protected and CANNOT be deleted" in str(exc_info_legacy.value)
 
 
@@ -667,7 +667,7 @@ async def test_delete_organization_non_empty_without_force_raises_conflict_error
     """TC-P3-18: Non-empty organization deletion without force raises ConflictError."""
     auth_service = AuthService(mock_repo)
     org = Organization(
-        id="org_busy000000001",
+        id="org_0195f3a0000070008000000000000219",
         name="Busy Org",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -679,22 +679,22 @@ async def test_delete_organization_non_empty_without_force_raises_conflict_error
     )
     await mock_repo.create_organization(org)
     user1 = User(
-        id="usr_busy000000001",
+        id="usr_0195f3a0000070008000000000000111",
         email="busy1@test.com",
         name="Busy 1",
         role=UserRole.MEMBER,
-        organization_id="org_busy000000001",
+        organization_id="org_0195f3a0000070008000000000000219",
         is_active=True,
         created_at=datetime.now(timezone.utc),
         language=SystemLocale.EN,
         theme_mode="system",
     )
     user2 = User(
-        id="usr_busy000000002",
+        id="usr_0195f3a0000070008000000000000112",
         email="busy2@test.com",
         name="Busy 2",
         role=UserRole.MEMBER,
-        organization_id="org_busy000000001",
+        organization_id="org_0195f3a0000070008000000000000219",
         is_active=True,
         created_at=datetime.now(timezone.utc),
         language=SystemLocale.EN,
@@ -702,10 +702,10 @@ async def test_delete_organization_non_empty_without_force_raises_conflict_error
     )
     await mock_repo.create_user(user1)
     await mock_repo.create_user(user2)
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
 
     with pytest.raises(ConflictError) as exc_info:
-        await auth_service.delete_organization(root_initiator, "org_busy000000001", force=False)
+        await auth_service.delete_organization(root_initiator, "org_0195f3a0000070008000000000000219", force=False)
     assert "Organization is not empty" in exc_info.value.message
     assert exc_info.value.details is not None
     assert exc_info.value.details["reason"] == "ORG_NOT_EMPTY"
@@ -721,7 +721,7 @@ async def test_delete_organization_non_empty_with_force_cascades_deletion_and_lo
     auth_service = AuthService(mock_repo, audit_service=mock_audit, use_firebase=True, firebase_auth=mock_fb)
 
     org = Organization(
-        id="org_force00000001",
+        id="org_0195f3a0000070008000000000000220",
         name="Force Org",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -733,22 +733,22 @@ async def test_delete_organization_non_empty_with_force_cascades_deletion_and_lo
     )
     await mock_repo.create_organization(org)
     user1 = User(
-        id="usr_cascade000001",
+        id="usr_0195f3a0000070008000000000000113",
         email="cascade1@test.com",
         name="Cascade 1",
         role=UserRole.MEMBER,
-        organization_id="org_force00000001",
+        organization_id="org_0195f3a0000070008000000000000220",
         is_active=True,
         created_at=datetime.now(timezone.utc),
         language=SystemLocale.EN,
         theme_mode="system",
     )
     user2 = User(
-        id="usr_cascade000002",
+        id="usr_0195f3a0000070008000000000000114",
         email="cascade2@test.com",
         name="Cascade 2",
         role=UserRole.MEMBER,
-        organization_id="org_force00000001",
+        organization_id="org_0195f3a0000070008000000000000220",
         is_active=True,
         created_at=datetime.now(timezone.utc),
         language=SystemLocale.EN,
@@ -756,13 +756,13 @@ async def test_delete_organization_non_empty_with_force_cascades_deletion_and_lo
     )
     await mock_repo.create_user(user1)
     await mock_repo.create_user(user2)
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
 
-    await auth_service.delete_organization(root_initiator, "org_force00000001", force=True)
+    await auth_service.delete_organization(root_initiator, "org_0195f3a0000070008000000000000220", force=True)
 
-    assert await mock_repo.get_organization("org_force00000001") is None
-    assert await mock_repo.get_user("usr_cascade000001") is None
-    assert await mock_repo.get_user("usr_cascade000002") is None
+    assert await mock_repo.get_organization("org_0195f3a0000070008000000000000220") is None
+    assert await mock_repo.get_user("usr_0195f3a0000070008000000000000113") is None
+    assert await mock_repo.get_user("usr_0195f3a0000070008000000000000114") is None
     assert mock_fb.delete_user.call_count == 2
     assert mock_audit.log_event.call_count == 1
     call_kwargs = mock_audit.log_event.call_args.kwargs
@@ -788,7 +788,7 @@ async def test_direct_organization_service_execution(
         user_creator=mock_create_user,
     )
 
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
     payload = OrganizationCreate(
         name="Direct Org",
         admin_email="direct@org.com",
@@ -829,7 +829,7 @@ async def test_direct_organization_service_execution_missing_user_creator_fails_
         user_repo=user_repo,
         user_creator=None,
     )
-    root_initiator = TokenData(id="usr_root0000000001", role=UserRole.ROOT)
+    root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
     payload = OrganizationCreate(
         name="Missing Creator Org",
         admin_email="direct@org.com",

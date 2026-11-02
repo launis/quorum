@@ -10,10 +10,9 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.api.routers.iam.auth import get_my_profile, list_available_roles, list_users
-from backend_v2.exceptions import (
-    PermissionDeniedError,
-)
+from backend_v2.exceptions import PermissionDeniedError
 from backend_v2.models.auth import (
+    SYSTEM_ROOT_USER_ID,
     Organization,
     OrganizationCreate,
     SubscriptionStatus,
@@ -25,11 +24,16 @@ from backend_v2.models.auth import (
     UserUpdate,
 )
 from backend_v2.models.enums import SystemLocale
-from backend_v2.services.auth import (
-    AuthService,
-)
+from backend_v2.services.auth import AuthService
 from backend_v2.services.auth.organization_service import OrganizationUpdateDTO
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
+
+USER_1_ID = "usr_0195f3a0000070008000000000000001"
+USER_2_ID = "usr_0195f3a0000070008000000000000002"
+ADMIN_1_ID = "usr_0195f3a0000070008000000000000003"
+ADMIN_2_ID = "usr_0195f3a0000070008000000000000004"
+ORG_1_ID = "org_0195f3a0000070008000000000000011"
+ORG_2_ID = "org_0195f3a0000070008000000000000012"
 
 
 @pytest.fixture
@@ -40,30 +44,32 @@ def mock_repo() -> InMemoryUnifiedWorkflowRepository:
 
 @pytest.mark.asyncio
 async def test_auth_service_init(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
+    """Verify AuthService initializes with firebase flag."""
     service = AuthService(mock_repo, use_firebase=False)
     assert service.use_firebase is False
 
 
 @pytest.mark.asyncio
 async def test_auth_service_list_users(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
+    """Verify ROOT user lists all users across organizations."""
     service = AuthService(mock_repo, use_firebase=False)
 
     u1 = User(
-        id="usr_1234abcd",
+        id=USER_1_ID,
         email="test@test.com",
         role=UserRole.MEMBER,
         is_active=True,
-        organization_id="org_1234abcd",
+        organization_id=ORG_1_ID,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
     )
     u2 = User(
-        id="usr_2345bcde",
+        id=USER_2_ID,
         email="test2@test.com",
         role=UserRole.MEMBER,
         is_active=True,
-        organization_id="org_2345bcde",
+        organization_id=ORG_2_ID,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
@@ -72,42 +78,46 @@ async def test_auth_service_list_users(mock_repo: InMemoryUnifiedWorkflowReposit
     await mock_repo.create_user(u1)
     await mock_repo.create_user(u2)
 
-    initiator = TokenData(id="admin_1234abcd", role=UserRole.ROOT, email="root@test.com")
+    initiator = TokenData(id=SYSTEM_ROOT_USER_ID, role=UserRole.ROOT, email="root@test.com")
     users = await service.list_users(initiator)
     assert len(users) == 2
 
 
 @pytest.mark.asyncio
 async def test_auth_service_get_user(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
+    """Verify ROOT user retrieves user by canonical ID."""
     service = AuthService(mock_repo, use_firebase=False)
 
     test_user = User(
-        id="usr_1234abcd",
+        id=USER_1_ID,
         email="test@test.com",
         role=UserRole.MEMBER,
         is_active=True,
-        organization_id="org_1234abcd",
+        organization_id=ORG_1_ID,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
     )
     await mock_repo.create_user(test_user)
 
-    initiator = TokenData(id="root_1234abcd", role=UserRole.ROOT, email="root@test.com")
-    user = await service.get_user(initiator, "usr_1234abcd")
-    assert user.id == "usr_1234abcd"
+    initiator = TokenData(id=SYSTEM_ROOT_USER_ID, role=UserRole.ROOT, email="root@test.com")
+    user = await service.get_user(initiator, USER_1_ID)
+    assert user.id == USER_1_ID
 
 
 @pytest.mark.asyncio
-async def test_auth_service_tenant_isolation(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
+async def test_auth_service_tenant_isolation_and_permission_denied_failure(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Verify tenant isolation allows same-org ADMIN and raises PermissionDeniedError on cross-org access."""
     service = AuthService(mock_repo, use_firebase=False)
 
     test_user = User(
-        id="usr_target12",
+        id=USER_1_ID,
         email="target@test.com",
         role=UserRole.MEMBER,
         is_active=True,
-        organization_id="org_target12",
+        organization_id=ORG_1_ID,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
@@ -115,64 +125,80 @@ async def test_auth_service_tenant_isolation(mock_repo: InMemoryUnifiedWorkflowR
     await mock_repo.create_user(test_user)
 
     initiator_admin = TokenData(
-        id="usr_admin123", role=UserRole.ADMIN, organization_id="org_target12", email="admin@test.com"
+        id=ADMIN_1_ID,
+        role=UserRole.ADMIN,
+        organization_id=ORG_1_ID,
+        email="admin@test.com",
     )
 
-    user = await service.get_user(initiator_admin, "usr_target12")
-    assert user.id == "usr_target12"
+    user = await service.get_user(initiator_admin, USER_1_ID)
+    assert user.id == USER_1_ID
 
     initiator_wrong_org = TokenData(
-        id="usr_admin456", role=UserRole.ADMIN, organization_id="org_wrong123", email="admin2@test.com"
+        id=ADMIN_2_ID,
+        role=UserRole.ADMIN,
+        organization_id=ORG_2_ID,
+        email="admin2@test.com",
     )
 
     with pytest.raises(PermissionDeniedError):
-        await service.get_user(initiator_wrong_org, "usr_target12")
+        await service.get_user(initiator_wrong_org, USER_1_ID)
 
 
 @pytest.mark.asyncio
 async def test_auth_router_list_roles() -> None:
+    """Verify list_available_roles returns all canonical role names."""
     roles = await list_available_roles()
     assert "ROOT" in roles
 
 
 @pytest.mark.asyncio
 async def test_auth_router_get_my_profile(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
+    """Verify get_my_profile returns the authenticated user's profile."""
     service = AuthService(mock_repo, use_firebase=False)
     mock_user = User(
-        id="usr_12345678",
+        id=USER_1_ID,
         email="me@test.com",
         role=UserRole.MEMBER,
         is_active=True,
+        organization_id=ORG_1_ID,
         language=SystemLocale.EN,
         theme_mode="system",
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
     )
     await mock_repo.create_user(mock_user)
-    user = await get_my_profile(current_user=TokenData(id="usr_12345678", role=UserRole.MEMBER), auth_service=service)
+    user = await get_my_profile(
+        current_user=TokenData(id=USER_1_ID, role=UserRole.MEMBER, organization_id=ORG_1_ID),
+        auth_service=service,
+    )
     assert user == mock_user
 
 
 @pytest.mark.asyncio
-async def test_auth_router_list_users() -> None:
-    mock_service = AsyncMock()
-    mock_service.list_users.return_value = []
-    users = await list_users(current_user=TokenData(id="usr_123", role=UserRole.MEMBER), auth_service=mock_service)
+async def test_auth_router_list_users(mock_repo: InMemoryUnifiedWorkflowRepository) -> None:
+    """Verify list_users endpoint returns empty list when no users exist in tenant."""
+    service = AuthService(mock_repo, use_firebase=False)
+    users = await list_users(
+        current_user=TokenData(id=ADMIN_1_ID, role=UserRole.ADMIN, organization_id=ORG_1_ID),
+        auth_service=service,
+    )
     assert users == []
 
 
 def test_system_organizations_is_system() -> None:
-    assert SystemOrganizations.is_system("org_system000000") is True
+    """Verify SystemOrganizations.is_system recognizes canonical ROOT_SYSTEM and SYSTEM sentinel."""
+    assert SystemOrganizations.is_system(SystemOrganizations.ROOT_SYSTEM) is True
     assert SystemOrganizations.is_system("SYSTEM") is True
     assert SystemOrganizations.is_system(None) is True
     assert SystemOrganizations.is_system("") is True
     assert SystemOrganizations.is_system("org_0195f3a00000700e8531d2ed8a6641f6") is False
 
 
-def test_auth_models_validation_coverage() -> None:
+def test_auth_models_validation_coverage_and_invalid_inputs_error() -> None:
+    """Verify Organization, User, OrganizationCreate, and TokenData validation and negative error cases."""
     now = datetime.now(timezone.utc)
-    # Organization with datetime object and valid fields
     org = Organization(
-        id="org_test12345",
+        id=ORG_1_ID,
         name="Valid Name",
         is_active=True,
         tier="standard",
@@ -183,13 +209,14 @@ def test_auth_models_validation_coverage() -> None:
         created_at=now,
         contact_email="test@org.com",
         billing_id="bill_12345",
+        allowed_email_domains=["org.com"],
     )
     assert org.created_at == now
+    assert org.allowed_email_domains == ["org.com"]
 
-    # Organization validation failures
     with pytest.raises(ValidationError):
         Organization(
-            id="org_test12345",
+            id=ORG_1_ID,
             name="Valid Name",
             is_active=True,
             tier="standard",
@@ -213,7 +240,7 @@ def test_auth_models_validation_coverage() -> None:
 
     with pytest.raises(ValidationError):
         Organization(
-            id="org_test12345",
+            id=ORG_1_ID,
             name="Valid Name",
             is_active=True,
             tier="standard",
@@ -224,24 +251,25 @@ def test_auth_models_validation_coverage() -> None:
             contact_email="   ",
         )
 
-    # User with datetime and valid created_by
     user = User(
-        id="usr_test12345",
+        id=USER_1_ID,
         email="user@test.com",
         role=UserRole.ADMIN,
         is_active=True,
         language=SystemLocale.EN,
         theme_mode="dark",
         created_at=now,
-        created_by="usr_admin1234",
+        created_by=ADMIN_1_ID,
         name="Valid User",
-        organization_id="org_test12345",
+        organization_id=ORG_1_ID,
+        firebase_uid="fb_uid_12345",
     )
     assert user.created_at == now
+    assert user.firebase_uid == "fb_uid_12345"
 
     with pytest.raises(ValidationError):
         User(
-            id="usr_test12345",
+            id=USER_1_ID,
             email="user@test.com",
             role=UserRole.ADMIN,
             is_active=True,
@@ -264,7 +292,7 @@ def test_auth_models_validation_coverage() -> None:
 
     with pytest.raises(ValidationError):
         User(
-            id="usr_test12345",
+            id=USER_1_ID,
             email="user@test.com",
             role=UserRole.ADMIN,
             is_active=True,
@@ -274,7 +302,6 @@ def test_auth_models_validation_coverage() -> None:
             created_by="   ",
         )
 
-    # OrganizationCreate validation
     org_create = OrganizationCreate(
         name="Valid Name",
         admin_email="admin@test.com",
@@ -295,15 +322,14 @@ def test_auth_models_validation_coverage() -> None:
             rpm_limit=10,
         )
 
-    # TokenData validation
-    token = TokenData(id="usr_1234", role=UserRole.ADMIN, organization_id="org_1234", email="a@b.com")
-    assert token.id == "usr_1234"
+    token = TokenData(id=USER_1_ID, role=UserRole.ADMIN, organization_id=ORG_1_ID, email="a@b.com")
+    assert token.id == USER_1_ID
 
     with pytest.raises(ValidationError):
         TokenData(id="   ", role=UserRole.ADMIN)
 
     with pytest.raises(ValidationError):
-        TokenData(id="usr_1234", role=UserRole.ADMIN, organization_id="   ")
+        TokenData(id=USER_1_ID, role=UserRole.ADMIN, organization_id="   ")
 
 
 @pytest.mark.asyncio
@@ -317,7 +343,6 @@ async def test_auth_service_facade_delegates_all_operations(
     assert auth_service.org_service is not None
     assert auth_service.user_service is not None
 
-    # Test immutable DI properties synchronize across subservices
     assert auth_service.use_firebase is True
     assert auth_service.token_service.use_firebase is True
     assert auth_service.org_service.use_firebase is True
@@ -328,7 +353,6 @@ async def test_auth_service_facade_delegates_all_operations(
     assert auth_service.org_service.firebase_auth is mock_fb
     assert auth_service.user_service.firebase_auth is mock_fb
 
-    # Test that mutating property setters raises AttributeError (Immutable Facade)
     assert AuthService.use_firebase.fset is None
     assert AuthService.firebase_auth.fset is None
 
@@ -338,34 +362,31 @@ async def test_auth_service_facade_delegates_all_operations(
     with pytest.raises(AttributeError):
         AuthService.firebase_auth.__set__(auth_service, None)
 
-    # Test facade line count cap strictly < 300 lines
     init_file = Path(__file__).parents[2] / "services" / "auth" / "__init__.py"
     line_count = len(init_file.read_text(encoding="utf-8").splitlines())
     assert line_count < 300, f"AuthService facade line count ({line_count}) exceeds 300 lines cap"
 
-    # Test private and public helper delegations
     auth_service.token_service._init_firebase = MagicMock()
     auth_service._init_firebase()
     auth_service.token_service._init_firebase.assert_called_once()
 
     auth_service.token_service.create_impersonation_token = MagicMock(return_value="mock_jwt_impersonate")
-    token_str = auth_service.create_impersonation_token("usr_target01", 1800)
+    token_str = auth_service.create_impersonation_token(USER_1_ID, 1800)
     assert token_str == "mock_jwt_impersonate"
     auth_service.token_service.create_impersonation_token.assert_called_once_with(
-        target_id="usr_target01", duration_seconds=1800
+        target_id=USER_1_ID, duration_seconds=1800
     )
 
     auth_service.token_service.verify_token = AsyncMock(
-        return_value=TokenData(id="usr_verified01", role=UserRole.ADMIN, organization_id="org_test1")
+        return_value=TokenData(id=USER_1_ID, role=UserRole.ADMIN, organization_id=ORG_1_ID)
     )
     tok = await auth_service.verify_token("bearer_xyz")
-    assert tok.id == "usr_verified01"
+    assert tok.id == USER_1_ID
     auth_service.token_service.verify_token.assert_awaited_once_with("bearer_xyz")
 
-    # Test organization delegations
     now = datetime.now(timezone.utc)
     dummy_org = Organization(
-        id="org_delegate01",
+        id=ORG_1_ID,
         name="Delegate Org",
         is_active=True,
         tier="standard",
@@ -375,7 +396,11 @@ async def test_auth_service_facade_delegates_all_operations(
         rpm_limit=10,
         created_at=now,
     )
-    root_token = TokenData(id="usr_root000001", role=UserRole.ROOT, organization_id="org_system000000")
+    root_token = TokenData(
+        id=SYSTEM_ROOT_USER_ID,
+        role=UserRole.ROOT,
+        organization_id=SystemOrganizations.ROOT_SYSTEM,
+    )
     dummy_org_create = OrganizationCreate(
         name="New Org",
         admin_email="admin@delegate.com",
@@ -386,12 +411,12 @@ async def test_auth_service_facade_delegates_all_operations(
     )
     auth_service.org_service.create_organization = AsyncMock(return_value=dummy_org)
     created_org = await auth_service.create_organization(root_token, dummy_org_create)
-    assert created_org.id == "org_delegate01"
+    assert created_org.id == ORG_1_ID
 
     auth_service.org_service.delete_organization = AsyncMock()
-    await auth_service.delete_organization(root_token, "org_delegate01", force=True)
+    await auth_service.delete_organization(root_token, ORG_1_ID, force=True)
     auth_service.org_service.delete_organization.assert_awaited_once_with(
-        initiator=root_token, target_org_id="org_delegate01", force=True
+        initiator=root_token, target_org_id=ORG_1_ID, force=True
     )
 
     auth_service.org_service.list_organizations = AsyncMock(return_value=[dummy_org])
@@ -399,30 +424,29 @@ async def test_auth_service_facade_delegates_all_operations(
     assert len(orgs) == 1
 
     auth_service.org_service.get_organization = AsyncMock(return_value=dummy_org)
-    fetched_org = await auth_service.get_organization(root_token, "org_delegate01")
-    assert fetched_org.id == "org_delegate01"
+    fetched_org = await auth_service.get_organization(root_token, ORG_1_ID)
+    assert fetched_org.id == ORG_1_ID
 
     dummy_org_update = OrganizationUpdateDTO(name="Updated Delegate Org")
     auth_service.org_service.update_organization = AsyncMock(return_value=dummy_org)
-    updated_org = await auth_service.update_organization(root_token, "org_delegate01", dummy_org_update)
-    assert updated_org.id == "org_delegate01"
+    updated_org = await auth_service.update_organization(root_token, ORG_1_ID, dummy_org_update)
+    assert updated_org.id == ORG_1_ID
 
-    # Test user delegations
     dummy_user = User(
-        id="usr_delegate01",
+        id=USER_1_ID,
         email="user@delegate.com",
         role=UserRole.MEMBER,
         is_active=True,
         language=SystemLocale.EN,
         theme_mode="system",
         created_at=now,
-        organization_id="org_delegate01",
+        organization_id=ORG_1_ID,
     )
     dummy_user_create = UserCreate(
         email="user@delegate.com",
         role=UserRole.MEMBER,
         password="secretpassword",
-        organization_id="org_delegate01",
+        organization_id=ORG_1_ID,
         is_active=True,
         language=SystemLocale.EN,
         theme_mode="system",
@@ -430,12 +454,12 @@ async def test_auth_service_facade_delegates_all_operations(
     dummy_user_update = UserUpdate(name="Updated User")
 
     auth_service.user_service.create_user = AsyncMock(return_value=dummy_user)
-    created_user = await auth_service.create_user("usr_root000001", dummy_user_create)
-    assert created_user.id == "usr_delegate01"
+    created_user = await auth_service.create_user(SYSTEM_ROOT_USER_ID, dummy_user_create)
+    assert created_user.id == USER_1_ID
 
     auth_service.user_service._create_user_internal = AsyncMock(return_value=dummy_user)
-    internal_user = await auth_service._create_user_internal("usr_root000001", dummy_user_create, "org_delegate01")
-    assert internal_user.id == "usr_delegate01"
+    internal_user = await auth_service._create_user_internal(SYSTEM_ROOT_USER_ID, dummy_user_create, ORG_1_ID)
+    assert internal_user.id == USER_1_ID
 
     auth_service.user_service._enforce_hierarchy = MagicMock()
     auth_service._enforce_hierarchy(dummy_user, UserRole.MEMBER)
@@ -444,29 +468,25 @@ async def test_auth_service_facade_delegates_all_operations(
     )
 
     auth_service.user_service._count_org_admins = AsyncMock(return_value=2)
-    assert await auth_service._count_org_admins("org_delegate01") == 2
+    assert await auth_service._count_org_admins(ORG_1_ID) == 2
 
     auth_service.user_service.get_users_by_organization = AsyncMock(return_value=[dummy_user])
-    assert len(await auth_service.get_users_by_organization("org_delegate01")) == 1
+    assert len(await auth_service.get_users_by_organization(ORG_1_ID)) == 1
 
     auth_service.user_service.delete_user = AsyncMock(return_value=True)
-    assert await auth_service.delete_user("usr_root000001", "usr_delegate01") is True
+    assert await auth_service.delete_user(SYSTEM_ROOT_USER_ID, USER_1_ID) is True
 
     auth_service.user_service.update_user = AsyncMock(return_value=dummy_user)
-    assert (
-        await auth_service.update_user("usr_root000001", "usr_delegate01", dummy_user_update)
-    ).id == "usr_delegate01"
+    assert (await auth_service.update_user(SYSTEM_ROOT_USER_ID, USER_1_ID, dummy_user_update)).id == USER_1_ID
 
     auth_service.user_service.update_user_role = AsyncMock(return_value=dummy_user)
-    assert (
-        await auth_service.update_user_role("usr_root000001", "usr_delegate01", UserRole.ADMIN)
-    ).id == "usr_delegate01"
+    assert (await auth_service.update_user_role(SYSTEM_ROOT_USER_ID, USER_1_ID, UserRole.ADMIN)).id == USER_1_ID
 
     auth_service.user_service.list_users = AsyncMock(return_value=[dummy_user])
     assert len(await auth_service.list_users(root_token)) == 1
 
     auth_service.user_service.get_user = AsyncMock(return_value=dummy_user)
-    assert (await auth_service.get_user(root_token, "usr_delegate01")).id == "usr_delegate01"
+    assert (await auth_service.get_user(root_token, USER_1_ID)).id == USER_1_ID
 
     auth_service.user_service.ensure_root_user = AsyncMock(return_value=dummy_user)
-    assert (await auth_service.ensure_root_user()).id == "usr_delegate01"
+    assert (await auth_service.ensure_root_user()).id == USER_1_ID

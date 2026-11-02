@@ -17,6 +17,9 @@ BEGIN
           AND data_type = 'text'
     ) THEN
         DROP TABLE IF EXISTS
+            execution_assignments,
+            tenant_secrets,
+            invitations,
             dependency_edges,
             proposition_nodes,
             report_binaries,
@@ -47,6 +50,7 @@ CREATE TABLE IF NOT EXISTS organizations (
     quota_limit NUMERIC(18, 4) NOT NULL DEFAULT 0.0,
     tpm_limit BIGINT NOT NULL CHECK (tpm_limit >= 1000),
     rpm_limit INTEGER NOT NULL CHECK (rpm_limit >= 1),
+    allowed_email_domains JSONB NOT NULL DEFAULT '[]'::jsonb,
     CONSTRAINT enforce_organization_uuidv7 CHECK (uuid_extract_version(id) = 7)
 );
 
@@ -54,6 +58,7 @@ CREATE TABLE IF NOT EXISTS organizations (
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     slug TEXT,
+    firebase_uid VARCHAR(128) UNIQUE,
     email TEXT NOT NULL UNIQUE,
     name TEXT,
     role TEXT NOT NULL,
@@ -63,6 +68,7 @@ CREATE TABLE IF NOT EXISTS users (
     theme_mode TEXT NOT NULL,
     created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
     created_by TEXT,
+    deleted_at TIMESTAMPTZ,
     CONSTRAINT enforce_user_uuidv7 CHECK (uuid_extract_version(id) = 7),
     CONSTRAINT enforce_user_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7)
 );
@@ -339,6 +345,80 @@ CREATE TABLE IF NOT EXISTS quorum_edges (
     CONSTRAINT enforce_edge_run_uuidv7 CHECK (uuid_extract_version(run_id) = 7),
     CONSTRAINT no_self_loops CHECK (source_id <> target_id),
     CONSTRAINT uq_quorum_edges_run_src_tgt_rel UNIQUE (run_id, source_id, target_id, relation_type)
+);
+
+-- 13. Invitations (One-Time Cryptographic Organization Onboarding Tokens)
+CREATE TABLE IF NOT EXISTS invitations (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    email TEXT NOT NULL,
+    role TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL DEFAULT 'pending',
+    email_delivery_status VARCHAR(32) NOT NULL DEFAULT 'pending',
+    invited_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
+    CONSTRAINT enforce_invitation_uuidv7 CHECK (uuid_extract_version(id) = 7),
+    CONSTRAINT enforce_invitation_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7),
+    CONSTRAINT enforce_invitation_invited_by_uuidv7 CHECK (uuid_extract_version(invited_by) = 7)
+);
+
+-- 14. Tenant Secrets (BYOK Envelope KMS & Cloud Secret Manager Metadata)
+CREATE TABLE IF NOT EXISTS tenant_secrets (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    scope TEXT NOT NULL,
+    target_identifier VARCHAR(128) NOT NULL,
+    storage_mode TEXT NOT NULL,
+    secret_manager_version_uri VARCHAR(512),
+    encrypted_dek BYTEA,
+    ciphertext BYTEA,
+    nonce BYTEA,
+    kek_version VARCHAR(128) NOT NULL,
+    masked_hint VARCHAR(32) NOT NULL,
+    updated_by UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT enforce_tenant_secret_uuidv7 CHECK (uuid_extract_version(id) = 7),
+    CONSTRAINT enforce_tenant_secret_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7),
+    CONSTRAINT enforce_tenant_secret_updated_by_uuidv7 CHECK (uuid_extract_version(updated_by) = 7),
+    CONSTRAINT uq_tenant_secrets_org_scope_target UNIQUE (organization_id, scope, target_identifier)
+);
+
+-- 15. Execution Assignments (Pre-Configured Task Assignments & Cohort Batches)
+CREATE TABLE IF NOT EXISTS execution_assignments (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    batch_id UUID,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    assigned_email TEXT NOT NULL,
+    assigned_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    invited_role TEXT NOT NULL DEFAULT 'MEMBER',
+    workflow_id UUID NOT NULL REFERENCES workflows(id) ON DELETE CASCADE,
+    output_profile_id UUID REFERENCES output_profiles(id) ON DELETE SET NULL,
+    target_locale TEXT NOT NULL,
+    locked_inputs JSONB NOT NULL DEFAULT '{}'::jsonb,
+    assignee_input_keys JSONB NOT NULL DEFAULT '[]'::jsonb,
+    draft_inputs JSONB NOT NULL DEFAULT '{}'::jsonb,
+    token_hash TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL DEFAULT 'pending',
+    email_delivery_status VARCHAR(32) NOT NULL DEFAULT 'pending',
+    result_visibility TEXT NOT NULL DEFAULT 'confirmation_only',
+    hard_deadline_at TIMESTAMPTZ NOT NULL,
+    relative_duration_seconds INTEGER CHECK (relative_duration_seconds IS NULL OR relative_duration_seconds >= 60),
+    activated_at TIMESTAMPTZ,
+    submitted_at TIMESTAMPTZ,
+    execution_id UUID REFERENCES executions(id) ON DELETE SET NULL,
+    created_by UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    created_at TIMESTAMPTZ GENERATED ALWAYS AS (uuid_extract_timestamp(id)) VIRTUAL,
+    CONSTRAINT enforce_assignment_uuidv7 CHECK (uuid_extract_version(id) = 7),
+    CONSTRAINT enforce_assignment_batch_uuidv7 CHECK (batch_id IS NULL OR uuid_extract_version(batch_id) = 7),
+    CONSTRAINT enforce_assignment_organization_uuidv7 CHECK (uuid_extract_version(organization_id) = 7),
+    CONSTRAINT enforce_assignment_assigned_user_uuidv7 CHECK (assigned_user_id IS NULL OR uuid_extract_version(assigned_user_id) = 7),
+    CONSTRAINT enforce_assignment_workflow_uuidv7 CHECK (uuid_extract_version(workflow_id) = 7),
+    CONSTRAINT enforce_assignment_output_profile_uuidv7 CHECK (output_profile_id IS NULL OR uuid_extract_version(output_profile_id) = 7),
+    CONSTRAINT enforce_assignment_execution_uuidv7 CHECK (execution_id IS NULL OR uuid_extract_version(execution_id) = 7),
+    CONSTRAINT enforce_assignment_created_by_uuidv7 CHECK (uuid_extract_version(created_by) = 7)
 );
 
 -- Dynamic PG 18+/19 VIRTUAL vs PG 17 STORED Timestamp Guard

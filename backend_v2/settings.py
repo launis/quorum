@@ -2,18 +2,24 @@
 
 import logging
 import os
+import secrets
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
 
 from fastapi import status
-from pydantic import AliasChoices, BeforeValidator, Field, computed_field, field_validator, model_validator
+from pydantic import AliasChoices, BeforeValidator, Field, SecretStr, computed_field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.dtos.system import SafetySettingDTO
-from backend_v2.models.enums import StorageBackend as StorageBackend
+from backend_v2.models.enums import (
+    EmailTransportMode as EmailTransportMode,
+)
+from backend_v2.models.enums import (
+    StorageBackend as StorageBackend,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +114,95 @@ class Settings(BaseSettings):
         bool, BeforeValidator(strip_whitespace), Field(description="Use Firebase Auth (vs Mock)")
     ] = True
     cors_origins: Annotated[list[str], Field(default_factory=lambda: ["*"], description="Allowed CORS Origins")]
+
+    # --- IAM, Session Token Exchange, Transactional Email & BYOK Secrets ---
+    jwt_secret_key: Annotated[
+        SecretStr,
+        Field(
+            default_factory=lambda: SecretStr(secrets.token_urlsafe(32)),
+            description="HMAC-SHA256 secret key for Quorum Local JWT signing",
+        ),
+    ]
+    jwt_algorithm: Annotated[str, Field(default="HS256", description="JWT signing algorithm")] = "HS256"
+    jwt_access_token_expire_minutes: Annotated[
+        int, Field(default=15, ge=5, le=60, description="Quorum Local JWT lifetime in minutes")
+    ] = 15
+    require_mfa: Annotated[
+        bool,
+        Field(default=True, description="Enforce mandatory Multi-Factor Authentication (2FA) claim on token exchange"),
+    ] = True
+    service_auth_secret: Annotated[
+        SecretStr | None,
+        Field(default=None, description="Shared secret for headless CLI/CI service token exchange"),
+    ] = None
+    iam_revocation_ttl_seconds: Annotated[
+        int, Field(default=900, ge=300, description="Redis kill-switch TTL in seconds")
+    ] = 900
+    auth_edge_rpm_limit: Annotated[
+        int,
+        Field(
+            default=20,
+            ge=5,
+            le=300,
+            description="Sliding-window requests per minute per client IP for public auth, invitation, and assignment endpoints",
+        ),
+    ] = 20
+    assignment_submission_grace_seconds: Annotated[
+        int,
+        Field(
+            default=60, ge=0, le=600, description="Grace window in seconds for in-flight task assignment submissions"
+        ),
+    ] = 60
+    email_transport_mode: Annotated[
+        EmailTransportMode,
+        Field(
+            default=EmailTransportMode.CONSOLE,
+            description="Transactional email transport mode: console for local dev/tests or http_api for GCP Cloud Run HTTPS batch delivery",
+        ),
+    ] = EmailTransportMode.CONSOLE
+    email_from_address: Annotated[
+        str,
+        Field(
+            default="no-reply@qrum.ai",
+            min_length=3,
+            description="Canonical sender email address aligned with primary_domain",
+        ),
+    ] = "no-reply@qrum.ai"
+    email_api_endpoint: Annotated[
+        str | None,
+        Field(default=None, description="HTTPS transactional batch email API endpoint URL on port 443"),
+    ] = None
+    email_api_key: Annotated[
+        SecretStr | None,
+        Field(
+            default=None, description="Secret API key for transactional email provider injected via GCP Secret Manager"
+        ),
+    ] = None
+    email_http_timeout_seconds: Annotated[
+        float,
+        Field(
+            default=10.0,
+            ge=1.0,
+            le=60.0,
+            description="Bounded timeout in seconds for HTTPS transactional email batch API calls",
+        ),
+    ] = 10.0
+    frontend_app_base_url: Annotated[
+        str,
+        Field(
+            default="https://app.qrum.ai",
+            min_length=8,
+            description="Canonical frontend base URL for constructing /task/<token> and invitation links",
+        ),
+    ] = "https://app.qrum.ai"
+    kms_master_key_id: Annotated[
+        str | None,
+        Field(default=None, description="Cloud KMS key resource URI for BYOK envelope encryption"),
+    ] = None
+    firebase_webhook_secret: Annotated[
+        SecretStr | None,
+        Field(default=None, description="Shared HMAC secret for Firebase user deletion webhooks"),
+    ] = None
 
     # --- OpenTelemetry & Observability ---
     otel_enabled: Annotated[

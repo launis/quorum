@@ -87,7 +87,7 @@ def _build_user(org_id: str) -> User:
         language=SystemLocale.EN,
         theme_mode="dark",
         created_at=datetime.now(UTC),
-        created_by="usr_system",
+        created_by="usr_0195f3a00000700a83fd6b3d77c748f4",
     )
 
 
@@ -210,7 +210,7 @@ async def test_collection_crud_across_all_canonical_tables(monkeypatch: pytest.M
     conn = await pool.acquire()
     try:
         org = _build_org()
-        sys_org = _build_org("org_system000000")
+        sys_org = _build_org("org_0195f3a0000070008000000000000001")
         user = _build_user(org.id)
         reg_cfg = _build_registry_config()
         mcp_cfg = _build_mcp_config()
@@ -273,7 +273,7 @@ async def test_collection_crud_across_all_canonical_tables(monkeypatch: pytest.M
         assert await get_collection_document_row(conn, _TIMEOUT, "organizations", missing_org_id) is None
 
         # Verify delete for org_system000000 and standard entities
-        assert await delete_collection_document_row(conn, _TIMEOUT, "organizations", "org_system000000") is True
+        assert await delete_collection_document_row(conn, _TIMEOUT, "organizations", "org_0195f3a0000070008000000000000001") is True
         assert await delete_collection_document_row(conn, _TIMEOUT, "organizations", org.id) is True
         assert await delete_collection_document_row(conn, _TIMEOUT, "organizations", org.id) is False
 
@@ -293,7 +293,7 @@ async def test_collection_crud_across_all_canonical_tables(monkeypatch: pytest.M
 
 
 @pytest.mark.asyncio
-async def test_verify_seed_table_counts_handles_null_fetchrow_and_boundaries(
+async def test_verify_seed_table_counts_handles_null_fetchrow_and_boundaries_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify verify_seed_table_counts_rows handles None from fetchrow and raises on invalid boundaries."""
@@ -331,7 +331,7 @@ async def test_verify_seed_table_counts_handles_null_fetchrow_and_boundaries(
 
 
 @pytest.mark.asyncio
-async def test_collection_crud_and_report_artifact_fault_translation() -> None:
+async def test_collection_crud_and_report_artifact_fault_translation_failure() -> None:
     """Verify driver faults in verify_seed_table_counts, list, upsert, delete, and clear raise AppException."""
     pool = InMemoryAsyncPgPool()
     org = _build_org()

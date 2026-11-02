@@ -7,8 +7,8 @@ from collections.abc import Mapping, Sequence
 from pydantic import BaseModel, JsonValue
 
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol
-from backend_v2.models.auth import Organization, User
-from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.auth import Invitation, Organization, TenantSecretDTO, User
+from backend_v2.models.domain.execution import ExecutionAssignment, ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
 from backend_v2.models.domain.proposition_graph import ReportBinaryPayloadDTO
@@ -51,23 +51,52 @@ from .execution_and_report_stage import hydrate_report_artifact_row as hydrate_r
 from .execution_and_report_stage import save_execution_row as save_execution_row
 from .execution_and_report_stage import save_report_binary_row as save_report_binary_row
 from .execution_and_report_stage import upsert_report_artifact_row as upsert_report_artifact_row
+from .iam_and_system_stage import _GET_EXECUTION_ASSIGNMENT_SQL as _GET_EXECUTION_ASSIGNMENT_SQL
+from .iam_and_system_stage import _GET_INVITATION_SQL as _GET_INVITATION_SQL
 from .iam_and_system_stage import _GET_ORGANIZATION_SQL as _GET_ORGANIZATION_SQL
 from .iam_and_system_stage import _GET_SYSTEM_CONFIG_SQL as _GET_SYSTEM_CONFIG_SQL
+from .iam_and_system_stage import _GET_TENANT_SECRET_SQL as _GET_TENANT_SECRET_SQL
 from .iam_and_system_stage import _GET_USER_SQL as _GET_USER_SQL
+from .iam_and_system_stage import (
+    _LIST_EXECUTION_ASSIGNMENTS_BY_ORG_SQL as _LIST_EXECUTION_ASSIGNMENTS_BY_ORG_SQL,
+)
+from .iam_and_system_stage import _LIST_EXECUTION_ASSIGNMENTS_SQL as _LIST_EXECUTION_ASSIGNMENTS_SQL
+from .iam_and_system_stage import _LIST_INVITATIONS_BY_ORG_SQL as _LIST_INVITATIONS_BY_ORG_SQL
+from .iam_and_system_stage import _LIST_INVITATIONS_SQL as _LIST_INVITATIONS_SQL
 from .iam_and_system_stage import _LIST_ORGANIZATIONS_SQL as _LIST_ORGANIZATIONS_SQL
 from .iam_and_system_stage import _LIST_SYSTEM_CONFIGS_SQL as _LIST_SYSTEM_CONFIGS_SQL
+from .iam_and_system_stage import _LIST_TENANT_SECRETS_BY_ORG_SQL as _LIST_TENANT_SECRETS_BY_ORG_SQL
+from .iam_and_system_stage import _LIST_TENANT_SECRETS_SQL as _LIST_TENANT_SECRETS_SQL
+from .iam_and_system_stage import _LIST_USERS_BY_ORG_SQL as _LIST_USERS_BY_ORG_SQL
 from .iam_and_system_stage import _LIST_USERS_SQL as _LIST_USERS_SQL
+from .iam_and_system_stage import _UPSERT_EXECUTION_ASSIGNMENT_SQL as _UPSERT_EXECUTION_ASSIGNMENT_SQL
+from .iam_and_system_stage import _UPSERT_INVITATION_SQL as _UPSERT_INVITATION_SQL
 from .iam_and_system_stage import _UPSERT_ORGANIZATION_SQL as _UPSERT_ORGANIZATION_SQL
 from .iam_and_system_stage import _UPSERT_SYSTEM_CONFIG_SQL as _UPSERT_SYSTEM_CONFIG_SQL
+from .iam_and_system_stage import _UPSERT_TENANT_SECRET_SQL as _UPSERT_TENANT_SECRET_SQL
 from .iam_and_system_stage import _UPSERT_USER_SQL as _UPSERT_USER_SQL
+from .iam_and_system_stage import get_execution_assignment_row as get_execution_assignment_row
+from .iam_and_system_stage import get_invitation_row as get_invitation_row
 from .iam_and_system_stage import get_organization_row as get_organization_row
 from .iam_and_system_stage import get_system_config_row as get_system_config_row
+from .iam_and_system_stage import get_tenant_secret_row as get_tenant_secret_row
 from .iam_and_system_stage import get_user_row as get_user_row
+from .iam_and_system_stage import hydrate_execution_assignment_row as hydrate_execution_assignment_row
+from .iam_and_system_stage import hydrate_invitation_row as hydrate_invitation_row
 from .iam_and_system_stage import hydrate_organization_row as hydrate_organization_row
 from .iam_and_system_stage import hydrate_system_config_row as hydrate_system_config_row
+from .iam_and_system_stage import hydrate_tenant_secret_row as hydrate_tenant_secret_row
 from .iam_and_system_stage import hydrate_user_row as hydrate_user_row
+from .iam_and_system_stage import list_execution_assignment_rows as list_execution_assignment_rows
+from .iam_and_system_stage import list_invitation_rows as list_invitation_rows
+from .iam_and_system_stage import list_organization_rows as list_organization_rows
+from .iam_and_system_stage import list_tenant_secret_rows as list_tenant_secret_rows
+from .iam_and_system_stage import list_user_rows as list_user_rows
+from .iam_and_system_stage import upsert_execution_assignment_row as upsert_execution_assignment_row
+from .iam_and_system_stage import upsert_invitation_row as upsert_invitation_row
 from .iam_and_system_stage import upsert_organization_row as upsert_organization_row
 from .iam_and_system_stage import upsert_system_config_row as upsert_system_config_row
+from .iam_and_system_stage import upsert_tenant_secret_row as upsert_tenant_secret_row
 from .iam_and_system_stage import upsert_user_row as upsert_user_row
 from .prompt_block_and_step_stage import _GET_PROMPT_BLOCK_SQL as _GET_PROMPT_BLOCK_SQL
 from .prompt_block_and_step_stage import _GET_STEP_SQL as _GET_STEP_SQL
@@ -116,6 +145,9 @@ class PostgresEntityAdapter:
     _hydrate_execution_row = staticmethod(hydrate_execution_row)
     _hydrate_organization_row = staticmethod(hydrate_organization_row)
     _hydrate_user_row = staticmethod(hydrate_user_row)
+    _hydrate_invitation_row = staticmethod(hydrate_invitation_row)
+    _hydrate_tenant_secret_row = staticmethod(hydrate_tenant_secret_row)
+    _hydrate_execution_assignment_row = staticmethod(hydrate_execution_assignment_row)
     _hydrate_system_config_row = staticmethod(hydrate_system_config_row)
     _hydrate_prompt_block_row = staticmethod(hydrate_prompt_block_row)
     _hydrate_step_row = staticmethod(hydrate_step_row)
@@ -247,6 +279,17 @@ class PostgresEntityAdapter:
         """
         return await get_organization_row(self._conn, self.command_timeout_seconds, org_id)
 
+    async def list_organizations(self) -> list[Organization]:
+        """List all Organizations.
+
+        Returns:
+            List of hydrated Organization models.
+
+        Raises:
+            AppException: With STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await list_organization_rows(self._conn, self.command_timeout_seconds)
+
     async def upsert_user(self, user: User) -> str:
         """Persist a User into the users table.
 
@@ -274,6 +317,148 @@ class PostgresEntityAdapter:
             AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
         """
         return await get_user_row(self._conn, self.command_timeout_seconds, user_id)
+
+    async def list_users(self, organization_id: str | None = None) -> list[User]:
+        """List Users optionally filtered by parameterized organization_id.
+
+        Args:
+            organization_id: Optional canonical org_<32_hex> organization filter.
+
+        Returns:
+            List of hydrated User models.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await list_user_rows(self._conn, self.command_timeout_seconds, organization_id=organization_id)
+
+    async def upsert_invitation(self, invitation: Invitation) -> str:
+        """Persist an Invitation into the invitations table.
+
+        Args:
+            invitation: Validated Invitation domain model.
+
+        Returns:
+            Canonical inv_<32_hex> identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
+        return await upsert_invitation_row(self._conn, self.command_timeout_seconds, invitation)
+
+    async def get_invitation(self, invitation_id: str) -> Invitation | None:
+        """Fetch an Invitation by ID.
+
+        Args:
+            invitation_id: Canonical inv_<32_hex> identifier.
+
+        Returns:
+            Hydrated Invitation instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await get_invitation_row(self._conn, self.command_timeout_seconds, invitation_id)
+
+    async def list_invitations(self, organization_id: str | None = None) -> list[Invitation]:
+        """List Invitations optionally filtered by parameterized organization_id.
+
+        Args:
+            organization_id: Optional canonical org_<32_hex> organization filter.
+
+        Returns:
+            List of hydrated Invitation models.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await list_invitation_rows(self._conn, self.command_timeout_seconds, organization_id=organization_id)
+
+    async def upsert_tenant_secret(self, secret: TenantSecretDTO) -> str:
+        """Persist a TenantSecretDTO into the tenant_secrets table.
+
+        Args:
+            secret: Validated TenantSecretDTO model.
+
+        Returns:
+            Canonical sec_<32_hex> identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
+        return await upsert_tenant_secret_row(self._conn, self.command_timeout_seconds, secret)
+
+    async def get_tenant_secret(self, secret_id: str) -> TenantSecretDTO | None:
+        """Fetch a TenantSecretDTO by ID.
+
+        Args:
+            secret_id: Canonical sec_<32_hex> identifier.
+
+        Returns:
+            Hydrated TenantSecretDTO instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await get_tenant_secret_row(self._conn, self.command_timeout_seconds, secret_id)
+
+    async def list_tenant_secrets(self, organization_id: str | None = None) -> list[TenantSecretDTO]:
+        """List TenantSecretDTO rows optionally filtered by parameterized organization_id.
+
+        Args:
+            organization_id: Optional canonical org_<32_hex> organization filter.
+
+        Returns:
+            List of hydrated TenantSecretDTO models.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await list_tenant_secret_rows(self._conn, self.command_timeout_seconds, organization_id=organization_id)
+
+    async def upsert_execution_assignment(self, assignment: ExecutionAssignment) -> str:
+        """Persist an ExecutionAssignment into the execution_assignments table.
+
+        Args:
+            assignment: Validated ExecutionAssignment domain model.
+
+        Returns:
+            Canonical tsk_<32_hex> identifier.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on persistence failure.
+        """
+        return await upsert_execution_assignment_row(self._conn, self.command_timeout_seconds, assignment)
+
+    async def get_execution_assignment(self, assignment_id: str) -> ExecutionAssignment | None:
+        """Fetch an ExecutionAssignment by ID.
+
+        Args:
+            assignment_id: Canonical tsk_<32_hex> identifier.
+
+        Returns:
+            Hydrated ExecutionAssignment instance, or None if not found.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await get_execution_assignment_row(self._conn, self.command_timeout_seconds, assignment_id)
+
+    async def list_execution_assignments(self, organization_id: str | None = None) -> list[ExecutionAssignment]:
+        """List ExecutionAssignments optionally filtered by parameterized organization_id.
+
+        Args:
+            organization_id: Optional canonical org_<32_hex> organization filter.
+
+        Returns:
+            List of hydrated ExecutionAssignment models.
+
+        Raises:
+            AppException: With VALIDATION_FAILED or STORAGE_ACCESS_FAILED on query failure.
+        """
+        return await list_execution_assignment_rows(
+            self._conn, self.command_timeout_seconds, organization_id=organization_id
+        )
 
     async def upsert_system_config(self, cfg: AnySystemConfig) -> str:
         """Persist a SystemConfigModelRegistry or SystemConfigMCPGateways into system_configs.

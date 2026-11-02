@@ -15,6 +15,7 @@ from backend_v2.exceptions import (
     ResourceNotFoundError,
 )
 from backend_v2.models.auth import (
+    SYSTEM_ROOT_USER_ID,
     Organization,
     SubscriptionStatus,
     SystemOrganizations,
@@ -26,12 +27,6 @@ from backend_v2.models.auth import (
 )
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.enums import EntityPrefix
-from backend_v2.services.auth.constants import (
-    LEGACY_ROOT_MASTER_ID,
-    LEGACY_SYSTEM_ORG_ID,
-    LEGACY_SYSTEM_ROOT_USER_ID,
-    SYSTEM_ROOT_USER_ID,
-)
 from backend_v2.services.auth.repositories import (
     OrganizationRepository,
     UserRepository,
@@ -367,7 +362,7 @@ class UserService:
                 raise PermissionDeniedError("Insufficient permissions to delete users")
 
         # ROOT PROTECTION
-        if target_id in (LEGACY_ROOT_MASTER_ID, SYSTEM_ROOT_USER_ID, LEGACY_SYSTEM_ROOT_USER_ID):
+        if target_id == SYSTEM_ROOT_USER_ID:
             logger.error(
                 "[UserService] %s: Attempted to delete protected Root account %s (initiator=%s).",
                 ErrorCodes.PERMISSION_DENIED.name,
@@ -777,6 +772,7 @@ class UserService:
                     quota_limit=5000.0,
                     tpm_limit=50000,
                     rpm_limit=500,
+                    allowed_email_domains=[],
                 )
             )
 
@@ -794,10 +790,7 @@ class UserService:
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
-        if root.organization_id not in [
-            SystemOrganizations.ROOT_SYSTEM,
-            LEGACY_SYSTEM_ORG_ID,
-        ]:
+        if root.organization_id != SystemOrganizations.ROOT_SYSTEM:
             logger.info(
                 "Fixing root_master organization_id from '%s' to '%s'",
                 root.organization_id,

@@ -103,7 +103,7 @@ def test_upgrade_or_generate_opaque_id_variants() -> None:
     )
     assert (
         _upgrade_or_generate_opaque_id("org_system000000", EntityPrefix.ORGANIZATION)
-        == "org_0195f3a0000070008000000000000000"
+        == "org_0195f3a0000070008000000000000001"
     )
 
 
@@ -222,7 +222,7 @@ def test_sanitize_steps_workflows_profiles_and_auxiliary() -> None:
     _sanitize_auxiliary_collections(aux_data)
     aux_dump = json.dumps(aux_data)
     assert SystemConfigID.MCP_GATEWAYS.value in aux_dump
-    assert '"org_system000000"' in aux_dump
+    assert '"org_0195f3a0000070008000000000000001"' in aux_dump
     assert '"org_0195f3a00000700e8531d2ed8a6641f6"' in aux_dump
     assert '"usr_0195f3a0000070078a9c1b2e4d5f6a8b"' in aux_dump
 

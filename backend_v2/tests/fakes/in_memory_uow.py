@@ -33,7 +33,13 @@ from backend_v2.database.postgres.pool import (
     AsyncPgTransactionProtocol,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import Organization, User
+from backend_v2.models.auth import (
+    ExecutionAssignment,
+    Invitation,
+    Organization,
+    TenantSecretDTO,
+    User,
+)
 from backend_v2.models.core_base import (
     V2CoreBase,
     format_prefixed_uuid7,
@@ -149,6 +155,7 @@ class _InMemoryPostgresStore:
         executions: Mapping of execution_id to ExecutionRecord.
         seed_tables: Mapping of canonical PostgreSQL table name to stored records keyed by id.
         migrations_applied: Number of times DDL migrations were executed.
+        current_org_reset_count: Number of times RESET quorum.current_org was executed.
     """
 
     def __init__(self) -> None:
@@ -161,6 +168,9 @@ class _InMemoryPostgresStore:
         self.seed_tables: dict[str, dict[str, _SeedRowEntry]] = {
             "organizations": {},
             "users": {},
+            "invitations": {},
+            "tenant_secrets": {},
+            "execution_assignments": {},
             "system_configs": {},
             "prompt_blocks": {},
             "steps": {},
@@ -170,6 +180,7 @@ class _InMemoryPostgresStore:
             "trace_events": {},
         }
         self.migrations_applied: int = 0
+        self.current_org_reset_count: int = 0
 
     def take_snapshot(self) -> _StoreSnapshot:
         """Capture an immutable copy of all current table dictionaries.
@@ -691,6 +702,246 @@ class InMemoryEntityAdapter:
         """
         self._store: _InMemoryPostgresStore = store
 
+    async def upsert_organization(self, org: Organization) -> str:
+        """Upsert an Organization entity in memory.
+
+        Args:
+            org: Validated Organization domain model.
+
+        Returns:
+            Canonical org_<uuid7_hex> organization identifier.
+        """
+        _ = parse_prefixed_uuid7(org.id, EntityPrefix.ORG)
+        self._store.seed_tables["organizations"][org.id] = org
+        return org.id
+
+    async def get_organization(self, org_id: str) -> Organization | None:
+        """Retrieve an Organization by org_id.
+
+        Args:
+            org_id: Canonical org_<uuid7_hex> organization identifier.
+
+        Returns:
+            Stored Organization or None if not found.
+        """
+        _ = parse_prefixed_uuid7(org_id, EntityPrefix.ORG)
+        if org_id in self._store.seed_tables["organizations"]:
+            item = self._store.seed_tables["organizations"][org_id]
+            if isinstance(item, Organization):
+                return item
+        return None
+
+    async def list_organizations(self) -> Sequence[Organization]:
+        """List all persisted Organization entities.
+
+        Returns:
+            Sequence of Organization domain models.
+        """
+        orgs = [item for item in self._store.seed_tables["organizations"].values() if isinstance(item, Organization)]
+        orgs.sort(key=lambda o: o.id)
+        return tuple(orgs)
+
+    async def upsert_user(self, user: User) -> str:
+        """Upsert a User entity in memory.
+
+        Args:
+            user: Validated User domain model.
+
+        Returns:
+            Canonical usr_<uuid7_hex> user identifier.
+        """
+        _ = parse_prefixed_uuid7(user.id, EntityPrefix.USER)
+        _ = parse_prefixed_uuid7(user.organization_id, EntityPrefix.ORG)
+        self._store.seed_tables["users"][user.id] = user
+        return user.id
+
+    async def get_user(self, user_id: str) -> User | None:
+        """Retrieve a User by user_id.
+
+        Args:
+            user_id: Canonical usr_<uuid7_hex> user identifier.
+
+        Returns:
+            Stored User or None if not found.
+        """
+        _ = parse_prefixed_uuid7(user_id, EntityPrefix.USER)
+        if user_id in self._store.seed_tables["users"]:
+            item = self._store.seed_tables["users"][user_id]
+            if isinstance(item, User):
+                return item
+        return None
+
+    async def list_users(self, organization_id: str | None = None) -> Sequence[User]:
+        """List persisted User entities, optionally filtered by organization_id.
+
+        Args:
+            organization_id: Optional org_<uuid7_hex> organization filter.
+
+        Returns:
+            Sequence of User domain models.
+        """
+        if organization_id is not None:
+            _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORG)
+        users = [
+            item
+            for item in self._store.seed_tables["users"].values()
+            if isinstance(item, User) and (organization_id is None or item.organization_id == organization_id)
+        ]
+        users.sort(key=lambda u: u.id)
+        return tuple(users)
+
+    async def upsert_invitation(self, invitation: Invitation) -> str:
+        """Upsert an Invitation entity in memory.
+
+        Args:
+            invitation: Validated Invitation domain model.
+
+        Returns:
+            Canonical inv_<uuid7_hex> invitation identifier.
+        """
+        _ = parse_prefixed_uuid7(invitation.id, EntityPrefix.INVITATION)
+        _ = parse_prefixed_uuid7(invitation.organization_id, EntityPrefix.ORG)
+        self._store.seed_tables["invitations"][invitation.id] = invitation
+        return invitation.id
+
+    async def get_invitation(self, invitation_id: str) -> Invitation | None:
+        """Retrieve an Invitation by invitation_id.
+
+        Args:
+            invitation_id: Canonical inv_<uuid7_hex> invitation identifier.
+
+        Returns:
+            Stored Invitation or None if not found.
+        """
+        _ = parse_prefixed_uuid7(invitation_id, EntityPrefix.INVITATION)
+        if invitation_id in self._store.seed_tables["invitations"]:
+            item = self._store.seed_tables["invitations"][invitation_id]
+            if isinstance(item, Invitation):
+                return item
+        return None
+
+    async def list_invitations(self, organization_id: str | None = None) -> Sequence[Invitation]:
+        """List persisted Invitation entities, optionally filtered by organization_id.
+
+        Args:
+            organization_id: Optional org_<uuid7_hex> organization filter.
+
+        Returns:
+            Sequence of Invitation domain models.
+        """
+        if organization_id is not None:
+            _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORG)
+        invs = [
+            item
+            for item in self._store.seed_tables["invitations"].values()
+            if isinstance(item, Invitation) and (organization_id is None or item.organization_id == organization_id)
+        ]
+        invs.sort(key=lambda i: i.id)
+        return tuple(invs)
+
+    async def upsert_tenant_secret(self, secret: TenantSecretDTO) -> str:
+        """Upsert a TenantSecretDTO entity in memory.
+
+        Args:
+            secret: Validated TenantSecretDTO domain model.
+
+        Returns:
+            Canonical sec_<uuid7_hex> tenant secret identifier.
+        """
+        _ = parse_prefixed_uuid7(secret.id, EntityPrefix.TENANT_SECRET)
+        _ = parse_prefixed_uuid7(secret.organization_id, EntityPrefix.ORG)
+        self._store.seed_tables["tenant_secrets"][secret.id] = secret
+        return secret.id
+
+    async def get_tenant_secret(self, secret_id: str) -> TenantSecretDTO | None:
+        """Retrieve a TenantSecretDTO by secret_id.
+
+        Args:
+            secret_id: Canonical sec_<uuid7_hex> tenant secret identifier.
+
+        Returns:
+            Stored TenantSecretDTO or None if not found.
+        """
+        _ = parse_prefixed_uuid7(secret_id, EntityPrefix.TENANT_SECRET)
+        if secret_id in self._store.seed_tables["tenant_secrets"]:
+            item = self._store.seed_tables["tenant_secrets"][secret_id]
+            if isinstance(item, TenantSecretDTO):
+                return item
+        return None
+
+    async def list_tenant_secrets(self, organization_id: str | None = None) -> Sequence[TenantSecretDTO]:
+        """List persisted TenantSecretDTO entities, optionally filtered by organization_id.
+
+        Args:
+            organization_id: Optional org_<uuid7_hex> organization filter.
+
+        Returns:
+            Sequence of TenantSecretDTO domain models.
+        """
+        if organization_id is not None:
+            _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORG)
+        secrets = [
+            item
+            for item in self._store.seed_tables["tenant_secrets"].values()
+            if isinstance(item, TenantSecretDTO)
+            and (organization_id is None or item.organization_id == organization_id)
+        ]
+        secrets.sort(key=lambda s: s.id)
+        return tuple(secrets)
+
+    async def upsert_execution_assignment(self, assignment: ExecutionAssignment) -> str:
+        """Upsert an ExecutionAssignment entity in memory.
+
+        Args:
+            assignment: Validated ExecutionAssignment domain model.
+
+        Returns:
+            Canonical tsk_<uuid7_hex> execution assignment identifier.
+        """
+        _ = parse_prefixed_uuid7(assignment.id, EntityPrefix.ASSIGNMENT)
+        _ = parse_prefixed_uuid7(assignment.organization_id, EntityPrefix.ORG)
+        self._store.seed_tables["execution_assignments"][assignment.id] = assignment
+        return assignment.id
+
+    async def get_execution_assignment(self, assignment_id: str) -> ExecutionAssignment | None:
+        """Retrieve an ExecutionAssignment by assignment_id.
+
+        Args:
+            assignment_id: Canonical tsk_<uuid7_hex> execution assignment identifier.
+
+        Returns:
+            Stored ExecutionAssignment or None if not found.
+        """
+        _ = parse_prefixed_uuid7(assignment_id, EntityPrefix.ASSIGNMENT)
+        if assignment_id in self._store.seed_tables["execution_assignments"]:
+            item = self._store.seed_tables["execution_assignments"][assignment_id]
+            if isinstance(item, ExecutionAssignment):
+                return item
+        return None
+
+    async def list_execution_assignments(
+        self,
+        organization_id: str | None = None,
+    ) -> Sequence[ExecutionAssignment]:
+        """List persisted ExecutionAssignment entities, optionally filtered by organization_id.
+
+        Args:
+            organization_id: Optional org_<uuid7_hex> organization filter.
+
+        Returns:
+            Sequence of ExecutionAssignment domain models.
+        """
+        if organization_id is not None:
+            _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORG)
+        assignments = [
+            item
+            for item in self._store.seed_tables["execution_assignments"].values()
+            if isinstance(item, ExecutionAssignment)
+            and (organization_id is None or item.organization_id == organization_id)
+        ]
+        assignments.sort(key=lambda a: a.id)
+        return tuple(assignments)
+
     async def save_report_binary(self, payload: ReportBinaryPayloadDTO) -> None:
         """Persist a ReportBinaryPayloadDTO in memory and mark report_has_pdf.
 
@@ -828,6 +1079,9 @@ class InMemoryEntityAdapter:
         allowed = {
             "organizations",
             "users",
+            "invitations",
+            "tenant_secrets",
+            "execution_assignments",
             "system_configs",
             "prompt_blocks",
             "steps",
@@ -854,6 +1108,9 @@ class InMemoryEntityAdapter:
         expected_types: dict[str, tuple[type[BaseModel], ...]] = {
             "organizations": (Organization,),
             "users": (User,),
+            "invitations": (Invitation,),
+            "tenant_secrets": (TenantSecretDTO,),
+            "execution_assignments": (ExecutionAssignment,),
             "system_configs": (SystemConfigModelRegistry, SystemConfigMCPGateways),
             "prompt_blocks": (
                 MatrixPromptBlock,
@@ -906,13 +1163,13 @@ class InMemoryEntityAdapter:
         self,
         expected_counts: Mapping[str, int],
     ) -> dict[str, int]:
-        """Query row counts across all 10 core tables and assert seed materialization.
+        """Query row counts across all core tables and assert seed materialization.
 
         Args:
             expected_counts: Mapping of collection/table name to minimum expected row count.
 
         Returns:
-            Dictionary mapping each of the 10 table names to its row count.
+            Dictionary mapping each of the table names to its row count.
 
         Raises:
             AppException: With STORAGE_ACCESS_FAILED or VALIDATION_FAILED if any table fails verification.
@@ -1102,6 +1359,10 @@ class InMemoryAsyncPgConnection:
         _ = timeout
         normalized = " ".join(query.strip().split()).upper()
 
+        if "RESET QUORUM.CURRENT_ORG" in normalized:
+            self._store.current_org_reset_count += 1
+            return "RESET"
+
         if "SET DEFAULT_TOAST_COMPRESSION" in normalized or "CREATE TABLE" in normalized:
             self._store.migrations_applied += 1
             return "CREATE TABLE"
@@ -1153,6 +1414,9 @@ class InMemoryAsyncPgConnection:
         for tbl in (
             "organizations",
             "users",
+            "invitations",
+            "tenant_secrets",
+            "execution_assignments",
             "system_configs",
             "prompt_blocks",
             "steps",
@@ -1233,6 +1497,9 @@ class InMemoryAsyncPgConnection:
             for tbl in (
                 "organizations",
                 "users",
+                "invitations",
+                "tenant_secrets",
+                "execution_assignments",
                 "system_configs",
                 "prompt_blocks",
                 "steps",
@@ -1331,6 +1598,9 @@ class InMemoryAsyncPgConnection:
         for tbl in (
             "organizations",
             "users",
+            "invitations",
+            "tenant_secrets",
+            "execution_assignments",
             "system_configs",
             "prompt_blocks",
             "steps",
@@ -1343,7 +1613,15 @@ class InMemoryAsyncPgConnection:
                 rows: list[AsyncPgRecordProtocol] = []
                 for entry in self._store.seed_tables[tbl].values():
                     if isinstance(entry, Sequence):
-                        rows.append(InMemoryAsyncPgRecord(self._zip_select_row(cols, entry)))
+                        mapped = self._zip_select_row(cols, entry)
+                        if (
+                            "WHERE ORGANIZATION_ID = $1" in normalized
+                            and args
+                            and "organization_id" in mapped
+                            and mapped["organization_id"] != args[0]
+                        ):
+                            continue
+                        rows.append(InMemoryAsyncPgRecord(mapped))
                 return tuple(rows)
 
         return ()
@@ -1464,6 +1742,9 @@ class InMemoryAsyncPgConnection:
             for tbl in (
                 "organizations",
                 "users",
+                "invitations",
+                "tenant_secrets",
+                "execution_assignments",
                 "system_configs",
                 "prompt_blocks",
                 "steps",
@@ -1518,6 +1799,9 @@ class InMemoryAsyncPgConnection:
         for tbl in (
             "organizations",
             "users",
+            "invitations",
+            "tenant_secrets",
+            "execution_assignments",
             "system_configs",
             "prompt_blocks",
             "steps",
@@ -1661,6 +1945,7 @@ class InMemoryUnitOfWork:
             elif not self._finalized:
                 await self.commit()
         finally:
+            self.store.current_org_reset_count += 1
             self._snapshot = None
 
     async def commit(self) -> None:

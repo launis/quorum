@@ -232,3 +232,56 @@ def test_enum_parity_missing_member_failure() -> None:
     fake_py = "class StepFilterScope(StrEnum):\n    SPECIALISTS = 'specialists'\n    ALL = 'all'\n"
     with pytest.raises(AssertionError, match="Missing in Dart"):
         assert_enum_parity(fake_dart, fake_py, "StepFilterScope")
+
+
+def test_iam_and_assignment_enums_ssot_in_python_enums() -> None:
+    """Verify UserRole, SubscriptionStatus, and IAM/Assignment/Secret enums are defined in backend_v2/models/enums.py."""
+    py_code = read_file(PYTHON_ENUMS_PATH)
+    assert extract_python_enum_values_ast(py_code, "UserRole") == {
+        "ROOT",
+        "ADMIN",
+        "MANAGER",
+        "MEMBER",
+        "VIEWER",
+    }
+    assert extract_python_enum_values_ast(py_code, "SubscriptionStatus") == {
+        "active",
+        "past_due",
+        "canceled",
+        "trial",
+    }
+    assert extract_python_enum_values_ast(py_code, "InvitationStatus") == {
+        "pending",
+        "accepted",
+        "expired",
+        "revoked",
+    }
+    assert extract_python_enum_values_ast(py_code, "AssignmentStatus") == {
+        "pending",
+        "activated",
+        "submitted",
+        "completed",
+        "expired",
+        "revoked",
+    }
+    assert extract_python_enum_values_ast(py_code, "AssignmentResultVisibility") == {
+        "confirmation_only",
+        "full_report_access",
+    }
+    assert extract_python_enum_values_ast(py_code, "EmailTransportMode") == {
+        "console",
+        "http_api",
+    }
+    assert extract_python_enum_values_ast(py_code, "EmailDeliveryStatus") == {
+        "pending",
+        "sent",
+        "failed",
+    }
+    assert extract_python_enum_values_ast(py_code, "SecretScope") == {
+        "llm_provider",
+        "mcp_gateway",
+    }
+    assert extract_python_enum_values_ast(py_code, "SecretStorageMode") == {
+        "envelope_kms",
+        "cloud_secret_manager",
+    }

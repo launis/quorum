@@ -337,7 +337,10 @@ class PostgresUnitOfWork:
             self._pool = None
             self._bind_unbound_adapters()
             if conn is not None and pool is not None:
-                await pool.release(conn, timeout=timeout_sec)
+                try:
+                    await conn.execute("RESET quorum.current_org", timeout=timeout_sec)
+                finally:
+                    await pool.release(conn, timeout=timeout_sec)
 
     async def commit(self) -> None:
         """Commit the active repeatable_read transaction.

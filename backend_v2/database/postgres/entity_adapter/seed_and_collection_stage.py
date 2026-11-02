@@ -14,15 +14,14 @@ import backend_v2.database.postgres.entity_adapter.prompt_block_and_step_stage a
 import backend_v2.database.postgres.entity_adapter.workflow_and_profile_stage as _wp
 from backend_v2.database.postgres.entity_adapter.coercion_and_constants import (
     _COLLECTION_TO_TABLE_MAP,
-    _ROOT_SYSTEM_ORG_UUID7,
     _TABLE_TO_ENTITY_PREFIX,
     CANONICAL_SEED_TABLES,
 )
 from backend_v2.database.postgres.pool import AsyncPgConnectionProtocol, AsyncPgRecordProtocol
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.auth import Organization, User
+from backend_v2.models.auth import Invitation, Organization, TenantSecretDTO, User
 from backend_v2.models.core_base import parse_prefixed_uuid7
-from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.execution import ExecutionAssignment, ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
@@ -56,6 +55,9 @@ type _GetRowFn = Callable[[_Conn, float, str], Coroutine[object, object, BaseMod
 _LIST_SPECS: dict[str, tuple[str, _HydrateFn]] = {
     "organizations": (_iam._LIST_ORGANIZATIONS_SQL, _iam.hydrate_organization_row),
     "users": (_iam._LIST_USERS_SQL, _iam.hydrate_user_row),
+    "invitations": (_iam._LIST_INVITATIONS_SQL, _iam.hydrate_invitation_row),
+    "tenant_secrets": (_iam._LIST_TENANT_SECRETS_SQL, _iam.hydrate_tenant_secret_row),
+    "execution_assignments": (_iam._LIST_EXECUTION_ASSIGNMENTS_SQL, _iam.hydrate_execution_assignment_row),
     "system_configs": (_iam._LIST_SYSTEM_CONFIGS_SQL, _iam.hydrate_system_config_row),
     "prompt_blocks": (_pbs._LIST_PROMPT_BLOCKS_SQL, _pbs.hydrate_prompt_block_row),
     "steps": (_pbs._LIST_STEPS_SQL, _pbs.hydrate_step_row),
@@ -68,6 +70,9 @@ _LIST_SPECS: dict[str, tuple[str, _HydrateFn]] = {
 _GET_HANDLERS: dict[str, _GetRowFn] = {
     "organizations": _iam.get_organization_row,
     "users": _iam.get_user_row,
+    "invitations": _iam.get_invitation_row,
+    "tenant_secrets": _iam.get_tenant_secret_row,
+    "execution_assignments": _iam.get_execution_assignment_row,
     "system_configs": _iam.get_system_config_row,
     "prompt_blocks": _pbs.get_prompt_block_row,
     "steps": _pbs.get_step_row,
@@ -80,6 +85,9 @@ _GET_HANDLERS: dict[str, _GetRowFn] = {
 _MODEL_CLASSES: dict[str, type[BaseModel]] = {
     "organizations": Organization,
     "users": User,
+    "invitations": Invitation,
+    "tenant_secrets": TenantSecretDTO,
+    "execution_assignments": ExecutionAssignment,
     "steps": Step,
     "workflows": Workflow,
     "output_profiles": OutputProfile,
@@ -115,7 +123,6 @@ async def _fetch_rows(conn: _Conn, timeout: float, sql: str, table_name: str) ->
         raise _log_storage_error(f"Failed to list rows from table '{table_name}': {exc}", table_name) from exc
 
 
-# Phase 3, Step 1: Extract seed batching, table count verification, and generic collection CRUD functions
 async def seed_collection_batch_rows(conn: _Conn, timeout: float, col_name: str, items: Sequence[BaseModel]) -> int:
     """Idempotently upsert a validated batch of domain entities into PostgreSQL 19.
 
@@ -141,6 +148,12 @@ async def seed_collection_batch_rows(conn: _Conn, timeout: float, col_name: str,
             await _iam.upsert_organization_row(conn, timeout, item)
         elif table_name == "users" and isinstance(item, User):
             await _iam.upsert_user_row(conn, timeout, item)
+        elif table_name == "invitations" and isinstance(item, Invitation):
+            await _iam.upsert_invitation_row(conn, timeout, item)
+        elif table_name == "tenant_secrets" and isinstance(item, TenantSecretDTO):
+            await _iam.upsert_tenant_secret_row(conn, timeout, item)
+        elif table_name == "execution_assignments" and isinstance(item, ExecutionAssignment):
+            await _iam.upsert_execution_assignment_row(conn, timeout, item)
         elif table_name == "system_configs" and isinstance(item, (SystemConfigModelRegistry, SystemConfigMCPGateways)):
             await _iam.upsert_system_config_row(conn, timeout, item)
         elif table_name == "prompt_blocks" and isinstance(
@@ -321,11 +334,7 @@ async def delete_collection_document_row(conn: _Conn, timeout: float, col_name: 
     if table_name not in _TABLE_TO_ENTITY_PREFIX:
         return False
     try:
-        doc_uuid = (
-            _ROOT_SYSTEM_ORG_UUID7
-            if table_name == "organizations" and doc_id == "org_system000000"
-            else parse_prefixed_uuid7(doc_id, _TABLE_TO_ENTITY_PREFIX[table_name])
-        )
+        doc_uuid = parse_prefixed_uuid7(doc_id, _TABLE_TO_ENTITY_PREFIX[table_name])
     except AppException:
         return False
     try:

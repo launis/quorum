@@ -60,6 +60,9 @@ CANONICAL_SEED_TABLES: tuple[str, ...] = (
 _COLLECTION_TO_TABLE_MAP: dict[str, str] = {
     "organizations": "organizations",
     "users": "users",
+    "invitations": "invitations",
+    "tenant_secrets": "tenant_secrets",
+    "execution_assignments": "execution_assignments",
     "system_config": "system_configs",
     "system_configs": "system_configs",
     "prompt_blocks": "prompt_blocks",
@@ -77,6 +80,9 @@ _COLLECTION_TO_TABLE_MAP: dict[str, str] = {
 _TABLE_TO_ENTITY_PREFIX: dict[str, EntityPrefix] = {
     "organizations": EntityPrefix.ORGANIZATION,
     "users": EntityPrefix.USER,
+    "invitations": EntityPrefix.INVITATION,
+    "tenant_secrets": EntityPrefix.TENANT_SECRET,
+    "execution_assignments": EntityPrefix.ASSIGNMENT,
     "system_configs": EntityPrefix.SYSTEM_CONFIG,
     "prompt_blocks": EntityPrefix.PROMPT_BLOCK,
     "steps": EntityPrefix.STEP,
@@ -179,7 +185,7 @@ def _parse_org_uuid7(raw: str | None) -> uuid.UUID | None:
     """Parse an optional organization_id into a 16-byte UUIDv7, bridging 'SYSTEM' deterministically.
 
     Args:
-        raw: Optional organization identifier ('SYSTEM', 'org_system000000', or 'org_<32_hex>').
+        raw: Optional organization identifier ('SYSTEM' or 'org_<32_hex>').
 
     Returns:
         Parsed 16-byte uuid.UUID instance, or None for global/SYSTEM scope.
@@ -189,13 +195,11 @@ def _parse_org_uuid7(raw: str | None) -> uuid.UUID | None:
     """
     if raw is None or raw == "SYSTEM":
         return None
-    if raw == "org_system000000":
-        return _ROOT_SYSTEM_ORG_UUID7
     return parse_prefixed_uuid7(raw, EntityPrefix.ORGANIZATION)
 
 
 def _format_org_uuid7(raw: object, *, default_system: bool = False) -> str | None:
-    """Format a database organization_id UUID column into 'org_<32_hex>', 'org_system000000', 'SYSTEM', or None.
+    """Format a database organization_id UUID column into 'org_<32_hex>', 'SYSTEM', or None.
 
     Args:
         raw: Raw database organization_id column value or None.
@@ -212,8 +216,6 @@ def _format_org_uuid7(raw: object, *, default_system: bool = False) -> str | Non
     coerced = _coerce_uuid_or_str(raw)
     if coerced == _SYSTEM_ORG_UUID7 or str(coerced) in {str(_SYSTEM_ORG_UUID7), "SYSTEM"}:
         return "SYSTEM"
-    if coerced == _ROOT_SYSTEM_ORG_UUID7 or str(coerced) in {str(_ROOT_SYSTEM_ORG_UUID7), "org_system000000"}:
-        return "org_system000000"
     return format_prefixed_uuid7(coerced, EntityPrefix.ORGANIZATION)
 
 

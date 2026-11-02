@@ -37,7 +37,7 @@ async def test_organization_repository(mock_repo: InMemoryUnifiedWorkflowReposit
     org_repo = OrganizationRepository(mock_repo)
 
     test_org = Organization(
-        id="org_1234abcd",
+        id="org_0195f3a000007000800000001234abcd",
         name="Test Org",
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
@@ -50,13 +50,13 @@ async def test_organization_repository(mock_repo: InMemoryUnifiedWorkflowReposit
 
     # Test get_by_id
     await mock_repo.create_organization(test_org)
-    org = await org_repo.get_by_id("org_1234abcd")
+    org = await org_repo.get_by_id("org_0195f3a000007000800000001234abcd")
     assert org is not None
-    assert org.id == "org_1234abcd"
+    assert org.id == "org_0195f3a000007000800000001234abcd"
 
     # Test create
     org_obj = Organization(
-        id="org_2345bcde",
+        id="org_0195f3a000007000800000002345bcde",
         name="New Org",
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
@@ -67,7 +67,7 @@ async def test_organization_repository(mock_repo: InMemoryUnifiedWorkflowReposit
         rpm_limit=500,
     )
     await org_repo.create(org_obj)
-    persisted = await mock_repo.get_organization("org_2345bcde")
+    persisted = await mock_repo.get_organization("org_0195f3a000007000800000002345bcde")
     assert persisted is not None
 
     # Test list_all
@@ -80,21 +80,21 @@ async def test_user_repository(mock_repo: InMemoryUnifiedWorkflowRepository) -> 
     user_repo = UserRepository(mock_repo)
 
     test_user = User(
-        id="usr_1234abcd",
+        id="usr_0195f3a000007000800000001234abcd",
         email="test@test.com",
         role=UserRole.MEMBER,
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_1234abcd",
+        organization_id="org_0195f3a000007000800000001234abcd",
     )
 
     # Test get_by_id
     await mock_repo.create_user(test_user)
-    user = await user_repo.get_by_id("usr_1234abcd")
+    user = await user_repo.get_by_id("usr_0195f3a000007000800000001234abcd")
     assert user is not None
-    assert user.id == "usr_1234abcd"
+    assert user.id == "usr_0195f3a000007000800000001234abcd"
 
 
 @pytest.mark.asyncio
@@ -103,28 +103,28 @@ async def test_user_repository_create_update_delete(mock_repo: InMemoryUnifiedWo
 
     # create
     new_user = User(
-        id="usr_2345bcde",
+        id="usr_0195f3a000007000800000002345bcde",
         email="new@test.com",
         role=UserRole.MEMBER,
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_2345bcde",
+        organization_id="org_0195f3a000007000800000002345bcde",
     )
     await user_repo.create(new_user)
-    persisted = await mock_repo.get_user("usr_2345bcde")
+    persisted = await mock_repo.get_user("usr_0195f3a000007000800000002345bcde")
     assert persisted is not None
 
     # update
-    updated = await user_repo.update("usr_2345bcde", UserUpdate(name="Updated Name"))
+    updated = await user_repo.update("usr_0195f3a000007000800000002345bcde", UserUpdate(name="Updated Name"))
     assert updated is not None
     assert updated.name == "Updated Name"
 
     # delete
-    result = await user_repo.delete("usr_2345bcde")
+    result = await user_repo.delete("usr_0195f3a000007000800000002345bcde")
     assert result is True
-    assert await mock_repo.get_user("usr_2345bcde") is None
+    assert await mock_repo.get_user("usr_0195f3a000007000800000002345bcde") is None
 
 
 @pytest.mark.asyncio
@@ -133,7 +133,7 @@ async def test_organization_repository_get_by_id_found_returns_organization(
 ) -> None:
     org_repo = OrganizationRepository(mock_repo)
     test_org = Organization(
-        id="org_test1234",
+        id="org_0195f3a0000070008000000000001234",
         name="Test Org",
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
@@ -144,9 +144,9 @@ async def test_organization_repository_get_by_id_found_returns_organization(
         rpm_limit=500,
     )
     await mock_repo.create_organization(test_org)
-    res = await org_repo.get_by_id("org_test1234")
+    res = await org_repo.get_by_id("org_0195f3a0000070008000000000001234")
     assert res is not None
-    assert res.id == "org_test1234"
+    assert res.id == "org_0195f3a0000070008000000000001234"
     assert res.name == "Test Org"
 
 
@@ -165,7 +165,7 @@ async def test_organization_repository_create_persists_and_returns(
 ) -> None:
     org_repo = OrganizationRepository(mock_repo)
     test_org = Organization(
-        id="org_create123",
+        id="org_0195f3a0000070008000000000000123",
         name="Created Org",
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
@@ -176,8 +176,8 @@ async def test_organization_repository_create_persists_and_returns(
         rpm_limit=500,
     )
     created = await org_repo.create(test_org)
-    assert created.id == "org_create123"
-    persisted = await mock_repo.get_organization("org_create123")
+    assert created.id == "org_0195f3a0000070008000000000000123"
+    persisted = await mock_repo.get_organization("org_0195f3a0000070008000000000000123")
     assert persisted is not None
 
 
@@ -187,7 +187,7 @@ async def test_organization_repository_list_all_returns_list(
 ) -> None:
     org_repo = OrganizationRepository(mock_repo)
     test_org = Organization(
-        id="org_list1234",
+        id="org_0195f3a0000070008000000000002234",
         name="List Org",
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
@@ -200,7 +200,7 @@ async def test_organization_repository_list_all_returns_list(
     await org_repo.create(test_org)
     orgs = await org_repo.list_all()
     assert isinstance(orgs, list)
-    assert any(o.id == "org_list1234" for o in orgs)
+    assert any(o.id == "org_0195f3a0000070008000000000002234" for o in orgs)
 
 
 @pytest.mark.asyncio
@@ -209,19 +209,19 @@ async def test_user_repository_get_by_id_found_returns_user(
 ) -> None:
     user_repo = UserRepository(mock_repo)
     test_user = User(
-        id="usr_abc12345",
+        id="usr_0195f3a00000700080000000abc12345",
         email="abc@test.com",
         role=UserRole.MEMBER,
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_test1234",
+        organization_id="org_0195f3a0000070008000000000001234",
     )
     await mock_repo.create_user(test_user)
-    user = await user_repo.get_by_id("usr_abc12345")
+    user = await user_repo.get_by_id("usr_0195f3a00000700080000000abc12345")
     assert user is not None
-    assert user.id == "usr_abc12345"
+    assert user.id == "usr_0195f3a00000700080000000abc12345"
 
 
 @pytest.mark.asyncio
@@ -239,19 +239,19 @@ async def test_user_repository_get_by_email_found_returns_user(
 ) -> None:
     user_repo = UserRepository(mock_repo)
     test_user = User(
-        id="usr_email123",
+        id="usr_0195f3a0000070008000000000000123",
         email="admin@example.com",
         role=UserRole.ADMIN,
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_test1234",
+        organization_id="org_0195f3a0000070008000000000001234",
     )
     await mock_repo.create_user(test_user)
     user = await user_repo.get_by_email("admin@example.com")
     assert user is not None
-    assert user.id == "usr_email123"
+    assert user.id == "usr_0195f3a0000070008000000000000123"
 
 
 @pytest.mark.asyncio
@@ -269,25 +269,25 @@ async def test_user_repository_create_duplicate_id_raises_app_exception(
 ) -> None:
     user_repo = UserRepository(mock_repo)
     test_user = User(
-        id="usr_dup12345",
+        id="usr_0195f3a0000070008000000000012345",
         email="dup1@test.com",
         role=UserRole.MEMBER,
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_test1234",
+        organization_id="org_0195f3a0000070008000000000001234",
     )
     await user_repo.create(test_user)
     dup_user = User(
-        id="usr_dup12345",
+        id="usr_0195f3a0000070008000000000012345",
         email="dup2@test.com",
         role=UserRole.MEMBER,
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_test1234",
+        organization_id="org_0195f3a0000070008000000000001234",
     )
     with pytest.raises(AppException) as exc_info:
         await user_repo.create(dup_user)
@@ -311,7 +311,7 @@ async def test_user_repository_update_success_returns_updated_user(
 ) -> None:
     user_repo = UserRepository(mock_repo)
     test_user = User(
-        id="usr_upd12345",
+        id="usr_0195f3a0000070008000000000022345",
         email="upd@test.com",
         name="Original Name",
         role=UserRole.MEMBER,
@@ -319,10 +319,10 @@ async def test_user_repository_update_success_returns_updated_user(
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_test1234",
+        organization_id="org_0195f3a0000070008000000000001234",
     )
     await user_repo.create(test_user)
-    updated = await user_repo.update("usr_upd12345", UserUpdate(name="Updated Name"))
+    updated = await user_repo.update("usr_0195f3a0000070008000000000022345", UserUpdate(name="Updated Name"))
     assert updated is not None
     assert updated.name == "Updated Name"
 
@@ -333,19 +333,19 @@ async def test_user_repository_delete_calls_underlying_repo(
 ) -> None:
     user_repo = UserRepository(mock_repo)
     test_user = User(
-        id="usr_del12345",
+        id="usr_0195f3a0000070008000000000032345",
         email="del@test.com",
         role=UserRole.MEMBER,
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_test1234",
+        organization_id="org_0195f3a0000070008000000000001234",
     )
     await user_repo.create(test_user)
-    res = await user_repo.delete("usr_del12345")
+    res = await user_repo.delete("usr_0195f3a0000070008000000000032345")
     assert res is True
-    assert await user_repo.get_by_id("usr_del12345") is None
+    assert await user_repo.get_by_id("usr_0195f3a0000070008000000000032345") is None
 
 
 @pytest.mark.asyncio
@@ -354,43 +354,43 @@ async def test_user_repository_get_by_organization_filters_and_validates(
 ) -> None:
     user_repo = UserRepository(mock_repo)
     user1 = User(
-        id="usr_org12301",
+        id="usr_0195f3a0000070008000000000012301",
         email="user1@test.com",
         role=UserRole.MEMBER,
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_target01",
+        organization_id="org_0195f3a0000070008000000000000001",
     )
     user2 = User(
-        id="usr_org12302",
+        id="usr_0195f3a0000070008000000000012302",
         email="user2@test.com",
         role=UserRole.MEMBER,
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_target01",
+        organization_id="org_0195f3a0000070008000000000000001",
     )
     user_other = User(
-        id="usr_orgother01",
+        id="usr_0195f3a0000070008000000000099901",
         email="other@test.com",
         role=UserRole.MEMBER,
         is_active=True,
         created_at=datetime.fromisoformat("2026-01-01T00:00:00Z"),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_other01",
+        organization_id="org_0195f3a0000070008000000000000002",
     )
     await user_repo.create(user1)
     await user_repo.create(user2)
     await user_repo.create(user_other)
 
-    users = await user_repo.get_by_organization("org_target01")
+    users = await user_repo.get_by_organization("org_0195f3a0000070008000000000000001")
     assert len(users) == 2
     assert all(isinstance(u, User) for u in users)
-    assert {u.id for u in users} == {"usr_org12301", "usr_org12302"}
+    assert {u.id for u in users} == {"usr_0195f3a0000070008000000000012301", "usr_0195f3a0000070008000000000012302"}
 
 
 @pytest.mark.asyncio
@@ -406,21 +406,21 @@ async def test_user_repository_additional_coverage(mock_repo: InMemoryUnifiedWor
     """Test UserRepository get_by_email, create duplicate conflict, update not found, and get_by_organization."""
     user_repo = UserRepository(mock_repo)
     test_user = User(
-        id="usr_existing1234",
+        id="usr_0195f3a0000070008000000000009999",
         email="existing@test.com",
         role=UserRole.MEMBER,
         is_active=True,
         created_at=datetime.now(timezone.utc),
         language=SystemLocale.EN,
         theme_mode="system",
-        organization_id="org_1234abcd",
+        organization_id="org_0195f3a000007000800000001234abcd",
     )
 
     # get_by_email
     await mock_repo.create_user(test_user)
     found = await user_repo.get_by_email("existing@test.com")
     assert found is not None
-    assert found.id == "usr_existing1234"
+    assert found.id == "usr_0195f3a0000070008000000000009999"
 
     # create duplicate raises conflict
     with pytest.raises(AppException) as excinfo:
@@ -432,7 +432,7 @@ async def test_user_repository_additional_coverage(mock_repo: InMemoryUnifiedWor
     assert res is None
 
     # get_by_organization
-    users = await user_repo.get_by_organization("org_1234abcd")
+    users = await user_repo.get_by_organization("org_0195f3a000007000800000001234abcd")
     assert len(users) == 1
     assert users[0].id == test_user.id
 
@@ -444,7 +444,7 @@ async def test_organization_repository_update_and_delete(
     """Verifies OrganizationRepository update and delete methods."""
     org_repo = OrganizationRepository(mock_repo)
     test_org = Organization(
-        id="org_repocrud00001",
+        id="org_0195f3a0000070008000000000000099",
         name="Repo CRUD",
         is_active=True,
         created_at=datetime.now(timezone.utc),
@@ -456,12 +456,12 @@ async def test_organization_repository_update_and_delete(
     )
     await org_repo.create(test_org)
 
-    update_success = await org_repo.update("org_repocrud00001", OrganizationUpdateDTO(name="New Repo CRUD"))
+    update_success = await org_repo.update("org_0195f3a0000070008000000000000099", OrganizationUpdateDTO(name="New Repo CRUD"))
     assert update_success is True
-    refreshed = await org_repo.get_by_id("org_repocrud00001")
+    refreshed = await org_repo.get_by_id("org_0195f3a0000070008000000000000099")
     assert refreshed is not None
     assert refreshed.name == "New Repo CRUD"
 
-    del_success = await org_repo.delete("org_repocrud00001")
+    del_success = await org_repo.delete("org_0195f3a0000070008000000000000099")
     assert del_success is True
-    assert await org_repo.get_by_id("org_repocrud00001") is None
+    assert await org_repo.get_by_id("org_0195f3a0000070008000000000000099") is None

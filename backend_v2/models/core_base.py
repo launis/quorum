@@ -25,6 +25,7 @@ from backend_v2.models.enums import EntityPrefix
 __all__ = [
     "I18nText",
     "OPAQUE_STRIPE_ID_REGEX",
+    "PrefixedUUID7",
     "V2CoreBase",
     "coerce_source_quotes_tuple",
     "format_prefixed_uuid7",
@@ -37,6 +38,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 OPAQUE_STRIPE_ID_REGEX: str = r"^([a-z]{2,5})_[a-fA-F0-9]{32}$"
+type PrefixedUUID7 = Annotated[str, Field(pattern=OPAQUE_STRIPE_ID_REGEX)]
 
 
 @dataclass

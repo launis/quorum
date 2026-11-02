@@ -82,7 +82,7 @@ __all__ = [
 ]
 
 _CAUSAL_COHESION_MATRIX_BLOCK_ID: str = "blk_0195f3a00000700c80a1e50000000001"
-_SYSTEM_ORG_UUID7_ID: str = "org_0195f3a0000070008000000000000000"
+_SYSTEM_ORG_UUID7_ID: str = "org_0195f3a0000070008000000000000001"
 
 
 def _upgrade_or_generate_opaque_id(raw_id: object, expected_prefix: EntityPrefix) -> str:
@@ -103,6 +103,7 @@ def _upgrade_or_generate_opaque_id(raw_id: object, expected_prefix: EntityPrefix
         return SystemConfigID.MCP_GATEWAYS.value
     if expected_prefix == EntityPrefix.ORGANIZATION and cleaned in (
         "org_system000000",
+        "org_0195f3a0000070008000000000000000",
         "SYSTEM",
         _SYSTEM_ORG_UUID7_ID,
     ):
@@ -1056,8 +1057,7 @@ def _sanitize_auxiliary_collections(data: dict[str, JsonValue]) -> None:
         for item in raw_orgs:
             org: dict[str, JsonValue] = dict(item)
             raw_org_id = org["id"] if "id" in org else None
-            if raw_org_id != "org_system000000":
-                org["id"] = _upgrade_or_generate_opaque_id(raw_org_id, EntityPrefix.ORGANIZATION)
+            org["id"] = _upgrade_or_generate_opaque_id(raw_org_id, EntityPrefix.ORGANIZATION)
             new_orgs.append(org)
         data["organizations"] = new_orgs
 
@@ -1068,7 +1068,7 @@ def _sanitize_auxiliary_collections(data: dict[str, JsonValue]) -> None:
             usr: dict[str, JsonValue] = dict(item)
             raw_usr_id = usr["id"] if "id" in usr else None
             usr["id"] = _upgrade_or_generate_opaque_id(raw_usr_id, EntityPrefix.USER)
-            if "organization_id" in usr and usr["organization_id"] not in (None, "org_system000000", "SYSTEM"):
+            if "organization_id" in usr and usr["organization_id"] not in (None, "SYSTEM"):
                 usr["organization_id"] = _upgrade_or_generate_opaque_id(
                     usr["organization_id"], EntityPrefix.ORGANIZATION
                 )
