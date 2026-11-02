@@ -28,7 +28,7 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError, f
 
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repositories.system import SystemRepositoryImpl
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.enums import CognitiveTier, ExecutionStatus, LaxCognitiveTier, LLMProvider
@@ -39,6 +39,8 @@ from backend_v2.settings import get_settings
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "QUORUM_SYSTEM_DIRECTIVE",
+    "UNCONSTRAINED_SYSTEM_DIRECTIVE",
     "AblationAtomEvaluationDTO",
     "AblationLiveExecutionConfigDTO",
     "AblationLiveExecutor",
@@ -51,11 +53,14 @@ __all__ = [
     "AblationStructuredResponseDTO",
     "ModelRegistryMetadataDTO",
     "ModelTelemetryItemDTO",
+    "SeedRegistryEntryDTO",
     "TraceEvaluationRawDTO",
+    "build_arg_parser",
     "build_monolithic_step_prompt",
     "build_quorum_standard_prompt",
     "build_unconstrained_prompt",
     "coerce_source_quotes_tuple",
+    "main",
     "print_model_telemetry",
     "resolve_model_telemetry",
 ]
@@ -110,7 +115,14 @@ class AblationPropositionDTO(BaseModel):
     @field_validator("synthetic_quotes", mode="before")
     @classmethod
     def validate_synthetic_quotes(cls, v: object) -> tuple[str, ...] | None:
-        """Coerce synthetic quote representations to immutable tuple of strings."""
+        """Coerce synthetic quote representations to an immutable tuple of strings.
+
+        Args:
+            v: Raw synthetic quotes input value.
+
+        Returns:
+            Immutable tuple of trimmed quote strings, or None if empty.
+        """
         return coerce_source_quotes_tuple(v)
 
 
@@ -146,7 +158,14 @@ class AblationAtomEvaluationDTO(BaseModel):
     @field_validator("source_quotes", mode="before")
     @classmethod
     def validate_source_quotes(cls, v: object) -> tuple[str, ...] | None:
-        """Coerce raw source_quotes representation to an immutable tuple."""
+        """Coerce raw source_quotes representation to an immutable tuple.
+
+        Args:
+            v: Raw source quotes input value.
+
+        Returns:
+            Immutable tuple of trimmed quote strings, or None if empty.
+        """
         return coerce_source_quotes_tuple(v)
 
 
@@ -209,7 +228,14 @@ class AblationStructuredResponseDTO(BaseModel):
     @field_validator("source_quotes", mode="before")
     @classmethod
     def validate_quotes(cls, v: object) -> tuple[str, ...] | None:
-        """Coerce quotes list or string to tuple."""
+        """Coerce quotes list or string to an immutable tuple.
+
+        Args:
+            v: Raw source quotes input value.
+
+        Returns:
+            Immutable tuple of trimmed quote strings, or None if empty.
+        """
         return coerce_source_quotes_tuple(v)
 
 
@@ -268,7 +294,14 @@ class TraceEvaluationRawDTO(BaseModel):
     @field_validator("source_quotes", mode="before")
     @classmethod
     def validate_trace_quotes(cls, v: object) -> tuple[str, ...] | None:
-        """Coerce raw source_quotes representation to an immutable tuple."""
+        """Coerce raw source_quotes representation to an immutable tuple.
+
+        Args:
+            v: Raw source quotes input value.
+
+        Returns:
+            Immutable tuple of trimmed quote strings, or None if empty.
+        """
         return coerce_source_quotes_tuple(v)
 
 
@@ -313,13 +346,23 @@ class SeedRegistryEntryDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    id: str = ""
-    name: str = "Default Model Registry"
-    type: str = "model_registry"
-    slug: str | None = None
-    default_provider: str = "google"
-    tier_definitions: dict[str, JsonValue] = Field(default_factory=dict)
-    models: dict[str, JsonValue] = Field(default_factory=dict)
+    id: Annotated[str, Field(default="", description="Opaque model registry identifier.")] = ""
+    name: Annotated[str, Field(default="Default Model Registry", description="Human-readable model registry name.")] = (
+        "Default Model Registry"
+    )
+    type: Annotated[str, Field(default="model_registry", description="System configuration document type.")] = (
+        "model_registry"
+    )
+    slug: Annotated[str | None, Field(default=None, description="Optional URL-safe registry slug.")] = None
+    default_provider: Annotated[str, Field(default="google", description="Default provider identifier.")] = "google"
+    tier_definitions: Annotated[
+        dict[str, JsonValue],
+        Field(default_factory=dict, description="Mapping of cognitive tier identifiers to model profiles."),
+    ]
+    models: Annotated[
+        dict[str, JsonValue],
+        Field(default_factory=dict, description="Mapping of model keys to explicit model profile overrides."),
+    ]
 
 
 def resolve_model_telemetry(
@@ -625,7 +668,15 @@ def build_monolithic_step_prompt(
 
 
 class AblationLiveExecutor:
-    """Asynchronous live LLM execution engine for multi-tier ablation benchmarks."""
+    """Asynchronous live LLM execution engine for multi-tier ablation benchmarks.
+
+    Attributes:
+        config: Immutable benchmark execution configuration.
+        client_1: Primary LLM client for Run 1 evaluations.
+        client_2: Secondary LLM client for Run 2 or cross-model comparisons.
+        semaphore: Concurrency limiter restricting parallel LLM requests.
+        is_cross_model: Whether dual-provider or dual-strategy comparison is active.
+    """
 
     def __init__(
         self,
@@ -657,6 +708,9 @@ class AblationLiveExecutor:
 
         Returns:
             Configured AblationLiveExecutor instance.
+
+        Raises:
+            AppException: ErrorCodes.VALIDATION_FAILED if provider resolution fails, or ErrorCodes.CONFIGURATION_ERROR if LLM client initialization fails.
         """
         settings = get_settings()
         driver = await get_driver(settings)
@@ -699,8 +753,22 @@ class AblationLiveExecutor:
 
         Returns:
             Canonical LLMProvider member.
+
+        Raises:
+            AppException: ErrorCodes.VALIDATION_FAILED when provider_name is empty or unsupported.
         """
         norm = provider_name.strip().lower()
+        if not norm:
+            logger.error(
+                "Empty LLM provider identifier in ablation executor",
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "provider_name": provider_name},
+            )
+            raise AppException(
+                message="LLM provider identifier must not be empty.",
+                status_code=422,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "provider_name": provider_name},
+            )
         if norm in ("google", "ai_studio", "gemini"):
             return LLMProvider.AI_STUDIO
         if norm in ("vertex", "vertex_ai", "gcp"):
@@ -709,7 +777,19 @@ class AblationLiveExecutor:
             return LLMProvider.OPENAI
         if norm in ("anthropic", "claude"):
             return LLMProvider.ANTHROPIC
-        return LLMProvider(norm)
+        try:
+            return LLMProvider(norm)
+        except ValueError as exc:
+            logger.error(
+                "Unsupported LLM provider identifier in ablation executor",
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "provider_name": provider_name},
+            )
+            raise AppException(
+                message=f"Unsupported LLM provider: {provider_name}",
+                status_code=422,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "provider_name": provider_name},
+            ) from exc
 
     def _validate_quote_lexically(
         self,
@@ -808,7 +888,33 @@ class AblationLiveExecutor:
 
         Returns:
             AblationAtomEvaluationDTO recording the outcome.
+
+        Raises:
+            AppException: ErrorCodes.VALIDATION_FAILED if config_id is outside 1..4 or source_text is empty.
         """
+        if config_id not in (1, 2, 3, 4):
+            logger.error(
+                "Invalid atom ablation config_id",
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "config_id": config_id},
+            )
+            raise AppException(
+                message=f"Atom ablation config_id must be in 1..4, got {config_id}.",
+                status_code=422,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "config_id": config_id},
+            )
+        if not source_text or not source_text.strip():
+            logger.error(
+                "Empty grounding source_text in evaluate_atom_live",
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tda_id": prop.tda_id},
+            )
+            raise AppException(
+                message="Grounding source_text must not be empty.",
+                status_code=422,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tda_id": prop.tda_id},
+            )
+
         client = self.client_1 if run_index == 1 else self.client_2
 
         # Config 4: Unconstrained single-pass
@@ -876,7 +982,7 @@ class AblationLiveExecutor:
                     is_chimera=False,
                     status=ExecutionStatus.FAILED,
                 )
-            except Exception as e:
+            except (AppException, TimeoutError, ValueError, RuntimeError, OSError) as e:
                 logger.warning("[Config 3] Inference failed for %s: %s", prop.tda_id, e)
                 return AblationAtomEvaluationDTO(
                     tda_id=prop.tda_id,
@@ -982,7 +1088,22 @@ class AblationLiveExecutor:
 
         Returns:
             List of AblationAtomEvaluationDTO instances matching props cardinality.
+
+        Raises:
+            AppException: ErrorCodes.VALIDATION_FAILED if source_text is empty.
         """
+        if not source_text or not source_text.strip():
+            logger.error(
+                "Empty grounding source_text in evaluate_step_monolithic_live",
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "step_id": step_id},
+            )
+            raise AppException(
+                message="Grounding source_text must not be empty.",
+                status_code=422,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "step_id": step_id},
+            )
+
         client = self.client_1 if run_index == 1 else self.client_2
         sys_p, usr_p = build_monolithic_step_prompt(step_id, props, source_text)
 
@@ -1058,7 +1179,33 @@ class AblationLiveExecutor:
 
         Returns:
             List of evaluated atom decisions.
+
+        Raises:
+            AppException: ErrorCodes.VALIDATION_FAILED if config_id is outside 1..5 or source_text is empty.
         """
+        if config_id not in (1, 2, 3, 4, 5):
+            logger.error(
+                "Invalid ablation configuration ID",
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "config_id": config_id},
+            )
+            raise AppException(
+                message=f"Ablation config_id must be in 1..5, got {config_id}.",
+                status_code=422,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "config_id": config_id},
+            )
+        if not source_text or not source_text.strip():
+            logger.error(
+                "Empty grounding source_text in evaluate_configuration_live",
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "config_id": config_id},
+            )
+            raise AppException(
+                message="Grounding source_text must not be empty.",
+                status_code=422,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "config_id": config_id},
+            )
+
         if config_id == 5:
             # Group by step_id
             step_groups: dict[str, list[AblationPropositionDTO]] = {}
@@ -1094,7 +1241,11 @@ class AblationLiveExecutor:
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
-    """Build the command-line argument parser for the live ablation executor."""
+    """Build the command-line argument parser for the live ablation executor.
+
+    Returns:
+        Configured ArgumentParser instance.
+    """
     parser = argparse.ArgumentParser(
         prog="ablation_live_executor.py",
         description=(
@@ -1121,7 +1272,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI entrypoint for ablation_live_executor."""
+    """CLI entrypoint for ablation_live_executor.
+
+    Args:
+        argv: Optional sequence of command-line arguments.
+
+    Returns:
+        Process exit status code (0 on success).
+    """
     parser = build_arg_parser()
     _ = parser.parse_args(argv)
     print(

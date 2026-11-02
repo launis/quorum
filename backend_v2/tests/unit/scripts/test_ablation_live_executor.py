@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import CognitiveTier, ExecutionStatus, LLMProvider
 from scripts.ablation_live_executor import (
@@ -27,10 +27,12 @@ from scripts.ablation_live_executor import (
     AblationPropositionDTO,
     AblationStructuredResponseDTO,
     TraceEvaluationRawDTO,
+    build_arg_parser,
     build_monolithic_step_prompt,
     build_quorum_standard_prompt,
     build_unconstrained_prompt,
     coerce_source_quotes_tuple,
+    main,
     print_model_telemetry,
     resolve_model_telemetry,
 )
@@ -864,3 +866,85 @@ def test_print_model_telemetry_without_registry_id(capsys: pytest.CaptureFixture
     captured = capsys.readouterr()
     assert "Fyysiset Malliparametrit ja Telemetria" in captured.out
     assert "Strategia" in captured.out
+
+
+def test_resolve_provider_enum_rejects_invalid_provider() -> None:
+    """Verify _resolve_provider_enum raises AppException on unknown or empty provider identifiers."""
+    with pytest.raises(AppException) as exc_info:
+        AblationLiveExecutor._resolve_provider_enum("unsupported_provider_xyz")
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    with pytest.raises(AppException) as empty_exc:
+        AblationLiveExecutor._resolve_provider_enum("   ")
+    assert empty_exc.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_evaluate_boundary_validation_failures(
+    sample_propositions: list[AblationPropositionDTO],
+    sample_grounding_text: str,
+) -> None:
+    """Verify ISTQB boundary value analysis on config_id bounds and empty source_text payloads."""
+    executor = AblationLiveExecutor(
+        config=AblationLiveExecutionConfigDTO(mode=AblationMode.LIVE, tier=CognitiveTier.FAST),
+        client_1=AsyncMock(),
+    )
+
+    # 1. evaluate_atom_live config_id < 1 (min-1) and config_id > 4 (max+1)
+    for invalid_atom_cfg in (0, 5):
+        with pytest.raises(AppException) as exc_atom_cfg:
+            await executor.evaluate_atom_live(
+                prop=sample_propositions[0],
+                config_id=invalid_atom_cfg,
+                source_text=sample_grounding_text,
+            )
+        assert exc_atom_cfg.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    # 2. evaluate_atom_live empty/whitespace source_text
+    with pytest.raises(AppException) as exc_atom_src:
+        await executor.evaluate_atom_live(
+            prop=sample_propositions[0],
+            config_id=1,
+            source_text="   ",
+        )
+    assert exc_atom_src.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    # 3. evaluate_step_monolithic_live empty/whitespace source_text
+    with pytest.raises(AppException) as exc_mono_src:
+        await executor.evaluate_step_monolithic_live(
+            step_id="step_strat",
+            props=sample_propositions,
+            source_text="",
+        )
+    assert exc_mono_src.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    # 4. evaluate_configuration_live config_id < 1 (min-1) and config_id > 5 (max+1)
+    for invalid_cfg in (0, 6):
+        with pytest.raises(AppException) as exc_cfg:
+            await executor.evaluate_configuration_live(
+                config_id=invalid_cfg,
+                propositions=sample_propositions,
+                source_text=sample_grounding_text,
+            )
+        assert exc_cfg.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+    # 5. evaluate_configuration_live empty source_text
+    with pytest.raises(AppException) as exc_cfg_src:
+        await executor.evaluate_configuration_live(
+            config_id=1,
+            propositions=sample_propositions,
+            source_text="  ",
+        )
+    assert exc_cfg_src.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_cli_arg_parser_and_main(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verify CLI parser construction and main entrypoint return code."""
+    parser = build_arg_parser()
+    parsed = parser.parse_args(["--config", "3", "--runs", "2"])
+    assert parsed.config == 3
+    assert parsed.runs == 2
+
+    rc = main(["--config", "1", "--runs", "1"])
+    assert rc == 0
+    assert "AblationLiveExecutor CLI interface initialized" in capsys.readouterr().out
