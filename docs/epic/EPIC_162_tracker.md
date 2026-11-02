@@ -71,7 +71,7 @@
   - [x] @[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py]
   - [x] @[backend_v2/database/postgres/storage_driver.py]
   - [x] @[backend_v2/database/repositories/execution.py]
-  - [ ] @[backend_v2/hooks/interaction_hook.py]
+  - [x] @[backend_v2/hooks/interaction_hook.py]
   - [ ] @[backend_v2/hooks/linguistics.py]
   - [ ] @[backend_v2/hooks/source_verification_hook.py]
   - [ ] @[backend_v2/llm/client.py]
