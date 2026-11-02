@@ -90,7 +90,7 @@
   - [x] @[backend_v2/services/orchestrator/strategies/llm_strategy/engine_retry_stage.py]
   - [x] @[backend_v2/services/studio/output_profile_service.py]
   - [x] @[backend_v2/services/studio/workflow_service.py]
-  - [ ] @[backend_v2/settings.py]
+  - [x] @[backend_v2/settings.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/ablation_live_executor.py]
   - [ ] @[scripts/audit_zero_orm_strictness.py]
