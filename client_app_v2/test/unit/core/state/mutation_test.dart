@@ -172,6 +172,71 @@ void main() {
         expect(capturedErrorCallback, isNull);
       },
     );
+
+    testWidgets(
+      'Regression: unmounting widget while mutation action is in-flight does not throw disposed ValueNotifier error on completion or error',
+      (WidgetTester tester) async {
+        late MutationState<void> capturedErrorState;
+        var errorCallbackInvoked = false;
+        final errorCompleter = Completer<void>();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: _MutationHookHarness<void>(
+              onError: (_) => errorCallbackInvoked = true,
+              onBuild: (state) => capturedErrorState = state,
+            ),
+          ),
+        );
+
+        final inFlightErrorFuture = capturedErrorState.mutate(
+          () => errorCompleter.future,
+        );
+        await tester.pump();
+        expect(capturedErrorState.isLoading, isTrue);
+
+        // Simulate route transition unmounting the host widget while action is awaiting network response
+        await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+
+        errorCompleter.completeError(
+          Exception('HTTP 500 STORAGE_ACCESS_FAILED'),
+        );
+        await inFlightErrorFuture;
+        await tester.pump();
+
+        expect(errorCallbackInvoked, isFalse);
+        expect(tester.takeException(), isNull);
+
+        late MutationState<String> capturedSuccessState;
+        var successCallbackInvoked = false;
+        final successCompleter = Completer<String>();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: _MutationHookHarness<String>(
+              onSuccess: (_) => successCallbackInvoked = true,
+              onBuild: (state) => capturedSuccessState = state,
+            ),
+          ),
+        );
+
+        final inFlightSuccessFuture = capturedSuccessState.mutate(
+          () => successCompleter.future,
+        );
+        await tester.pump();
+        expect(capturedSuccessState.isLoading, isTrue);
+
+        await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+
+        successCompleter.complete('ok_after_unmount');
+        final successResult = await inFlightSuccessFuture;
+        await tester.pump();
+
+        expect(successResult, 'ok_after_unmount');
+        expect(successCallbackInvoked, isFalse);
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 
   group('MutationButton Widget Tests', () {

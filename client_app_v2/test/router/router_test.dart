@@ -40,17 +40,24 @@ void main() {
   });
 
   group('resolveAuthRedirect Positive, Negative & Boundary Tests', () {
-    test('redirects loading state to /splash unless already on /splash', () {
-      const loadingState = AsyncLoading<User?>();
-      expect(
-        resolveAuthRedirect(authState: loadingState, location: '/dashboard'),
-        '/splash',
-      );
-      expect(
-        resolveAuthRedirect(authState: loadingState, location: '/splash'),
-        isNull,
-      );
-    });
+    test(
+      'redirects loading state to /splash unless already on /splash or /login',
+      () {
+        const loadingState = AsyncLoading<User?>();
+        expect(
+          resolveAuthRedirect(authState: loadingState, location: '/dashboard'),
+          '/splash',
+        );
+        expect(
+          resolveAuthRedirect(authState: loadingState, location: '/splash'),
+          isNull,
+        );
+        expect(
+          resolveAuthRedirect(authState: loadingState, location: '/login'),
+          isNull,
+        );
+      },
+    );
 
     test(
       'negative: redirects error or unauthenticated state to /login unless already on /login',

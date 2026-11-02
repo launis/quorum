@@ -40,16 +40,24 @@ final RouteObserver<ModalRoute<void>> routeObserver =
 /// The central nervous system of the application's navigation.
 @Riverpod(keepAlive: true)
 GoRouter router(Ref ref) {
-  final authState = ref.watch(authControllerProvider);
+  // Phase 2, Step 2: Drive GoRouter refreshListenable via ValueNotifier + ref.listen to prevent GoRouter disposal on auth transitions
+  final authStateNotifier = ValueNotifier<AsyncValue<User?>>(
+    ref.read(authControllerProvider),
+  );
+  ref.onDispose(authStateNotifier.dispose);
+  ref.listen<AsyncValue<User?>>(authControllerProvider, (_, next) {
+    authStateNotifier.value = next;
+  });
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
     debugLogDiagnostics: true,
+    refreshListenable: authStateNotifier,
     observers: [routeObserver],
     errorBuilder: (context, state) => SafeNavigationFallback(state: state),
     redirect: (context, state) => resolveAuthRedirect(
-      authState: authState,
+      authState: authStateNotifier.value,
       location: state.uri.toString(),
     ),
     routes: $appRoutes,
@@ -70,7 +78,8 @@ String? resolveAuthRedirect({
   }
 
   return switch (authState) {
-    AsyncLoading() => isSplash ? null : '/splash',
+    // Phase 2, Step 2: Preserve /login and /splash routes during AsyncLoading() transitions
+    AsyncLoading() => (isSplash || isLoggingIn) ? null : '/splash',
     AsyncError() => isLoggingIn ? null : '/login',
     AsyncData(:final value) => () {
       // 3. Unauthenticated -> Login

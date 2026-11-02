@@ -30,23 +30,28 @@ MutationState<T> useMutation<T>({
   void Function(Object error)? onError,
 }) {
   final state = useState<AsyncValue<T>?>(null);
+  final context = useContext();
 
   final mutate = useCallback((Future<T> Function() action) async {
     state.value = const AsyncValue.loading();
     try {
       final result = await action();
+      // Phase 2, Step 2: Guard post-await ValueNotifier state updates with context.mounted
+      if (!context.mounted) return result;
       state.value = AsyncValue.data(result);
       if (onSuccess != null) onSuccess(result);
       return result;
     } catch (e, stack) {
       // Mandate 6.3 Absolute Death: Do not swallow programmer errors into UI state
       if (e is Error) rethrow;
+      // Phase 2, Step 2: Guard post-await ValueNotifier error updates with context.mounted
+      if (!context.mounted) return null;
 
       state.value = AsyncValue.error(e, stack);
       if (onError != null) onError(e);
       return null;
     }
-  }, [onSuccess, onError]);
+  }, [onSuccess, onError, context]);
 
   return MutationState(state: state.value, mutate: mutate);
 }
