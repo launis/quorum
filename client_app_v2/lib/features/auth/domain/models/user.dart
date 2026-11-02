@@ -1,4 +1,5 @@
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/utils/json_converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 export 'package:client_app/core/models/enums.dart' show UserRole;
@@ -12,13 +13,13 @@ part 'user.g.dart';
 ///
 /// Represents the profile of an authenticated user in the system.
 /// Hydrated from `/api/v2/iam/auth/exchange` and `/api/v2/iam/users/me`.
-@freezed
+@Freezed(equal: false)
 abstract class User with _$User {
   const User._();
 
-  @JsonSerializable(explicitToJson: true)
+  @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory User({
-    @JsonKey(name: 'id') required String id,
+    @StrictOpaqueIdConverter() @JsonKey(name: 'id') required String id,
     @JsonKey(name: 'slug') String? slug,
     @JsonKey(name: 'email') required String email,
     @JsonKey(name: 'role') required UserRole role,
@@ -46,7 +47,7 @@ abstract class User with _$User {
 }
 
 /// Request payload for `POST /api/v2/iam/auth/exchange`.
-@freezed
+@Freezed(equal: false)
 abstract class TokenExchangeRequestDto with _$TokenExchangeRequestDto {
   const TokenExchangeRequestDto._();
 
@@ -64,7 +65,7 @@ abstract class TokenExchangeRequestDto with _$TokenExchangeRequestDto {
 }
 
 /// Response payload from `POST /api/v2/iam/auth/exchange`.
-@freezed
+@Freezed(equal: false)
 abstract class TokenExchangeResponseDto with _$TokenExchangeResponseDto {
   const TokenExchangeResponseDto._();
 
@@ -81,7 +82,7 @@ abstract class TokenExchangeResponseDto with _$TokenExchangeResponseDto {
 }
 
 /// Request payload for `POST /api/v2/iam/auth/logout`.
-@freezed
+@Freezed(equal: false)
 abstract class LogoutRequestDto with _$LogoutRequestDto {
   const LogoutRequestDto._();
 
@@ -97,7 +98,7 @@ abstract class LogoutRequestDto with _$LogoutRequestDto {
 }
 
 /// Response payload from `POST /api/v2/iam/auth/logout`.
-@freezed
+@Freezed(equal: false)
 abstract class LogoutResponseDto with _$LogoutResponseDto {
   const LogoutResponseDto._();
 
@@ -113,7 +114,7 @@ abstract class LogoutResponseDto with _$LogoutResponseDto {
 }
 
 /// Request payload for `POST /api/v2/iam/users`.
-@freezed
+@Freezed(equal: false)
 abstract class UserCreate with _$UserCreate {
   const UserCreate._();
 
@@ -122,7 +123,9 @@ abstract class UserCreate with _$UserCreate {
     @JsonKey(name: 'email') required String email,
     @JsonKey(name: 'name', includeIfNull: false) String? name,
     @JsonKey(name: 'role') @Default(UserRole.member) UserRole role,
-    @JsonKey(name: 'organization_id') required String organizationId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'organization_id')
+    required String organizationId,
     @JsonKey(name: 'is_active') @Default(true) bool isActive,
     @JsonKey(name: 'language', includeIfNull: false) String? language,
     @JsonKey(name: 'theme_mode', includeIfNull: false) String? themeMode,
@@ -135,7 +138,7 @@ abstract class UserCreate with _$UserCreate {
 }
 
 /// Request payload for `PUT /api/v2/iam/users/{id}`.
-@freezed
+@Freezed(equal: false)
 abstract class UserUpdate with _$UserUpdate {
   const UserUpdate._();
 

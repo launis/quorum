@@ -29,7 +29,10 @@ _User _$UserFromJson(Map<String, dynamic> json) => $checkedCreate(
       ],
     );
     final val = _User(
-      id: $checkedConvert('id', (v) => v as String),
+      id: $checkedConvert(
+        'id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       slug: $checkedConvert('slug', (v) => v as String?),
       email: $checkedConvert('email', (v) => v as String),
       role: $checkedConvert('role', (v) => $enumDecode(_$UserRoleEnumMap, v)),
@@ -63,7 +66,7 @@ _User _$UserFromJson(Map<String, dynamic> json) => $checkedCreate(
 );
 
 Map<String, dynamic> _$UserToJson(_User instance) => <String, dynamic>{
-  'id': instance.id,
+  'id': const StrictOpaqueIdConverter().toJson(instance.id),
   'slug': instance.slug,
   'email': instance.email,
   'role': instance.role.toJson(),
@@ -248,7 +251,10 @@ _UserCreate _$UserCreateFromJson(Map<String, dynamic> json) => $checkedCreate(
         'role',
         (v) => $enumDecodeNullable(_$UserRoleEnumMap, v) ?? UserRole.member,
       ),
-      organizationId: $checkedConvert('organization_id', (v) => v as String),
+      organizationId: $checkedConvert(
+        'organization_id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
       isActive: $checkedConvert('is_active', (v) => v as bool? ?? true),
       language: $checkedConvert('language', (v) => v as String?),
       themeMode: $checkedConvert('theme_mode', (v) => v as String?),
@@ -270,7 +276,9 @@ Map<String, dynamic> _$UserCreateToJson(_UserCreate instance) =>
       'email': instance.email,
       'name': ?instance.name,
       'role': instance.role.toJson(),
-      'organization_id': instance.organizationId,
+      'organization_id': const StrictOpaqueIdConverter().toJson(
+        instance.organizationId,
+      ),
       'is_active': instance.isActive,
       'language': ?instance.language,
       'theme_mode': ?instance.themeMode,

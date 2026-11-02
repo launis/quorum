@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$User {
 
-@JsonKey(name: 'id') String get id;@JsonKey(name: 'slug') String? get slug;@JsonKey(name: 'email') String get email;@JsonKey(name: 'role') UserRole get role;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'name') String? get name;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'language') String? get language;@JsonKey(name: 'theme_mode') String? get themeMode;@JsonKey(name: 'last_login_at') DateTime? get lastLoginAt;@JsonKey(name: 'execution_count') int? get executionCount;@JsonKey(name: 'is_active') bool? get isActive;@JsonKey(name: 'created_by') String? get createdBy;
+@StrictOpaqueIdConverter()@JsonKey(name: 'id') String get id;@JsonKey(name: 'slug') String? get slug;@JsonKey(name: 'email') String get email;@JsonKey(name: 'role') UserRole get role;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'name') String? get name;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'language') String? get language;@JsonKey(name: 'theme_mode') String? get themeMode;@JsonKey(name: 'last_login_at') DateTime? get lastLoginAt;@JsonKey(name: 'execution_count') int? get executionCount;@JsonKey(name: 'is_active') bool? get isActive;@JsonKey(name: 'created_by') String? get createdBy;
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -26,14 +26,7 @@ $UserCopyWith<User> get copyWith => _$UserCopyWithImpl<User>(this as User, _$ide
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.email, email) || other.email == email)&&(identical(other.role, role) || other.role == role)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.name, name) || other.name == name)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.language, language) || other.language == language)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.lastLoginAt, lastLoginAt) || other.lastLoginAt == lastLoginAt)&&(identical(other.executionCount, executionCount) || other.executionCount == executionCount)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,slug,email,role,organizationId,name,createdAt,language,themeMode,lastLoginAt,executionCount,isActive,createdBy);
 
 @override
 String toString() {
@@ -48,7 +41,7 @@ abstract mixin class $UserCopyWith<$Res>  {
   factory $UserCopyWith(User value, $Res Function(User) _then) = _$UserCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'id') String id,@JsonKey(name: 'slug') String? slug,@JsonKey(name: 'email') String email,@JsonKey(name: 'role') UserRole role,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'name') String? name,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'language') String? language,@JsonKey(name: 'theme_mode') String? themeMode,@JsonKey(name: 'last_login_at') DateTime? lastLoginAt,@JsonKey(name: 'execution_count') int? executionCount,@JsonKey(name: 'is_active') bool? isActive,@JsonKey(name: 'created_by') String? createdBy
+@StrictOpaqueIdConverter()@JsonKey(name: 'id') String id,@JsonKey(name: 'slug') String? slug,@JsonKey(name: 'email') String email,@JsonKey(name: 'role') UserRole role,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'name') String? name,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'language') String? language,@JsonKey(name: 'theme_mode') String? themeMode,@JsonKey(name: 'last_login_at') DateTime? lastLoginAt,@JsonKey(name: 'execution_count') int? executionCount,@JsonKey(name: 'is_active') bool? isActive,@JsonKey(name: 'created_by') String? createdBy
 });
 
 
@@ -165,7 +158,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'id')  String id, @JsonKey(name: 'slug')  String? slug, @JsonKey(name: 'email')  String email, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'name')  String? name, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'language')  String? language, @JsonKey(name: 'theme_mode')  String? themeMode, @JsonKey(name: 'last_login_at')  DateTime? lastLoginAt, @JsonKey(name: 'execution_count')  int? executionCount, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'created_by')  String? createdBy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()@JsonKey(name: 'id')  String id, @JsonKey(name: 'slug')  String? slug, @JsonKey(name: 'email')  String email, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'name')  String? name, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'language')  String? language, @JsonKey(name: 'theme_mode')  String? themeMode, @JsonKey(name: 'last_login_at')  DateTime? lastLoginAt, @JsonKey(name: 'execution_count')  int? executionCount, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'created_by')  String? createdBy)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
 return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,_that.name,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy);case _:
@@ -186,7 +179,7 @@ return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'id')  String id, @JsonKey(name: 'slug')  String? slug, @JsonKey(name: 'email')  String email, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'name')  String? name, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'language')  String? language, @JsonKey(name: 'theme_mode')  String? themeMode, @JsonKey(name: 'last_login_at')  DateTime? lastLoginAt, @JsonKey(name: 'execution_count')  int? executionCount, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'created_by')  String? createdBy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()@JsonKey(name: 'id')  String id, @JsonKey(name: 'slug')  String? slug, @JsonKey(name: 'email')  String email, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'name')  String? name, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'language')  String? language, @JsonKey(name: 'theme_mode')  String? themeMode, @JsonKey(name: 'last_login_at')  DateTime? lastLoginAt, @JsonKey(name: 'execution_count')  int? executionCount, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'created_by')  String? createdBy)  $default,) {final _that = this;
 switch (_that) {
 case _User():
 return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,_that.name,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy);case _:
@@ -206,7 +199,7 @@ return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'id')  String id, @JsonKey(name: 'slug')  String? slug, @JsonKey(name: 'email')  String email, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'name')  String? name, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'language')  String? language, @JsonKey(name: 'theme_mode')  String? themeMode, @JsonKey(name: 'last_login_at')  DateTime? lastLoginAt, @JsonKey(name: 'execution_count')  int? executionCount, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'created_by')  String? createdBy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()@JsonKey(name: 'id')  String id, @JsonKey(name: 'slug')  String? slug, @JsonKey(name: 'email')  String email, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'name')  String? name, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'language')  String? language, @JsonKey(name: 'theme_mode')  String? themeMode, @JsonKey(name: 'last_login_at')  DateTime? lastLoginAt, @JsonKey(name: 'execution_count')  int? executionCount, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'created_by')  String? createdBy)?  $default,) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
 return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,_that.name,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy);case _:
@@ -219,12 +212,12 @@ return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,
 
 /// @nodoc
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _User extends User {
-  const _User({@JsonKey(name: 'id') required this.id, @JsonKey(name: 'slug') this.slug, @JsonKey(name: 'email') required this.email, @JsonKey(name: 'role') required this.role, @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'name') this.name, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'language') this.language, @JsonKey(name: 'theme_mode') this.themeMode, @JsonKey(name: 'last_login_at') this.lastLoginAt, @JsonKey(name: 'execution_count') this.executionCount, @JsonKey(name: 'is_active') this.isActive, @JsonKey(name: 'created_by') this.createdBy}): super._();
+  const _User({@StrictOpaqueIdConverter()@JsonKey(name: 'id') required this.id, @JsonKey(name: 'slug') this.slug, @JsonKey(name: 'email') required this.email, @JsonKey(name: 'role') required this.role, @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'name') this.name, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'language') this.language, @JsonKey(name: 'theme_mode') this.themeMode, @JsonKey(name: 'last_login_at') this.lastLoginAt, @JsonKey(name: 'execution_count') this.executionCount, @JsonKey(name: 'is_active') this.isActive, @JsonKey(name: 'created_by') this.createdBy}): super._();
   factory _User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 
-@override@JsonKey(name: 'id') final  String id;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'id') final  String id;
 @override@JsonKey(name: 'slug') final  String? slug;
 @override@JsonKey(name: 'email') final  String email;
 @override@JsonKey(name: 'role') final  UserRole role;
@@ -249,14 +242,7 @@ Map<String, dynamic> toJson() {
   return _$UserToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.email, email) || other.email == email)&&(identical(other.role, role) || other.role == role)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.name, name) || other.name == name)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.language, language) || other.language == language)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.lastLoginAt, lastLoginAt) || other.lastLoginAt == lastLoginAt)&&(identical(other.executionCount, executionCount) || other.executionCount == executionCount)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,slug,email,role,organizationId,name,createdAt,language,themeMode,lastLoginAt,executionCount,isActive,createdBy);
 
 @override
 String toString() {
@@ -271,7 +257,7 @@ abstract mixin class _$UserCopyWith<$Res> implements $UserCopyWith<$Res> {
   factory _$UserCopyWith(_User value, $Res Function(_User) _then) = __$UserCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'id') String id,@JsonKey(name: 'slug') String? slug,@JsonKey(name: 'email') String email,@JsonKey(name: 'role') UserRole role,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'name') String? name,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'language') String? language,@JsonKey(name: 'theme_mode') String? themeMode,@JsonKey(name: 'last_login_at') DateTime? lastLoginAt,@JsonKey(name: 'execution_count') int? executionCount,@JsonKey(name: 'is_active') bool? isActive,@JsonKey(name: 'created_by') String? createdBy
+@StrictOpaqueIdConverter()@JsonKey(name: 'id') String id,@JsonKey(name: 'slug') String? slug,@JsonKey(name: 'email') String email,@JsonKey(name: 'role') UserRole role,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'name') String? name,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'language') String? language,@JsonKey(name: 'theme_mode') String? themeMode,@JsonKey(name: 'last_login_at') DateTime? lastLoginAt,@JsonKey(name: 'execution_count') int? executionCount,@JsonKey(name: 'is_active') bool? isActive,@JsonKey(name: 'created_by') String? createdBy
 });
 
 
@@ -325,14 +311,7 @@ $TokenExchangeRequestDtoCopyWith<TokenExchangeRequestDto> get copyWith => _$Toke
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TokenExchangeRequestDto&&(identical(other.firebaseToken, firebaseToken) || other.firebaseToken == firebaseToken)&&(identical(other.targetUserId, targetUserId) || other.targetUserId == targetUserId)&&(identical(other.serviceAuthSecret, serviceAuthSecret) || other.serviceAuthSecret == serviceAuthSecret));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,firebaseToken,targetUserId,serviceAuthSecret);
 
 @override
 String toString() {
@@ -528,14 +507,7 @@ Map<String, dynamic> toJson() {
   return _$TokenExchangeRequestDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TokenExchangeRequestDto&&(identical(other.firebaseToken, firebaseToken) || other.firebaseToken == firebaseToken)&&(identical(other.targetUserId, targetUserId) || other.targetUserId == targetUserId)&&(identical(other.serviceAuthSecret, serviceAuthSecret) || other.serviceAuthSecret == serviceAuthSecret));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,firebaseToken,targetUserId,serviceAuthSecret);
 
 @override
 String toString() {
@@ -594,14 +566,7 @@ $TokenExchangeResponseDtoCopyWith<TokenExchangeResponseDto> get copyWith => _$To
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TokenExchangeResponseDto&&(identical(other.accessToken, accessToken) || other.accessToken == accessToken)&&(identical(other.tokenType, tokenType) || other.tokenType == tokenType)&&(identical(other.expiresInSeconds, expiresInSeconds) || other.expiresInSeconds == expiresInSeconds)&&(identical(other.user, user) || other.user == user));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,accessToken,tokenType,expiresInSeconds,user);
 
 @override
 String toString() {
@@ -808,14 +773,7 @@ Map<String, dynamic> toJson() {
   return _$TokenExchangeResponseDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TokenExchangeResponseDto&&(identical(other.accessToken, accessToken) || other.accessToken == accessToken)&&(identical(other.tokenType, tokenType) || other.tokenType == tokenType)&&(identical(other.expiresInSeconds, expiresInSeconds) || other.expiresInSeconds == expiresInSeconds)&&(identical(other.user, user) || other.user == user));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,accessToken,tokenType,expiresInSeconds,user);
 
 @override
 String toString() {
@@ -884,14 +842,7 @@ $LogoutRequestDtoCopyWith<LogoutRequestDto> get copyWith => _$LogoutRequestDtoCo
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LogoutRequestDto&&(identical(other.revokeAllSessions, revokeAllSessions) || other.revokeAllSessions == revokeAllSessions));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,revokeAllSessions);
 
 @override
 String toString() {
@@ -1083,14 +1034,7 @@ Map<String, dynamic> toJson() {
   return _$LogoutRequestDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LogoutRequestDto&&(identical(other.revokeAllSessions, revokeAllSessions) || other.revokeAllSessions == revokeAllSessions));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,revokeAllSessions);
 
 @override
 String toString() {
@@ -1147,14 +1091,7 @@ $LogoutResponseDtoCopyWith<LogoutResponseDto> get copyWith => _$LogoutResponseDt
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LogoutResponseDto&&(identical(other.status, status) || other.status == status)&&(identical(other.revokedJti, revokedJti) || other.revokedJti == revokedJti)&&(identical(other.allSessionsRevoked, allSessionsRevoked) || other.allSessionsRevoked == allSessionsRevoked));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,status,revokedJti,allSessionsRevoked);
 
 @override
 String toString() {
@@ -1350,14 +1287,7 @@ Map<String, dynamic> toJson() {
   return _$LogoutResponseDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LogoutResponseDto&&(identical(other.status, status) || other.status == status)&&(identical(other.revokedJti, revokedJti) || other.revokedJti == revokedJti)&&(identical(other.allSessionsRevoked, allSessionsRevoked) || other.allSessionsRevoked == allSessionsRevoked));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,status,revokedJti,allSessionsRevoked);
 
 @override
 String toString() {
@@ -1405,7 +1335,7 @@ as bool,
 /// @nodoc
 mixin _$UserCreate {
 
-@JsonKey(name: 'email') String get email;@JsonKey(name: 'name', includeIfNull: false) String? get name;@JsonKey(name: 'role') UserRole get role;@JsonKey(name: 'organization_id') String get organizationId;@JsonKey(name: 'is_active') bool get isActive;@JsonKey(name: 'language', includeIfNull: false) String? get language;@JsonKey(name: 'theme_mode', includeIfNull: false) String? get themeMode;@JsonKey(name: 'created_by', includeIfNull: false) String? get createdBy;@JsonKey(name: 'password', includeIfNull: false) String? get password;
+@JsonKey(name: 'email') String get email;@JsonKey(name: 'name', includeIfNull: false) String? get name;@JsonKey(name: 'role') UserRole get role;@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String get organizationId;@JsonKey(name: 'is_active') bool get isActive;@JsonKey(name: 'language', includeIfNull: false) String? get language;@JsonKey(name: 'theme_mode', includeIfNull: false) String? get themeMode;@JsonKey(name: 'created_by', includeIfNull: false) String? get createdBy;@JsonKey(name: 'password', includeIfNull: false) String? get password;
 /// Create a copy of UserCreate
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1416,14 +1346,7 @@ $UserCreateCopyWith<UserCreate> get copyWith => _$UserCreateCopyWithImpl<UserCre
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserCreate&&(identical(other.email, email) || other.email == email)&&(identical(other.name, name) || other.name == name)&&(identical(other.role, role) || other.role == role)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.language, language) || other.language == language)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.password, password) || other.password == password));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,email,name,role,organizationId,isActive,language,themeMode,createdBy,password);
 
 @override
 String toString() {
@@ -1438,7 +1361,7 @@ abstract mixin class $UserCreateCopyWith<$Res>  {
   factory $UserCreateCopyWith(UserCreate value, $Res Function(UserCreate) _then) = _$UserCreateCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'email') String email,@JsonKey(name: 'name', includeIfNull: false) String? name,@JsonKey(name: 'role') UserRole role,@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'language', includeIfNull: false) String? language,@JsonKey(name: 'theme_mode', includeIfNull: false) String? themeMode,@JsonKey(name: 'created_by', includeIfNull: false) String? createdBy,@JsonKey(name: 'password', includeIfNull: false) String? password
+@JsonKey(name: 'email') String email,@JsonKey(name: 'name', includeIfNull: false) String? name,@JsonKey(name: 'role') UserRole role,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'language', includeIfNull: false) String? language,@JsonKey(name: 'theme_mode', includeIfNull: false) String? themeMode,@JsonKey(name: 'created_by', includeIfNull: false) String? createdBy,@JsonKey(name: 'password', includeIfNull: false) String? password
 });
 
 
@@ -1551,7 +1474,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'email')  String email, @JsonKey(name: 'name', includeIfNull: false)  String? name, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'language', includeIfNull: false)  String? language, @JsonKey(name: 'theme_mode', includeIfNull: false)  String? themeMode, @JsonKey(name: 'created_by', includeIfNull: false)  String? createdBy, @JsonKey(name: 'password', includeIfNull: false)  String? password)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'email')  String email, @JsonKey(name: 'name', includeIfNull: false)  String? name, @JsonKey(name: 'role')  UserRole role, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'language', includeIfNull: false)  String? language, @JsonKey(name: 'theme_mode', includeIfNull: false)  String? themeMode, @JsonKey(name: 'created_by', includeIfNull: false)  String? createdBy, @JsonKey(name: 'password', includeIfNull: false)  String? password)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserCreate() when $default != null:
 return $default(_that.email,_that.name,_that.role,_that.organizationId,_that.isActive,_that.language,_that.themeMode,_that.createdBy,_that.password);case _:
@@ -1572,7 +1495,7 @@ return $default(_that.email,_that.name,_that.role,_that.organizationId,_that.isA
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'email')  String email, @JsonKey(name: 'name', includeIfNull: false)  String? name, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'language', includeIfNull: false)  String? language, @JsonKey(name: 'theme_mode', includeIfNull: false)  String? themeMode, @JsonKey(name: 'created_by', includeIfNull: false)  String? createdBy, @JsonKey(name: 'password', includeIfNull: false)  String? password)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'email')  String email, @JsonKey(name: 'name', includeIfNull: false)  String? name, @JsonKey(name: 'role')  UserRole role, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'language', includeIfNull: false)  String? language, @JsonKey(name: 'theme_mode', includeIfNull: false)  String? themeMode, @JsonKey(name: 'created_by', includeIfNull: false)  String? createdBy, @JsonKey(name: 'password', includeIfNull: false)  String? password)  $default,) {final _that = this;
 switch (_that) {
 case _UserCreate():
 return $default(_that.email,_that.name,_that.role,_that.organizationId,_that.isActive,_that.language,_that.themeMode,_that.createdBy,_that.password);case _:
@@ -1592,7 +1515,7 @@ return $default(_that.email,_that.name,_that.role,_that.organizationId,_that.isA
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'email')  String email, @JsonKey(name: 'name', includeIfNull: false)  String? name, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'language', includeIfNull: false)  String? language, @JsonKey(name: 'theme_mode', includeIfNull: false)  String? themeMode, @JsonKey(name: 'created_by', includeIfNull: false)  String? createdBy, @JsonKey(name: 'password', includeIfNull: false)  String? password)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'email')  String email, @JsonKey(name: 'name', includeIfNull: false)  String? name, @JsonKey(name: 'role')  UserRole role, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id')  String organizationId, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'language', includeIfNull: false)  String? language, @JsonKey(name: 'theme_mode', includeIfNull: false)  String? themeMode, @JsonKey(name: 'created_by', includeIfNull: false)  String? createdBy, @JsonKey(name: 'password', includeIfNull: false)  String? password)?  $default,) {final _that = this;
 switch (_that) {
 case _UserCreate() when $default != null:
 return $default(_that.email,_that.name,_that.role,_that.organizationId,_that.isActive,_that.language,_that.themeMode,_that.createdBy,_that.password);case _:
@@ -1607,13 +1530,13 @@ return $default(_that.email,_that.name,_that.role,_that.organizationId,_that.isA
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _UserCreate extends UserCreate {
-  const _UserCreate({@JsonKey(name: 'email') required this.email, @JsonKey(name: 'name', includeIfNull: false) this.name, @JsonKey(name: 'role') this.role = UserRole.member, @JsonKey(name: 'organization_id') required this.organizationId, @JsonKey(name: 'is_active') this.isActive = true, @JsonKey(name: 'language', includeIfNull: false) this.language, @JsonKey(name: 'theme_mode', includeIfNull: false) this.themeMode, @JsonKey(name: 'created_by', includeIfNull: false) this.createdBy, @JsonKey(name: 'password', includeIfNull: false) this.password}): super._();
+  const _UserCreate({@JsonKey(name: 'email') required this.email, @JsonKey(name: 'name', includeIfNull: false) this.name, @JsonKey(name: 'role') this.role = UserRole.member, @StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') required this.organizationId, @JsonKey(name: 'is_active') this.isActive = true, @JsonKey(name: 'language', includeIfNull: false) this.language, @JsonKey(name: 'theme_mode', includeIfNull: false) this.themeMode, @JsonKey(name: 'created_by', includeIfNull: false) this.createdBy, @JsonKey(name: 'password', includeIfNull: false) this.password}): super._();
   factory _UserCreate.fromJson(Map<String, dynamic> json) => _$UserCreateFromJson(json);
 
 @override@JsonKey(name: 'email') final  String email;
 @override@JsonKey(name: 'name', includeIfNull: false) final  String? name;
 @override@JsonKey(name: 'role') final  UserRole role;
-@override@JsonKey(name: 'organization_id') final  String organizationId;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') final  String organizationId;
 @override@JsonKey(name: 'is_active') final  bool isActive;
 @override@JsonKey(name: 'language', includeIfNull: false) final  String? language;
 @override@JsonKey(name: 'theme_mode', includeIfNull: false) final  String? themeMode;
@@ -1631,14 +1554,7 @@ Map<String, dynamic> toJson() {
   return _$UserCreateToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserCreate&&(identical(other.email, email) || other.email == email)&&(identical(other.name, name) || other.name == name)&&(identical(other.role, role) || other.role == role)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.language, language) || other.language == language)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.createdBy, createdBy) || other.createdBy == createdBy)&&(identical(other.password, password) || other.password == password));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,email,name,role,organizationId,isActive,language,themeMode,createdBy,password);
 
 @override
 String toString() {
@@ -1653,7 +1569,7 @@ abstract mixin class _$UserCreateCopyWith<$Res> implements $UserCreateCopyWith<$
   factory _$UserCreateCopyWith(_UserCreate value, $Res Function(_UserCreate) _then) = __$UserCreateCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'email') String email,@JsonKey(name: 'name', includeIfNull: false) String? name,@JsonKey(name: 'role') UserRole role,@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'language', includeIfNull: false) String? language,@JsonKey(name: 'theme_mode', includeIfNull: false) String? themeMode,@JsonKey(name: 'created_by', includeIfNull: false) String? createdBy,@JsonKey(name: 'password', includeIfNull: false) String? password
+@JsonKey(name: 'email') String email,@JsonKey(name: 'name', includeIfNull: false) String? name,@JsonKey(name: 'role') UserRole role,@StrictOpaqueIdConverter()@JsonKey(name: 'organization_id') String organizationId,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'language', includeIfNull: false) String? language,@JsonKey(name: 'theme_mode', includeIfNull: false) String? themeMode,@JsonKey(name: 'created_by', includeIfNull: false) String? createdBy,@JsonKey(name: 'password', includeIfNull: false) String? password
 });
 
 
@@ -1703,14 +1619,7 @@ $UserUpdateCopyWith<UserUpdate> get copyWith => _$UserUpdateCopyWithImpl<UserUpd
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserUpdate&&(identical(other.name, name) || other.name == name)&&(identical(other.role, role) || other.role == role)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.language, language) || other.language == language)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.password, password) || other.password == password));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,name,role,organizationId,isActive,language,themeMode,password);
 
 @override
 String toString() {
@@ -1914,14 +1823,7 @@ Map<String, dynamic> toJson() {
   return _$UserUpdateToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserUpdate&&(identical(other.name, name) || other.name == name)&&(identical(other.role, role) || other.role == role)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&(identical(other.language, language) || other.language == language)&&(identical(other.themeMode, themeMode) || other.themeMode == themeMode)&&(identical(other.password, password) || other.password == password));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,name,role,organizationId,isActive,language,themeMode,password);
 
 @override
 String toString() {
