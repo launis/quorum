@@ -27,14 +27,35 @@ from backend_v2.models.auth import (
     UserDeleteResponse,
     UserRole,
 )
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "accept_invitation",
+    "exchange_firebase_token",
+    "firebase_user_deleted_webhook",
+    "get_my_profile",
+    "impersonate_user",
+    "list_available_roles",
+    "logout_user",
+    "router",
+]
 
 router = APIRouter(prefix="/auth", tags=["Authentication & Users"])
 
 
+def _resolve_exchange_rate_limit() -> str:
+    """Resolve the sliding-window rate limit for token exchange from centralized Settings SSOT.
+
+    Returns:
+        SlowAPI rate limit string formatted from settings.auth_edge_rpm_limit.
+    """
+    return f"{get_settings().auth_edge_rpm_limit}/minute"
+
+
 @router.post("/exchange", response_model=TokenExchangeResponseDTO)
-@limiter.limit("5/minute")
+@limiter.limit(_resolve_exchange_rate_limit)
 async def exchange_firebase_token(
     request: Request,
     payload: TokenExchangeRequestDTO,
@@ -73,6 +94,10 @@ async def logout_user(
 
     Returns:
         LogoutResponseDTO confirming token revocation.
+
+    Raises:
+        ServiceUnavailableError: With ErrorCodes.SERVICE_UNAVAILABLE if the Redis revocation store fails.
+        AppException: If upstream session revocation or audit persistence fails.
     """
     return await auth_service.logout(current_user, payload)
 
@@ -175,7 +200,7 @@ async def firebase_user_deleted_webhook(
         AuthenticationError: With ErrorCodes.AUTHENTICATION_FAILED if HMAC signature is missing or invalid.
         ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if user is not found.
     """
-    # Phase 5, Step 5.3: Validate X-Quorum-Webhook-Signature HMAC and execute GDPR soft-delete
+    # Validate X-Quorum-Webhook-Signature HMAC and execute GDPR soft-delete via UserService.
     raw_body = await request.body()
     return await auth_service.user_service.verify_and_soft_delete_firebase_webhook(
         firebase_uid=firebase_uid,
