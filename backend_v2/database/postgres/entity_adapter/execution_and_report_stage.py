@@ -325,7 +325,7 @@ async def save_execution_row(
     active_prf_uuid = _parse_optional_uuid7(record.active_profile_id, EntityPrefix.OUTPUT_PROFILE)
     output_prf_uuid = _parse_optional_uuid7(record.output_profile_id, EntityPrefix.OUTPUT_PROFILE)
     org_uuid = _parse_org_uuid7(record.organization_id)
-    # Phase 4, Step 4.1: Enforce conditional expected_state_version OCC check and atomic increment
+    # Enforce conditional expected_state_version OCC check and atomic increment
     persisted_state_version = record.state_version
     if expected_state_version is not None:
         existing = await get_execution_row(conn, timeout, record.id)
@@ -341,6 +341,7 @@ async def save_execution_row(
                 "[PostgresEntityAdapter] %s: %s",
                 ErrorCodes.CONFLICT.name,
                 msg,
+                exc_info=True,
                 extra={
                     "error_code": ErrorCodes.CONFLICT.value,
                     "execution_id": record.id,
