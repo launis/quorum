@@ -188,5 +188,31 @@ void main() {
         verifyNever(() => mockHandler.reject(any(), any()));
       },
     );
+
+    test(
+      'Boundary 3 (Exchange Route Exclusion): does not overwrite Authorization header on /iam/auth/exchange route',
+      () async {
+        when(() => mockFirebaseAuth.currentUser).thenReturn(mockUser);
+
+        final container = createContainer();
+        container
+            .read(mockTokenProvider.notifier)
+            .setToken('cached_session_jwt');
+        final interceptor = resolveInterceptor(container);
+        final exchangeOptions = RequestOptions(
+          path: '/api/v2/iam/auth/exchange',
+          headers: {'Authorization': 'Bearer bootstrap_token'},
+        );
+
+        await interceptor.onRequest(exchangeOptions, mockHandler);
+
+        expect(
+          exchangeOptions.headers['Authorization'],
+          equals('Bearer bootstrap_token'),
+        );
+        verify(() => mockHandler.next(exchangeOptions)).called(1);
+        verifyNever(() => mockUser.getIdToken());
+      },
+    );
   });
 }

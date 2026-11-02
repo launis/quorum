@@ -20,7 +20,7 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    // Phase 6, Step 6.1: Attach exchanged Quorum Local JWT from session token store.
+    // Bypass automatic Bearer token overwrite on /iam/auth/exchange so the exchange request preserves its explicit credential header.
     final isExchangeRoute = options.path.endsWith('/iam/auth/exchange');
     final sessionJwt = _ref.read(mockTokenProvider);
 
