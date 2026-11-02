@@ -6,11 +6,13 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
+from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.view.sdui import ReportView
+from backend_v2.models.view.sdui import ReportView, SduiMatrixTableBlock, SduiNACard
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.sdui.sdui_mapper_service import SduiMapperService
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
@@ -46,23 +48,23 @@ async def test_epic_93_e2e_golden_master() -> None:
                 step_name="step_analyst",
                 event_type="output",
                 content={
-                    block_id: {
-                        "raw_score": 85.0,
-                        "normalized_score": 85.0,
-                        "justification": "Checked with sources.",
-                    }
+                    block_id: TraceMatrixPayloadDTO(
+                        raw_score=85.0,
+                        normalized_score=85.0,
+                        justification="Checked with sources.",
+                    )
                 },
             ),
             TraceEvent(
                 step_name="step_scoring",
                 event_type="output",
                 content={
-                    "scoring_result": {
-                        "total_score": 85.0,
-                        "final_score": 85.0,
-                        "penalties_applied": [],
-                        "aggregation_status": "V2 Commensurate Average",
-                    }
+                    "scoring_result": TraceScoringPayloadDTO(
+                        total_score=85.0,
+                        final_score=85.0,
+                        penalties_applied=[],
+                        aggregation_status="V2 Commensurate Average",
+                    )
                 },
             ),
             TraceEvent(
@@ -205,10 +207,7 @@ async def test_epic_93_e2e_golden_master() -> None:
 
 @pytest.mark.asyncio
 async def test_epic_95_na_cascade_e2e() -> None:
-    """Verify that N_A AtomResultDTO correctly cascades to an n_a_card SduiComponent."""
-    from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
-    from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
-
+    """Verify that N_A AtomResultDTO correctly cascades to inline short_circuited_by_claims on SduiMatrixTableBlock."""
     # Create dummy ExecutionRecord mapped as ReportDataDTO with an N_A result
     execution_id = "exe_na1234567890"
     tda_id = "tda_short_circuit1234567"
@@ -217,10 +216,23 @@ async def test_epic_95_na_cascade_e2e() -> None:
         workflow_id="wf_na",
         execution_id=execution_id,
         profile_id="prf_na",
+        available_profiles={},
+        visible_metadata=[],
+        mcp_tool_audit=[],
+        short_circuited_by_claims=[],
+        falsified_warrant_claims=[],
+        inner_sdui_blocks=[
+            SduiMatrixTableBlock(
+                axes=[],
+                short_circuited_by_claims=[],
+                falsified_warrant_claims=[],
+            )
+        ],
         results=[
             AtomResultDTO(
                 tda_id="tda_target123",
                 status=ExecutionStatus.N_A,
+                extensions={},
                 short_circuit_reason_tda_ids=[tda_id],
                 depends_on_tda_ids=[],
                 evaluation_reasoning="Skipped",
@@ -243,17 +255,13 @@ async def test_epic_95_na_cascade_e2e() -> None:
     mapper = SduiMapperService()
     view = mapper.map_report(dto, execution_id=execution_id)
 
-    # Assertions
-    from backend_v2.models.view.sdui import SduiNACard
-
-    na_card = next(
-        (b for b in view.inner_sdui_blocks if isinstance(b, SduiNACard)),
+    assert not any(isinstance(b, SduiNACard) for b in view.inner_sdui_blocks)
+    matrix_block = next(
+        (b for b in view.inner_sdui_blocks if isinstance(b, SduiMatrixTableBlock)),
         None,
     )
-    assert na_card is not None, "N/A outcomes block missing from inner_sdui_blocks"
-    assert na_card.block_type == "n_a_card"
-    assert tda_id in na_card.short_circuit_reason_tda_ids
-    assert "Ohitettu säännön perusteella: This is the NA reason claim" in na_card.message
+    assert matrix_block is not None
+    assert "Ohitettu säännön perusteella: This is the NA reason claim" in matrix_block.short_circuited_by_claims
 
 
 @pytest.mark.asyncio

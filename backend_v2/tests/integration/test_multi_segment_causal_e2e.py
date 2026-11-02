@@ -43,6 +43,7 @@ from backend_v2.services.orchestrator.sliding_window_linker import (
     WindowCausalEdgesDTO,
 )
 from backend_v2.services.pdf_generator import PdfReportService
+from backend_v2.settings import get_settings
 
 # ---------------------------------------------------------------------------
 # Contract 1: DAG Execution with Multi-Segment Evidence Quotes
@@ -256,6 +257,8 @@ async def test_multi_segment_causal_e2e_report_and_export_generation() -> None:
     sdui_block = SduiMatrixTableBlock(
         matrix_visible_columns=["label", "quotes", "distribution", "row_explanation", "normalized_score"],
         axes=[axis],
+        short_circuited_by_claims=[],
+        falsified_warrant_claims=[],
     )
     report_data = ReportDataDTO(
         execution_id="exe_multi_segment_test",
@@ -263,6 +266,13 @@ async def test_multi_segment_causal_e2e_report_and_export_generation() -> None:
         workflow_id="wf_multi_segment_test",
         profile_id="prf_multi_segment_test",
         profile_name=I18nText(translations={"en": "Test Profile", "fi": "Testiprofiili"}),
+        available_profiles={},
+        results=[],
+        hydrated_references={},
+        visible_metadata=[],
+        mcp_tool_audit=[],
+        short_circuited_by_claims=[],
+        falsified_warrant_claims=[],
         inner_sdui_blocks=[sdui_block],
     )
     html_output = await pdf_service.generate_execution_html(
@@ -278,8 +288,11 @@ async def test_multi_segment_causal_e2e_report_and_export_generation() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_multi_segment_causal_e2e_negative_chimera_and_ordering_rejection() -> None:
+def test_multi_segment_causal_e2e_negative_chimera_and_ordering_rejection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Negative Contract 5: AnchorValidationService rejects span violations, inverted order, and chimeras."""
+    monkeypatch.setattr(get_settings(), "max_citation_span_chars", 1000)
     seg1 = "Ensimmäinen lause riittävän pitkällä tekstillä."
     seg2 = "Toinen lause riittävän pitkällä tekstillä."
 
@@ -320,6 +333,8 @@ def test_multi_segment_causal_e2e_negative_warrant_grounding_failure() -> None:
         status=ExecutionStatus.PASSED,
         blame_parent_ids=[],
         dependent_child_ids=["tda_c0001"],
+        short_circuited_by_claims=[],
+        falsified_warrant_claims=[],
     )
     child_node = CausalNodeDTO(
         node_id="tda_c0001",
@@ -329,6 +344,8 @@ def test_multi_segment_causal_e2e_negative_warrant_grounding_failure() -> None:
         status=ExecutionStatus.FAILED,
         blame_parent_ids=["tda_p0001"],
         dependent_child_ids=[],
+        short_circuited_by_claims=[],
+        falsified_warrant_claims=[],
     )
     graph = CausalGraphPayloadDTO(
         nodes=[parent_node, child_node],
