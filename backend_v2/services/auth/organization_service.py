@@ -1,12 +1,17 @@
-"""Organization Management Service for tenant lifecycle and isolation."""
+"""Organization Management Service for tenant lifecycle, B2B invitations, and isolation."""
 
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
-from datetime import datetime, timezone
+import secrets
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from pydantic import SecretStr
+
+from backend_v2.database.interfaces import EntityPersistencePort
 from backend_v2.exceptions import (
     AppException,
     ConflictError,
@@ -15,22 +20,38 @@ from backend_v2.exceptions import (
     ResourceNotFoundError,
 )
 from backend_v2.models.auth import (
+    Invitation,
+    InvitationAcceptRequestDTO,
+    InvitationBatchCreateDTO,
+    InvitationBatchResponseDTO,
+    InvitationCreateDTO,
+    InvitationResponseDTO,
     Organization,
     OrganizationCreate,
     OrganizationUpdateDTO,
     SubscriptionStatus,
     SystemOrganizations,
     TokenData,
+    TransactionalEmailItemDTO,
+    User,
     UserCreate,
     UserRole,
+    UserUpdate,
 )
 from backend_v2.models.core_base import generate_opaque_id
-from backend_v2.models.enums import EntityPrefix, SystemLocale
+from backend_v2.models.enums import (
+    EmailDeliveryStatus,
+    EntityPrefix,
+    InvitationStatus,
+    SystemLocale,
+)
+from backend_v2.services.auth.email_service import EmailService
 from backend_v2.services.auth.protocols import UserCreatorProtocol
 from backend_v2.services.auth.repositories import (
     OrganizationRepository,
     UserRepository,
 )
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +59,7 @@ __all__ = ["OrganizationService"]
 
 
 class OrganizationService:
-    """Tenant Organization Management Service.
+    """Tenant Organization Management and B2B Invitation Service.
 
     Attributes:
         org_repo: Repository wrapper for organization operations.
@@ -47,6 +68,7 @@ class OrganizationService:
         use_firebase: Flag indicating if Firebase integration is enabled.
         firebase_auth: Optional Firebase authentication module or mock.
         user_creator: Optional protocol handler for creating users.
+        email_service: Transactional email dispatch service.
     """
 
     def __init__(
@@ -57,8 +79,10 @@ class OrganizationService:
         use_firebase: bool = False,
         firebase_auth: Any = None,
         user_creator: UserCreatorProtocol | None = None,
+        email_service: EmailService | None = None,
+        entity_adapter: EntityPersistencePort | None = None,
     ) -> None:
-        """Initializes the OrganizationService.
+        """Initialize the OrganizationService.
 
         Args:
             org_repo: Repository wrapper for organization operations.
@@ -67,6 +91,8 @@ class OrganizationService:
             use_firebase: Flag indicating if Firebase integration is enabled.
             firebase_auth: Optional Firebase authentication module or mock.
             user_creator: Optional protocol handler for creating users.
+            email_service: Optional EmailService instance for invitation dispatch.
+            entity_adapter: Optional hexagonal entity persistence port for invitations.
         """
         self.org_repo = org_repo
         self.user_repo = user_repo
@@ -74,9 +100,26 @@ class OrganizationService:
         self.use_firebase = use_firebase
         self.firebase_auth = firebase_auth
         self.user_creator = user_creator
+        self.email_service: EmailService = email_service if email_service is not None else EmailService()
+        self._entity_adapter: EntityPersistencePort | None = entity_adapter
+        self._local_invitations: dict[str, Invitation] = {}
+        self._last_generated_tokens: dict[str, str] = {}
+
+    def get_last_generated_token(self, invitation_id: str) -> str | None:
+        """Return the raw token generated for an invitation ID in test/local workflows.
+
+        Args:
+            invitation_id: Canonical Invitation ID (inv_<hex32>).
+
+        Returns:
+            Raw URL-safe invitation token if generated in this service instance, else None.
+        """
+        if invitation_id in self._last_generated_tokens:
+            return self._last_generated_tokens[invitation_id]
+        return None
 
     async def create_organization(self, initiator: TokenData, org_create: OrganizationCreate) -> Organization:
-        """Creates a new Tenant Organization and an initial Admin user for it.
+        """Create a new Tenant Organization and an initial Admin user for it.
 
         Args:
             initiator: Token data of the user creating the organization.
@@ -98,13 +141,12 @@ class OrganizationService:
             )
             raise PermissionDeniedError("Only ROOT can create organizations.")
 
-        # Generate canonical 32-hex RFC 9562 UUIDv7 organization ID
         org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
 
         new_org = Organization(
             id=org_id,
             name=org_create.name,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             is_active=True,
             tier="enterprise",
             subscription_status=SubscriptionStatus.ACTIVE,
@@ -153,33 +195,18 @@ class OrganizationService:
         return new_org
 
     async def delete_organization(self, initiator: TokenData, target_org_id: str, force: bool = False) -> None:
-        """Deletes an Organization.
-
-        Safety Rules:
-        - Cannot delete 'system' organization.
-        - Cannot delete non-empty organization unless force=True.
-        - force=True cascades delete to all users.
+        """Delete an Organization with safety checks and optional cascade user removal.
 
         Args:
             initiator: Token data of the user deleting the organization.
             target_org_id: The ID of the organization to delete.
             force: If True, cascades deletion to all users in the org.
 
-        Returns:
-            None
-
         Raises:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator is not ROOT or targets system org.
             ConflictError: With ErrorCodes.CONFLICT_ERROR if the organization is not empty and force is False.
             AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if Firebase cascade user deletion fails.
         """
-        logger.info(
-            "[OrganizationService] delete_organization called. Initiator: %s, Target: %s, Force: %s",
-            initiator.id,
-            target_org_id,
-            force,
-        )
-
         if initiator.role != UserRole.ROOT:
             logger.error(
                 "[OrganizationService] %s: Only ROOT can delete organizations (initiator=%s, target=%s).",
@@ -200,13 +227,9 @@ class OrganizationService:
             )
             raise PermissionDeniedError("CRITICAL: The 'system' organization is protected and CANNOT be deleted.")
 
-        logger.info("[OrganizationService] Fetching users to check for safety...")
-
         all_users = await self.user_repo.list_all()
         org_users = [u for u in all_users if u.organization_id == target_org_id]
-
         user_count = len(org_users)
-        logger.info("[OrganizationService] Organization %s has %s users.", target_org_id, user_count)
 
         if user_count > 0 and not force:
             logger.error(
@@ -221,7 +244,6 @@ class OrganizationService:
             )
 
         if user_count > 0:
-            logger.info("[OrganizationService] FORCE DELETE enabled. Removing %s users...", user_count)
             for user in org_users:
                 if self.use_firebase and self.firebase_auth is not None:
                     try:
@@ -242,7 +264,6 @@ class OrganizationService:
 
                 await self.user_repo.delete(user.id)
 
-        logger.info("[OrganizationService] Removing Organization %s from DB...", target_org_id)
         await self.org_repo.delete(target_org_id)
 
         if self.audit_service is not None:
@@ -287,16 +308,7 @@ class OrganizationService:
             ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the organization does not exist.
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the initiator lacks access.
         """
-        org = await self.org_repo.get_by_id(org_id)
-
-        if not org:
-            logger.error(
-                "[OrganizationService] %s: Organization not found (org_id=%s).",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                org_id,
-                exc_info=True,
-            )
-            raise ResourceNotFoundError(resource_type="organization", resource_id=org_id)
+        org = await self._fetch_org_or_raise(org_id)
 
         if initiator.role != UserRole.ROOT and initiator.organization_id != org_id:
             logger.error(
@@ -351,3 +363,818 @@ class OrganizationService:
         await self.org_repo.update(org_id, update_dto)
 
         return await self.get_organization(initiator, org_id)
+
+    async def create_invitation(
+        self,
+        initiator: TokenData,
+        org_id: str,
+        payload: InvitationCreateDTO,
+    ) -> InvitationResponseDTO:
+        """Create a single cryptographic B2B organization invitation and dispatch email.
+
+        Args:
+            initiator: Authenticated caller token data (must be org ADMIN or ROOT).
+            org_id: Target organization identifier (org_<hex32>).
+            payload: Validated InvitationCreateDTO specifying recipient email and role.
+
+        Returns:
+            Redacted InvitationResponseDTO without exposing token_hash.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges,
+                attempts to invite ROOT as non-ROOT, or email domain violates allowed_email_domains.
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if org_id does not exist.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if a pending invitation already exists.
+        """
+        self._verify_invitation_admin_access(initiator=initiator, org_id=org_id)
+        org = await self._fetch_org_or_raise(org_id)
+        now = datetime.now(UTC)
+        existing_pending = await self._get_active_pending_emails(org_id=org_id, now=now)
+
+        normalized_email = self._validate_invitation_recipient(
+            initiator=initiator,
+            org=org,
+            payload=payload,
+            existing_pending_emails=existing_pending,
+        )
+
+        raw_token = secrets.token_urlsafe(32)
+        invitation = self._build_invitation(
+            initiator=initiator,
+            org=org,
+            normalized_email=normalized_email,
+            role=payload.role,
+            expires_in_hours=payload.expires_in_hours,
+            raw_token=raw_token,
+            now=now,
+        )
+        email_item = self._build_invitation_email(
+            org=org,
+            invitation=invitation,
+            raw_token=raw_token,
+        )
+        email_result = await self.email_service.send_invitation_emails([email_item])
+        delivery_status = (
+            email_result.delivery_statuses[invitation.id]
+            if invitation.id in email_result.delivery_statuses
+            else EmailDeliveryStatus.FAILED
+        )
+        persisted = invitation.model_copy(update={"email_delivery_status": delivery_status})
+        await self._save_invitation(persisted)
+        self._last_generated_tokens[persisted.id] = raw_token
+
+        if self.audit_service is not None:
+            await self.audit_service.log_event(
+                actor_id=initiator.id,
+                action="INVITATION_CREATED",
+                organization_id=org_id,
+                target_id=persisted.id,
+                details={
+                    "invitation_id": persisted.id,
+                    "role": persisted.role.value,
+                    "email_delivery_status": persisted.email_delivery_status.value,
+                },
+            )
+        return self._to_invitation_response(persisted)
+
+    async def create_invitation_batch(
+        self,
+        initiator: TokenData,
+        org_id: str,
+        payload: InvitationBatchCreateDTO,
+    ) -> InvitationBatchResponseDTO:
+        """Create a cohort batch of cryptographic B2B invitations after all-or-nothing preflight validation.
+
+        Args:
+            initiator: Authenticated caller token data (must be org ADMIN or ROOT).
+            org_id: Target organization identifier (org_<hex32>).
+            payload: Validated InvitationBatchCreateDTO containing 1 to 500 recipients.
+
+        Returns:
+            InvitationBatchResponseDTO with created count and materialized InvitationResponseDTOs.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges,
+                attempts to invite ROOT as non-ROOT, or any recipient violates allowed_email_domains.
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if org_id does not exist.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if any recipient already has a pending invitation.
+        """
+        self._verify_invitation_admin_access(initiator=initiator, org_id=org_id)
+        org = await self._fetch_org_or_raise(org_id)
+        now = datetime.now(UTC)
+        existing_pending = await self._get_active_pending_emails(org_id=org_id, now=now)
+
+        deduplicated: list[tuple[str, InvitationCreateDTO]] = []
+        seen_batch_emails: set[str] = set()
+        for recipient_dto in payload.recipients:
+            normalized_email = self._validate_invitation_recipient(
+                initiator=initiator,
+                org=org,
+                payload=recipient_dto,
+                existing_pending_emails=existing_pending,
+            )
+            if normalized_email in seen_batch_emails:
+                continue
+            seen_batch_emails.add(normalized_email)
+            deduplicated.append((normalized_email, recipient_dto))
+
+        draft_invitations: list[Invitation] = []
+        email_items: list[TransactionalEmailItemDTO] = []
+        raw_tokens_by_id: dict[str, str] = {}
+        for normalized_email, recipient_dto in deduplicated:
+            raw_token = secrets.token_urlsafe(32)
+            inv = self._build_invitation(
+                initiator=initiator,
+                org=org,
+                normalized_email=normalized_email,
+                role=recipient_dto.role,
+                expires_in_hours=recipient_dto.expires_in_hours,
+                raw_token=raw_token,
+                now=now,
+            )
+            email_item = self._build_invitation_email(
+                org=org,
+                invitation=inv,
+                raw_token=raw_token,
+            )
+            draft_invitations.append(inv)
+            email_items.append(email_item)
+            raw_tokens_by_id[inv.id] = raw_token
+
+        batch_result = await self.email_service.send_invitation_emails(email_items)
+
+        persisted_dtos: list[InvitationResponseDTO] = []
+        for inv in draft_invitations:
+            status_val = (
+                batch_result.delivery_statuses[inv.id]
+                if inv.id in batch_result.delivery_statuses
+                else EmailDeliveryStatus.FAILED
+            )
+            final_inv = inv.model_copy(update={"email_delivery_status": status_val})
+            await self._save_invitation(final_inv)
+            self._last_generated_tokens[final_inv.id] = raw_tokens_by_id[final_inv.id]
+            persisted_dtos.append(self._to_invitation_response(final_inv))
+
+        if self.audit_service is not None:
+            await self.audit_service.log_event(
+                actor_id=initiator.id,
+                action="INVITATION_CREATED",
+                organization_id=org_id,
+                target_id=org_id,
+                details={
+                    "batch_size": len(persisted_dtos),
+                    "sent_count": batch_result.sent_count,
+                },
+            )
+        return InvitationBatchResponseDTO(
+            created_count=len(persisted_dtos),
+            invitations=persisted_dtos,
+        )
+
+    async def list_invitations(
+        self,
+        initiator: TokenData,
+        org_id: str,
+    ) -> list[InvitationResponseDTO]:
+        """List all organization invitations for the specified organization.
+
+        Args:
+            initiator: Authenticated caller token data (must be org ADMIN or ROOT).
+            org_id: Target organization identifier (org_<hex32>).
+
+        Returns:
+            List of redacted InvitationResponseDTO records.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if org_id does not exist.
+        """
+        self._verify_invitation_admin_access(initiator=initiator, org_id=org_id)
+        await self._fetch_org_or_raise(org_id)
+        records = await self._list_org_invitations(org_id)
+        return [self._to_invitation_response(inv) for inv in records]
+
+    async def revoke_invitation(
+        self,
+        initiator: TokenData,
+        org_id: str,
+        invitation_id: str,
+    ) -> InvitationResponseDTO:
+        """Revoke a pending organization invitation.
+
+        Args:
+            initiator: Authenticated caller token data (must be org ADMIN or ROOT).
+            org_id: Owning organization identifier (org_<hex32>).
+            invitation_id: Canonical Invitation ID (inv_<hex32>) to revoke.
+
+        Returns:
+            Updated InvitationResponseDTO with status='revoked'.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if invitation does not exist in org_id.
+        """
+        self._verify_invitation_admin_access(initiator=initiator, org_id=org_id)
+        await self._fetch_org_or_raise(org_id)
+        existing = await self._get_invitation_by_id(invitation_id)
+        if existing is None or existing.organization_id != org_id:
+            logger.error(
+                "[OrganizationService] %s: Invitation '%s' not found in organization '%s'.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                invitation_id,
+                org_id,
+            )
+            raise ResourceNotFoundError(resource_type="invitation", resource_id=invitation_id)
+
+        revoked = existing.model_copy(update={"status": InvitationStatus.REVOKED})
+        await self._save_invitation(revoked)
+        if self.audit_service is not None:
+            await self.audit_service.log_event(
+                actor_id=initiator.id,
+                action="INVITATION_REVOKED",
+                organization_id=org_id,
+                target_id=revoked.id,
+                details={"invitation_id": revoked.id},
+            )
+        return self._to_invitation_response(revoked)
+
+    async def accept_invitation(
+        self,
+        initiator_or_payload: TokenData | InvitationAcceptRequestDTO,
+        payload: InvitationAcceptRequestDTO | None = None,
+    ) -> User:
+        """Accept a B2B organization invitation enforcing the 1:1 Flat Identity Collision Guard.
+
+        Args:
+            initiator_or_payload: Authenticated caller TokenData or InvitationAcceptRequestDTO.
+            payload: InvitationAcceptRequestDTO when initiator TokenData is provided as first argument.
+
+        Returns:
+            Updated or newly provisioned User assigned to the target organization.
+
+        Raises:
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if token digest does not match any invitation.
+            AppException: With ErrorCodes.INVITATION_EXPIRED if invitation is expired or revoked,
+                or ErrorCodes.VALIDATION_FAILED if payload is missing.
+            PermissionDeniedError: With ErrorCodes.IDENTITY_MISMATCH if caller email does not match invitation.
+            ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED if user already belongs to another organization,
+                or ErrorCodes.CONFLICT_ERROR if invitation was already accepted.
+        """
+        initiator, accept_dto = self._unpack_accept_arguments(initiator_or_payload, payload)
+        token_hash = hashlib.sha256(accept_dto.raw_token.encode("utf-8")).hexdigest()
+        invitation = await self._find_invitation_by_token_hash(token_hash)
+        if invitation is None:
+            logger.error(
+                "[OrganizationService] %s: Invitation token digest not found.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+            )
+            raise ResourceNotFoundError(resource_type="invitation", resource_id="token")
+
+        now = datetime.now(UTC)
+        await self._verify_invitation_acceptability(invitation=invitation, now=now)
+
+        existing_user = await self._resolve_accepting_user(initiator=initiator, invitation=invitation)
+        self._enforce_flat_identity_collision_guard(
+            initiator=initiator,
+            existing_user=existing_user,
+            target_org_id=invitation.organization_id,
+        )
+
+        updated_user = await self._bind_user_to_invited_org(
+            initiator=initiator,
+            existing_user=existing_user,
+            invitation=invitation,
+            accept_dto=accept_dto,
+            now=now,
+        )
+
+        accepted_inv = invitation.model_copy(update={"status": InvitationStatus.ACCEPTED})
+        await self._save_invitation(accepted_inv)
+
+        if self.audit_service is not None:
+            await self.audit_service.log_event(
+                actor_id=updated_user.id,
+                action="INVITATION_ACCEPTED",
+                organization_id=invitation.organization_id,
+                target_id=invitation.id,
+                details={
+                    "invitation_id": invitation.id,
+                    "user_id": updated_user.id,
+                    "role": invitation.role.value,
+                },
+            )
+        return updated_user
+
+    def _verify_invitation_admin_access(self, *, initiator: TokenData, org_id: str) -> None:
+        """Verify that the caller is ROOT or an ADMIN of the target organization.
+
+        Args:
+            initiator: Caller TokenData.
+            org_id: Target organization ID.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller is not authorized.
+        """
+        if initiator.role == UserRole.ROOT:
+            return
+        if initiator.role == UserRole.ADMIN and initiator.organization_id == org_id:
+            return
+        logger.error(
+            "[OrganizationService] %s: Caller '%s' (role=%s, org=%s) denied invitation management for org '%s'.",
+            ErrorCodes.PERMISSION_DENIED.name,
+            initiator.id,
+            initiator.role.value,
+            initiator.organization_id,
+            org_id,
+        )
+        raise PermissionDeniedError("Only organization ADMIN or ROOT can manage invitations.")
+
+    async def _fetch_org_or_raise(self, org_id: str) -> Organization:
+        """Fetch an Organization by ID or raise ResourceNotFoundError.
+
+        Args:
+            org_id: Target organization ID.
+
+        Returns:
+            Organization domain model.
+
+        Raises:
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if organization is missing.
+        """
+        org = await self.org_repo.get_by_id(org_id)
+        if org is None:
+            logger.error(
+                "[OrganizationService] %s: Organization not found (org_id=%s).",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                org_id,
+                exc_info=True,
+            )
+            raise ResourceNotFoundError(resource_type="organization", resource_id=org_id)
+        return org
+
+    def _validate_invitation_recipient(
+        self,
+        *,
+        initiator: TokenData,
+        org: Organization,
+        payload: InvitationCreateDTO,
+        existing_pending_emails: set[str],
+    ) -> str:
+        """Validate role hierarchy, allowed_email_domains, and duplicate pending status for an invitation.
+
+        Args:
+            initiator: Caller TokenData.
+            org: Target Organization model.
+            payload: Recipient InvitationCreateDTO.
+            existing_pending_emails: Lowercase emails with active PENDING invitations in the org.
+
+        Returns:
+            Normalized lowercase recipient email address.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED on role escalation or domain violation.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if a pending invitation already exists.
+        """
+        if payload.role == UserRole.ROOT and initiator.role != UserRole.ROOT:
+            logger.error(
+                "[OrganizationService] %s: Non-ROOT caller '%s' attempted to invite ROOT role.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+            )
+            raise PermissionDeniedError("Non-ROOT administrators cannot invite users with ROOT role.")
+
+        normalized_email = str(payload.email).strip().lower()
+        email_domain = normalized_email.split("@")[-1].lower()
+        if org.allowed_email_domains:
+            allowed_domains = {d.strip().lower() for d in org.allowed_email_domains if d.strip()}
+            if allowed_domains and email_domain not in allowed_domains:
+                logger.error(
+                    "[OrganizationService] %s: Email domain '%s' not in allowed_email_domains for org '%s'.",
+                    ErrorCodes.PERMISSION_DENIED.name,
+                    email_domain,
+                    org.id,
+                )
+                raise PermissionDeniedError(
+                    f"Recipient domain '{email_domain}' is not permitted for organization '{org.id}'."
+                )
+
+        if normalized_email in existing_pending_emails:
+            logger.error(
+                "[OrganizationService] %s: Duplicate pending invitation for org '%s'.",
+                ErrorCodes.CONFLICT_ERROR.name,
+                org.id,
+            )
+            raise ConflictError(
+                message="A pending invitation already exists for this email in the organization.",
+                details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "organization_id": org.id},
+            )
+        return normalized_email
+
+    def _build_invitation(
+        self,
+        *,
+        initiator: TokenData,
+        org: Organization,
+        normalized_email: str,
+        role: UserRole,
+        expires_in_hours: int,
+        raw_token: str,
+        now: datetime,
+    ) -> Invitation:
+        """Construct an Invitation domain model from validated parameters.
+
+        Args:
+            initiator: Caller TokenData.
+            org: Target Organization model.
+            normalized_email: Lowercase recipient email.
+            role: Invited UserRole.
+            expires_in_hours: Validity window in hours.
+            raw_token: Newly generated 256-bit raw URL-safe token.
+            now: Current UTC timestamp.
+
+        Returns:
+            Instantiated Invitation model with SHA-256 token_hash.
+        """
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        inv_id = generate_opaque_id(EntityPrefix.INVITATION)
+        expires_at = now + timedelta(hours=expires_in_hours)
+
+        return Invitation(
+            id=inv_id,
+            organization_id=org.id,
+            email=normalized_email,
+            role=role,
+            token_hash=token_hash,
+            status=InvitationStatus.PENDING,
+            email_delivery_status=EmailDeliveryStatus.PENDING,
+            invited_by=initiator.id,
+            expires_at=expires_at,
+            created_at=now,
+        )
+
+    @staticmethod
+    def _build_invitation_email(
+        *,
+        org: Organization,
+        invitation: Invitation,
+        raw_token: str,
+    ) -> TransactionalEmailItemDTO:
+        """Construct a TransactionalEmailItemDTO for an organization invitation.
+
+        Args:
+            org: Target Organization model.
+            invitation: Persisted or draft Invitation model.
+            raw_token: Raw URL-safe invitation token for the magic link.
+
+        Returns:
+            TransactionalEmailItemDTO with SecretStr-wrapped action_url.
+        """
+        base_url = get_settings().frontend_app_base_url.rstrip("/")
+        action_url = f"{base_url}/invite/accept?token={raw_token}"
+        subject = f"Invitation to join {org.name} on Quorum"
+        html_body = (
+            f"<p>You have been invited to join <strong>{org.name}</strong> "
+            f"with role <strong>{invitation.role.value}</strong>.</p>"
+        )
+        return TransactionalEmailItemDTO(
+            entity_id=invitation.id,
+            recipient_email=invitation.email,
+            locale=SystemLocale.EN,
+            subject=subject,
+            html_body=html_body,
+            action_url=SecretStr(action_url),
+        )
+
+    @staticmethod
+    def _unpack_accept_arguments(
+        initiator_or_payload: TokenData | InvitationAcceptRequestDTO,
+        payload: InvitationAcceptRequestDTO | None,
+    ) -> tuple[TokenData | None, InvitationAcceptRequestDTO]:
+        """Normalize arguments passed to accept_invitation.
+
+        Args:
+            initiator_or_payload: Either TokenData or InvitationAcceptRequestDTO.
+            payload: Optional InvitationAcceptRequestDTO when first arg is TokenData.
+
+        Returns:
+            Tuple of (Optional TokenData, InvitationAcceptRequestDTO).
+
+        Raises:
+            AppException: With ErrorCodes.VALIDATION_FAILED if payload is missing.
+        """
+        if isinstance(initiator_or_payload, InvitationAcceptRequestDTO):
+            return None, initiator_or_payload
+        if payload is None:
+            msg = "InvitationAcceptRequestDTO payload is required."
+            logger.error(
+                "[OrganizationService] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+            )
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        return initiator_or_payload, payload
+
+    async def _verify_invitation_acceptability(
+        self,
+        *,
+        invitation: Invitation,
+        now: datetime,
+    ) -> None:
+        """Verify that an invitation is PENDING and not expired.
+
+        Args:
+            invitation: Target Invitation model.
+            now: Current UTC timestamp.
+
+        Raises:
+            AppException: With ErrorCodes.INVITATION_EXPIRED if expired or revoked.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if already accepted.
+        """
+        if invitation.status == InvitationStatus.ACCEPTED:
+            logger.error(
+                "[OrganizationService] %s: Invitation '%s' was already accepted.",
+                ErrorCodes.CONFLICT_ERROR.name,
+                invitation.id,
+            )
+            raise ConflictError(
+                message="Invitation has already been accepted.",
+                details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "invitation_id": invitation.id},
+            )
+
+        if invitation.status in (InvitationStatus.EXPIRED, InvitationStatus.REVOKED) or invitation.expires_at <= now:
+            if invitation.status == InvitationStatus.PENDING and invitation.expires_at <= now:
+                await self._save_invitation(invitation.model_copy(update={"status": InvitationStatus.EXPIRED}))
+            logger.error(
+                "[OrganizationService] %s: Invitation '%s' is expired or revoked (status=%s).",
+                ErrorCodes.INVITATION_EXPIRED.name,
+                invitation.id,
+                invitation.status.value,
+            )
+            raise AppException(
+                message="Invitation has expired or been revoked.",
+                status_code=410,
+                details={"error_code": ErrorCodes.INVITATION_EXPIRED.value, "invitation_id": invitation.id},
+            )
+
+    async def _resolve_accepting_user(
+        self,
+        *,
+        initiator: TokenData | None,
+        invitation: Invitation,
+    ) -> User | None:
+        """Resolve the existing User record for an invitation acceptance and verify email identity.
+
+        Args:
+            initiator: Optional caller TokenData.
+            invitation: Target Invitation model.
+
+        Returns:
+            Matching User record if already persisted, else None.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.IDENTITY_MISMATCH if caller email mismatches invitation.
+        """
+        if initiator is not None:
+            if initiator.email is not None and initiator.email.lower() != invitation.email.lower():
+                logger.error(
+                    "[OrganizationService] %s: Caller '%s' email mismatch for invitation '%s'.",
+                    ErrorCodes.IDENTITY_MISMATCH.name,
+                    initiator.id,
+                    invitation.id,
+                )
+                raise PermissionDeniedError(
+                    message="Authenticated user email does not match invitation recipient.",
+                    details={"error_code": ErrorCodes.IDENTITY_MISMATCH.value, "invitation_id": invitation.id},
+                )
+            by_id = await self.user_repo.get_by_id(initiator.id)
+            if by_id is not None:
+                if by_id.email.lower() != invitation.email.lower():
+                    logger.error(
+                        "[OrganizationService] %s: User '%s' email mismatch for invitation '%s'.",
+                        ErrorCodes.IDENTITY_MISMATCH.name,
+                        by_id.id,
+                        invitation.id,
+                    )
+                    raise PermissionDeniedError(
+                        message="Authenticated user email does not match invitation recipient.",
+                        details={"error_code": ErrorCodes.IDENTITY_MISMATCH.value, "invitation_id": invitation.id},
+                    )
+                return by_id
+
+        return await self.user_repo.get_by_email(invitation.email)
+
+    @staticmethod
+    def _enforce_flat_identity_collision_guard(
+        *,
+        initiator: TokenData | None,
+        existing_user: User | None,
+        target_org_id: str,
+    ) -> None:
+        """Enforce the 1:1 Flat Identity Collision Guard preventing cross-tenant account hijacking.
+
+        Args:
+            initiator: Optional caller TokenData.
+            existing_user: Existing persisted User if found.
+            target_org_id: Organization ID on the invitation.
+
+        Raises:
+            ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED if user belongs to another organization.
+        """
+        current_org_id: str | None = None
+        subject_id: str = "unknown"
+        if existing_user is not None:
+            current_org_id = existing_user.organization_id
+            subject_id = existing_user.id
+        elif initiator is not None:
+            current_org_id = initiator.organization_id
+            subject_id = initiator.id
+
+        if current_org_id is not None and current_org_id != target_org_id:
+            logger.error(
+                "[OrganizationService] %s: User '%s' already belongs to organization '%s' (invited to '%s').",
+                ErrorCodes.USER_ALREADY_ASSIGNED.name,
+                subject_id,
+                current_org_id,
+                target_org_id,
+            )
+            raise ConflictError(
+                message=f"User '{subject_id}' is already assigned to organization '{current_org_id}'.",
+                details={
+                    "error_code": ErrorCodes.USER_ALREADY_ASSIGNED.value,
+                    "user_id": subject_id,
+                    "current_organization_id": current_org_id,
+                    "target_organization_id": target_org_id,
+                },
+            )
+
+    async def _bind_user_to_invited_org(
+        self,
+        *,
+        initiator: TokenData | None,
+        existing_user: User | None,
+        invitation: Invitation,
+        accept_dto: InvitationAcceptRequestDTO,
+        now: datetime,
+    ) -> User:
+        """Update an existing unassigned/same-org user or provision a new user for the invitation.
+
+        Args:
+            initiator: Optional caller TokenData.
+            existing_user: Optional existing User record.
+            invitation: Accepted Invitation model.
+            accept_dto: InvitationAcceptRequestDTO payload.
+            now: Current UTC timestamp.
+
+        Returns:
+            Persisted User model bound to invitation.organization_id and invitation.role.
+        """
+        if existing_user is not None:
+            updated_name = accept_dto.name if accept_dto.name is not None else existing_user.name
+            persisted = await self.user_repo.update(
+                existing_user.id,
+                UserUpdate(
+                    organization_id=invitation.organization_id,
+                    role=invitation.role,
+                    name=updated_name,
+                    is_active=True,
+                ),
+            )
+            updated_user = (
+                persisted
+                if persisted is not None
+                else existing_user.model_copy(
+                    update={
+                        "organization_id": invitation.organization_id,
+                        "role": invitation.role,
+                        "name": updated_name,
+                        "is_active": True,
+                    }
+                )
+            )
+            if self._entity_adapter is not None:
+                await self._entity_adapter.upsert_user(updated_user)
+            return updated_user
+
+        user_id = initiator.id if initiator is not None else generate_opaque_id(EntityPrefix.USER)
+        display_name = accept_dto.name if accept_dto.name is not None else invitation.email.split("@")[0]
+        new_user = User(
+            id=user_id,
+            email=invitation.email,
+            name=display_name,
+            role=invitation.role,
+            organization_id=invitation.organization_id,
+            is_active=True,
+            created_at=now,
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+        await self.user_repo.create(new_user)
+        if self._entity_adapter is not None:
+            await self._entity_adapter.upsert_user(new_user)
+        return new_user
+
+    async def _save_invitation(self, invitation: Invitation) -> None:
+        """Persist an Invitation to the entity adapter (if configured) and local cache.
+
+        Args:
+            invitation: Validated Invitation model to store.
+        """
+        self._local_invitations[invitation.id] = invitation
+        if self._entity_adapter is not None:
+            await self._entity_adapter.upsert_invitation(invitation)
+
+    async def _get_invitation_by_id(self, invitation_id: str) -> Invitation | None:
+        """Fetch an Invitation by its canonical ID.
+
+        Args:
+            invitation_id: Canonical Invitation ID (inv_<hex32>).
+
+        Returns:
+            Invitation model if found, else None.
+        """
+        if invitation_id in self._local_invitations:
+            return self._local_invitations[invitation_id]
+        if self._entity_adapter is not None:
+            return await self._entity_adapter.get_invitation(invitation_id)
+        return None
+
+    async def _list_org_invitations(self, org_id: str) -> list[Invitation]:
+        """List all invitations belonging to a specific organization.
+
+        Args:
+            org_id: Owning organization ID (org_<hex32>).
+
+        Returns:
+            List of Invitation models for the organization.
+        """
+        merged: dict[str, Invitation] = {}
+        if self._entity_adapter is not None:
+            persisted = await self._entity_adapter.list_invitations(organization_id=org_id)
+            for item in persisted:
+                if item.organization_id == org_id:
+                    merged[item.id] = item
+        for inv_id, local_inv in self._local_invitations.items():
+            if local_inv.organization_id == org_id:
+                merged[inv_id] = local_inv
+        return list(merged.values())
+
+    async def _get_active_pending_emails(self, *, org_id: str, now: datetime) -> set[str]:
+        """Return lowercase email addresses that currently have an unexpired PENDING invitation in org_id.
+
+        Args:
+            org_id: Owning organization ID.
+            now: Current UTC timestamp.
+
+        Returns:
+            Set of lowercase email strings.
+        """
+        invitations = await self._list_org_invitations(org_id)
+        return {
+            inv.email.lower() for inv in invitations if inv.status == InvitationStatus.PENDING and inv.expires_at > now
+        }
+
+    async def _find_invitation_by_token_hash(self, token_hash: str) -> Invitation | None:
+        """Locate an Invitation matching the given SHA-256 token digest using constant-time comparison.
+
+        Args:
+            token_hash: 64-character hex SHA-256 digest of the raw invitation token.
+
+        Returns:
+            Matching Invitation model if found, else None.
+        """
+        for local_inv in self._local_invitations.values():
+            if secrets.compare_digest(local_inv.token_hash, token_hash):
+                return local_inv
+        if self._entity_adapter is not None:
+            persisted = await self._entity_adapter.list_invitations()
+            for item in persisted:
+                if secrets.compare_digest(item.token_hash, token_hash):
+                    self._local_invitations[item.id] = item
+                    return item
+        return None
+
+    @staticmethod
+    def _to_invitation_response(invitation: Invitation) -> InvitationResponseDTO:
+        """Project an Invitation model into a redacted InvitationResponseDTO.
+
+        Args:
+            invitation: Persisted Invitation domain model.
+
+        Returns:
+            InvitationResponseDTO excluding token_hash.
+        """
+        return InvitationResponseDTO(
+            id=invitation.id,
+            organization_id=invitation.organization_id,
+            email=invitation.email,
+            role=invitation.role,
+            status=invitation.status,
+            email_delivery_status=invitation.email_delivery_status,
+            invited_by=invitation.invited_by,
+            expires_at=invitation.expires_at,
+            created_at=invitation.created_at,
+        )

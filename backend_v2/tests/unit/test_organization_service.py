@@ -1,4 +1,4 @@
-"""Unit tests for organization service."""
+"""Unit tests for organization service and B2B invitation flows."""
 
 from __future__ import annotations
 
@@ -15,23 +15,28 @@ from backend_v2.exceptions import (
     ResourceNotFoundError,
 )
 from backend_v2.models.auth import (
+    InvitationAcceptRequestDTO,
+    InvitationBatchCreateDTO,
+    InvitationCreateDTO,
     Organization,
     OrganizationCreate,
     OrganizationUpdateDTO,
     SubscriptionStatus,
     SystemOrganizations,
     TokenData,
+    TokenExchangeRequestDTO,
     User,
     UserRole,
 )
 from backend_v2.models.core_base import generate_opaque_id
-from backend_v2.models.enums import EntityPrefix, SystemLocale
+from backend_v2.models.enums import EmailDeliveryStatus, EntityPrefix, InvitationStatus, SystemLocale
 from backend_v2.services.auth import (
     AuthService,
     OrganizationRepository,
     OrganizationService,
     UserRepository,
 )
+from backend_v2.settings import Settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 
@@ -58,12 +63,10 @@ async def test_auth_service_create_organization_branches(
         rpm_limit=500,
     )
 
-    # Non-root initiator raises PermissionDeniedError
     non_root_token = TokenData(id="usr_0195f3a0000070008000000000000101", role=UserRole.ADMIN, email="admin@test.com")
     with pytest.raises(PermissionDeniedError):
         await auth.create_organization(non_root_token, payload)
 
-    # ROOT initiator succeeds
     root_token = TokenData(id="usr_0195f3a0000070008000000000000102", role=UserRole.ROOT, email="root@test.com")
     root_user = User(
         id="usr_0195f3a0000070008000000000000102",
@@ -94,17 +97,14 @@ async def test_auth_service_delete_organization_branches(
     root_token = TokenData(id="usr_0195f3a0000070008000000000000102", role=UserRole.ROOT, email="root@test.com")
     non_root_token = TokenData(id="usr_0195f3a0000070008000000000000103", role=UserRole.ADMIN, email="admin@test.com")
 
-    # 1. Non-root cannot delete organization
     with pytest.raises(PermissionDeniedError):
         await auth.delete_organization(non_root_token, "org_0195f3a0000070008000000000000201")
 
-    # 2. Cannot delete system organizations
     with pytest.raises(PermissionDeniedError):
         await auth.delete_organization(root_token, SystemOrganizations.ROOT_SYSTEM)
     with pytest.raises(PermissionDeniedError):
         await auth.delete_organization(root_token, SystemOrganizations.ROOT_SYSTEM)
 
-    # 3. Non-empty organization without force raises ConflictError
     member = User(
         id="usr_0195f3a0000070008000000000000101",
         email="m@test.com",
@@ -126,6 +126,7 @@ async def test_auth_service_delete_organization_branches(
             quota_limit=500.0,
             tpm_limit=50000,
             rpm_limit=500,
+            allowed_email_domains=[],
         )
     )
     await mock_repo.create_user(member)
@@ -134,7 +135,6 @@ async def test_auth_service_delete_organization_branches(
         await auth.delete_organization(root_token, "org_0195f3a0000070008000000000000201", force=False)
     assert exc_not_empty.value.error_code == ErrorCodes.CONFLICT_ERROR
 
-    # 4. Non-empty organization with force=True cascades user deletion and deletes org
     await auth.delete_organization(root_token, "org_0195f3a0000070008000000000000201", force=True)
     assert (await mock_repo.get_user("usr_0195f3a0000070008000000000000101")) is None
     assert (await mock_repo.get_organization("org_0195f3a0000070008000000000000201")) is None
@@ -157,10 +157,10 @@ async def test_auth_service_organization_read_and_update(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(test_org)
 
-    # 1. list_organizations
     root_token = TokenData(id="usr_0195f3a0000070008000000000000102", role=UserRole.ROOT, email="root@test.com")
     member_with_org = TokenData(
         id="usr_0195f3a0000070008000000000000101",
@@ -176,34 +176,27 @@ async def test_auth_service_organization_read_and_update(
     assert len(await auth.list_organizations(member_with_org)) == 1
     assert len(await auth.list_organizations(member_no_org)) == 0
 
-    # 2. get_organization
-    # Not found
     with pytest.raises(ResourceNotFoundError):
         await auth.get_organization(root_token, "org_0195f3a0000070008000000000000203")
 
-    # Member accessing foreign organization
     foreign_org = test_org.model_copy(update={"id": "org_0195f3a0000070008000000000000204", "name": "Foreign Org"})
     await mock_repo.create_organization(foreign_org)
     with pytest.raises(PermissionDeniedError):
         await auth.get_organization(member_with_org, "org_0195f3a0000070008000000000000204")
 
-    # Success
     found_org = await auth.get_organization(member_with_org, "org_0195f3a0000070008000000000000202")
     assert found_org.id == "org_0195f3a0000070008000000000000202"
 
-    # 3. update_organization
     with pytest.raises(PermissionDeniedError):
         await auth.update_organization(
             member_with_org, "org_0195f3a0000070008000000000000202", OrganizationUpdateDTO(name="New")
         )
 
-    # Root update with OrganizationUpdateDTO
     updated = await auth.update_organization(
         root_token, "org_0195f3a0000070008000000000000202", OrganizationUpdateDTO(name="Updated Name")
     )
     assert updated.id == "org_0195f3a0000070008000000000000202"
 
-    # Root update with OrganizationCreate
     create_dto = OrganizationCreate(
         name="Brand New",
         admin_email="a@b.com",
@@ -215,7 +208,6 @@ async def test_auth_service_organization_read_and_update(
     updated2 = await auth.update_organization(root_token, "org_0195f3a0000070008000000000000202", create_dto)
     assert updated2.id == "org_0195f3a0000070008000000000000202"
 
-    # 4. get_users_by_organization
     users = await auth.get_users_by_organization("org_0195f3a0000070008000000000000205")
     assert users == []
 
@@ -344,6 +336,7 @@ async def test_get_organization_root_initiator_any_org_success(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(test_org)
     root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
@@ -369,6 +362,7 @@ async def test_get_organization_same_org_member_success(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(test_org)
     member_initiator = TokenData(
@@ -398,6 +392,7 @@ async def test_get_organization_foreign_org_member_raises_permission_denied(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(test_org)
     foreign_member = TokenData(
@@ -443,6 +438,7 @@ async def test_list_organizations_root_initiator_returns_all_orgs(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     org2 = Organization(
         id="org_0195f3a0000070008000000000000213",
@@ -454,6 +450,7 @@ async def test_list_organizations_root_initiator_returns_all_orgs(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(org1)
     await mock_repo.create_organization(org2)
@@ -480,6 +477,7 @@ async def test_list_organizations_tenant_initiator_returns_own_org_only(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     org2 = Organization(
         id="org_0195f3a0000070008000000000000210",
@@ -491,6 +489,7 @@ async def test_list_organizations_tenant_initiator_returns_own_org_only(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(org1)
     await mock_repo.create_organization(org2)
@@ -521,6 +520,7 @@ async def test_list_organizations_tenant_initiator_no_org_id_returns_empty_list(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(org1)
     member_no_org = TokenData(id="usr_0195f3a0000070008000000000000110", role=UserRole.MEMBER, organization_id=None)
@@ -545,6 +545,7 @@ async def test_update_organization_root_initiator_with_update_dto_success(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(org)
     root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
@@ -572,6 +573,7 @@ async def test_update_organization_root_initiator_with_create_dto_success(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(org)
     root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
@@ -642,6 +644,7 @@ async def test_delete_organization_root_empty_org_success(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(org)
     root_initiator = TokenData(id="usr_0195f3a0000070008000000000000105", role=UserRole.ROOT)
@@ -706,6 +709,7 @@ async def test_delete_organization_non_empty_without_force_raises_conflict_error
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(org)
     user1 = User(
@@ -760,6 +764,7 @@ async def test_delete_organization_non_empty_with_force_cascades_deletion_and_lo
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(org)
     user1 = User(
@@ -897,6 +902,7 @@ async def test_delete_organization_force_firebase_delete_error_raises_app_except
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_organization(org)
     user = User(
@@ -928,9 +934,6 @@ async def test_organization_service_with_exchanged_quorum_jwt_token_data(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Verify OrganizationService accepts stateless TokenData decoded from an exchanged Quorum Local JWT."""
-    from backend_v2.models.auth import TokenExchangeRequestDTO
-    from backend_v2.settings import Settings
-
     mock_settings = Settings(
         use_mock_llm=True,
         environment="development",
@@ -963,6 +966,7 @@ async def test_organization_service_with_exchanged_quorum_jwt_token_data(
         quota_limit=500.0,
         tpm_limit=50000,
         rpm_limit=500,
+        allowed_email_domains=[],
     )
     await mock_repo.create_user(root_user)
     await mock_repo.create_organization(org)
@@ -977,3 +981,277 @@ async def test_organization_service_with_exchanged_quorum_jwt_token_data(
 
     fetched_org = await auth_service.get_organization(verified_token_data, org_id)
     assert fetched_org.id == org_id
+
+
+@pytest.mark.asyncio
+async def test_invitation_create_batch_revoke_and_accept_flow_positive(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Verify create_invitation, create_invitation_batch, list_invitations, revoke_invitation, and accept_invitation."""
+    mock_audit = MagicMock(log_event=AsyncMock())
+    auth = AuthService(mock_repo, use_firebase=False, audit_service=mock_audit)
+
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    admin_id = generate_opaque_id(EntityPrefix.USER)
+    org = Organization(
+        id=org_id,
+        name="Acme Invitation Corp",
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        tier="enterprise",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=500.0,
+        tpm_limit=50000,
+        rpm_limit=500,
+        allowed_email_domains=["acme.com"],
+    )
+    await mock_repo.create_organization(org)
+
+    admin_token = TokenData(id=admin_id, role=UserRole.ADMIN, organization_id=org_id, email="admin@acme.com")
+    inv_dto = await auth.org_service.create_invitation(
+        admin_token,
+        org_id,
+        InvitationCreateDTO(email="alice@acme.com", role=UserRole.MANAGER, expires_in_hours=48),
+    )
+    assert inv_dto.organization_id == org_id
+    assert inv_dto.email == "alice@acme.com"
+    assert inv_dto.role == UserRole.MANAGER
+    assert inv_dto.status == InvitationStatus.PENDING
+    assert inv_dto.email_delivery_status == EmailDeliveryStatus.SENT
+
+    raw_token = auth.org_service.get_last_generated_token(inv_dto.id)
+    assert raw_token is not None
+
+    batch_res = await auth.org_service.create_invitation_batch(
+        admin_token,
+        org_id,
+        InvitationBatchCreateDTO(
+            recipients=[
+                InvitationCreateDTO(email="bob@acme.com", role=UserRole.MEMBER),
+                InvitationCreateDTO(email="BOB@acme.com", role=UserRole.MEMBER),
+                InvitationCreateDTO(email="carol@acme.com", role=UserRole.VIEWER),
+            ]
+        ),
+    )
+    assert batch_res.created_count == 2
+    assert len(batch_res.invitations) == 2
+
+    listed = await auth.org_service.list_invitations(admin_token, org_id)
+    assert len(listed) == 3
+
+    revoked_dto = await auth.org_service.revoke_invitation(admin_token, org_id, batch_res.invitations[1].id)
+    assert revoked_dto.status == InvitationStatus.REVOKED
+
+    alice_id = generate_opaque_id(EntityPrefix.USER)
+    alice_token = TokenData(
+        id=alice_id,
+        role=UserRole.MEMBER,
+        organization_id=None,
+        email="alice@acme.com",
+    )
+    accepted_user = await auth.org_service.accept_invitation(
+        alice_token,
+        InvitationAcceptRequestDTO(raw_token=raw_token, name="Alice Manager"),
+    )
+    assert accepted_user.id == alice_id
+    assert accepted_user.organization_id == org_id
+    assert accepted_user.role == UserRole.MANAGER
+    assert accepted_user.name == "Alice Manager"
+
+    # Re-accepting an already-accepted invitation raises ConflictError
+    with pytest.raises(ConflictError):
+        await auth.org_service.accept_invitation(
+            alice_token,
+            InvitationAcceptRequestDTO(raw_token=raw_token),
+        )
+
+    # Accepting for an existing unassigned User record updates in-place
+    bob_id = generate_opaque_id(EntityPrefix.USER)
+    await mock_repo.create_user(
+        User(
+            id=bob_id,
+            email="bob@acme.com",
+            name="Bob Existing",
+            role=UserRole.VIEWER,
+            organization_id=None,
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    bob_raw_token = auth.org_service.get_last_generated_token(batch_res.invitations[0].id)
+    assert bob_raw_token is not None
+    bob_accepted = await auth.org_service.accept_invitation(
+        InvitationAcceptRequestDTO(raw_token=bob_raw_token, name="Bob Promoted"),
+    )
+    assert bob_accepted.id == bob_id
+    assert bob_accepted.organization_id == org_id
+    assert bob_accepted.role == UserRole.MEMBER
+    assert bob_accepted.name == "Bob Promoted"
+
+    # Revoking or accepting nonexistent invitation raises ResourceNotFoundError
+    with pytest.raises(ResourceNotFoundError):
+        await auth.org_service.revoke_invitation(admin_token, org_id, generate_opaque_id(EntityPrefix.INVITATION))
+
+    with pytest.raises(ResourceNotFoundError):
+        await auth.org_service.accept_invitation(
+            alice_token,
+            InvitationAcceptRequestDTO(raw_token="nonexistent_token_value_1234567890"),
+        )
+
+
+@pytest.mark.asyncio
+async def test_invitation_accept_collision_already_assigned_negative(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Verify 1:1 Flat Identity Collision Guard raises ConflictError with USER_ALREADY_ASSIGNED."""
+    auth = AuthService(mock_repo, use_firebase=False)
+    org_a_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    org_b_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    admin_b_id = generate_opaque_id(EntityPrefix.USER)
+    existing_user_id = generate_opaque_id(EntityPrefix.USER)
+
+    for oid, name in ((org_a_id, "Org A"), (org_b_id, "Org B")):
+        await mock_repo.create_organization(
+            Organization(
+                id=oid,
+                name=name,
+                is_active=True,
+                created_at=datetime.now(timezone.utc),
+                tier="enterprise",
+                subscription_status=SubscriptionStatus.ACTIVE,
+                quota_limit=500.0,
+                tpm_limit=50000,
+                rpm_limit=500,
+                allowed_email_domains=[],
+            )
+        )
+
+    await mock_repo.create_user(
+        User(
+            id=existing_user_id,
+            email="assigned@corp.com",
+            name="Already Assigned",
+            role=UserRole.MEMBER,
+            organization_id=org_a_id,
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+
+    admin_b_token = TokenData(id=admin_b_id, role=UserRole.ADMIN, organization_id=org_b_id, email="admin@orgb.com")
+    inv_dto = await auth.org_service.create_invitation(
+        admin_b_token,
+        org_b_id,
+        InvitationCreateDTO(email="assigned@corp.com", role=UserRole.MEMBER),
+    )
+    raw_token = auth.org_service.get_last_generated_token(inv_dto.id)
+    assert raw_token is not None
+
+    caller_token = TokenData(
+        id=existing_user_id,
+        role=UserRole.MEMBER,
+        organization_id=org_a_id,
+        email="assigned@corp.com",
+    )
+    with pytest.raises(ConflictError) as exc_info:
+        await auth.org_service.accept_invitation(
+            caller_token,
+            InvitationAcceptRequestDTO(raw_token=raw_token),
+        )
+    assert exc_info.value.error_code == ErrorCodes.USER_ALREADY_ASSIGNED.value
+
+
+@pytest.mark.asyncio
+async def test_invitation_domain_allowlist_and_role_hierarchy_negative(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Verify domain allowlist, role hierarchy, duplicate pending, and expired/mismatched token rejections."""
+    auth = AuthService(mock_repo, use_firebase=False)
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    admin_id = generate_opaque_id(EntityPrefix.USER)
+    manager_id = generate_opaque_id(EntityPrefix.USER)
+
+    await mock_repo.create_organization(
+        Organization(
+            id=org_id,
+            name="Restricted Domain Org",
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            tier="enterprise",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=500.0,
+            tpm_limit=50000,
+            rpm_limit=500,
+            allowed_email_domains=["allowed.fi"],
+        )
+    )
+
+    manager_token = TokenData(id=manager_id, role=UserRole.MANAGER, organization_id=org_id, email="mgr@allowed.fi")
+    with pytest.raises(PermissionDeniedError):
+        await auth.org_service.create_invitation(
+            manager_token,
+            org_id,
+            InvitationCreateDTO(email="user@allowed.fi", role=UserRole.MEMBER),
+        )
+
+    admin_token = TokenData(id=admin_id, role=UserRole.ADMIN, organization_id=org_id, email="admin@allowed.fi")
+    with pytest.raises(PermissionDeniedError):
+        await auth.org_service.create_invitation(
+            admin_token,
+            org_id,
+            InvitationCreateDTO(email="root@allowed.fi", role=UserRole.ROOT),
+        )
+
+    with pytest.raises(PermissionDeniedError):
+        await auth.org_service.create_invitation(
+            admin_token,
+            org_id,
+            InvitationCreateDTO(email="outsider@external.com", role=UserRole.MEMBER),
+        )
+
+    inv_dto = await auth.org_service.create_invitation(
+        admin_token,
+        org_id,
+        InvitationCreateDTO(email="valid@allowed.fi", role=UserRole.MEMBER),
+    )
+    with pytest.raises(ConflictError):
+        await auth.org_service.create_invitation(
+            admin_token,
+            org_id,
+            InvitationCreateDTO(email="valid@allowed.fi", role=UserRole.MEMBER),
+        )
+
+    raw_token = auth.org_service.get_last_generated_token(inv_dto.id)
+    assert raw_token is not None
+
+    wrong_email_token = TokenData(
+        id=generate_opaque_id(EntityPrefix.USER),
+        role=UserRole.MEMBER,
+        organization_id=None,
+        email="impostor@allowed.fi",
+    )
+    with pytest.raises(PermissionDeniedError) as mismatch_exc:
+        await auth.org_service.accept_invitation(
+            wrong_email_token,
+            InvitationAcceptRequestDTO(raw_token=raw_token),
+        )
+    assert mismatch_exc.value.error_code == ErrorCodes.IDENTITY_MISMATCH.value
+
+    await auth.org_service.revoke_invitation(admin_token, org_id, inv_dto.id)
+    valid_user_token = TokenData(
+        id=generate_opaque_id(EntityPrefix.USER),
+        role=UserRole.MEMBER,
+        organization_id=None,
+        email="valid@allowed.fi",
+    )
+    with pytest.raises(AppException) as exp_exc:
+        await auth.org_service.accept_invitation(
+            valid_user_token,
+            InvitationAcceptRequestDTO(raw_token=raw_token),
+        )
+    assert exp_exc.value.error_code == ErrorCodes.INVITATION_EXPIRED.value
+    assert auth.org_service._local_invitations[inv_dto.id].status == InvitationStatus.REVOKED

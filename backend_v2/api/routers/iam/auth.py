@@ -1,8 +1,9 @@
-"""API Router for Authentication, Session Exchange, Logout, and RFC 8693 Impersonation.
+"""API Router for Authentication, Session Exchange, Logout, B2B Invitations, and RFC 8693 Impersonation.
 
 This module provides endpoints for token exchange (`POST /exchange`), server-side
 session logout (`POST /logout`), break-glass impersonation (`POST /impersonate`),
-available roles enumeration (`GET /roles`), and caller profile retrieval (`GET /me`).
+B2B invitation acceptance (`POST /invitations/accept`), available roles enumeration
+(`GET /roles`), and caller profile retrieval (`GET /me`).
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from backend_v2.core.rate_limit import limiter
 from backend_v2.models.auth import (
     ImpersonationRequest,
     ImpersonationResponse,
+    InvitationAcceptRequestDTO,
     LogoutRequestDTO,
     LogoutResponseDTO,
     TokenExchangeRequestDTO,
@@ -51,7 +53,6 @@ async def exchange_firebase_token(
             ErrorCodes.PERMISSION_DENIED, or ErrorCodes.AUTH_TOKEN_EXPIRED when exchange fails.
         ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED on Firebase UID collision.
     """
-    # Phase 2, Step 2.2: Delegate token exchange strictly to AuthService
     return await auth_service.exchange_firebase_token(payload)
 
 
@@ -71,7 +72,6 @@ async def logout_user(
     Returns:
         LogoutResponseDTO confirming token revocation.
     """
-    # Phase 2, Step 2.2: Delegate server-side logout strictly to AuthService
     return await auth_service.logout(current_user, payload)
 
 
@@ -95,8 +95,32 @@ async def impersonate_user(
         PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller is not ROOT.
         ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if target user does not exist.
     """
-    # Phase 2, Step 2.2: Delegate RFC 8693 break-glass impersonation strictly to AuthService
     return await auth_service.impersonate_user(current_user, payload)
+
+
+@router.post("/invitations/accept", response_model=User)
+async def accept_invitation(
+    payload: InvitationAcceptRequestDTO,
+    current_user: CurrentUserDep,
+    auth_service: AuthServiceDep,
+) -> User:
+    """Accept a cryptographic B2B organization invitation token.
+
+    Args:
+        payload: Validated InvitationAcceptRequestDTO containing the raw invitation token.
+        current_user: Authenticated caller token data.
+        auth_service: Authentication service dependency.
+
+    Returns:
+        Updated User profile assigned to the invited organization.
+
+    Raises:
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if token is invalid.
+        AppException: With ErrorCodes.INVITATION_EXPIRED if invitation has expired or been revoked.
+        PermissionDeniedError: With ErrorCodes.IDENTITY_MISMATCH if caller email mismatches invitation.
+        ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED on cross-tenant identity collision.
+    """
+    return await auth_service.org_service.accept_invitation(current_user, payload)
 
 
 @router.get("/roles", response_model=list[str])
