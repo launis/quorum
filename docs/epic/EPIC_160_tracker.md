@@ -151,7 +151,7 @@
   - [x] @[client_app_v2/lib/features/auth/data/auth_repository.dart]
   - [x] @[client_app_v2/lib/features/auth/presentation/auth_controller.dart]
   - [x] @[client_app_v2/lib/features/auth/presentation/login_screen.dart]
-  - [ ] @[client_app_v2/lib/router/router.dart]
+  - [x] @[client_app_v2/lib/router/router.dart]
   - [ ] @[client_app_v2/lib/router/scaffold_with_nav.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
   - [ ] @[client_app_v2/lib/features/settings/presentation/settings_controller.dart]
