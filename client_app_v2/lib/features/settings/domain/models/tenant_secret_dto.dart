@@ -6,8 +6,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'tenant_secret_dto.freezed.dart';
 part 'tenant_secret_dto.g.dart';
 
-// Phase 6, Step 6.2: Strict Freezed Organization, Invitation, BYOK Secret, and ExecutionAssignment DTOs.
-
 /// Represents a tenant or customer organization.
 @Freezed(equal: false)
 abstract class Organization with _$Organization {
@@ -67,14 +65,16 @@ abstract class OrganizationUpdateDto with _$OrganizationUpdateDto {
 }
 
 /// Payload response for deleting an organization or tenant secret.
-@freezed
+@Freezed(equal: false)
 abstract class OrganizationDeleteResponse with _$OrganizationDeleteResponse {
   const OrganizationDeleteResponse._();
 
   @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory OrganizationDeleteResponse({
     required String status,
-    @JsonKey(name: 'deleted_id') required String deletedId,
+    @StrictOpaqueIdConverter()
+    @JsonKey(name: 'deleted_id')
+    required String deletedId,
   }) = _OrganizationDeleteResponse;
 
   factory OrganizationDeleteResponse.fromJson(Map<String, dynamic> json) =>
@@ -82,14 +82,14 @@ abstract class OrganizationDeleteResponse with _$OrganizationDeleteResponse {
 }
 
 /// Payload response for deleting (GDPR soft-deleting) a user account.
-@freezed
+@Freezed(equal: false)
 abstract class UserDeleteResponse with _$UserDeleteResponse {
   const UserDeleteResponse._();
 
   @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory UserDeleteResponse({
     required String status,
-    required String id,
+    @StrictOpaqueIdConverter() required String id,
   }) = _UserDeleteResponse;
 
   factory UserDeleteResponse.fromJson(Map<String, dynamic> json) =>
@@ -97,7 +97,7 @@ abstract class UserDeleteResponse with _$UserDeleteResponse {
 }
 
 /// Payload for inviting a user to an organization.
-@freezed
+@Freezed(equal: false)
 abstract class InvitationCreateDto with _$InvitationCreateDto {
   const InvitationCreateDto._();
 
@@ -113,7 +113,7 @@ abstract class InvitationCreateDto with _$InvitationCreateDto {
 }
 
 /// API response DTO representing an organization invitation without exposing token_hash.
-@freezed
+@Freezed(equal: false)
 abstract class InvitationResponseDto with _$InvitationResponseDto {
   const InvitationResponseDto._();
 
@@ -170,7 +170,7 @@ abstract class InvitationBatchResponseDto with _$InvitationBatchResponseDto {
 }
 
 /// Ingress payload for provisioning or rotating a tenant-scoped BYOK secret.
-@freezed
+@Freezed(equal: false)
 abstract class TenantSecretCreateDto with _$TenantSecretCreateDto {
   const TenantSecretCreateDto._();
 
@@ -186,7 +186,7 @@ abstract class TenantSecretCreateDto with _$TenantSecretCreateDto {
 }
 
 /// Zero-leakage API response DTO for tenant secret metadata.
-@freezed
+@Freezed(equal: false)
 abstract class TenantSecretResponseDto with _$TenantSecretResponseDto {
   const TenantSecretResponseDto._();
 
@@ -246,7 +246,7 @@ abstract class ExecutionAssignmentCreateDto
 }
 
 /// Individual recipient descriptor within a bulk task assignment batch.
-@freezed
+@Freezed(equal: false)
 abstract class ExecutionAssignmentRecipientDto
     with _$ExecutionAssignmentRecipientDto {
   const ExecutionAssignmentRecipientDto._();
@@ -370,7 +370,7 @@ abstract class ExecutionAssignmentBatchResponseDto
 }
 
 /// Public pre-activation preview of a single-use workflow execution assignment.
-@freezed
+@Freezed(equal: false)
 abstract class ExecutionAssignmentPreviewDto
     with _$ExecutionAssignmentPreviewDto {
   const ExecutionAssignmentPreviewDto._();
@@ -397,7 +397,7 @@ abstract class ExecutionAssignmentPreviewDto
 }
 
 /// Payload for activating a single-use task assignment and auto-onboarding the assignee.
-@freezed
+@Freezed(equal: false)
 abstract class ExecutionAssignmentOnboardingRequestDto
     with _$ExecutionAssignmentOnboardingRequestDto {
   const ExecutionAssignmentOnboardingRequestDto._();
@@ -418,7 +418,7 @@ abstract class ExecutionAssignmentOnboardingRequestDto
 }
 
 /// Payload for auto-saving assignee draft inputs prior to final submission.
-@freezed
+@Freezed(equal: false)
 abstract class ExecutionAssignmentDraftDto with _$ExecutionAssignmentDraftDto {
   const ExecutionAssignmentDraftDto._();
 
@@ -432,7 +432,7 @@ abstract class ExecutionAssignmentDraftDto with _$ExecutionAssignmentDraftDto {
 }
 
 /// Payload for submitting a single-use workflow execution assignment.
-@freezed
+@Freezed(equal: false)
 abstract class ExecutionAssignmentSubmitDto
     with _$ExecutionAssignmentSubmitDto {
   const ExecutionAssignmentSubmitDto._();

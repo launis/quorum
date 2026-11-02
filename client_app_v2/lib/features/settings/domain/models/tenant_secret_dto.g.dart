@@ -185,7 +185,10 @@ _OrganizationDeleteResponse _$OrganizationDeleteResponseFromJson(
   $checkKeys(json, allowedKeys: const ['status', 'deleted_id']);
   final val = _OrganizationDeleteResponse(
     status: $checkedConvert('status', (v) => v as String),
-    deletedId: $checkedConvert('deleted_id', (v) => v as String),
+    deletedId: $checkedConvert(
+      'deleted_id',
+      (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+    ),
   );
   return val;
 }, fieldKeyMap: const {'deletedId': 'deleted_id'});
@@ -194,7 +197,7 @@ Map<String, dynamic> _$OrganizationDeleteResponseToJson(
   _OrganizationDeleteResponse instance,
 ) => <String, dynamic>{
   'status': instance.status,
-  'deleted_id': instance.deletedId,
+  'deleted_id': const StrictOpaqueIdConverter().toJson(instance.deletedId),
 };
 
 _UserDeleteResponse _$UserDeleteResponseFromJson(Map<String, dynamic> json) =>
@@ -202,13 +205,19 @@ _UserDeleteResponse _$UserDeleteResponseFromJson(Map<String, dynamic> json) =>
       $checkKeys(json, allowedKeys: const ['status', 'id']);
       final val = _UserDeleteResponse(
         status: $checkedConvert('status', (v) => v as String),
-        id: $checkedConvert('id', (v) => v as String),
+        id: $checkedConvert(
+          'id',
+          (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+        ),
       );
       return val;
     });
 
 Map<String, dynamic> _$UserDeleteResponseToJson(_UserDeleteResponse instance) =>
-    <String, dynamic>{'status': instance.status, 'id': instance.id};
+    <String, dynamic>{
+      'status': instance.status,
+      'id': const StrictOpaqueIdConverter().toJson(instance.id),
+    };
 
 _InvitationCreateDto _$InvitationCreateDtoFromJson(Map<String, dynamic> json) =>
     $checkedCreate(

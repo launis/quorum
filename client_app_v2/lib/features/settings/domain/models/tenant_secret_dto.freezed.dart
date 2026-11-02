@@ -590,7 +590,7 @@ as List<String>?,
 /// @nodoc
 mixin _$OrganizationDeleteResponse {
 
- String get status;@JsonKey(name: 'deleted_id') String get deletedId;
+ String get status;@StrictOpaqueIdConverter()@JsonKey(name: 'deleted_id') String get deletedId;
 /// Create a copy of OrganizationDeleteResponse
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -601,14 +601,7 @@ $OrganizationDeleteResponseCopyWith<OrganizationDeleteResponse> get copyWith => 
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationDeleteResponse&&(identical(other.status, status) || other.status == status)&&(identical(other.deletedId, deletedId) || other.deletedId == deletedId));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,status,deletedId);
 
 @override
 String toString() {
@@ -623,7 +616,7 @@ abstract mixin class $OrganizationDeleteResponseCopyWith<$Res>  {
   factory $OrganizationDeleteResponseCopyWith(OrganizationDeleteResponse value, $Res Function(OrganizationDeleteResponse) _then) = _$OrganizationDeleteResponseCopyWithImpl;
 @useResult
 $Res call({
- String status,@JsonKey(name: 'deleted_id') String deletedId
+ String status,@StrictOpaqueIdConverter()@JsonKey(name: 'deleted_id') String deletedId
 });
 
 
@@ -729,7 +722,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String status, @JsonKey(name: 'deleted_id')  String deletedId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String status, @StrictOpaqueIdConverter()@JsonKey(name: 'deleted_id')  String deletedId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OrganizationDeleteResponse() when $default != null:
 return $default(_that.status,_that.deletedId);case _:
@@ -750,7 +743,7 @@ return $default(_that.status,_that.deletedId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String status, @JsonKey(name: 'deleted_id')  String deletedId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String status, @StrictOpaqueIdConverter()@JsonKey(name: 'deleted_id')  String deletedId)  $default,) {final _that = this;
 switch (_that) {
 case _OrganizationDeleteResponse():
 return $default(_that.status,_that.deletedId);case _:
@@ -770,7 +763,7 @@ return $default(_that.status,_that.deletedId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String status, @JsonKey(name: 'deleted_id')  String deletedId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String status, @StrictOpaqueIdConverter()@JsonKey(name: 'deleted_id')  String deletedId)?  $default,) {final _that = this;
 switch (_that) {
 case _OrganizationDeleteResponse() when $default != null:
 return $default(_that.status,_that.deletedId);case _:
@@ -785,11 +778,11 @@ return $default(_that.status,_that.deletedId);case _:
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _OrganizationDeleteResponse extends OrganizationDeleteResponse {
-  const _OrganizationDeleteResponse({required this.status, @JsonKey(name: 'deleted_id') required this.deletedId}): super._();
+  const _OrganizationDeleteResponse({required this.status, @StrictOpaqueIdConverter()@JsonKey(name: 'deleted_id') required this.deletedId}): super._();
   factory _OrganizationDeleteResponse.fromJson(Map<String, dynamic> json) => _$OrganizationDeleteResponseFromJson(json);
 
 @override final  String status;
-@override@JsonKey(name: 'deleted_id') final  String deletedId;
+@override@StrictOpaqueIdConverter()@JsonKey(name: 'deleted_id') final  String deletedId;
 
 /// Create a copy of OrganizationDeleteResponse
 /// with the given fields replaced by the non-null parameter values.
@@ -802,14 +795,7 @@ Map<String, dynamic> toJson() {
   return _$OrganizationDeleteResponseToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OrganizationDeleteResponse&&(identical(other.status, status) || other.status == status)&&(identical(other.deletedId, deletedId) || other.deletedId == deletedId));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,status,deletedId);
 
 @override
 String toString() {
@@ -824,7 +810,7 @@ abstract mixin class _$OrganizationDeleteResponseCopyWith<$Res> implements $Orga
   factory _$OrganizationDeleteResponseCopyWith(_OrganizationDeleteResponse value, $Res Function(_OrganizationDeleteResponse) _then) = __$OrganizationDeleteResponseCopyWithImpl;
 @override @useResult
 $Res call({
- String status,@JsonKey(name: 'deleted_id') String deletedId
+ String status,@StrictOpaqueIdConverter()@JsonKey(name: 'deleted_id') String deletedId
 });
 
 
@@ -856,7 +842,7 @@ as String,
 /// @nodoc
 mixin _$UserDeleteResponse {
 
- String get status; String get id;
+ String get status;@StrictOpaqueIdConverter() String get id;
 /// Create a copy of UserDeleteResponse
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -867,14 +853,7 @@ $UserDeleteResponseCopyWith<UserDeleteResponse> get copyWith => _$UserDeleteResp
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserDeleteResponse&&(identical(other.status, status) || other.status == status)&&(identical(other.id, id) || other.id == id));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,status,id);
 
 @override
 String toString() {
@@ -889,7 +868,7 @@ abstract mixin class $UserDeleteResponseCopyWith<$Res>  {
   factory $UserDeleteResponseCopyWith(UserDeleteResponse value, $Res Function(UserDeleteResponse) _then) = _$UserDeleteResponseCopyWithImpl;
 @useResult
 $Res call({
- String status, String id
+ String status,@StrictOpaqueIdConverter() String id
 });
 
 
@@ -995,7 +974,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String status,  String id)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String status, @StrictOpaqueIdConverter()  String id)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserDeleteResponse() when $default != null:
 return $default(_that.status,_that.id);case _:
@@ -1016,7 +995,7 @@ return $default(_that.status,_that.id);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String status,  String id)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String status, @StrictOpaqueIdConverter()  String id)  $default,) {final _that = this;
 switch (_that) {
 case _UserDeleteResponse():
 return $default(_that.status,_that.id);case _:
@@ -1036,7 +1015,7 @@ return $default(_that.status,_that.id);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String status,  String id)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String status, @StrictOpaqueIdConverter()  String id)?  $default,) {final _that = this;
 switch (_that) {
 case _UserDeleteResponse() when $default != null:
 return $default(_that.status,_that.id);case _:
@@ -1051,11 +1030,11 @@ return $default(_that.status,_that.id);case _:
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _UserDeleteResponse extends UserDeleteResponse {
-  const _UserDeleteResponse({required this.status, required this.id}): super._();
+  const _UserDeleteResponse({required this.status, @StrictOpaqueIdConverter() required this.id}): super._();
   factory _UserDeleteResponse.fromJson(Map<String, dynamic> json) => _$UserDeleteResponseFromJson(json);
 
 @override final  String status;
-@override final  String id;
+@override@StrictOpaqueIdConverter() final  String id;
 
 /// Create a copy of UserDeleteResponse
 /// with the given fields replaced by the non-null parameter values.
@@ -1068,14 +1047,7 @@ Map<String, dynamic> toJson() {
   return _$UserDeleteResponseToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserDeleteResponse&&(identical(other.status, status) || other.status == status)&&(identical(other.id, id) || other.id == id));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,status,id);
 
 @override
 String toString() {
@@ -1090,7 +1062,7 @@ abstract mixin class _$UserDeleteResponseCopyWith<$Res> implements $UserDeleteRe
   factory _$UserDeleteResponseCopyWith(_UserDeleteResponse value, $Res Function(_UserDeleteResponse) _then) = __$UserDeleteResponseCopyWithImpl;
 @override @useResult
 $Res call({
- String status, String id
+ String status,@StrictOpaqueIdConverter() String id
 });
 
 
@@ -1133,14 +1105,7 @@ $InvitationCreateDtoCopyWith<InvitationCreateDto> get copyWith => _$InvitationCr
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvitationCreateDto&&(identical(other.email, email) || other.email == email)&&(identical(other.role, role) || other.role == role)&&(identical(other.expiresInHours, expiresInHours) || other.expiresInHours == expiresInHours));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,email,role,expiresInHours);
 
 @override
 String toString() {
@@ -1336,14 +1301,7 @@ Map<String, dynamic> toJson() {
   return _$InvitationCreateDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InvitationCreateDto&&(identical(other.email, email) || other.email == email)&&(identical(other.role, role) || other.role == role)&&(identical(other.expiresInHours, expiresInHours) || other.expiresInHours == expiresInHours));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,email,role,expiresInHours);
 
 @override
 String toString() {
@@ -1402,14 +1360,7 @@ $InvitationResponseDtoCopyWith<InvitationResponseDto> get copyWith => _$Invitati
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvitationResponseDto&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.email, email) || other.email == email)&&(identical(other.role, role) || other.role == role)&&(identical(other.status, status) || other.status == status)&&(identical(other.emailDeliveryStatus, emailDeliveryStatus) || other.emailDeliveryStatus == emailDeliveryStatus)&&(identical(other.invitedBy, invitedBy) || other.invitedBy == invitedBy)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,organizationId,email,role,status,emailDeliveryStatus,invitedBy,expiresAt,createdAt);
 
 @override
 String toString() {
@@ -1617,14 +1568,7 @@ Map<String, dynamic> toJson() {
   return _$InvitationResponseDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _InvitationResponseDto&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.email, email) || other.email == email)&&(identical(other.role, role) || other.role == role)&&(identical(other.status, status) || other.status == status)&&(identical(other.emailDeliveryStatus, emailDeliveryStatus) || other.emailDeliveryStatus == emailDeliveryStatus)&&(identical(other.invitedBy, invitedBy) || other.invitedBy == invitedBy)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,organizationId,email,role,status,emailDeliveryStatus,invitedBy,expiresAt,createdAt);
 
 @override
 String toString() {
@@ -2202,14 +2146,7 @@ $TenantSecretCreateDtoCopyWith<TenantSecretCreateDto> get copyWith => _$TenantSe
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TenantSecretCreateDto&&(identical(other.scope, scope) || other.scope == scope)&&(identical(other.targetIdentifier, targetIdentifier) || other.targetIdentifier == targetIdentifier)&&(identical(other.plaintextSecret, plaintextSecret) || other.plaintextSecret == plaintextSecret));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,scope,targetIdentifier,plaintextSecret);
 
 @override
 String toString() {
@@ -2405,14 +2342,7 @@ Map<String, dynamic> toJson() {
   return _$TenantSecretCreateDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TenantSecretCreateDto&&(identical(other.scope, scope) || other.scope == scope)&&(identical(other.targetIdentifier, targetIdentifier) || other.targetIdentifier == targetIdentifier)&&(identical(other.plaintextSecret, plaintextSecret) || other.plaintextSecret == plaintextSecret));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,scope,targetIdentifier,plaintextSecret);
 
 @override
 String toString() {
@@ -2471,14 +2401,7 @@ $TenantSecretResponseDtoCopyWith<TenantSecretResponseDto> get copyWith => _$Tena
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TenantSecretResponseDto&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.scope, scope) || other.scope == scope)&&(identical(other.targetIdentifier, targetIdentifier) || other.targetIdentifier == targetIdentifier)&&(identical(other.storageMode, storageMode) || other.storageMode == storageMode)&&(identical(other.configured, configured) || other.configured == configured)&&(identical(other.maskedHint, maskedHint) || other.maskedHint == maskedHint)&&(identical(other.kekVersion, kekVersion) || other.kekVersion == kekVersion)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,organizationId,scope,targetIdentifier,storageMode,configured,maskedHint,kekVersion,updatedAt);
 
 @override
 String toString() {
@@ -2686,14 +2609,7 @@ Map<String, dynamic> toJson() {
   return _$TenantSecretResponseDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TenantSecretResponseDto&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.scope, scope) || other.scope == scope)&&(identical(other.targetIdentifier, targetIdentifier) || other.targetIdentifier == targetIdentifier)&&(identical(other.storageMode, storageMode) || other.storageMode == storageMode)&&(identical(other.configured, configured) || other.configured == configured)&&(identical(other.maskedHint, maskedHint) || other.maskedHint == maskedHint)&&(identical(other.kekVersion, kekVersion) || other.kekVersion == kekVersion)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,organizationId,scope,targetIdentifier,storageMode,configured,maskedHint,kekVersion,updatedAt);
 
 @override
 String toString() {
@@ -3058,14 +2974,7 @@ $ExecutionAssignmentRecipientDtoCopyWith<ExecutionAssignmentRecipientDto> get co
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionAssignmentRecipientDto&&(identical(other.email, email) || other.email == email)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetLocale, targetLocale) || other.targetLocale == targetLocale));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,email,name,targetLocale);
 
 @override
 String toString() {
@@ -3261,14 +3170,7 @@ Map<String, dynamic> toJson() {
   return _$ExecutionAssignmentRecipientDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExecutionAssignmentRecipientDto&&(identical(other.email, email) || other.email == email)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetLocale, targetLocale) || other.targetLocale == targetLocale));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,email,name,targetLocale);
 
 @override
 String toString() {
@@ -4248,14 +4150,7 @@ $ExecutionAssignmentPreviewDtoCopyWith<ExecutionAssignmentPreviewDto> get copyWi
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionAssignmentPreviewDto&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.organizationName, organizationName) || other.organizationName == organizationName)&&(identical(other.assignedEmailMasked, assignedEmailMasked) || other.assignedEmailMasked == assignedEmailMasked)&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.targetLocale, targetLocale) || other.targetLocale == targetLocale)&&(identical(other.status, status) || other.status == status)&&(identical(other.hardDeadlineAt, hardDeadlineAt) || other.hardDeadlineAt == hardDeadlineAt)&&(identical(other.relativeDurationSeconds, relativeDurationSeconds) || other.relativeDurationSeconds == relativeDurationSeconds));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,organizationId,organizationName,assignedEmailMasked,workflowId,targetLocale,status,hardDeadlineAt,relativeDurationSeconds);
 
 @override
 String toString() {
@@ -4463,14 +4358,7 @@ Map<String, dynamic> toJson() {
   return _$ExecutionAssignmentPreviewDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExecutionAssignmentPreviewDto&&(identical(other.id, id) || other.id == id)&&(identical(other.organizationId, organizationId) || other.organizationId == organizationId)&&(identical(other.organizationName, organizationName) || other.organizationName == organizationName)&&(identical(other.assignedEmailMasked, assignedEmailMasked) || other.assignedEmailMasked == assignedEmailMasked)&&(identical(other.workflowId, workflowId) || other.workflowId == workflowId)&&(identical(other.targetLocale, targetLocale) || other.targetLocale == targetLocale)&&(identical(other.status, status) || other.status == status)&&(identical(other.hardDeadlineAt, hardDeadlineAt) || other.hardDeadlineAt == hardDeadlineAt)&&(identical(other.relativeDurationSeconds, relativeDurationSeconds) || other.relativeDurationSeconds == relativeDurationSeconds));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,organizationId,organizationName,assignedEmailMasked,workflowId,targetLocale,status,hardDeadlineAt,relativeDurationSeconds);
 
 @override
 String toString() {
@@ -4535,14 +4423,7 @@ $ExecutionAssignmentOnboardingRequestDtoCopyWith<ExecutionAssignmentOnboardingRe
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionAssignmentOnboardingRequestDto&&(identical(other.firebaseToken, firebaseToken) || other.firebaseToken == firebaseToken)&&(identical(other.name, name) || other.name == name));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,firebaseToken,name);
 
 @override
 String toString() {
@@ -4736,14 +4617,7 @@ Map<String, dynamic> toJson() {
   return _$ExecutionAssignmentOnboardingRequestDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExecutionAssignmentOnboardingRequestDto&&(identical(other.firebaseToken, firebaseToken) || other.firebaseToken == firebaseToken)&&(identical(other.name, name) || other.name == name));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,firebaseToken,name);
 
 @override
 String toString() {
@@ -4801,14 +4675,7 @@ $ExecutionAssignmentDraftDtoCopyWith<ExecutionAssignmentDraftDto> get copyWith =
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionAssignmentDraftDto&&(identical(other.draftInputs, draftInputs) || other.draftInputs == draftInputs));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,draftInputs);
 
 @override
 String toString() {
@@ -5009,14 +4876,7 @@ Map<String, dynamic> toJson() {
   return _$ExecutionAssignmentDraftDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExecutionAssignmentDraftDto&&(identical(other.draftInputs, draftInputs) || other.draftInputs == draftInputs));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,draftInputs);
 
 @override
 String toString() {
@@ -5082,14 +4942,7 @@ $ExecutionAssignmentSubmitDtoCopyWith<ExecutionAssignmentSubmitDto> get copyWith
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExecutionAssignmentSubmitDto&&(identical(other.submittedInputs, submittedInputs) || other.submittedInputs == submittedInputs));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,submittedInputs);
 
 @override
 String toString() {
@@ -5290,14 +5143,7 @@ Map<String, dynamic> toJson() {
   return _$ExecutionAssignmentSubmitDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExecutionAssignmentSubmitDto&&(identical(other.submittedInputs, submittedInputs) || other.submittedInputs == submittedInputs));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,submittedInputs);
 
 @override
 String toString() {
