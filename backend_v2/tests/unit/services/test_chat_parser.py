@@ -412,4 +412,3 @@ def test_anchor_span_dto_negative_bounds_rejected() -> None:
 
     with pytest.raises(ValidationError):
         AnchorSpanDTO(start=0, end=-1)
-
