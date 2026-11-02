@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
 
@@ -28,7 +28,7 @@ from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase, gene
 from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord, ExecutionStep, FrozenContext
 from backend_v2.models.domain.inputs import DomainInputValue, WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.domain.output_profile import OutputProfile
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
+from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.system_config import DataDictionaryField, SystemValidationRulesDTO
 from backend_v2.models.domain.workflow import Workflow
@@ -71,7 +71,6 @@ def merge_assignment_inputs(
     Returns:
         Merged WorkflowInputs instance with locked inputs taking precedence.
     """
-    # Phase 5, Step 5.4: Locked vs. Assignee Input Partitioning
     allowed_key_set = set(assignee_input_keys)
     merged_dynamic: dict[str, DomainInputValue] = {}
     for key, val in submitted_inputs.dynamic_inputs.items():
@@ -182,9 +181,9 @@ class SduiHintsGenerationDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    ui_hints: dict[str, DataDictionaryField] = Field(default_factory=dict)
-    steps: list[ExecutionStep] = Field(default_factory=list)
-    step_states: dict[str, ExecutionStep] = Field(default_factory=dict)
+    ui_hints: Annotated[dict[str, DataDictionaryField], Field(default_factory=dict)]
+    steps: Annotated[list[ExecutionStep], Field(default_factory=list)]
+    step_states: Annotated[dict[str, ExecutionStep], Field(default_factory=dict)]
 
 
 async def _generate_sdui_hints(
@@ -294,7 +293,9 @@ async def _populate_step_prompt_block_hints(
     for pb_id in pb_refs:
         pb_obj = await _load_and_validate_prompt_block(prompt_block_repo, pb_id, task_blueprint_id)
         if isinstance(pb_obj, MatrixPromptBlock):
-            max_val = float(max((s.score for s in pb_obj.scales), default=5))
+            max_val = float(
+                pb_obj.computed_max if pb_obj.computed_max is not None else max(s.score for s in pb_obj.scales)
+            )
             ui_hints[pb_id] = DataDictionaryField(
                 field_id=pb_id,
                 component_type=ComponentType.SLIDER,
@@ -314,7 +315,7 @@ async def _load_and_validate_prompt_block(
     prompt_block_repo: IPromptBlockRepository,
     pb_id: str,
     task_blueprint_id: str,
-) -> Any:
+) -> AnyPromptBlock:
     """Fetch and validate a PromptBlock referenced by a step blueprint.
 
     Args:

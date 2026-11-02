@@ -24,6 +24,7 @@ from backend_v2.services.execution.ingress_service import (
     ExecutionIngressService,
     _generate_sdui_hints,
     create_execution_record,
+    merge_assignment_inputs,
 )
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemorySystemRepository,
@@ -683,3 +684,35 @@ async def test_start_execution_missing_model_registry_id_raises(initiator: Token
     with pytest.raises(AppException) as exc_info:
         await service.start_execution(initiator, payload, AsyncMock())
     assert exc_info.value.status_code == 404
+
+
+def test_merge_assignment_inputs_partitioning() -> None:
+    """Verify merge_assignment_inputs enforces locked inputs and assignee_input_keys allowlist."""
+    locked = WorkflowInputs(
+        organization_id="org_0195f3a0000070008123456789abcdef",
+        dynamic_inputs={"locked_key": "authoritative_val"},
+    )
+    submitted = WorkflowInputs(
+        user_id="usr_0195f3a0000070008123456789abcdef",
+        dynamic_inputs={
+            "locked_key": "spoofed_val",
+            "allowed_key": "assignee_val",
+            "disallowed_key": "unapproved_val",
+        },
+    )
+
+    merged = merge_assignment_inputs(
+        locked_inputs=locked,
+        submitted_inputs=submitted,
+        assignee_input_keys=["allowed_key"],
+        language="en",
+    )
+
+    assert merged.organization_id == "org_0195f3a0000070008123456789abcdef"
+    assert merged.user_id == "usr_0195f3a0000070008123456789abcdef"
+    assert merged.language == "en"
+    assert merged.dynamic_inputs == {
+        "locked_key": "authoritative_val",
+        "allowed_key": "assignee_val",
+    }
+
