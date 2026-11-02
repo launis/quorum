@@ -2055,4 +2055,3 @@ async def test_pg19_iam_schema_evolution_and_startup_preflight_migrations() -> N
     assert resolved_org.id == org_id
     mock_driver.get.assert_any_await("organizations", org_id)
     mock_driver.query.assert_not_awaited()
-
