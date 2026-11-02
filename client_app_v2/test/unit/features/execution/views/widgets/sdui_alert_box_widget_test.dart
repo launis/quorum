@@ -1,24 +1,30 @@
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/execution/views/widgets/sdui_alert_box_widget.dart';
+import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/models/sdui_block_dto.dart';
 import 'package:client_app/shared/widgets/output_renderer.dart';
 import 'package:client_app/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 void main() {
   Widget buildTestApp(SduiAlertBoxBlock block, {ThemeData? theme}) {
-    return MaterialApp(
-      theme:
-          theme ??
-          ThemeData.light().copyWith(
-            extensions: const <ThemeExtension<dynamic>>[
-              AppSemanticColors.light,
-            ],
-          ),
-      home: Scaffold(body: SduiAlertBoxWidget(block: block)),
+    return ProviderScope(
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme:
+            theme ??
+            ThemeData.light().copyWith(
+              extensions: const <ThemeExtension<dynamic>>[
+                AppSemanticColors.light,
+              ],
+            ),
+        home: Scaffold(body: SduiAlertBoxWidget(block: block)),
+      ),
     );
   }
 
@@ -99,12 +105,14 @@ void main() {
         );
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: SingleChildScrollView(
-                child: SizedBox(
-                  width: 180,
-                  child: SduiAlertBoxWidget(block: block),
+          ProviderScope(
+            child: MaterialApp(
+              home: Scaffold(
+                body: SingleChildScrollView(
+                  child: SizedBox(
+                    width: 180,
+                    child: SduiAlertBoxWidget(block: block),
+                  ),
                 ),
               ),
             ),

@@ -65,8 +65,8 @@
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide verification of zero `from_strategy` calls across `backend_v2/` and `scripts/`, zero unsynchronized `OutputProfile` target block references, and 100% `state_version` OCC enforcement (`scripts/audit_epic_coverage.py --epic docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md`).
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide verification of zero `from_strategy` calls across `backend_v2/` and `scripts/`, zero unsynchronized `OutputProfile` target block references, and 100% `state_version` OCC enforcement (`scripts/audit_epic_coverage.py --epic docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md`).
 - [x] **[OK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_162_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"`.
   - [x] @[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py]
   - [x] @[backend_v2/database/postgres/storage_driver.py]
@@ -100,8 +100,8 @@
   - [x] @[client_app_v2/lib/features/execution/models/execution_step.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/matrix_graph_item_editor.dart]
   - [x] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies or deprecated parameters remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic across all modified modules.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned dependencies or deprecated parameters remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic across all modified modules.
 
 ### Documentation & Knowledge Item Update
 
@@ -167,6 +167,7 @@
   - **Step 4.1 (`c8fe8abd5`)**: Added `state_version: Annotated[int, Field(ge=1, default=1, ...)] = 1` to `ExecutionRecord` (`@[backend_v2/models/domain/execution.py]`), `expected_state_version` and `state_version` to `ExecutionUpdateDTO` (`@[backend_v2/models/dtos/trace.py]`) and `NodeExecutionUpdateDTO` (`@[backend_v2/models/dtos/node_execution.py]`), `ErrorCodes.CONFLICT` to `@[backend_v2/exceptions.py]`, `state_version INTEGER NOT NULL DEFAULT 1` to `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]`, and `"state_version"` to `APPROVED_ADAPTER_RECORD_COLUMNS` in `@[scripts/audit_zero_orm_strictness.py]`, and enforced `expected_state_version` OCC conflict detection (`ErrorCodes.CONFLICT`, HTTP 409) and atomic increment across `@[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py]`, `@[backend_v2/database/postgres/storage_driver.py]`, and `@[backend_v2/database/repositories/execution.py]`, with unit tests in `@[backend_v2/tests/unit/database/postgres/entity_adapter/test_execution_and_report_stage.py]`.
   - **Step 4.2 (`2c0fa20de`)**: Synchronized `state_version` OCC and atomic increments in `@[backend_v2/tests/fakes/in_memory_uow.py]` and `@[backend_v2/tests/fakes/in_memory_repositories.py]`, wired `expected_state_version=record.state_version` in `ExecutionOverrideService` (`@[backend_v2/services/execution/override_service.py]`), preserved concurrent human overrides and incremented `state_version` in `ExecutionCommitter.commit_trace` (`@[backend_v2/services/orchestrator/dag_executor/execution_committer.py]`), added `@JsonKey(name: 'state_version') @Default(1) int stateVersion` to Flutter `ExecutionRecord` (`@[client_app_v2/lib/features/execution/models/execution_record.dart]`), and verified unit tests in `@[backend_v2/tests/unit/services/execution/test_override_service.py]`, `@[backend_v2/tests/unit/services/orchestrator/dag_executor/test_execution_committer.py]`, and `@[client_app_v2/test/unit/features/execution/models/execution_record_test.dart]`.
   - **Step 4.3 (`a5b60d555`)**: Verified 100% pass across `scripts/audit_zero_orm_strictness.py`, `scripts/audit_dto_parity.py`, `backend_v2/tests/integration/test_sdui_semantic_parity.py`, `scripts/backend_audit_loop.py backend_v2/ --test --ast-strict` (`6,764 passed`, `97.32%` coverage), `scripts/flutter_audit_loop.py client_app_v2/ --build`, and live E2E integration suite `backend_v2/tests/integration/test_integration_real_llm.py` (`6 passed`).
+- Completed all **Post-Implementation Gates** across all 27 Backend Tier 2 Hardening targets and all 4 Frontend Tier 2 Hardening targets, `scripts/audit_epic_coverage.py --epic docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md`, and `scripts/flutter_audit_loop.py client_app_v2/ --build --test --strict` (`1,315 passed`, `0 failed`).
 
 ## Learned
 - `ExecutionStep` (`#L135-L170`) and `ExecutionRecord` (`#L196-L375`) in `@[backend_v2/models/domain/execution.py]` must be referenced as distinct single-class AST spans to satisfy `MBD004` in `scripts/audit_markdown_boundaries.py`.
@@ -177,9 +178,9 @@
 - Adding `ALTER TABLE executions ADD COLUMN IF NOT EXISTS state_version INTEGER NOT NULL DEFAULT 1;` to `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]` ensures `PostgresPoolManager.apply_migrations()` idempotently upgrades existing local PostgreSQL 19 `executions` tables prior to live E2E execution.
 
 ## Remaining
-- Execute `/tier8-audit-plan @[docs/epic/tasks_EPIC_162/04_phase4_plan.md] @[docs/epic/EPIC_162_tracker.md]` to audit Phase 4, then complete the Post-Implementation Gates (`auto_hardening_runner.py`, `audit_epic_coverage.py`), `/tier7-describe-architecture`, and `/tier8-audit-epic`.
+- Execute `/tier7-describe-architecture @[docs/epic/EPIC_162_tracker.md] @[docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md] @[ki_god_code_prevention.md] @[ki_zero_permissive_typing.md] @[ki_router_ssot_and_crud_clone_lifecycle.md] @[ki_deterministic_hardening_state.md]` and `/tier8-audit-epic @[docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md]`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_162/04_phase4_plan.md] @[docs/epic/EPIC_162_tracker.md]
+/tier7-describe-architecture @[docs/epic/EPIC_162_tracker.md] @[docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md] @[ki_god_code_prevention.md] @[ki_zero_permissive_typing.md] @[ki_router_ssot_and_crud_clone_lifecycle.md] @[ki_deterministic_hardening_state.md]
 ```

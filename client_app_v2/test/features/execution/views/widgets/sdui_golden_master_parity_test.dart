@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/features/execution/views/widgets/sdui_blocks_renderer.dart';
@@ -13,11 +14,13 @@ void main() {
     required Widget child,
     Locale locale = const Locale('en'),
   }) {
-    return MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      locale: locale,
-      home: Scaffold(body: SingleChildScrollView(child: child)),
+    return ProviderScope(
+      child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: locale,
+        home: Scaffold(body: SingleChildScrollView(child: child)),
+      ),
     );
   }
 

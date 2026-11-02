@@ -1650,6 +1650,39 @@ async def test_postgres_storage_driver_crud_and_boundary_invariants() -> None:
         await driver.get("organizations", "   ")
     assert exc_empty_id.value.error_code == ErrorCodes.VALIDATION_FAILED.value
 
+    # 6. Optimistic concurrency control on executions collection (state_version increment & conflict)
+    exec_id_val = "exe_0195f3a0000070008000111111111111"
+    await driver.upsert(
+        "executions",
+        {
+            "id": exec_id_val,
+            "workflow_id": "wor_0195f3a0000070008000111111111111",
+            "target_locale": "en",
+            "state_version": 1,
+        },
+        exec_id_val,
+    )
+    assert (
+        await driver.update(
+            "executions",
+            exec_id_val,
+            {"expected_state_version": 1, "status_message": "Wave 1 done"},
+        )
+        is True
+    )
+    updated_exec = await driver.get("executions", exec_id_val)
+    assert updated_exec is not None
+    assert updated_exec["state_version"] == 2
+    assert "expected_state_version" not in updated_exec
+
+    with pytest.raises(AppException) as exc_occ:
+        await driver.update(
+            "executions",
+            exec_id_val,
+            {"expected_state_version": 1, "status_message": "Stale write"},
+        )
+    assert exc_occ.value.error_code == ErrorCodes.CONFLICT.value
+
 
 @pytest.mark.asyncio
 async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUnitOfWork) -> None:

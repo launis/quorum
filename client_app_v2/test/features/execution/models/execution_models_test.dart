@@ -351,24 +351,24 @@ void main() {
   group('ExecutionCreateRequestDto Freezed Parity & Fail-Fast', () {
     test('instantiates from valid json with required fields', () {
       final json = {
-        'workflow_id': 'wor_1234567890abcdef',
+        'workflow_id': 'wor_0195f000000070008000000000000001',
         'target_locale': 'fi',
         'raw_inputs': {
           'dynamic_inputs': {'doc': 'test'},
         },
-        'profile_id': 'pro_1234567890abcdef',
+        'profile_id': 'pro_0195f000000070008000000000000001',
       };
 
       final dto = ExecutionCreateRequestDto.fromJson(json);
-      expect(dto.workflowId, 'wor_1234567890abcdef');
+      expect(dto.workflowId, 'wor_0195f000000070008000000000000001');
       expect(dto.targetLocale, 'fi');
       expect(dto.rawInputs['dynamic_inputs'], {'doc': 'test'});
-      expect(dto.profileId, 'pro_1234567890abcdef');
+      expect(dto.profileId, 'pro_0195f000000070008000000000000001');
     });
 
     test('throws when mandatory target_locale is missing', () {
       final json = {
-        'workflow_id': 'wor_1234567890abcdef',
+        'workflow_id': 'wor_0195f000000070008000000000000001',
         'raw_inputs': {'input_1': 'val'},
       };
 
@@ -380,7 +380,7 @@ void main() {
 
     test('defaults raw_inputs when omitted from create request', () {
       final json = {
-        'workflow_id': 'wor_1234567890abcdef',
+        'workflow_id': 'wor_0195f000000070008000000000000001',
         'target_locale': 'fi',
       };
 
@@ -392,7 +392,7 @@ void main() {
       'unrecognized key in create request throws CheckedFromJsonException',
       () {
         final json = {
-          'workflow_id': 'wor_1234567890abcdef',
+          'workflow_id': 'wor_0195f000000070008000000000000001',
           'target_locale': 'fi',
           'raw_inputs': {'input_1': 'val'},
           'unsupported_field': 'malicious_injection',
