@@ -83,7 +83,7 @@
   - [x] @[backend_v2/services/execution/override_service.py]
   - [x] @[backend_v2/services/execution/resumption_service.py]
   - [x] @[backend_v2/services/mcp/mcp_tool_loop.py]
-  - [ ] @[backend_v2/services/orchestrator/dag_executor/execution_committer.py]
+  - [x] @[backend_v2/services/orchestrator/dag_executor/execution_committer.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor/step_execution_stage.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor/wave_orchestrator_stage.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor/workflow_bootstrap_stage.py]
