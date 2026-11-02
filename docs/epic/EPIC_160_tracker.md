@@ -38,7 +38,7 @@
   - [x] Step 1.2: Taxonomies, ErrorCodes & Strict `PrefixedUUID7` Identity & Assignment Models
   - [x] Step 1.3: PostgreSQL 19 Zero-ORM Identity, Invitation, Task Assignment & Secrets Schema + Dual-Layer Tenant Isolation
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/01_phase1_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/01_phase1_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 
 ### Phase 2: Session Upgrade, Token Exchange Engine, Headless CLI Governance & Multi-Role Guard
 **Plan:** @[docs/epic/tasks_EPIC_160/02_phase2_plan.md]
@@ -50,7 +50,7 @@
   - [x] Step 2.2: Token Exchange & Logout Router Endpoints, IAM Router SSOT Consolidation & Multi-Role Dependency Guard
   - [x] Step 2.3: Headless CLI, E2E Variance Runner (`run_e2e_variance_test.py`) & Background Worker Session Governance
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 
 ### Phase 3: Enterprise BYOK & Cloud Secrets Engine for LLM & MCP Services
 **Plan:** @[docs/epic/tasks_EPIC_160/03_phase3_plan.md]
@@ -62,7 +62,7 @@
   - [x] Step 3.2: Request-Scoped Credential Injection in `LiteLLMProvider` & `GenericMCPClient`
   - [x] Step 3.3: Organization BYOK Management Endpoints & DLP AST Guardrail
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 
 ### Phase 4: Real-Time Dual-Key Redis Kill-Switch (`MGET`) & FinOps Rate Limiting
 **Plan:** @[docs/epic/tasks_EPIC_160/04_phase4_plan.md]
@@ -73,7 +73,7 @@
   - [x] Step 4.1: Fail-Closed Dual-Key Redis Kill-Switch (`RevocationCache`)
   - [x] Step 4.2: Per-Tenant Redis Sliding-Window Rate Limiter & FinOps Pre-Flight Gatekeeper
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 
 ### Phase 5: B2B Invitation Flow, Time-Bound Execution Assignments (`ExecutionAssignment`), 4-Tier RBAC Matrix, Self-Service Profile & GDPR Soft-Delete Webhook
 **Plan:** @[docs/epic/tasks_EPIC_160/05_phase5_plan.md]
@@ -86,7 +86,7 @@
   - [x] Step 5.3: GDPR Soft-Delete Anonymization & Firebase Deletion Webhook
   - [x] Step 5.4: Time-Bound Execution Assignments (`ExecutionAssignmentService`), SafeLinks-Immune Activation & Combined JIT User Onboarding
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/05_phase5_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/05_phase5_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 
 ### Phase 6: Flutter Client `AuthInterceptor`, Silent Refresh, Cryptographic Logout Pipeline & Separated User/Organization Views
 **Plan:** @[docs/epic/tasks_EPIC_160/06_phase6_plan.md]
@@ -97,15 +97,15 @@
   - [x] Step 6.1: Mandatory 2FA Enrollment/Challenge Flow, `AuthInterceptor`, Session Upgrade Handshake, 13-Minute Silent Refresh & 5-Step Logout Pipeline
   - [x] Step 6.2: Adaptive Navigation Logout Action, Separated User Profile View (`UserProfileSettingsView`), Organization IAM Studio UI (`OrganizationIamSettingsView`), Direct Task Assignment Builder in `NewExecutionView` & Task Assignment Portal (`TaskAssignmentPortalView`)
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
-- [ ] **[NOK] Backend & Frontend Full-Stack Integration Gate**
+- [x] **[OK] Backend & Frontend Full-Stack Integration Gate**
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
-- [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
+- [x] **[OK] Proxy Sunset & Consumer Migration**: Codebase-wide search/replace of old import paths & delete deprecated proxies.
 - [x] **[OK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_160_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"` across existing and `[NEW]` backend targets.
   - [x] @[backend_v2/settings.py]
   - [x] @[backend_v2/models/enums.py]
@@ -159,12 +159,12 @@
   - [x] [NEW] @[client_app_v2/lib/features/settings/presentation/user_profile_settings_view.dart]
   - [x] [NEW] @[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]
   - [x] [NEW] @[client_app_v2/lib/features/execution/views/task_assignment_portal_view.dart]
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run:
+- [x] **[OK]** As-Built Architectural Sync: Run:
   ```powershell
   /tier7-describe-architecture @[docs/epic/EPIC_160_tracker.md] @[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md] @[ki_god_code_prevention.md] @[ki_zero_permissive_typing.md] @[ki_router_ssot_and_crud_clone_lifecycle.md] @[ki_frontend_iam_role_segregation.md]
   ```
@@ -179,7 +179,7 @@
 
 ### Final Epic Audit
 
-- [ ] **[NOK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
+- [x] **[OK]** System 2 Reverse Epic Analysis: Run `/tier8-audit-epic @[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
 
 ## Instructions for the Execution Agent
 
@@ -213,7 +213,7 @@
 
 ## Achieved
 - Completed Phase 1 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/01_phase1_plan.md] @[docs/epic/EPIC_160_tracker.md]`):
-  - **Step 1.1**: Physically deleted the 4 obsolete IAM draft documents and `@[backend_v2/services/auth/constants.py]`, relocated `SYSTEM_ROOT_USER_ID = "usr_0195f3a00000700a83fd6b3d77c748f4"` to `@[backend_v2/models/auth.py]`, centralized all 16 IAM/JWT/MFA/BYOK/Email/KMS settings on `Settings` in `@[backend_v2/settings.py]`, eradicated the `TD_DICT_GET` warnings in `@[backend_v2/database/repositories/identity.py]` by delegating through `EntityPersistencePort`, and remediated all touched-scope `TD_ISTQB_NEGATIVE` and `TD_MODEL_FACTORY` warnings across IAM test suites (`0` findings on `audit_technical_debt.py`).
+  - **Step 1.1**: Physically deleted the 4 obsolete IAM draft documents and `backend_v2/services/auth/constants.py`, relocated `SYSTEM_ROOT_USER_ID = "usr_0195f3a00000700a83fd6b3d77c748f4"` to `@[backend_v2/models/auth.py]`, centralized all 16 IAM/JWT/MFA/BYOK/Email/KMS settings on `Settings` in `@[backend_v2/settings.py]`, eradicated the `TD_DICT_GET` warnings in `@[backend_v2/database/repositories/identity.py]` by delegating through `EntityPersistencePort`, and remediated all touched-scope `TD_ISTQB_NEGATIVE` and `TD_MODEL_FACTORY` warnings across IAM test suites (`0` findings on `audit_technical_debt.py`).
   - **Step 1.2**: Migrated `UserRole` and `SubscriptionStatus` to `@[backend_v2/models/enums.py]`, added `InvitationStatus`, `AssignmentStatus`, `AssignmentResultVisibility`, `EmailTransportMode`, `EmailDeliveryStatus`, `SecretScope`, `SecretStorageMode`, and `EntityPrefix` (`INVITATION = "inv"`, `TENANT_SECRET = "sec"`, `ASSIGNMENT = "tsk"`), added the 7 IAM/BYOK/Assignment error codes to `@[backend_v2/exceptions.py]`, demolished `LEGACY_SYSTEM`, `TokenPayload`, and `LoginResponse`, set `SystemOrganizations.ROOT_SYSTEM = "org_0195f3a0000070008000000000000001"`, and created all strict `PrefixedUUID7` IAM, Invitation, Task Assignment, and BYOK DTOs in `@[backend_v2/models/auth.py]` and `@[backend_v2/models/domain/execution.py]`.
   - **Step 1.3**: Extended `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]`, `@[backend_v2/database/postgres/entity_adapter/__init__.py]`, `@[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]`, `@[scripts/audit_zero_orm_strictness.py]` (15 tables), `@[backend_v2/database/postgres/uow.py]` (`RESET quorum.current_org;`), and `@[backend_v2/tests/fakes/in_memory_uow.py]` with `invitations`, `tenant_secrets`, and `execution_assignments` and implemented all 6 `<test_contracts>`.
 - Completed Phase 2 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`):
@@ -228,25 +228,30 @@
   - **Step 4.1**: Created `RevocationCache` in `@[backend_v2/core/redis_security.py]` implementing atomic O(1) Dual-Key Redis `MGET revoked:usr:{user_id} revoked:jti:{jti}` with strict Fail-Closed `503 Service Unavailable` (`ErrorCodes.SERVICE_UNAVAILABLE`) semantics when Redis is unreachable and `401 AuthenticationError` (`ErrorCodes.AUTH_TOKEN_EXPIRED`) when revoked, and wired `await revocation_cache.assert_not_revoked(token_data)` into `get_current_user_from_header` in `@[backend_v2/api/dependencies.py]` (`6b51bcd55`).
   - **Step 4.2**: Created `TenantRateLimitService` and `TenantRateLimitStatusDTO` in `@[backend_v2/core/redis_security.py]` enforcing per-organization `rpm_limit` / `tpm_limit` sliding-window counters and public auth-edge IP rate limiting (`PUBLIC_AUTH_EDGE_SCOPES`) raising `429 TokenLimitExceededError` (`ErrorCodes.RATE_LIMIT_EXCEEDED`), and updated `UsageService.check_quota` in `@[backend_v2/services/usage_service.py]` to enforce `SubscriptionStatus` (`ACTIVE`, `TRIAL`) and monthly USD `quota_limit` (`ErrorCodes.QUOTA_EXCEEDED`, HTTP 402) (`6b51bcd55`).
 - Completed Phase 5 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/05_phase5_plan.md] @[docs/epic/EPIC_160_tracker.md]`):
-  - **Step 5.1**: Created `EmailService` in `@[backend_v2/services/auth/email_service.py]` and implemented single and cohort batch cryptographic B2B invitations (`create_invitation`, `create_invitation_batch`, `accept_invitation`, `revoke_invitation`, `list_invitations`) in `@[backend_v2/services/auth/organization_service.py]` with `allowed_email_domains` and 1:1 Flat Identity Collision Guard (`9e8612164`).
+  - **Step 5.1**: Created `EmailService` in `@[backend_v2/services/auth/email_service.py]` and implemented single and cohort batch B2B invitations (`create_invitation`, `create_invitation_batch`, `accept_invitation`, `revoke_invitation`, `list_invitations`) in `@[backend_v2/services/auth/organization_service.py]` with `allowed_email_domains` and 1:1 Flat Identity Collision Guard (`9e8612164`).
   - **Step 5.2**: Enforced the 4-Tier RBAC Governance Matrix (`VIEWER`/`MEMBER` vs. `MANAGER` vs. `ADMIN` vs. `ROOT`), self-service profile updates (`name`, `language`, `theme_mode`), soft-delete aware `LAST_ADMIN_PROTECTION`, `OrganizationUpdateDTO`-only `update_organization`, immediate Redis Kill-Switch revocation on privilege mutations, and peer execution isolation in `@[backend_v2/services/auth/user_service.py]`, `@[backend_v2/services/auth/organization_service.py]`, and `@[backend_v2/services/execution/lifecycle_service.py]` (`9d9a42cca`).
   - **Step 5.3**: Implemented in-place GDPR Soft-Delete anonymization in `UserService.delete_user` (`@[backend_v2/services/auth/user_service.py]`) and exposed `POST /api/v2/iam/auth/webhooks/firebase-user-deleted` in `@[backend_v2/api/routers/iam/auth.py]` preserving `executions` foreign keys (`2416a7416`).
   - **Step 5.4**: Created `ExecutionAssignmentService` in `@[backend_v2/services/execution/assignment_service.py]` and exposed `/api/v2/execution/executions/assignments` endpoints in `@[backend_v2/api/routers/execution/executions.py]` implementing single/batch task assignments, SafeLinks-immune `GET .../preview`, JIT user onboarding + 2FA, explicit `POST .../activate`, Dual-Clock expiration, draft checkpointing, single-shot submission via `ExecutionIngressService.start_execution`, and `AssignmentResultVisibility` (`4a17b7736`).
 - Completed Phase 6 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]`):
   - **Step 6.1**: Implemented `@Riverpod(keepAlive: true)` `AuthRepository` with Freezed `TokenExchangeRequestDto`, `TokenExchangeResponseDto`, `LogoutRequestDto`, `LogoutResponseDto`, and `MfaAuthProgressDto` (`@[client_app_v2/lib/features/auth/data/auth_repository.dart]`), mandatory TOTP 2FA enrollment/challenge state machine in `@[client_app_v2/lib/features/auth/presentation/auth_controller.dart]` and `@[client_app_v2/lib/features/auth/presentation/login_screen.dart]`, `AuthInterceptor` session upgrade handshake with single-flight `Completer<String>` lock (`@[client_app_v2/lib/core/network/interceptors/auth_interceptor.dart]`), 13-minute silent refresh timer, and the 5-step `signOut` pipeline with multi-tenant provider invalidation (`75fc4db25`).
   - **Step 6.2**: Created `@[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]`, `@[client_app_v2/lib/features/settings/presentation/user_profile_settings_view.dart]`, `@[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]`, and `@[client_app_v2/lib/features/execution/views/task_assignment_portal_view.dart]`, updated `@[client_app_v2/lib/features/execution/views/new_execution_view.dart]` with `assign_as_task_btn` and `_TaskAssignmentConfigDialog`, updated `@[client_app_v2/lib/router/router.dart]` (`/settings`, `/organization`, `/task/:token`) and `@[client_app_v2/lib/router/scaffold_with_nav.dart]` (**Profiili / Profile** + trailing Sign Out + role-aware `/organization` destination), and verified all 4 Phase 6 `<test_contracts>`.
+- Completed Post-EPIC 160 Tier 4 Bug-Fix Hardening (`45c9cacda`, `02d2248f7`, `3402d327b`, `71b5247c6`):
+  - Enforced idempotent `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` column evolutions in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]` (`ZORM007` in `@[scripts/audit_zero_orm_strictness.py]`), `await uow.pool_manager.apply_migrations()` preflight in `@[backend_v2/seed/run_seed.py]`, and $O(1)$ `await self.driver.get(collection, id)` PK lookup in `@[backend_v2/database/repositories/identity.py]`.
+  - Enforced `useContext()` + post-`await` `if (!context.mounted) return res;` unmount guard in `@[client_app_v2/lib/core/state/mutation.dart]` (`DGR011` in `@[scripts/_dart_guardrails.py]`, banning `useIsMounted()`) and `GoRouter.refreshListenable` + `ValueNotifier<AsyncValue<User?>>` + `ref.listen` bridge in `@[client_app_v2/lib/router/router.dart]` (`DGR012` in `@[scripts/_dart_guardrails.py]`, banning `ref.watch(authControllerProvider)` inside `router(Ref ref)` and preserving `/login` during `AsyncLoading()`).
+- Completed `/tier7-describe-architecture` and `/tier8-audit-epic`:
+  - Synchronized Knowledge Items (`@[ki_zero_permissive_typing.md]`, `@[ki_god_code_prevention.md]`, `@[ki_router_ssot_and_crud_clone_lifecycle.md]`, `@[ki_frontend_iam_role_segregation.md]`), `@[.agents/rules/04_directory_reference.md]`, timeless architecture pillars (`01_`, `02_`, `04_`, `05_`), and `@[docs/epic/EPIC_160_audit_report.md]`.
 
 ## Learned
 - `pydantic.mypy` requires `allowed_email_domains=[]` to be explicitly passed when instantiating `Organization(...)` directly in service/fake constructors (`@[backend_v2/services/auth/user_service.py]`, `@[backend_v2/services/auth/organization_service.py]`, `@[backend_v2/tests/fakes/in_memory_repositories.py]`).
-- `@[backend_v2/tests/unit/database/test_postgres.py]` enforces 1:1 column-to-DTO-field naming parity across all 15 tables in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]` (`tenant_secrets` includes a `VIRTUAL` generated `created_at` column).
+- `@[backend_v2/tests/unit/database/test_postgres.py]` enforces 1:1 column-to-DTO-field naming parity across all 15 tables in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]` (`tenant_secrets` includes a `VIRTUAL` generated `created_at` column), and `ZORM007` enforces idempotent `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` column evolutions for existing developer databases.
 - `audit_dict_eradication.py` bans `dict[str, JsonValue]` return type annotations on test helper methods (`unauthorized_open_json_annotations`); fixture helpers in unit tests must return concrete validated Pydantic V2 DTOs (`TokenExchangeResponseDTO`) and call `.model_dump(mode="json")` at the mock boundary.
 - When benchmarking sub-millisecond in-memory `RevocationCache.assert_not_revoked` execution in unit tests, warm up `get_settings()` once before `time.perf_counter_ns()` so cold `.env` disk loading on Windows does not skew the `MGET` latency measurement.
-- In Flutter widget tests overriding `settingsControllerProvider`, stubbing via `class _StubSettingsController extends AsyncNotifier<AppSettingsState> implements SettingsController` avoids invoking `SettingsController`'s `SharedPreferencesAsync()` field initializer and satisfies `depend_on_referenced_packages` lint rules.
+- In Flutter, `GoRouter` must be bound to `authControllerProvider` via `refreshListenable` + `ValueNotifier<AsyncValue<User?>>` (`DGR012`) rather than `ref.watch(authControllerProvider)` so `AsyncLoading()` transitions during TOTP 2FA challenges do not destroy `LoginScreen` state, and `useMutation` must guard post-`await` `state.value` assignments with `if (!context.mounted)` via `useContext()` (`DGR011`).
 
 ## Remaining
-- Run `/tier8-audit-plan` on Phase 6 (`@[docs/epic/tasks_EPIC_160/06_phase6_plan.md]` and `@[docs/epic/EPIC_160_tracker.md]`), followed by Post-Implementation Gates, `/tier7-describe-architecture`, and `/tier8-audit-epic`.
+- None. All phases (Phases 1–6), post-implementation hardening gates, Tier 4 bug-fix guardrails (`ZORM007`, `DGR011`, `DGR012`), `/tier7-describe-architecture`, and `/tier8-audit-epic` are 100% complete and verified.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_160/06_phase6_plan.md] @[docs/epic/EPIC_160_tracker.md]
+/tier8-audit-epic @[docs/epic/EPIC_160_B2B_SaaS_IAM_and_Enterprise_Hardening.md]
 ```

@@ -126,13 +126,13 @@
           - studio/ (Pillar 2/4 Workflow, Profile & Matrix Editors; master views: studio_dashboard_view.dart, mcp_gateways_master_view.dart, matrices_master_view.dart, workflows_master_view.dart, output_profile_list_view.dart; controllers: studio_controller.dart; widgets: studio_master_header.dart, tag_chip_input.dart, dynamic_item_list_editor.dart, contrastive_pair_editor.dart, linguistic_shield_banner.dart, scale_editor_modal.dart, step_simulation_dialog.dart, mcp_tool_params_panel.dart; models: mcp_gateway.dart, llm_platform.dart, workflow_ui_schema.dart, prompt_block_simulation.dart, workflow_simulation.dart)
           - execution/ (Pillar 4 SDUI Dashboards, Controllers & Sub-DTOs: execution_record.dart, execution_step.dart, execution_summary_snapshot.dart, workflow_inputs.dart, frozen_context_snapshot.dart, trace_context_carrier.dart, human_override_request_dto.dart, causal_discovery_dto.dart; views & widgets: new_execution_view.dart, task_assignment_portal_view.dart, dynamic_start_screen.dart, human_override_dialog.dart, sdui_matrix_table_widget.dart, sdui_blocks_renderer.dart, atom_matrix_table_widget.dart, xai_axis_telemetry_grid.dart, sdui_causal_graph_widget.dart; presentation/: causal_inspector_modal.dart)
           - reports/ (Pillar 4 Presentation & Materialized Reports: execution_reports_view.dart, create_report_dialog.dart, report_artifact.dart)
-          - shell/ (Pillar 4 Presentation), auth/, settings/ (domain/models/tenant_secret_dto.dart, presentation/user_profile_settings_view.dart, presentation/organization_iam_settings_view.dart, presentation/settings_controller.dart)
+          - shell/ (Pillar 4 Presentation), auth/ (domain/models/user.dart, data/auth_repository.dart, presentation/auth_controller.dart, presentation/login_screen.dart), settings/ (domain/models/tenant_secret_dto.dart, presentation/user_profile_settings_view.dart, presentation/organization_iam_settings_view.dart, presentation/settings_controller.dart)
         </key_domains>
     </module>
 
     <module path="client_app_v2/lib/core/">
         <responsibility>FLUTTER FOUNDATION & GLOBAL BOUNDARIES</responsibility>
-        <key_domains>api/ (execution_client.dart, reports_client.dart, workflow_client.dart, studio_client.dart), error/app_error_boundary.dart, models/enums.dart (CausalRootCauseType, TargetSpeaker, StepFilterScope), models/generic_status_response_dto.dart, network/</key_domains>
+        <key_domains>router/router.dart (GoRouter refreshListenable + ValueNotifier<AsyncValue<User?>> bridge DGR012), state/mutation.dart (useMutation post-await context.mounted unmount guard DGR011), network/interceptors/auth_interceptor.dart (Single-Flight Session Upgrade Handshake & 401 Retry), api/ (execution_client.dart, reports_client.dart, workflow_client.dart, studio_client.dart), error/app_error_boundary.dart, models/enums.dart (CausalRootCauseType, TargetSpeaker, StepFilterScope), models/generic_status_response_dto.dart</key_domains>
     </module>
     
     <module path="client_app_v2/lib/shared/">

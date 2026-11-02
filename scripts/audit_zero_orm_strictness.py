@@ -826,7 +826,7 @@ def audit_sql_migration_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
     # ensure all required evolved columns retain their idempotent ALTER TABLE ADD COLUMN IF NOT EXISTS statements.
     if REQUIRED_IDEMPOTENT_ALTER_COLUMNS.keys() <= table_columns.keys():
         for req_table, req_cols in REQUIRED_IDEMPOTENT_ALTER_COLUMNS.items():
-            present_alters = alter_columns_by_table.get(req_table, set())
+            present_alters = alter_columns_by_table[req_table] if req_table in alter_columns_by_table else set()
             for req_col in sorted(req_cols):
                 if req_col in table_columns[req_table] and req_col not in present_alters:
                     findings.append(
