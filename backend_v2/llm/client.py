@@ -22,8 +22,6 @@ from backend_v2.exceptions import (
 from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.ingress_pipeline import UniversalIngress
-
-# Phase 4, Step 2: Import LLMFactory from modular provider_factory submodule
 from backend_v2.llm.provider.provider_factory import LLMFactory
 from backend_v2.models.core_base import generate_uuid7
 from backend_v2.models.domain.system_config import ChatMessageDTO, SystemConfigModelRegistry
@@ -44,7 +42,10 @@ __all__ = ["LLMClient"]
 class LLMClient:
     """LLM Client wrapper adapting LLMFactory for structured outputs.
 
-    Replaces legacy Instructor/OpenAI implementation with unified V2.9 LLMProvider.
+    Adapts unified LLMProvider instances for structured and free-form execution.
+
+    Attributes:
+        model_config: Optional model configuration dictionary.
     """
 
     def __init__(self, config: Mapping[str, JsonValue] | LLMProviderConfig | None = None) -> None:
@@ -52,6 +53,9 @@ class LLMClient:
 
         Args:
             config: Optional configuration dictionary or typed provider configuration.
+
+        Raises:
+            pydantic.ValidationError: If the provided configuration fails schema validation.
         """
         self._config: LLMProviderConfig | None
         if config is not None:
@@ -150,7 +154,8 @@ class LLMClient:
             A configured client instance ready for execution.
 
         Raises:
-            ConfigurationError (ErrorCodes.CONFIGURATION_ERROR): If the tier or provider is missing or misconfigured.
+            ConfigurationError: If the repository, tier, or provider is missing or misconfigured (ErrorCodes.CONFIGURATION_ERROR).
+            ResourceNotFoundError: If no model registries exist in the repository (ErrorCodes.RESOURCE_NOT_FOUND).
         """
         if not repository:
             logger.error(
@@ -290,7 +295,7 @@ class LLMClient:
                 )
 
         provider_config = LLMProviderConfig(
-            # Phase 3, Step 3: Generate canonical 32-hex RFC 9562 UUIDv7 provider config ID
+            # Generate canonical 32-hex RFC 9562 UUIDv7 provider config ID
             id=f"prv_{generate_uuid7().hex}",
             provider=target_provider_type,
             model_name=target_model_name,
@@ -336,9 +341,11 @@ class LLMClient:
             A tuple of the validated model and usage metrics.
 
         Raises:
-            AppException (ErrorCodes.CONFIGURATION_ERROR): If configuration is missing.
-            AgentExecutionError (ErrorCodes.AGENT_EXECUTION_CRITICAL): On API or execution failure.
-            LLMSchemaValidationError: On schema validation failure.
+            AppException: If model configuration is missing (ErrorCodes.CONFIGURATION_ERROR), context caching dynamic payload is empty (ErrorCodes.VALIDATION_FAILED), or upstream timeout occurs (ErrorCodes.UPSTREAM_TIMEOUT).
+            ConfigurationError: If LLM cache adapter loading fails (ErrorCodes.CONFIGURATION_ERROR).
+            ServiceUnavailableError: If upstream LLM provider is unavailable (ErrorCodes.SERVICE_UNAVAILABLE).
+            AgentExecutionError: If provider execution, FinOps token validation, or safety filter fails (ErrorCodes.AGENT_EXECUTION_CRITICAL).
+            LLMSchemaValidationError: If LLM output is empty or fails schema validation (ErrorCodes.INVALID_OUTPUT_SCHEMA).
         """
         # ZERO-FALLBACK ENFORCEMENT
         # Resolve Configuration (SSOT Priority)
@@ -391,7 +398,7 @@ class LLMClient:
                 for m in messages
             ]
 
-        # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
+        # 1. Evaluate Context Caching Requirements
         # We process the raw messages array dynamically before handing it to the provider.
         has_ephemeral_caching = False
         caching_strategies = ("prompt_caching", "ephemeral", "anthropic_ephemeral", "gemini_native")
@@ -479,7 +486,7 @@ class LLMClient:
 
         response = None
         try:
-            # Epic 56 Phase 3: Dynamic Schema Stripping
+            # Dynamic Schema Stripping
             adapter_schema: Any = response_model
             if isinstance(response_model, type) and issubclass(response_model, BaseModel):
                 adapter_schema = self._build_structured_schema(
@@ -647,6 +654,15 @@ class LLMClient:
                 if response is not None and response.content is not None:
                     failed_content = response.content
 
+                logger.error(
+                    "LLM output failed schema validation.",
+                    extra={
+                        "error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value,
+                        "model": str(target_model_name),
+                        "is_eof": is_eof,
+                    },
+                    exc_info=True,
+                )
                 raise LLMSchemaValidationError(
                     raw_llm_payload=failed_content,
                     validation_error_msg=error_msg,
@@ -666,15 +682,6 @@ class LLMClient:
                 },
                 exc_info=True,
             )
-            err_response = response
-            err_content = None
-            if err_response is not None:
-                err_content = err_response.content
-            if err_content:
-                logger.error(
-                    "Raw content causing structural error.",
-                    extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name, "raw_content": str(err_content)},
-                )
             raise AgentExecutionError(
                 detail=ErrorCodes.AGENT_EXECUTION_CRITICAL.value,
                 original_error=e,
