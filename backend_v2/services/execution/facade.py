@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
 from backend_v2.database.interfaces import (
+    EntityPersistencePort,
     IComponentRepository,
     IExecutionRepository,
     IIdentityRepository,
@@ -21,11 +22,27 @@ from backend_v2.database.interfaces import (
     ISystemRepository,
     IWorkflowRepository,
 )
-from backend_v2.models.auth import TokenData
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.auth import (
+    ExecutionAssignmentBatchCreateDTO,
+    ExecutionAssignmentBatchResponseDTO,
+    ExecutionAssignmentCreateDTO,
+    ExecutionAssignmentDraftDTO,
+    ExecutionAssignmentOnboardingRequestDTO,
+    ExecutionAssignmentPreviewDTO,
+    ExecutionAssignmentResponseDTO,
+    ExecutionAssignmentSubmitDTO,
+    TokenData,
+    TokenExchangeResponseDTO,
+)
 from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
 from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
+from backend_v2.services.auth.email_service import EmailService
+from backend_v2.services.auth.repositories import OrganizationRepository, UserRepository
+from backend_v2.services.auth.token_service import TokenService
 from backend_v2.services.document_extraction import DocumentExtractionService
+from backend_v2.services.execution.assignment_service import ExecutionAssignmentService
 from backend_v2.services.execution.context_service import ExecutionContextService
 from backend_v2.services.execution.ingress_service import (
     ExecutionIngressService,
@@ -75,6 +92,9 @@ class ExecutionService:
         executor: DAGExecutor | None = None,
         storage_driver: FileDriver | None = None,
         report_repo: IReportArtifactRepository | None = None,
+        assignment_service: ExecutionAssignmentService | None = None,
+        email_service: EmailService | None = None,
+        entity_adapter: EntityPersistencePort | None = None,
     ) -> None:
         """Initialize ExecutionService facade with required repositories and sub-services.
 
@@ -90,6 +110,9 @@ class ExecutionService:
             executor: Optional DAGExecutor instance.
             storage_driver: Optional FileDriver storage backend.
             report_repo: Optional repository for report artifacts.
+            assignment_service: Optional ExecutionAssignmentService instance.
+            email_service: Optional EmailService instance.
+            entity_adapter: Optional hexagonal EntityPersistencePort for assignments.
         """
         self.exec_repo, self.workflow_repo, self.comp_repo = exec_repo, workflow_repo, comp_repo
         self.prompt_block_repo, self.output_profile_repo = prompt_block_repo, output_profile_repo
@@ -102,6 +125,26 @@ class ExecutionService:
         else:
             self.storage = get_storage_driver()
 
+        self._ingress = ExecutionIngressService(
+            exec_repo, workflow_repo, prompt_block_repo, output_profile_repo, system_repo, self.usage_service
+        )
+        if assignment_service is not None:
+            self._assignment: ExecutionAssignmentService | None = assignment_service
+        elif identity_repo is not None:
+            user_repo = UserRepository(identity_repo)
+            org_repo = OrganizationRepository(identity_repo)
+            self._assignment = ExecutionAssignmentService(
+                ingress_service=self._ingress,
+                org_repo=org_repo,
+                user_repo=user_repo,
+                workflow_repo=workflow_repo,
+                token_service=TokenService(repo=user_repo),
+                email_service=email_service,
+                entity_adapter=entity_adapter,
+            )
+        else:
+            self._assignment = None
+
         self._resumption = ExecutionResumptionService(
             exec_repo,
             workflow_repo,
@@ -109,15 +152,18 @@ class ExecutionService:
             get_execution_fn=lambda *a, **k: self.get_execution(*a, **k),
             check_resumability_fn=lambda *a, **k: self.check_resumability(*a, **k),
         )
+        if self._assignment is not None:
+            assignment_lookup_fn = self._assignment.get_assignment_by_execution_id
+        else:
+            assignment_lookup_fn = None
+
         self._lifecycle = ExecutionLifecycleService(
             exec_repo,
             self._resumption,
             self.storage,
             report_repo,
             check_resumability_fn=lambda *a, **k: self.check_resumability(*a, **k),
-        )
-        self._ingress = ExecutionIngressService(
-            exec_repo, workflow_repo, prompt_block_repo, output_profile_repo, system_repo, self.usage_service
+            assignment_lookup_fn=assignment_lookup_fn,
         )
         self._override = ExecutionOverrideService(
             exec_repo,
@@ -341,3 +387,172 @@ class ExecutionService:
             AppException: If reading the offloaded frozen context blob from storage fails (ErrorCodes.RESOURCE_NOT_FOUND).
         """
         return await self._context.get_frozen_context_bytes(initiator, execution_id)
+
+    def _require_assignment_service(self) -> ExecutionAssignmentService:
+        """Return the configured ExecutionAssignmentService or raise AppException.
+
+        Returns:
+            Configured ExecutionAssignmentService instance.
+
+        Raises:
+            AppException: With ErrorCodes.SERVICE_DEPENDENCY_MISSING if _assignment is None.
+        """
+        if self._assignment is None:
+            logger.error(
+                "[ExecutionService] %s: ExecutionAssignmentService is not configured.",
+                ErrorCodes.SERVICE_DEPENDENCY_MISSING.name,
+            )
+            raise AppException(
+                message="ExecutionAssignmentService is not configured.",
+                status_code=500,
+                details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
+            )
+        return self._assignment
+
+    async def create_assignment(
+        self,
+        initiator: TokenData,
+        payload: ExecutionAssignmentCreateDTO,
+    ) -> ExecutionAssignmentResponseDTO:
+        """Create a single time-bound workflow execution assignment.
+
+        Args:
+            initiator: Authenticated caller token data.
+            payload: Validated ExecutionAssignmentCreateDTO.
+
+        Returns:
+            Redacted ExecutionAssignmentResponseDTO.
+        """
+        return await self._require_assignment_service().create_assignment(initiator, payload)
+
+    async def create_assignment_batch(
+        self,
+        initiator: TokenData,
+        payload: ExecutionAssignmentBatchCreateDTO,
+    ) -> ExecutionAssignmentBatchResponseDTO:
+        """Create a cohort batch of time-bound execution assignments.
+
+        Args:
+            initiator: Authenticated caller token data.
+            payload: Validated ExecutionAssignmentBatchCreateDTO.
+
+        Returns:
+            ExecutionAssignmentBatchResponseDTO with batch_id and created assignments.
+        """
+        return await self._require_assignment_service().create_assignment_batch(initiator, payload)
+
+    async def list_assignments(self, initiator: TokenData) -> list[ExecutionAssignmentResponseDTO]:
+        """List execution assignments accessible to the initiator.
+
+        Args:
+            initiator: Authenticated caller token data.
+
+        Returns:
+            List of ExecutionAssignmentResponseDTO records.
+        """
+        return await self._require_assignment_service().list_assignments(initiator)
+
+    async def resend_assignment_email(
+        self,
+        initiator: TokenData,
+        assignment_id: str,
+    ) -> ExecutionAssignmentResponseDTO:
+        """Rotate token and resend magic-link email for a task assignment.
+
+        Args:
+            initiator: Authenticated caller token data.
+            assignment_id: Canonical Task Assignment ID.
+
+        Returns:
+            Updated ExecutionAssignmentResponseDTO.
+        """
+        return await self._require_assignment_service().resend_assignment_email(initiator, assignment_id)
+
+    async def preview_assignment(self, raw_token: str) -> ExecutionAssignmentPreviewDTO:
+        """Perform a side-effect-free preview of a task assignment by raw token.
+
+        Args:
+            raw_token: Raw single-use assignment token.
+
+        Returns:
+            ExecutionAssignmentPreviewDTO.
+        """
+        return await self._require_assignment_service().preview_assignment(raw_token)
+
+    async def onboard_assignee(
+        self,
+        raw_token: str,
+        payload: ExecutionAssignmentOnboardingRequestDTO,
+    ) -> TokenExchangeResponseDTO:
+        """Execute combined JIT user onboarding + 2FA for a task assignee.
+
+        Args:
+            raw_token: Raw single-use assignment token.
+            payload: Onboarding request DTO.
+
+        Returns:
+            TokenExchangeResponseDTO with signed 15-minute Quorum Local JWT.
+        """
+        return await self._require_assignment_service().onboard_assignee(raw_token, payload)
+
+    async def activate_assignment(
+        self,
+        initiator: TokenData,
+        assignment_id: str,
+    ) -> ExecutionAssignmentResponseDTO:
+        """Explicitly activate a task assignment and start its countdown timer.
+
+        Args:
+            initiator: Authenticated assignee token data.
+            assignment_id: Canonical Task Assignment ID.
+
+        Returns:
+            Activated ExecutionAssignmentResponseDTO.
+        """
+        return await self._require_assignment_service().activate_assignment(initiator, assignment_id)
+
+    async def save_draft_inputs(
+        self,
+        initiator: TokenData,
+        assignment_id: str,
+        payload: ExecutionAssignmentDraftDTO,
+    ) -> ExecutionAssignmentResponseDTO:
+        """Persist auto-saved assignee draft inputs on an active assignment.
+
+        Args:
+            initiator: Authenticated assignee token data.
+            assignment_id: Canonical Task Assignment ID.
+            payload: Draft inputs DTO.
+
+        Returns:
+            Updated ExecutionAssignmentResponseDTO.
+        """
+        return await self._require_assignment_service().save_draft_inputs(initiator, assignment_id, payload)
+
+    async def submit_assignment(
+        self,
+        initiator: TokenData,
+        assignment_id: str,
+        payload: ExecutionAssignmentSubmitDTO,
+        arq_pool: ArqRedis,
+        doc_service: DocumentExtractionService | None = None,
+    ) -> ExecutionRecord:
+        """Validate Dual-Clock expiration, merge locked inputs, and trigger execution.
+
+        Args:
+            initiator: Authenticated assignee token data.
+            assignment_id: Canonical Task Assignment ID.
+            payload: Submitted inputs DTO.
+            arq_pool: Arq Redis connection pool.
+            doc_service: Optional document extraction service.
+
+        Returns:
+            Initialized ExecutionRecord.
+        """
+        return await self._require_assignment_service().submit_assignment(
+            initiator=initiator,
+            assignment_id=assignment_id,
+            payload=payload,
+            arq_pool=arq_pool,
+            doc_service=doc_service,
+        )

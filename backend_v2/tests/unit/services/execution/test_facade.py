@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -13,15 +14,32 @@ from backend_v2.exceptions import (
     PermissionDeniedError,
     ResourceNotFoundError,
 )
-from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.auth import (
+    ExecutionAssignmentBatchCreateDTO,
+    ExecutionAssignmentCreateDTO,
+    ExecutionAssignmentDraftDTO,
+    ExecutionAssignmentOnboardingRequestDTO,
+    ExecutionAssignmentRecipientDTO,
+    ExecutionAssignmentSubmitDTO,
+    Organization,
+    SubscriptionStatus,
+    TokenData,
+    UserRole,
+)
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
 from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import AssignmentStatus, ExecutionStatus, HistoricalContextMode, StepType
 from backend_v2.services.execution.facade import ExecutionService, create_execution_record
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryExecutionRepository,
+    InMemoryIdentityRepository,
+    InMemorySystemRepository,
     InMemoryUnifiedWorkflowRepository,
     InMemoryWorkflowRepository,
 )
@@ -340,3 +358,151 @@ def test_create_execution_record_negative_invalid_id_raises_app_exception() -> N
         )
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_facade_assignment_lifecycle_and_missing_dependency_negative() -> None:
+    """Verify ExecutionService assignment lifecycle methods and SERVICE_DEPENDENCY_MISSING negative guard."""
+    repo = InMemoryUnifiedWorkflowRepository()
+    unconfigured_service = ExecutionService(exec_repo=repo, workflow_repo=repo)
+    manager = TokenData(
+        id="usr_0195f3a0000070008000000000000101",
+        role=UserRole.MANAGER,
+        organization_id="org_0195f3a0000070008000000000000010",
+        email="mgr@alpha.fi",
+    )
+    deadline = datetime.now(UTC) + timedelta(hours=6)
+    create_dto = ExecutionAssignmentCreateDTO(
+        assigned_email="cand@alpha.fi",
+        workflow_id="wor_0195f3a0000070008123456789abcdef",
+        output_profile_id="prf_0195f3a0000070008123456789abcdef",
+        locked_inputs=WorkflowInputs(),
+        assignee_input_keys=[],
+        hard_deadline_at=deadline,
+    )
+
+    with pytest.raises(AppException) as missing_exc:
+        await unconfigured_service.create_assignment(manager, create_dto)
+    assert missing_exc.value.details["error_code"] == ErrorCodes.SERVICE_DEPENDENCY_MISSING.value
+
+    await repo.save_workflow(
+        Workflow(
+            id="wor_0195f3a0000070008123456789abcdef",
+            slug="wf-slug",
+            name="WF",
+            description="Desc",
+            status="active",
+            version=1,
+            default_strictness_level=50,
+            model_registry_id="sys_0195f3a00000700e826807f3bfa3454d",
+            historical_context_mode=HistoricalContextMode.DISABLED,
+            expected_inputs=[],
+            steps=[
+                StepRule(
+                    id="stp_0195f3a0000070008123456789abcdef",
+                    task_blueprint="stp_0195f3a0000070008123456789abcdef",
+                )
+            ],
+            default_profile_id="prf_0195f3a0000070008123456789abcdef",
+            organization_id="org_0195f3a0000070008000000000000010",
+            is_public=False,
+        )
+    )
+    await repo.save_step(
+        Step(
+            id="stp_0195f3a0000070008123456789abcdef",
+            slug="stp-slug",
+            name=I18nText(translations={"en": "Step", "fi": "Vaihe"}),
+            type=StepType.LOGIC,
+            hook="my_hook",
+            mcp_tool_params={},
+        )
+    )
+    await repo.save_output_profile(
+        OutputProfile(
+            id="prf_0195f3a0000070008123456789abcdef",
+            slug="prf-slug",
+            name=I18nText(translations={"en": "Profile", "fi": "Profiili"}),
+            workflow_id="wor_0195f3a0000070008123456789abcdef",
+            target_block_order=[],
+            visible_block_extensions=[],
+            visible_workflow_extensions=[],
+        )
+    )
+    identity_repo = InMemoryIdentityRepository()
+    await identity_repo.create_organization(
+        Organization(
+            id="org_0195f3a0000070008000000000000010",
+            name="Alpha",
+            created_at=datetime.now(UTC),
+            is_active=True,
+            tier="enterprise",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=500.0,
+            tpm_limit=100000,
+            rpm_limit=100,
+            allowed_email_domains=[],
+        )
+    )
+    usage_service = AsyncMock()
+    usage_service.check_quota = AsyncMock(return_value=True)
+    configured = ExecutionService(
+        exec_repo=repo,
+        workflow_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=identity_repo,
+        system_repo=InMemorySystemRepository(),
+        usage_service=usage_service,
+    )
+
+    created = await configured.create_assignment(manager, create_dto)
+    batch = await configured.create_assignment_batch(
+        manager,
+        ExecutionAssignmentBatchCreateDTO(
+            recipients=[ExecutionAssignmentRecipientDTO(email="batch@alpha.fi")],
+            workflow_id="wor_0195f3a0000070008123456789abcdef",
+            locked_inputs=WorkflowInputs(),
+            assignee_input_keys=[],
+            hard_deadline_at=deadline,
+        ),
+    )
+    assert batch.created_count == 1
+    listed = await configured.list_assignments(manager)
+    assert len(listed) == 2
+
+    resent = await configured.resend_assignment_email(manager, created.id)
+    assert configured._assignment is not None
+    raw_token = configured._assignment.get_last_generated_token(resent.id)
+    assert raw_token is not None
+
+    preview = await configured.preview_assignment(raw_token)
+    assert preview.id == created.id
+
+    onboarded = await configured.onboard_assignee(
+        raw_token,
+        ExecutionAssignmentOnboardingRequestDTO(name="Candidate"),
+    )
+    cand_token = TokenData(
+        id=onboarded.user.id,
+        role=UserRole.MEMBER,
+        organization_id="org_0195f3a0000070008000000000000010",
+        email="cand@alpha.fi",
+    )
+    activated = await configured.activate_assignment(cand_token, created.id)
+    assert activated.status == AssignmentStatus.ACTIVATED
+
+    draft = await configured.save_draft_inputs(
+        cand_token,
+        created.id,
+        ExecutionAssignmentDraftDTO(draft_inputs=WorkflowInputs(dynamic_inputs={"note": "draft"})),
+    )
+    assert draft.draft_inputs.dynamic_inputs["note"] == "draft"
+
+    submitted = await configured.submit_assignment(
+        cand_token,
+        created.id,
+        ExecutionAssignmentSubmitDTO(submitted_inputs=WorkflowInputs()),
+        AsyncMock(),
+    )
+    assert submitted.id.startswith("exe_")

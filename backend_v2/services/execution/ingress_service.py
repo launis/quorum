@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
@@ -23,9 +24,9 @@ from backend_v2.exceptions import (
     ResourceNotFoundError,
 )
 from backend_v2.models.auth import TokenData
-from backend_v2.models.core_base import V2CoreBase, generate_opaque_id
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase, generate_opaque_id
 from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord, ExecutionStep, FrozenContext
-from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
+from backend_v2.models.domain.inputs import DomainInputValue, WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.step import Step
@@ -42,7 +43,50 @@ from backend_v2.services.usage_service import UsageService
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["ExecutionIngressService", "create_execution_record"]
+__all__ = ["ExecutionIngressService", "create_execution_record", "merge_assignment_inputs"]
+
+
+def merge_assignment_inputs(
+    locked_inputs: WorkflowInputs,
+    submitted_inputs: WorkflowInputs,
+    assignee_input_keys: list[str],
+    organization_id: str | None = None,
+    user_id: str | None = None,
+    language: str = "fi",
+) -> WorkflowInputs:
+    """Merge manager-locked workflow inputs over assignee-submitted inputs.
+
+    Manager-locked inputs are authoritative and cannot be overridden by the assignee.
+    When assignee_input_keys is non-empty, only unlocked keys in that allowlist are
+    accepted from submitted_inputs.
+
+    Args:
+        locked_inputs: Authoritative manager-locked WorkflowInputs.
+        submitted_inputs: Assignee-submitted WorkflowInputs.
+        assignee_input_keys: Allowed input keys for the assignee.
+        organization_id: Owning organization ID.
+        user_id: Submitting user ID.
+        language: Target execution language code.
+
+    Returns:
+        Merged WorkflowInputs instance with locked inputs taking precedence.
+    """
+    # Phase 5, Step 5.4: Locked vs. Assignee Input Partitioning
+    allowed_key_set = set(assignee_input_keys)
+    merged_dynamic: dict[str, DomainInputValue] = {}
+    for key, val in submitted_inputs.dynamic_inputs.items():
+        if (not allowed_key_set or key in allowed_key_set) and key not in locked_inputs.dynamic_inputs:
+            merged_dynamic[key] = val
+    for locked_key, locked_val in locked_inputs.dynamic_inputs.items():
+        merged_dynamic[locked_key] = locked_val
+
+    return WorkflowInputs(
+        organization_id=organization_id if organization_id is not None else locked_inputs.organization_id,
+        user_id=user_id if user_id is not None else submitted_inputs.user_id,
+        simulation_mode=False,
+        language=language,
+        dynamic_inputs=merged_dynamic,
+    )
 
 
 def create_execution_record(
@@ -169,85 +213,147 @@ async def _generate_sdui_hints(
     step_states: dict[str, ExecutionStep] = {}
 
     for step_rule in workflow.steps:
-        step_dict = await workflow_repo.get_step_by_id(step_rule.task_blueprint)
-        if not step_dict:
-            msg = f"Missing task blueprint {step_rule.task_blueprint} for DAG."
-            logger.error(
-                "[ExecutionIngressService] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-            raise ConfigurationError(msg)
-
-        try:
-            step_obj = Step.model_validate(step_dict)
-        except Exception as e:
-            msg = f"Invalid step format in blueprint {step_rule.task_blueprint}: {e}"
-            logger.error(
-                "[ExecutionIngressService] %s: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                msg,
-                exc_info=True,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-            raise AppException(
-                message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-            ) from e
-
+        step_obj = await _load_and_validate_step_blueprint(workflow_repo, step_rule.task_blueprint)
         st = ExecutionStep(id=step_rule.id, label=step_obj.name.resolve(target_locale), status=ExecutionStatus.PENDING)
         steps.append(st)
         step_states[step_rule.id] = st
-
-        criteria_ids: list[str] = []
-        if step_obj.criteria_block_ids is not None:
-            criteria_ids = step_obj.criteria_block_ids
-        pb_refs = [b for b in [step_obj.role_block_id, step_obj.extraction_protocol_block_id] if b] + criteria_ids
-
-        for pb_id in pb_refs:
-            pb_dict = await prompt_block_repo.get_prompt_block_by_id(pb_id)
-            if not pb_dict:
-                msg = f"PromptBlock '{pb_id}' is missing but referenced in step '{step_rule.task_blueprint}'."
-                logger.error(
-                    "[ExecutionIngressService] %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    msg,
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-                raise ConfigurationError(msg)
-
-            try:
-                pb_obj = PromptBlockAdapter.validate_python(pb_dict, strict=False)
-            except Exception as e:
-                msg = f"Invalid prompt block format for {pb_id}: {e}"
-                logger.error(
-                    "[ExecutionIngressService] %s: %s",
-                    ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                    msg,
-                    exc_info=True,
-                    extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                )
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
-                ) from e
-
-            if isinstance(pb_obj, MatrixPromptBlock):
-                max_val = float(max((s.score for s in pb_obj.scales), default=5))
-                ui_hints[pb_id] = DataDictionaryField(
-                    field_id=pb_id,
-                    component_type=ComponentType.SLIDER,
-                    options=None,
-                    validation_rules=SystemValidationRulesDTO(max=max_val),
-                )
-            else:
-                ui_hints[pb_id] = DataDictionaryField(
-                    field_id=pb_id,
-                    component_type=ComponentType.HIDDEN,
-                    options=None,
-                    validation_rules=None,
-                )
+        await _populate_step_prompt_block_hints(
+            step_obj=step_obj,
+            task_blueprint_id=step_rule.task_blueprint,
+            prompt_block_repo=prompt_block_repo,
+            ui_hints=ui_hints,
+        )
 
     return SduiHintsGenerationDTO(ui_hints=ui_hints, steps=steps, step_states=step_states)
+
+
+async def _load_and_validate_step_blueprint(workflow_repo: IWorkflowRepository, task_blueprint_id: str) -> Step:
+    """Load and validate a Step blueprint by its identifier.
+
+    Args:
+        workflow_repo: Repository for step blueprint lookups.
+        task_blueprint_id: Canonical Opaque Stripe ID of the step blueprint.
+
+    Returns:
+        Validated Step domain model.
+
+    Raises:
+        ConfigurationError: If the step blueprint is missing from the repository.
+        AppException: With ErrorCodes.VALIDATION_FAILED if step validation fails.
+    """
+    step_dict = await workflow_repo.get_step_by_id(task_blueprint_id)
+    if not step_dict:
+        msg = f"Missing task blueprint {task_blueprint_id} for DAG."
+        logger.error(
+            "[ExecutionIngressService] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+        raise ConfigurationError(msg)
+
+    try:
+        return Step.model_validate(step_dict)
+    except Exception as e:
+        msg = f"Invalid step format in blueprint {task_blueprint_id}: {e}"
+        logger.error(
+            "[ExecutionIngressService] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+        raise AppException(
+            message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+        ) from e
+
+
+async def _populate_step_prompt_block_hints(
+    *,
+    step_obj: Step,
+    task_blueprint_id: str,
+    prompt_block_repo: IPromptBlockRepository,
+    ui_hints: dict[str, DataDictionaryField],
+) -> None:
+    """Populate SDUI data dictionary hints for all prompt blocks referenced by a step.
+
+    Args:
+        step_obj: Validated Step domain model.
+        task_blueprint_id: Canonical Opaque Stripe ID of the step blueprint.
+        prompt_block_repo: Repository for prompt block lookups.
+        ui_hints: Mutable dictionary of UI hints keyed by prompt block ID.
+
+    Raises:
+        ConfigurationError: If a referenced prompt block is missing.
+        AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if prompt block validation fails.
+    """
+    pb_refs = [b for b in [step_obj.role_block_id, step_obj.extraction_protocol_block_id] if b]
+    if step_obj.criteria_block_ids is not None:
+        pb_refs.extend(step_obj.criteria_block_ids)
+
+    for pb_id in pb_refs:
+        pb_obj = await _load_and_validate_prompt_block(prompt_block_repo, pb_id, task_blueprint_id)
+        if isinstance(pb_obj, MatrixPromptBlock):
+            max_val = float(max((s.score for s in pb_obj.scales), default=5))
+            ui_hints[pb_id] = DataDictionaryField(
+                field_id=pb_id,
+                component_type=ComponentType.SLIDER,
+                options=None,
+                validation_rules=SystemValidationRulesDTO(max=max_val),
+            )
+        else:
+            ui_hints[pb_id] = DataDictionaryField(
+                field_id=pb_id,
+                component_type=ComponentType.HIDDEN,
+                options=None,
+                validation_rules=None,
+            )
+
+
+async def _load_and_validate_prompt_block(
+    prompt_block_repo: IPromptBlockRepository,
+    pb_id: str,
+    task_blueprint_id: str,
+) -> Any:
+    """Fetch and validate a PromptBlock referenced by a step blueprint.
+
+    Args:
+        prompt_block_repo: Repository for prompt block lookups.
+        pb_id: Canonical PromptBlock identifier.
+        task_blueprint_id: Referencing step blueprint identifier.
+
+    Returns:
+        Validated PromptBlock union instance.
+
+    Raises:
+        ConfigurationError: If the prompt block is missing.
+        AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if validation fails.
+    """
+    pb_dict = await prompt_block_repo.get_prompt_block_by_id(pb_id)
+    if not pb_dict:
+        msg = f"PromptBlock '{pb_id}' is missing but referenced in step '{task_blueprint_id}'."
+        logger.error(
+            "[ExecutionIngressService] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+        raise ConfigurationError(msg)
+
+    try:
+        return PromptBlockAdapter.validate_python(pb_dict, strict=False)
+    except Exception as e:
+        msg = f"Invalid prompt block format for {pb_id}: {e}"
+        logger.error(
+            "[ExecutionIngressService] %s: %s",
+            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+        )
+        raise AppException(
+            message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+        ) from e
 
 
 class ExecutionIngressService:
@@ -327,15 +433,50 @@ class ExecutionIngressService:
             AppException: If quota exceeded (402 RATE_LIMIT_EXCEEDED), profile mismatch (400 VALIDATION_FAILED),
                 or required repository is missing (500 SERVICE_DEPENDENCY_MISSING).
         """
-        workflow_dict = await self.workflow_repo.get_workflow_by_id(payload.workflow_id)
+        workflow = await self._load_and_authorize_workflow(initiator, payload.workflow_id)
+        await self._enforce_organization_quota(initiator.organization_id)
+        payload, source_identity_manifest = await self._resolve_and_extract_inputs(
+            payload=payload,
+            workflow=workflow,
+            doc_service=doc_service,
+        )
+        sdui_hints = await self._load_sdui_hints_for_workflow(workflow, payload.target_locale)
+        resolved_profile_id = await self._resolve_and_validate_profile(workflow, payload.profile_id)
+        resolved_registry_id = await self._resolve_and_validate_model_registry(workflow, payload.model_registry_id)
+        return await self._persist_and_enqueue_execution(
+            initiator=initiator,
+            workflow=workflow,
+            payload=payload,
+            sdui_hints=sdui_hints,
+            source_identity_manifest=source_identity_manifest,
+            resolved_profile_id=resolved_profile_id,
+            resolved_registry_id=resolved_registry_id,
+            arq_pool=arq_pool,
+        )
+
+    async def _load_and_authorize_workflow(self, initiator: TokenData, workflow_id: str) -> Workflow:
+        """Load the target workflow and verify tenant access permissions.
+
+        Args:
+            initiator: Authenticated user token claims.
+            workflow_id: Target workflow identifier.
+
+        Returns:
+            Validated Workflow domain model.
+
+        Raises:
+            ResourceNotFoundError: If the workflow does not exist.
+            PermissionDeniedError: If the caller cannot access the workflow.
+        """
+        workflow_dict = await self.workflow_repo.get_workflow_by_id(workflow_id)
         if not workflow_dict:
             logger.error(
                 "[ExecutionIngressService] %s: Resource 'workflow' with id '%s' not found",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
-                payload.workflow_id,
+                workflow_id,
                 extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
-            raise ResourceNotFoundError(resource_type="workflow", resource_id=payload.workflow_id)
+            raise ResourceNotFoundError(resource_type="workflow", resource_id=workflow_id)
 
         workflow = Workflow.model_validate(workflow_dict)
         if not is_resource_accessible(initiator, workflow.organization_id, is_public=workflow.is_public):
@@ -347,8 +488,17 @@ class ExecutionIngressService:
                 extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
             )
             raise PermissionDeniedError("You do not have permission to execute this workflow.")
+        return workflow
 
-        org_id = initiator.organization_id
+    async def _enforce_organization_quota(self, org_id: str | None) -> None:
+        """Verify organization FinOps quota before starting execution.
+
+        Args:
+            org_id: Organization identifier of the caller.
+
+        Raises:
+            AppException: With ErrorCodes.RATE_LIMIT_EXCEEDED if quota is exceeded.
+        """
         if org_id and self.usage_service is not None:
             is_quota_safe = await self.usage_service.check_quota(org_id)
             if not is_quota_safe:
@@ -362,11 +512,29 @@ class ExecutionIngressService:
                     message=msg, status_code=402, details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value}
                 )
 
+    async def _resolve_and_extract_inputs(
+        self,
+        payload: ExecutionCreate,
+        workflow: Workflow,
+        doc_service: DocumentExtractionService | None,
+    ) -> tuple[ExecutionCreate, dict[str, str]]:
+        """Resolve smart ingress slots and run eager document extraction.
+
+        Args:
+            payload: Incoming ExecutionCreate payload.
+            workflow: Target Workflow domain model.
+            doc_service: Optional document extraction service.
+
+        Returns:
+            Tuple of updated ExecutionCreate payload and source_identity_manifest.
+        """
         target_locale = payload.target_locale
         resolver = SmartIngressResolver()
         ingress_inputs: WorkflowInputsIngress | None = None
         if isinstance(payload.raw_inputs, WorkflowInputsIngress):
             ingress_inputs = payload.raw_inputs
+        elif isinstance(payload.raw_inputs, WorkflowInputs):
+            ingress_inputs = WorkflowInputsIngress.model_validate(payload.raw_inputs.model_dump())
         resolved_ingress = resolver.resolve(ingress_inputs, workflow.expected_inputs, target_locale)
 
         if payload.raw_inputs is not None:
@@ -377,7 +545,21 @@ class ExecutionIngressService:
             processed_ingress = await doc_service.process_ingress_payload(payload.raw_inputs)
             payload = payload.model_copy(update={"raw_inputs": processed_ingress})
 
-        source_identity_manifest = dict(resolved_ingress.source_identity_manifest)
+        return payload, dict(resolved_ingress.source_identity_manifest)
+
+    async def _load_sdui_hints_for_workflow(self, workflow: Workflow, target_locale: str) -> SduiHintsGenerationDTO:
+        """Verify prompt_block_repo availability and generate SDUI hints.
+
+        Args:
+            workflow: Target Workflow domain model.
+            target_locale: Target locale code.
+
+        Returns:
+            SduiHintsGenerationDTO with ui_hints, steps, and step_states.
+
+        Raises:
+            AppException: With ErrorCodes.SERVICE_DEPENDENCY_MISSING if prompt_block_repo is None.
+        """
         if self.prompt_block_repo is None:
             logger.error(
                 "[ExecutionIngressService] %s: PromptBlock repository is required for execution start",
@@ -389,58 +571,78 @@ class ExecutionIngressService:
                 status_code=500,
                 details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
             )
+        return await _generate_sdui_hints(workflow, self.prompt_block_repo, self.workflow_repo, target_locale)
 
-        sdui_hints = await _generate_sdui_hints(workflow, self.prompt_block_repo, self.workflow_repo, target_locale)
-        ui_hints = sdui_hints.ui_hints
-        steps = sdui_hints.steps
-        step_states = sdui_hints.step_states
+    async def _resolve_and_validate_profile(self, workflow: Workflow, profile_id: str | None) -> str | None:
+        """Resolve and validate the output profile against the target workflow.
 
-        resolved_profile_id: str | None = (
-            payload.profile_id if payload.profile_id is not None else workflow.default_profile_id
-        )
-        if resolved_profile_id is not None:
-            if self.output_profile_repo is None:
-                logger.error(
-                    "[ExecutionIngressService] %s: OutputProfile repository is required for profile resolution",
-                    ErrorCodes.SERVICE_DEPENDENCY_MISSING.name,
-                    extra={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
-                )
-                raise AppException(
-                    message="OutputProfile repository is required for profile resolution",
-                    status_code=500,
-                    details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
-                )
-            profile_dict = await self.output_profile_repo.get_output_profile_by_id(resolved_profile_id)
-            if not profile_dict:
-                logger.error(
-                    "[ExecutionIngressService] %s: Profile '%s' not found",
-                    ErrorCodes.RESOURCE_NOT_FOUND.name,
-                    resolved_profile_id,
-                    extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
-                )
-                raise AppException(
-                    message=f"Profile '{resolved_profile_id}' not found.",
-                    status_code=404,
-                    details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
-                )
-            profile_obj = OutputProfile.model_validate(profile_dict)
-            if profile_obj.workflow_id and profile_obj.workflow_id != workflow.id:
-                logger.error(
-                    "[ExecutionIngressService] %s: Profile '%s' mismatch with workflow '%s'",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    resolved_profile_id,
-                    workflow.id,
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
-                raise AppException(
-                    message=f"Profile '{resolved_profile_id}' mismatch.",
-                    status_code=400,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                )
+        Args:
+            workflow: Target Workflow domain model.
+            profile_id: Requested profile ID or None.
 
-        resolved_registry_id = (
-            payload.model_registry_id if payload.model_registry_id is not None else workflow.model_registry_id
-        )
+        Returns:
+            Resolved profile ID or None.
+
+        Raises:
+            AppException: On missing repository, missing profile, or workflow mismatch.
+        """
+        resolved_profile_id: str | None = profile_id if profile_id is not None else workflow.default_profile_id
+        if resolved_profile_id is None:
+            return None
+        if self.output_profile_repo is None:
+            logger.error(
+                "[ExecutionIngressService] %s: OutputProfile repository is required for profile resolution",
+                ErrorCodes.SERVICE_DEPENDENCY_MISSING.name,
+                extra={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
+            )
+            raise AppException(
+                message="OutputProfile repository is required for profile resolution",
+                status_code=500,
+                details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
+            )
+        profile_dict = await self.output_profile_repo.get_output_profile_by_id(resolved_profile_id)
+        if not profile_dict:
+            logger.error(
+                "[ExecutionIngressService] %s: Profile '%s' not found",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                resolved_profile_id,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            )
+            raise AppException(
+                message=f"Profile '{resolved_profile_id}' not found.",
+                status_code=404,
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            )
+        profile_obj = OutputProfile.model_validate(profile_dict)
+        if profile_obj.workflow_id and profile_obj.workflow_id != workflow.id:
+            logger.error(
+                "[ExecutionIngressService] %s: Profile '%s' mismatch with workflow '%s'",
+                ErrorCodes.VALIDATION_FAILED.name,
+                resolved_profile_id,
+                workflow.id,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+            raise AppException(
+                message=f"Profile '{resolved_profile_id}' mismatch.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        return resolved_profile_id
+
+    async def _resolve_and_validate_model_registry(self, workflow: Workflow, model_registry_id: str | None) -> str:
+        """Resolve and validate the model registry stack for execution.
+
+        Args:
+            workflow: Target Workflow domain model.
+            model_registry_id: Optional model registry override ID.
+
+        Returns:
+            Validated model registry ID.
+
+        Raises:
+            AppException: On missing registry ID, missing system_repo, or unfound registry.
+        """
+        resolved_registry_id = model_registry_id if model_registry_id is not None else workflow.model_registry_id
         if not resolved_registry_id:
             logger.error(
                 "[ExecutionIngressService] %s: No model_registry_id provided and workflow '%s' has none",
@@ -478,7 +680,34 @@ class ExecutionIngressService:
                 status_code=404,
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
+        return resolved_registry_id
 
+    async def _persist_and_enqueue_execution(
+        self,
+        initiator: TokenData,
+        workflow: Workflow,
+        payload: ExecutionCreate,
+        sdui_hints: SduiHintsGenerationDTO,
+        source_identity_manifest: dict[str, str],
+        resolved_profile_id: str | None,
+        resolved_registry_id: str,
+        arq_pool: Any,
+    ) -> ExecutionRecord:
+        """Persist the initial ExecutionRecord and enqueue the background Arq job.
+
+        Args:
+            initiator: Authenticated user token claims.
+            workflow: Target Workflow domain model.
+            payload: Resolved ExecutionCreate payload.
+            sdui_hints: Generated SDUI hints and initial step states.
+            source_identity_manifest: Source identity mapping.
+            resolved_profile_id: Validated output profile ID.
+            resolved_registry_id: Validated model registry ID.
+            arq_pool: Arq Redis connection pool.
+
+        Returns:
+            Initial ExecutionRecord in PENDING status.
+        """
         injected_carrier = inject_trace_context()
         exec_metadata = ExecutionMetadata(
             matrix_sampling_strategy=payload.matrix_sampling_strategy,
@@ -490,7 +719,7 @@ class ExecutionIngressService:
 
         create_dto = ExecutionCreateDTO(
             workflow_id=workflow.id,
-            target_locale=target_locale,
+            target_locale=payload.target_locale,
             status=ExecutionStatus.PENDING.value,
             active_profile_id=resolved_profile_id,
             output_profile_id=resolved_profile_id,
@@ -502,7 +731,7 @@ class ExecutionIngressService:
         created_id = await self.exec_repo.create_execution(create_dto)
         execution_id = (
             created_id
-            if isinstance(created_id, str) and created_id.startswith("exe_")
+            if isinstance(created_id, str) and re.match(OPAQUE_STRIPE_ID_REGEX, created_id) is not None
             else generate_opaque_id(EntityPrefix.EXECUTION)
         )
 
@@ -510,12 +739,12 @@ class ExecutionIngressService:
             execution_id=execution_id,
             workflow_id=workflow.id,
             raw_inputs=WorkflowInputs.model_validate(payload.raw_inputs.model_dump(exclude_unset=True)),
-            frozen_context=FrozenContext(ui_hints_snapshot=ui_hints),
+            frozen_context=FrozenContext(ui_hints_snapshot=sdui_hints.ui_hints),
             source_identity_manifest=source_identity_manifest,
             output_profile_id=resolved_profile_id,
-            target_locale=target_locale,
-            steps=steps,
-            step_states=step_states,
+            target_locale=payload.target_locale,
+            steps=sdui_hints.steps,
+            step_states=sdui_hints.step_states,
             metadata=exec_metadata,
             created_by=initiator.id,
             organization_id=initiator.organization_id,

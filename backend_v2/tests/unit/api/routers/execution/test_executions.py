@@ -1,6 +1,7 @@
 """Test suite for execution router endpoints."""
 
 from collections.abc import Generator
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -20,8 +21,23 @@ from backend_v2.exceptions import (
     ResourceNotFoundError,
 )
 from backend_v2.main import app
-from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.auth import (
+    ExecutionAssignmentBatchResponseDTO,
+    ExecutionAssignmentPreviewDTO,
+    ExecutionAssignmentResponseDTO,
+    TokenData,
+    TokenExchangeResponseDTO,
+    User,
+    UserRole,
+)
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.enums import (
+    AssignmentResultVisibility,
+    AssignmentStatus,
+    EmailDeliveryStatus,
+    SystemLocale,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 
 MOCK_USER_ID = "usr_0195f3a0000070018234567890abcdef"
@@ -31,6 +47,8 @@ MOCK_WOR_ID = "wor_0195f3a0000070018234567890abcdef"
 MOCK_PRF_ID = "prf_0195f3a0000070018234567890abcdef"
 MOCK_ATM_ID = "atm_0195f3a0000070018234567890abcdef"
 MOCK_EVQ_ID = "evq_0195f3a0000070018234567890abcdef"
+MOCK_TSK_ID = "tsk_0195f3a0000070018234567890abcdef"
+MOCK_BAT_ID = "tsk_0195f3a0000070018234567890abcdee"
 
 # Basic mock for user
 mock_user = TokenData(id=MOCK_USER_ID, role=UserRole.ROOT, organization_id=MOCK_ORG_ID)
@@ -68,15 +86,16 @@ def test_start_execution_null_matrix_sampling_strategy_regression(
     )
     mock_execution_service.start_execution.return_value = mock_record
 
-    payload = {
-        "workflow_id": MOCK_WOR_ID,
-        "target_locale": "fi",
-        "raw_inputs": {"dynamic_inputs": {}},
-        "profile_id": None,
-        "matrix_sampling_strategy": None,
-    }
-
-    response = client.post("/api/v2/execution/executions/", json=payload)
+    response = client.post(
+        "/api/v2/execution/executions/",
+        json={
+            "workflow_id": MOCK_WOR_ID,
+            "target_locale": "fi",
+            "raw_inputs": {"dynamic_inputs": {}},
+            "profile_id": None,
+            "matrix_sampling_strategy": None,
+        },
+    )
 
     # When sent with matrix_sampling_strategy: null, FastAPI must accept and apply default
     assert response.status_code == 202
@@ -280,3 +299,171 @@ def test_eradicated_render_routes_absent_from_route_table() -> None:
     }
     present_eradicated = route_paths.intersection(eradicated_paths)
     assert not present_eradicated, f"Residual route templates found in app.routes: {present_eradicated}"
+
+
+def _sample_assignment_dto(
+    status: AssignmentStatus = AssignmentStatus.PENDING,
+) -> ExecutionAssignmentResponseDTO:
+    """Construct a canonical ExecutionAssignmentResponseDTO fixture."""
+    return ExecutionAssignmentResponseDTO(
+        id=MOCK_TSK_ID,
+        batch_id=None,
+        organization_id=MOCK_ORG_ID,
+        assigned_email="candidate@acme.com",
+        assigned_user_id=MOCK_USER_ID,
+        invited_role=UserRole.MEMBER,
+        workflow_id=MOCK_WOR_ID,
+        output_profile_id=None,
+        target_locale=SystemLocale.FI,
+        locked_inputs=WorkflowInputs(dynamic_inputs={"role_brief": "CTO"}),
+        assignee_input_keys=["essay"],
+        draft_inputs=WorkflowInputs(dynamic_inputs={}),
+        status=status,
+        email_delivery_status=EmailDeliveryStatus.SENT,
+        result_visibility=AssignmentResultVisibility.CONFIRMATION_ONLY,
+        hard_deadline_at=datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+        relative_duration_seconds=2700,
+        activated_at=None,
+        submitted_at=None,
+        execution_id=None,
+        created_by=MOCK_USER_ID,
+        created_at=datetime(2026, 11, 2, 12, 0, 0, tzinfo=timezone.utc),
+    )
+
+
+def test_execution_assignment_management_endpoints_positive(
+    override_dependencies: Any, mock_execution_service: Any
+) -> None:
+    """Verify list, create, batch create, and resend assignment routes serialize responses."""
+    client = TestClient(app)
+    dto = _sample_assignment_dto()
+    mock_execution_service.list_assignments.return_value = [dto]
+    mock_execution_service.create_assignment.return_value = dto
+    mock_execution_service.create_assignment_batch.return_value = ExecutionAssignmentBatchResponseDTO(
+        batch_id=MOCK_BAT_ID, created_count=1, assignments=[dto]
+    )
+    mock_execution_service.resend_assignment_email.return_value = dto
+
+    assert client.get("/api/v2/execution/executions/assignments").status_code == 200
+    create_resp = client.post(
+        "/api/v2/execution/executions/assignments",
+        json={
+            "assigned_email": "candidate@acme.com",
+            "workflow_id": MOCK_WOR_ID,
+            "locked_inputs": {"dynamic_inputs": {"role_brief": "CTO"}},
+            "assignee_input_keys": ["essay"],
+            "hard_deadline_at": "2026-12-31T23:59:59+00:00",
+            "relative_duration_seconds": 2700,
+        },
+    )
+    assert create_resp.status_code == 201
+    batch_resp = client.post(
+        "/api/v2/execution/executions/assignments/batch",
+        json={
+            "recipients": [{"email": "candidate@acme.com"}],
+            "workflow_id": MOCK_WOR_ID,
+            "locked_inputs": {"dynamic_inputs": {"role_brief": "CTO"}},
+            "assignee_input_keys": ["essay"],
+            "hard_deadline_at": "2026-12-31T23:59:59+00:00",
+            "relative_duration_seconds": 2700,
+        },
+    )
+    assert batch_resp.status_code == 201
+    assert client.post(f"/api/v2/execution/executions/assignments/{MOCK_TSK_ID}/resend").status_code == 200
+
+
+def test_execution_assignment_public_endpoints_positive(
+    override_dependencies: Any, mock_execution_service: Any
+) -> None:
+    """Verify SafeLinks-immune preview and JIT onboarding routes."""
+    client = TestClient(app)
+    mock_execution_service.preview_assignment.return_value = ExecutionAssignmentPreviewDTO(
+        id=MOCK_TSK_ID,
+        organization_id=MOCK_ORG_ID,
+        organization_name="Acme Corp",
+        assigned_email_masked="c***@acme.com",
+        workflow_id=MOCK_WOR_ID,
+        target_locale=SystemLocale.FI,
+        status=AssignmentStatus.PENDING,
+        hard_deadline_at=datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+        relative_duration_seconds=2700,
+    )
+    mock_execution_service.onboard_assignee.return_value = TokenExchangeResponseDTO(
+        access_token="quorum.jwt.token",
+        expires_in_seconds=900,
+        user=User(
+            id=MOCK_USER_ID,
+            email="candidate@acme.com",
+            name="Candidate One",
+            role=UserRole.MEMBER,
+            organization_id=MOCK_ORG_ID,
+            is_active=True,
+            language=SystemLocale.FI,
+            theme_mode="system",
+            created_at=datetime(2026, 11, 2, 12, 0, 0, tzinfo=timezone.utc),
+        ),
+    )
+    prev = client.get("/api/v2/execution/executions/assignments/preview?token=valid_token_12345")
+    assert prev.status_code == 200
+    assert prev.json()["assigned_email_masked"] == "c***@acme.com"
+    onboard = client.post(
+        "/api/v2/execution/executions/assignments/onboard?token=valid_token_12345",
+        json={"firebase_token": "firebase_valid_token_12345", "name": "Candidate One"},
+    )
+    assert onboard.status_code == 200
+    assert onboard.json()["access_token"] == "quorum.jwt.token"
+
+
+def test_execution_assignment_assignee_endpoints_positive(
+    override_dependencies: Any, mock_execution_service: Any
+) -> None:
+    """Verify activate, draft auto-save, and submit assignment routes."""
+    client = TestClient(app)
+    mock_execution_service.activate_assignment.return_value = _sample_assignment_dto(AssignmentStatus.ACTIVATED)
+    mock_execution_service.save_draft_inputs.return_value = _sample_assignment_dto(AssignmentStatus.ACTIVATED)
+    mock_execution_service.submit_assignment.return_value = ExecutionRecord(
+        id=MOCK_EXE_ID,
+        workflow_id=MOCK_WOR_ID,
+        output_profile_id=MOCK_PRF_ID,
+        target_locale="fi",
+        metadata=ExecutionMetadata(matrix_sampling_strategy=10),
+    )
+    act = client.post(f"/api/v2/execution/executions/assignments/{MOCK_TSK_ID}/activate")
+    assert act.status_code == 200
+    assert act.json()["status"] == "activated"
+    draft = client.put(
+        f"/api/v2/execution/executions/assignments/{MOCK_TSK_ID}/draft",
+        json={"draft_inputs": {"dynamic_inputs": {"essay": "Draft content"}}},
+    )
+    assert draft.status_code == 200
+    sub = client.post(
+        f"/api/v2/execution/executions/assignments/{MOCK_TSK_ID}/submit",
+        json={"submitted_inputs": {"dynamic_inputs": {"essay": "Final answer"}}},
+    )
+    assert sub.status_code == 202
+    assert sub.json()["id"] == MOCK_EXE_ID
+
+
+def test_execution_assignment_routes_rbac_and_validation_negative(
+    override_dependencies: Any, mock_execution_service: Any
+) -> None:
+    """Negative & Boundary test: VIEWER is rejected on create/resend; short token fails 422."""
+    client = TestClient(app)
+    viewer = TokenData(id=MOCK_USER_ID, role=UserRole.VIEWER, organization_id=MOCK_ORG_ID)
+    app.dependency_overrides[get_current_user_from_header] = lambda: viewer
+
+    forbidden_resp = client.post(
+        "/api/v2/execution/executions/assignments",
+        json={
+            "assigned_email": "candidate@acme.com",
+            "workflow_id": MOCK_WOR_ID,
+            "locked_inputs": {"dynamic_inputs": {}},
+            "assignee_input_keys": ["essay"],
+            "hard_deadline_at": "2026-12-31T23:59:59+00:00",
+            "relative_duration_seconds": 2700,
+        },
+    )
+    assert forbidden_resp.status_code == 403
+
+    short_token_resp = client.get("/api/v2/execution/executions/assignments/preview?token=short")
+    assert short_token_resp.status_code == 422

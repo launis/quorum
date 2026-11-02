@@ -12,6 +12,9 @@ from backend_v2.models.domain.execution import (
 from backend_v2.models.domain.execution import (
     FrozenContext as FrozenContext,
 )
+from backend_v2.services.execution.assignment_service import (
+    ExecutionAssignmentService as ExecutionAssignmentService,
+)
 from backend_v2.services.execution.context_service import ExecutionContextService as ExecutionContextService
 from backend_v2.services.execution.facade import ExecutionService as ExecutionService
 from backend_v2.services.execution.ingress_service import (
@@ -28,6 +31,7 @@ from backend_v2.services.execution.resumption_service import (
 from backend_v2.services.execution.stream_service import ExecutionStreamService as ExecutionStreamService
 
 __all__ = [
+    "ExecutionAssignmentService",
     "ExecutionContextService",
     "ExecutionCreate",
     "ExecutionIngressService",

@@ -7,8 +7,9 @@ including starting, resuming, and tracking execution lifecycle.
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import Response, StreamingResponse
 
 from backend_v2.api.dependencies import (
@@ -16,6 +17,20 @@ from backend_v2.api.dependencies import (
     CurrentUserDep,
     DocumentExtractionServiceDep,
     ExecutionServiceDep,
+    require_role,
+)
+from backend_v2.models.auth import (
+    ExecutionAssignmentBatchCreateDTO,
+    ExecutionAssignmentBatchResponseDTO,
+    ExecutionAssignmentCreateDTO,
+    ExecutionAssignmentDraftDTO,
+    ExecutionAssignmentOnboardingRequestDTO,
+    ExecutionAssignmentPreviewDTO,
+    ExecutionAssignmentResponseDTO,
+    ExecutionAssignmentSubmitDTO,
+    TokenData,
+    TokenExchangeResponseDTO,
+    UserRole,
 )
 from backend_v2.models.domain.execution import (
     EvidenceRejectionRequest,
@@ -30,6 +45,10 @@ __all__ = ["router"]
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/executions", tags=["Executions"])
+ManagerOrAdminDep = Annotated[
+    TokenData,
+    Depends(require_role([UserRole.ROOT, UserRole.ADMIN, UserRole.MANAGER])),
+]
 
 
 @router.get("/", response_model=list[ExecutionRecord])
@@ -86,6 +105,285 @@ async def start_execution(
     """
     return await execution_service.start_execution(
         initiator=current_user, payload=payload, arq_pool=arq_pool, doc_service=doc_service
+    )
+
+
+@router.get("/assignments", response_model=list[ExecutionAssignmentResponseDTO])
+async def list_execution_assignments(
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+) -> list[ExecutionAssignmentResponseDTO]:
+    """List workflow execution assignments scoped to the authenticated user.
+
+    Args:
+        current_user: Authenticated caller token data.
+        execution_service: Execution domain service.
+
+    Returns:
+        List of ExecutionAssignmentResponseDTO accessible to the caller.
+
+    Raises:
+        AppException: If assignment repository dependency is missing
+            (ErrorCodes.SERVICE_DEPENDENCY_MISSING).
+    """
+    return await execution_service.list_assignments(initiator=current_user)
+
+
+@router.post(
+    "/assignments",
+    response_model=ExecutionAssignmentResponseDTO,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_execution_assignment(
+    payload: ExecutionAssignmentCreateDTO,
+    current_user: ManagerOrAdminDep,
+    execution_service: ExecutionServiceDep,
+) -> ExecutionAssignmentResponseDTO:
+    """Create a single time-bound workflow execution assignment.
+
+    Args:
+        payload: Validated ExecutionAssignmentCreateDTO.
+        current_user: Authenticated ROOT, ADMIN, or MANAGER caller.
+        execution_service: Execution domain service.
+
+    Returns:
+        Created ExecutionAssignmentResponseDTO.
+
+    Raises:
+        PermissionDeniedError: If caller lacks assignment privileges
+            (ErrorCodes.PERMISSION_DENIED).
+        ResourceNotFoundError: If workflow or organization does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        AppException: If workflow input key partitioning or email dispatch fails
+            (ErrorCodes.VALIDATION_FAILED, ErrorCodes.EMAIL_DELIVERY_FAILED).
+    """
+    return await execution_service.create_assignment(initiator=current_user, payload=payload)
+
+
+@router.post(
+    "/assignments/batch",
+    response_model=ExecutionAssignmentBatchResponseDTO,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_execution_assignment_batch(
+    payload: ExecutionAssignmentBatchCreateDTO,
+    current_user: ManagerOrAdminDep,
+    execution_service: ExecutionServiceDep,
+) -> ExecutionAssignmentBatchResponseDTO:
+    """Create a cohort batch of time-bound workflow execution assignments.
+
+    Args:
+        payload: Validated ExecutionAssignmentBatchCreateDTO (1 to 500 recipients).
+        current_user: Authenticated ROOT, ADMIN, or MANAGER caller.
+        execution_service: Execution domain service.
+
+    Returns:
+        ExecutionAssignmentBatchResponseDTO with batch_id and created assignments.
+
+    Raises:
+        PermissionDeniedError: If caller lacks assignment privileges
+            (ErrorCodes.PERMISSION_DENIED).
+        ResourceNotFoundError: If workflow or organization does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        AppException: If duplicate emails, input partitioning, or email delivery fails
+            (ErrorCodes.VALIDATION_FAILED, ErrorCodes.EMAIL_DELIVERY_FAILED).
+    """
+    return await execution_service.create_assignment_batch(initiator=current_user, payload=payload)
+
+
+@router.get("/assignments/preview", response_model=ExecutionAssignmentPreviewDTO)
+async def preview_execution_assignment(
+    token: Annotated[str, Query(min_length=10)],
+    execution_service: ExecutionServiceDep,
+) -> ExecutionAssignmentPreviewDTO:
+    """Perform a SafeLinks-immune side-effect-free preview of a task assignment.
+
+    Args:
+        token: Raw single-use assignment token from query string.
+        execution_service: Execution domain service.
+
+    Returns:
+        ExecutionAssignmentPreviewDTO with masked email and deadline metadata.
+
+    Raises:
+        ResourceNotFoundError: If the assignment token hash does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        AppException: If the assignment is expired or revoked
+            (ErrorCodes.TASK_ASSIGNMENT_EXPIRED).
+    """
+    return await execution_service.preview_assignment(raw_token=token)
+
+
+@router.post("/assignments/onboard", response_model=TokenExchangeResponseDTO)
+async def onboard_execution_assignee(
+    token: Annotated[str, Query(min_length=10)],
+    payload: ExecutionAssignmentOnboardingRequestDTO,
+    execution_service: ExecutionServiceDep,
+) -> TokenExchangeResponseDTO:
+    """Execute combined Just-In-Time (JIT) user onboarding + 2FA for a task assignee.
+
+    Args:
+        token: Raw single-use assignment token from query string.
+        payload: Onboarding request DTO with Firebase ID token and display name.
+        execution_service: Execution domain service.
+
+    Returns:
+        TokenExchangeResponseDTO containing a signed 15-minute Quorum Local JWT.
+
+    Raises:
+        ResourceNotFoundError: If the assignment token hash does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        PermissionDeniedError: If Firebase email does not match assignee_email
+            (ErrorCodes.ASSIGNEE_EMAIL_MISMATCH) or 2FA is not enrolled
+            (ErrorCodes.MFA_REQUIRED).
+        AppException: If the assignment is expired
+            (ErrorCodes.TASK_ASSIGNMENT_EXPIRED).
+    """
+    return await execution_service.onboard_assignee(raw_token=token, payload=payload)
+
+
+@router.post(
+    "/assignments/{assignment_id}/resend",
+    response_model=ExecutionAssignmentResponseDTO,
+)
+async def resend_execution_assignment_email(
+    assignment_id: str,
+    current_user: ManagerOrAdminDep,
+    execution_service: ExecutionServiceDep,
+) -> ExecutionAssignmentResponseDTO:
+    """Rotate the 256-bit assignment token and resend the task magic-link email.
+
+    Args:
+        assignment_id: Canonical Task Assignment ID (tsk_<hex32>).
+        current_user: Authenticated ROOT, ADMIN, or MANAGER caller.
+        execution_service: Execution domain service.
+
+    Returns:
+        Updated ExecutionAssignmentResponseDTO.
+
+    Raises:
+        PermissionDeniedError: If caller lacks assignment management rights
+            (ErrorCodes.PERMISSION_DENIED).
+        ResourceNotFoundError: If assignment does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        AppException: If assignment is already submitted or revoked
+            (ErrorCodes.VALIDATION_FAILED).
+    """
+    return await execution_service.resend_assignment_email(
+        initiator=current_user,
+        assignment_id=assignment_id,
+    )
+
+
+@router.post(
+    "/assignments/{assignment_id}/activate",
+    response_model=ExecutionAssignmentResponseDTO,
+)
+async def activate_execution_assignment(
+    assignment_id: str,
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+) -> ExecutionAssignmentResponseDTO:
+    """Explicitly activate a task assignment and start its relative countdown timer.
+
+    Args:
+        assignment_id: Canonical Task Assignment ID (tsk_<hex32>).
+        current_user: Authenticated assignee token data.
+        execution_service: Execution domain service.
+
+    Returns:
+        Activated ExecutionAssignmentResponseDTO.
+
+    Raises:
+        PermissionDeniedError: If caller is not the assigned user
+            (ErrorCodes.PERMISSION_DENIED).
+        ResourceNotFoundError: If assignment does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        AppException: If assignment is expired or in an invalid state
+            (ErrorCodes.TASK_ASSIGNMENT_EXPIRED, ErrorCodes.VALIDATION_FAILED).
+    """
+    return await execution_service.activate_assignment(
+        initiator=current_user,
+        assignment_id=assignment_id,
+    )
+
+
+@router.put(
+    "/assignments/{assignment_id}/draft",
+    response_model=ExecutionAssignmentResponseDTO,
+)
+async def save_execution_assignment_draft(
+    assignment_id: str,
+    payload: ExecutionAssignmentDraftDTO,
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+) -> ExecutionAssignmentResponseDTO:
+    """Auto-save assignee draft inputs on an active task assignment.
+
+    Args:
+        assignment_id: Canonical Task Assignment ID (tsk_<hex32>).
+        payload: Draft inputs DTO.
+        current_user: Authenticated assignee token data.
+        execution_service: Execution domain service.
+
+    Returns:
+        Updated ExecutionAssignmentResponseDTO with persisted draft_inputs.
+
+    Raises:
+        PermissionDeniedError: If caller is not the assigned user or attempts to
+            mutate locked_inputs (ErrorCodes.PERMISSION_DENIED).
+        ResourceNotFoundError: If assignment does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        AppException: If assignment has expired or is already submitted
+            (ErrorCodes.TASK_ASSIGNMENT_EXPIRED, ErrorCodes.TASK_ASSIGNMENT_ALREADY_SUBMITTED).
+    """
+    return await execution_service.save_draft_inputs(
+        initiator=current_user,
+        assignment_id=assignment_id,
+        payload=payload,
+    )
+
+
+@router.post(
+    "/assignments/{assignment_id}/submit",
+    response_model=ExecutionRecord,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def submit_execution_assignment(
+    assignment_id: str,
+    payload: ExecutionAssignmentSubmitDTO,
+    arq_pool: ArqPoolDep,
+    current_user: CurrentUserDep,
+    execution_service: ExecutionServiceDep,
+    doc_service: DocumentExtractionServiceDep,
+) -> ExecutionRecord:
+    """Submit a time-bound task assignment and trigger single-shot workflow execution.
+
+    Args:
+        assignment_id: Canonical Task Assignment ID (tsk_<hex32>).
+        payload: Submitted assignee inputs DTO.
+        arq_pool: Arq Redis connection pool.
+        current_user: Authenticated assignee token data.
+        execution_service: Execution domain service.
+        doc_service: Document extraction service.
+
+    Returns:
+        Initialized ExecutionRecord.
+
+    Raises:
+        PermissionDeniedError: If caller is not the assigned user or attempts to
+            mutate locked_inputs (ErrorCodes.PERMISSION_DENIED).
+        ResourceNotFoundError: If assignment does not exist
+            (ErrorCodes.RESOURCE_NOT_FOUND).
+        AppException: If assignment is already submitted or expired
+            (ErrorCodes.TASK_ASSIGNMENT_ALREADY_SUBMITTED, ErrorCodes.TASK_ASSIGNMENT_EXPIRED).
+    """
+    return await execution_service.submit_assignment(
+        initiator=current_user,
+        assignment_id=assignment_id,
+        payload=payload,
+        arq_pool=arq_pool,
+        doc_service=doc_service,
     )
 
 

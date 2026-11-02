@@ -10,8 +10,10 @@ from collections.abc import Awaitable, Callable
 from backend_v2.database.interfaces import IExecutionRepository, IReportArtifactRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.execution import ExecutionAssignment, ExecutionRecord
+from backend_v2.models.enums import AssignmentResultVisibility
 from backend_v2.services import storage
+from backend_v2.services.execution.assignment_service import redact_execution_for_confirmation_only
 from backend_v2.services.execution.resumption_service import ExecutionResumptionService
 from backend_v2.services.file_driver import FileDriver
 
@@ -30,6 +32,7 @@ class ExecutionLifecycleService:
         storage_driver: FileDriver | None = None,
         report_repo: IReportArtifactRepository | None = None,
         check_resumability_fn: Callable[..., Awaitable[bool]] | None = None,
+        assignment_lookup_fn: Callable[[str], Awaitable[ExecutionAssignment | None]] | None = None,
     ) -> None:
         """Initialize the execution lifecycle service with dependencies.
 
@@ -39,12 +42,14 @@ class ExecutionLifecycleService:
             storage_driver: Optional file storage driver for blob artifact management.
             report_repo: Optional repository for report artifact records.
             check_resumability_fn: Optional custom resumability evaluation callable.
+            assignment_lookup_fn: Optional callable resolving ExecutionAssignment by execution_id.
         """
         self.exec_repo = exec_repo
         self.resumption_service = resumption_service
         self.storage: FileDriver = storage_driver if storage_driver is not None else storage.get_storage_driver()
         self.report_repo = report_repo
         self._check_resumability = check_resumability_fn
+        self._assignment_lookup = assignment_lookup_fn
         if self._check_resumability is None and resumption_service is not None:
             self._check_resumability = resumption_service.check_resumability
 
@@ -167,11 +172,34 @@ class ExecutionLifecycleService:
             )
             raise PermissionDeniedError("You do not have permission to view this execution.")
 
+        data = await self._apply_assignment_result_visibility(initiator=initiator, record=data)
         if skip_resumability or not self._check_resumability:
             return data
 
         is_resumable = await self._check_resumability(data)
         return data.model_copy(update={"is_resumable": is_resumable})
+
+    async def _apply_assignment_result_visibility(
+        self,
+        *,
+        initiator: TokenData,
+        record: ExecutionRecord,
+    ) -> ExecutionRecord:
+        """Enforce AssignmentResultVisibility.CONFIRMATION_ONLY for MEMBER/VIEWER assignees.
+
+        Args:
+            initiator: Authenticated user token data.
+            record: Hydrated ExecutionRecord model.
+
+        Returns:
+            Redacted ExecutionRecord if CONFIRMATION_ONLY applies to caller, else full record.
+        """
+        if initiator.role not in (UserRole.MEMBER, UserRole.VIEWER) or self._assignment_lookup is None:
+            return record
+        assignment = await self._assignment_lookup(record.id)
+        if assignment is not None and assignment.result_visibility == AssignmentResultVisibility.CONFIRMATION_ONLY:
+            return redact_execution_for_confirmation_only(record)
+        return record
 
     async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
         """Securely delete an execution and cascade clean its report artifacts and storage.

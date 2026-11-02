@@ -1044,7 +1044,10 @@ class ExecutionAssignmentCreateDTO(BaseDTO):
             description="Post-submission result visibility policy",
         ),
     ] = AssignmentResultVisibility.CONFIRMATION_ONLY
-    hard_deadline_at: Annotated[datetime, Field(description="Absolute UTC deadline timestamp")]
+    hard_deadline_at: Annotated[
+        datetime,
+        Field(strict=False, description="Absolute UTC deadline timestamp"),
+    ]
     relative_duration_seconds: Annotated[
         int | None,
         Field(default=None, ge=60, description="Optional relative countdown timer in seconds from activation"),
@@ -1123,7 +1126,10 @@ class ExecutionAssignmentBatchCreateDTO(BaseDTO):
             description="Post-submission result visibility policy",
         ),
     ] = AssignmentResultVisibility.CONFIRMATION_ONLY
-    hard_deadline_at: Annotated[datetime, Field(description="Shared absolute UTC deadline timestamp")]
+    hard_deadline_at: Annotated[
+        datetime,
+        Field(strict=False, description="Shared absolute UTC deadline timestamp"),
+    ]
     relative_duration_seconds: Annotated[
         int | None,
         Field(default=None, ge=60, description="Optional relative countdown timer in seconds from activation"),
@@ -1178,7 +1184,10 @@ class ExecutionAssignmentResponseDTO(BaseResponseDTO):
         Field(default=EmailDeliveryStatus.PENDING, description="Transactional email delivery status"),
     ] = EmailDeliveryStatus.PENDING
     result_visibility: Annotated[LaxAssignmentResultVisibility, Field(description="Result visibility policy")]
-    hard_deadline_at: Annotated[datetime, Field(description="Absolute UTC deadline timestamp")]
+    hard_deadline_at: Annotated[
+        datetime,
+        Field(strict=False, description="Absolute UTC deadline timestamp"),
+    ]
     relative_duration_seconds: Annotated[
         int | None, Field(default=None, description="Relative duration in seconds")
     ] = None
@@ -1279,7 +1288,10 @@ class ExecutionAssignmentPreviewDTO(BaseResponseDTO):
     workflow_id: Annotated[PrefixedUUID7, Field(description="Target Workflow ID (wf_<hex32>)")]
     target_locale: Annotated[LaxSystemLocale, Field(description="Target execution locale")]
     status: Annotated[LaxAssignmentStatus, Field(description="Current assignment status")]
-    hard_deadline_at: Annotated[datetime, Field(description="Absolute UTC deadline timestamp")]
+    hard_deadline_at: Annotated[
+        datetime,
+        Field(strict=False, description="Absolute UTC deadline timestamp"),
+    ]
     relative_duration_seconds: Annotated[
         int | None, Field(default=None, description="Relative duration in seconds")
     ] = None
