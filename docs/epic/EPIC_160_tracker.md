@@ -119,7 +119,7 @@
   - [x] @[backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py]
   - [x] @[backend_v2/database/postgres/uow.py]
   - [x] @[backend_v2/database/repositories/identity.py]
-  - [ ] @[backend_v2/services/auth/repositories.py]
+  - [x] @[backend_v2/services/auth/repositories.py]
   - [ ] @[backend_v2/services/auth/token_service.py]
   - [ ] @[backend_v2/services/auth/user_service.py]
   - [ ] @[backend_v2/services/auth/organization_service.py]

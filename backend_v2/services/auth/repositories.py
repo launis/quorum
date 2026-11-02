@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import logging
+
 from backend_v2.database.interfaces import IIdentityRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import Organization, OrganizationUpdateDTO, User, UserUpdate
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "OrganizationRepository",
@@ -13,7 +17,11 @@ __all__ = [
 
 
 class OrganizationRepository:
-    """Repository for Organization data access."""
+    """Repository for Organization data access.
+
+    Attributes:
+        repo: The underlying identity repository interface.
+    """
 
     def __init__(self, repo: IIdentityRepository) -> None:
         """Initializes the Organization repository wrapper.
@@ -79,7 +87,11 @@ class OrganizationRepository:
 
 
 class UserRepository:
-    """Repository for User data access."""
+    """Repository for User data access.
+
+    Attributes:
+        repo: The underlying identity repository interface.
+    """
 
     def __init__(self, repo: IIdentityRepository) -> None:
         """Initializes the User repository wrapper.
@@ -136,9 +148,15 @@ class UserRepository:
             The created User object.
 
         Raises:
-            AppException: If a user with the same ID already exists.
+            AppException: With ErrorCodes.CONFLICT_ERROR (409) if a user with the same ID already exists.
         """
         if await self.get_by_id(user.id):
+            logger.error(
+                "[UserRepository] %s: User with ID %s already exists.",
+                ErrorCodes.CONFLICT_ERROR.name,
+                user.id,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"User with ID {user.id} already exists.",
                 status_code=409,
