@@ -20,8 +20,6 @@ from backend_v2.exceptions import (
     ErrorCodes,
     ServiceUnavailableError,
 )
-
-# Phase 4, Step 2: Import _is_transient_llm_error from transient_retry_policy submodule
 from backend_v2.llm.provider.transient_retry_policy import _is_transient_llm_error
 from backend_v2.models.auth import ResolvedCredentialDTO, SystemOrganizations
 from backend_v2.models.core_base import I18nText, PrefixedUUID7
@@ -78,9 +76,6 @@ class GenericMCPClient:
     ) -> MCPInitializeResultDTO:
         """Execute the MCP 'initialize' handshake against the configured gateway.
 
-        # Phase 2, Step 2.2: Protocol-Agnostic GenericMCPClient initialize handshake
-        # Phase 3, Step 3.2: Resolve MCP credentials asynchronously prior to header assembly
-
         Args:
             gateway: Target MCP gateway configuration.
             organization_id: Optional tenant organization ID for BYOK credential resolution.
@@ -91,7 +86,8 @@ class GenericMCPClient:
 
         Raises:
             AppException: With ErrorCodes.SECURITY_VIOLATION on SSRF failure,
-                ErrorCodes.VALIDATION_ERROR on configuration error, or
+                ErrorCodes.CONFIGURATION_ERROR or ErrorCodes.SECRET_RESOLUTION_FAILED on configuration error,
+                ErrorCodes.SEARCH_EXECUTION_FAILED or ErrorCodes.AGENT_RESPONSE_MALFORMED on protocol error, or
                 ErrorCodes.SERVICE_UNAVAILABLE on transport error.
         """
         settings = get_settings()
@@ -141,9 +137,6 @@ class GenericMCPClient:
     ) -> list[AllowedMCPTool]:
         """Discover all available tools exposed by the remote MCP gateway via 'tools/list'.
 
-        # Phase 2, Step 2.2: Protocol-Agnostic GenericMCPClient list_tools discovery
-        # Phase 3, Step 3.2: Resolve MCP credentials asynchronously prior to header assembly
-
         Args:
             gateway: Target MCP gateway configuration.
             organization_id: Optional tenant organization ID for BYOK credential resolution.
@@ -154,7 +147,8 @@ class GenericMCPClient:
 
         Raises:
             AppException: With ErrorCodes.SECURITY_VIOLATION on SSRF failure,
-                ErrorCodes.VALIDATION_ERROR on configuration error, or
+                ErrorCodes.CONFIGURATION_ERROR or ErrorCodes.SECRET_RESOLUTION_FAILED on configuration error,
+                ErrorCodes.SEARCH_EXECUTION_FAILED or ErrorCodes.AGENT_RESPONSE_MALFORMED on protocol error, or
                 ErrorCodes.SERVICE_UNAVAILABLE on transport error.
         """
         settings = get_settings()
@@ -214,9 +208,6 @@ class GenericMCPClient:
     ) -> str:
         """Invoke a remote MCP tool via 'tools/call', enforce sentence budget, and encapsulate in CDATA.
 
-        # Phase 2, Step 2.2: Protocol-Agnostic GenericMCPClient call_tool with sentence budget and CDATA
-        # Phase 3, Step 3.2: Request-scoped SecretStr injection into outbound MCP headers
-
         Args:
             gateway: Target MCP gateway configuration.
             invocation: Validated tool invocation payload.
@@ -228,8 +219,9 @@ class GenericMCPClient:
 
         Raises:
             AppException: With ErrorCodes.SECURITY_VIOLATION on SSRF failure,
+                ErrorCodes.CONFIGURATION_ERROR or ErrorCodes.SECRET_RESOLUTION_FAILED on configuration error,
                 ErrorCodes.SERVICE_UNAVAILABLE on transport failure, or
-                ErrorCodes.VALIDATION_ERROR on invalid tool execution payload.
+                ErrorCodes.SEARCH_EXECUTION_FAILED or ErrorCodes.AGENT_RESPONSE_MALFORMED on invalid tool execution payload.
         """
         settings = get_settings()
         validated_url = await asyncio.to_thread(
@@ -299,7 +291,8 @@ class GenericMCPClient:
             Non-nullable ResolvedCredentialDTO for the gateway.
 
         Raises:
-            ConfigurationError: If credential resolution fails.
+            ConfigurationError: With ErrorCodes.CONFIGURATION_ERROR or ErrorCodes.SECRET_RESOLUTION_FAILED
+                if credential resolution fails.
         """
         target_org_id: PrefixedUUID7 = (
             organization_id if organization_id is not None else SystemOrganizations.ROOT_SYSTEM
@@ -311,6 +304,11 @@ class GenericMCPClient:
             )
         except ConfigurationError as exc:
             if organization_id is None and "secret_id" not in exc.details:
+                logger.error(
+                    "MCP gateway credential resolution failed for system organization",
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "gateway_id": gateway.id},
+                    exc_info=True,
+                )
                 raise ConfigurationError(
                     message=exc.message,
                     details={
@@ -326,8 +324,6 @@ class GenericMCPClient:
         resolved_credential: ResolvedCredentialDTO | None = None,
     ) -> dict[str, str]:
         """Build outbound HTTP headers from a pre-resolved ResolvedCredentialDTO.
-
-        # Phase 3, Step 3.2: Require non-nullable ResolvedCredentialDTO when gateway.auth_type != MCPAuthType.NONE
 
         Args:
             gateway: Target MCP gateway configuration.
@@ -417,7 +413,8 @@ class GenericMCPClient:
             2-tuple of (validated POST endpoint URL, buffered SSE data frames).
 
         Raises:
-            AppException: If SSE negotiation fails or returns an SSRF-prohibited endpoint URL.
+            AppException: With ErrorCodes.SECURITY_VIOLATION, ErrorCodes.SERVICE_UNAVAILABLE, or
+                ErrorCodes.SEARCH_EXECUTION_FAILED if SSE negotiation fails or returns an SSRF-prohibited URL.
         """
         if gateway.transport_type != MCPTransportType.SSE:
             return validated_url, []
@@ -463,7 +460,8 @@ class GenericMCPClient:
             2-tuple of (MCPInitializeResultDTO, updated session headers).
 
         Raises:
-            AppException: If initialize returns a JSON-RPC error or malformed result.
+            AppException: With ErrorCodes.SEARCH_EXECUTION_FAILED, ErrorCodes.AGENT_RESPONSE_MALFORMED,
+                ErrorCodes.SERVICE_UNAVAILABLE, or ErrorCodes.SECURITY_VIOLATION if initialize fails.
         """
         init_req = MCPJsonRpcRequestDTO(
             id=1,
@@ -535,7 +533,8 @@ class GenericMCPClient:
             Validated MCPJsonRpcResponseDTO matching request_dto.id.
 
         Raises:
-            AppException: On transport failure, redirect attempt, or malformed JSON-RPC payload.
+            AppException: With ErrorCodes.SECURITY_VIOLATION, ErrorCodes.SERVICE_UNAVAILABLE,
+                ErrorCodes.SEARCH_EXECUTION_FAILED, or ErrorCodes.AGENT_RESPONSE_MALFORMED on RPC failure.
         """
         http_response = await self._execute_http_with_retry(
             client=client,
@@ -603,12 +602,18 @@ class GenericMCPClient:
             logger.error(
                 "MCP transport network or timeout failure",
                 extra={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value},
+                exc_info=True,
             )
             raise ServiceUnavailableError(
                 message="MCP gateway transport network or timeout failure.",
                 details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value, "reason": str(exc)},
             ) from exc
 
+        logger.error(
+            "MCP gateway retry loop exited without response",
+            extra={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value},
+            exc_info=True,
+        )
         raise ServiceUnavailableError(
             message="MCP gateway is temporarily unavailable.",
             details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value},
@@ -621,14 +626,15 @@ class GenericMCPClient:
             response: Inbound httpx.Response.
 
         Raises:
-            AppException: On 3xx redirect (SECURITY_VIOLATION), 429/502/503/504 (SERVICE_UNAVAILABLE),
-                or other >=400 status (SEARCH_EXECUTION_FAILED).
+            AppException: On 3xx redirect (ErrorCodes.SECURITY_VIOLATION), 429/502/503/504
+                (ErrorCodes.SERVICE_UNAVAILABLE), or other >=400 status (ErrorCodes.SEARCH_EXECUTION_FAILED).
         """
         status_code = response.status_code
         if status_code in _REDIRECT_STATUS_CODES or (300 <= status_code < 400):
             logger.error(
                 "MCP server attempted prohibited HTTP redirect",
                 extra={"error_code": ErrorCodes.SECURITY_VIOLATION.value, "status_code": status_code},
+                exc_info=True,
             )
             raise AppException(
                 message=f"MCP endpoint returned prohibited HTTP redirect ({status_code}).",
@@ -637,9 +643,10 @@ class GenericMCPClient:
             )
 
         if status_code in _TRANSIENT_STATUS_CODES:
-            logger.warning(
+            logger.error(
                 "MCP endpoint returned transient HTTP status",
                 extra={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value, "status_code": status_code},
+                exc_info=True,
             )
             raise ServiceUnavailableError(
                 message=f"MCP endpoint returned transient HTTP status {status_code}.",
@@ -796,7 +803,8 @@ class GenericMCPClient:
             List of AllowedMCPTool models.
 
         Raises:
-            AppException: If rpc_response contains an error or unexpected result payload.
+            AppException: With ErrorCodes.SEARCH_EXECUTION_FAILED or ErrorCodes.AGENT_RESPONSE_MALFORMED
+                if rpc_response contains an error or unexpected result payload.
         """
         if rpc_response.error is not None:
             raise self._build_rpc_error(
@@ -845,7 +853,8 @@ class GenericMCPClient:
             Concatenated text output from the MCP tool.
 
         Raises:
-            AppException: If rpc_response.error is set or result.is_error is True.
+            AppException: With ErrorCodes.SEARCH_EXECUTION_FAILED or ErrorCodes.AGENT_RESPONSE_MALFORMED
+                if rpc_response.error is set or result.is_error is True.
         """
         if rpc_response.error is not None:
             raise self._build_rpc_error(
@@ -902,6 +911,7 @@ class GenericMCPClient:
         logger.error(
             "MCP protocol execution error",
             extra={"error_code": error_code.value, "reason": message},
+            exc_info=True,
         )
         return AppException(
             message=message,
