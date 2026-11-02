@@ -2018,3 +2018,47 @@ async def test_user_service_firebase_delete_and_null_repo_returns(
     mock_fb.delete_user.side_effect = None
     assert await service.delete_user("usr_0195f3a0000070008000000000000040", forced_user.id) is True
     mock_fb.delete_user.assert_called_with(forced_user.id)
+
+
+@pytest.mark.asyncio
+async def test_user_service_with_exchanged_quorum_jwt_token_data(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify UserService accepts stateless TokenData decoded from an exchanged Quorum Local JWT."""
+    from backend_v2.models.auth import TokenExchangeRequestDTO
+    from backend_v2.settings import Settings
+
+    mock_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=False,
+        require_mfa=True,
+    )
+    monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
+    monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: mock_settings)
+
+    admin_user = User(
+        id="usr_0195f3a0000070008000000000000091",
+        email="jwt_admin@test.com",
+        name="JWT Admin",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000091",
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        language=SystemLocale.EN,
+        theme_mode="system",
+    )
+    await mock_repo.create_user(admin_user)
+
+    auth_service = AuthService(mock_repo, use_firebase=False)
+    exchanged = await auth_service.token_service.exchange_firebase_token(
+        TokenExchangeRequestDTO(target_user_id=admin_user.id)
+    )
+    verified_token_data = await auth_service.verify_token(exchanged.access_token)
+    assert verified_token_data.mfa_verified is True
+    assert verified_token_data.jti is not None
+
+    users = await auth_service.list_users(verified_token_data)
+    assert len(users) == 1
+    assert users[0].id == admin_user.id

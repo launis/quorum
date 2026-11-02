@@ -45,8 +45,8 @@
 - [x] **[OK] Create Plan:** Plan generated in @[docs/epic/tasks_EPIC_160/02_phase2_plan.md]
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/02_phase2_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-  - [ ] Step 0: PRE-FLIGHT & SELF-HYDRATION
-  - [ ] Step 2.1: `TokenService` Session Upgrade (`exchange_firebase_token`), Mandatory 2FA Enforcement & 0.1 ms RAM Verification
+  - [x] Step 0: PRE-FLIGHT & SELF-HYDRATION
+  - [x] Step 2.1: `TokenService` Session Upgrade (`exchange_firebase_token`), Mandatory 2FA Enforcement & 0.1 ms RAM Verification
   - [ ] Step 2.2: Token Exchange & Logout Router Endpoints, IAM Router SSOT Consolidation & Multi-Role Dependency Guard
   - [ ] Step 2.3: Headless CLI, E2E Variance Runner (`run_e2e_variance_test.py`) & Background Worker Session Governance
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
@@ -194,7 +194,7 @@
 | REQ-160-001 | Delete four obsolete IAM draft documents and `backend_v2/services/auth/constants.py`, remediate touched-scope technical debt in `identity.py` and IAM test suites, and centralize JWT/MFA/BYOK/email settings in `settings.py` | Phase 1, Step 1.1 | [x] Completed |
 | REQ-160-002 | Migrate `UserRole` and `SubscriptionStatus` to `enums.py`, add IAM/BYOK/Assignment enums and error codes, and create/define strict `PrefixedUUID7` DTOs (`TokenExchangeRequestDTO`, `TokenExchangeResponseDTO`, `LogoutRequestDTO`, `LogoutResponseDTO`, `CliSessionStateDTO`, `Invitation*`, `ExecutionAssignment*`, `TenantSecret*`, `ResolvedCredentialDTO`) | Phase 1, Step 1.2 | [x] Completed |
 | REQ-160-003 | Extend PostgreSQL 19 Zero-ORM schema (`001_pg19_uuidv7_schema.sql`), `PostgresEntityAdapter`, `PostgresUnitOfWork` (`RESET quorum.current_org`), `audit_zero_orm_strictness.py` (15 tables), and hermetic `in_memory_uow.py` with `invitations`, `tenant_secrets`, and `execution_assignments` | Phase 1, Step 1.3 | [x] Completed |
-| REQ-160-004 | Implement `TokenService.exchange_firebase_token` (enforcing mandatory 2FA `firebase.sign_in_second_factor` and headless CLI `target_user_id` exchange) and refactor `TokenService.verify_token` to 0.1 ms RAM-only decode with zero DB queries and zero `mock-token:` branches | Phase 2, Step 2.1 | [ ] Pending |
+| REQ-160-004 | Implement `TokenService.exchange_firebase_token` (enforcing mandatory 2FA `firebase.sign_in_second_factor` and headless CLI `target_user_id` exchange) and refactor `TokenService.verify_token` to 0.1 ms RAM-only decode with zero DB queries and zero `mock-token:` branches | Phase 2, Step 2.1 | [x] Completed |
 | REQ-160-005 | Expose `POST /api/v2/iam/auth/exchange`, `POST /api/v2/iam/auth/logout`, and RFC 8693 `POST /api/v2/iam/auth/impersonate`, remove `verify_user_token` and duplicate `/auth/users*` shadow routes, and upgrade `require_role` to `Sequence[UserRole] \| UserRole` | Phase 2, Step 2.2 | [ ] Pending |
 | REQ-160-006 | Migrate `scripts/run_e2e_variance_test.py` and `test_integration_real_llm.py` to `_get_or_refresh_cli_session` (`CliSessionStateDTO` created in Phase 1) with 13-minute auto-refresh and remediate all `TD_DICT_GET` and `TD_MODEL_FACTORY` warnings | Phase 2, Step 2.3 | [ ] Pending |
 | REQ-160-007 | Create `SecretService` in `[NEW] backend_v2/services/auth/secret_service.py` supporting `CLOUD_SECRET_MANAGER` and `ENVELOPE_KMS` (AES-256-GCM DEK + Cloud KMS KEK with `kek_version`) with a Single-Pipeline Non-Nullable `ResolvedCredentialDTO` contract | Phase 3, Step 3.1 | [ ] Pending |

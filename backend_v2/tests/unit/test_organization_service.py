@@ -920,3 +920,60 @@ async def test_delete_organization_force_firebase_delete_error_raises_app_except
     assert exc_info.value.details is not None
     assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
     mock_fb.delete_user.assert_called_once_with(user_id)
+
+
+@pytest.mark.asyncio
+async def test_organization_service_with_exchanged_quorum_jwt_token_data(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify OrganizationService accepts stateless TokenData decoded from an exchanged Quorum Local JWT."""
+    from backend_v2.models.auth import TokenExchangeRequestDTO
+    from backend_v2.settings import Settings
+
+    mock_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=False,
+        require_mfa=True,
+    )
+    monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
+    monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: mock_settings)
+
+    root_id = generate_opaque_id(EntityPrefix.USER)
+    org_id = generate_opaque_id(EntityPrefix.ORGANIZATION)
+    root_user = User(
+        id=root_id,
+        email="jwt_root@test.com",
+        name="JWT Root",
+        role=UserRole.ROOT,
+        organization_id=SystemOrganizations.ROOT_SYSTEM,
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        language=SystemLocale.EN,
+        theme_mode="system",
+    )
+    org = Organization(
+        id=org_id,
+        name="JWT Verified Org",
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        tier="enterprise",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=500.0,
+        tpm_limit=50000,
+        rpm_limit=500,
+    )
+    await mock_repo.create_user(root_user)
+    await mock_repo.create_organization(org)
+
+    auth_service = AuthService(mock_repo, use_firebase=False)
+    exchanged = await auth_service.token_service.exchange_firebase_token(
+        TokenExchangeRequestDTO(target_user_id=root_id)
+    )
+    verified_token_data = await auth_service.verify_token(exchanged.access_token)
+    assert verified_token_data.mfa_verified is True
+    assert verified_token_data.jti is not None
+
+    fetched_org = await auth_service.get_organization(verified_token_data, org_id)
+    assert fetched_org.id == org_id
