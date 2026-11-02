@@ -149,7 +149,7 @@
   - [x] @[client_app_v2/lib/core/network/interceptors/auth_interceptor.dart]
   - [x] @[client_app_v2/lib/features/auth/domain/models/user.dart]
   - [x] @[client_app_v2/lib/features/auth/data/auth_repository.dart]
-  - [ ] @[client_app_v2/lib/features/auth/presentation/auth_controller.dart]
+  - [x] @[client_app_v2/lib/features/auth/presentation/auth_controller.dart]
   - [ ] @[client_app_v2/lib/features/auth/presentation/login_screen.dart]
   - [ ] @[client_app_v2/lib/router/router.dart]
   - [ ] @[client_app_v2/lib/router/scaffold_with_nav.dart]

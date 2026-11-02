@@ -21,13 +21,7 @@ part 'auth_controller.g.dart';
 
 /// Coordinates tenant-scoped master data caches for invalidation on tenant switch or sign-out.
 @riverpod
-Future<void> masterData(Ref ref) async {
-  ref.onDispose(() {
-    ref.invalidate(allBlueprintsProvider);
-    ref.invalidate(stepsControllerProvider);
-    ref.invalidate(outputProfilesControllerProvider);
-  });
-}
+Future<void> masterData(Ref ref) async {}
 
 /// Holds active 2FA challenge or mandatory first-time TOTP enrollment state during authentication.
 @Riverpod(keepAlive: true)
@@ -312,6 +306,9 @@ class AuthController extends _$AuthController {
 
   void _invalidateTenantProviders() {
     ref.invalidate(masterDataProvider);
+    ref.invalidate(allBlueprintsProvider);
+    ref.invalidate(stepsControllerProvider);
+    ref.invalidate(outputProfilesControllerProvider);
     ref.invalidate(executionListProvider);
     ref.invalidate(availableWorkflowsProvider);
     ref.invalidate(workflowsControllerProvider);

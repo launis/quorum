@@ -44,7 +44,7 @@ final class MasterDataProvider
   }
 }
 
-String _$masterDataHash() => r'df259476397820af68d06674de8c1db0b79740bb';
+String _$masterDataHash() => r'8daba405fccac89e755ccf0642bd19fc9d1856a0';
 
 /// Holds active 2FA challenge or mandatory first-time TOTP enrollment state during authentication.
 
@@ -142,7 +142,7 @@ final class AuthControllerProvider
   AuthController create() => AuthController();
 }
 
-String _$authControllerHash() => r'123528b74ec0bc2a786b866232d818c643174296';
+String _$authControllerHash() => r'ec3fb155013bf573954798ee44070101237f5532';
 
 /// **Authentication Controller**
 ///
