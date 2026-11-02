@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, Self, override
 
 from pydantic import ConfigDict, Field, JsonValue
 
@@ -116,7 +116,7 @@ class ExecutionUpdateDTO(BaseDTO):
     created_at: Annotated[datetime | None, Field(default=None, description="Creation timestamp")] = None
     updated_at: Annotated[datetime | None, Field(default=None, description="Update timestamp")] = None
     completed_at: Annotated[datetime | None, Field(default=None, description="Completion timestamp")] = None
-    # Phase 4, Step 4.1: Optimistic concurrency control fields for partial execution updates
+    # Optimistic concurrency control fields for partial execution updates
     expected_state_version: Annotated[
         int | None,
         Field(ge=1, default=None, description="Expected OCC state_version for conditional update"),
@@ -130,15 +130,15 @@ class ExecutionUpdateDTO(BaseDTO):
 class StepTraceMetadataDTO(BaseDTO):
     """Strictly typed trace metadata for DAG steps including telemetry."""
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    task_blueprint: Annotated[str | None, Field(default=None)] = None
-    model_strategy: Annotated[str, Field(default="unknown")] = "unknown"
+    task_blueprint: Annotated[str | None, Field(default=None, description="Task blueprint identifier")] = None
+    model_strategy: Annotated[str, Field(default="unknown", description="Model execution strategy")] = "unknown"
     physical_model: Annotated[str | None, Field(default=None, description="Exact physical provider model string")] = (
         None
     )
     system_fingerprint: Annotated[str | None, Field(default=None, description="Provider system fingerprint")] = None
-    chunk_size: Annotated[int, Field(default=1)] = 1
+    chunk_size: Annotated[int, Field(default=1, description="Number of chunks processed in step")] = 1
     token_usage: Annotated[
         TokenUsage | None,
         Field(
@@ -146,14 +146,14 @@ class StepTraceMetadataDTO(BaseDTO):
             description="Token usage statistics.",
         ),
     ] = None
-    execution_id: Annotated[str | None, Field(default=None)] = None
-    workflow_id: Annotated[str | None, Field(default=None)] = None
-    step_id: Annotated[str | None, Field(default=None)] = None
-    initiator_id: Annotated[str | None, Field(default=None)] = None
-    timestamp_isot: Annotated[str | None, Field(default=None)] = None
-    unix_time: Annotated[int | None, Field(default=None)] = None
-    v2_engine: Annotated[bool | None, Field(default=None)] = None
-    cognitive_tier: Annotated[str | None, Field(default=None)] = None
+    execution_id: Annotated[str | None, Field(default=None, description="Execution record identifier")] = None
+    workflow_id: Annotated[str | None, Field(default=None, description="Workflow blueprint identifier")] = None
+    step_id: Annotated[str | None, Field(default=None, description="DAG step identifier")] = None
+    initiator_id: Annotated[str | None, Field(default=None, description="Initiator user identifier")] = None
+    timestamp_isot: Annotated[str | None, Field(default=None, description="ISO-8601 UTC timestamp string")] = None
+    unix_time: Annotated[int | None, Field(default=None, description="Unix epoch timestamp in seconds")] = None
+    v2_engine: Annotated[bool | None, Field(default=None, description="V2 execution engine flag")] = None
+    cognitive_tier: Annotated[str | None, Field(default=None, description="Assigned cognitive tier")] = None
 
 
 class TraceEventMetadataEnvelope(BaseDTO):
@@ -161,9 +161,12 @@ class TraceEventMetadataEnvelope(BaseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    step_metadata: Annotated[StepTraceMetadataDTO | None, Field(default=None)] = None
+    step_metadata: Annotated[
+        StepTraceMetadataDTO | None, Field(default=None, description="Extracted step trace metadata")
+    ] = None
 
     @classmethod
+    @override
     def model_validate(
         cls,
         obj: Any,
@@ -172,7 +175,7 @@ class TraceEventMetadataEnvelope(BaseDTO):
         from_attributes: bool | None = None,
         context: Any | None = None,
         **kwargs: Any,
-    ) -> TraceEventMetadataEnvelope:
+    ) -> Self:
         """Hydrate metadata envelope extracting step metadata from dictionary or object.
 
         Args:
@@ -206,20 +209,20 @@ class TraceMatrixExtensionsDTO(BaseDTO):
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    coaching: Annotated[str | None, Field(default=None)] = None
-    falsification: Annotated[str | None, Field(default=None)] = None
-    remediation_steps: Annotated[str | None, Field(default=None)] = None
-    missing_context: Annotated[str | None, Field(default=None)] = None
-    emotional_sentiment: Annotated[str | None, Field(default=None)] = None
-    theory_link: Annotated[str | None, Field(default=None)] = None
-    risk_flag: Annotated[bool | None, Field(default=None)] = None
-    confidence: Annotated[float | None, Field(default=None)] = None
-    evidence_type: Annotated[str | None, Field(default=None)] = None
-    source_id: Annotated[str | None, Field(default=None)] = None
-    citation: Annotated[str | None, Field(default=None)] = None
-    google_citation: Annotated[str | None, Field(default=None)] = None
-    contextual_override: Annotated[bool | None, Field(default=None)] = None
-    semantic_reasoning: Annotated[str | None, Field(default=None)] = None
+    coaching: Annotated[str | None, Field(default=None, description="Coaching feedback narrative")] = None
+    falsification: Annotated[str | None, Field(default=None, description="Counter-evidence falsification note")] = None
+    remediation_steps: Annotated[str | None, Field(default=None, description="Actionable remediation steps")] = None
+    missing_context: Annotated[str | None, Field(default=None, description="Identified missing context")] = None
+    emotional_sentiment: Annotated[str | None, Field(default=None, description="Detected emotional sentiment")] = None
+    theory_link: Annotated[str | None, Field(default=None, description="Theoretical framework reference")] = None
+    risk_flag: Annotated[bool | None, Field(default=None, description="Elevated risk indicator flag")] = None
+    confidence: Annotated[float | None, Field(default=None, description="Evaluation confidence score")] = None
+    evidence_type: Annotated[str | None, Field(default=None, description="Classification of evidence")] = None
+    source_id: Annotated[str | None, Field(default=None, description="Source document identifier")] = None
+    citation: Annotated[str | None, Field(default=None, description="Direct source citation")] = None
+    google_citation: Annotated[str | None, Field(default=None, description="Google grounding citation")] = None
+    contextual_override: Annotated[bool | None, Field(default=None, description="Contextual override flag")] = None
+    semantic_reasoning: Annotated[str | None, Field(default=None, description="Semantic reasoning trace")] = None
 
 
 class AtomQuoteItemDTO(BaseDTO):
