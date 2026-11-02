@@ -5,19 +5,19 @@
     "version": "2.9.0"
   },
   "paths": {
-    "/api/v2/iam/auth/verify": {
+    "/api/v2/iam/auth/exchange": {
       "post": {
         "tags": [
           "Authentication & Users"
         ],
-        "summary": "Verify User Token",
-        "description": "Exchanges a Firebase ID Token (or mock token) for the Backend User Profile.\n\nArgs:\n    request: The HTTP Request object.\n    payload: The token payload.\n    auth_service: Authentication service dependency.\n\nReturns:\n    The authenticated user profile and status.\n\nRaises:\n    AuthenticationError: If the token is invalid or profile not initialized.\n    AppException: If an unexpected login failure occurs.",
-        "operationId": "verify_user_token_api_v2_iam_auth_verify_post",
+        "summary": "Exchange Firebase Token",
+        "description": "Exchange a Firebase ID Token or headless target_user_id for a 15-minute Quorum Local JWT.\n\nArgs:\n    request: The HTTP Request object used by the rate limiter.\n    payload: The token exchange request payload.\n    auth_service: Authentication service dependency.\n\nReturns:\n    TokenExchangeResponseDTO containing the signed access token and user profile.\n\nRaises:\n    AuthenticationError: With ErrorCodes.MFA_REQUIRED, ErrorCodes.AUTHENTICATION_FAILED,\n        ErrorCodes.PERMISSION_DENIED, or ErrorCodes.AUTH_TOKEN_EXPIRED when exchange fails.\n    ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED on Firebase UID collision.",
+        "operationId": "exchange_firebase_token_api_v2_iam_auth_exchange_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TokenPayload"
+                "$ref": "#/components/schemas/TokenExchangeRequestDTO"
               }
             }
           },
@@ -29,7 +29,72 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
+                  "$ref": "#/components/schemas/TokenExchangeResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/iam/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication & Users"
+        ],
+        "summary": "Logout User",
+        "description": "Revoke the caller's Quorum Local JWT jti and optionally revoke all active sessions.\n\nArgs:\n    payload: Logout configuration specifying whether to revoke all sessions.\n    current_user: Authenticated caller token data.\n    auth_service: Authentication service dependency.\n\nReturns:\n    LogoutResponseDTO confirming token revocation.\n\nRaises:\n    ServiceUnavailableError: With ErrorCodes.SERVICE_UNAVAILABLE if the Redis revocation store fails.\n    AppException: If upstream session revocation or audit persistence fails.",
+        "operationId": "logout_user_api_v2_iam_auth_logout_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponseDTO"
                 }
               }
             }
@@ -53,7 +118,7 @@
           "Authentication & Users"
         ],
         "summary": "Impersonate User",
-        "description": "Generates an impersonation token for the target user. Requires ROOT.\n\nArgs:\n    request: Payload containing target_id.\n    current_user: The requesting user (must be ROOT).\n    auth_service: Auth service.\n\nReturns:\n    The access token.\n\nRaises:\n    PermissionDeniedError: If the requesting user is not ROOT.\n    ResourceNotFoundError: If the target user is not found.",
+        "description": "Generate an RFC 8693 break-glass impersonation token for the target user (requires ROOT).\n\nArgs:\n    payload: Payload containing target_id and mandatory audit reason.\n    current_user: The requesting user (must possess ROOT role).\n    auth_service: Authentication service dependency.\n\nReturns:\n    ImpersonationResponse containing the 15-minute signed JWT and audit metadata.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller is not ROOT.\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if target user does not exist.",
         "operationId": "impersonate_user_api_v2_iam_auth_impersonate_post",
         "security": [
           {
@@ -112,13 +177,78 @@
         }
       }
     },
+    "/api/v2/iam/auth/invitations/accept": {
+      "post": {
+        "tags": [
+          "Authentication & Users"
+        ],
+        "summary": "Accept Invitation",
+        "description": "Accept a cryptographic B2B organization invitation token.\n\nArgs:\n    payload: Validated InvitationAcceptRequestDTO containing the raw invitation token.\n    current_user: Authenticated caller token data.\n    auth_service: Authentication service dependency.\n\nReturns:\n    Updated User profile assigned to the invited organization.\n\nRaises:\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if token is invalid.\n    AppException: With ErrorCodes.INVITATION_EXPIRED if invitation has expired or been revoked.\n    PermissionDeniedError: With ErrorCodes.IDENTITY_MISMATCH if caller email mismatches invitation.\n    ConflictError: With ErrorCodes.USER_ALREADY_ASSIGNED on cross-tenant identity collision.",
+        "operationId": "accept_invitation_api_v2_iam_auth_invitations_accept_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationAcceptRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v2/iam/auth/roles": {
       "get": {
         "tags": [
           "Authentication & Users"
         ],
         "summary": "List Available Roles",
-        "description": "List all valid User Roles.\n\nUsed by frontend for dynamic dropdowns (Zero Hardcoding).\n\nReturns:\n    A list of role strings.",
+        "description": "List all valid User Roles for dynamic Studio UI dropdowns.\n\nReturns:\n    List of canonical UserRole string values.",
         "operationId": "list_available_roles_api_v2_iam_auth_roles_get",
         "responses": {
           "200": {
@@ -138,14 +268,187 @@
         }
       }
     },
-    "/api/v2/iam/auth/users": {
+    "/api/v2/iam/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication & Users"
+        ],
+        "summary": "Get My Profile",
+        "description": "Retrieve the currently authenticated user's profile.\n\nArgs:\n    current_user: The authenticated user token data.\n    auth_service: Authentication service dependency.\n\nReturns:\n    The full User profile.\n\nRaises:\n    AuthenticationError: With ErrorCodes.AUTHENTICATION_FAILED if the user profile is not found.",
+        "operationId": "get_my_profile_api_v2_iam_auth_me_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/iam/auth/webhooks/firebase-user-deleted": {
       "post": {
         "tags": [
           "Authentication & Users"
         ],
+        "summary": "Firebase User Deleted Webhook",
+        "description": "Process a signed Firebase user deletion webhook and execute GDPR Soft-Delete anonymization.\n\nArgs:\n    request: Incoming FastAPI Request containing optional raw webhook body.\n    auth_service: Authentication service dependency.\n    firebase_uid: External Firebase UID of the deleted user.\n    x_quorum_webhook_signature: HMAC-SHA256 signature header verified against firebase_webhook_secret.\n\nReturns:\n    UserDeleteResponse confirming GDPR soft-delete anonymization.\n\nRaises:\n    AppException: With ErrorCodes.CONFIGURATION_ERROR if webhook secret is not configured.\n    AuthenticationError: With ErrorCodes.AUTHENTICATION_FAILED if HMAC signature is missing or invalid.\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if user is not found.",
+        "operationId": "firebase_user_deleted_webhook_api_v2_iam_auth_webhooks_firebase_user_deleted_post",
+        "parameters": [
+          {
+            "name": "firebase_uid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "title": "Firebase Uid"
+            }
+          },
+          {
+            "name": "X-Quorum-Webhook-Signature",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Quorum-Webhook-Signature"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDeleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/iam/users/": {
+      "get": {
+        "tags": [
+          "Admin IAM V2 - Users"
+        ],
+        "summary": "Get All Users",
+        "description": "Retrieve all users securely evaluated by SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    A list of users accessible by the current user.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.\n    AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if retrieving users fails.",
+        "operationId": "get_all_users_api_v2_iam_users__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  },
+                  "title": "Response Get All Users Api V2 Iam Users  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin IAM V2 - Users"
+        ],
         "summary": "Create User",
-        "description": "Create a new user.\n\nArgs:\n    request: The HTTP Request object.\n    user_data: Payload for the new user.\n    current_user: The requesting user (must be ROOT, ADMIN, or MANAGER).\n    auth_service: Authentication service dependency.\n\nReturns:\n    The created user profile.\n\nRaises:\n    PermissionDeniedError: If permission denied.\n    AppException: If validation fails or user creation fails.",
-        "operationId": "create_user_api_v2_iam_auth_users_post",
+        "description": "Create a new user profile securely via the canonical Users SSOT router.\n\nArgs:\n    data: The user creation payload.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The created User profile.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.\n    AppException: With ErrorCodes.VALIDATION_FAILED, ErrorCodes.RESOURCE_NOT_FOUND, or\n        ErrorCodes.INTERNAL_SERVER_ERROR on invalid input or provisioning failure.",
+        "operationId": "create_user_api_v2_iam_users__post",
         "security": [
           {
             "HTTPBearer": []
@@ -201,313 +504,6 @@
             }
           }
         }
-      },
-      "get": {
-        "tags": [
-          "Authentication & Users"
-        ],
-        "summary": "List Users",
-        "description": "List users visible to the current user (scoped by Organization).\n\nArgs:\n    current_user: The authenticated user making the request.\n    auth_service: Authentication service dependency.\n\nReturns:\n    A list of users.\n\nRaises:\n    AppException: If fetching users fails.",
-        "operationId": "list_users_api_v2_iam_auth_users_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "token",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Token"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/User"
-                  },
-                  "title": "Response List Users Api V2 Iam Auth Users Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v2/iam/auth/users/{id}": {
-      "delete": {
-        "tags": [
-          "Authentication & Users"
-        ],
-        "summary": "Delete User",
-        "description": "Delete a user.\n\nEnforces Last Admin Protection.\n\nArgs:\n    id: The UID of the user to delete.\n    current_user: The requesting user (ROOT or ADMIN).\n    auth_service: Authorization service.\n\nReturns:\n    Status confirmation.\n\nRaises:\n    PermissionDeniedError: If permission denied.\n    ConflictError: If Last Admin Protection is triggered.\n    AppException: If business logic validation fails or deletion fails.",
-        "operationId": "delete_user_api_v2_iam_auth_users__id__delete",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Id"
-            }
-          },
-          {
-            "name": "token",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Token"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserDeleteResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "tags": [
-          "Authentication & Users"
-        ],
-        "summary": "Update User",
-        "description": "Update a user (Role, Display Name, etc).\n\nArgs:\n    id: The UID of the user to update.\n    user_update: Fields to update.\n    current_user: Requesting user.\n    auth_service: Authorization service.\n\nReturns:\n    The updated user profile.\n\nRaises:\n    PermissionDeniedError: If permission denied.\n    ResourceNotFoundError: If the user is not found.\n    ConflictError: If Last Admin Protection is triggered.\n    AppException: If update fails.",
-        "operationId": "update_user_api_v2_iam_auth_users__id__patch",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Id"
-            }
-          },
-          {
-            "name": "token",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Token"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserUpdate"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/User"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v2/iam/auth/me": {
-      "get": {
-        "tags": [
-          "Authentication & Users"
-        ],
-        "summary": "Get My Profile",
-        "description": "Get the currently authenticated user's profile.\n\nArgs:\n    current_user: The authenticated user.\n    auth_service: Auth service.\n\nReturns:\n    The full user profile.\n\nRaises:\n    AuthenticationError: If the user profile is not found.",
-        "operationId": "get_my_profile_api_v2_iam_auth_me_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "token",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Token"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/User"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v2/iam/users/": {
-      "get": {
-        "tags": [
-          "Admin IAM V2 - Users"
-        ],
-        "summary": "Get All Users",
-        "description": "Retrieve all users securely evaluated by SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    A list of users accessible by the current user.\n\nRaises:\n    AppException: If retrieving users fails.",
-        "operationId": "get_all_users_api_v2_iam_users__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "token",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Token"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/User"
-                  },
-                  "title": "Response Get All Users Api V2 Iam Users  Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/api/v2/iam/users/{id}": {
@@ -516,7 +512,7 @@
           "Admin IAM V2 - Users"
         ],
         "summary": "Get User",
-        "description": "Retrieve a specific user profile securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the user to retrieve.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The requested user profile.\n\nRaises:\n    ResourceNotFoundError: If the user is not found.\n    PermissionDeniedError: If the requesting user lacks permissions.\n    AppException: If fetching the user fails.",
+        "description": "Retrieve a specific user profile securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the user to retrieve.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The requested user profile.\n\nRaises:\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the user is not found.\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the requesting user lacks permissions.\n    AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if fetching the user fails.",
         "operationId": "get_user_api_v2_iam_users__id__get",
         "security": [
           {
@@ -578,7 +574,7 @@
           "Admin IAM V2 - Users"
         ],
         "summary": "Save User",
-        "description": "Update a user's role or organization securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the user to update.\n    data: The user data to update.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The updated user profile.\n\nRaises:\n    PermissionDeniedError: If the requesting user lacks permissions.\n    ResourceNotFoundError: If the user is not found.\n    AppException: If updating the user fails.",
+        "description": "Update a user's role or profile attributes securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the user to update.\n    data: The user data to update.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The updated user profile.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the requesting user lacks permissions.\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the user is not found.\n    ConflictError: With ErrorCodes.CONFLICT_ERROR if Last Admin Protection is triggered.\n    AppException: With ErrorCodes.RESOURCE_NOT_FOUND or ErrorCodes.INTERNAL_SERVER_ERROR if updating fails.",
         "operationId": "save_user_api_v2_iam_users__id__put",
         "security": [
           {
@@ -650,7 +646,7 @@
           "Admin IAM V2 - Users"
         ],
         "summary": "Delete User",
-        "description": "Delete a user from the system securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the user to delete.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    A UserDeleteResponse indicating success.\n\nRaises:\n    PermissionDeniedError: If the requesting user lacks permissions.\n    ConflictError: If deleting the last admin.\n    AppException: If deleting the user fails.",
+        "description": "Execute in-place GDPR Soft-Delete anonymization on a user securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the user to soft-delete.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    A UserDeleteResponse indicating success.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the requesting user lacks permissions.\n    ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the last admin.\n    AppException: With ErrorCodes.RESOURCE_NOT_FOUND or ErrorCodes.INTERNAL_SERVER_ERROR if deleting fails.",
         "operationId": "delete_user_api_v2_iam_users__id__delete",
         "security": [
           {
@@ -714,7 +710,7 @@
           "Admin IAM V2 - Organizations"
         ],
         "summary": "Get All Organizations",
-        "description": "Retrieve all organizations securely evaluated by SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    A list of organizations accessible by the user.\n\nRaises:\n    AppException: If fetching organizations fails.",
+        "description": "Retrieve all organizations securely evaluated by SSOT Service Layer.\n\nArgs:\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    A list of organizations accessible by the user.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.\n    AppException: If fetching organizations fails.",
         "operationId": "get_all_organizations_api_v2_iam_organizations__get",
         "security": [
           {
@@ -765,6 +761,569 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "Admin IAM V2 - Organizations"
+        ],
+        "summary": "Create Organization",
+        "description": "Provision a new organization and its initial administrator via SSOT Service Layer.\n\nArgs:\n    data: Validated OrganizationCreate payload.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The newly created Organization.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller is not ROOT.\n    AppException: If creating the organization fails.",
+        "operationId": "create_organization_api_v2_iam_organizations__post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganizationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/iam/organizations/{org_id}/invitations": {
+      "get": {
+        "tags": [
+          "Admin IAM V2 - Organizations"
+        ],
+        "summary": "List Organization Invitations",
+        "description": "List B2B invitations for a specific organization.\n\nArgs:\n    org_id: Target organization identifier (org_<hex32>).\n    current_user: Authenticated caller token data.\n    auth_service: Injected AuthService dependency.\n\nReturns:\n    List of redacted InvitationResponseDTO records.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller is not org ADMIN or ROOT.\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if organization does not exist.",
+        "operationId": "list_organization_invitations_api_v2_iam_organizations__org_id__invitations_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvitationResponseDTO"
+                  },
+                  "title": "Response List Organization Invitations Api V2 Iam Organizations  Org Id  Invitations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin IAM V2 - Organizations"
+        ],
+        "summary": "Create Organization Invitation",
+        "description": "Create a single cryptographic B2B organization invitation.\n\nArgs:\n    org_id: Target organization identifier (org_<hex32>).\n    payload: Validated InvitationCreateDTO specifying recipient email and role.\n    current_user: Authenticated caller token data.\n    auth_service: Injected AuthService dependency.\n\nReturns:\n    Redacted InvitationResponseDTO confirming creation and email delivery status.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges or domain is disallowed.\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if organization does not exist.\n    ConflictError: With ErrorCodes.CONFLICT_ERROR if a pending invitation already exists.",
+        "operationId": "create_organization_invitation_api_v2_iam_organizations__org_id__invitations_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationCreateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/iam/organizations/{org_id}/invitations/batch": {
+      "post": {
+        "tags": [
+          "Admin IAM V2 - Organizations"
+        ],
+        "summary": "Create Organization Invitation Batch",
+        "description": "Create a batch of 1 to 500 cryptographic B2B organization invitations.\n\nArgs:\n    org_id: Target organization identifier (org_<hex32>).\n    payload: Validated InvitationBatchCreateDTO specifying batch recipients.\n    current_user: Authenticated caller token data.\n    auth_service: Injected AuthService dependency.\n\nReturns:\n    InvitationBatchResponseDTO with created count and invitation DTOs.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges or domain is disallowed.\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if organization does not exist.\n    ConflictError: With ErrorCodes.CONFLICT_ERROR if any recipient has a pending invitation.",
+        "operationId": "create_organization_invitation_batch_api_v2_iam_organizations__org_id__invitations_batch_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationBatchCreateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationBatchResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/iam/organizations/{org_id}/invitations/{invitation_id}": {
+      "delete": {
+        "tags": [
+          "Admin IAM V2 - Organizations"
+        ],
+        "summary": "Revoke Organization Invitation",
+        "description": "Revoke a pending B2B organization invitation.\n\nArgs:\n    org_id: Owning organization identifier (org_<hex32>).\n    invitation_id: Target Invitation ID (inv_<hex32>).\n    current_user: Authenticated caller token data.\n    auth_service: Injected AuthService dependency.\n\nReturns:\n    Updated InvitationResponseDTO with status='revoked'.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if invitation does not exist.",
+        "operationId": "revoke_organization_invitation_api_v2_iam_organizations__org_id__invitations__invitation_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "invitation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Invitation Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/iam/organizations/{org_id}/secrets": {
+      "get": {
+        "tags": [
+          "Admin IAM V2 - Organizations"
+        ],
+        "summary": "List Organization Secrets",
+        "description": "List redacted BYOK secret metadata records configured for an organization.\n\nArgs:\n    org_id: Target organization identifier (org_<hex32>).\n    current_user: Authenticated ROOT or ADMIN user.\n    secret_service: Injected SecretService dependency.\n\nReturns:\n    List of redacted TenantSecretResponseDTO instances with masked_hint only.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller does not own org_id.",
+        "operationId": "list_organization_secrets_api_v2_iam_organizations__org_id__secrets_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TenantSecretResponseDTO"
+                  },
+                  "title": "Response List Organization Secrets Api V2 Iam Organizations  Org Id  Secrets Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin IAM V2 - Organizations"
+        ],
+        "summary": "Upsert Organization Secret",
+        "description": "Provision or rotate a tenant-scoped BYOK secret for an organization.\n\nArgs:\n    org_id: Target organization identifier (org_<hex32>).\n    payload: Validated TenantSecretCreateDTO containing the SecretStr credential.\n    current_user: Authenticated ROOT or ADMIN user.\n    secret_service: Injected SecretService dependency.\n\nReturns:\n    Redacted TenantSecretResponseDTO confirming secret configuration and kek_version.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller does not own org_id.\n    AppException: With ErrorCodes.VALIDATION_FAILED if payload is invalid.\n    ConfigurationError: With ErrorCodes.SECRET_RESOLUTION_FAILED if KMS wrapping fails.",
+        "operationId": "upsert_organization_secret_api_v2_iam_organizations__org_id__secrets_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TenantSecretCreateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantSecretResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/iam/organizations/{org_id}/secrets/{secret_id}": {
+      "delete": {
+        "tags": [
+          "Admin IAM V2 - Organizations"
+        ],
+        "summary": "Delete Organization Secret",
+        "description": "Delete a tenant-scoped BYOK secret from an organization.\n\nArgs:\n    org_id: Owning organization identifier (org_<hex32>).\n    secret_id: Canonical tenant secret identifier (sec_<hex32>).\n    current_user: Authenticated ROOT or ADMIN user.\n    secret_service: Injected SecretService dependency.\n\nReturns:\n    OrganizationDeleteResponse confirming deletion of secret_id.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller does not own org_id.\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if secret_id does not exist in org_id.",
+        "operationId": "delete_organization_secret_api_v2_iam_organizations__org_id__secrets__secret_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "org_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Org Id"
+            }
+          },
+          {
+            "name": "secret_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Secret Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationDeleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v2/iam/organizations/{id}": {
@@ -773,7 +1332,7 @@
           "Admin IAM V2 - Organizations"
         ],
         "summary": "Get Organization",
-        "description": "Retrieve a specific organization securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the organization.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The requested organization.\n\nRaises:\n    ResourceNotFoundError: If the organization is not found.\n    PermissionDeniedError: If the user lacks permission to view it.\n    AppException: If fetching the organization fails.",
+        "description": "Retrieve a specific organization securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the organization.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The requested organization.\n\nRaises:\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the organization is not found.\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks permission to view it.\n    AppException: If fetching the organization fails.",
         "operationId": "get_organization_api_v2_iam_organizations__id__get",
         "security": [
           {
@@ -835,7 +1394,7 @@
           "Admin IAM V2 - Organizations"
         ],
         "summary": "Save Organization",
-        "description": "Create or update an organization securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the organization.\n    data: The organization data to update or create.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The updated or created organization.\n\nRaises:\n    PermissionDeniedError: If the user lacks permission.\n    AppException: If saving the organization fails.",
+        "description": "Update an existing organization securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the organization.\n    data: Validated OrganizationUpdateDTO payload.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    The updated organization.\n\nRaises:\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks permission.\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the organization does not exist.",
         "operationId": "save_organization_api_v2_iam_organizations__id__put",
         "security": [
           {
@@ -874,7 +1433,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OrganizationCreate"
+                "$ref": "#/components/schemas/OrganizationUpdateDTO"
               }
             }
           }
@@ -907,7 +1466,7 @@
           "Admin IAM V2 - Organizations"
         ],
         "summary": "Delete Organization",
-        "description": "Delete an organization from the system securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the organization to delete.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    An OrganizationDeleteResponse confirming deletion.\n\nRaises:\n    ResourceNotFoundError: If the organization is not found.\n    PermissionDeniedError: If the user lacks permission.\n    AppException: If deleting the organization fails.",
+        "description": "Delete an organization from the system securely via SSOT Service Layer.\n\nArgs:\n    id: The unique identifier of the organization to delete.\n    current_user: The authenticated user making the request.\n    auth_service: The authentication service dependency.\n\nReturns:\n    An OrganizationDeleteResponse confirming deletion.\n\nRaises:\n    ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the organization is not found.\n    PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the user lacks permission.\n    AppException: If deleting the organization fails.",
         "operationId": "delete_organization_api_v2_iam_organizations__id__delete",
         "security": [
           {
@@ -1138,6 +1697,567 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ExecutionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/execution/executions/assignments": {
+      "get": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "List Execution Assignments",
+        "description": "List workflow execution assignments scoped to the authenticated user.\n\nArgs:\n    current_user: Authenticated caller token data.\n    execution_service: Execution domain service.\n\nReturns:\n    List of ExecutionAssignmentResponseDTO accessible to the caller.\n\nRaises:\n    AppException: If assignment repository dependency is missing\n        (ErrorCodes.SERVICE_DEPENDENCY_MISSING).",
+        "operationId": "list_execution_assignments_api_v2_execution_executions_assignments_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExecutionAssignmentResponseDTO"
+                  },
+                  "title": "Response List Execution Assignments Api V2 Execution Executions Assignments Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Create Execution Assignment",
+        "description": "Create a single time-bound workflow execution assignment.\n\nArgs:\n    payload: Validated ExecutionAssignmentCreateDTO.\n    current_user: Authenticated ROOT, ADMIN, or MANAGER caller.\n    execution_service: Execution domain service.\n\nReturns:\n    Created ExecutionAssignmentResponseDTO.\n\nRaises:\n    PermissionDeniedError: If caller lacks assignment privileges\n        (ErrorCodes.PERMISSION_DENIED).\n    ResourceNotFoundError: If workflow or organization does not exist\n        (ErrorCodes.RESOURCE_NOT_FOUND).\n    AppException: If workflow input key partitioning or email dispatch fails\n        (ErrorCodes.VALIDATION_FAILED, ErrorCodes.EMAIL_DELIVERY_FAILED).",
+        "operationId": "create_execution_assignment_api_v2_execution_executions_assignments_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionAssignmentCreateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionAssignmentResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/execution/executions/assignments/batch": {
+      "post": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Create Execution Assignment Batch",
+        "description": "Create a cohort batch of time-bound workflow execution assignments.\n\nArgs:\n    payload: Validated ExecutionAssignmentBatchCreateDTO (1 to 500 recipients).\n    current_user: Authenticated ROOT, ADMIN, or MANAGER caller.\n    execution_service: Execution domain service.\n\nReturns:\n    ExecutionAssignmentBatchResponseDTO with batch_id and created assignments.\n\nRaises:\n    PermissionDeniedError: If caller lacks assignment privileges\n        (ErrorCodes.PERMISSION_DENIED).\n    ResourceNotFoundError: If workflow or organization does not exist\n        (ErrorCodes.RESOURCE_NOT_FOUND).\n    AppException: If duplicate emails, input partitioning, or email delivery fails\n        (ErrorCodes.VALIDATION_FAILED, ErrorCodes.EMAIL_DELIVERY_FAILED).",
+        "operationId": "create_execution_assignment_batch_api_v2_execution_executions_assignments_batch_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionAssignmentBatchCreateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionAssignmentBatchResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/execution/executions/assignments/preview": {
+      "get": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Preview Execution Assignment",
+        "description": "Perform a SafeLinks-immune side-effect-free preview of a task assignment.\n\nArgs:\n    token: Raw single-use assignment token from query string.\n    execution_service: Execution domain service.\n\nReturns:\n    ExecutionAssignmentPreviewDTO with masked email and deadline metadata.\n\nRaises:\n    ResourceNotFoundError: If the assignment token hash does not exist\n        (ErrorCodes.RESOURCE_NOT_FOUND).\n    AppException: If the assignment is expired or revoked\n        (ErrorCodes.TASK_ASSIGNMENT_EXPIRED).",
+        "operationId": "preview_execution_assignment_api_v2_execution_executions_assignments_preview_get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionAssignmentPreviewDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/execution/executions/assignments/onboard": {
+      "post": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Onboard Execution Assignee",
+        "description": "Execute combined Just-In-Time (JIT) user onboarding + 2FA for a task assignee.\n\nArgs:\n    token: Raw single-use assignment token from query string.\n    payload: Onboarding request DTO with Firebase ID token and display name.\n    execution_service: Execution domain service.\n\nReturns:\n    TokenExchangeResponseDTO containing a signed 15-minute Quorum Local JWT.\n\nRaises:\n    ResourceNotFoundError: If the assignment token hash does not exist\n        (ErrorCodes.RESOURCE_NOT_FOUND).\n    PermissionDeniedError: If Firebase email does not match assignee_email\n        (ErrorCodes.ASSIGNEE_EMAIL_MISMATCH) or 2FA is not enrolled\n        (ErrorCodes.MFA_REQUIRED).\n    AppException: If the assignment is expired\n        (ErrorCodes.TASK_ASSIGNMENT_EXPIRED).",
+        "operationId": "onboard_execution_assignee_api_v2_execution_executions_assignments_onboard_post",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionAssignmentOnboardingRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenExchangeResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/execution/executions/assignments/{assignment_id}/resend": {
+      "post": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Resend Execution Assignment Email",
+        "description": "Rotate the 256-bit assignment token and resend the task magic-link email.\n\nArgs:\n    assignment_id: Canonical Task Assignment ID (tsk_<hex32>).\n    current_user: Authenticated ROOT, ADMIN, or MANAGER caller.\n    execution_service: Execution domain service.\n\nReturns:\n    Updated ExecutionAssignmentResponseDTO.\n\nRaises:\n    PermissionDeniedError: If caller lacks assignment management rights\n        (ErrorCodes.PERMISSION_DENIED).\n    ResourceNotFoundError: If assignment does not exist\n        (ErrorCodes.RESOURCE_NOT_FOUND).\n    AppException: If assignment is already submitted or revoked\n        (ErrorCodes.VALIDATION_FAILED).",
+        "operationId": "resend_execution_assignment_email_api_v2_execution_executions_assignments__assignment_id__resend_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "assignment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Assignment Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionAssignmentResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/execution/executions/assignments/{assignment_id}/activate": {
+      "post": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Activate Execution Assignment",
+        "description": "Explicitly activate a task assignment and start its relative countdown timer.\n\nArgs:\n    assignment_id: Canonical Task Assignment ID (tsk_<hex32>).\n    current_user: Authenticated assignee token data.\n    execution_service: Execution domain service.\n\nReturns:\n    Activated ExecutionAssignmentResponseDTO.\n\nRaises:\n    PermissionDeniedError: If caller is not the assigned user\n        (ErrorCodes.PERMISSION_DENIED).\n    ResourceNotFoundError: If assignment does not exist\n        (ErrorCodes.RESOURCE_NOT_FOUND).\n    AppException: If assignment is expired or in an invalid state\n        (ErrorCodes.TASK_ASSIGNMENT_EXPIRED, ErrorCodes.VALIDATION_FAILED).",
+        "operationId": "activate_execution_assignment_api_v2_execution_executions_assignments__assignment_id__activate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "assignment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Assignment Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionAssignmentResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/execution/executions/assignments/{assignment_id}/draft": {
+      "put": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Save Execution Assignment Draft",
+        "description": "Auto-save assignee draft inputs on an active task assignment.\n\nArgs:\n    assignment_id: Canonical Task Assignment ID (tsk_<hex32>).\n    payload: Draft inputs DTO.\n    current_user: Authenticated assignee token data.\n    execution_service: Execution domain service.\n\nReturns:\n    Updated ExecutionAssignmentResponseDTO with persisted draft_inputs.\n\nRaises:\n    PermissionDeniedError: If caller is not the assigned user or attempts to\n        mutate locked_inputs (ErrorCodes.PERMISSION_DENIED).\n    ResourceNotFoundError: If assignment does not exist\n        (ErrorCodes.RESOURCE_NOT_FOUND).\n    AppException: If assignment has expired or is already submitted\n        (ErrorCodes.TASK_ASSIGNMENT_EXPIRED, ErrorCodes.TASK_ASSIGNMENT_ALREADY_SUBMITTED).",
+        "operationId": "save_execution_assignment_draft_api_v2_execution_executions_assignments__assignment_id__draft_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "assignment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Assignment Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionAssignmentDraftDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionAssignmentResponseDTO"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/execution/executions/assignments/{assignment_id}/submit": {
+      "post": {
+        "tags": [
+          "Executions"
+        ],
+        "summary": "Submit Execution Assignment",
+        "description": "Submit a time-bound task assignment and trigger single-shot workflow execution.\n\nArgs:\n    assignment_id: Canonical Task Assignment ID (tsk_<hex32>).\n    payload: Submitted assignee inputs DTO.\n    arq_pool: Arq Redis connection pool.\n    current_user: Authenticated assignee token data.\n    execution_service: Execution domain service.\n    doc_service: Document extraction service.\n\nReturns:\n    Initialized ExecutionRecord.\n\nRaises:\n    PermissionDeniedError: If caller is not the assigned user or attempts to\n        mutate locked_inputs (ErrorCodes.PERMISSION_DENIED).\n    ResourceNotFoundError: If assignment does not exist\n        (ErrorCodes.RESOURCE_NOT_FOUND).\n    AppException: If assignment is already submitted or expired\n        (ErrorCodes.TASK_ASSIGNMENT_ALREADY_SUBMITTED, ErrorCodes.TASK_ASSIGNMENT_EXPIRED).",
+        "operationId": "submit_execution_assignment_api_v2_execution_executions_assignments__assignment_id__submit_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "assignment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Assignment Id"
+            }
+          },
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionAssignmentSubmitDTO"
               }
             }
           }
@@ -6186,6 +7306,28 @@
         "title": "ArchivalPrecedentDTO",
         "description": "Strict schema for a single retrieved execution precedent.\n\nAttributes:\n    id: Opaque Stripe ID of the past execution.\n    date: ISO formatted completion date.\n    scores: Formatted string of judge scores.\n    verdict: Truncated verdict from the execution."
       },
+      "AssignmentResultVisibility": {
+        "type": "string",
+        "enum": [
+          "confirmation_only",
+          "full_report_access"
+        ],
+        "title": "AssignmentResultVisibility",
+        "description": "Visibility policy governing what an assignee sees after submitting a task assignment."
+      },
+      "AssignmentStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "activated",
+          "submitted",
+          "completed",
+          "expired",
+          "revoked"
+        ],
+        "title": "AssignmentStatus",
+        "description": "Single-use workflow execution assignment lifecycle status enumeration."
+      },
       "AtomQuoteItemDTO": {
         "properties": {
           "quote": {
@@ -8153,6 +9295,16 @@
         "title": "DraftExtractedAtom",
         "description": "Draft representation of an atom after AliasEngine hydration."
       },
+      "EmailDeliveryStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "sent",
+          "failed"
+        ],
+        "title": "EmailDeliveryStatus",
+        "description": "Transactional email delivery status enumeration."
+      },
       "EngineType": {
         "type": "string",
         "enum": [
@@ -8745,6 +9897,553 @@
         ],
         "title": "EvidenceType",
         "description": "Categorizes the type of evidence discovered during TDA extraction."
+      },
+      "ExecutionAssignmentBatchCreateDTO": {
+        "properties": {
+          "recipients": {
+            "items": {
+              "$ref": "#/components/schemas/ExecutionAssignmentRecipientDTO"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Recipients",
+            "description": "Batch of 1 to 500 task assignment recipients"
+          },
+          "invited_role": {
+            "$ref": "#/components/schemas/UserRole",
+            "description": "Role granted upon auto-onboarding",
+            "default": "MEMBER"
+          },
+          "workflow_id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Target Workflow ID (wf_<hex32>)"
+          },
+          "output_profile_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrefixedUUID7"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional Output Profile ID (prf_<hex32>)"
+          },
+          "target_locale": {
+            "$ref": "#/components/schemas/SystemLocale",
+            "description": "Default target execution locale",
+            "default": "fi"
+          },
+          "locked_inputs": {
+            "$ref": "#/components/schemas/WorkflowInputs-Input",
+            "description": "Shared manager-locked workflow inputs"
+          },
+          "assignee_input_keys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Assignee Input Keys",
+            "description": "Shared ExpectedInput keys unlocked for assignee completion"
+          },
+          "result_visibility": {
+            "$ref": "#/components/schemas/AssignmentResultVisibility",
+            "description": "Post-submission result visibility policy",
+            "default": "confirmation_only"
+          },
+          "hard_deadline_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Hard Deadline At",
+            "description": "Shared absolute UTC deadline timestamp"
+          },
+          "relative_duration_seconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 60.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relative Duration Seconds",
+            "description": "Optional relative countdown timer in seconds from activation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "recipients",
+          "workflow_id",
+          "hard_deadline_at"
+        ],
+        "title": "ExecutionAssignmentBatchCreateDTO",
+        "description": "Payload for bulk-creating 1 to 500 single-use workflow execution assignments.\n\nAttributes:\n    recipients: List of 1 to 500 task assignment recipients.\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Shared target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional shared Output Profile ID (prf_<hex32>).\n    target_locale: Default target execution locale.\n    locked_inputs: Shared manager-locked workflow inputs.\n    assignee_input_keys: Shared ExpectedInput keys unlocked for assignee completion.\n    result_visibility: Shared post-submission result visibility policy.\n    hard_deadline_at: Shared absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional shared countdown timer in seconds from activation."
+      },
+      "ExecutionAssignmentBatchResponseDTO": {
+        "properties": {
+          "batch_id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Shared cohort batch identifier (tsk_<hex32>)"
+          },
+          "created_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Created Count",
+            "description": "Total number of task assignments created"
+          },
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/ExecutionAssignmentResponseDTO"
+            },
+            "type": "array",
+            "title": "Assignments",
+            "description": "Created task assignments"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "batch_id",
+          "created_count",
+          "assignments"
+        ],
+        "title": "ExecutionAssignmentBatchResponseDTO",
+        "description": "Response payload for bulk-created workflow execution assignments.\n\nAttributes:\n    batch_id: Shared cohort batch identifier (tsk_<hex32>).\n    created_count: Total number of task assignments created.\n    assignments: Materialized task assignment response DTOs."
+      },
+      "ExecutionAssignmentCreateDTO": {
+        "properties": {
+          "assigned_email": {
+            "type": "string",
+            "format": "email",
+            "title": "Assigned Email",
+            "description": "Recipient email address"
+          },
+          "invited_role": {
+            "$ref": "#/components/schemas/UserRole",
+            "description": "Role granted upon auto-onboarding",
+            "default": "MEMBER"
+          },
+          "workflow_id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Target Workflow ID (wf_<hex32>)"
+          },
+          "output_profile_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrefixedUUID7"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional Output Profile ID (prf_<hex32>)"
+          },
+          "target_locale": {
+            "$ref": "#/components/schemas/SystemLocale",
+            "description": "Target execution locale",
+            "default": "fi"
+          },
+          "locked_inputs": {
+            "$ref": "#/components/schemas/WorkflowInputs-Input",
+            "description": "Immutable manager-locked workflow inputs"
+          },
+          "assignee_input_keys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Assignee Input Keys",
+            "description": "ExpectedInput keys unlocked for assignee completion"
+          },
+          "result_visibility": {
+            "$ref": "#/components/schemas/AssignmentResultVisibility",
+            "description": "Post-submission result visibility policy",
+            "default": "confirmation_only"
+          },
+          "hard_deadline_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Hard Deadline At",
+            "description": "Absolute UTC deadline timestamp"
+          },
+          "relative_duration_seconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 60.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relative Duration Seconds",
+            "description": "Optional relative countdown timer in seconds from activation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "assigned_email",
+          "workflow_id",
+          "hard_deadline_at"
+        ],
+        "title": "ExecutionAssignmentCreateDTO",
+        "description": "Payload for creating a single-use workflow execution assignment.\n\nAttributes:\n    assigned_email: Recipient email address.\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional Output Profile ID (prf_<hex32>).\n    target_locale: Target execution locale.\n    locked_inputs: Immutable manager-locked workflow inputs.\n    assignee_input_keys: ExpectedInput keys unlocked for assignee completion.\n    result_visibility: Post-submission result visibility policy.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation."
+      },
+      "ExecutionAssignmentDraftDTO": {
+        "properties": {
+          "draft_inputs": {
+            "$ref": "#/components/schemas/WorkflowInputs-Input",
+            "description": "Assignee draft workflow inputs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "draft_inputs"
+        ],
+        "title": "ExecutionAssignmentDraftDTO",
+        "description": "Payload for auto-saving assignee draft inputs prior to final submission.\n\nAttributes:\n    draft_inputs: Partial or complete assignee workflow inputs."
+      },
+      "ExecutionAssignmentOnboardingRequestDTO": {
+        "properties": {
+          "firebase_token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firebase Token",
+            "description": "Verified Firebase ID token of the assignee"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ExecutionAssignmentOnboardingRequestDTO",
+        "description": "Payload for activating a single-use task assignment and auto-onboarding the assignee.\n\nAttributes:\n    firebase_token: Verified Firebase ID token of the authenticated assignee.\n    name: Optional display name for newly created user account."
+      },
+      "ExecutionAssignmentPreviewDTO": {
+        "properties": {
+          "organization_id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Owning Organization ID (org_<hex32>)"
+          },
+          "id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Canonical Task Assignment ID (tsk_<hex32>)"
+          },
+          "organization_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Organization Name",
+            "description": "Issuing organization display name"
+          },
+          "assigned_email_masked": {
+            "type": "string",
+            "minLength": 3,
+            "title": "Assigned Email Masked",
+            "description": "Masked recipient email hint"
+          },
+          "workflow_id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Target Workflow ID (wf_<hex32>)"
+          },
+          "target_locale": {
+            "$ref": "#/components/schemas/SystemLocale",
+            "description": "Target execution locale"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssignmentStatus",
+            "description": "Current assignment status"
+          },
+          "hard_deadline_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Hard Deadline At",
+            "description": "Absolute UTC deadline timestamp"
+          },
+          "relative_duration_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relative Duration Seconds",
+            "description": "Relative duration in seconds"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "organization_id",
+          "id",
+          "organization_name",
+          "assigned_email_masked",
+          "workflow_id",
+          "target_locale",
+          "status",
+          "hard_deadline_at"
+        ],
+        "title": "ExecutionAssignmentPreviewDTO",
+        "description": "Public pre-activation preview of a single-use workflow execution assignment.\n\nAttributes:\n    id: Canonical Task Assignment ID (tsk_<hex32>).\n    organization_id: Owning Organization ID (org_<hex32>).\n    organization_name: Display name of the issuing organization.\n    assigned_email_masked: Masked recipient email hint (e.g. 'j***@example.com').\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    target_locale: Target execution locale.\n    status: Current assignment status.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation."
+      },
+      "ExecutionAssignmentRecipientDTO": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Recipient email address"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Optional recipient display name"
+          },
+          "target_locale": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SystemLocale"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional per-recipient locale override"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "ExecutionAssignmentRecipientDTO",
+        "description": "Individual recipient descriptor within a bulk task assignment batch.\n\nAttributes:\n    email: Recipient email address.\n    name: Optional recipient display name.\n    target_locale: Optional per-recipient locale override."
+      },
+      "ExecutionAssignmentResponseDTO": {
+        "properties": {
+          "organization_id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Owning Organization ID (org_<hex32>)"
+          },
+          "id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Canonical Task Assignment ID (tsk_<hex32>)"
+          },
+          "batch_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrefixedUUID7"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional cohort batch ID"
+          },
+          "assigned_email": {
+            "type": "string",
+            "format": "email",
+            "title": "Assigned Email",
+            "description": "Recipient email address"
+          },
+          "assigned_user_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrefixedUUID7"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Bound User ID"
+          },
+          "invited_role": {
+            "$ref": "#/components/schemas/UserRole",
+            "description": "Role granted upon auto-onboarding"
+          },
+          "workflow_id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Target Workflow ID (wf_<hex32>)"
+          },
+          "output_profile_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrefixedUUID7"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Output Profile ID"
+          },
+          "target_locale": {
+            "$ref": "#/components/schemas/SystemLocale",
+            "description": "Target execution locale"
+          },
+          "locked_inputs": {
+            "$ref": "#/components/schemas/WorkflowInputs-Output",
+            "description": "Immutable manager-locked workflow inputs"
+          },
+          "assignee_input_keys": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Assignee Input Keys",
+            "description": "Unlocked ExpectedInput keys"
+          },
+          "draft_inputs": {
+            "$ref": "#/components/schemas/WorkflowInputs-Output",
+            "description": "Server-side auto-saved draft inputs"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssignmentStatus",
+            "description": "Lifecycle status"
+          },
+          "email_delivery_status": {
+            "$ref": "#/components/schemas/EmailDeliveryStatus",
+            "description": "Transactional email delivery status",
+            "default": "pending"
+          },
+          "result_visibility": {
+            "$ref": "#/components/schemas/AssignmentResultVisibility",
+            "description": "Result visibility policy"
+          },
+          "hard_deadline_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Hard Deadline At",
+            "description": "Absolute UTC deadline timestamp"
+          },
+          "relative_duration_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relative Duration Seconds",
+            "description": "Relative duration in seconds"
+          },
+          "activated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At",
+            "description": "UTC activation timestamp"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At",
+            "description": "UTC submission timestamp"
+          },
+          "execution_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrefixedUUID7"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Triggered ExecutionRecord ID"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Creator User ID (usr_<hex32>)"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "UTC creation timestamp"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "organization_id",
+          "id",
+          "assigned_email",
+          "invited_role",
+          "workflow_id",
+          "target_locale",
+          "locked_inputs",
+          "assignee_input_keys",
+          "draft_inputs",
+          "status",
+          "result_visibility",
+          "hard_deadline_at",
+          "created_by",
+          "created_at"
+        ],
+        "title": "ExecutionAssignmentResponseDTO",
+        "description": "API response DTO representing a task assignment without exposing token_hash.\n\nAttributes:\n    id: Canonical Task Assignment ID (tsk_<hex32>).\n    batch_id: Optional cohort batch ID (tsk_<hex32>).\n    organization_id: Owning Organization ID (org_<hex32>).\n    assigned_email: Recipient email address.\n    assigned_user_id: Bound User ID once activated (usr_<hex32>).\n    invited_role: Role granted upon auto-onboarding.\n    workflow_id: Target Workflow ID (wf_<hex32>).\n    output_profile_id: Optional Output Profile ID (prf_<hex32>).\n    target_locale: Target execution locale.\n    locked_inputs: Immutable manager-locked workflow inputs.\n    assignee_input_keys: ExpectedInput keys unlocked for assignee completion.\n    draft_inputs: Server-side auto-saved draft inputs.\n    status: Lifecycle status of the task assignment.\n    email_delivery_status: Transactional email delivery status.\n    result_visibility: Post-submission result visibility policy.\n    hard_deadline_at: Absolute UTC deadline timestamp.\n    relative_duration_seconds: Optional countdown timer in seconds from activation.\n    activated_at: UTC activation timestamp.\n    submitted_at: UTC submission timestamp.\n    execution_id: Triggered ExecutionRecord ID (exe_<hex32>).\n    created_by: Creator User ID (usr_<hex32>).\n    created_at: UTC creation timestamp."
+      },
+      "ExecutionAssignmentSubmitDTO": {
+        "properties": {
+          "submitted_inputs": {
+            "$ref": "#/components/schemas/WorkflowInputs-Input",
+            "description": "Final assignee workflow inputs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "submitted_inputs"
+        ],
+        "title": "ExecutionAssignmentSubmitDTO",
+        "description": "Payload for submitting a single-use workflow execution assignment.\n\nAttributes:\n    submitted_inputs: Final assignee workflow inputs to merge with manager locked_inputs."
       },
       "ExecutionCreate": {
         "properties": {
@@ -10763,9 +12462,16 @@
       "ImpersonationRequest": {
         "properties": {
           "target_id": {
-            "type": "string",
-            "title": "Target Id",
+            "$ref": "#/components/schemas/PrefixedUUID7",
             "description": "ID of the user to impersonate"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 5,
+            "title": "Reason",
+            "description": "Mandatory ticket or support justification for break-glass impersonation",
+            "default": "Administrative support session"
           }
         },
         "additionalProperties": false,
@@ -10774,7 +12480,7 @@
           "target_id"
         ],
         "title": "ImpersonationRequest",
-        "description": "Request payload for initiating administrative user impersonation.\n\nAttributes:\n    target_id: Identifier of the target user to impersonate."
+        "description": "Request payload for initiating administrative break-glass user impersonation.\n\nAttributes:\n    target_id: Identifier of the target user to impersonate (usr_<hex32>).\n    reason: Mandatory ticket or support justification for break-glass impersonation."
       },
       "ImpersonationResponse": {
         "properties": {
@@ -10788,6 +12494,19 @@
             "title": "Token Type",
             "description": "Token type scheme",
             "default": "bearer"
+          },
+          "target_id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "ID of the impersonated target user",
+            "default": "usr_0195f3a00000700a83fd6b3d77c748f4"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 5,
+            "title": "Reason",
+            "description": "Mandatory ticket or support justification for break-glass impersonation",
+            "default": "Administrative support session"
           }
         },
         "additionalProperties": false,
@@ -10796,7 +12515,7 @@
           "access_token"
         ],
         "title": "ImpersonationResponse",
-        "description": "Response containing the issued administrative impersonation token.\n\nAttributes:\n    access_token: Signed JWT impersonation access token.\n    token_type: Authorization token scheme (defaults to 'bearer')."
+        "description": "Response containing the issued administrative impersonation token.\n\nAttributes:\n    access_token: Signed JWT impersonation access token.\n    token_type: Authorization token scheme (defaults to 'bearer').\n    target_id: Identifier of the impersonated target user (usr_<hex32>).\n    reason: Mandatory ticket or support justification recorded for the impersonation."
       },
       "IngressInputValue": {
         "anyOf": [
@@ -10998,6 +12717,199 @@
         ],
         "title": "InteractionStrategy",
         "description": "Prompt engineering strategy classification for interaction quality assessment."
+      },
+      "InvitationAcceptRequestDTO": {
+        "properties": {
+          "raw_token": {
+            "type": "string",
+            "minLength": 16,
+            "title": "Raw Token",
+            "description": "Raw single-use invitation token"
+          },
+          "firebase_token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firebase Token",
+            "description": "Firebase ID token of the accepting user"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "raw_token"
+        ],
+        "title": "InvitationAcceptRequestDTO",
+        "description": "Payload for accepting an organization invitation token.\n\nAttributes:\n    raw_token: Raw single-use invitation token from the invitation link.\n    firebase_token: Verified Firebase ID token of the accepting user.\n    name: Optional display name for newly provisioned user profile."
+      },
+      "InvitationBatchCreateDTO": {
+        "properties": {
+          "recipients": {
+            "items": {
+              "$ref": "#/components/schemas/InvitationCreateDTO"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Recipients",
+            "description": "Batch of 1 to 500 invitation recipients"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "recipients"
+        ],
+        "title": "InvitationBatchCreateDTO",
+        "description": "Payload for bulk-creating organization invitations (1 to 500 recipients).\n\nAttributes:\n    recipients: Closed list of 1 to 500 invitation creation payloads."
+      },
+      "InvitationBatchResponseDTO": {
+        "properties": {
+          "created_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Created Count",
+            "description": "Total number of invitations created"
+          },
+          "invitations": {
+            "items": {
+              "$ref": "#/components/schemas/InvitationResponseDTO"
+            },
+            "type": "array",
+            "title": "Invitations",
+            "description": "Created invitations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "created_count",
+          "invitations"
+        ],
+        "title": "InvitationBatchResponseDTO",
+        "description": "Response payload for bulk-created organization invitations.\n\nAttributes:\n    created_count: Total number of invitations created in the batch.\n    invitations: Materialized invitation response DTOs."
+      },
+      "InvitationCreateDTO": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Recipient email address"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole",
+            "description": "Role granted upon acceptance",
+            "default": "MEMBER"
+          },
+          "expires_in_hours": {
+            "type": "integer",
+            "maximum": 720.0,
+            "minimum": 1.0,
+            "title": "Expires In Hours",
+            "description": "Invitation validity window in hours",
+            "default": 168
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "InvitationCreateDTO",
+        "description": "Payload for inviting a user to an organization.\n\nAttributes:\n    email: Recipient email address.\n    role: Role to grant upon acceptance.\n    expires_in_hours: Invitation validity window in hours."
+      },
+      "InvitationResponseDTO": {
+        "properties": {
+          "organization_id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Target Organization ID (org_<hex32>)"
+          },
+          "id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Canonical Invitation ID (inv_<hex32>)"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email",
+            "description": "Invited user email address"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole",
+            "description": "Role granted upon acceptance"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InvitationStatus",
+            "description": "Invitation lifecycle status"
+          },
+          "email_delivery_status": {
+            "$ref": "#/components/schemas/EmailDeliveryStatus",
+            "description": "Transactional email delivery status",
+            "default": "pending"
+          },
+          "invited_by": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Creator User ID (usr_<hex32>)"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At",
+            "description": "UTC expiration timestamp"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "UTC creation timestamp"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "organization_id",
+          "id",
+          "email",
+          "role",
+          "status",
+          "invited_by",
+          "expires_at",
+          "created_at"
+        ],
+        "title": "InvitationResponseDTO",
+        "description": "API response DTO representing an organization invitation without exposing token_hash.\n\nAttributes:\n    id: Canonical Invitation ID (inv_<hex32>).\n    organization_id: Target Organization ID (org_<hex32>).\n    email: Invited user email address.\n    role: Role granted upon acceptance.\n    status: Invitation lifecycle status.\n    email_delivery_status: Transactional email delivery status.\n    invited_by: Creator User ID (usr_<hex32>).\n    expires_at: UTC expiration timestamp.\n    created_at: UTC creation timestamp."
+      },
+      "InvitationStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "accepted",
+          "expired",
+          "revoked"
+        ],
+        "title": "InvitationStatus",
+        "description": "Organization invitation lifecycle status enumeration."
       },
       "JSONSchemaPropertyType": {
         "type": "string",
@@ -11896,38 +13808,49 @@
         "title": "LogicianOutput",
         "description": "Output schema for the Logician Agent (Domain Authority).\n\nAttributes:\n    logician_data: Logic analysis results inherited from LogicianOutputDTO."
       },
-      "LoginResponse": {
+      "LogoutRequestDTO": {
         "properties": {
-          "user": {
-            "$ref": "#/components/schemas/User",
-            "description": "Authenticated user object"
-          },
-          "token_valid": {
+          "revoke_all_sessions": {
             "type": "boolean",
-            "title": "Token Valid",
-            "description": "Whether the token is valid"
+            "title": "Revoke All Sessions",
+            "description": "When True, revokes all active sessions for the user across all devices",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "LogoutRequestDTO",
+        "description": "Request payload for revoking the current JWT session or all user sessions.\n\nAttributes:\n    revoke_all_sessions: When True, revokes all active sessions for the user across all devices."
+      },
+      "LogoutResponseDTO": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "logged_out",
+            "title": "Status",
+            "description": "Logout status",
+            "default": "logged_out"
           },
-          "debug_msg": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Debug Msg",
-            "description": "Optional debug message"
+          "revoked_jti": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Revoked Jti",
+            "description": "Revoked RFC 7519 token identifier"
+          },
+          "all_sessions_revoked": {
+            "type": "boolean",
+            "title": "All Sessions Revoked",
+            "description": "Whether all active sessions for the user were revoked",
+            "default": false
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "user",
-          "token_valid"
+          "revoked_jti"
         ],
-        "title": "LoginResponse",
-        "description": "Response model for a successful authentication session handshake.\n\nAttributes:\n    user: Authenticated user domain object.\n    token_valid: Whether the verified token is valid.\n    debug_msg: Optional diagnostic message."
+        "title": "LogoutResponseDTO",
+        "description": "Response payload confirming session revocation.\n\nAttributes:\n    status: Static logout confirmation indicator ('logged_out').\n    revoked_jti: Revoked RFC 7519 token identifier.\n    all_sessions_revoked: Whether all active sessions for the user were revoked."
       },
       "MCPArgumentScalar": {
         "anyOf": [
@@ -14981,10 +16904,8 @@
       "Organization": {
         "properties": {
           "id": {
-            "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
-            "title": "Id",
-            "description": "Unique Organization ID (e.g. 'org_1234abcd')"
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Unique Organization ID (org_<hex32>)"
           },
           "slug": {
             "anyOf": [
@@ -15070,6 +16991,14 @@
             "minimum": 1.0,
             "title": "Rpm Limit",
             "description": "Requests Per Minute Limit"
+          },
+          "allowed_email_domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Email Domains",
+            "description": "Optional allowlist of lowercase email domains permitted for organization invitations and task assignments"
           }
         },
         "additionalProperties": false,
@@ -15084,7 +17013,7 @@
           "rpm_limit"
         ],
         "title": "Organization",
-        "description": "Represents a tenant or customer organization.\n\nAttributes:\n    id: Unique Organization Opaque Stripe ID.\n    slug: Optional human-readable identifier.\n    name: Organization display name.\n    created_at: Creation timestamp.\n    is_active: Whether the organization subscription is active.\n    tier: Service tier designation.\n    contact_email: Administrative contact email address.\n    billing_id: External billing provider identifier.\n    subscription_status: Current SaaS billing status.\n    quota_limit: Monthly API call quota in USD.\n    tpm_limit: Tokens per minute rate limit.\n    rpm_limit: Requests per minute rate limit."
+        "description": "Represents a tenant or customer organization.\n\nAttributes:\n    id: Unique Organization Opaque Stripe ID (org_<hex32>).\n    slug: Optional human-readable identifier.\n    name: Organization display name.\n    created_at: Creation timestamp.\n    is_active: Whether the organization subscription is active.\n    tier: Service tier designation.\n    contact_email: Administrative contact email address.\n    billing_id: External billing provider identifier.\n    subscription_status: Current SaaS billing status.\n    quota_limit: Monthly API call quota in USD.\n    tpm_limit: Tokens per minute rate limit.\n    rpm_limit: Requests per minute rate limit.\n    allowed_email_domains: Optional allowlist of lowercase email domains permitted for invitations and assignments."
       },
       "OrganizationCreate": {
         "properties": {
@@ -15154,6 +17083,139 @@
         ],
         "title": "OrganizationDeleteResponse",
         "description": "Payload response for deleting an organization.\n\nAttributes:\n    status: Deletion status indicator message.\n    deleted_id: Identifier of the deleted organization."
+      },
+      "OrganizationUpdateDTO": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Updated display name"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier",
+            "description": "Updated service tier"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Active",
+            "description": "Updated active status"
+          },
+          "contact_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Email",
+            "description": "Updated contact email"
+          },
+          "billing_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billing Id",
+            "description": "Updated billing ID"
+          },
+          "subscription_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubscriptionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Updated subscription status"
+          },
+          "quota_limit": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quota Limit",
+            "description": "Updated monthly quota limit (USD)"
+          },
+          "tpm_limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1000.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tpm Limit",
+            "description": "Updated TPM limit"
+          },
+          "rpm_limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpm Limit",
+            "description": "Updated RPM limit"
+          },
+          "allowed_email_domains": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Email Domains",
+            "description": "Optional allowlist of lowercase email domains permitted for organization invitations and task assignments"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "OrganizationUpdateDTO",
+        "description": "Payload for updating an existing organization.\n\nAttributes:\n    name: Updated organization display name.\n    tier: Updated service tier designation.\n    is_active: Updated active status flag.\n    contact_email: Updated administrative contact email.\n    billing_id: Updated external billing identifier.\n    subscription_status: Updated SaaS subscription status.\n    quota_limit: Updated monthly API quota limit in USD.\n    tpm_limit: Updated tokens per minute limit.\n    rpm_limit: Updated requests per minute limit.\n    allowed_email_domains: Updated allowlist of lowercase email domains."
       },
       "OutputProfile": {
         "properties": {
@@ -16537,6 +18599,10 @@
         ],
         "title": "ArchivalPrecedentDTO",
         "description": "Strict schema for a single retrieved execution precedent.\n\nAttributes:\n    id: Opaque Stripe ID of the past execution.\n    date: ISO formatted completion date.\n    scores: Formatted string of judge scores.\n    verdict: Truncated verdict from the execution."
+      },
+      "PrefixedUUID7": {
+        "type": "string",
+        "pattern": "^([a-z]{2,5})_[a-fA-F0-9]{32}$"
       },
       "PrescriptiveRemediationDTO": {
         "properties": {
@@ -20201,6 +22267,24 @@
         "title": "warning_card",
         "description": "SDUI component representing a warning message (e.g. hallucinated alias)."
       },
+      "SecretScope": {
+        "type": "string",
+        "enum": [
+          "llm_provider",
+          "mcp_gateway"
+        ],
+        "title": "SecretScope",
+        "description": "Target capability scope for tenant-scoped BYOK secrets."
+      },
+      "SecretStorageMode": {
+        "type": "string",
+        "enum": [
+          "envelope_kms",
+          "cloud_secret_manager"
+        ],
+        "title": "SecretStorageMode",
+        "description": "Cryptographic storage backend mode for tenant-scoped BYOK secrets."
+      },
       "SecurityCheck": {
         "properties": {
           "threat_detected": {
@@ -22218,6 +24302,104 @@
         "title": "TargetSpeaker",
         "description": "Evaluated target speaker for dialogue or deliverable claims."
       },
+      "TenantSecretCreateDTO": {
+        "properties": {
+          "scope": {
+            "$ref": "#/components/schemas/SecretScope",
+            "description": "Capability scope ('llm_provider' or 'mcp_gateway')"
+          },
+          "target_identifier": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Target Identifier",
+            "description": "Target provider or gateway ID"
+          },
+          "plaintext_secret": {
+            "type": "string",
+            "format": "password",
+            "title": "Plaintext Secret",
+            "description": "Raw secret value to encrypt at rest",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "scope",
+          "target_identifier",
+          "plaintext_secret"
+        ],
+        "title": "TenantSecretCreateDTO",
+        "description": "Ingress payload for provisioning or rotating a tenant-scoped BYOK secret.\n\nAttributes:\n    scope: Capability scope ('llm_provider' or 'mcp_gateway').\n    target_identifier: Target LLMProvider value or MCP Gateway ID.\n    plaintext_secret: Raw secret value wrapped in SecretStr so it never leaks in logs."
+      },
+      "TenantSecretResponseDTO": {
+        "properties": {
+          "organization_id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Owning Organization ID (org_<hex32>)"
+          },
+          "id": {
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Canonical Tenant Secret ID (sec_<hex32>)"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/SecretScope",
+            "description": "Capability scope"
+          },
+          "target_identifier": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Target Identifier",
+            "description": "Target provider or gateway ID"
+          },
+          "storage_mode": {
+            "$ref": "#/components/schemas/SecretStorageMode",
+            "description": "Cryptographic storage backend mode"
+          },
+          "configured": {
+            "type": "boolean",
+            "title": "Configured",
+            "description": "Whether the secret is configured",
+            "default": true
+          },
+          "masked_hint": {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Masked Hint",
+            "description": "Redacted display hint"
+          },
+          "kek_version": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Kek Version",
+            "description": "Active KEK version identifier"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "UTC timestamp of most recent rotation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "organization_id",
+          "id",
+          "scope",
+          "target_identifier",
+          "storage_mode",
+          "masked_hint",
+          "kek_version",
+          "updated_at"
+        ],
+        "title": "TenantSecretResponseDTO",
+        "description": "Zero-leakage API response DTO for tenant secret metadata.\n\nAttributes:\n    id: Canonical Tenant Secret ID (sec_<hex32>).\n    organization_id: Owning Organization ID (org_<hex32>).\n    scope: Capability scope ('llm_provider' or 'mcp_gateway').\n    target_identifier: Target provider or gateway identifier.\n    storage_mode: Cryptographic storage backend mode.\n    configured: Always True when a persisted secret record exists.\n    masked_hint: Redacted display hint (e.g. '...9f2a').\n    kek_version: Cloud KMS or local KEK version identifier.\n    updated_at: UTC timestamp of the most recent rotation."
+      },
       "TextMetricsDTO": {
         "properties": {
           "word_count": {
@@ -22290,21 +24472,87 @@
         "title": "TheoryGrounding",
         "description": "Used in PromptBlock to bind criteria to organizational truth.\n\nAttributes:\n    source_url: URL or reference to the source material.\n    citation_reference: Specific section or phrase to cite from the source."
       },
-      "TokenPayload": {
+      "TokenExchangeRequestDTO": {
         "properties": {
-          "token": {
+          "firebase_token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firebase Token",
+            "description": "External Firebase ID Token for interactive sessions"
+          },
+          "target_user_id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PrefixedUUID7"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Target seeded user ID for headless CLI, E2E, or local development token exchange"
+          },
+          "service_auth_secret": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "password",
+                "writeOnly": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Auth Secret",
+            "description": "Optional shared service secret for headless M2M token exchange"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TokenExchangeRequestDTO",
+        "description": "Request payload for exchanging an external Firebase ID token or CLI service secret for a Quorum Local JWT.\n\nAttributes:\n    firebase_token: External Firebase ID Token for interactive sessions.\n    target_user_id: Target seeded user ID for headless CLI, E2E, or local development token exchange.\n    service_auth_secret: Optional shared service secret for headless M2M token exchange."
+      },
+      "TokenExchangeResponseDTO": {
+        "properties": {
+          "access_token": {
             "type": "string",
-            "title": "Token",
-            "description": "JWT token string"
+            "minLength": 10,
+            "title": "Access Token",
+            "description": "Signed Quorum Local JWT access token"
+          },
+          "token_type": {
+            "type": "string",
+            "const": "bearer",
+            "title": "Token Type",
+            "description": "Token scheme",
+            "default": "bearer"
+          },
+          "expires_in_seconds": {
+            "type": "integer",
+            "minimum": 60.0,
+            "title": "Expires In Seconds",
+            "description": "Token lifetime in seconds"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User",
+            "description": "Authenticated user profile"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "token"
+          "access_token",
+          "expires_in_seconds",
+          "user"
         ],
-        "title": "TokenPayload",
-        "description": "Request payload for cryptographic token verification.\n\nAttributes:\n    token: Raw JWT bearer token string."
+        "title": "TokenExchangeResponseDTO",
+        "description": "Response model for a successful Quorum Local JWT session token exchange.\n\nAttributes:\n    access_token: Signed Quorum Local JWT bearer token string.\n    token_type: Authorization token scheme ('bearer').\n    expires_in_seconds: Token lifetime in seconds.\n    user: Authenticated user profile."
       },
       "TokenUsage": {
         "properties": {
@@ -23296,10 +25544,8 @@
             "description": "Preferred Theme Mode"
           },
           "id": {
-            "type": "string",
-            "pattern": "^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
-            "title": "Id",
-            "description": "Unique ID (matches Firebase UID if used)"
+            "$ref": "#/components/schemas/PrefixedUUID7",
+            "description": "Unique User ID (usr_<hex32>)"
           },
           "slug": {
             "anyOf": [
@@ -23330,6 +25576,33 @@
             ],
             "title": "Created By",
             "description": "UID of the creator"
+          },
+          "firebase_uid": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firebase Uid",
+            "description": "External Firebase Auth UID"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At",
+            "description": "GDPR soft-deletion timestamp"
           }
         },
         "additionalProperties": false,
@@ -23343,7 +25616,7 @@
           "created_at"
         ],
         "title": "User",
-        "description": "Full User model representing a persisted user record.\n\nAttributes:\n    id: Unique User Opaque Stripe ID.\n    slug: Optional human-readable identifier.\n    created_at: Account creation timestamp.\n    created_by: Identifier of the creator user, if applicable."
+        "description": "Full User model representing a persisted user record.\n\nAttributes:\n    id: Unique User Opaque Stripe ID (usr_<hex32>).\n    slug: Optional human-readable identifier.\n    created_at: Account creation timestamp.\n    created_by: Identifier of the creator user, if applicable.\n    firebase_uid: External Firebase Auth UID when linked.\n    deleted_at: GDPR soft-deletion UTC timestamp."
       },
       "UserCreate": {
         "properties": {
