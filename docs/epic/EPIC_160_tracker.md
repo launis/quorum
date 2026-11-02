@@ -148,7 +148,7 @@
   - [x] @[client_app_v2/lib/core/models/enums.dart]
   - [x] @[client_app_v2/lib/core/network/interceptors/auth_interceptor.dart]
   - [x] @[client_app_v2/lib/features/auth/domain/models/user.dart]
-  - [ ] @[client_app_v2/lib/features/auth/data/auth_repository.dart]
+  - [x] @[client_app_v2/lib/features/auth/data/auth_repository.dart]
   - [ ] @[client_app_v2/lib/features/auth/presentation/auth_controller.dart]
   - [ ] @[client_app_v2/lib/features/auth/presentation/login_screen.dart]
   - [ ] @[client_app_v2/lib/router/router.dart]

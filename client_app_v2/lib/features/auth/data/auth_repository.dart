@@ -10,7 +10,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'auth_repository.g.dart';
 
-// Phase 6, Step 6.1: @Riverpod(keepAlive: true) AuthRepository, 2FA Enrollment/Challenge, and Token Exchange.
+// Keep-alive Riverpod AuthRepository managing 2FA TOTP enrollment/challenge and local JWT token exchange.
 
 /// Categorizes the active second-factor authentication step required before token exchange.
 enum MfaRequirementType { none, challenge, enrollment }
