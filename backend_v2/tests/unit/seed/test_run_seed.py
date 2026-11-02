@@ -12,7 +12,7 @@ from backend_v2.seed import run_seed
 from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 VALID_ORGANIZATION: dict[str, JsonValue] = {
-    "id": "org_12345678abcd",
+    "id": "org_0195f3a0000070018234567890abcdef",
     "name": "Acme Corp",
     "is_active": True,
     "tier": "enterprise",
@@ -26,7 +26,7 @@ VALID_USER: dict[str, JsonValue] = {
     "id": "usr_0195f3a0000070018234567890abcdef",
     "email": "admin@quorum.com",
     "role": "ROOT",
-    "organization_id": "org_12345678abcd",
+    "organization_id": "org_0195f3a0000070018234567890abcdef",
     "is_active": True,
     "language": "fi",
     "theme_mode": "dark",

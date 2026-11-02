@@ -456,7 +456,9 @@ async def test_organization_repository_update_and_delete(
     )
     await org_repo.create(test_org)
 
-    update_success = await org_repo.update("org_0195f3a0000070008000000000000099", OrganizationUpdateDTO(name="New Repo CRUD"))
+    update_success = await org_repo.update(
+        "org_0195f3a0000070008000000000000099", OrganizationUpdateDTO(name="New Repo CRUD")
+    )
     assert update_success is True
     refreshed = await org_repo.get_by_id("org_0195f3a0000070008000000000000099")
     assert refreshed is not None

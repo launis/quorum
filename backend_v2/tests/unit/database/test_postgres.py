@@ -1428,6 +1428,7 @@ async def test_adapter_database_driver_fault_translation(monkeypatch: pytest.Mon
                 quota_limit=500.0,
                 tpm_limit=100000,
                 rpm_limit=1000,
+                allowed_email_domains=[],
             )
             with pytest.raises(AppException) as exc_upsert_org:
                 await entities.upsert_organization(org_model)

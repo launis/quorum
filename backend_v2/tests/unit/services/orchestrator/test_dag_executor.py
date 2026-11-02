@@ -98,7 +98,9 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
         record = await executor.execute_workflow(
             execution_id="exe_0195f3a0000070018231231231231231",
             workflow=workflow,
-            raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": "test"}, language="en", user_id="usr_0195f3a0000070008000000000001234"),
+            raw_inputs=WorkflowInputs(
+                dynamic_inputs={"chat_log": "test"}, language="en", user_id="usr_0195f3a0000070008000000000001234"
+            ),
         )
 
     # Assert language is passed in global_context_vars

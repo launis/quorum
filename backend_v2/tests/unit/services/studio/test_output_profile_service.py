@@ -151,7 +151,7 @@ async def test_list_output_profiles_root_and_tenant(service: StudioOutputProfile
         "prf_0195f3a0000070008000111111111111",
         "opt_1",
         "wf_0195f3a0000070008000000000000001",
-        "org_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000010",
         "P1",
     )
     p2 = _make_valid_profile(
@@ -171,7 +171,7 @@ async def test_list_output_profiles_root_and_tenant(service: StudioOutputProfile
     tenant_user = TokenData(
         id="tenant_user",
         role=UserRole.ADMIN,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
     )
     res_tenant = await service.list_output_profiles(tenant_user)
     assert len(res_tenant) == 1
@@ -184,13 +184,13 @@ async def test_get_output_profile_success_and_not_found(service: StudioOutputPro
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
     )
     p1 = _make_valid_profile(
         "prf_0195f3a0000070008000111111111111",
         "opt_1",
         "wf_0195f3a0000070008000000000000001",
-        "org_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000010",
         "P1",
     )
     await service.output_profile_repo.create_output_profile(p1)
@@ -208,13 +208,13 @@ async def test_delete_output_profile(service: StudioOutputProfileService) -> Non
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
     )
     p1 = _make_valid_profile(
         "prf_0195f3a0000070008000111111111111",
         "opt_1",
         "wf_0195f3a0000070008000000000000001",
-        "org_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000010",
         "P1",
     )
     await service.output_profile_repo.create_output_profile(p1)
@@ -230,7 +230,7 @@ async def test_delete_output_profile_blocked_by_workflow_default_raises_app_exce
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
     )
     profile_id = "prf_0195f3a0000070008000111111111111"
     workflow_id = "wf_0195f3a0000070008000000000000001"
@@ -238,7 +238,7 @@ async def test_delete_output_profile_blocked_by_workflow_default_raises_app_exce
         profile_id,
         "opt_1",
         workflow_id,
-        "org_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000010",
         "P1",
     )
     await service.output_profile_repo.create_output_profile(p1)
@@ -250,7 +250,7 @@ async def test_delete_output_profile_blocked_by_workflow_default_raises_app_exce
         description=I18nText(translations={"en": "Desc"}),
         status="active",
         version=1,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
         expected_inputs=[],
         steps=[],
         default_profile_id=profile_id,
@@ -277,7 +277,7 @@ async def test_create_and_clone_output_profile(
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
     )
 
     workflow = AsyncMock()
@@ -298,7 +298,7 @@ async def test_create_and_clone_output_profile(
         "prf_0195f3a0000070008000111111111111",
         "opt_1",
         "wf_0195f3a00000700080001234567890ab",
-        "org_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000010",
         "Original",
     )
     await service.output_profile_repo.create_output_profile(p1)
@@ -333,7 +333,7 @@ async def test_output_profile_service_not_found_branches(service: StudioOutputPr
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
     )
 
     with pytest.raises(AppException) as exc_info:
@@ -353,7 +353,7 @@ async def test_save_output_profile_invalid_target_component_raises_app_exception
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
     )
 
     workflow = AsyncMock()
@@ -373,7 +373,7 @@ async def test_save_output_profile_invalid_target_component_raises_app_exception
         "prf_0195f3a0000070008000111111111111",
         "opt_1",
         "wf_0195f3a00000700080001234567890ab",
-        "org_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000010",
         "Test",
     )
     profile = profile.model_copy(update={"matrix_synthesis_groups": [group]})
@@ -393,7 +393,7 @@ async def test_create_output_profile_draft_raises_when_no_workflows(
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
     )
     mock_workflow_service.list_workflows.return_value = []
 
@@ -410,7 +410,7 @@ async def test_create_output_profile_draft_workflow_with_no_prompt_blocks_assign
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
     )
 
     workflow = AsyncMock()
@@ -434,7 +434,7 @@ async def test_save_output_profile_normalizes_mismatched_id_in_place(
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
     )
 
     workflow = AsyncMock()
@@ -449,7 +449,7 @@ async def test_save_output_profile_normalizes_mismatched_id_in_place(
         "prf_0195f3a0000070008000aaaaaaaaaaaa",
         "opt_1",
         "wf_0195f3a00000700080001234567890ab",
-        "org_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000010",
         "Mismatched",
     )
     target_id = "prf_0195f3a0000070008000bbbbbbbbbbbb"
@@ -471,7 +471,7 @@ async def test_save_output_profile_raises_when_missing_after_save(
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
     )
 
     workflow = AsyncMock()
@@ -486,7 +486,7 @@ async def test_save_output_profile_raises_when_missing_after_save(
         "prf_0195f3a0000070008000111111111111",
         "opt_1",
         "wf_0195f3a00000700080001234567890ab",
-        "org_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000010",
         "Test",
     )
     mock_output_profile_repo.inject_fault(
@@ -600,7 +600,7 @@ async def test_save_output_profile_rejects_stale_variance_target_block_with_vali
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
     )
 
     workflow = AsyncMock()
@@ -615,7 +615,7 @@ async def test_save_output_profile_rejects_stale_variance_target_block_with_vali
         "prf_0195f3a0000070008000111111111111",
         "opt_1",
         "wf_0195f3a00000700080001234567890ab",
-        "org_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000010",
         "Test",
     ).model_copy(update={"variance_target_block": "blk_01960000000070008000000000000099"})
 
@@ -634,7 +634,7 @@ async def test_save_output_profile_rejects_stale_user_role_target_block_with_val
     initiator = TokenData(
         id="test_user",
         role=UserRole.ADMIN,
-        organization_id="org_0195f3a0000070008000000000000001",
+        organization_id="org_0195f3a0000070008000000000000010",
     )
 
     workflow = AsyncMock()
@@ -649,7 +649,7 @@ async def test_save_output_profile_rejects_stale_user_role_target_block_with_val
         "prf_0195f3a0000070008000111111111111",
         "opt_1",
         "wf_0195f3a00000700080001234567890ab",
-        "org_0195f3a0000070008000000000000001",
+        "org_0195f3a0000070008000000000000010",
         "Test",
     ).model_copy(update={"user_role_target_block": "blk_01960000000070008000000000000098"})
 

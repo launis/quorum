@@ -731,15 +731,15 @@ class InMemoryEntityAdapter:
                 return item
         return None
 
-    async def list_organizations(self) -> Sequence[Organization]:
+    async def list_organizations(self) -> list[Organization]:
         """List all persisted Organization entities.
 
         Returns:
-            Sequence of Organization domain models.
+            List of Organization domain models.
         """
         orgs = [item for item in self._store.seed_tables["organizations"].values() if isinstance(item, Organization)]
         orgs.sort(key=lambda o: o.id)
-        return tuple(orgs)
+        return orgs
 
     async def upsert_user(self, user: User) -> str:
         """Upsert a User entity in memory.
@@ -751,7 +751,8 @@ class InMemoryEntityAdapter:
             Canonical usr_<uuid7_hex> user identifier.
         """
         _ = parse_prefixed_uuid7(user.id, EntityPrefix.USER)
-        _ = parse_prefixed_uuid7(user.organization_id, EntityPrefix.ORG)
+        if user.organization_id is not None:
+            _ = parse_prefixed_uuid7(user.organization_id, EntityPrefix.ORG)
         self._store.seed_tables["users"][user.id] = user
         return user.id
 
@@ -771,14 +772,14 @@ class InMemoryEntityAdapter:
                 return item
         return None
 
-    async def list_users(self, organization_id: str | None = None) -> Sequence[User]:
+    async def list_users(self, organization_id: str | None = None) -> list[User]:
         """List persisted User entities, optionally filtered by organization_id.
 
         Args:
             organization_id: Optional org_<uuid7_hex> organization filter.
 
         Returns:
-            Sequence of User domain models.
+            List of User domain models.
         """
         if organization_id is not None:
             _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORG)
@@ -788,7 +789,7 @@ class InMemoryEntityAdapter:
             if isinstance(item, User) and (organization_id is None or item.organization_id == organization_id)
         ]
         users.sort(key=lambda u: u.id)
-        return tuple(users)
+        return users
 
     async def upsert_invitation(self, invitation: Invitation) -> str:
         """Upsert an Invitation entity in memory.
@@ -820,14 +821,14 @@ class InMemoryEntityAdapter:
                 return item
         return None
 
-    async def list_invitations(self, organization_id: str | None = None) -> Sequence[Invitation]:
+    async def list_invitations(self, organization_id: str | None = None) -> list[Invitation]:
         """List persisted Invitation entities, optionally filtered by organization_id.
 
         Args:
             organization_id: Optional org_<uuid7_hex> organization filter.
 
         Returns:
-            Sequence of Invitation domain models.
+            List of Invitation domain models.
         """
         if organization_id is not None:
             _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORG)
@@ -837,7 +838,7 @@ class InMemoryEntityAdapter:
             if isinstance(item, Invitation) and (organization_id is None or item.organization_id == organization_id)
         ]
         invs.sort(key=lambda i: i.id)
-        return tuple(invs)
+        return invs
 
     async def upsert_tenant_secret(self, secret: TenantSecretDTO) -> str:
         """Upsert a TenantSecretDTO entity in memory.
@@ -869,14 +870,14 @@ class InMemoryEntityAdapter:
                 return item
         return None
 
-    async def list_tenant_secrets(self, organization_id: str | None = None) -> Sequence[TenantSecretDTO]:
+    async def list_tenant_secrets(self, organization_id: str | None = None) -> list[TenantSecretDTO]:
         """List persisted TenantSecretDTO entities, optionally filtered by organization_id.
 
         Args:
             organization_id: Optional org_<uuid7_hex> organization filter.
 
         Returns:
-            Sequence of TenantSecretDTO domain models.
+            List of TenantSecretDTO domain models.
         """
         if organization_id is not None:
             _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORG)
@@ -887,7 +888,7 @@ class InMemoryEntityAdapter:
             and (organization_id is None or item.organization_id == organization_id)
         ]
         secrets.sort(key=lambda s: s.id)
-        return tuple(secrets)
+        return secrets
 
     async def upsert_execution_assignment(self, assignment: ExecutionAssignment) -> str:
         """Upsert an ExecutionAssignment entity in memory.
@@ -922,14 +923,14 @@ class InMemoryEntityAdapter:
     async def list_execution_assignments(
         self,
         organization_id: str | None = None,
-    ) -> Sequence[ExecutionAssignment]:
+    ) -> list[ExecutionAssignment]:
         """List persisted ExecutionAssignment entities, optionally filtered by organization_id.
 
         Args:
             organization_id: Optional org_<uuid7_hex> organization filter.
 
         Returns:
-            Sequence of ExecutionAssignment domain models.
+            List of ExecutionAssignment domain models.
         """
         if organization_id is not None:
             _ = parse_prefixed_uuid7(organization_id, EntityPrefix.ORG)
@@ -940,7 +941,7 @@ class InMemoryEntityAdapter:
             and (organization_id is None or item.organization_id == organization_id)
         ]
         assignments.sort(key=lambda a: a.id)
-        return tuple(assignments)
+        return assignments
 
     async def save_report_binary(self, payload: ReportBinaryPayloadDTO) -> None:
         """Persist a ReportBinaryPayloadDTO in memory and mark report_has_pdf.

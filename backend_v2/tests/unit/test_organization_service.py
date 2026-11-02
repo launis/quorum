@@ -27,7 +27,6 @@ from backend_v2.models.auth import (
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.enums import EntityPrefix, SystemLocale
 from backend_v2.services.auth import (
-
     AuthService,
     OrganizationRepository,
     OrganizationService,
@@ -164,7 +163,10 @@ async def test_auth_service_organization_read_and_update(
     # 1. list_organizations
     root_token = TokenData(id="usr_0195f3a0000070008000000000000102", role=UserRole.ROOT, email="root@test.com")
     member_with_org = TokenData(
-        id="usr_0195f3a0000070008000000000000101", role=UserRole.MEMBER, email="m@test.com", organization_id="org_0195f3a0000070008000000000000202"
+        id="usr_0195f3a0000070008000000000000101",
+        role=UserRole.MEMBER,
+        email="m@test.com",
+        organization_id="org_0195f3a0000070008000000000000202",
     )
     member_no_org = TokenData(
         id="usr_0195f3a0000070008000000000000104", role=UserRole.MEMBER, email="orphan@test.com", organization_id=None
@@ -191,10 +193,14 @@ async def test_auth_service_organization_read_and_update(
 
     # 3. update_organization
     with pytest.raises(PermissionDeniedError):
-        await auth.update_organization(member_with_org, "org_0195f3a0000070008000000000000202", OrganizationUpdateDTO(name="New"))
+        await auth.update_organization(
+            member_with_org, "org_0195f3a0000070008000000000000202", OrganizationUpdateDTO(name="New")
+        )
 
     # Root update with OrganizationUpdateDTO
-    updated = await auth.update_organization(root_token, "org_0195f3a0000070008000000000000202", OrganizationUpdateDTO(name="Updated Name"))
+    updated = await auth.update_organization(
+        root_token, "org_0195f3a0000070008000000000000202", OrganizationUpdateDTO(name="Updated Name")
+    )
     assert updated.id == "org_0195f3a0000070008000000000000202"
 
     # Root update with OrganizationCreate
@@ -261,7 +267,11 @@ async def test_create_organization_non_root_initiator_raises_permission_denied(
 ) -> None:
     """TC-P3-02: Non-ROOT initiator raises PermissionDeniedError when creating organization."""
     auth_service = AuthService(mock_repo)
-    admin_initiator = TokenData(id="usr_0195f3a0000070008000000000000106", role=UserRole.ADMIN, organization_id="org_0195f3a0000070008000000000000206")
+    admin_initiator = TokenData(
+        id="usr_0195f3a0000070008000000000000106",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000206",
+    )
     payload = OrganizationCreate(
         name="Acme Corp",
         admin_email="admin@acme.com",
@@ -361,7 +371,11 @@ async def test_get_organization_same_org_member_success(
         rpm_limit=500,
     )
     await mock_repo.create_organization(test_org)
-    member_initiator = TokenData(id="usr_0195f3a0000070008000000000000107", role=UserRole.MEMBER, organization_id="org_0195f3a0000070008000000000000208")
+    member_initiator = TokenData(
+        id="usr_0195f3a0000070008000000000000107",
+        role=UserRole.MEMBER,
+        organization_id="org_0195f3a0000070008000000000000208",
+    )
 
     org = await auth_service.get_organization(member_initiator, "org_0195f3a0000070008000000000000208")
     assert org.id == "org_0195f3a0000070008000000000000208"
@@ -386,7 +400,11 @@ async def test_get_organization_foreign_org_member_raises_permission_denied(
         rpm_limit=500,
     )
     await mock_repo.create_organization(test_org)
-    foreign_member = TokenData(id="usr_0195f3a0000070008000000000000108", role=UserRole.MEMBER, organization_id="org_0195f3a0000070008000000000000210")
+    foreign_member = TokenData(
+        id="usr_0195f3a0000070008000000000000108",
+        role=UserRole.MEMBER,
+        organization_id="org_0195f3a0000070008000000000000210",
+    )
 
     with pytest.raises(PermissionDeniedError) as exc_info:
         await auth_service.get_organization(foreign_member, "org_0195f3a0000070008000000000000209")
@@ -476,7 +494,11 @@ async def test_list_organizations_tenant_initiator_returns_own_org_only(
     )
     await mock_repo.create_organization(org1)
     await mock_repo.create_organization(org2)
-    admin_initiator = TokenData(id="usr_0195f3a0000070008000000000000109", role=UserRole.ADMIN, organization_id="org_0195f3a0000070008000000000000214")
+    admin_initiator = TokenData(
+        id="usr_0195f3a0000070008000000000000109",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000214",
+    )
 
     orgs = await auth_service.list_organizations(admin_initiator)
     assert len(orgs) == 1
@@ -574,7 +596,11 @@ async def test_update_organization_non_root_initiator_raises_permission_denied(
 ) -> None:
     """TC-P3-13: Non-ROOT initiator raises PermissionDeniedError on update."""
     auth_service = AuthService(mock_repo)
-    admin_initiator = TokenData(id="usr_0195f3a0000070008000000000000109", role=UserRole.ADMIN, organization_id="org_0195f3a0000070008000000000000206")
+    admin_initiator = TokenData(
+        id="usr_0195f3a0000070008000000000000109",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000206",
+    )
     dto = OrganizationUpdateDTO(name="New Name")
 
     with pytest.raises(PermissionDeniedError) as exc_info:
@@ -636,7 +662,11 @@ async def test_delete_organization_non_root_raises_permission_denied(
 ) -> None:
     """TC-P3-16: Non-ROOT user raises PermissionDeniedError on delete organization."""
     auth_service = AuthService(mock_repo)
-    admin_initiator = TokenData(id="usr_0195f3a0000070008000000000000109", role=UserRole.ADMIN, organization_id="org_0195f3a0000070008000000000000206")
+    admin_initiator = TokenData(
+        id="usr_0195f3a0000070008000000000000109",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a0000070008000000000000206",
+    )
 
     with pytest.raises(PermissionDeniedError) as exc_info:
         await auth_service.delete_organization(admin_initiator, "org_0195f3a0000070008000000000000206")

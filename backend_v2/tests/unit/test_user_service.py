@@ -26,7 +26,6 @@ from backend_v2.models.auth import (
 )
 from backend_v2.models.enums import SystemLocale
 from backend_v2.services.auth import (
-
     SYSTEM_ROOT_USER_ID,
     AuthService,
     OrganizationRepository,
@@ -294,7 +293,9 @@ async def test_auth_service_delete_user_branches(
     await mock_repo.create_user(target_member)
 
     # 2. Admin cannot delete users from other organizations
-    target_foreign = target_member.model_copy(update={"id": "usr_0195f3a0000070008000000000000008", "organization_id": "org_0195f3a0000070008000000000000004"})
+    target_foreign = target_member.model_copy(
+        update={"id": "usr_0195f3a0000070008000000000000008", "organization_id": "org_0195f3a0000070008000000000000004"}
+    )
     await mock_repo.create_user(target_foreign)
     with pytest.raises(PermissionDeniedError):
         await auth.delete_user("usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000008")
@@ -381,7 +382,9 @@ async def test_auth_service_update_user_branches(
 
     # 1. Initiator or target not found
     with pytest.raises(AppException) as exc_nf:
-        await auth.update_user("usr_0195f3a0000070008000000000000002", "usr_0195f3a0000070008000000000000007", UserUpdate(name="Name"))
+        await auth.update_user(
+            "usr_0195f3a0000070008000000000000002", "usr_0195f3a0000070008000000000000007", UserUpdate(name="Name")
+        )
     assert exc_nf.value.status_code == 404
 
     # Seed admin_user and member_user
@@ -390,38 +393,60 @@ async def test_auth_service_update_user_branches(
 
     # 2. Self-update: cannot change own role
     with pytest.raises(PermissionDeniedError):
-        await auth.update_user("usr_0195f3a0000070008000000000000007", "usr_0195f3a0000070008000000000000007", UserUpdate(role=UserRole.ADMIN))
+        await auth.update_user(
+            "usr_0195f3a0000070008000000000000007",
+            "usr_0195f3a0000070008000000000000007",
+            UserUpdate(role=UserRole.ADMIN),
+        )
 
     # 3. Cross-org admin update denied
-    foreign_member = member_user.model_copy(update={"id": "usr_0195f3a0000070008000000000000008", "organization_id": "org_0195f3a0000070008000000000000004"})
+    foreign_member = member_user.model_copy(
+        update={"id": "usr_0195f3a0000070008000000000000008", "organization_id": "org_0195f3a0000070008000000000000004"}
+    )
     await mock_repo.create_user(foreign_member)
     with pytest.raises(PermissionDeniedError):
-        await auth.update_user("usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000008", UserUpdate(name="New"))
+        await auth.update_user(
+            "usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000008", UserUpdate(name="New")
+        )
 
     # 4. Member updating other user denied
     with pytest.raises(PermissionDeniedError):
-        await auth.update_user("usr_0195f3a0000070008000000000000007", "usr_0195f3a0000070008000000000000006", UserUpdate(name="New"))
+        await auth.update_user(
+            "usr_0195f3a0000070008000000000000007", "usr_0195f3a0000070008000000000000006", UserUpdate(name="New")
+        )
 
     # 5. Non-root transferring user between orgs denied
     with pytest.raises(PermissionDeniedError):
-        await auth.update_user("usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000007", UserUpdate(organization_id="org_0195f3a0000070008000000000000005"))
+        await auth.update_user(
+            "usr_0195f3a0000070008000000000000006",
+            "usr_0195f3a0000070008000000000000007",
+            UserUpdate(organization_id="org_0195f3a0000070008000000000000005"),
+        )
 
     # 6. Demoting last admin of an organization denied
     # admin_user is currently the only admin in org_test00000001
     root_user = admin_user.model_copy(update={"id": "usr_0195f3a000007000800000000000000a", "role": UserRole.ROOT})
     await mock_repo.create_user(root_user)
     with pytest.raises(ConflictError) as exc_demote:
-        await auth.update_user("usr_0195f3a000007000800000000000000a", "usr_0195f3a0000070008000000000000006", UserUpdate(role=UserRole.MEMBER))
+        await auth.update_user(
+            "usr_0195f3a000007000800000000000000a",
+            "usr_0195f3a0000070008000000000000006",
+            UserUpdate(role=UserRole.MEMBER),
+        )
     assert exc_demote.value.error_code == ErrorCodes.CONFLICT_ERROR
 
     # 7. Update fails on repository level raises 500
     mock_repo.inject_fault("update_user", AppException("Update failed", status_code=500), trigger_count=1)
     with pytest.raises(AppException) as exc_up_fail:
-        await auth.update_user("usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000007", UserUpdate(name="Failing"))
+        await auth.update_user(
+            "usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000007", UserUpdate(name="Failing")
+        )
     assert exc_up_fail.value.status_code == 500
 
     # 8. Successful update with audit logging
-    res = await auth.update_user("usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000007", UserUpdate(name="Updated Name"))
+    res = await auth.update_user(
+        "usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000007", UserUpdate(name="Updated Name")
+    )
     assert res.name == "Updated Name"
     updated_in_store = await mock_repo.get_user("usr_0195f3a0000070008000000000000007")
     assert updated_in_store is not None
@@ -470,7 +495,9 @@ async def test_auth_service_update_user_role_branches(
 
     # 1. Initiator or target not found
     with pytest.raises(AppException) as exc_nf:
-        await auth.update_user_role("usr_0195f3a0000070008000000000000002", "usr_0195f3a0000070008000000000000007", UserRole.MANAGER)
+        await auth.update_user_role(
+            "usr_0195f3a0000070008000000000000002", "usr_0195f3a0000070008000000000000007", UserRole.MANAGER
+        )
     assert exc_nf.value.status_code == 404
 
     # Seed users
@@ -480,31 +507,45 @@ async def test_auth_service_update_user_role_branches(
 
     # 2. Lower role cannot modify higher privilege
     with pytest.raises(PermissionDeniedError):
-        await auth.update_user_role("usr_0195f3a0000070008000000000000007", "usr_0195f3a0000070008000000000000006", UserRole.MEMBER)
+        await auth.update_user_role(
+            "usr_0195f3a0000070008000000000000007", "usr_0195f3a0000070008000000000000006", UserRole.MEMBER
+        )
 
     # 3. Cannot promote to role higher than own
     with pytest.raises(PermissionDeniedError):
-        await auth.update_user_role("usr_0195f3a000007000800000000000000b", "usr_0195f3a0000070008000000000000007", UserRole.ADMIN)
+        await auth.update_user_role(
+            "usr_0195f3a000007000800000000000000b", "usr_0195f3a0000070008000000000000007", UserRole.ADMIN
+        )
 
     # 4. Admin managing user in other organization denied
-    foreign_member = member_user.model_copy(update={"id": "usr_0195f3a000007000800000000000000c", "organization_id": "org_0195f3a0000070008000000000000004"})
+    foreign_member = member_user.model_copy(
+        update={"id": "usr_0195f3a000007000800000000000000c", "organization_id": "org_0195f3a0000070008000000000000004"}
+    )
     await mock_repo.create_user(foreign_member)
     with pytest.raises(PermissionDeniedError):
-        await auth.update_user_role("usr_0195f3a0000070008000000000000006", "usr_0195f3a000007000800000000000000c", UserRole.MANAGER)
+        await auth.update_user_role(
+            "usr_0195f3a0000070008000000000000006", "usr_0195f3a000007000800000000000000c", UserRole.MANAGER
+        )
 
     # 5. Last admin demotion denied
     with pytest.raises(ConflictError) as exc_last_admin:
-        await auth.update_user_role("usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000006", UserRole.MEMBER)
+        await auth.update_user_role(
+            "usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000006", UserRole.MEMBER
+        )
     assert exc_last_admin.value.error_code == ErrorCodes.CONFLICT_ERROR
 
     # 6. Update failure raises 500
     mock_repo.inject_fault("update_user", AppException("Update failed", status_code=500), trigger_count=1)
     with pytest.raises(AppException) as exc_fail:
-        await auth.update_user_role("usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000007", UserRole.MANAGER)
+        await auth.update_user_role(
+            "usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000007", UserRole.MANAGER
+        )
     assert exc_fail.value.status_code == 500
 
     # 7. Successful update
-    res = await auth.update_user_role("usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000007", UserRole.MANAGER)
+    res = await auth.update_user_role(
+        "usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000007", UserRole.MANAGER
+    )
     assert res.role == UserRole.MANAGER
     updated_in_store = await mock_repo.get_user("usr_0195f3a0000070008000000000000007")
     assert updated_in_store is not None
@@ -952,7 +993,11 @@ async def test_get_user_self_fetch_success(
         theme_mode="system",
     )
     await mock_repo.create_user(user)
-    self_token = TokenData(id="usr_0195f3a0000070008000000000000017", role=UserRole.MEMBER, organization_id="org_0195f3a000007000800000000000000e")
+    self_token = TokenData(
+        id="usr_0195f3a0000070008000000000000017",
+        role=UserRole.MEMBER,
+        organization_id="org_0195f3a000007000800000000000000e",
+    )
 
     fetched = await auth_service.get_user(self_token, "usr_0195f3a0000070008000000000000017")
     assert fetched.id == "usr_0195f3a0000070008000000000000017"
@@ -976,7 +1021,11 @@ async def test_get_user_admin_same_org_success(
         theme_mode="system",
     )
     await mock_repo.create_user(user)
-    admin_token = TokenData(id="usr_0195f3a0000070008000000000000019", role=UserRole.ADMIN, organization_id="org_0195f3a000007000800000000000000f")
+    admin_token = TokenData(
+        id="usr_0195f3a0000070008000000000000019",
+        role=UserRole.ADMIN,
+        organization_id="org_0195f3a000007000800000000000000f",
+    )
 
     fetched = await auth_service.get_user(admin_token, "usr_0195f3a0000070008000000000000018")
     assert fetched.id == "usr_0195f3a0000070008000000000000018"
@@ -1000,7 +1049,11 @@ async def test_get_user_foreign_user_raises_permission_denied(
         theme_mode="system",
     )
     await mock_repo.create_user(user)
-    initiator_token = TokenData(id="usr_0195f3a000007000800000000000001b", role=UserRole.MEMBER, organization_id="org_0195f3a0000070008000000000000011")
+    initiator_token = TokenData(
+        id="usr_0195f3a000007000800000000000001b",
+        role=UserRole.MEMBER,
+        organization_id="org_0195f3a0000070008000000000000011",
+    )
 
     with pytest.raises(PermissionDeniedError) as exc_info:
         await auth_service.get_user(initiator_token, "usr_0195f3a000007000800000000000001a")
@@ -1089,7 +1142,11 @@ async def test_list_users_tenant_initiator_returns_own_org_users_only(
     )
     await mock_repo.create_user(u1)
     await mock_repo.create_user(u2)
-    initiator = TokenData(id="usr_0195f3a000007000800000000000001f", role=UserRole.MEMBER, organization_id="org_0195f3a0000070008000000000000014")
+    initiator = TokenData(
+        id="usr_0195f3a000007000800000000000001f",
+        role=UserRole.MEMBER,
+        organization_id="org_0195f3a0000070008000000000000014",
+    )
 
     users = await auth_service.list_users(initiator)
     assert len(users) == 1
@@ -1152,7 +1209,9 @@ async def test_update_user_root_initiator_success(
     await mock_repo.create_user(user)
     await mock_repo.create_user(root)
 
-    updated = await auth_service.update_user("usr_0195f3a0000070008000000000000023", "usr_0195f3a0000070008000000000000022", UserUpdate(name="New Name"))
+    updated = await auth_service.update_user(
+        "usr_0195f3a0000070008000000000000023", "usr_0195f3a0000070008000000000000022", UserUpdate(name="New Name")
+    )
     assert updated.name == "New Name"
     assert mock_audit.log_event.call_count == 1
     call_kwargs = mock_audit.log_event.call_args.kwargs
@@ -1179,7 +1238,9 @@ async def test_update_user_self_update_non_role_fields_success(
     await mock_repo.create_user(user)
 
     updated = await auth_service.update_user(
-        "usr_0195f3a0000070008000000000000024", "usr_0195f3a0000070008000000000000024", UserUpdate(language=SystemLocale.FI)
+        "usr_0195f3a0000070008000000000000024",
+        "usr_0195f3a0000070008000000000000024",
+        UserUpdate(language=SystemLocale.FI),
     )
     assert updated.language == SystemLocale.FI
 
@@ -1204,7 +1265,11 @@ async def test_update_user_self_update_role_raises_permission_denied(
     await mock_repo.create_user(user)
 
     with pytest.raises(PermissionDeniedError) as exc_info:
-        await auth_service.update_user("usr_0195f3a0000070008000000000000025", "usr_0195f3a0000070008000000000000025", UserUpdate(role=UserRole.ADMIN))
+        await auth_service.update_user(
+            "usr_0195f3a0000070008000000000000025",
+            "usr_0195f3a0000070008000000000000025",
+            UserUpdate(role=UserRole.ADMIN),
+        )
     assert "Users cannot change their own role." in str(exc_info.value)
 
 
@@ -1240,7 +1305,9 @@ async def test_update_user_admin_foreign_org_raises_permission_denied(
     await mock_repo.create_user(target)
 
     with pytest.raises(PermissionDeniedError) as exc_info:
-        await auth_service.update_user("usr_0195f3a0000070008000000000000026", "usr_0195f3a0000070008000000000000027", UserUpdate(name="Hacked"))
+        await auth_service.update_user(
+            "usr_0195f3a0000070008000000000000026", "usr_0195f3a0000070008000000000000027", UserUpdate(name="Hacked")
+        )
     assert "Cannot update users from other organizations" in str(exc_info.value)
 
 
@@ -1277,7 +1344,9 @@ async def test_update_user_non_root_transferring_org_raises_permission_denied(
 
     with pytest.raises(PermissionDeniedError) as exc_info:
         await auth_service.update_user(
-            "usr_0195f3a0000070008000000000000028", "usr_0195f3a0000070008000000000000029", UserUpdate(organization_id="org_0195f3a000007000800000000000001d")
+            "usr_0195f3a0000070008000000000000028",
+            "usr_0195f3a0000070008000000000000029",
+            UserUpdate(organization_id="org_0195f3a000007000800000000000001d"),
         )
     assert "Only ROOT can transfer users between organizations." in str(exc_info.value)
 
@@ -1314,7 +1383,11 @@ async def test_update_user_demoting_last_admin_raises_conflict_error(
     await mock_repo.create_user(sole_admin)
 
     with pytest.raises(ConflictError) as exc_info:
-        await auth_service.update_user("usr_0195f3a000007000800000000000002a", "usr_0195f3a000007000800000000000002b", UserUpdate(role=UserRole.MEMBER))
+        await auth_service.update_user(
+            "usr_0195f3a000007000800000000000002a",
+            "usr_0195f3a000007000800000000000002b",
+            UserUpdate(role=UserRole.MEMBER),
+        )
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFLICT_ERROR.value
     assert exc_info.value.details["reason"] == "LAST_ADMIN_PROTECTION"
 
@@ -1351,7 +1424,9 @@ async def test_update_user_role_root_initiator_success(
     await mock_repo.create_user(root)
     await mock_repo.create_user(target)
 
-    updated = await auth_service.update_user_role("usr_0195f3a000007000800000000000002c", "usr_0195f3a000007000800000000000002d", UserRole.MANAGER)
+    updated = await auth_service.update_user_role(
+        "usr_0195f3a000007000800000000000002c", "usr_0195f3a000007000800000000000002d", UserRole.MANAGER
+    )
     assert updated.role == UserRole.MANAGER
     assert mock_audit.log_event.call_count == 1
     call_kwargs = mock_audit.log_event.call_args.kwargs
@@ -1390,7 +1465,9 @@ async def test_update_user_role_lower_hierarchy_modifying_higher_raises_permissi
     await mock_repo.create_user(root)
 
     with pytest.raises(PermissionDeniedError) as exc_info:
-        await auth_service.update_user_role("usr_0195f3a000007000800000000000002e", "usr_0195f3a000007000800000000000002f", UserRole.MEMBER)
+        await auth_service.update_user_role(
+            "usr_0195f3a000007000800000000000002e", "usr_0195f3a000007000800000000000002f", UserRole.MEMBER
+        )
     assert "Cannot modify users with higher or equal privileges." in str(exc_info.value)
 
 
@@ -1426,7 +1503,9 @@ async def test_update_user_role_promoting_above_own_role_raises_permission_denie
     await mock_repo.create_user(member)
 
     with pytest.raises(PermissionDeniedError) as exc_info:
-        await auth_service.update_user_role("usr_0195f3a0000070008000000000000030", "usr_0195f3a0000070008000000000000031", UserRole.ROOT)
+        await auth_service.update_user_role(
+            "usr_0195f3a0000070008000000000000030", "usr_0195f3a0000070008000000000000031", UserRole.ROOT
+        )
     assert "Cannot promote user to a role higher than your own." in str(exc_info.value)
 
 
@@ -1462,7 +1541,9 @@ async def test_update_user_role_admin_modifying_foreign_org_raises_permission_de
     await mock_repo.create_user(target)
 
     with pytest.raises(PermissionDeniedError) as exc_info:
-        await auth_service.update_user_role("usr_0195f3a0000070008000000000000032", "usr_0195f3a0000070008000000000000033", UserRole.MANAGER)
+        await auth_service.update_user_role(
+            "usr_0195f3a0000070008000000000000032", "usr_0195f3a0000070008000000000000033", UserRole.MANAGER
+        )
     assert "Cannot manage users in other organizations." in str(exc_info.value)
 
 
@@ -1498,7 +1579,9 @@ async def test_update_user_role_demoting_last_admin_raises_conflict_error(
     await mock_repo.create_user(admin)
 
     with pytest.raises(ConflictError) as exc_info:
-        await auth_service.update_user_role("usr_0195f3a0000070008000000000000034", "usr_0195f3a0000070008000000000000035", UserRole.MEMBER)
+        await auth_service.update_user_role(
+            "usr_0195f3a0000070008000000000000034", "usr_0195f3a0000070008000000000000035", UserRole.MEMBER
+        )
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFLICT_ERROR.value
     assert exc_info.value.details["reason"] == "LAST_ADMIN_PROTECTION"
 
@@ -1535,7 +1618,9 @@ async def test_delete_user_root_initiator_regular_user_success(
     await mock_repo.create_user(root)
     await mock_repo.create_user(user)
 
-    result = await auth_service.delete_user("usr_0195f3a0000070008000000000000036", "usr_0195f3a0000070008000000000000037")
+    result = await auth_service.delete_user(
+        "usr_0195f3a0000070008000000000000036", "usr_0195f3a0000070008000000000000037"
+    )
     assert result is True
     assert await mock_repo.get_user("usr_0195f3a0000070008000000000000037") is None
     assert mock_audit.log_event.call_count == 1
@@ -1574,7 +1659,9 @@ async def test_delete_user_admin_same_org_success(
     await mock_repo.create_user(admin)
     await mock_repo.create_user(user)
 
-    result = await auth_service.delete_user("usr_0195f3a0000070008000000000000038", "usr_0195f3a0000070008000000000000039")
+    result = await auth_service.delete_user(
+        "usr_0195f3a0000070008000000000000038", "usr_0195f3a0000070008000000000000039"
+    )
     assert result is True
     assert await mock_repo.get_user("usr_0195f3a0000070008000000000000039") is None
 

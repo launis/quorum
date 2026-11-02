@@ -20,8 +20,6 @@ from backend_v2.models.auth import (
 )
 from backend_v2.models.enums import SystemLocale
 from backend_v2.services.auth import (
-
-
     AuthService,
     TokenService,
     UserRepository,
@@ -29,8 +27,15 @@ from backend_v2.services.auth import (
 from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
-JWT_SECRET = get_settings().jwt_secret_key.get_secret_value()
-JWT_ALGORITHM = get_settings().jwt_algorithm
+
+def _jwt_secret() -> str:
+    """Resolve active JWT secret key from Settings."""
+    return get_settings().jwt_secret_key.get_secret_value()
+
+
+def _jwt_algorithm() -> str:
+    """Resolve active JWT signing algorithm from Settings."""
+    return get_settings().jwt_algorithm
 
 
 @pytest.fixture
@@ -134,7 +139,7 @@ async def test_auth_service_verify_token_impersonation_branches(
     assert token_data.role == UserRole.ADMIN
 
     # Missing sub claim
-    bad_token = jwt.encode({"exp": time.time() + 3600}, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    bad_token = jwt.encode({"exp": time.time() + 3600}, _jwt_secret(), algorithm=_jwt_algorithm())
     with pytest.raises(AuthenticationError):
         await auth.verify_token(bad_token)
 
@@ -146,7 +151,9 @@ async def test_auth_service_verify_token_impersonation_branches(
 
     # Expired token
     expired_token = jwt.encode(
-        {"sub": "usr_0195f3a0000070008000000000000101", "exp": time.time() - 3600}, JWT_SECRET, algorithm=JWT_ALGORITHM
+        {"sub": "usr_0195f3a0000070008000000000000101", "exp": time.time() - 3600},
+        _jwt_secret(),
+        algorithm=_jwt_algorithm(),
     )
     with pytest.raises(AuthenticationError) as exc_exp:
         await auth.verify_token(expired_token)
@@ -230,8 +237,10 @@ def test_create_impersonation_token_generates_signed_jwt(
 ) -> None:
     """TC-P2-01: create_impersonation_token returns valid signed JWT with sub and type."""
     token_service = TokenService(repo=UserRepository(mock_repo), use_firebase=False)
-    token = token_service.create_impersonation_token(target_id="usr_0195f3a0000070008000000012345678", duration_seconds=3600)
-    decoded = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+    token = token_service.create_impersonation_token(
+        target_id="usr_0195f3a0000070008000000012345678", duration_seconds=3600
+    )
+    decoded = jwt.decode(token, _jwt_secret(), algorithms=[_jwt_algorithm()])
     assert decoded["sub"] == "usr_0195f3a0000070008000000012345678"
     assert decoded["type"] == "impersonation"
     assert decoded["exp"] > time.time()
@@ -256,7 +265,9 @@ async def test_verify_token_impersonation_token_success(
     )
     await mock_repo.create_user(user)
 
-    token = token_service.create_impersonation_token(target_id="usr_0195f3a0000070008000000000000201", duration_seconds=3600)
+    token = token_service.create_impersonation_token(
+        target_id="usr_0195f3a0000070008000000000000201", duration_seconds=3600
+    )
     token_data = await token_service.verify_token(token)
 
     assert token_data.id == "usr_0195f3a0000070008000000000000201"
@@ -271,7 +282,9 @@ async def test_verify_token_impersonation_missing_sub_raises_authentication_erro
 ) -> None:
     """TC-P2-03: verify_token with signed JWT missing sub raises AUTHENTICATION_FAILED."""
     token_service = TokenService(repo=UserRepository(mock_repo), use_firebase=False)
-    bad_token = jwt.encode({"exp": time.time() + 3600, "type": "impersonation"}, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    bad_token = jwt.encode(
+        {"exp": time.time() + 3600, "type": "impersonation"}, _jwt_secret(), algorithm=_jwt_algorithm()
+    )
 
     with pytest.raises(AuthenticationError) as exc_info:
         await token_service.verify_token(bad_token)
@@ -284,7 +297,9 @@ async def test_verify_token_impersonation_user_not_found_raises_authentication_e
 ) -> None:
     """TC-P2-04: verify_token with sub pointing to non-existent user raises AUTH_TOKEN_EXPIRED."""
     token_service = TokenService(repo=UserRepository(mock_repo), use_firebase=False)
-    token = token_service.create_impersonation_token(target_id="usr_0195f3a0000070008000000000000901", duration_seconds=3600)
+    token = token_service.create_impersonation_token(
+        target_id="usr_0195f3a0000070008000000000000901", duration_seconds=3600
+    )
 
     with pytest.raises(AuthenticationError) as exc_info:
         await token_service.verify_token(token)
@@ -298,9 +313,9 @@ async def test_verify_token_expired_jwt_raises_authentication_error(
     """TC-P2-05: verify_token with expired JWT timestamp raises AUTH_TOKEN_EXPIRED."""
     token_service = TokenService(repo=UserRepository(mock_repo), use_firebase=False)
     expired_token = jwt.encode(
-        {"sub": "usr_0195f3a0000070008000000000000301", "exp": time.time() - 3600, "type": "impersonation"}, JWT_SECRET,
-    
-        algorithm=JWT_ALGORITHM,
+        {"sub": "usr_0195f3a0000070008000000000000301", "exp": time.time() - 3600, "type": "impersonation"},
+        _jwt_secret(),
+        algorithm=_jwt_algorithm(),
     )
 
     with pytest.raises(AuthenticationError) as exc_info:

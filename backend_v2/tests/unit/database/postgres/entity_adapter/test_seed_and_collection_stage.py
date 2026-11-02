@@ -273,7 +273,12 @@ async def test_collection_crud_across_all_canonical_tables(monkeypatch: pytest.M
         assert await get_collection_document_row(conn, _TIMEOUT, "organizations", missing_org_id) is None
 
         # Verify delete for org_system000000 and standard entities
-        assert await delete_collection_document_row(conn, _TIMEOUT, "organizations", "org_0195f3a0000070008000000000000001") is True
+        assert (
+            await delete_collection_document_row(
+                conn, _TIMEOUT, "organizations", "org_0195f3a0000070008000000000000001"
+            )
+            is True
+        )
         assert await delete_collection_document_row(conn, _TIMEOUT, "organizations", org.id) is True
         assert await delete_collection_document_row(conn, _TIMEOUT, "organizations", org.id) is False
 
