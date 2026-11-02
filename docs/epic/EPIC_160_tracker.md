@@ -132,7 +132,7 @@
   - [x] [NEW] @[backend_v2/core/redis_security.py]
   - [x] @[backend_v2/services/usage_service.py]
   - [x] @[backend_v2/llm/provider/litellm_provider.py]
-  - [ ] @[backend_v2/llm/provider/provider_factory.py]
+  - [x] @[backend_v2/llm/provider/provider_factory.py]
   - [ ] @[backend_v2/services/mcp/generic_mcp_client.py]
   - [ ] @[backend_v2/services/mcp/dispatcher.py]
   - [ ] @[backend_v2/api/dependencies.py]
