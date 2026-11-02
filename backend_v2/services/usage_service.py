@@ -262,6 +262,7 @@ class UsageService:
                     ErrorCodes.QUOTA_EXCEEDED.name,
                     msg,
                     extra={"error_code": ErrorCodes.QUOTA_EXCEEDED.value},
+                    exc_info=True,
                 )
                 raise AppException(
                     message=msg,
@@ -284,6 +285,7 @@ class UsageService:
                     ErrorCodes.QUOTA_EXCEEDED.name,
                     msg,
                     extra={"error_code": ErrorCodes.QUOTA_EXCEEDED.value},
+                    exc_info=True,
                 )
                 raise AppException(
                     message=msg,
