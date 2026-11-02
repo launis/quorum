@@ -117,7 +117,7 @@
   - [x] @[backend_v2/database/postgres/entity_adapter/coercion_and_constants.py]
   - [x] @[backend_v2/database/postgres/entity_adapter/iam_and_system_stage.py]
   - [x] @[backend_v2/database/postgres/entity_adapter/seed_and_collection_stage.py]
-  - [ ] @[backend_v2/database/postgres/uow.py]
+  - [x] @[backend_v2/database/postgres/uow.py]
   - [ ] @[backend_v2/database/repositories/identity.py]
   - [ ] @[backend_v2/services/auth/repositories.py]
   - [ ] @[backend_v2/services/auth/token_service.py]
