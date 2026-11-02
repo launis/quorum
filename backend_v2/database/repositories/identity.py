@@ -89,7 +89,7 @@ class IdentityRepositoryImpl(BaseRepository):
         if self._entity_adapter is not None:
             return await self._entity_adapter.get_organization(org_id)
 
-        # Phase 1, Step 1: Use O(1) primary-key lookup instead of full-table scan
+        # Use O(1) primary-key lookup instead of full-table scan.
         raw_org = await self.driver.get("organizations", org_id)
         if raw_org is None:
             return None
@@ -202,7 +202,7 @@ class IdentityRepositoryImpl(BaseRepository):
         if self._entity_adapter is not None:
             return await self._entity_adapter.get_user(user_id)
 
-        # Phase 1, Step 1: Use O(1) primary-key lookup instead of full-table scan
+        # Use O(1) primary-key lookup instead of full-table scan.
         raw_user = await self.driver.get("users", user_id)
         if raw_user is None:
             return None

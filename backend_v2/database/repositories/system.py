@@ -92,7 +92,7 @@ class SystemRepositoryImpl(BaseRepository):
         return await self.driver.delete("system_config", config_id)
 
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
-        """Fetch MCP gateways configuration by ID or fallback to type 'mcp_gateways'.
+        """Fetch MCP gateways configuration by ID or by type 'mcp_gateways'.
 
         Args:
             id: Optional specific system_config ID.
@@ -104,13 +104,14 @@ class SystemRepositoryImpl(BaseRepository):
             ResourceNotFoundError: If the configuration document is not found.
         """
         if id:
-            filters = [Filter("id", "==", id)]
-            target_id = id
-        else:
-            filters = [Filter("type", "==", "mcp_gateways")]
-            target_id = "mcp_gateways"
+            doc = await self.driver.get("system_config", id)
+            if not doc:
+                logger.error("[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: '%s' document is missing.", id)
+                raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+            return SystemConfigMCPGateways.model_validate(doc, strict=False)
 
-        res_list = await self.driver.query("system_config", filters, limit=1)
+        target_id = "mcp_gateways"
+        res_list = await self.driver.query("system_config", [Filter("type", "==", "mcp_gateways")], limit=1)
         if not res_list:
             logger.error("[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: '%s' document is missing.", target_id)
             raise ResourceNotFoundError(resource_type="system_config", resource_id=target_id)

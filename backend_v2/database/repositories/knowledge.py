@@ -87,7 +87,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
         return False
 
     async def get_prompt_template(self, template_id: str) -> PromptTemplateDTO | None:
-        """Retrieve a prompt template by ID.
+        """Retrieve a prompt template by ID via O(1) primary-key lookup.
 
         Args:
             template_id: Unique identifier for the prompt template.
@@ -96,10 +96,6 @@ class KnowledgeRepositoryImpl(BaseRepository):
             The validated PromptTemplateDTO if found, otherwise None.
         """
         res = await self.driver.get("prompts", template_id)
-        if not res:
-            res_list = await self.driver.query("prompts", [Filter("id", "==", template_id)], limit=1)
-            if res_list:
-                res = res_list[0]
         if not res:
             return None
 

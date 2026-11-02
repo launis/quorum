@@ -1,15 +1,18 @@
 """Zero-ORM Strictness & Closed PostgreSQL 19 Topology AST Auditor.
 
 Statically enforces Quorum's All-in-PostgreSQL 19 Zero-ORM invariants across
-backend_v2/database/postgres/, backend_v2/models/domain/proposition_graph.py,
+backend_v2/database/, backend_v2/models/domain/proposition_graph.py,
 and backend_v2/database/migrations/001_pg19_uuidv7_schema.sql:
 - ZORM001: Bans imports of sqlalchemy, alembic, or orjson.
 - ZORM002: Bans untyped dictionary subscript annotations targeting Any/object and dict(r) row unpacking.
 - ZORM003: Bans broad except Exception handlers lacking explicit AppException re-raise.
-- ZORM004: Enforces that SQL CREATE TABLE identifiers belong strictly to the closed 12-table set.
+- ZORM004: Enforces that SQL CREATE TABLE identifiers belong strictly to the closed 15-table set.
 - ZORM005: Bans calling llm_client, execute_structured_task, or execute_chat_task inside database/UoW modules.
 - ZORM006: Enforces that record subscript column keys in graph_adapter.py and entity_adapter.py map 1:1
   to declared domain model fields.
+- ZORM007: Enforces O(1) primary-key lookups (driver.get over Filter('id', '==', ...)), public
+  PostgresUnitOfWork.pool_manager access, mandatory apply_migrations() preflight before
+  verify_schema_tables(), and idempotent ALTER TABLE ... ADD COLUMN IF NOT EXISTS DDL parity.
 """
 
 from __future__ import annotations
@@ -41,6 +44,7 @@ __all__ = [
     "BANNED_LLM_IDENTIFIERS",
     "BANNED_ORM_IMPORTS",
     "CLOSED_POSTGRES_TABLES",
+    "REQUIRED_IDEMPOTENT_ALTER_COLUMNS",
     "ZeroOrmAuditReportDTO",
     "ZeroOrmFindingDTO",
     "ZeroOrmRuleCode",
@@ -312,11 +316,29 @@ _CREATE_TABLE_REGEX = re.compile(
     re.IGNORECASE,
 )
 
-# Ban TEXT primary keys across the 12-table PostgreSQL 19 topology
+_CREATE_TABLE_BLOCK_REGEX = re.compile(
+    r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)\s*\(([\s\S]*?)\)\s*;",
+    re.IGNORECASE,
+)
+
+_ALTER_ADD_COLUMN_REGEX = re.compile(
+    r"ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:[a-zA-Z0-9_]+\.)?([a-zA-Z0-9_]+)\s+"
+    r"ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+([a-zA-Z0-9_]+)",
+    re.IGNORECASE,
+)
+
+# Ban TEXT primary keys across the 15-table PostgreSQL 19 topology
 _BANNED_TEXT_PK_REGEX = re.compile(
     r"\bid\s+TEXT\s+PRIMARY\s+KEY\b",
     re.IGNORECASE,
 )
+
+# Evolved columns in 001_pg19_uuidv7_schema.sql that must maintain idempotent ALTER TABLE ADD COLUMN IF NOT EXISTS
+REQUIRED_IDEMPOTENT_ALTER_COLUMNS: dict[str, frozenset[str]] = {
+    "organizations": frozenset({"allowed_email_domains"}),
+    "users": frozenset({"firebase_uid", "deleted_at"}),
+    "executions": frozenset({"state_version"}),
+}
 
 
 class ZeroOrmRuleCode(StrEnum):
@@ -326,9 +348,11 @@ class ZeroOrmRuleCode(StrEnum):
         ZORM001: Bans imports of sqlalchemy, alembic, or orjson.
         ZORM002: Bans untyped mapping annotations and dict(r) record unpacking.
         ZORM003: Bans broad except Exception handlers without AppException re-raise.
-        ZORM004: Enforces closed 12-table PostgreSQL DDL topology.
+        ZORM004: Enforces closed 15-table PostgreSQL DDL topology.
         ZORM005: Bans LLM client or task execution calls inside database/UoW modules.
         ZORM006: Enforces 1:1 column subscript parity in database adapters.
+        ZORM007: Enforces O(1) PK lookups, public UoW pool_manager property, preflight apply_migrations(),
+            and idempotent ALTER TABLE ADD COLUMN IF NOT EXISTS schema evolution parity.
     """
 
     ZORM001 = "ZORM001"
@@ -337,6 +361,7 @@ class ZeroOrmRuleCode(StrEnum):
     ZORM004 = "ZORM004"
     ZORM005 = "ZORM005"
     ZORM006 = "ZORM006"
+    ZORM007 = "ZORM007"
 
 
 class ZeroOrmFindingDTO(BaseModel):
@@ -386,26 +411,36 @@ class ZeroOrmAuditReportDTO(BaseModel):
 
 
 class _ZeroOrmAstVisitor(ast.NodeVisitor):
-    """AST node visitor enforcing ZORM001, ZORM002, ZORM003, ZORM005, and ZORM006.
+    """AST node visitor enforcing ZORM001, ZORM002, ZORM003, ZORM005, ZORM006, and ZORM007.
 
     Attributes:
         filepath: String representation of the file being visited.
         is_adapter_file: Whether the file is graph_adapter.py or entity_adapter.py.
         is_db_scope: Whether database/UoW-specific rules (ZORM002, ZORM003, ZORM005) apply.
+        is_uow_file: Whether the file is uow.py (allowed to access self._pool_manager).
         findings: List of ZeroOrmFindingDTO instances collected during traversal.
     """
 
-    def __init__(self, filepath: str, is_adapter_file: bool, is_db_scope: bool = True) -> None:
+    def __init__(
+        self,
+        filepath: str,
+        is_adapter_file: bool,
+        is_db_scope: bool = True,
+        *,
+        is_uow_file: bool = False,
+    ) -> None:
         """Initialize the AST visitor for a target Python source file.
 
         Args:
             filepath: File path string for diagnostic reporting.
             is_adapter_file: True if checking SQL column subscript parity (ZORM006).
             is_db_scope: True if enforcing database/UoW-specific rules (ZORM002, ZORM003, ZORM005).
+            is_uow_file: True if visiting uow.py where _pool_manager is defined.
         """
         self.filepath = filepath
         self.is_adapter_file = is_adapter_file
         self.is_db_scope = is_db_scope
+        self.is_uow_file = is_uow_file
         self.findings: list[ZeroOrmFindingDTO] = []
         self._in_finally: bool = False
 
@@ -493,8 +528,62 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
                 )
         self.generic_visit(node)
 
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        """Inspect attribute access for ZORM007 private _pool_manager usage outside uow.py.
+
+        Args:
+            node: AST Attribute node.
+        """
+        if not self.is_uow_file and node.attr == "_pool_manager":
+            if not (isinstance(node.value, ast.Name) and node.value.id == "self"):
+                self._record(
+                    node.lineno,
+                    ZeroOrmRuleCode.ZORM007,
+                    "Direct access to private attribute '._pool_manager' is banned; use public '.pool_manager' property.",
+                )
+        self.generic_visit(node)
+
+    def _check_function_preflight_migrations(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        """Verify that any function calling verify_schema_tables() also calls apply_migrations() (ZORM007).
+
+        Args:
+            node: AST FunctionDef or AsyncFunctionDef node.
+        """
+        verify_calls: list[int] = []
+        has_apply_migrations = False
+        for sub in ast.walk(node):
+            if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute):
+                if sub.func.attr == "verify_schema_tables":
+                    verify_calls.append(sub.lineno)
+                elif sub.func.attr == "apply_migrations":
+                    has_apply_migrations = True
+        if verify_calls and not has_apply_migrations:
+            self._record(
+                verify_calls[0],
+                ZeroOrmRuleCode.ZORM007,
+                f"Function '{node.name}' calls 'verify_schema_tables()' without executing 'apply_migrations()' preflight.",
+            )
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        """Inspect synchronous functions for ZORM007 preflight migration ordering.
+
+        Args:
+            node: AST FunctionDef node.
+        """
+        self._check_function_preflight_migrations(node)
+        self.generic_visit(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        """Inspect asynchronous functions for ZORM007 preflight migration ordering.
+
+        Args:
+            node: AST AsyncFunctionDef node.
+        """
+        self._check_function_preflight_migrations(node)
+        self.generic_visit(node)
+
     def visit_Call(self, node: ast.Call) -> None:
-        """Inspect function calls for ZORM002 dict(row) unpacking and ZORM005 LLM invocations.
+        """Inspect function calls for ZORM002 dict(row) unpacking, ZORM005 LLM invocations, and ZORM007 PK Filter('id').
 
         Args:
             node: AST Call node.
@@ -513,6 +602,22 @@ class _ZeroOrmAstVisitor(ast.NodeVisitor):
                         ZeroOrmRuleCode.ZORM005,
                         f"Banned LLM call '{node.func.id}' inside database/UoW layer violates Post-Wave Atomic Commit.",
                     )
+                if (
+                    node.func.id in {"Filter", "QueryCondition"}
+                    and len(node.args) >= 2
+                    and isinstance(node.args[0], ast.Constant)
+                    and node.args[0].value == "id"
+                ):
+                    op_node = node.args[1]
+                    is_eq = (isinstance(op_node, ast.Constant) and op_node.value == "==") or (
+                        isinstance(op_node, ast.Attribute) and op_node.attr == "EQ"
+                    )
+                    if is_eq:
+                        self._record(
+                            node.lineno,
+                            ZeroOrmRuleCode.ZORM007,
+                            f"Primary-key equality filter {node.func.id}('id', '==', ...) is banned; use O(1) await self.driver.get(collection, entity_id).",
+                        )
             elif isinstance(node.func, ast.Attribute):
                 if node.func.attr in BANNED_LLM_IDENTIFIERS:
                     self._record(
@@ -596,6 +701,7 @@ def audit_python_file(filepath: Path, *, is_db_scope: bool = True) -> list[ZeroO
         filepath=str(filepath),
         is_adapter_file=is_adapter,
         is_db_scope=is_db_scope,
+        is_uow_file=filepath.name == "uow.py",
     )
     visitor.visit(tree)
     return visitor.findings
@@ -623,8 +729,31 @@ def _strip_sql_comments(sql_text: str) -> str:
     return _SQL_STRING_OR_COMMENT_REGEX.sub(_replace_match, sql_text)
 
 
+def _extract_create_table_columns(table_body: str) -> set[str]:
+    """Extract declared column identifiers from a SQL CREATE TABLE body.
+
+    Args:
+        table_body: Inner text between '(' and ');' of a CREATE TABLE statement.
+
+    Returns:
+        Set of lowercase column names declared in the table.
+    """
+    columns: set[str] = set()
+    for raw_line in table_body.splitlines():
+        stripped = raw_line.strip().rstrip(",")
+        if not stripped:
+            continue
+        first_token = stripped.split()[0].upper()
+        if first_token in {"CONSTRAINT", "PRIMARY", "FOREIGN", "UNIQUE", "CHECK"}:
+            continue
+        col_match = re.match(r"^([a-zA-Z_][a-zA-Z0-9_]*)\b", stripped)
+        if col_match is not None:
+            columns.add(col_match.group(1).lower())
+    return columns
+
+
 def audit_sql_migration_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
-    """Audit a SQL DDL migration file across full multi-line source against rule ZORM004.
+    """Audit a SQL DDL migration file across full multi-line source against ZORM004 and ZORM007.
 
     Args:
         filepath: Path to the SQL DDL file.
@@ -646,7 +775,7 @@ def audit_sql_migration_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
                     lineno=lineno,
                     rule_code=ZeroOrmRuleCode.ZORM004,
                     message=(
-                        f"Table '{table_name}' is outside the closed 12-table PostgreSQL topology: "
+                        f"Table '{table_name}' is outside the closed 15-table PostgreSQL topology: "
                         f"{sorted(CLOSED_POSTGRES_TABLES)}."
                     ),
                 )
@@ -660,11 +789,57 @@ def audit_sql_migration_file(filepath: Path) -> list[ZeroOrmFindingDTO]:
                 lineno=lineno,
                 rule_code=ZeroOrmRuleCode.ZORM004,
                 message=(
-                    "SQL table declares 'id TEXT PRIMARY KEY'; all 12 PostgreSQL 19 tables "
+                    "SQL table declares 'id TEXT PRIMARY KEY'; all 15 PostgreSQL 19 tables "
                     "must use 'id UUID PRIMARY KEY DEFAULT uuidv7()'."
                 ),
             )
         )
+
+    # ZORM007: Verify CREATE TABLE <-> ALTER TABLE ADD COLUMN IF NOT EXISTS schema evolution parity
+    table_columns: dict[str, set[str]] = {}
+    table_linenos: dict[str, int] = {}
+    for block_match in _CREATE_TABLE_BLOCK_REGEX.finditer(uncommented):
+        t_name = block_match.group(1).lower()
+        table_columns[t_name] = _extract_create_table_columns(block_match.group(2))
+        table_linenos[t_name] = content.count("\n", 0, block_match.start()) + 1
+
+    alter_columns_by_table: dict[str, set[str]] = {}
+    for alter_match in _ALTER_ADD_COLUMN_REGEX.finditer(uncommented):
+        t_name = alter_match.group(1).lower()
+        c_name = alter_match.group(2).lower()
+        alter_columns_by_table.setdefault(t_name, set()).add(c_name)
+        lineno = content.count("\n", 0, alter_match.start()) + 1
+        if t_name in table_columns and c_name not in table_columns[t_name]:
+            findings.append(
+                ZeroOrmFindingDTO(
+                    filepath=str(filepath),
+                    lineno=lineno,
+                    rule_code=ZeroOrmRuleCode.ZORM007,
+                    message=(
+                        f"Column '{c_name}' in 'ALTER TABLE {t_name} ADD COLUMN IF NOT EXISTS' is missing "
+                        f"from 'CREATE TABLE IF NOT EXISTS {t_name}'."
+                    ),
+                )
+            )
+
+    # When auditing the full canonical schema (containing organizations, users, and executions),
+    # ensure all required evolved columns retain their idempotent ALTER TABLE ADD COLUMN IF NOT EXISTS statements.
+    if REQUIRED_IDEMPOTENT_ALTER_COLUMNS.keys() <= table_columns.keys():
+        for req_table, req_cols in REQUIRED_IDEMPOTENT_ALTER_COLUMNS.items():
+            present_alters = alter_columns_by_table.get(req_table, set())
+            for req_col in sorted(req_cols):
+                if req_col in table_columns[req_table] and req_col not in present_alters:
+                    findings.append(
+                        ZeroOrmFindingDTO(
+                            filepath=str(filepath),
+                            lineno=table_linenos[req_table],
+                            rule_code=ZeroOrmRuleCode.ZORM007,
+                            message=(
+                                f"Evolved column '{req_table}.{req_col}' in CREATE TABLE IF NOT EXISTS "
+                                f"is missing idempotent 'ALTER TABLE {req_table} ADD COLUMN IF NOT EXISTS {req_col}'."
+                            ),
+                        )
+                    )
 
     findings.sort(key=lambda f: f.lineno)
     return findings

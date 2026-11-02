@@ -179,3 +179,64 @@ def test_try_else_traversal_and_dto_boundary_validation(tmp_path: Path) -> None:
             scanned_files=-1,
             findings=(),
         )
+
+
+def test_zorm007_primary_key_filter_and_private_pool_manager_and_preflight(tmp_path: Path) -> None:
+    """Verify ZORM007 detects Filter('id', '==', ...), private ._pool_manager access, and missing apply_migrations()."""
+    bad_repo = tmp_path / "identity.py"
+    bad_repo.write_text(
+        "async def get_user(driver: object, uow: object, user_id: str) -> None:\n"
+        "    await driver.query('users', [Filter('id', '==', user_id)], limit=1)\n"
+        "    await uow._pool_manager.verify_schema_tables()\n",
+        encoding="utf-8",
+    )
+    findings = audit_python_file(bad_repo)
+    zorm007_msgs = [f.message for f in findings if f.rule_code == ZeroOrmRuleCode.ZORM007]
+    assert len(zorm007_msgs) == 3
+    assert any("Filter('id', '==', ...)" in m for m in zorm007_msgs)
+    assert any("._pool_manager" in m for m in zorm007_msgs)
+    assert any("verify_schema_tables()" in m for m in zorm007_msgs)
+
+
+def test_zorm007_compliant_preflight_and_sql_alter_column_parity(tmp_path: Path) -> None:
+    """Verify ZORM007 passes when apply_migrations() precedes verify_schema_tables() and catches SQL DDL evolution drift."""
+    good_preflight = tmp_path / "main.py"
+    good_preflight.write_text(
+        "async def preflight(uow: object) -> None:\n"
+        "    await uow.pool_manager.apply_migrations()\n"
+        "    await uow.pool_manager.verify_schema_tables()\n",
+        encoding="utf-8",
+    )
+    assert audit_python_file(good_preflight) == []
+
+    # Case 1: ALTER TABLE adds a column that is missing from CREATE TABLE
+    drift_sql = tmp_path / "drift_schema.sql"
+    drift_sql.write_text(
+        "CREATE TABLE IF NOT EXISTS users (\n    id UUID PRIMARY KEY DEFAULT uuidv7()\n);\n"
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS orphan_col TEXT;\n",
+        encoding="utf-8",
+    )
+    sql_findings = audit_sql_migration_file(drift_sql)
+    assert any(f.rule_code == ZeroOrmRuleCode.ZORM007 and "orphan_col" in f.message for f in sql_findings)
+
+    # Case 2: Canonical 3-table subset missing required idempotent ALTER TABLE ADD COLUMN IF NOT EXISTS
+    missing_alter_sql = tmp_path / "missing_alter.sql"
+    missing_alter_sql.write_text(
+        "CREATE TABLE IF NOT EXISTS organizations (\n"
+        "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
+        "    allowed_email_domains JSONB NOT NULL DEFAULT '[]'::jsonb\n"
+        ");\n"
+        "CREATE TABLE IF NOT EXISTS users (\n"
+        "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
+        "    firebase_uid VARCHAR(128) UNIQUE,\n"
+        "    deleted_at TIMESTAMPTZ\n"
+        ");\n"
+        "CREATE TABLE IF NOT EXISTS executions (\n"
+        "    id UUID PRIMARY KEY DEFAULT uuidv7(),\n"
+        "    state_version INTEGER NOT NULL DEFAULT 1\n"
+        ");\n",
+        encoding="utf-8",
+    )
+    missing_findings = audit_sql_migration_file(missing_alter_sql)
+    zorm007_sql = [f for f in missing_findings if f.rule_code == ZeroOrmRuleCode.ZORM007]
+    assert len(zorm007_sql) == 4

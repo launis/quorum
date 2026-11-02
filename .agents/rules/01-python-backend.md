@@ -107,6 +107,10 @@
     <rule_block id="direct_id_relational_mandate">
         <mandate>NEVER use `startswith`/`endswith` string checks, negative exclusion patterns (`not k.startswith(...)`, `not val.startswith("$")`), or substring lookups for entity resolution, relational traversal, or context filtering. NEVER maintain heterogeneous string collections or bags where database IDs (`blk_...`, `sr_...`) share a single collection with system enums (`glb_...`) or background worker keys (`sys_...`). ALL entity targeting and validation MUST use positive set membership checks against canonical ID collections (`k in valid_id_set`), typed separated collections (`prompt_block_ids: set[str]`, `system_targets: set[TargetBlockType]`), and strongly typed Pydantic DTOs.</mandate>
     </rule_block>
+
+    <rule_block id="primary_key_lookup_o1_mandate">
+        <mandate>NEVER retrieve a single record by its primary key (`id`) using `self.driver.query(collection, [Filter("id", "==", entity_id)], limit=1)` or `QueryCondition("id", FilterOperator.EQ, ...)` inside repository implementations. `.query()` executes full-projection list SQL (`_LIST_*_SQL`) or $O(N)$ collection scans. ALL single-entity primary-key lookups in `backend_v2/database/repositories/` MUST exclusively invoke `await self.driver.get(collection, entity_id)` ($O(1)$ indexed primary-key lookup, enforced by `ZORM007`).</mandate>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>
@@ -496,6 +500,12 @@
         2) **PostgreSQL (`backend_v2/database/`)**: Pure Zero-ORM storage, transaction, and graph engine (`asyncpg`, `$1, $2` parameterized SQL) implementing `backend_v2/database/interfaces.py` (`typing.Protocol`); NEVER import upward from `backend_v2.hooks`, `backend_v2.api`, `backend_v2.workers`, or `backend_v2.services` (excluding blob storage driver `backend_v2.services.storage`).
         3) **Python Business Logic & Routing (`backend_v2/services/`, `backend_v2/hooks/`, `backend_v2/api/routers/`)**: Pure domain computation and orchestration; MUST interact with persistence exclusively via `backend_v2.database.interfaces` (`typing.Protocol`) and NEVER directly import `asyncpg` or concrete `backend_v2.database.(postgres|in_memory|repositories|repository|driver|factory)` modules.</mandate>
     </rule_block>
+
+    <rule_block id="zero_orm_ddl_column_evolution_and_preflight_mandate">
+        <mandate>Enforce Zero-ORM PostgreSQL 19 Schema Evolution & Preflight Migration Integrity across the closed 15-table topology (`001_pg19_uuidv7_schema.sql`):
+        1) **Idempotent Column Evolution (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`)**: Adding a column solely inside `CREATE TABLE IF NOT EXISTS` is a silent no-op on pre-existing databases. Every evolved column added to an existing table MUST be declared both in `CREATE TABLE IF NOT EXISTS` (for fresh installations) AND in an idempotent `ALTER TABLE <table> ADD COLUMN IF NOT EXISTS <column> <type>;` statement (`ZORM007`).
+        2) **Mandatory Pre-Flight Migration Execution**: Every entrypoint initializing or seeding PostgreSQL (`main.py:_validate_database_preflight`, `run_seed.py:_seed_postgres`, `worker.py`) MUST execute `await resolved_uow.pool_manager.apply_migrations()` via the public `PostgresUnitOfWork.pool_manager` property BEFORE calling `verify_schema_tables()` or executing queries. Direct external access to private `._pool_manager` is strictly prohibited (`ZORM007`).</mandate>
+    </rule_block>
 </architectural_invariants>
 
 <agentic_safety_guardrails>
@@ -516,6 +526,6 @@
     </rule_block>
 
     <rule_block id="backend_quality_gate_delegation">
-        <mandate>NEVER run generic pytest without the global audit script. If you modify `.py` files, you MUST run: `uv run python scripts/backend_audit_loop.py <target_path> --test` after every single code mutation.</mandate>
+        <mandate>NEVER run generic pytest without the global audit script. If you modify `.py` files, you MUST run: `uv run python scripts/backend_audit_loop.py <target_path> --test` after every single code mutation. When modifying unit or integration test files (`backend_v2/tests/...`), you MUST also pass the modified test file path directly to `backend_audit_loop.py` so `mypy --strict` validates test fixture constructors despite `pyproject.toml` directory exclusions.</mandate>
     </rule_block>
 </agentic_safety_guardrails>

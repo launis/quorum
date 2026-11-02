@@ -73,7 +73,11 @@
     </rule_block>
 
     <rule_block id="async_build_context_mounted_ban">
-        <mandate>NEVER use `BuildContext` (`ScaffoldMessenger.of(context)`, `GoRouter.of(context)`, `Theme.of(context)`) after an asynchronous gap (`await`) without verifying widget mounting. ALWAYS check `if (!context.mounted) return;` immediately after ANY `await` call before interacting with `BuildContext`.</mandate>
+        <mandate>NEVER use `BuildContext` (`ScaffoldMessenger.of(context)`, `GoRouter.of(context)`, `Theme.of(context)`), mutate `flutter_hooks` `useState` `ValueNotifier` instances (`state.value = ...`), or invoke side-effect callbacks (`onSuccess`, `onError`) after an asynchronous gap (`await`) without verifying widget mounting. NEVER call the deprecated `useIsMounted()` hook (`deprecated_member_use` in Flutter 3.7+). In custom hooks (`useMutation`) and `HookConsumerWidget` classes, ALWAYS capture `final context = useContext();` (or `BuildContext context`) before `await` and check `if (!context.mounted) return ...;` immediately after EVERY `await` call before mutating hook `ValueNotifier` state or interacting with `BuildContext`.</mandate>
+    </rule_block>
+
+    <rule_block id="go_router_refresh_listenable_mandate">
+        <mandate>NEVER call `ref.watch(...)` on dynamic async state providers (`authControllerProvider`) directly inside `@Riverpod(keepAlive: true) GoRouter router(Ref ref)`, as doing so disposes and recreates the entire `GoRouter` instance and navigation stack on every state transition. ALWAYS bridge reactive auth state into `GoRouter` via `final authStateNotifier = ValueNotifier<AsyncValue<User?>>(ref.read(authControllerProvider));`, `ref.onDispose(authStateNotifier.dispose);`, `ref.listen<AsyncValue<User?>>(authControllerProvider, (_, next) => authStateNotifier.value = next);`, and `refreshListenable: authStateNotifier`. Inside `redirect`, evaluate `authStateNotifier.value` via Dart 3 `switch` pattern matching and preserve active `/login` routes during `AsyncLoading()` (`(isSplash || isLoggingIn) ? null : '/splash'`). enforced by `DGR012`.</mandate>
     </rule_block>
 </catastrophic_system_bans>
 
@@ -103,7 +107,7 @@
     </rule_block>
     
     <rule_block id="mutation_optimistic_ui">
-        <mandate>NEVER employ full-screen modal loading spinners, hold manual flags (`bool _isLoading = true`), implement optimistic updates without rollback, or use destructive rollbacks like `ref.invalidate()`. Use Riverpod 3.0 `Mutation<T>` with Optimistic Updates. Cache prior `AsyncData` before mutation and re-assign explicitly in catch/onError block.</mandate>
+        <mandate>NEVER employ full-screen modal loading spinners, hold manual flags (`bool _isLoading = true`), implement optimistic updates without rollback, or use destructive rollbacks like `ref.invalidate()`. Use `useMutation<T>` (`MutationState<T>`) or Riverpod 3.0 `AsyncNotifier<void>` mutations with Optimistic Updates. Cache prior `AsyncData` before mutation and re-assign explicitly in catch/onError block. Every custom async mutation hook MUST guard post-`await` `state.value` assignments with `if (!context.mounted) return null;` (`DGR011`) and include a deterministic `Completer<Either<AppError, T>>` + `tester.pumpWidget(const SizedBox())` in-flight unmount unit test.</mandate>
     </rule_block>
 
     <rule_block id="transient_input_state">

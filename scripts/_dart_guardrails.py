@@ -1,9 +1,10 @@
-"""Automated Dart Codebase Guardrails Engine (DGR001-DGR010).
+"""Automated Dart Codebase Guardrails Engine (DGR001-DGR012).
 
 Single Source of Truth for static Dart architectural rules enforcement across Quorum Flutter client.
 Scans handwritten client code across full multi-line source text for loose Map types, anonymous HTTP
 payloads, UI error concealment, unlocalized strings, lint suppressions, hardcoded hex colors, manual
-string clippings, missing error boundaries, and unguarded async values.
+string clippings, missing error boundaries, unguarded async values, deprecated useIsMounted() or
+unguarded post-await hook ValueNotifier mutations, and GoRouter provider ref.watch disposal hazards.
 Guarantees 100% false-positive immunity for generated files (*.freezed.dart, *.g.dart, .dart_tool/, build/).
 """
 
@@ -190,6 +191,17 @@ DGR008_UUID_V4_PATTERN = re.compile(r"\.\s*v4\s*\(")
 
 # DGR010: Missing AsyncValue guards on dynamic AsyncNotifierProvider consumers
 DGR010_PATTERN = re.compile(r"\.\s*requireValue\b")
+
+# DGR011: Deprecated useIsMounted() hook & custom hook post-await ValueNotifier disposal guard
+DGR011_USE_IS_MOUNTED_PATTERN = re.compile(r"\buseIsMounted\s*\(")
+_CUSTOM_HOOK_HEADER_PATTERN = re.compile(
+    r"\b[A-Za-z0-9_<>,?]+\s+(use[A-Z]\w*)\s*(?:<[^>]+>)?\s*\([^)]*\)\s*\{",
+    re.DOTALL,
+)
+
+# DGR012: GoRouter provider direct ref.watch disposal hazard & mandatory refreshListenable
+_GOROUTER_PROVIDER_HEADER_PATTERN = re.compile(r"\bGoRouter\s+router\s*\(\s*[A-Za-z0-9_]*Ref\s+\w+\s*\)\s*\{")
+DGR012_REF_WATCH_PATTERN = re.compile(r"\bref\s*\.\s*watch\s*\(")
 
 # Ignored trivial string literals for DGR003 (pure symbols or separators)
 PUNCTUATION_OR_EMPTY_PATTERN = re.compile(r"^[\s\-:–—|/\\.,;*+~#_!?@$%^&()\[\]{}'\"0-9→←↑↓↳•×+%=<>]*$")
@@ -571,6 +583,149 @@ def _check_ui_and_feature_multiline_rules(
     return violations
 
 
+def _extract_brace_block(text: str, open_brace_index: int) -> str:
+    """Extract a balanced brace-enclosed substring starting at open_brace_index.
+
+    Args:
+        text: Comment-stripped Dart source text.
+        open_brace_index: Index of the opening '{' character.
+
+    Returns:
+        Substring from open_brace_index through the matching closing '}', or to the end of text.
+    """
+    depth = 0
+    for idx in range(open_brace_index, len(text)):
+        ch = text[idx]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[open_brace_index : idx + 1]
+    return text[open_brace_index:]
+
+
+def _check_hook_and_router_lifecycle_rules(
+    filepath: str,
+    source_text: str,
+    uncommented_text: str,
+    *,
+    is_test_scope: bool,
+) -> list[DartViolation]:
+    """Evaluate DGR011 (hook mounted safety) and DGR012 (GoRouter refreshListenable) across Dart source.
+
+    Args:
+        filepath: Target file path being scanned.
+        source_text: Original decoded UTF-8 source text.
+        uncommented_text: Source text with comments replaced by spaces preserving line breaks.
+        is_test_scope: Whether the file resides in a test directory.
+
+    Returns:
+        List of DartViolation instances for DGR011 and DGR012.
+    """
+    if is_test_scope:
+        return []
+
+    violations: list[DartViolation] = []
+
+    # DGR011 Check A: Banned deprecated useIsMounted() hook call
+    for mounted_match in DGR011_USE_IS_MOUNTED_PATTERN.finditer(uncommented_text):
+        lineno, col_offset = _offset_to_line_col(source_text, mounted_match.start())
+        violations.append(
+            DartViolation(
+                filepath=filepath,
+                lineno=lineno,
+                col_offset=col_offset,
+                rule_code="DGR011",
+                message="Banned deprecated `useIsMounted()` hook call detected.",
+                remediation="Capture `final context = useContext();` and check `if (!context.mounted) return ...;` after every `await`.",
+                severity=GuardrailSeverity.FATAL,
+                is_suppressed=False,
+            )
+        )
+
+    # DGR011 Check B: Unguarded post-await ValueNotifier state.value assignment inside custom hooks
+    for hook_match in _CUSTOM_HOOK_HEADER_PATTERN.finditer(uncommented_text):
+        hook_name = hook_match.group(1)
+        body_start = hook_match.end() - 1
+        hook_body = _extract_brace_block(uncommented_text, body_start)
+        state_vars = re.findall(r"\bfinal\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*useState\b", hook_body)
+        first_await = re.search(r"\bawait\s+", hook_body)
+        if not state_vars or first_await is None:
+            continue
+
+        await_end = first_await.end()
+        catch_match = re.search(r"\bcatch\s*\(", hook_body[await_end:])
+        catch_offset = (await_end + catch_match.start()) if catch_match is not None else len(hook_body)
+
+        for state_var in state_vars:
+            assign_pattern = re.compile(rf"\b{re.escape(state_var)}\s*\.\s*value\s*=")
+            for assign_match in assign_pattern.finditer(hook_body):
+                assign_pos = assign_match.start()
+                if assign_pos <= await_end:
+                    continue
+                segment_start = await_end if assign_pos < catch_offset else catch_offset
+                preceding_segment = hook_body[segment_start:assign_pos]
+                if "mounted" not in preceding_segment:
+                    lineno, col_offset = _offset_to_line_col(source_text, body_start + assign_pos)
+                    violations.append(
+                        DartViolation(
+                            filepath=filepath,
+                            lineno=lineno,
+                            col_offset=col_offset,
+                            rule_code="DGR011",
+                            message=(
+                                f"Unguarded post-await ValueNotifier mutation `{state_var}.value = ...` "
+                                f"in custom hook `{hook_name}` without `context.mounted` check."
+                            ),
+                            remediation=(
+                                "Capture `final context = useContext();` and check `if (!context.mounted) return ...;` "
+                                "immediately after `await` (and inside `catch`) before mutating hook `ValueNotifier` state."
+                            ),
+                            severity=GuardrailSeverity.FATAL,
+                            is_suppressed=False,
+                        )
+                    )
+
+    # DGR012: GoRouter provider direct ref.watch disposal hazard & mandatory refreshListenable
+    for router_match in _GOROUTER_PROVIDER_HEADER_PATTERN.finditer(uncommented_text):
+        body_start = router_match.end() - 1
+        router_body = _extract_brace_block(uncommented_text, body_start)
+        for watch_match in DGR012_REF_WATCH_PATTERN.finditer(router_body):
+            lineno, col_offset = _offset_to_line_col(source_text, body_start + watch_match.start())
+            violations.append(
+                DartViolation(
+                    filepath=filepath,
+                    lineno=lineno,
+                    col_offset=col_offset,
+                    rule_code="DGR012",
+                    message="Banned `ref.watch(...)` inside `GoRouter router(Ref ref)` provider; disposes and recreates GoRouter on state transitions.",
+                    remediation=(
+                        "Bridge reactive auth state via `ValueNotifier` + `ref.listen` + `ref.onDispose` "
+                        "and pass `refreshListenable: authStateNotifier` to `GoRouter(...)`."
+                    ),
+                    severity=GuardrailSeverity.FATAL,
+                    is_suppressed=False,
+                )
+            )
+        if re.search(r"\bGoRouter\s*\(", router_body) and not re.search(r"\brefreshListenable\s*:", router_body):
+            lineno, col_offset = _offset_to_line_col(source_text, router_match.start())
+            violations.append(
+                DartViolation(
+                    filepath=filepath,
+                    lineno=lineno,
+                    col_offset=col_offset,
+                    rule_code="DGR012",
+                    message="`GoRouter router(Ref ref)` provider is missing mandatory `refreshListenable:` configuration.",
+                    remediation="Pass `refreshListenable: authStateNotifier` backed by `ref.listen(authControllerProvider, ...)` to `GoRouter(...)`.",
+                    severity=GuardrailSeverity.FATAL,
+                    is_suppressed=False,
+                )
+            )
+
+    return violations
+
+
 def _check_master_view_error_boundary(
     filepath: str,
     normalized_path: str,
@@ -720,6 +875,14 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
             default_severity,
         )
     )
+    violations.extend(
+        _check_hook_and_router_lifecycle_rules(
+            filepath,
+            source_text,
+            uncommented_text,
+            is_test_scope=is_test_scope,
+        )
+    )
 
     violations.sort(key=lambda v: (v.lineno, v.col_offset, v.rule_code))
     return violations
@@ -826,7 +989,7 @@ def main(argv: list[str] | None = None) -> int:
         Exit code 0 if no fatal violations (or warnings under --strict) were found, 1 otherwise.
     """
     parser = argparse.ArgumentParser(
-        description="""Client-Side Static Dart Guardrail Analyzer (DGR001-DGR010).
+        description="""Client-Side Static Dart Guardrail Analyzer (DGR001-DGR012).
 
 Enforces Flutter client architecture and static type safety invariants across full multi-line source:
   DGR001: Loose Map return types in API clients, models, controllers, data, repositories, or providers (FATAL)
@@ -839,6 +1002,8 @@ Enforces Flutter client architecture and static type safety invariants across fu
   DGR008: Banned manual string clippings via .substring() and legacy Uuid().v4() (WARNING)
   DGR009: Missing AppErrorBoundary wrapping on feature master views (WARNING)
   DGR010: Missing AsyncValue guards on dynamic AsyncNotifierProvider consumers (WARNING)
+  DGR011: Banned deprecated useIsMounted() and unguarded post-await hook ValueNotifier mutations (FATAL)
+  DGR012: Banned direct ref.watch(...) inside GoRouter provider and missing refreshListenable (FATAL)
 
 Immunity: Generated files (*.g.dart, *.freezed.dart) are automatically exempted.
 """,

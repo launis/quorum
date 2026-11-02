@@ -64,8 +64,8 @@ async def test_banned_phrases_corruption_fail_fast(repo: KnowledgeRepositoryImpl
 
 @pytest.mark.asyncio
 async def test_prompt_template_retrieval(repo: KnowledgeRepositoryImpl, mock_driver: AsyncMock) -> None:
-    """Positive: tests prompt template retrieval via direct get, query fallback, and not found."""
-    # 1. Direct get
+    """Positive & Negative: tests prompt template retrieval via O(1) direct get and not found without query fallback."""
+    # 1. Direct O(1) get
     mock_driver.get.return_value = {
         "system_prompt": "System instruction",
         "user_prompt": "Hello {{name}}",
@@ -74,17 +74,13 @@ async def test_prompt_template_retrieval(repo: KnowledgeRepositoryImpl, mock_dri
     assert template is not None
     assert template.system == "System instruction"
     assert template.user == "Hello {{name}}"
+    mock_driver.get.assert_called_once_with("prompts", "tpl_1")
+    mock_driver.query.assert_not_called()
 
-    # 2. Query fallback
+    # 2. Not found (returns None directly without O(N) query fallback)
     mock_driver.get.return_value = None
-    mock_driver.query.return_value = [{"system_prompt": "Fallback sys", "user_prompt": "Fallback usr"}]
-    tpl_query = await repo.get_prompt_template("tpl_2")
-    assert tpl_query is not None
-    assert tpl_query.system == "Fallback sys"
-
-    # 3. Not found
-    mock_driver.query.return_value = []
     assert await repo.get_prompt_template("tpl_missing") is None
+    mock_driver.query.assert_not_called()
 
 
 @pytest.mark.asyncio

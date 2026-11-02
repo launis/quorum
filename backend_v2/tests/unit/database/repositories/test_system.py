@@ -99,19 +99,16 @@ async def test_update_model_registry_new(sample_model_registry: SystemConfigMode
 
 @pytest.mark.asyncio
 async def test_get_mcp_gateways_with_id_success(sample_mcp_gateways: SystemConfigMCPGateways) -> None:
-    """Positive: retrieves specific mcp_gateways document by id."""
+    """Positive: retrieves specific mcp_gateways document by id via O(1) driver.get."""
     mock_driver = AsyncMock()
-    mock_driver.query.return_value = [sample_mcp_gateways.model_dump(mode="json")]
+    mock_driver.get.return_value = sample_mcp_gateways.model_dump(mode="json")
 
     repo = SystemRepositoryImpl(driver=mock_driver)
     res = await repo.get_mcp_gateways(id="cfg_0195f3a0000070088172bda70c8641c5")
 
     assert res.id == "cfg_0195f3a0000070088172bda70c8641c5"
-    mock_driver.query.assert_called_once()
-    filters = mock_driver.query.call_args[0][1]
-    assert len(filters) == 1
-    assert filters[0].field == "id"
-    assert filters[0].value == "cfg_0195f3a0000070088172bda70c8641c5"
+    mock_driver.get.assert_called_once_with("system_config", "cfg_0195f3a0000070088172bda70c8641c5")
+    mock_driver.query.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -133,8 +130,9 @@ async def test_get_mcp_gateways_default_type_success(sample_mcp_gateways: System
 
 @pytest.mark.asyncio
 async def test_get_mcp_gateways_not_found_raises() -> None:
-    """Negative: raises ResourceNotFoundError when mcp_gateways document is missing."""
+    """Negative: raises ResourceNotFoundError when mcp_gateways document is missing by ID or default type."""
     mock_driver = AsyncMock()
+    mock_driver.get.return_value = None
     mock_driver.query.return_value = []
 
     repo = SystemRepositoryImpl(driver=mock_driver)
@@ -143,6 +141,13 @@ async def test_get_mcp_gateways_not_found_raises() -> None:
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.details["resource_id"] == "cfg_nonexistent123"
+    mock_driver.get.assert_called_once_with("system_config", "cfg_nonexistent123")
+
+    with pytest.raises(ResourceNotFoundError) as default_exc_info:
+        await repo.get_mcp_gateways()
+
+    assert default_exc_info.value.status_code == 404
+    assert default_exc_info.value.details["resource_id"] == "mcp_gateways"
 
 
 @pytest.mark.asyncio

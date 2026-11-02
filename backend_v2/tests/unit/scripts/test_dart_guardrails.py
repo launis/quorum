@@ -893,3 +893,115 @@ def test_core_ui_and_repository_scopes_and_test_dgr005_exemption() -> None:
     )
     assert len([v for v in test_violations if v.rule_code == "DGR005"]) == 0
     assert len([v for v in test_violations if v.rule_code == "DGR004"]) == 1
+
+
+# ==============================================================================
+# Partition 12: DGR011 Hook Mounted Safety & DGR012 GoRouter RefreshListenable
+# ==============================================================================
+
+
+def test_dgr011_deprecated_use_is_mounted_flagged_fatal() -> None:
+    code = """
+MutationState<T> useMutation<T>() {
+  final isMounted = useIsMounted();
+  return MutationState(state: null, mutate: (_) async => null);
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/core/state/mutation.dart")
+    dgr011 = [v for v in violations if v.rule_code == "DGR011"]
+    assert len(dgr011) == 1
+    assert dgr011[0].severity == GuardrailSeverity.FATAL
+    assert "useIsMounted()" in dgr011[0].message
+
+
+def test_dgr011_unguarded_post_await_hook_state_mutation_flagged_fatal() -> None:
+    code = """
+MutationState<T> useMutation<T>() {
+  final state = useState<AsyncValue<T>?>(null);
+  final mutate = useCallback((Future<T> Function() action) async {
+    state.value = const AsyncValue.loading();
+    try {
+      final result = await action();
+      state.value = AsyncValue.data(result);
+      return result;
+    } catch (e, stack) {
+      state.value = AsyncValue.error(e, stack);
+      return null;
+    }
+  }, []);
+  return MutationState(state: state.value, mutate: mutate);
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/core/state/mutation.dart")
+    dgr011 = [v for v in violations if v.rule_code == "DGR011"]
+    assert len(dgr011) == 2
+    assert all(v.severity == GuardrailSeverity.FATAL for v in dgr011)
+    assert all("state.value = ..." in v.message for v in dgr011)
+
+
+def test_dgr011_guarded_post_await_hook_state_mutation_allowed() -> None:
+    code = """
+MutationState<T> useMutation<T>() {
+  final state = useState<AsyncValue<T>?>(null);
+  final context = useContext();
+  final mutate = useCallback((Future<T> Function() action) async {
+    state.value = const AsyncValue.loading();
+    try {
+      final result = await action();
+      if (!context.mounted) return result;
+      state.value = AsyncValue.data(result);
+      return result;
+    } catch (e, stack) {
+      if (!context.mounted) return null;
+      state.value = AsyncValue.error(e, stack);
+      return null;
+    }
+  }, [context]);
+  return MutationState(state: state.value, mutate: mutate);
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/core/state/mutation.dart")
+    dgr011 = [v for v in violations if v.rule_code == "DGR011"]
+    assert len(dgr011) == 0
+
+
+def test_dgr012_gorouter_direct_ref_watch_and_missing_refresh_listenable_flagged() -> None:
+    code = """
+@Riverpod(keepAlive: true)
+GoRouter router(Ref ref) {
+  final authState = ref.watch(authControllerProvider);
+  return GoRouter(
+    initialLocation: '/',
+    routes: [],
+  );
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/router/router.dart")
+    dgr012 = [v for v in violations if v.rule_code == "DGR012"]
+    assert len(dgr012) == 2
+    assert all(v.severity == GuardrailSeverity.FATAL for v in dgr012)
+    assert any("ref.watch(...)" in v.message for v in dgr012)
+    assert any("refreshListenable:" in v.message for v in dgr012)
+
+
+def test_dgr012_gorouter_refresh_listenable_with_ref_listen_allowed() -> None:
+    code = """
+@Riverpod(keepAlive: true)
+GoRouter router(Ref ref) {
+  final authStateNotifier = ValueNotifier<AsyncValue<User?>>(
+    ref.read(authControllerProvider),
+  );
+  ref.onDispose(authStateNotifier.dispose);
+  ref.listen<AsyncValue<User?>>(authControllerProvider, (_, next) {
+    authStateNotifier.value = next;
+  });
+  return GoRouter(
+    initialLocation: '/',
+    refreshListenable: authStateNotifier,
+    routes: [],
+  );
+}
+"""
+    violations = _scan_snippet(code, filepath="client_app_v2/lib/router/router.dart")
+    dgr012 = [v for v in violations if v.rule_code == "DGR012"]
+    assert len(dgr012) == 0

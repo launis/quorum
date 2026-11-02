@@ -2218,11 +2218,11 @@
     },
     "backend_v2/database/repositories/identity.py": {
       "target_file": "backend_v2/database/repositories/identity.py",
-      "target_sha256": "47dd5d27155e54749020233e7b8edc98a251d12f3e94c777fbf546f40c5de8a3",
-      "unit_test_sha256": "e273d993fd29b5b65fff21a73339cd0ed99eb76e0a218af75b4b78798c6235f2",
-      "rules_sha256": "9b36e2267f09471537f9418d7d3e6e836f3ceb7a48516ed6b2332a67d4c401d3",
-      "composite_sha256": "0ac9d7349229916d4638f8f1918f7863359e26cf9d78988723982f1f3b468126",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "target_sha256": "b576943f8c9220ec6c9633f02e6f5f7b447a9e2873091da6ea084f1d7b117dd2",
+      "unit_test_sha256": "5875985382f660af116ed1ca0fc427e02fe17ac7ac02ea527e815c1ad5cdd9ad",
+      "rules_sha256": "c941be35a7f4529d15ad68f6eecd6c3a1563791ceaeaa748fa3e0e9d54d01821",
+      "composite_sha256": "9c2c8fa5b0b1478310f9faada1657577dd67260e0514e10fa1a22b3319f63eaa",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/9cb1a277-288d-4cb7-8bea-98eb6a1b9d53/task.md"
     },
     "backend_v2/llm/ingress_pipeline.py": {
       "target_file": "backend_v2/llm/ingress_pipeline.py",
@@ -2746,11 +2746,11 @@
     },
     "backend_v2/main.py": {
       "target_file": "backend_v2/main.py",
-      "target_sha256": "9993766d36d5f26ca41ee89cfee04c7e5c2c885abab91e22f1f3bfc89e679177",
+      "target_sha256": "43c7daa3281ea555bc9a8805e9ddb93cb025b761fc0f00fd5f8dcdb9a1c9e987",
       "unit_test_sha256": "2990ae3b86b8ad8edb3785b7b33fa0e54979df04143b4d5e8871351b4b68ab6d",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "9b966a7dfdf96eb40276fded4e6a7d0421281cd867b00d87545e6588625ffe8e",
-      "source_tracker": "docs/implementationplans/TRACKER_Router_SSOT_Consolidation.md"
+      "rules_sha256": "c941be35a7f4529d15ad68f6eecd6c3a1563791ceaeaa748fa3e0e9d54d01821",
+      "composite_sha256": "f2180fa40a56489f7c39835efaf5f9e29c0a57943034c711e067e47857fc74fe",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/9cb1a277-288d-4cb7-8bea-98eb6a1b9d53/task.md"
     },
     "client_app_v2/lib/core/api/reports_client.dart": {
       "target_file": "client_app_v2/lib/core/api/reports_client.dart",
@@ -2946,11 +2946,11 @@
     },
     "client_app_v2/lib/router/router.dart": {
       "target_file": "client_app_v2/lib/router/router.dart",
-      "target_sha256": "a0b8adaa1dc104b0e2efb2d60a51df50f47d1646a60c93908e3b00b0ce6f89bb",
-      "unit_test_sha256": "a560523bd4f9d2a784eebc4b0630d58763b0bd59a6120c849a2e76b41bb11f50",
-      "rules_sha256": "c941be35a7f4529d15ad68f6eecd6c3a1563791ceaeaa748fa3e0e9d54d01821",
-      "composite_sha256": "1ab4463e25ad638ba0009ce5f2ebc0e80d1ceba6ef847b0c98ade6f4e97664ac",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "target_sha256": "da09b31554956b95205d4f6ab147b7c3a59f67a7e7060a9d700851a9c89c73bf",
+      "unit_test_sha256": "347a89b23c98ad20dd90930b448da3442623b39605780e8dd4f1973cc7e1ebcd",
+      "rules_sha256": "97a73a1e2d0cfb299df002ec712c821d71071b404fe7203a6ca6fe034b255d33",
+      "composite_sha256": "9cea9aeb4a6200a18d8fd9d663fce428e54db8e32b014f0fc7182fe0ad8e8b20",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/9cb1a277-288d-4cb7-8bea-98eb6a1b9d53/task.md"
     },
     "client_app_v2/lib/router/scaffold_with_nav.dart": {
       "target_file": "client_app_v2/lib/router/scaffold_with_nav.dart",
@@ -3106,11 +3106,11 @@
     },
     "client_app_v2/lib/core/state/mutation.dart": {
       "target_file": "client_app_v2/lib/core/state/mutation.dart",
-      "target_sha256": "22fe23359446a9122a880207ac3d9a7c40848a109cabea3458141d00e66b01ba",
-      "unit_test_sha256": "f6dc6f93502e17c7d39756a1b4fa0eeba61c0456d76af1236d053886229bdeb6",
-      "rules_sha256": "f17662866c0a7a3a4906703c6df55e347913e5e06ac88cbad4e7401e58a2db33",
-      "composite_sha256": "e3926f096e8cf4ddac8a0ad48cccba87e0f819a92e6f4e20d47fd0b10585ec73",
-      "source_tracker": "docs/implementationplans/TRACKER_Frontend_Targeted_Hardening_WaveF1.md"
+      "target_sha256": "ffb6e0486ee7d9f69460848cb35336eeab901d78fd84d745ca00dd0e179e121d",
+      "unit_test_sha256": "845fd2e30f56e56e5c081b0c16671e7f5195ac3e52c9754ffbf716dfaaf7c4fd",
+      "rules_sha256": "97a73a1e2d0cfb299df002ec712c821d71071b404fe7203a6ca6fe034b255d33",
+      "composite_sha256": "b0ce06dd87fa6fbebb6f0ec5ee7fb5bd3114d4a491ec3f5b949b65664fc0a15b",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/9cb1a277-288d-4cb7-8bea-98eb6a1b9d53/task.md"
     },
     "client_app_v2/lib/core/theme/app_spacing.dart": {
       "target_file": "client_app_v2/lib/core/theme/app_spacing.dart",
@@ -3906,11 +3906,11 @@
     },
     "backend_v2/database/postgres/uow.py": {
       "target_file": "backend_v2/database/postgres/uow.py",
-      "target_sha256": "477dec58bdfc1ed3c3e6ec85e3cb9c4018211a8f71f1157db124ddce7e1f3f83",
+      "target_sha256": "efbc49e65b51a8a687d3048e68ade3c1e8d016f97c71778d0f12e67e49c671cc",
       "unit_test_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "rules_sha256": "9b36e2267f09471537f9418d7d3e6e836f3ceb7a48516ed6b2332a67d4c401d3",
-      "composite_sha256": "815e05019938f2cf261cefc3cd39b8217916642722529d14202a0b0d7954a1d6",
-      "source_tracker": "docs/epic/EPIC_160_tracker.md"
+      "rules_sha256": "c941be35a7f4529d15ad68f6eecd6c3a1563791ceaeaa748fa3e0e9d54d01821",
+      "composite_sha256": "5a732a1baf53f1dcb0335f11f85fcfe1cfffde26b1d8a93814171e0bb462fe03",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/9cb1a277-288d-4cb7-8bea-98eb6a1b9d53/task.md"
     },
     "backend_v2/database/postgres/storage_driver.py": {
       "target_file": "backend_v2/database/postgres/storage_driver.py",
@@ -4167,6 +4167,14 @@
       "rules_sha256": "c941be35a7f4529d15ad68f6eecd6c3a1563791ceaeaa748fa3e0e9d54d01821",
       "composite_sha256": "f787bdb8582f5031ce3969c47e9b568f2b7f92818a7d101cd76a3ddc58c1d17e",
       "source_tracker": "docs/epic/EPIC_160_tracker.md"
+    },
+    "backend_v2/seed/run_seed.py": {
+      "target_file": "backend_v2/seed/run_seed.py",
+      "target_sha256": "c17b5e4db657097bf9778d966162d0636a543039428c66fdaadb8bdd77231ea8",
+      "unit_test_sha256": "dc500c14439ada0b858e57d8ce21591a147cf6b684aedd46d63f570905e00cdd",
+      "rules_sha256": "c941be35a7f4529d15ad68f6eecd6c3a1563791ceaeaa748fa3e0e9d54d01821",
+      "composite_sha256": "365c717a6ec9c4204c3f0f05565f122ec62c9c67569cc5745d1ea9337b2385f8",
+      "source_tracker": "C:/Users/risto/.gemini/antigravity/brain/9cb1a277-288d-4cb7-8bea-98eb6a1b9d53/task.md"
     }
   }
 }
