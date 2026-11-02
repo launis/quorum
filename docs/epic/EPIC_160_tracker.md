@@ -144,7 +144,7 @@
   - [x] @[scripts/audit_zero_orm_strictness.py]
   - [x] @[scripts/_ast_guardrails.py]
   - [x] @[scripts/run_e2e_variance_test.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_160_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"` across existing and `[NEW]` frontend targets.
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_160_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend @[{target}]'"` across existing and `[NEW]` frontend targets.
   - [x] @[client_app_v2/lib/core/models/enums.dart]
   - [x] @[client_app_v2/lib/core/network/interceptors/auth_interceptor.dart]
   - [x] @[client_app_v2/lib/features/auth/domain/models/user.dart]
@@ -158,7 +158,7 @@
   - [x] [NEW] @[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]
   - [x] [NEW] @[client_app_v2/lib/features/settings/presentation/user_profile_settings_view.dart]
   - [x] [NEW] @[client_app_v2/lib/features/settings/presentation/organization_iam_settings_view.dart]
-  - [ ] [NEW] @[client_app_v2/lib/features/execution/views/task_assignment_portal_view.dart]
+  - [x] [NEW] @[client_app_v2/lib/features/execution/views/task_assignment_portal_view.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for surviving business logic.
 

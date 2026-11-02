@@ -20,7 +20,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'task_assignment_portal_view.g.dart';
 
-// Phase 6, Step 6.2: SafeLinks-Immune Task Assignment Portal View (/task/:token).
+// SafeLinks-immune task assignment portal view (/task/:token).
 
 @riverpod
 Future<ExecutionAssignmentPreviewDto> taskAssignmentPreview(

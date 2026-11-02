@@ -44,12 +44,21 @@ class _FakeExecutionClient implements ExecutionClient {
   int submitCallCount = 0;
 
   final String assignedEmailMasked;
+  final Object? previewError;
+  final DateTime? overrideHardDeadlineAt;
 
-  _FakeExecutionClient({this.assignedEmailMasked = 'bob@org.com'});
+  _FakeExecutionClient({
+    this.assignedEmailMasked = 'bob@org.com',
+    this.previewError,
+    this.overrideHardDeadlineAt,
+  });
 
   @override
   Future<ExecutionAssignmentPreviewDto> previewAssignment(String token) async {
     previewCallCount++;
+    if (previewError != null) {
+      throw previewError!;
+    }
     return ExecutionAssignmentPreviewDto(
       id: 'asg_01960000000070008000000000000001',
       organizationId: 'org_01960000000070008000000000000001',
@@ -58,7 +67,9 @@ class _FakeExecutionClient implements ExecutionClient {
       workflowId: 'wf_01960000000070008000000000000001',
       targetLocale: 'en',
       status: AssignmentStatus.pending,
-      hardDeadlineAt: DateTime.now().toUtc().add(const Duration(hours: 24)),
+      hardDeadlineAt:
+          overrideHardDeadlineAt ??
+          DateTime.now().toUtc().add(const Duration(hours: 24)),
       relativeDurationSeconds: 1800,
     );
   }
@@ -81,7 +92,9 @@ class _FakeExecutionClient implements ExecutionClient {
       status: AssignmentStatus.activated,
       emailDeliveryStatus: EmailDeliveryStatus.sent,
       resultVisibility: AssignmentResultVisibility.confirmationOnly,
-      hardDeadlineAt: DateTime.now().toUtc().add(const Duration(hours: 24)),
+      hardDeadlineAt:
+          overrideHardDeadlineAt ??
+          DateTime.now().toUtc().add(const Duration(hours: 24)),
       relativeDurationSeconds: 1800,
       activatedAt: DateTime.now().toUtc(),
       createdBy: 'usr_01960000000070008000000000000001',
@@ -280,6 +293,58 @@ void main() {
           find.byKey(const Key('task_portal_submitted_card')),
           findsOneWidget,
         );
+      },
+    );
+
+    testWidgets(
+      'negative & boundary: renders ErrorView on preview failure and clamps expired deadline countdown to 0s',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1440, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final authController = _StubAuthController(bobUser);
+        final failingClient = _FakeExecutionClient(
+          previewError: StateError('Invalid or expired invitation token'),
+        );
+
+        await tester.pumpWidget(
+          _buildPortalTestApp(
+            authController: authController,
+            execClient: failingClient,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('task_portal_preview_card')),
+          findsNothing,
+        );
+
+        // Boundary check: hard deadline already in the past clamps remaining seconds to 0s
+        final expiredClient = _FakeExecutionClient(
+          overrideHardDeadlineAt: DateTime.now().toUtc().subtract(
+            const Duration(seconds: 5),
+          ),
+        );
+        await tester.pumpWidget(
+          _buildPortalTestApp(
+            authController: authController,
+            execClient: expiredClient,
+            token: 'tok_01960000000070008000000000000002',
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('task_portal_start_task_btn')));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(
+          find.byKey(const Key('task_portal_countdown_badge')),
+          findsOneWidget,
+        );
+        expect(find.textContaining('0s'), findsOneWidget);
       },
     );
   });
