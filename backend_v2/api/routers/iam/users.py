@@ -15,6 +15,15 @@ from backend_v2.models.auth import User, UserCreate, UserDeleteResponse, UserUpd
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "create_user",
+    "delete_user",
+    "get_all_users",
+    "get_user",
+    "router",
+    "save_user",
+]
+
 router = APIRouter(prefix="/users", tags=["Admin IAM V2 - Users"])
 
 
@@ -31,9 +40,9 @@ async def get_all_users(current_user: CurrentUserDep, auth_service: AuthServiceD
 
     Raises:
         PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.
-        AppException: If retrieving users fails.
+        AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if retrieving users fails.
     """
-    # Phase 2, Step 2.2: Propagate typed AppExceptions directly without catch-all swallowing
+    # Propagate typed AppExceptions directly without catch-all swallowing
     return await auth_service.list_users(current_user)
 
 
@@ -55,9 +64,10 @@ async def create_user(
 
     Raises:
         PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if caller lacks privileges.
-        AppException: With ErrorCodes.VALIDATION_FAILED or ErrorCodes.RESOURCE_NOT_FOUND on invalid input.
+        AppException: With ErrorCodes.VALIDATION_FAILED, ErrorCodes.RESOURCE_NOT_FOUND, or
+            ErrorCodes.INTERNAL_SERVER_ERROR on invalid input or provisioning failure.
     """
-    # Phase 2, Step 2.2: Canonical POST /api/v2/iam/users endpoint
+    # Delegate user creation to the canonical AuthService layer
     return await auth_service.create_user(current_user.id, data)
 
 
@@ -76,7 +86,7 @@ async def get_user(id: str, current_user: CurrentUserDep, auth_service: AuthServ
     Raises:
         ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the user is not found.
         PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the requesting user lacks permissions.
-        AppException: If fetching the user fails.
+        AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if fetching the user fails.
     """
     return await auth_service.get_user(current_user, id)
 
@@ -98,7 +108,7 @@ async def save_user(id: str, data: UserUpdate, current_user: CurrentUserDep, aut
         PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the requesting user lacks permissions.
         ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if the user is not found.
         ConflictError: With ErrorCodes.CONFLICT_ERROR if Last Admin Protection is triggered.
-        AppException: If updating the user fails.
+        AppException: With ErrorCodes.RESOURCE_NOT_FOUND or ErrorCodes.INTERNAL_SERVER_ERROR if updating fails.
     """
     return await auth_service.update_user(current_user.id, id, data)
 
@@ -118,10 +128,10 @@ async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthS
     Raises:
         PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if the requesting user lacks permissions.
         ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the last admin.
-        AppException: If deleting the user fails.
+        AppException: With ErrorCodes.RESOURCE_NOT_FOUND or ErrorCodes.INTERNAL_SERVER_ERROR if deleting fails.
     """
     try:
-        # Phase 5, Step 5.3: Execute in-place GDPR Soft-Delete anonymization via SSOT Service Layer
+        # Execute in-place GDPR Soft-Delete anonymization via SSOT Service Layer
         await auth_service.delete_user(current_user.id, id)
         return UserDeleteResponse(status="success", id=id)
     except AppException:

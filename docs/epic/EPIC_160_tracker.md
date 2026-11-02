@@ -137,7 +137,7 @@
   - [x] @[backend_v2/services/mcp/dispatcher.py]
   - [x] @[backend_v2/api/dependencies.py]
   - [x] @[backend_v2/api/routers/iam/auth.py]
-  - [ ] @[backend_v2/api/routers/iam/users.py]
+  - [x] @[backend_v2/api/routers/iam/users.py]
   - [ ] @[backend_v2/api/routers/iam/organizations.py]
   - [ ] @[backend_v2/api/routers/execution/executions.py]
   - [ ] @[scripts/sanitize_seed_vault.py]
