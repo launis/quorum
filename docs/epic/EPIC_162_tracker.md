@@ -67,7 +67,7 @@
 
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
 - [ ] **[NOK] Proxy Sunset & Consumer Migration**: Codebase-wide verification of zero `from_strategy` calls across `backend_v2/` and `scripts/`, zero unsynchronized `OutputProfile` target block references, and 100% `state_version` OCC enforcement (`scripts/audit_epic_coverage.py --epic docs/epic/EPIC_162_studio_target_sync_cognitive_tier_and_dag_occ_resilience.md`).
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_162_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"`.
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_162_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-backend {target}'"`.
   - [x] @[backend_v2/database/postgres/entity_adapter/execution_and_report_stage.py]
   - [x] @[backend_v2/database/postgres/storage_driver.py]
   - [x] @[backend_v2/database/repositories/execution.py]
@@ -94,7 +94,7 @@
   - [x] @[scripts/_ast_guardrails.py]
   - [x] @[scripts/ablation_live_executor.py]
   - [x] @[scripts/audit_zero_orm_strictness.py]
-  - [ ] @[scripts/run_ablation_benchmark.py]
+  - [x] @[scripts/run_ablation_benchmark.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `$env:UV_NO_SYNC="1"; $env:UV_OFFLINE="1"; uv run --no-sync --offline python scripts/auto_hardening_runner.py --tracker "@[docs/epic/EPIC_162_tracker.md]" --gate all --model gemini-4-argon-medium --continue-on-failure --agent-cmd "agy --model {model} --dangerously-skip-permissions --print '/tier2-hardening-frontend {target}'"`.
   - [ ] @[client_app_v2/lib/features/execution/models/execution_record.dart]
   - [ ] @[client_app_v2/lib/features/execution/models/execution_step.dart]
