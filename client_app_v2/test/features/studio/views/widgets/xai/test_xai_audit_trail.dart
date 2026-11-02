@@ -14,7 +14,7 @@ void main() {
       const axis = MatrixScorecardRowDto(
         blockId: 'blk_test_matrix',
         name: 'Test Dimension',
-        labelI18n: const I18nText(
+        labelI18n: I18nText(
           translations: {'fi': 'Testi Matriisi', 'en': 'Test Matrix'},
         ),
         rowExplanation: 'This is the explanation of the row.',

@@ -7,8 +7,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 class BadHookWidget extends HookWidget {
   final bool simulateDataLoaded;
 
-  const BadHookWidget({Key? key, required this.simulateDataLoaded})
-    : super(key: key);
+  const BadHookWidget({super.key, required this.simulateDataLoaded});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +19,7 @@ class BadHookWidget extends HookWidget {
         : useValueListenable(controller).text;
 
     // A subsequent hook to trigger the mismatch
-    useMemoized(() => print('Memoized hook executed'));
+    useMemoized(() => 'Memoized hook executed');
 
     return Text(value);
   }

@@ -12,17 +12,17 @@ void main(List<String> args) async {
     final time = DateTime.now().toString().substring(0, 19);
     final logLine = '$time | INFO | [$context] | client | $message\n';
     logFile.writeAsStringSync(logLine, mode: FileMode.append);
-    print(logLine.trim());
+    stdout.writeln(logLine.trim());
   }
 
   void logError(String context, String message, [dynamic error]) {
     final time = DateTime.now().toString().substring(0, 19);
     final logLine = '$time | ERROR | [$context] | client | $message\n';
     logFile.writeAsStringSync(logLine, mode: FileMode.append);
-    print(logLine.trim());
+    stderr.writeln(logLine.trim());
     if (error != null) {
       logFile.writeAsStringSync('ERROR: $error\n', mode: FileMode.append);
-      print('ERROR DETAILS: $error');
+      stderr.writeln('ERROR DETAILS: $error');
     }
   }
 
@@ -31,7 +31,7 @@ void main(List<String> args) async {
   // 2. Setup Dio
   final dio = Dio(
     BaseOptions(
-      baseUrl: 'http://127.0.0.1:8000/api/v2',
+      baseUrl: const String.fromEnvironment('API_BASE_URL'),
       connectTimeout: const Duration(seconds: 5),
       receiveTimeout: const Duration(seconds: 30),
       headers: {
@@ -54,7 +54,9 @@ void main(List<String> args) async {
     workflowId = firstItem['id'] as String;
     profileId = firstItem['default_profile_id'] as String;
   } else {
-    print('Failed to fetch workflow dynamically. Response data: ${wRes.data}');
+    stderr.writeln(
+      'Failed to fetch workflow dynamically. Response data: ${wRes.data}',
+    );
     throw Exception(
       'Failed to fetch workflow dynamically: data is empty or not a list.',
     );

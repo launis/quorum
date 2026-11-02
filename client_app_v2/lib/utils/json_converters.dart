@@ -1,7 +1,10 @@
+import 'dart:math';
+import 'dart:typed_data';
+
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:uuid/uuid.dart';
 
+final Random _secureRandom = Random.secure();
 final RegExp _opaquePrefixRegex = RegExp(r'^[a-z]{2,5}$');
 final RegExp _opaqueStripeIdRegex = RegExp(
   r'^[a-z]{2,5}_[a-f0-9]{32}$',
@@ -16,7 +19,21 @@ String generateOpaqueUuid7(String prefix) {
       'Invalid Opaque ID prefix: "$prefix". Expected 2-5 lowercase ASCII letters.',
     );
   }
-  final hexPayload = const Uuid().v7().replaceAll('-', '').toLowerCase();
+  final timestampMs = DateTime.now().toUtc().millisecondsSinceEpoch;
+  final bytes = Uint8List(16);
+  for (var i = 5; i >= 0; i--) {
+    bytes[i] = (timestampMs >> ((5 - i) * 8)) & 0xFF;
+  }
+  for (var i = 6; i < 16; i++) {
+    bytes[i] = _secureRandom.nextInt(256);
+  }
+  // RFC 9562 Section 5.7: 4-bit version 0b0111 (7) in byte 6 high nibble,
+  // 2-bit variant 0b10 in byte 8 high bits.
+  bytes[6] = (bytes[6] & 0x0F) | 0x70;
+  bytes[8] = (bytes[8] & 0x3F) | 0x80;
+  final hexPayload = bytes
+      .map((b) => b.toRadixString(16).padLeft(2, '0'))
+      .join();
   return '${cleanedPrefix}_$hexPayload';
 }
 
