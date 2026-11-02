@@ -67,12 +67,12 @@
 ### Phase 4: Real-Time Dual-Key Redis Kill-Switch (`MGET`) & FinOps Rate Limiting
 **Plan:** @[docs/epic/tasks_EPIC_160/04_phase4_plan.md]
 - [x] **[OK] Create Plan:** Plan generated in @[docs/epic/tasks_EPIC_160/04_phase4_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]`
-  - [ ] Step 0: PRE-FLIGHT & SELF-HYDRATION
-  - [ ] Step 4.1: Fail-Closed Dual-Key Redis Kill-Switch (`RevocationCache`)
-  - [ ] Step 4.2: Per-Tenant Redis Sliding-Window Rate Limiter & FinOps Pre-Flight Gatekeeper
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]` (`6b51bcd55`)
+  - [x] Step 0: PRE-FLIGHT & SELF-HYDRATION
+  - [x] Step 4.1: Fail-Closed Dual-Key Redis Kill-Switch (`RevocationCache`)
+  - [x] Step 4.2: Per-Tenant Redis Sliding-Window Rate Limiter & FinOps Pre-Flight Gatekeeper
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]`
 
 ### Phase 5: B2B Invitation Flow, Time-Bound Execution Assignments (`ExecutionAssignment`), 4-Tier RBAC Matrix, Self-Service Profile & GDPR Soft-Delete Webhook
@@ -200,8 +200,8 @@
 | REQ-160-007 | Create `SecretService` in `[NEW] backend_v2/services/auth/secret_service.py` supporting `CLOUD_SECRET_MANAGER` and `ENVELOPE_KMS` (AES-256-GCM DEK + Cloud KMS KEK with `kek_version`) with a Single-Pipeline Non-Nullable `ResolvedCredentialDTO` contract | Phase 3, Step 3.1 | [x] Completed |
 | REQ-160-008 | Inject request-scoped `pydantic.SecretStr` credentials dynamically per `organization_id` into `LLMFactory`, `LiteLLMProvider`, `ToolDispatcher`, and `GenericMCPClient` with zero cross-tenant bleed | Phase 3, Step 3.2 | [x] Completed |
 | REQ-160-009 | Expose organization BYOK endpoints (`GET`, `PUT`, `DELETE` under `/api/v2/iam/organizations/{org_id}/secrets`) and add AST guardrail in `scripts/_ast_guardrails.py` preventing `SecretStr.get_secret_value()` leakage | Phase 3, Step 3.3 | [x] Completed |
-| REQ-160-010 | Create `RevocationCache` in `[NEW] backend_v2/core/redis_security.py` executing atomic O(1) Dual-Key Redis `MGET revoked:usr:{id} revoked:jti:{jti}` with strict Fail-Closed `503 Service Unavailable` semantics and wire into `get_current_user_from_header` | Phase 4, Step 4.1 | [ ] Pending |
-| REQ-160-011 | Create `TenantRateLimitService` in `[NEW] backend_v2/core/redis_security.py` (per-org `rpm_limit`/`tpm_limit` and edge IP rate limiting) and monthly USD `quota_limit` / `SubscriptionStatus` check in `UsageService.check_quota` | Phase 4, Step 4.2 | [ ] Pending |
+| REQ-160-010 | Create `RevocationCache` in `[NEW] backend_v2/core/redis_security.py` executing atomic O(1) Dual-Key Redis `MGET revoked:usr:{id} revoked:jti:{jti}` with strict Fail-Closed `503 Service Unavailable` semantics and wire into `get_current_user_from_header` | Phase 4, Step 4.1 | [x] Completed |
+| REQ-160-011 | Create `TenantRateLimitService` in `[NEW] backend_v2/core/redis_security.py` (per-org `rpm_limit`/`tpm_limit` and edge IP rate limiting) and monthly USD `quota_limit` / `SubscriptionStatus` check in `UsageService.check_quota` | Phase 4, Step 4.2 | [x] Completed |
 | REQ-160-012 | Create `EmailService` in `[NEW] backend_v2/services/auth/email_service.py` and cryptographic single/batch B2B invitations (`create_invitation`, `create_invitation_batch`, `accept_invitation`) with `allowed_email_domains` and 1:1 Flat Identity Collision Guard | Phase 5, Step 5.1 | [ ] Pending |
 | REQ-160-013 | Enforce the 4-Tier RBAC Governance Matrix (`VIEWER`/`MEMBER` vs. `MANAGER` vs. `ADMIN` vs. `ROOT`), self-service profile updates (`name`, `language`, `theme_mode`), soft-delete aware `LAST_ADMIN_PROTECTION`, and immediate Redis Kill-Switch on privilege mutations | Phase 5, Step 5.2 | [ ] Pending |
 | REQ-160-014 | Implement in-place GDPR Soft-Delete anonymization in `UserService.delete_user` and `POST /api/v2/iam/auth/webhooks/firebase-user-deleted` preserving `executions` foreign keys | Phase 5, Step 5.3 | [ ] Pending |
@@ -224,17 +224,20 @@
   - **Step 3.1**: Created `SecretService` in `@[backend_v2/services/auth/secret_service.py]` implementing Dual-Tier BYOK Secret Governance (`CLOUD_SECRET_MANAGER` and `ENVELOPE_KMS` with AES-256-GCM DEK + Cloud KMS KEK and `kek_version`) returning a non-nullable `ResolvedCredentialDTO` with zero fallback to platform keys on decryption/lookup failure (`3b27084c8`).
   - **Step 3.2**: Updated `LLMFactory._resolve_provider_api_key`, `LLMFactory.create_provider`, `LiteLLMProvider`, `ToolDispatcher`, and `GenericMCPClient` to inject request-scoped `pydantic.SecretStr` credentials dynamically per `organization_id` with tenant-isolated router cache keys (`f"{model_id}:{organization_id}"`) and zero secret leakage in `MCPAuditTrace` (`7f759a9f4`).
   - **Step 3.3**: Added `GET /api/v2/iam/organizations/{org_id}/secrets`, `PUT /api/v2/iam/organizations/{org_id}/secrets`, and `DELETE /api/v2/iam/organizations/{org_id}/secrets/{secret_id}` in `@[backend_v2/api/routers/iam/organizations.py]` guarded by `require_role([UserRole.ROOT, UserRole.ADMIN])`, added `QGR033` DLP AST guardrail check in `@[scripts/_ast_guardrails.py]` preventing `SecretStr.get_secret_value()` serialization inside logger calls or `MCPAuditTrace` instantiations (`3c051f263`), and updated subpackage test discovery in `@[scripts/backend_audit_loop.py]` (`792a2fe62`).
+- Completed Phase 4 (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]`):
+  - **Step 4.1**: Created `RevocationCache` in `@[backend_v2/core/redis_security.py]` implementing atomic O(1) Dual-Key Redis `MGET revoked:usr:{user_id} revoked:jti:{jti}` with strict Fail-Closed `503 Service Unavailable` (`ErrorCodes.SERVICE_UNAVAILABLE`) semantics when Redis is unreachable and `401 AuthenticationError` (`ErrorCodes.AUTH_TOKEN_EXPIRED`) when revoked, and wired `await revocation_cache.assert_not_revoked(token_data)` into `get_current_user_from_header` in `@[backend_v2/api/dependencies.py]` (`6b51bcd55`).
+  - **Step 4.2**: Created `TenantRateLimitService` and `TenantRateLimitStatusDTO` in `@[backend_v2/core/redis_security.py]` enforcing per-organization `rpm_limit` / `tpm_limit` sliding-window counters and public auth-edge IP rate limiting (`PUBLIC_AUTH_EDGE_SCOPES`) raising `429 TokenLimitExceededError` (`ErrorCodes.RATE_LIMIT_EXCEEDED`), and updated `UsageService.check_quota` in `@[backend_v2/services/usage_service.py]` to enforce `SubscriptionStatus` (`ACTIVE`, `TRIAL`) and monthly USD `quota_limit` (`ErrorCodes.QUOTA_EXCEEDED`, HTTP 402) (`6b51bcd55`).
 
 ## Learned
 - `pydantic.mypy` requires `allowed_email_domains=[]` to be explicitly passed when instantiating `Organization(...)` directly in service/fake constructors (`@[backend_v2/services/auth/user_service.py]`, `@[backend_v2/services/auth/organization_service.py]`, `@[backend_v2/tests/fakes/in_memory_repositories.py]`).
 - `@[backend_v2/tests/unit/database/test_postgres.py]` enforces 1:1 column-to-DTO-field naming parity across all 15 tables in `@[backend_v2/database/migrations/001_pg19_uuidv7_schema.sql]` (`tenant_secrets` includes a `VIRTUAL` generated `created_at` column).
 - `audit_dict_eradication.py` bans `dict[str, JsonValue]` return type annotations on test helper methods (`unauthorized_open_json_annotations`); fixture helpers in unit tests must return concrete validated Pydantic V2 DTOs (`TokenExchangeResponseDTO`) and call `.model_dump(mode="json")` at the mock boundary.
+- When benchmarking sub-millisecond in-memory `RevocationCache.assert_not_revoked` execution in unit tests, warm up `get_settings()` once before `time.perf_counter_ns()` so cold `.env` disk loading on Windows does not skew the `MGET` latency measurement.
 
 ## Remaining
-- Run `/tier8-audit-plan` on Phase 3 (`@[docs/epic/tasks_EPIC_160/03_phase3_plan.md]` and `@[docs/epic/EPIC_160_tracker.md]`), then proceed to Phase 4 (`/tier0-research-plan @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]`).
+- Run `/tier8-audit-plan` on Phase 4 (`@[docs/epic/tasks_EPIC_160/04_phase4_plan.md]` and `@[docs/epic/EPIC_160_tracker.md]`), then proceed to Phase 5 (`/tier0-research-plan @[docs/epic/tasks_EPIC_160/05_phase5_plan.md] @[docs/epic/EPIC_160_tracker.md]`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_160/03_phase3_plan.md] @[docs/epic/EPIC_160_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_160/04_phase4_plan.md] @[docs/epic/EPIC_160_tracker.md]
 ```
-
