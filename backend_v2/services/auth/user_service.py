@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import hmac
 import logging
 from datetime import datetime, timezone
 from typing import Any
 
 from backend_v2.exceptions import (
     AppException,
+    AuthenticationError,
     ConflictError,
     ErrorCodes,
     PermissionDeniedError,
@@ -22,6 +25,7 @@ from backend_v2.models.auth import (
     TokenData,
     User,
     UserCreate,
+    UserDeleteResponse,
     UserRole,
     UserUpdate,
 )
@@ -31,6 +35,7 @@ from backend_v2.services.auth.repositories import (
     OrganizationRepository,
     UserRepository,
 )
+from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -337,14 +342,14 @@ class UserService:
         return await self.repo.get_by_organization(organization_id)
 
     async def delete_user(self, initiator_id: str, target_id: str) -> bool:
-        """Delete a user, with Last Admin Protection.
+        """Execute in-place GDPR Soft-Delete anonymization on a user, with Last Admin Protection.
 
         Args:
             initiator_id: The UID of the user attempting deletion.
             target_id: The UID of the user to delete.
 
         Returns:
-            True if deletion was successful.
+            True if soft-deletion was successful.
 
         Raises:
             AppException: With ErrorCodes.RESOURCE_NOT_FOUND if either user is not found, or
@@ -352,6 +357,7 @@ class UserService:
             PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if permissions are insufficient or target is protected.
             ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the user violates Last Admin Protection.
         """
+        # Phase 5, Step 5.3: Execute in-place GDPR Soft-Delete anonymization
         logger.info("[UserService] delete_user called. Initiator: %s, Target: %s", initiator_id, target_id)
 
         initiator = await self.repo.get_by_id(initiator_id)
@@ -371,15 +377,40 @@ class UserService:
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
 
-        # Permission Check
+        await self._validate_delete_user_permissions(initiator, target)
+        await self._delete_firebase_user_if_enabled(target.id)
+        await self._execute_gdpr_soft_delete(target)
+
+        if self.audit_service:
+            await self.audit_service.log_event(
+                actor_id=initiator_id,
+                action="USER_DELETED",
+                organization_id=target.organization_id,
+                target_id=target_id,
+                details={"email": target.email, "gdpr_soft_delete": True},
+            )
+
+        return True
+
+    async def _validate_delete_user_permissions(self, initiator: User, target: User) -> None:
+        """Validate RBAC permissions, Root protection, and Last Admin Protection for user deletion.
+
+        Args:
+            initiator: The user initiating the deletion.
+            target: The target user being deleted.
+
+        Raises:
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if permissions are insufficient or target is protected.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the last active administrator.
+        """
         if initiator.role != UserRole.ROOT:
             if initiator.role == UserRole.ADMIN:
                 if target.organization_id != initiator.organization_id:
                     logger.error(
                         "[UserService] %s: Admin %s attempted to delete user %s from foreign organization %s.",
                         ErrorCodes.PERMISSION_DENIED.name,
-                        initiator_id,
-                        target_id,
+                        initiator.id,
+                        target.id,
                         target.organization_id,
                         exc_info=True,
                     )
@@ -388,28 +419,25 @@ class UserService:
                 logger.error(
                     "[UserService] %s: User %s with role %s lacks permission to delete user %s.",
                     ErrorCodes.PERMISSION_DENIED.name,
-                    initiator_id,
+                    initiator.id,
                     initiator.role.value,
-                    target_id,
+                    target.id,
                     exc_info=True,
                 )
                 raise PermissionDeniedError("Insufficient permissions to delete users")
 
-        # ROOT PROTECTION
-        if target_id == SYSTEM_ROOT_USER_ID:
+        if target.id == SYSTEM_ROOT_USER_ID:
             logger.error(
                 "[UserService] %s: Attempted to delete protected Root account %s (initiator=%s).",
                 ErrorCodes.PERMISSION_DENIED.name,
-                target_id,
-                initiator_id,
+                target.id,
+                initiator.id,
                 exc_info=True,
             )
             raise PermissionDeniedError("The primary Root account cannot be deleted.")
 
-        # LAST ADMIN PROTECTION
         if target.role == UserRole.ADMIN and target.organization_id:
             admin_count = await self._count_org_admins(target.organization_id)
-
             if admin_count <= 1:
                 logger.error(
                     "[UserService] %s: Cannot delete the last Administrator of an Organization.",
@@ -422,41 +450,174 @@ class UserService:
                     details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "LAST_ADMIN_PROTECTION"},
                 )
 
-        # Execute
-        # 1. Firebase (if enabled)
+    async def _delete_firebase_user_if_enabled(self, user_id: str) -> None:
+        """Delete the corresponding Firebase Auth user when Firebase integration is enabled.
+
+        Args:
+            user_id: Target user identifier.
+
+        Raises:
+            AppException: With ErrorCodes.INTERNAL_SERVER_ERROR if Firebase deletion fails.
+        """
         if self.use_firebase and self.firebase_auth is not None:
             try:
-                logger.info("[UserService] Deleting Firebase user %s...", target.id)
-                await asyncio.to_thread(self.firebase_auth.delete_user, target.id)
+                logger.info("[UserService] Deleting Firebase user %s...", user_id)
+                await asyncio.to_thread(self.firebase_auth.delete_user, user_id)
             except (AppException, OSError, ValueError, KeyError, RuntimeError, TypeError) as fb_err:
                 logger.error(
                     "[UserService] %s: Failed to delete user %s in Firebase: %s",
                     ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                    target.id,
+                    user_id,
                     fb_err,
                     exc_info=True,
                 )
                 raise AppException(
-                    message=f"Failed to delete user {target.id} in Firebase: {fb_err}",
+                    message=f"Failed to delete user {user_id} in Firebase: {fb_err}",
                     status_code=500,
                     details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                 ) from fb_err
 
-        # 2. Local DB
-        logger.info("[UserService] Deleting Local DB user %s...", target_id)
-        await self.repo.delete(target_id)
+    async def _execute_gdpr_soft_delete(self, target: User) -> User:
+        """Revoke active Redis sessions and anonymize the User record in-place.
 
-        # Audit
+        Args:
+            target: Target User model to soft-delete.
+
+        Returns:
+            Anonymized User model persisted in the repository.
+        """
+        # Phase 5, Step 5.3: 1. Trigger RevocationCache kill-switch first
+        if self.revocation_cache is not None:
+            await self.revocation_cache.revoke_user_sessions(target.id, ttl_seconds=_REVOCATION_TTL_SECONDS)
+
+        # Phase 5, Step 5.3: 2. In-place GDPR anonymization preserving executions foreign keys
+        anonymized = target.model_copy(
+            update={
+                "is_active": False,
+                "deleted_at": datetime.now(timezone.utc),
+                "email": f"deleted_{target.id}@anonymized.quorum.local",
+                "name": "Anonymized User",
+                "firebase_uid": None,
+            }
+        )
+        await self.repo.repo.create_user(anonymized)
+        return anonymized
+
+    async def soft_delete_by_firebase_uid(self, firebase_uid: str) -> bool:
+        """Execute in-place GDPR Soft-Delete anonymization for a user identified by firebase_uid.
+
+        Args:
+            firebase_uid: External Firebase Auth UID or canonical user ID.
+
+        Returns:
+            True if the user was found and soft-deleted.
+
+        Raises:
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if no user matches firebase_uid.
+            PermissionDeniedError: With ErrorCodes.PERMISSION_DENIED if targeting SYSTEM_ROOT_USER_ID.
+            ConflictError: With ErrorCodes.CONFLICT_ERROR if deleting the last active administrator.
+        """
+        # Phase 5, Step 5.3: Webhook-triggered GDPR Soft-Delete by firebase_uid
+        target = await self.repo.get_by_firebase_uid(firebase_uid)
+        if target is None:
+            target = await self.repo.get_by_id(firebase_uid)
+        if target is None:
+            logger.error(
+                "[UserService] %s: User with firebase_uid=%s not found for soft_delete_by_firebase_uid.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                firebase_uid,
+                exc_info=True,
+            )
+            raise ResourceNotFoundError(resource_type="user", resource_id=firebase_uid)
+
+        if target.id == SYSTEM_ROOT_USER_ID:
+            logger.error(
+                "[UserService] %s: Attempted to soft-delete protected Root account %s via webhook.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                target.id,
+                exc_info=True,
+            )
+            raise PermissionDeniedError("The primary Root account cannot be deleted.")
+
+        if target.role == UserRole.ADMIN and target.organization_id:
+            admin_count = await self._count_org_admins(target.organization_id)
+            if admin_count <= 1:
+                logger.error(
+                    "[UserService] %s: Cannot soft-delete the last Administrator of organization %s.",
+                    ErrorCodes.CONFLICT_ERROR.name,
+                    target.organization_id,
+                    exc_info=True,
+                )
+                raise ConflictError(
+                    message="LAST_ADMIN_PROTECTION: Cannot delete the last Administrator of an Organization.",
+                    details={"error_code": ErrorCodes.CONFLICT_ERROR.value, "reason": "LAST_ADMIN_PROTECTION"},
+                )
+
+        await self._execute_gdpr_soft_delete(target)
         if self.audit_service:
             await self.audit_service.log_event(
-                actor_id=initiator_id,
+                actor_id=SYSTEM_ROOT_USER_ID,
                 action="USER_DELETED",
                 organization_id=target.organization_id,
-                target_id=target_id,
-                details={"email": target.email},
+                target_id=target.id,
+                details={"source": "firebase_webhook", "gdpr_soft_delete": True},
+            )
+        return True
+
+    async def verify_and_soft_delete_firebase_webhook(
+        self,
+        firebase_uid: str,
+        signature_header: str | None,
+        raw_body: bytes = b"",
+    ) -> UserDeleteResponse:
+        """Verify X-Quorum-Webhook-Signature HMAC against firebase_webhook_secret and soft-delete user.
+
+        Args:
+            firebase_uid: External Firebase UID of the deleted user.
+            signature_header: Value of X-Quorum-Webhook-Signature request header.
+            raw_body: Optional raw request body bytes signed by the webhook sender.
+
+        Returns:
+            UserDeleteResponse confirming GDPR soft-deletion.
+
+        Raises:
+            AppException: With ErrorCodes.CONFIGURATION_ERROR if firebase_webhook_secret is not configured.
+            AuthenticationError: With ErrorCodes.AUTHENTICATION_FAILED if HMAC signature is missing or invalid.
+            ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if user is not found.
+        """
+        # Phase 5, Step 5.3: Validate X-Quorum-Webhook-Signature HMAC against firebase_webhook_secret
+        settings = get_settings()
+        if settings.firebase_webhook_secret is None:
+            msg = "Firebase webhook secret is not configured."
+            logger.error("[UserService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
+            raise AppException(
+                message=msg,
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
-        return True
+        if not signature_header or not signature_header.strip():
+            msg = "Missing X-Quorum-Webhook-Signature header."
+            logger.error("[UserService] %s: %s", ErrorCodes.AUTHENTICATION_FAILED.name, msg, exc_info=True)
+            raise AuthenticationError(msg)
+
+        secret_bytes = settings.firebase_webhook_secret.get_secret_value().encode("utf-8")
+        normalized_sig = signature_header.strip().removeprefix("sha256=")
+        expected_uid_sig = hmac.new(secret_bytes, firebase_uid.encode("utf-8"), hashlib.sha256).hexdigest()
+        expected_body_sig = (
+            hmac.new(secret_bytes, raw_body, hashlib.sha256).hexdigest() if raw_body else expected_uid_sig
+        )
+
+        if not (
+            hmac.compare_digest(expected_uid_sig, normalized_sig)
+            or hmac.compare_digest(expected_body_sig, normalized_sig)
+        ):
+            msg = "Invalid X-Quorum-Webhook-Signature header."
+            logger.error("[UserService] %s: %s", ErrorCodes.AUTHENTICATION_FAILED.name, msg, exc_info=True)
+            raise AuthenticationError(msg)
+
+        await self.soft_delete_by_firebase_uid(firebase_uid)
+        return UserDeleteResponse(status="success", id=firebase_uid)
 
     async def update_user(self, initiator_id: str, target_id: str, updates: UserUpdate) -> User:
         """General update method for users enforcing 4-Tier RBAC, hierarchy, and Last Admin Protection.

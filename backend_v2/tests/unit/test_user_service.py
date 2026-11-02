@@ -9,6 +9,7 @@ import pytest
 
 from backend_v2.exceptions import (
     AppException,
+    AuthenticationError,
     ConflictError,
     ErrorCodes,
     PermissionDeniedError,
@@ -344,12 +345,18 @@ async def test_auth_service_delete_user_branches(
         await auth.delete_user(SYSTEM_ROOT_USER_ID, "usr_0195f3a0000070008000000000000009")
     assert exc_last_admin.value.error_code == ErrorCodes.CONFLICT_ERROR
 
-    # 6. Successful delete with multiple admins and audit
+    # 6. Successful GDPR soft-delete with multiple admins and audit
     await mock_repo.create_user(initiator_admin)
     # Now there are 2 admins in org_test00000001 (initiator_admin and target_admin)
     deleted = await auth.delete_user("usr_0195f3a0000070008000000000000006", "usr_0195f3a0000070008000000000000007")
     assert deleted is True
-    assert (await mock_repo.get_user("usr_0195f3a0000070008000000000000007")) is None
+    soft_deleted_user = await mock_repo.get_user("usr_0195f3a0000070008000000000000007")
+    assert soft_deleted_user is not None
+    assert soft_deleted_user.is_active is False
+    assert soft_deleted_user.deleted_at is not None
+    assert soft_deleted_user.email == "deleted_usr_0195f3a0000070008000000000000007@anonymized.quorum.local"
+    assert soft_deleted_user.name == "Anonymized User"
+    assert soft_deleted_user.firebase_uid is None
     mock_audit.log_event.assert_called()
 
 
@@ -1629,7 +1636,12 @@ async def test_delete_user_root_initiator_regular_user_success(
         "usr_0195f3a0000070008000000000000036", "usr_0195f3a0000070008000000000000037"
     )
     assert result is True
-    assert await mock_repo.get_user("usr_0195f3a0000070008000000000000037") is None
+    soft_deleted = await mock_repo.get_user("usr_0195f3a0000070008000000000000037")
+    assert soft_deleted is not None
+    assert soft_deleted.is_active is False
+    assert soft_deleted.deleted_at is not None
+    assert soft_deleted.email == "deleted_usr_0195f3a0000070008000000000000037@anonymized.quorum.local"
+    assert soft_deleted.name == "Anonymized User"
     assert mock_audit.log_event.call_count == 1
     call_kwargs = mock_audit.log_event.call_args.kwargs
     assert call_kwargs["action"] == "USER_DELETED"
@@ -1670,7 +1682,12 @@ async def test_delete_user_admin_same_org_success(
         "usr_0195f3a0000070008000000000000038", "usr_0195f3a0000070008000000000000039"
     )
     assert result is True
-    assert await mock_repo.get_user("usr_0195f3a0000070008000000000000039") is None
+    soft_deleted = await mock_repo.get_user("usr_0195f3a0000070008000000000000039")
+    assert soft_deleted is not None
+    assert soft_deleted.is_active is False
+    assert soft_deleted.deleted_at is not None
+    assert soft_deleted.email == "deleted_usr_0195f3a0000070008000000000000039@anonymized.quorum.local"
+    assert soft_deleted.name == "Anonymized User"
 
 
 @pytest.mark.asyncio
@@ -2204,3 +2221,244 @@ async def test_user_service_step52_self_update_hierarchy_last_admin_and_revocati
     mock_revocation.revoke_user_sessions.reset_mock()
     await auth_service.update_user_role(admin_id, member_id, UserRole.VIEWER)
     mock_revocation.revoke_user_sessions.assert_awaited_with(member_id, ttl_seconds=900)
+
+
+@pytest.mark.asyncio
+async def test_gdpr_soft_delete_preserves_executions_positive(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Contract test_gdpr_soft_delete_preserves_executions_positive: soft-delete revokes sessions, anonymizes user, and preserves executions."""
+    import hashlib
+    import hmac
+
+    from pydantic import SecretStr
+
+    from backend_v2.models.domain.execution import ExecutionRecord
+    from backend_v2.models.enums import ExecutionStatus
+    from backend_v2.settings import Settings
+
+    webhook_secret = "whsec_gdpr_soft_delete_test_secret_2026"
+    mock_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=False,
+        firebase_webhook_secret=SecretStr(webhook_secret),
+    )
+    monkeypatch.setattr("backend_v2.services.auth.user_service.get_settings", lambda: mock_settings)
+
+    mock_revocation = MagicMock(revoke_user_sessions=AsyncMock())
+    mock_audit = MagicMock(log_event=AsyncMock())
+    auth_service = AuthService(
+        mock_repo,
+        use_firebase=False,
+        audit_service=mock_audit,
+        revocation_cache=mock_revocation,
+    )
+
+    org_id = "org_0195f3a00000700080000000000000d1"
+    admin_id = "usr_0195f3a00000700080000000000000d1"
+    user1_id = "usr_0195f3a00000700080000000000000d2"
+    user2_id = "usr_0195f3a00000700080000000000000d3"
+
+    await mock_repo.create_user(
+        User(
+            id=admin_id,
+            email="admin_gdpr@test.com",
+            name="Admin GDPR",
+            role=UserRole.ADMIN,
+            organization_id=org_id,
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    await mock_repo.create_user(
+        User(
+            id=user1_id,
+            email="member_gdpr1@test.com",
+            name="Member GDPR One",
+            firebase_uid="fb_uid_gdpr_1",
+            role=UserRole.MEMBER,
+            organization_id=org_id,
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    await mock_repo.create_user(
+        User(
+            id=user2_id,
+            email="member_gdpr2@test.com",
+            name="Member GDPR Two",
+            firebase_uid="fb_uid_gdpr_2",
+            role=UserRole.MEMBER,
+            organization_id=org_id,
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+
+    exec1 = ExecutionRecord(
+        id="exe_0195f3a00000700080000000000000d1",
+        workflow_id="wor_0195f3a0000070008000000000000001",
+        status=ExecutionStatus.PENDING,
+        created_at=datetime.now(timezone.utc),
+        created_by=user1_id,
+        organization_id=org_id,
+        target_locale=SystemLocale.EN,
+    )
+    exec2 = ExecutionRecord(
+        id="exe_0195f3a00000700080000000000000d2",
+        workflow_id="wor_0195f3a0000070008000000000000001",
+        status=ExecutionStatus.PENDING,
+        created_at=datetime.now(timezone.utc),
+        created_by=user2_id,
+        organization_id=org_id,
+        target_locale=SystemLocale.EN,
+    )
+    await mock_repo.save_execution(exec1)
+    await mock_repo.save_execution(exec2)
+
+    # 1. Direct UserService.delete_user soft-deletes user1 and preserves exec1 foreign key
+    assert await auth_service.delete_user(admin_id, user1_id) is True
+    mock_revocation.revoke_user_sessions.assert_awaited_with(user1_id, ttl_seconds=900)
+    anon1 = await mock_repo.get_user(user1_id)
+    assert anon1 is not None
+    assert anon1.is_active is False
+    assert anon1.deleted_at is not None
+    assert anon1.email == f"deleted_{user1_id}@anonymized.quorum.local"
+    assert anon1.name == "Anonymized User"
+    assert anon1.firebase_uid is None
+    saved_exec1 = await mock_repo.get_execution(exec1.id)
+    assert saved_exec1 is not None
+    assert saved_exec1.created_by == user1_id
+
+    # 2. Firebase deletion webhook soft-deletes user2 by firebase_uid and preserves exec2 foreign key
+    mock_revocation.revoke_user_sessions.reset_mock()
+    sig = hmac.new(webhook_secret.encode("utf-8"), b"fb_uid_gdpr_2", hashlib.sha256).hexdigest()
+    webhook_res = await auth_service.user_service.verify_and_soft_delete_firebase_webhook(
+        firebase_uid="fb_uid_gdpr_2",
+        signature_header=f"sha256={sig}",
+        raw_body=b"",
+    )
+    assert webhook_res.status == "success"
+    assert webhook_res.id == "fb_uid_gdpr_2"
+    mock_revocation.revoke_user_sessions.assert_awaited_with(user2_id, ttl_seconds=900)
+    anon2 = await mock_repo.get_user(user2_id)
+    assert anon2 is not None
+    assert anon2.is_active is False
+    assert anon2.deleted_at is not None
+    assert anon2.email == f"deleted_{user2_id}@anonymized.quorum.local"
+    assert anon2.name == "Anonymized User"
+    assert anon2.firebase_uid is None
+    saved_exec2 = await mock_repo.get_execution(exec2.id)
+    assert saved_exec2 is not None
+    assert saved_exec2.created_by == user2_id
+
+
+@pytest.mark.asyncio
+async def test_gdpr_soft_delete_webhook_negative_and_boundary(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Negative & Boundary: Verify webhook HMAC validation failures, missing secret, root protection, and last admin protection."""
+    import hashlib
+    import hmac
+
+    from pydantic import SecretStr
+
+    from backend_v2.settings import Settings
+
+    auth_service = AuthService(mock_repo, use_firebase=False)
+
+    # 1. Missing firebase_webhook_secret raises CONFIGURATION_ERROR
+    no_secret_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=False,
+        firebase_webhook_secret=None,
+    )
+    monkeypatch.setattr("backend_v2.services.auth.user_service.get_settings", lambda: no_secret_settings)
+    with pytest.raises(AppException) as no_sec_exc:
+        await auth_service.user_service.verify_and_soft_delete_firebase_webhook(
+            firebase_uid="fb_any",
+            signature_header="sha256=deadbeef",
+        )
+    assert no_sec_exc.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+    # 2. Missing or invalid HMAC signature raises AuthenticationError
+    secret_str = "whsec_boundary_test_2026"
+    valid_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=False,
+        firebase_webhook_secret=SecretStr(secret_str),
+    )
+    monkeypatch.setattr("backend_v2.services.auth.user_service.get_settings", lambda: valid_settings)
+
+    with pytest.raises(AuthenticationError) as missing_sig_exc:
+        await auth_service.user_service.verify_and_soft_delete_firebase_webhook(
+            firebase_uid="fb_any",
+            signature_header="   ",
+        )
+    assert missing_sig_exc.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
+
+    with pytest.raises(AuthenticationError) as bad_sig_exc:
+        await auth_service.user_service.verify_and_soft_delete_firebase_webhook(
+            firebase_uid="fb_any",
+            signature_header="invalid_hmac_digest",
+            raw_body=b'{"uid":"fb_any"}',
+        )
+    assert bad_sig_exc.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
+
+    # 3. Valid body HMAC signature but missing user raises ResourceNotFoundError
+    body_bytes = b'{"uid":"fb_missing_user"}'
+    body_sig = hmac.new(secret_str.encode("utf-8"), body_bytes, hashlib.sha256).hexdigest()
+    with pytest.raises(ResourceNotFoundError):
+        await auth_service.user_service.verify_and_soft_delete_firebase_webhook(
+            firebase_uid="fb_missing_user",
+            signature_header=body_sig,
+            raw_body=body_bytes,
+        )
+
+    # 4. Root account protection and Last Admin protection on soft_delete_by_firebase_uid
+    await mock_repo.create_user(
+        User(
+            id=SYSTEM_ROOT_USER_ID,
+            email="root_wh@test.com",
+            name="Root WH",
+            firebase_uid="fb_root_master",
+            role=UserRole.ROOT,
+            organization_id=SystemOrganizations.ROOT_SYSTEM,
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    with pytest.raises(PermissionDeniedError):
+        await auth_service.user_service.soft_delete_by_firebase_uid("fb_root_master")
+
+    sole_admin_id = "usr_0195f3a00000700080000000000000e9"
+    await mock_repo.create_user(
+        User(
+            id=sole_admin_id,
+            email="sole_adm_wh@test.com",
+            name="Sole Admin WH",
+            firebase_uid="fb_sole_admin_wh",
+            role=UserRole.ADMIN,
+            organization_id="org_0195f3a00000700080000000000000e9",
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+        )
+    )
+    with pytest.raises(ConflictError) as last_adm_exc:
+        await auth_service.user_service.soft_delete_by_firebase_uid("fb_sole_admin_wh")
+    assert last_adm_exc.value.details["reason"] == "LAST_ADMIN_PROTECTION"

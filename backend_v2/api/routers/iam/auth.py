@@ -9,8 +9,9 @@ B2B invitation acceptance (`POST /invitations/accept`), available roles enumerat
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Header, Query, Request
 
 from backend_v2.api.dependencies import AuthServiceDep, CurrentUserDep
 from backend_v2.core.rate_limit import limiter
@@ -23,6 +24,7 @@ from backend_v2.models.auth import (
     TokenExchangeRequestDTO,
     TokenExchangeResponseDTO,
     User,
+    UserDeleteResponse,
     UserRole,
 )
 
@@ -148,3 +150,35 @@ async def get_my_profile(current_user: CurrentUserDep, auth_service: AuthService
         AuthenticationError: With ErrorCodes.AUTHENTICATION_FAILED if the user profile is not found.
     """
     return await auth_service.get_my_profile(current_user)
+
+
+@router.post("/webhooks/firebase-user-deleted", response_model=UserDeleteResponse)
+async def firebase_user_deleted_webhook(
+    request: Request,
+    auth_service: AuthServiceDep,
+    firebase_uid: Annotated[str, Query(min_length=1, max_length=128)],
+    x_quorum_webhook_signature: Annotated[str | None, Header(alias="X-Quorum-Webhook-Signature")] = None,
+) -> UserDeleteResponse:
+    """Process a signed Firebase user deletion webhook and execute GDPR Soft-Delete anonymization.
+
+    Args:
+        request: Incoming FastAPI Request containing optional raw webhook body.
+        auth_service: Authentication service dependency.
+        firebase_uid: External Firebase UID of the deleted user.
+        x_quorum_webhook_signature: HMAC-SHA256 signature header verified against firebase_webhook_secret.
+
+    Returns:
+        UserDeleteResponse confirming GDPR soft-delete anonymization.
+
+    Raises:
+        AppException: With ErrorCodes.CONFIGURATION_ERROR if webhook secret is not configured.
+        AuthenticationError: With ErrorCodes.AUTHENTICATION_FAILED if HMAC signature is missing or invalid.
+        ResourceNotFoundError: With ErrorCodes.RESOURCE_NOT_FOUND if user is not found.
+    """
+    # Phase 5, Step 5.3: Validate X-Quorum-Webhook-Signature HMAC and execute GDPR soft-delete
+    raw_body = await request.body()
+    return await auth_service.user_service.verify_and_soft_delete_firebase_webhook(
+        firebase_uid=firebase_uid,
+        signature_header=x_quorum_webhook_signature,
+        raw_body=raw_body,
+    )

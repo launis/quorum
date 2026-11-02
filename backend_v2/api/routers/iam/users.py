@@ -105,10 +105,10 @@ async def save_user(id: str, data: UserUpdate, current_user: CurrentUserDep, aut
 
 @router.delete("/{id}", response_model=UserDeleteResponse)
 async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthServiceDep) -> UserDeleteResponse:
-    """Delete a user from the system securely via SSOT Service Layer.
+    """Execute in-place GDPR Soft-Delete anonymization on a user securely via SSOT Service Layer.
 
     Args:
-        id: The unique identifier of the user to delete.
+        id: The unique identifier of the user to soft-delete.
         current_user: The authenticated user making the request.
         auth_service: The authentication service dependency.
 
@@ -121,6 +121,7 @@ async def delete_user(id: str, current_user: CurrentUserDep, auth_service: AuthS
         AppException: If deleting the user fails.
     """
     try:
+        # Phase 5, Step 5.3: Execute in-place GDPR Soft-Delete anonymization via SSOT Service Layer
         await auth_service.delete_user(current_user.id, id)
         return UserDeleteResponse(status="success", id=id)
     except AppException:

@@ -11,7 +11,9 @@ from fastapi import Request
 from pydantic import ValidationError
 
 from backend_v2.api.routers.iam.auth import (
+    accept_invitation,
     exchange_firebase_token,
+    firebase_user_deleted_webhook,
     get_my_profile,
     impersonate_user,
     list_available_roles,
@@ -29,6 +31,7 @@ from backend_v2.models.auth import (
     LogoutRequestDTO,
     Organization,
     OrganizationCreate,
+    OrganizationUpdateDTO,
     SubscriptionStatus,
     SystemOrganizations,
     TokenData,
@@ -40,7 +43,6 @@ from backend_v2.models.auth import (
 )
 from backend_v2.models.enums import SystemLocale
 from backend_v2.services.auth import AuthService
-from backend_v2.services.auth.organization_service import OrganizationUpdateDTO
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 
 USER_1_ID = "usr_0195f3a0000070008000000000000001"
@@ -352,6 +354,7 @@ def test_auth_models_validation_coverage_and_invalid_inputs_error() -> None:
             quota_limit=-5.0,
             tpm_limit=5000,
             rpm_limit=10,
+            allowed_email_domains=[],
         )
 
     with pytest.raises(ValidationError):
@@ -364,6 +367,7 @@ def test_auth_models_validation_coverage_and_invalid_inputs_error() -> None:
             quota_limit=10.0,
             tpm_limit=5000,
             rpm_limit=10,
+            allowed_email_domains=[],
         )
 
     with pytest.raises(ValidationError):
@@ -377,6 +381,7 @@ def test_auth_models_validation_coverage_and_invalid_inputs_error() -> None:
             tpm_limit=5000,
             rpm_limit=10,
             contact_email="   ",
+            allowed_email_domains=[],
         )
 
     user = User(
@@ -463,6 +468,7 @@ def test_auth_models_validation_coverage_and_invalid_inputs_error() -> None:
 @pytest.mark.asyncio
 async def test_auth_service_facade_delegates_all_operations(
     mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """TC-P4-39: AuthService facade delegates token, org, and user operations cleanly."""
     mock_fb = MagicMock()
@@ -481,36 +487,32 @@ async def test_auth_service_facade_delegates_all_operations(
     assert auth_service.org_service.firebase_auth is mock_fb
     assert auth_service.user_service.firebase_auth is mock_fb
 
-    assert AuthService.use_firebase.fset is None
-    assert AuthService.firebase_auth.fset is None
+    with pytest.raises(AttributeError):
+        del auth_service.use_firebase
 
     with pytest.raises(AttributeError):
-        AuthService.use_firebase.__set__(auth_service, False)
-
-    with pytest.raises(AttributeError):
-        AuthService.firebase_auth.__set__(auth_service, None)
+        del auth_service.firebase_auth
 
     init_file = Path(__file__).parents[2] / "services" / "auth" / "__init__.py"
     line_count = len(init_file.read_text(encoding="utf-8").splitlines())
     assert line_count < 300, f"AuthService facade line count ({line_count}) exceeds 300 lines cap"
 
-    auth_service.token_service._init_firebase = MagicMock()
+    mock_init_fb = MagicMock()
+    monkeypatch.setattr(auth_service.token_service, "_init_firebase", mock_init_fb)
     auth_service._init_firebase()
-    auth_service.token_service._init_firebase.assert_called_once()
+    mock_init_fb.assert_called_once()
 
-    auth_service.token_service.create_impersonation_token = MagicMock(return_value="mock_jwt_impersonate")
+    mock_create_imp = MagicMock(return_value="mock_jwt_impersonate")
+    monkeypatch.setattr(auth_service.token_service, "create_impersonation_token", mock_create_imp)
     token_str = auth_service.create_impersonation_token(USER_1_ID, 1800)
     assert token_str == "mock_jwt_impersonate"
-    auth_service.token_service.create_impersonation_token.assert_called_once_with(
-        target_id=USER_1_ID, duration_seconds=1800
-    )
+    mock_create_imp.assert_called_once_with(target_id=USER_1_ID, duration_seconds=1800)
 
-    auth_service.token_service.verify_token = AsyncMock(
-        return_value=TokenData(id=USER_1_ID, role=UserRole.ADMIN, organization_id=ORG_1_ID)
-    )
+    mock_verify_tok = AsyncMock(return_value=TokenData(id=USER_1_ID, role=UserRole.ADMIN, organization_id=ORG_1_ID))
+    monkeypatch.setattr(auth_service.token_service, "verify_token", mock_verify_tok)
     tok = await auth_service.verify_token("bearer_xyz")
     assert tok.id == USER_1_ID
-    auth_service.token_service.verify_token.assert_awaited_once_with("bearer_xyz")
+    mock_verify_tok.assert_awaited_once_with("bearer_xyz")
 
     now = datetime.now(timezone.utc)
     dummy_org = Organization(
@@ -523,6 +525,7 @@ async def test_auth_service_facade_delegates_all_operations(
         tpm_limit=5000,
         rpm_limit=10,
         created_at=now,
+        allowed_email_domains=[],
     )
     root_token = TokenData(
         id=SYSTEM_ROOT_USER_ID,
@@ -537,26 +540,25 @@ async def test_auth_service_facade_delegates_all_operations(
         tpm_limit=5000,
         rpm_limit=10,
     )
-    auth_service.org_service.create_organization = AsyncMock(return_value=dummy_org)
+    monkeypatch.setattr(auth_service.org_service, "create_organization", AsyncMock(return_value=dummy_org))
     created_org = await auth_service.create_organization(root_token, dummy_org_create)
     assert created_org.id == ORG_1_ID
 
-    auth_service.org_service.delete_organization = AsyncMock()
+    mock_del_org = AsyncMock()
+    monkeypatch.setattr(auth_service.org_service, "delete_organization", mock_del_org)
     await auth_service.delete_organization(root_token, ORG_1_ID, force=True)
-    auth_service.org_service.delete_organization.assert_awaited_once_with(
-        initiator=root_token, target_org_id=ORG_1_ID, force=True
-    )
+    mock_del_org.assert_awaited_once_with(initiator=root_token, target_org_id=ORG_1_ID, force=True)
 
-    auth_service.org_service.list_organizations = AsyncMock(return_value=[dummy_org])
+    monkeypatch.setattr(auth_service.org_service, "list_organizations", AsyncMock(return_value=[dummy_org]))
     orgs = await auth_service.list_organizations(root_token)
     assert len(orgs) == 1
 
-    auth_service.org_service.get_organization = AsyncMock(return_value=dummy_org)
+    monkeypatch.setattr(auth_service.org_service, "get_organization", AsyncMock(return_value=dummy_org))
     fetched_org = await auth_service.get_organization(root_token, ORG_1_ID)
     assert fetched_org.id == ORG_1_ID
 
     dummy_org_update = OrganizationUpdateDTO(name="Updated Delegate Org")
-    auth_service.org_service.update_organization = AsyncMock(return_value=dummy_org)
+    monkeypatch.setattr(auth_service.org_service, "update_organization", AsyncMock(return_value=dummy_org))
     updated_org = await auth_service.update_organization(root_token, ORG_1_ID, dummy_org_update)
     assert updated_org.id == ORG_1_ID
 
@@ -581,40 +583,98 @@ async def test_auth_service_facade_delegates_all_operations(
     )
     dummy_user_update = UserUpdate(name="Updated User")
 
-    auth_service.user_service.create_user = AsyncMock(return_value=dummy_user)
+    monkeypatch.setattr(auth_service.user_service, "create_user", AsyncMock(return_value=dummy_user))
     created_user = await auth_service.create_user(SYSTEM_ROOT_USER_ID, dummy_user_create)
     assert created_user.id == USER_1_ID
 
-    auth_service.user_service._create_user_internal = AsyncMock(return_value=dummy_user)
+    monkeypatch.setattr(auth_service.user_service, "_create_user_internal", AsyncMock(return_value=dummy_user))
     internal_user = await auth_service._create_user_internal(SYSTEM_ROOT_USER_ID, dummy_user_create, ORG_1_ID)
     assert internal_user.id == USER_1_ID
 
-    auth_service.user_service._enforce_hierarchy = MagicMock()
+    mock_enf_hier = MagicMock()
+    monkeypatch.setattr(auth_service.user_service, "_enforce_hierarchy", mock_enf_hier)
     auth_service._enforce_hierarchy(dummy_user, UserRole.MEMBER)
-    auth_service.user_service._enforce_hierarchy.assert_called_once_with(
-        creator=dummy_user, target_role=UserRole.MEMBER
-    )
+    mock_enf_hier.assert_called_once_with(creator=dummy_user, target_role=UserRole.MEMBER)
 
-    auth_service.user_service._count_org_admins = AsyncMock(return_value=2)
+    monkeypatch.setattr(auth_service.user_service, "_count_org_admins", AsyncMock(return_value=2))
     assert await auth_service._count_org_admins(ORG_1_ID) == 2
 
-    auth_service.user_service.get_users_by_organization = AsyncMock(return_value=[dummy_user])
+    monkeypatch.setattr(auth_service.user_service, "get_users_by_organization", AsyncMock(return_value=[dummy_user]))
     assert len(await auth_service.get_users_by_organization(ORG_1_ID)) == 1
 
-    auth_service.user_service.delete_user = AsyncMock(return_value=True)
+    monkeypatch.setattr(auth_service.user_service, "delete_user", AsyncMock(return_value=True))
     assert await auth_service.delete_user(SYSTEM_ROOT_USER_ID, USER_1_ID) is True
 
-    auth_service.user_service.update_user = AsyncMock(return_value=dummy_user)
+    monkeypatch.setattr(auth_service.user_service, "update_user", AsyncMock(return_value=dummy_user))
     assert (await auth_service.update_user(SYSTEM_ROOT_USER_ID, USER_1_ID, dummy_user_update)).id == USER_1_ID
 
-    auth_service.user_service.update_user_role = AsyncMock(return_value=dummy_user)
+    monkeypatch.setattr(auth_service.user_service, "update_user_role", AsyncMock(return_value=dummy_user))
     assert (await auth_service.update_user_role(SYSTEM_ROOT_USER_ID, USER_1_ID, UserRole.ADMIN)).id == USER_1_ID
 
-    auth_service.user_service.list_users = AsyncMock(return_value=[dummy_user])
+    monkeypatch.setattr(auth_service.user_service, "list_users", AsyncMock(return_value=[dummy_user]))
     assert len(await auth_service.list_users(root_token)) == 1
 
-    auth_service.user_service.get_user = AsyncMock(return_value=dummy_user)
+    monkeypatch.setattr(auth_service.user_service, "get_user", AsyncMock(return_value=dummy_user))
     assert (await auth_service.get_user(root_token, USER_1_ID)).id == USER_1_ID
 
-    auth_service.user_service.ensure_root_user = AsyncMock(return_value=dummy_user)
+    monkeypatch.setattr(auth_service.user_service, "ensure_root_user", AsyncMock(return_value=dummy_user))
     assert (await auth_service.ensure_root_user()).id == USER_1_ID
+
+
+@pytest.mark.asyncio
+async def test_auth_router_accept_invitation_and_firebase_webhook(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify accept_invitation and firebase_user_deleted_webhook router endpoints delegate to AuthService."""
+    import hashlib
+    import hmac
+
+    from pydantic import SecretStr
+
+    from backend_v2.models.auth import InvitationAcceptRequestDTO
+    from backend_v2.settings import Settings
+
+    secret_val = "whsec_router_test_2026"
+    mock_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=False,
+        firebase_webhook_secret=SecretStr(secret_val),
+    )
+    monkeypatch.setattr("backend_v2.services.auth.user_service.get_settings", lambda: mock_settings)
+
+    service = AuthService(mock_repo, use_firebase=False)
+    now = datetime.now(timezone.utc)
+    member = User(
+        id=USER_1_ID,
+        email="webhook_user@test.com",
+        firebase_uid="fb_uid_router_wh",
+        role=UserRole.MEMBER,
+        is_active=True,
+        language=SystemLocale.EN,
+        theme_mode="system",
+        created_at=now,
+        organization_id=ORG_1_ID,
+    )
+    await mock_repo.create_user(member)
+
+    monkeypatch.setattr(service.org_service, "accept_invitation", AsyncMock(return_value=member))
+    accepted = await accept_invitation(
+        payload=InvitationAcceptRequestDTO(raw_token="raw_invitation_token_1234567890"),
+        current_user=TokenData(id=USER_1_ID, role=UserRole.MEMBER, email="webhook_user@test.com"),
+        auth_service=service,
+    )
+    assert accepted.id == USER_1_ID
+
+    mock_req = MagicMock(spec=Request)
+    mock_req.body = AsyncMock(return_value=b"")
+    sig = hmac.new(secret_val.encode("utf-8"), b"fb_uid_router_wh", hashlib.sha256).hexdigest()
+    del_res = await firebase_user_deleted_webhook(
+        request=mock_req,
+        auth_service=service,
+        firebase_uid="fb_uid_router_wh",
+        x_quorum_webhook_signature=f"sha256={sig}",
+    )
+    assert del_res.status == "success"
+    assert del_res.id == "fb_uid_router_wh"
