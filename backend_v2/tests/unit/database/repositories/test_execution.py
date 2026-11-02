@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from backend_v2.database.driver import StorageDriver
-from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
+from backend_v2.database.repositories.execution import ExecutionRepositoryImpl, HydrationPayloadValue
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
@@ -327,7 +327,7 @@ async def test_audit_trails_offload_and_hydrate(repo: ExecutionRepositoryImpl, m
             "reasoning": "r1",
         },
     ]
-    hydrate_data = {
+    hydrate_data: dict[str, HydrationPayloadValue] = {
         "id": _EXE_ID,
         "frozen_context": FrozenContext(compiled_prompts={"p1": "prompt"}),
     }
@@ -363,7 +363,7 @@ async def test_hydrate_frozen_context_and_context_vars(repo: ExecutionRepository
     ]
 
     with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage):
-        data = {
+        data: dict[str, HydrationPayloadValue] = {
             "frozen_context_storage_path": f"executions/{_EXE_ID}/frozen_context.json",
             "context_variables_storage_path": f"executions/{_EXE_ID}/context_vars.json",
         }
@@ -431,3 +431,73 @@ async def test_get_execution_missing_offload_blob_data_corruption(
         assert exc_info.value.status_code == 500
         assert exc_info.value.details["error_code"] == "DATA_CORRUPTION"
         assert "Missing blob trace data for execution_trace." in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_update_execution_optimistic_concurrency_control(
+    repo: ExecutionRepositoryImpl, mock_driver: AsyncMock
+) -> None:
+    """Positive & Negative: verifies OCC version increment, missing document handling, and CONFLICT AppException."""
+    # 1. Missing document when expected_state_version is provided returns False
+    mock_driver.get.return_value = None
+    assert (
+        await repo.update_execution(
+            _EXE_ID, ExecutionUpdateDTO(status=ExecutionStatus.RUNNING, expected_state_version=1)
+        )
+        is False
+    )
+
+    # 2. Matching expected_state_version increments state_version and strips expected_state_version
+    mock_driver.get.return_value = {"id": _EXE_ID, "state_version": 2}
+    assert (
+        await repo.update_execution(
+            _EXE_ID, ExecutionUpdateDTO(status=ExecutionStatus.PASSED, expected_state_version=2)
+        )
+        is True
+    )
+    mock_driver.update.assert_called_with(
+        "executions",
+        _EXE_ID,
+        {"status": "PASSED", "state_version": 3},
+    )
+
+    # 3. Mismatched expected_state_version raises AppException with CONFLICT (409)
+    mock_driver.get.return_value = {"id": _EXE_ID, "state_version": 4}
+    with pytest.raises(AppException) as exc_info:
+        await repo.update_execution(
+            _EXE_ID, ExecutionUpdateDTO(status=ExecutionStatus.FAILED, expected_state_version=2)
+        )
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFLICT.value
+    assert exc_info.value.details["expected_state_version"] == 2
+    assert exc_info.value.details["actual_state_version"] == 4
+
+    # 4. Explicit None expected_state_version is stripped before driver update
+    assert (
+        await repo.update_execution(
+            _EXE_ID, ExecutionUpdateDTO(status=ExecutionStatus.RUNNING, expected_state_version=None)
+        )
+        is True
+    )
+
+
+@pytest.mark.asyncio
+async def test_hydrate_audit_trails_without_existing_frozen_context(
+    repo: ExecutionRepositoryImpl, mock_driver: AsyncMock
+) -> None:
+    """Positive: hydrates subcollection audit_trails into a new FrozenContext when frozen_context is absent."""
+    mock_driver.query.return_value = [
+        {
+            "id": _TRC_ID_1,
+            "tool_id": "calc",
+            "step_name": _STP_ID,
+            "query": "q1",
+            "reasoning": "r1",
+            "timestamp": "2026-08-31T01:00:00Z",
+        }
+    ]
+    data: dict[str, HydrationPayloadValue] = {"id": _EXE_ID}
+    await repo._hydrate_payloads(data)
+    assert isinstance(data["frozen_context"], FrozenContext)
+    assert len(data["frozen_context"].mcp_tool_audit) == 1
+    assert data["frozen_context"].mcp_tool_audit[0].id == _TRC_ID_1

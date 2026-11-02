@@ -299,7 +299,7 @@ class ExecutionRepositoryImpl(BaseRepository):
                 or payload offloading fails (ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         data = updates.model_dump(mode="json", exclude_unset=True)
-        # Phase 4, Step 4.1: Enforce expected_state_version OCC conflict detection and atomic increment
+        # Enforce expected_state_version OCC conflict detection and atomic increment
         if updates.expected_state_version is not None:
             existing_doc = await self.driver.get("executions", execution_id)
             if not existing_doc:
@@ -323,6 +323,7 @@ class ExecutionRepositoryImpl(BaseRepository):
                         "expected_state_version": updates.expected_state_version,
                         "actual_state_version": actual_version,
                     },
+                    exc_info=True,
                 )
                 raise AppException(
                     message=msg,
