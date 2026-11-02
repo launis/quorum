@@ -152,7 +152,7 @@
   - [x] @[client_app_v2/lib/features/auth/presentation/auth_controller.dart]
   - [x] @[client_app_v2/lib/features/auth/presentation/login_screen.dart]
   - [x] @[client_app_v2/lib/router/router.dart]
-  - [ ] @[client_app_v2/lib/router/scaffold_with_nav.dart]
+  - [x] @[client_app_v2/lib/router/scaffold_with_nav.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
   - [ ] @[client_app_v2/lib/features/settings/presentation/settings_controller.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/settings/domain/models/tenant_secret_dto.dart]
