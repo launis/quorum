@@ -110,7 +110,7 @@
   - [x] @[backend_v2/settings.py]
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/exceptions.py]
-  - [ ] @[backend_v2/models/auth.py]
+  - [x] @[backend_v2/models/auth.py]
   - [ ] @[backend_v2/models/domain/execution.py]
   - [ ] @[backend_v2/database/interfaces.py]
   - [ ] @[backend_v2/database/postgres/entity_adapter/__init__.py]
