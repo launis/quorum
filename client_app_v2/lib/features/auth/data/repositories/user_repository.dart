@@ -44,7 +44,8 @@ class UserRepository {
 
   Future<Either<AppException, User>> fetchCurrentUser() async {
     try {
-      final response = await _client.get<Map<String, Object?>>('/iam/users/me');
+      // Phase 2, Step 2: Route session restoration to canonical GET /iam/auth/me endpoint
+      final response = await _client.get<Map<String, Object?>>('/iam/auth/me');
       final payload = response.data;
       if (payload == null) return const Left(AppException(detail: ''));
       return Right(User.fromJson(payload));

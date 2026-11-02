@@ -75,6 +75,7 @@ void main() {
     'expires_in_seconds': 900,
     'user': <String, Object?>{
       'id': userId ?? validUserId,
+      'firebase_uid': null,
       'email': 'coach@quorum.ai',
       'name': 'Executive Coach',
       'role': 'ADMIN',
@@ -82,6 +83,7 @@ void main() {
       'language': language,
       'theme_mode': themeMode,
       'is_active': true,
+      'deleted_at': null,
     },
   };
 
@@ -125,16 +127,16 @@ void main() {
     test(
       'Positive 1: build() hydrates from mockUser or Firebase currentUser via UserRepository, and signIn exchanges credentials, syncs settings, and schedules silent refresh',
       () async {
-        // 1. Hydrate build() when Firebase user is active and /iam/users/me returns User
+        // 1. Hydrate build() when Firebase user is active and /iam/auth/me returns User
         final mockFbUser = _MockFirebaseUser();
         when(
           () => mockFirebaseAuth.authStateChanges(),
         ).thenAnswer((_) => Stream<firebase.User?>.value(mockFbUser));
         when(
-          () => mockDio.get<Map<String, Object?>>('/iam/users/me'),
+          () => mockDio.get<Map<String, Object?>>('/iam/auth/me'),
         ).thenAnswer(
           (_) async => Response<Map<String, Object?>>(
-            requestOptions: RequestOptions(path: '/iam/users/me'),
+            requestOptions: RequestOptions(path: '/iam/auth/me'),
             statusCode: 200,
             data:
                 buildExchangePayload(organizationId: orgIdAlpha)['user']
@@ -297,7 +299,7 @@ void main() {
             requestOptions: RequestOptions(path: '/iam/auth/logout'),
             statusCode: 200,
             data: const <String, Object?>{
-              'status': 'revoked',
+              'status': 'logged_out',
               'revoked_jti': 'jti_0195f3a0000070008000000000000001',
               'all_sessions_revoked': true,
             },
@@ -460,6 +462,34 @@ void main() {
         ).called(1);
         expect(container.read(mockTokenProvider), isNull);
         expect(container.read(authControllerProvider).value, isNull);
+
+        // 6. UserRepository.fetchCurrentUser translates Dio 401/404 responses on /iam/auth/me to Left(AppException)
+        final userRepo = container.read(userRepositoryProvider);
+        when(() => mockDio.get<Map<String, Object?>>('/iam/auth/me')).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(path: '/iam/auth/me'),
+            response: Response<Map<String, Object?>>(
+              requestOptions: RequestOptions(path: '/iam/auth/me'),
+              statusCode: 401,
+            ),
+            type: DioExceptionType.badResponse,
+          ),
+        );
+        final unauthorizedResult = await userRepo.fetchCurrentUser();
+        expect(unauthorizedResult.isLeft(), isTrue);
+
+        when(() => mockDio.get<Map<String, Object?>>('/iam/auth/me')).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(path: '/iam/auth/me'),
+            response: Response<Map<String, Object?>>(
+              requestOptions: RequestOptions(path: '/iam/auth/me'),
+              statusCode: 404,
+            ),
+            type: DioExceptionType.badResponse,
+          ),
+        );
+        final notFoundResult = await userRepo.fetchCurrentUser();
+        expect(notFoundResult.isLeft(), isTrue);
       },
     );
   });

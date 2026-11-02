@@ -15,6 +15,7 @@ _User _$UserFromJson(Map<String, dynamic> json) => $checkedCreate(
       allowedKeys: const [
         'id',
         'slug',
+        'firebase_uid',
         'email',
         'role',
         'organization_id',
@@ -26,6 +27,7 @@ _User _$UserFromJson(Map<String, dynamic> json) => $checkedCreate(
         'execution_count',
         'is_active',
         'created_by',
+        'deleted_at',
       ],
     );
     final val = _User(
@@ -34,6 +36,7 @@ _User _$UserFromJson(Map<String, dynamic> json) => $checkedCreate(
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
       ),
       slug: $checkedConvert('slug', (v) => v as String?),
+      firebaseUid: $checkedConvert('firebase_uid', (v) => v as String?),
       email: $checkedConvert('email', (v) => v as String),
       role: $checkedConvert('role', (v) => $enumDecode(_$UserRoleEnumMap, v)),
       organizationId: $checkedConvert('organization_id', (v) => v as String?),
@@ -51,10 +54,15 @@ _User _$UserFromJson(Map<String, dynamic> json) => $checkedCreate(
       ),
       isActive: $checkedConvert('is_active', (v) => v as bool?),
       createdBy: $checkedConvert('created_by', (v) => v as String?),
+      deletedAt: $checkedConvert(
+        'deleted_at',
+        (v) => v == null ? null : DateTime.parse(v as String),
+      ),
     );
     return val;
   },
   fieldKeyMap: const {
+    'firebaseUid': 'firebase_uid',
     'organizationId': 'organization_id',
     'createdAt': 'created_at',
     'themeMode': 'theme_mode',
@@ -62,12 +70,14 @@ _User _$UserFromJson(Map<String, dynamic> json) => $checkedCreate(
     'executionCount': 'execution_count',
     'isActive': 'is_active',
     'createdBy': 'created_by',
+    'deletedAt': 'deleted_at',
   },
 );
 
 Map<String, dynamic> _$UserToJson(_User instance) => <String, dynamic>{
   'id': const StrictOpaqueIdConverter().toJson(instance.id),
   'slug': instance.slug,
+  'firebase_uid': instance.firebaseUid,
   'email': instance.email,
   'role': instance.role.toJson(),
   'organization_id': instance.organizationId,
@@ -79,6 +89,7 @@ Map<String, dynamic> _$UserToJson(_User instance) => <String, dynamic>{
   'execution_count': instance.executionCount,
   'is_active': instance.isActive,
   'created_by': instance.createdBy,
+  'deleted_at': instance.deletedAt?.toIso8601String(),
 };
 
 const _$UserRoleEnumMap = {
@@ -204,7 +215,10 @@ _LogoutResponseDto _$LogoutResponseDtoFromJson(Map<String, dynamic> json) =>
           allowedKeys: const ['status', 'revoked_jti', 'all_sessions_revoked'],
         );
         final val = _LogoutResponseDto(
-          status: $checkedConvert('status', (v) => v as String? ?? 'revoked'),
+          status: $checkedConvert(
+            'status',
+            (v) => v as String? ?? 'logged_out',
+          ),
           revokedJti: $checkedConvert('revoked_jti', (v) => v as String),
           allSessionsRevoked: $checkedConvert(
             'all_sessions_revoked',

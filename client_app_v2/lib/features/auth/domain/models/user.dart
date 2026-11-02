@@ -12,7 +12,7 @@ part 'user.g.dart';
 /// **User Domain Model**
 ///
 /// Represents the profile of an authenticated user in the system.
-/// Hydrated from `/api/v2/iam/auth/exchange` and `/api/v2/iam/users/me`.
+/// Hydrated from `/api/v2/iam/auth/exchange` and `/api/v2/iam/auth/me`.
 @Freezed(equal: false)
 abstract class User with _$User {
   const User._();
@@ -21,6 +21,8 @@ abstract class User with _$User {
   const factory User({
     @StrictOpaqueIdConverter() @JsonKey(name: 'id') required String id,
     @JsonKey(name: 'slug') String? slug,
+    // Phase 2, Step 2: Synchronize firebase_uid and deleted_at with backend User SSOT
+    @JsonKey(name: 'firebase_uid') String? firebaseUid,
     @JsonKey(name: 'email') required String email,
     @JsonKey(name: 'role') required UserRole role,
     @JsonKey(name: 'organization_id') String? organizationId,
@@ -32,6 +34,7 @@ abstract class User with _$User {
     @JsonKey(name: 'execution_count') int? executionCount,
     @JsonKey(name: 'is_active') bool? isActive,
     @JsonKey(name: 'created_by') String? createdBy,
+    @JsonKey(name: 'deleted_at') DateTime? deletedAt,
   }) = _User;
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
@@ -104,7 +107,8 @@ abstract class LogoutResponseDto with _$LogoutResponseDto {
 
   @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
   const factory LogoutResponseDto({
-    @JsonKey(name: 'status') @Default('revoked') String status,
+    // Phase 2, Step 2: Synchronize default logout status with backend LogoutResponseDTO
+    @JsonKey(name: 'status') @Default('logged_out') String status,
     @JsonKey(name: 'revoked_jti') required String revokedJti,
     @JsonKey(name: 'all_sessions_revoked') required bool allSessionsRevoked,
   }) = _LogoutResponseDto;

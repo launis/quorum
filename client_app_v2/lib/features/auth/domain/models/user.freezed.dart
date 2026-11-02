@@ -15,7 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$User {
 
-@StrictOpaqueIdConverter()@JsonKey(name: 'id') String get id;@JsonKey(name: 'slug') String? get slug;@JsonKey(name: 'email') String get email;@JsonKey(name: 'role') UserRole get role;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'name') String? get name;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'language') String? get language;@JsonKey(name: 'theme_mode') String? get themeMode;@JsonKey(name: 'last_login_at') DateTime? get lastLoginAt;@JsonKey(name: 'execution_count') int? get executionCount;@JsonKey(name: 'is_active') bool? get isActive;@JsonKey(name: 'created_by') String? get createdBy;
+@StrictOpaqueIdConverter()@JsonKey(name: 'id') String get id;@JsonKey(name: 'slug') String? get slug;// Phase 2, Step 2: Synchronize firebase_uid and deleted_at with backend User SSOT
+@JsonKey(name: 'firebase_uid') String? get firebaseUid;@JsonKey(name: 'email') String get email;@JsonKey(name: 'role') UserRole get role;@JsonKey(name: 'organization_id') String? get organizationId;@JsonKey(name: 'name') String? get name;@JsonKey(name: 'created_at') String? get createdAt;@JsonKey(name: 'language') String? get language;@JsonKey(name: 'theme_mode') String? get themeMode;@JsonKey(name: 'last_login_at') DateTime? get lastLoginAt;@JsonKey(name: 'execution_count') int? get executionCount;@JsonKey(name: 'is_active') bool? get isActive;@JsonKey(name: 'created_by') String? get createdBy;@JsonKey(name: 'deleted_at') DateTime? get deletedAt;
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +31,7 @@ $UserCopyWith<User> get copyWith => _$UserCopyWithImpl<User>(this as User, _$ide
 
 @override
 String toString() {
-  return 'User(id: $id, slug: $slug, email: $email, role: $role, organizationId: $organizationId, name: $name, createdAt: $createdAt, language: $language, themeMode: $themeMode, lastLoginAt: $lastLoginAt, executionCount: $executionCount, isActive: $isActive, createdBy: $createdBy)';
+  return 'User(id: $id, slug: $slug, firebaseUid: $firebaseUid, email: $email, role: $role, organizationId: $organizationId, name: $name, createdAt: $createdAt, language: $language, themeMode: $themeMode, lastLoginAt: $lastLoginAt, executionCount: $executionCount, isActive: $isActive, createdBy: $createdBy, deletedAt: $deletedAt)';
 }
 
 
@@ -41,7 +42,7 @@ abstract mixin class $UserCopyWith<$Res>  {
   factory $UserCopyWith(User value, $Res Function(User) _then) = _$UserCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter()@JsonKey(name: 'id') String id,@JsonKey(name: 'slug') String? slug,@JsonKey(name: 'email') String email,@JsonKey(name: 'role') UserRole role,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'name') String? name,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'language') String? language,@JsonKey(name: 'theme_mode') String? themeMode,@JsonKey(name: 'last_login_at') DateTime? lastLoginAt,@JsonKey(name: 'execution_count') int? executionCount,@JsonKey(name: 'is_active') bool? isActive,@JsonKey(name: 'created_by') String? createdBy
+@StrictOpaqueIdConverter()@JsonKey(name: 'id') String id,@JsonKey(name: 'slug') String? slug,@JsonKey(name: 'firebase_uid') String? firebaseUid,@JsonKey(name: 'email') String email,@JsonKey(name: 'role') UserRole role,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'name') String? name,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'language') String? language,@JsonKey(name: 'theme_mode') String? themeMode,@JsonKey(name: 'last_login_at') DateTime? lastLoginAt,@JsonKey(name: 'execution_count') int? executionCount,@JsonKey(name: 'is_active') bool? isActive,@JsonKey(name: 'created_by') String? createdBy,@JsonKey(name: 'deleted_at') DateTime? deletedAt
 });
 
 
@@ -58,10 +59,11 @@ class _$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? email = null,Object? role = null,Object? organizationId = freezed,Object? name = freezed,Object? createdAt = freezed,Object? language = freezed,Object? themeMode = freezed,Object? lastLoginAt = freezed,Object? executionCount = freezed,Object? isActive = freezed,Object? createdBy = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? firebaseUid = freezed,Object? email = null,Object? role = null,Object? organizationId = freezed,Object? name = freezed,Object? createdAt = freezed,Object? language = freezed,Object? themeMode = freezed,Object? lastLoginAt = freezed,Object? executionCount = freezed,Object? isActive = freezed,Object? createdBy = freezed,Object? deletedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,firebaseUid: freezed == firebaseUid ? _self.firebaseUid : firebaseUid // ignore: cast_nullable_to_non_nullable
 as String?,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as UserRole,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
@@ -73,7 +75,8 @@ as String?,lastLoginAt: freezed == lastLoginAt ? _self.lastLoginAt : lastLoginAt
 as DateTime?,executionCount: freezed == executionCount ? _self.executionCount : executionCount // ignore: cast_nullable_to_non_nullable
 as int?,isActive: freezed == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as bool?,createdBy: freezed == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,deletedAt: freezed == deletedAt ? _self.deletedAt : deletedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 
@@ -158,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()@JsonKey(name: 'id')  String id, @JsonKey(name: 'slug')  String? slug, @JsonKey(name: 'email')  String email, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'name')  String? name, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'language')  String? language, @JsonKey(name: 'theme_mode')  String? themeMode, @JsonKey(name: 'last_login_at')  DateTime? lastLoginAt, @JsonKey(name: 'execution_count')  int? executionCount, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'created_by')  String? createdBy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()@JsonKey(name: 'id')  String id, @JsonKey(name: 'slug')  String? slug, @JsonKey(name: 'firebase_uid')  String? firebaseUid, @JsonKey(name: 'email')  String email, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'name')  String? name, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'language')  String? language, @JsonKey(name: 'theme_mode')  String? themeMode, @JsonKey(name: 'last_login_at')  DateTime? lastLoginAt, @JsonKey(name: 'execution_count')  int? executionCount, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'created_by')  String? createdBy, @JsonKey(name: 'deleted_at')  DateTime? deletedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,_that.name,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy);case _:
+return $default(_that.id,_that.slug,_that.firebaseUid,_that.email,_that.role,_that.organizationId,_that.name,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy,_that.deletedAt);case _:
   return orElse();
 
 }
@@ -179,10 +182,10 @@ return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()@JsonKey(name: 'id')  String id, @JsonKey(name: 'slug')  String? slug, @JsonKey(name: 'email')  String email, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'name')  String? name, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'language')  String? language, @JsonKey(name: 'theme_mode')  String? themeMode, @JsonKey(name: 'last_login_at')  DateTime? lastLoginAt, @JsonKey(name: 'execution_count')  int? executionCount, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'created_by')  String? createdBy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()@JsonKey(name: 'id')  String id, @JsonKey(name: 'slug')  String? slug, @JsonKey(name: 'firebase_uid')  String? firebaseUid, @JsonKey(name: 'email')  String email, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'name')  String? name, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'language')  String? language, @JsonKey(name: 'theme_mode')  String? themeMode, @JsonKey(name: 'last_login_at')  DateTime? lastLoginAt, @JsonKey(name: 'execution_count')  int? executionCount, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'created_by')  String? createdBy, @JsonKey(name: 'deleted_at')  DateTime? deletedAt)  $default,) {final _that = this;
 switch (_that) {
 case _User():
-return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,_that.name,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy);case _:
+return $default(_that.id,_that.slug,_that.firebaseUid,_that.email,_that.role,_that.organizationId,_that.name,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy,_that.deletedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +202,10 @@ return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()@JsonKey(name: 'id')  String id, @JsonKey(name: 'slug')  String? slug, @JsonKey(name: 'email')  String email, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'name')  String? name, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'language')  String? language, @JsonKey(name: 'theme_mode')  String? themeMode, @JsonKey(name: 'last_login_at')  DateTime? lastLoginAt, @JsonKey(name: 'execution_count')  int? executionCount, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'created_by')  String? createdBy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()@JsonKey(name: 'id')  String id, @JsonKey(name: 'slug')  String? slug, @JsonKey(name: 'firebase_uid')  String? firebaseUid, @JsonKey(name: 'email')  String email, @JsonKey(name: 'role')  UserRole role, @JsonKey(name: 'organization_id')  String? organizationId, @JsonKey(name: 'name')  String? name, @JsonKey(name: 'created_at')  String? createdAt, @JsonKey(name: 'language')  String? language, @JsonKey(name: 'theme_mode')  String? themeMode, @JsonKey(name: 'last_login_at')  DateTime? lastLoginAt, @JsonKey(name: 'execution_count')  int? executionCount, @JsonKey(name: 'is_active')  bool? isActive, @JsonKey(name: 'created_by')  String? createdBy, @JsonKey(name: 'deleted_at')  DateTime? deletedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,_that.name,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy);case _:
+return $default(_that.id,_that.slug,_that.firebaseUid,_that.email,_that.role,_that.organizationId,_that.name,_that.createdAt,_that.language,_that.themeMode,_that.lastLoginAt,_that.executionCount,_that.isActive,_that.createdBy,_that.deletedAt);case _:
   return null;
 
 }
@@ -214,11 +217,13 @@ return $default(_that.id,_that.slug,_that.email,_that.role,_that.organizationId,
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _User extends User {
-  const _User({@StrictOpaqueIdConverter()@JsonKey(name: 'id') required this.id, @JsonKey(name: 'slug') this.slug, @JsonKey(name: 'email') required this.email, @JsonKey(name: 'role') required this.role, @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'name') this.name, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'language') this.language, @JsonKey(name: 'theme_mode') this.themeMode, @JsonKey(name: 'last_login_at') this.lastLoginAt, @JsonKey(name: 'execution_count') this.executionCount, @JsonKey(name: 'is_active') this.isActive, @JsonKey(name: 'created_by') this.createdBy}): super._();
+  const _User({@StrictOpaqueIdConverter()@JsonKey(name: 'id') required this.id, @JsonKey(name: 'slug') this.slug, @JsonKey(name: 'firebase_uid') this.firebaseUid, @JsonKey(name: 'email') required this.email, @JsonKey(name: 'role') required this.role, @JsonKey(name: 'organization_id') this.organizationId, @JsonKey(name: 'name') this.name, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'language') this.language, @JsonKey(name: 'theme_mode') this.themeMode, @JsonKey(name: 'last_login_at') this.lastLoginAt, @JsonKey(name: 'execution_count') this.executionCount, @JsonKey(name: 'is_active') this.isActive, @JsonKey(name: 'created_by') this.createdBy, @JsonKey(name: 'deleted_at') this.deletedAt}): super._();
   factory _User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 
 @override@StrictOpaqueIdConverter()@JsonKey(name: 'id') final  String id;
 @override@JsonKey(name: 'slug') final  String? slug;
+// Phase 2, Step 2: Synchronize firebase_uid and deleted_at with backend User SSOT
+@override@JsonKey(name: 'firebase_uid') final  String? firebaseUid;
 @override@JsonKey(name: 'email') final  String email;
 @override@JsonKey(name: 'role') final  UserRole role;
 @override@JsonKey(name: 'organization_id') final  String? organizationId;
@@ -230,6 +235,7 @@ class _User extends User {
 @override@JsonKey(name: 'execution_count') final  int? executionCount;
 @override@JsonKey(name: 'is_active') final  bool? isActive;
 @override@JsonKey(name: 'created_by') final  String? createdBy;
+@override@JsonKey(name: 'deleted_at') final  DateTime? deletedAt;
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
@@ -246,7 +252,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'User(id: $id, slug: $slug, email: $email, role: $role, organizationId: $organizationId, name: $name, createdAt: $createdAt, language: $language, themeMode: $themeMode, lastLoginAt: $lastLoginAt, executionCount: $executionCount, isActive: $isActive, createdBy: $createdBy)';
+  return 'User(id: $id, slug: $slug, firebaseUid: $firebaseUid, email: $email, role: $role, organizationId: $organizationId, name: $name, createdAt: $createdAt, language: $language, themeMode: $themeMode, lastLoginAt: $lastLoginAt, executionCount: $executionCount, isActive: $isActive, createdBy: $createdBy, deletedAt: $deletedAt)';
 }
 
 
@@ -257,7 +263,7 @@ abstract mixin class _$UserCopyWith<$Res> implements $UserCopyWith<$Res> {
   factory _$UserCopyWith(_User value, $Res Function(_User) _then) = __$UserCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter()@JsonKey(name: 'id') String id,@JsonKey(name: 'slug') String? slug,@JsonKey(name: 'email') String email,@JsonKey(name: 'role') UserRole role,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'name') String? name,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'language') String? language,@JsonKey(name: 'theme_mode') String? themeMode,@JsonKey(name: 'last_login_at') DateTime? lastLoginAt,@JsonKey(name: 'execution_count') int? executionCount,@JsonKey(name: 'is_active') bool? isActive,@JsonKey(name: 'created_by') String? createdBy
+@StrictOpaqueIdConverter()@JsonKey(name: 'id') String id,@JsonKey(name: 'slug') String? slug,@JsonKey(name: 'firebase_uid') String? firebaseUid,@JsonKey(name: 'email') String email,@JsonKey(name: 'role') UserRole role,@JsonKey(name: 'organization_id') String? organizationId,@JsonKey(name: 'name') String? name,@JsonKey(name: 'created_at') String? createdAt,@JsonKey(name: 'language') String? language,@JsonKey(name: 'theme_mode') String? themeMode,@JsonKey(name: 'last_login_at') DateTime? lastLoginAt,@JsonKey(name: 'execution_count') int? executionCount,@JsonKey(name: 'is_active') bool? isActive,@JsonKey(name: 'created_by') String? createdBy,@JsonKey(name: 'deleted_at') DateTime? deletedAt
 });
 
 
@@ -274,10 +280,11 @@ class __$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? email = null,Object? role = null,Object? organizationId = freezed,Object? name = freezed,Object? createdAt = freezed,Object? language = freezed,Object? themeMode = freezed,Object? lastLoginAt = freezed,Object? executionCount = freezed,Object? isActive = freezed,Object? createdBy = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? firebaseUid = freezed,Object? email = null,Object? role = null,Object? organizationId = freezed,Object? name = freezed,Object? createdAt = freezed,Object? language = freezed,Object? themeMode = freezed,Object? lastLoginAt = freezed,Object? executionCount = freezed,Object? isActive = freezed,Object? createdBy = freezed,Object? deletedAt = freezed,}) {
   return _then(_User(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,firebaseUid: freezed == firebaseUid ? _self.firebaseUid : firebaseUid // ignore: cast_nullable_to_non_nullable
 as String?,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as UserRole,organizationId: freezed == organizationId ? _self.organizationId : organizationId // ignore: cast_nullable_to_non_nullable
@@ -289,7 +296,8 @@ as String?,lastLoginAt: freezed == lastLoginAt ? _self.lastLoginAt : lastLoginAt
 as DateTime?,executionCount: freezed == executionCount ? _self.executionCount : executionCount // ignore: cast_nullable_to_non_nullable
 as int?,isActive: freezed == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as bool?,createdBy: freezed == createdBy ? _self.createdBy : createdBy // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,deletedAt: freezed == deletedAt ? _self.deletedAt : deletedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 
@@ -1080,6 +1088,7 @@ as bool,
 /// @nodoc
 mixin _$LogoutResponseDto {
 
+// Phase 2, Step 2: Synchronize default logout status with backend LogoutResponseDTO
 @JsonKey(name: 'status') String get status;@JsonKey(name: 'revoked_jti') String get revokedJti;@JsonKey(name: 'all_sessions_revoked') bool get allSessionsRevoked;
 /// Create a copy of LogoutResponseDto
 /// with the given fields replaced by the non-null parameter values.
@@ -1269,9 +1278,10 @@ return $default(_that.status,_that.revokedJti,_that.allSessionsRevoked);case _:
 
 @JsonSerializable(explicitToJson: true, disallowUnrecognizedKeys: true)
 class _LogoutResponseDto extends LogoutResponseDto {
-  const _LogoutResponseDto({@JsonKey(name: 'status') this.status = 'revoked', @JsonKey(name: 'revoked_jti') required this.revokedJti, @JsonKey(name: 'all_sessions_revoked') required this.allSessionsRevoked}): super._();
+  const _LogoutResponseDto({@JsonKey(name: 'status') this.status = 'logged_out', @JsonKey(name: 'revoked_jti') required this.revokedJti, @JsonKey(name: 'all_sessions_revoked') required this.allSessionsRevoked}): super._();
   factory _LogoutResponseDto.fromJson(Map<String, dynamic> json) => _$LogoutResponseDtoFromJson(json);
 
+// Phase 2, Step 2: Synchronize default logout status with backend LogoutResponseDTO
 @override@JsonKey(name: 'status') final  String status;
 @override@JsonKey(name: 'revoked_jti') final  String revokedJti;
 @override@JsonKey(name: 'all_sessions_revoked') final  bool allSessionsRevoked;

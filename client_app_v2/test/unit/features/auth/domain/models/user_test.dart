@@ -22,6 +22,7 @@ void main() {
           'user': <String, Object?>{
             'id': userId,
             'slug': 'root-admin',
+            'firebase_uid': null,
             'email': 'root@quorum.ai',
             'role': 'ROOT',
             'organization_id': orgId,
@@ -33,6 +34,7 @@ void main() {
             'execution_count': 42,
             'is_active': true,
             'created_by': creatorId,
+            'deleted_at': null,
           },
         };
 
@@ -47,6 +49,7 @@ void main() {
         final user = exchange.user;
         expect(user.id, equals(userId));
         expect(user.slug, equals('root-admin'));
+        expect(user.firebaseUid, isNull);
         expect(user.email, equals('root@quorum.ai'));
         expect(user.role, equals(UserRole.root));
         expect(user.organizationId, equals(orgId));
@@ -58,15 +61,35 @@ void main() {
         expect(user.executionCount, equals(42));
         expect(user.isActive, isTrue);
         expect(user.createdBy, equals(creatorId));
+        expect(user.deletedAt, isNull);
         expect(user.isAdmin, isTrue);
         expect(user.canManageOrganization, isTrue);
 
-        // Roundtrip TokenExchangeResponseDto and User
+        // Roundtrip TokenExchangeResponseDto and User (including non-null firebase_uid and deleted_at)
         final roundtrippedMap =
             jsonDecode(jsonEncode(exchange.toJson())) as Map<String, Object?>;
         final roundtripped = TokenExchangeResponseDto.fromJson(roundtrippedMap);
         expect(roundtripped.user.id, equals(userId));
         expect(roundtripped.user.executionCount, equals(42));
+
+        final populatedUser = User.fromJson(<String, Object?>{
+          'id': userId,
+          'firebase_uid': 'fb_uid_root_001',
+          'email': 'root@quorum.ai',
+          'role': 'ROOT',
+          'deleted_at': '2026-11-02T15:30:00.000Z',
+        });
+        expect(populatedUser.firebaseUid, equals('fb_uid_root_001'));
+        expect(
+          populatedUser.deletedAt,
+          equals(DateTime.utc(2026, 11, 2, 15, 30)),
+        );
+        final populatedRoundtrip = User.fromJson(populatedUser.toJson());
+        expect(populatedRoundtrip.firebaseUid, equals('fb_uid_root_001'));
+        expect(
+          populatedRoundtrip.deletedAt,
+          equals(DateTime.utc(2026, 11, 2, 15, 30)),
+        );
 
         // TokenExchangeRequestDto omits null fields when serialized
         final exchangeReq = TokenExchangeRequestDto(targetUserId: userId);
@@ -86,7 +109,7 @@ void main() {
           'revoked_jti': 'jti_12345',
           'all_sessions_revoked': false,
         });
-        expect(logoutResp.status, equals('revoked'));
+        expect(logoutResp.status, equals('logged_out'));
         expect(logoutResp.revokedJti, equals('jti_12345'));
         expect(logoutResp.allSessionsRevoked, isFalse);
 
