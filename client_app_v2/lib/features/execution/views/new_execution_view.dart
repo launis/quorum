@@ -416,9 +416,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
               const Divider(height: 48),
 
-              _buildProfileSelector(),
-
-              AppSpacing.h24,
+              if (wf.outputProfiles.isNotEmpty) ...[
+                _buildProfileSelector(wf),
+                AppSpacing.h24,
+              ],
 
               if (state.hasError) ...[
                 ErrorView(error: state.error!, compact: true),
@@ -582,15 +583,8 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     );
   }
 
-  Widget _buildProfileSelector() {
-    if (_selectedWorkflow == null) return const SizedBox();
-    final wf = _selectedWorkflow!;
-
+  Widget _buildProfileSelector(Workflow wf) {
     final outputProfiles = wf.outputProfiles;
-    if (outputProfiles.isEmpty) {
-      return const SizedBox();
-    }
-
     final locale = Localizations.localeOf(context).languageCode;
     final List<MapEntry<String, String>> profiles = [];
 
@@ -599,6 +593,17 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     });
 
     final String defaultId = wf.defaultProfileId;
+    final currentId =
+        _selectedProfileId != null &&
+            outputProfiles.containsKey(_selectedProfileId)
+        ? _selectedProfileId
+        : (outputProfiles.containsKey(defaultId) ? defaultId : null);
+
+    String? descriptionText;
+    if (currentId != null && outputProfiles.containsKey(currentId)) {
+      final profileObj = outputProfiles[currentId]!;
+      descriptionText = profileObj.description?.get(locale);
+    }
 
     return Card(
       elevation: 0,
@@ -642,11 +647,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             AppSpacing.h16,
             DropdownButtonFormField<String>(
               isExpanded: true,
-              initialValue:
-                  _selectedProfileId != null &&
-                      outputProfiles.containsKey(_selectedProfileId)
-                  ? _selectedProfileId
-                  : (outputProfiles.containsKey(defaultId) ? defaultId : null),
+              initialValue: currentId,
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surface,
@@ -687,68 +688,47 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 });
               },
             ),
-            Builder(
-              builder: (context) {
-                final currentId =
-                    _selectedProfileId != null &&
-                        outputProfiles.containsKey(_selectedProfileId)
-                    ? _selectedProfileId
-                    : (outputProfiles.containsKey(defaultId)
-                          ? defaultId
-                          : null);
-
-                String? descriptionText;
-                if (currentId != null &&
-                    outputProfiles.containsKey(currentId)) {
-                  final profileObj = outputProfiles[currentId]!;
-                  descriptionText = profileObj.description?.get(locale);
-                }
-
-                if (descriptionText != null && descriptionText.isNotEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: AppSpacing.s16),
-                    child: Container(
-                      padding: AppSpacing.p12,
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.tertiaryContainer.withAlpha(80),
-                        border: Border(
-                          left: BorderSide(
-                            color: Theme.of(context).colorScheme.tertiary,
-                            width: AppSpacing.s4,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Theme.of(context).colorScheme.tertiary,
-                            size: 20,
-                          ),
-                          AppSpacing.w12,
-                          Expanded(
-                            child: Text(
-                              descriptionText,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onTertiaryContainer,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                            ),
-                          ),
-                        ],
+            if (descriptionText != null && descriptionText.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s16),
+                child: Container(
+                  padding: AppSpacing.p12,
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.tertiaryContainer.withAlpha(80),
+                    border: Border(
+                      left: BorderSide(
+                        color: Theme.of(context).colorScheme.tertiary,
+                        width: AppSpacing.s4,
                       ),
                     ),
-                  );
-                }
-                return const SizedBox();
-              },
-            ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Theme.of(context).colorScheme.tertiary,
+                        size: 20,
+                      ),
+                      AppSpacing.w12,
+                      Expanded(
+                        child: Text(
+                          descriptionText,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onTertiaryContainer,
+                                fontStyle: FontStyle.italic,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -803,7 +783,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   }
 }
 
-/// Phase 6, Step 6.2: Task Assignment Configuration Dialog in NewExecutionView.
+/// Task assignment configuration dialog for single and batch workflow assignments.
 class _TaskAssignmentConfigDialog extends ConsumerStatefulWidget {
   final Workflow workflow;
   final String? profileId;
@@ -986,7 +966,15 @@ class _TaskAssignmentConfigDialogState
           _isSubmitting = false;
         });
       }
-    } catch (e) {
+    } catch (e, stack) {
+      ref
+          .read(loggerServiceProvider)
+          .error(
+            'TaskAssignmentConfigDialog',
+            'SUBMIT_ASSIGNMENT_FAILED',
+            e,
+            stack,
+          );
       if (!mounted) return;
       setState(() {
         _error = e;

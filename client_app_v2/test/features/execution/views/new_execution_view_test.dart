@@ -4,8 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/studio_client.dart';
+import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/features/auth/domain/models/user.dart';
+import 'package:client_app/features/auth/presentation/providers/mock_user_provider.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
+import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
+import 'package:client_app/features/settings/domain/models/tenant_secret_dto.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -20,12 +26,16 @@ class MockExecutionClient extends Mock implements ExecutionClient {}
 class FakeExecutionCreateRequestDto extends Fake
     implements ExecutionCreateRequestDto {}
 
+class FakeExecutionAssignmentCreateDto extends Fake
+    implements ExecutionAssignmentCreateDto {}
+
 void main() {
   late MockStudioClient mockStudioClient;
   late MockExecutionClient mockExecutionClient;
 
   setUpAll(() {
     registerFallbackValue(FakeExecutionCreateRequestDto());
+    registerFallbackValue(FakeExecutionAssignmentCreateDto());
   });
 
   setUp(() {
@@ -36,6 +46,7 @@ void main() {
   Widget createTestWidget({
     required MockStudioClient studioClient,
     MockExecutionClient? executionClient,
+    User? authenticatedUser,
     Size screenSize = const Size(1920, 1080),
   }) {
     return ProviderScope(
@@ -43,6 +54,8 @@ void main() {
         studioClientProvider.overrideWithValue(studioClient),
         if (executionClient != null)
           executionClientProvider.overrideWithValue(executionClient),
+        if (authenticatedUser != null)
+          mockUserProvider.overrideWithValue(authenticatedUser),
       ],
       child: MaterialApp(
         localizationsDelegates: const [
@@ -64,6 +77,8 @@ void main() {
     required String id,
     required String name,
     List<ExpectedInput> expectedInputs = const [],
+    Map<String, OutputProfile> outputProfiles = const {},
+    String defaultProfileId = '',
   }) {
     return Workflow(
       id: id,
@@ -74,7 +89,8 @@ void main() {
       ),
       modelRegistryId: 'reg_default',
       expectedInputs: expectedInputs,
-      outputProfiles: const {},
+      outputProfiles: outputProfiles,
+      defaultProfileId: defaultProfileId,
     );
   }
 
@@ -287,6 +303,145 @@ void main() {
 
         expect(find.text('Input: chat_log'), findsNothing);
         expect(find.text('Input: product_text'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'renders questionnaire inputs and output profile selector with description',
+      (tester) async {
+        const wfId = 'wor_018f123456787abc8000000000000010';
+        const profId = 'prf_018f123456787abc8000000000000011';
+        final questionnaireInput = ExpectedInput(
+          inputKey: 'self_reflection',
+          label: const I18nText(
+            translations: {'en': 'Self Reflection', 'fi': 'Itsearviointi'},
+          ),
+          description: const I18nText(
+            translations: {'en': 'Answer questions', 'fi': 'Vastaa kysymyksiin'},
+          ),
+          required: true,
+          inputModes: const ['questionnaire'],
+          questionnaireDefinition: const [
+            QuestionnaireItem(
+              questionId: 'q1',
+              question: I18nText(
+                translations: {
+                  'en': 'What was your main goal?',
+                  'fi': 'Mikä oli päätavoitteesi?',
+                },
+              ),
+              type: 'text',
+            ),
+          ],
+        );
+
+        final profile = OutputProfile(
+          id: profId,
+          workflowId: wfId,
+          name: const I18nText(
+            translations: {'en': 'Executive Summary', 'fi': 'Johdon yhteenveto'},
+          ),
+          description: const I18nText(
+            translations: {
+              'en': 'Concise board-level report',
+              'fi': 'Tiivis johdon raportti',
+            },
+          ),
+        );
+
+        final wf = createWorkflow(
+          id: wfId,
+          name: 'Leadership Assessment',
+          expectedInputs: [questionnaireInput],
+          outputProfiles: {profId: profile},
+          defaultProfileId: profId,
+        );
+
+        when(
+          () => mockStudioClient.getWorkflows(),
+        ).thenAnswer((_) async => [wf]);
+
+        await tester.pumpWidget(
+          createTestWidget(studioClient: mockStudioClient),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Leadership Assessment'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('What was your main goal?'), findsOneWidget);
+        expect(find.text('Executive Summary'), findsOneWidget);
+        expect(find.text('Concise board-level report'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'opens task assignment dialog for manager role and renders ErrorView when assignment submission fails',
+      (tester) async {
+        const wfId = 'wor_018f123456787abc8000000000000020';
+        final textInput = ExpectedInput(
+          inputKey: 'candidate_response',
+          label: const I18nText(
+            translations: {'en': 'Candidate Response', 'fi': 'Vastaus'},
+          ),
+          description: const I18nText(
+            translations: {'en': 'Provide response', 'fi': 'Anna vastaus'},
+          ),
+          required: true,
+          inputModes: const ['text'],
+        );
+
+        final wf = createWorkflow(
+          id: wfId,
+          name: 'Manager Assignment Flow',
+          expectedInputs: [textInput],
+        );
+
+        const managerUser = User(
+          id: 'usr_018f123456787abc8000000000000099',
+          email: 'manager@quorum.fi',
+          role: UserRole.manager,
+          organizationId: 'org_018f123456787abc8000000000000088',
+        );
+
+        when(
+          () => mockStudioClient.getWorkflows(),
+        ).thenAnswer((_) async => [wf]);
+        when(
+          () => mockExecutionClient.createAssignment(any()),
+        ).thenThrow(AppException.validation('Invalid recipient domain'));
+
+        await tester.pumpWidget(
+          createTestWidget(
+            studioClient: mockStudioClient,
+            executionClient: mockExecutionClient,
+            authenticatedUser: managerUser,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Manager Assignment Flow'));
+        await tester.pumpAndSettle();
+
+        final assignBtn = find.byKey(const Key('assign_as_task_btn'));
+        expect(assignBtn, findsOneWidget);
+
+        await tester.tap(assignBtn);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('task_assignment_config_dialog')),
+          findsOneWidget,
+        );
+
+        await tester.enterText(
+          find.byKey(const Key('task_builder_single_email_field')),
+          'candidate@example.com',
+        );
+        await tester.tap(find.byKey(const Key('task_builder_submit_btn')));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ErrorView), findsOneWidget);
       },
     );
   });
