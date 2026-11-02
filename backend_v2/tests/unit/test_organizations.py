@@ -10,30 +10,41 @@ from pydantic import SecretStr
 
 from backend_v2.api.routers.iam.organizations import (
     create_organization,
+    create_organization_invitation,
+    create_organization_invitation_batch,
     delete_organization,
     delete_organization_secret,
     get_all_organizations,
     get_organization,
+    list_organization_invitations,
     list_organization_secrets,
+    revoke_organization_invitation,
     save_organization,
     upsert_organization_secret,
 )
 from backend_v2.exceptions import (
+    ConflictError,
     PermissionDeniedError,
     ResourceNotFoundError,
 )
 from backend_v2.models.auth import (
     SYSTEM_ROOT_USER_ID,
+    InvitationBatchCreateDTO,
+    InvitationCreateDTO,
     Organization,
     OrganizationCreate,
     OrganizationUpdateDTO,
     SubscriptionStatus,
+    SystemOrganizations,
     TenantSecretCreateDTO,
     TokenData,
+    User,
     UserRole,
 )
-from backend_v2.models.enums import LLMProvider, SecretScope
+from backend_v2.models.enums import InvitationStatus, LLMProvider, SecretScope, SystemLocale
+from backend_v2.services.auth import AuthService
 from backend_v2.services.auth.secret_service import SecretService
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryUnifiedWorkflowRepository
 from backend_v2.tests.fakes.in_memory_uow import InMemoryUnitOfWork
 
 ORG_ID = "org_0195f3a0000070008000000000000010"
@@ -190,3 +201,96 @@ async def test_organizations_router_byok_secrets_endpoints_positive_and_negative
             current_user=mock_current_user,
             secret_service=secret_service,
         )
+
+
+@pytest.mark.asyncio
+async def test_organizations_router_invitations_endpoints_positive_and_negative(
+    mock_current_user: TokenData,
+) -> None:
+    """Positive & Negative: Verify invitation endpoints via real AuthService and InMemoryUnitOfWork."""
+    uow = InMemoryUnitOfWork()
+    repo = InMemoryUnifiedWorkflowRepository()
+    await repo.create_user(
+        User(
+            id=mock_current_user.id,
+            email="root@quorum.org",
+            role=UserRole.ROOT,
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+            language=SystemLocale.EN,
+            theme_mode="system",
+            organization_id=SystemOrganizations.ROOT_SYSTEM,
+        )
+    )
+    auth_service = AuthService(repo=repo, entity_adapter=uow.entities)
+
+    created_org = await create_organization(
+        data=OrganizationCreate(
+            name="B2B Invite Org",
+            admin_email="owner@b2b.org",
+            admin_password="Password123!@#",
+            admin_name="Org Owner",
+            tpm_limit=50000,
+            rpm_limit=100,
+        ),
+        current_user=mock_current_user,
+        auth_service=auth_service,
+    )
+
+    single_inv = await create_organization_invitation(
+        org_id=created_org.id,
+        payload=InvitationCreateDTO(email="alice@b2b.org", role=UserRole.MEMBER),
+        current_user=mock_current_user,
+        auth_service=auth_service,
+    )
+    assert single_inv.email == "alice@b2b.org"
+    assert single_inv.status == InvitationStatus.PENDING
+
+    with pytest.raises(ConflictError):
+        await create_organization_invitation(
+            org_id=created_org.id,
+            payload=InvitationCreateDTO(email="alice@b2b.org", role=UserRole.MEMBER),
+            current_user=mock_current_user,
+            auth_service=auth_service,
+        )
+
+    batch_resp = await create_organization_invitation_batch(
+        org_id=created_org.id,
+        payload=InvitationBatchCreateDTO(
+            recipients=[
+                InvitationCreateDTO(email="bob@b2b.org", role=UserRole.MEMBER),
+                InvitationCreateDTO(email="carol@b2b.org", role=UserRole.ADMIN),
+            ]
+        ),
+        current_user=mock_current_user,
+        auth_service=auth_service,
+    )
+    assert batch_resp.created_count == 2
+
+    all_invs = await list_organization_invitations(
+        org_id=created_org.id,
+        current_user=mock_current_user,
+        auth_service=auth_service,
+    )
+    assert len(all_invs) == 3
+
+    revoked = await revoke_organization_invitation(
+        org_id=created_org.id,
+        invitation_id=single_inv.id,
+        current_user=mock_current_user,
+        auth_service=auth_service,
+    )
+    assert revoked.status == InvitationStatus.REVOKED
+
+    non_admin_user = TokenData(
+        id="usr_0195f3a0000070008000000000000099",
+        role=UserRole.MEMBER,
+        organization_id=created_org.id,
+    )
+    with pytest.raises(PermissionDeniedError):
+        await list_organization_invitations(
+            org_id=created_org.id,
+            current_user=non_admin_user,
+            auth_service=auth_service,
+        )
+

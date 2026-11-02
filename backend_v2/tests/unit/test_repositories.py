@@ -467,3 +467,54 @@ async def test_organization_repository_update_and_delete(
     del_success = await org_repo.delete("org_0195f3a0000070008000000000000099")
     assert del_success is True
     assert await org_repo.get_by_id("org_0195f3a0000070008000000000000099") is None
+
+
+@pytest.mark.asyncio
+async def test_user_repository_get_by_firebase_uid_and_list_all(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+) -> None:
+    """Verifies UserRepository.get_by_firebase_uid (active vs soft-deleted vs missing) and list_all."""
+    user_repo = UserRepository(mock_repo)
+    active_user = User(
+        id="usr_0195f3a0000070008000000000050001",
+        email="fb_active@test.com",
+        role=UserRole.MEMBER,
+        is_active=True,
+        created_at=datetime.now(timezone.utc),
+        language=SystemLocale.EN,
+        theme_mode="system",
+        organization_id="org_0195f3a000007000800000001234abcd",
+        firebase_uid="fb_uid_active_001",
+    )
+    deleted_user = User(
+        id="usr_0195f3a0000070008000000000050002",
+        email="fb_deleted@test.com",
+        role=UserRole.MEMBER,
+        is_active=False,
+        created_at=datetime.now(timezone.utc),
+        deleted_at=datetime.now(timezone.utc),
+        language=SystemLocale.EN,
+        theme_mode="system",
+        organization_id="org_0195f3a000007000800000001234abcd",
+        firebase_uid="fb_uid_deleted_002",
+    )
+    await user_repo.create(active_user)
+    await user_repo.create(deleted_user)
+
+    # Positive: active user with matching firebase_uid is returned
+    found_active = await user_repo.get_by_firebase_uid("fb_uid_active_001")
+    assert found_active is not None
+    assert found_active.id == active_user.id
+
+    # Negative boundary: soft-deleted user (deleted_at is not None) must not be returned
+    found_deleted = await user_repo.get_by_firebase_uid("fb_uid_deleted_002")
+    assert found_deleted is None
+
+    # Negative: unknown firebase_uid returns None
+    found_missing = await user_repo.get_by_firebase_uid("fb_uid_nonexistent")
+    assert found_missing is None
+
+    # Verify list_all returns persisted users
+    all_users = await user_repo.list_all()
+    assert len(all_users) == 2
+    assert {u.id for u in all_users} == {active_user.id, deleted_user.id}

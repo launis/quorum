@@ -115,7 +115,7 @@ async def test_users_router_propagates_permission_denied_and_not_found_negative(
     mock_current_user: TokenData,
     mock_auth_service: AsyncMock,
 ) -> None:
-    """Negative: Verify get_all_users and get_user propagate PermissionDeniedError and ResourceNotFoundError directly."""
+    """Negative: Verify users router endpoints propagate PermissionDeniedError, ResourceNotFoundError, and ConflictError directly."""
     mock_auth_service.list_users.side_effect = PermissionDeniedError("Forbidden")
     with pytest.raises(PermissionDeniedError):
         await get_all_users(current_user=mock_current_user, auth_service=mock_auth_service)
@@ -123,6 +123,27 @@ async def test_users_router_propagates_permission_denied_and_not_found_negative(
     mock_auth_service.get_user.side_effect = ResourceNotFoundError("User", TARGET_ID)
     with pytest.raises(ResourceNotFoundError):
         await get_user(id=TARGET_ID, current_user=mock_current_user, auth_service=mock_auth_service)
+
+    create_payload = UserCreate(
+        email="member@test.com",
+        role=UserRole.MEMBER,
+        organization_id=ORG_ID,
+        is_active=True,
+        language=SystemLocale.EN,
+        theme_mode="system",
+    )
+    mock_auth_service.create_user.side_effect = PermissionDeniedError("Cannot create user")
+    with pytest.raises(PermissionDeniedError):
+        await create_user(data=create_payload, current_user=mock_current_user, auth_service=mock_auth_service)
+
+    mock_auth_service.update_user.side_effect = ConflictError("Last Admin Protection")
+    with pytest.raises(ConflictError):
+        await save_user(
+            id=TARGET_ID,
+            data=UserUpdate(role=UserRole.MEMBER),
+            current_user=mock_current_user,
+            auth_service=mock_auth_service,
+        )
 
 
 @pytest.mark.asyncio

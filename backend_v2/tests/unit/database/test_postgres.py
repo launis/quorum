@@ -61,6 +61,7 @@ from backend_v2.models.domain.execution import (
     ExecutionSummarySnapshot,
     FrozenContext,
 )
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
@@ -104,6 +105,7 @@ from backend_v2.models.enums import (
     MCPAuthType,
     MCPTransportType,
     PropositionNodeType,
+    SecretScope,
     StepType,
     StepZone,
     StorageBackend,
@@ -1784,6 +1786,119 @@ async def test_seed_collection_batch_and_verify_counts_invariants(uow: QuorumUni
         assert verified["executions"] == 1
 
         if isinstance(uow.entities, PostgresEntityAdapter):
+            org_sample = seed_buffer.organizations[0]
+            user_sample = seed_buffer.users[0]
+            cfg_sample = seed_buffer.system_config[0]
+            block_sample = next(b for b in seed_buffer.prompt_blocks if isinstance(b, MatrixPromptBlock))
+            step_sample = seed_buffer.steps[0]
+            wf_sample = seed_buffer.workflows[0]
+            profile_sample = seed_buffer.output_profiles[0]
+
+            invitation_sample = Invitation(
+                id=generate_uuid7_opaque_id(EntityPrefix.INVITATION),
+                organization_id=org_sample.id,
+                email="invitee@quorum.ai",
+                token_hash="a" * 64,
+                invited_by=user_sample.id,
+                expires_at=now,
+                created_at=now,
+            )
+            secret_sample = TenantSecretDTO(
+                id=generate_uuid7_opaque_id(EntityPrefix.TENANT_SECRET),
+                organization_id=org_sample.id,
+                scope=SecretScope.LLM_PROVIDER,
+                target_identifier="google_vertex",
+                kek_version="kek-v1",
+                masked_hint="...abcd",
+                updated_by=user_sample.id,
+                updated_at=now,
+            )
+            assignment_sample = ExecutionAssignment(
+                id=generate_uuid7_opaque_id(EntityPrefix.ASSIGNMENT),
+                organization_id=org_sample.id,
+                assigned_email="assignee@quorum.ai",
+                workflow_id=wf_sample.id,
+                locked_inputs=WorkflowInputs(),
+                assignee_input_keys=[],
+                draft_inputs=WorkflowInputs(),
+                token_hash="b" * 64,
+                hard_deadline_at=now,
+                created_by=user_sample.id,
+                created_at=now,
+            )
+
+            # Exercise typed entity CRUD roundtrips on PostgresEntityAdapter
+            assert await uow.entities.upsert_organization(org_sample) == org_sample.id
+            fetched_org = await uow.entities.get_organization(org_sample.id)
+            assert fetched_org is not None and fetched_org.id == org_sample.id
+            assert len(await uow.entities.list_organizations()) >= 1
+
+            assert await uow.entities.upsert_user(user_sample) == user_sample.id
+            fetched_user = await uow.entities.get_user(user_sample.id)
+            assert fetched_user is not None and fetched_user.id == user_sample.id
+            assert len(await uow.entities.list_users()) >= 1
+            assert len(await uow.entities.list_users(organization_id=user_sample.organization_id)) >= 1
+
+            assert await uow.entities.upsert_invitation(invitation_sample) == invitation_sample.id
+            fetched_inv = await uow.entities.get_invitation(invitation_sample.id)
+            assert fetched_inv is not None and fetched_inv.id == invitation_sample.id
+            assert len(await uow.entities.list_invitations()) >= 1
+            assert len(await uow.entities.list_invitations(organization_id=org_sample.id)) >= 1
+
+            assert await uow.entities.upsert_tenant_secret(secret_sample) == secret_sample.id
+            fetched_sec = await uow.entities.get_tenant_secret(secret_sample.id)
+            assert fetched_sec is not None and fetched_sec.id == secret_sample.id
+            assert len(await uow.entities.list_tenant_secrets()) >= 1
+            assert len(await uow.entities.list_tenant_secrets(organization_id=org_sample.id)) >= 1
+
+            assert await uow.entities.upsert_execution_assignment(assignment_sample) == assignment_sample.id
+            fetched_asgn = await uow.entities.get_execution_assignment(assignment_sample.id)
+            assert fetched_asgn is not None and fetched_asgn.id == assignment_sample.id
+            assert len(await uow.entities.list_execution_assignments()) >= 1
+            assert len(await uow.entities.list_execution_assignments(organization_id=org_sample.id)) >= 1
+
+            assert await uow.entities.upsert_system_config(cfg_sample) == cfg_sample.id
+            fetched_cfg = await uow.entities.get_system_config(cfg_sample.id)
+            assert fetched_cfg is not None and fetched_cfg.id == cfg_sample.id
+
+            assert await uow.entities.upsert_prompt_block(block_sample) == block_sample.id
+            fetched_blk = await uow.entities.get_prompt_block(block_sample.id)
+            assert fetched_blk is not None and fetched_blk.id == block_sample.id
+
+            assert await uow.entities.upsert_step(step_sample) == step_sample.id
+            fetched_stp = await uow.entities.get_step(step_sample.id)
+            assert fetched_stp is not None and fetched_stp.id == step_sample.id
+
+            assert await uow.entities.upsert_workflow(wf_sample) == wf_sample.id
+            fetched_wf = await uow.entities.get_workflow(wf_sample.id)
+            assert fetched_wf is not None and fetched_wf.id == wf_sample.id
+
+            assert await uow.entities.upsert_output_profile(profile_sample) == profile_sample.id
+            fetched_prf = await uow.entities.get_output_profile(profile_sample.id)
+            assert fetched_prf is not None and fetched_prf.id == profile_sample.id
+
+            assert await uow.entities.upsert_report_artifact(sample_report) == sample_report.id
+            fetched_rep = await uow.entities.get_report_artifact(sample_report.id)
+            assert fetched_rep is not None and fetched_rep.id == sample_report.id
+
+            assert (
+                await uow.entities._execute_upsert(
+                    "SELECT 1",
+                    entity_label="organization",
+                    entity_id=org_sample.id,
+                )
+                == org_sample.id
+            )
+
+            # ISTQB Negative Boundaries on entity get methods with malformed Opaque Stripe IDs
+            with pytest.raises(AppException) as exc_bad_user_id:
+                await uow.entities.get_user("usr_invalid")
+            assert exc_bad_user_id.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
+            with pytest.raises(AppException) as exc_bad_wf_id:
+                await uow.entities.get_workflow("wor_invalid")
+            assert exc_bad_wf_id.value.error_code == ErrorCodes.VALIDATION_FAILED.value
+
             # Exercise list_collection_documents and get_collection_document across all seeded tables
             for col_name in (
                 "organizations",

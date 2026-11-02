@@ -11,6 +11,7 @@ from fastapi import Request
 from pydantic import ValidationError
 
 from backend_v2.api.routers.iam.auth import (
+    _resolve_exchange_rate_limit,
     accept_invitation,
     exchange_firebase_token,
     firebase_user_deleted_webhook,
@@ -678,3 +679,23 @@ async def test_auth_router_accept_invitation_and_firebase_webhook(
     )
     assert del_res.status == "success"
     assert del_res.id == "fb_uid_router_wh"
+
+    monkeypatch.setattr("backend_v2.api.routers.iam.auth.get_settings", lambda: mock_settings)
+    assert _resolve_exchange_rate_limit() == f"{mock_settings.auth_edge_rpm_limit}/minute"
+
+    with pytest.raises(AuthenticationError) as exc_wh:
+        await firebase_user_deleted_webhook(
+            request=mock_req,
+            auth_service=service,
+            firebase_uid="fb_uid_router_wh",
+            x_quorum_webhook_signature="sha256=invalid_signature",
+        )
+    assert exc_wh.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
+
+    with pytest.raises(AuthenticationError) as exc_ex:
+        await exchange_firebase_token(
+            request=mock_req,
+            payload=TokenExchangeRequestDTO(target_user_id=USER_2_ID),
+            auth_service=service,
+        )
+    assert exc_ex.value.error_code == ErrorCodes.AUTHENTICATION_FAILED

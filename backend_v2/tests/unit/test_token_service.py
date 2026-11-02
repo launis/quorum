@@ -592,3 +592,82 @@ async def test_auth_service_init_firebase_fallback_and_transport_error(
             TokenExchangeRequestDTO(firebase_token="broken_firebase_token_12345")
         )
     assert exc_fb.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
+
+
+@pytest.mark.asyncio
+async def test_token_service_boundary_and_negative_branches(
+    mock_repo: InMemoryUnifiedWorkflowRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify negative and boundary branches in TokenService for uninitialized Firebase, missing uid, and email binding."""
+    mock_settings = Settings(
+        use_mock_llm=True,
+        environment="development",
+        use_firebase_auth=False,
+        require_mfa=False,
+    )
+    monkeypatch.setattr("backend_v2.services.auth.token_service.get_settings", lambda: mock_settings)
+
+    # Default _resolve_settings() without get_settings_fn and firebase_auth=None
+    service_no_fb = TokenService(repo=UserRepository(mock_repo), use_firebase=False)
+    with pytest.raises(AuthenticationError) as exc_no_fb:
+        await service_no_fb.exchange_firebase_token(
+            TokenExchangeRequestDTO(firebase_token="valid_length_firebase_token")
+        )
+    assert exc_no_fb.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
+
+    # Bypassed DTO via model_construct lacking both firebase_token and target_user_id
+    empty_payload = TokenExchangeRequestDTO.model_construct(
+        firebase_token=None,
+        target_user_id=None,
+        service_auth_secret=None,
+    )
+    with pytest.raises(AuthenticationError) as exc_empty:
+        await service_no_fb.exchange_firebase_token(empty_payload)
+    assert exc_empty.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
+
+    # Missing 'uid' claim when require_mfa=False
+    mock_fb = MagicMock()
+    mock_fb.verify_id_token.return_value = {"email": "nouid@test.com", "email_verified": True}
+    service_fb = TokenService(
+        repo=UserRepository(mock_repo),
+        use_firebase=True,
+        firebase_module=mock_fb,
+    )
+    with pytest.raises(AuthenticationError) as exc_no_uid:
+        await service_fb.exchange_firebase_token(TokenExchangeRequestDTO(firebase_token="token_without_uid_claim"))
+    assert exc_no_uid.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
+
+    # Email not verified -> returns None -> raises AUTHENTICATION_FAILED
+    mock_fb.verify_id_token.return_value = {
+        "uid": "fb_unverified_email_uid",
+        "email": "unverified@test.com",
+        "email_verified": False,
+    }
+    with pytest.raises(AuthenticationError) as exc_unverified:
+        await service_fb.exchange_firebase_token(TokenExchangeRequestDTO(firebase_token="token_unverified_email"))
+    assert exc_unverified.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
+
+    # Verified email not matching any user in repository -> returns None -> raises AUTHENTICATION_FAILED
+    mock_fb.verify_id_token.return_value = {
+        "uid": "fb_unknown_email_uid",
+        "email": "unknown_user@test.com",
+        "email_verified": True,
+    }
+    with pytest.raises(AuthenticationError) as exc_unknown_email:
+        await service_fb.exchange_firebase_token(TokenExchangeRequestDTO(firebase_token="token_unknown_email_123"))
+    assert exc_unknown_email.value.error_code == ErrorCodes.AUTHENTICATION_FAILED
+
+    # Non-actor impersonation token (actor_id=None)
+    imp_no_actor = service_no_fb.create_impersonation_token(
+        target_id="usr_0195f3a0000070008000000000000101",
+        duration_seconds=600,
+        organization_id="org_0195f3a0000070008000000000000001",
+        role=UserRole.MEMBER,
+        email="noactor@test.com",
+        actor_id=None,
+    )
+    verified_no_actor = await service_no_fb.verify_token(imp_no_actor)
+    assert verified_no_actor.actor_id is None
+    assert verified_no_actor.id == "usr_0195f3a0000070008000000000000101"
+

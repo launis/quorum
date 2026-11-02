@@ -37,7 +37,7 @@ def test_theory_manifest_immutability() -> None:
     manifest = InjectedTheoryManifestDTO(theories={"th_1": "Theory text"})
     assert manifest.theories["th_1"] == "Theory text"
     with pytest.raises((ValidationError, TypeError)):
-        manifest.theories = {"th_2": "New"}  # type: ignore[misc]
+        manifest.theories = {"th_2": "New"}
 
 
 def test_schema_manifest_immutability() -> None:
@@ -46,7 +46,7 @@ def test_schema_manifest_immutability() -> None:
     assert "stp_1" in manifest
     assert manifest["stp_1"] == {"type": "object"}
     with pytest.raises((ValidationError, TypeError)):
-        manifest.schemas = {"stp_2": {"type": "string"}}  # type: ignore[misc]
+        manifest.schemas = {"stp_2": {"type": "string"}}
 
 
 def test_execution_create_defaults() -> None:
