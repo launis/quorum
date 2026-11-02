@@ -662,6 +662,7 @@ class OrganizationService:
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
                 invitation_id,
                 org_id,
+                exc_info=True,
             )
             raise ResourceNotFoundError(resource_type="invitation", resource_id=invitation_id)
 
@@ -706,6 +707,7 @@ class OrganizationService:
             logger.error(
                 "[OrganizationService] %s: Invitation token digest not found.",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
+                exc_info=True,
             )
             raise ResourceNotFoundError(resource_type="invitation", resource_id="token")
 
@@ -765,6 +767,7 @@ class OrganizationService:
             initiator.role.value,
             initiator.organization_id,
             org_id,
+            exc_info=True,
         )
         raise PermissionDeniedError("Only organization ADMIN or ROOT can manage invitations.")
 
@@ -819,6 +822,7 @@ class OrganizationService:
                 "[OrganizationService] %s: Non-ROOT caller '%s' attempted to invite ROOT role.",
                 ErrorCodes.PERMISSION_DENIED.name,
                 initiator.id,
+                exc_info=True,
             )
             raise PermissionDeniedError("Non-ROOT administrators cannot invite users with ROOT role.")
 
@@ -832,6 +836,7 @@ class OrganizationService:
                     ErrorCodes.PERMISSION_DENIED.name,
                     email_domain,
                     org.id,
+                    exc_info=True,
                 )
                 raise PermissionDeniedError(
                     f"Recipient domain '{email_domain}' is not permitted for organization '{org.id}'."
@@ -842,6 +847,7 @@ class OrganizationService:
                 "[OrganizationService] %s: Duplicate pending invitation for org '%s'.",
                 ErrorCodes.CONFLICT_ERROR.name,
                 org.id,
+                exc_info=True,
             )
             raise ConflictError(
                 message="A pending invitation already exists for this email in the organization.",
@@ -949,6 +955,7 @@ class OrganizationService:
                 "[OrganizationService] %s: %s",
                 ErrorCodes.VALIDATION_FAILED.name,
                 msg,
+                exc_info=True,
             )
             raise AppException(
                 message=msg,
@@ -978,6 +985,7 @@ class OrganizationService:
                 "[OrganizationService] %s: Invitation '%s' was already accepted.",
                 ErrorCodes.CONFLICT_ERROR.name,
                 invitation.id,
+                exc_info=True,
             )
             raise ConflictError(
                 message="Invitation has already been accepted.",
@@ -992,6 +1000,7 @@ class OrganizationService:
                 ErrorCodes.INVITATION_EXPIRED.name,
                 invitation.id,
                 invitation.status.value,
+                exc_info=True,
             )
             raise AppException(
                 message="Invitation has expired or been revoked.",
@@ -1024,6 +1033,7 @@ class OrganizationService:
                     ErrorCodes.IDENTITY_MISMATCH.name,
                     initiator.id,
                     invitation.id,
+                    exc_info=True,
                 )
                 raise PermissionDeniedError(
                     message="Authenticated user email does not match invitation recipient.",
@@ -1037,6 +1047,7 @@ class OrganizationService:
                         ErrorCodes.IDENTITY_MISMATCH.name,
                         by_id.id,
                         invitation.id,
+                        exc_info=True,
                     )
                     raise PermissionDeniedError(
                         message="Authenticated user email does not match invitation recipient.",
@@ -1079,6 +1090,7 @@ class OrganizationService:
                 subject_id,
                 current_org_id,
                 target_org_id,
+                exc_info=True,
             )
             raise ConflictError(
                 message=f"User '{subject_id}' is already assigned to organization '{current_org_id}'.",

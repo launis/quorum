@@ -122,7 +122,7 @@
   - [x] @[backend_v2/services/auth/repositories.py]
   - [x] @[backend_v2/services/auth/token_service.py]
   - [x] @[backend_v2/services/auth/user_service.py]
-  - [ ] @[backend_v2/services/auth/organization_service.py]
+  - [x] @[backend_v2/services/auth/organization_service.py]
   - [ ] [NEW] @[backend_v2/services/auth/secret_service.py]
   - [ ] [NEW] @[backend_v2/services/auth/email_service.py]
   - [ ] @[backend_v2/services/auth/__init__.py]
