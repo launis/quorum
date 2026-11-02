@@ -80,7 +80,7 @@
   - [x] @[backend_v2/models/dtos/trace.py]
   - [x] @[backend_v2/models/enums.py]
   - [x] @[backend_v2/services/chat_parser.py]
-  - [ ] @[backend_v2/services/execution/override_service.py]
+  - [x] @[backend_v2/services/execution/override_service.py]
   - [ ] @[backend_v2/services/execution/resumption_service.py]
   - [ ] @[backend_v2/services/mcp/mcp_tool_loop.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor/execution_committer.py]

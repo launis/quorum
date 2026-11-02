@@ -75,7 +75,7 @@ class ExecutionOverrideService:
         self.prompt_block_repo, self.output_profile_repo = prompt_block_repo, output_profile_repo
         self.identity_repo, self.system_repo = identity_repo, system_repo
         self.storage: FileDriver = storage_driver if storage_driver is not None else storage.get_storage_driver()
-        self._get_execution = get_execution_fn or self._default_get_execution
+        self._get_execution = get_execution_fn if get_execution_fn is not None else self._default_get_execution
 
     async def _default_get_execution(self, initiator: TokenData, execution_id: str) -> ExecutionRecord:
         """Fetch an execution record by ID and enforce tenant access permissions.
@@ -162,9 +162,11 @@ class ExecutionOverrideService:
                     )
                 elif e.status_code == 409:
                     logger.error(
-                        "[ExecutionOverrideService] Conflict deleting PDF blob %s",
+                        "[ExecutionOverrideService] %s: Conflict deleting PDF blob %s",
+                        ErrorCodes.CONFLICT.name,
                         execution_rec.pdf_report_path,
                         exc_info=True,
+                        extra={"error_code": ErrorCodes.CONFLICT.value},
                     )
                     raise e
                 else:
@@ -196,7 +198,7 @@ class ExecutionOverrideService:
 
             target_pdf_path = None
 
-        # Phase 4, Step 4.2: Pass expected_state_version for optimistic concurrency control.
+        # Pass expected_state_version for optimistic concurrency control.
         await self.exec_repo.update_execution(
             execution_id,
             ExecutionUpdateDTO(
@@ -248,7 +250,7 @@ class ExecutionOverrideService:
                 new_evaluated_atoms = {**v.evaluated_atoms, atom_id: payload.new_status}
                 updated_raw_atoms = [
                     ra.model_copy(update={"human_override": payload.new_status})
-                    if (ra.tda_id == atom_id or ra.atom_id == atom_id)
+                    if atom_id in (ra.tda_id, ra.atom_id)
                     else ra
                     for ra in v.raw_atoms
                 ]
@@ -372,7 +374,7 @@ class ExecutionOverrideService:
         recalculated_vars = await self._recalculate_scores(record)
         record = record.model_copy(update={"context_variables": recalculated_vars})
 
-        # Phase 4, Step 4.2: Pass expected_state_version for optimistic concurrency control.
+        # Pass expected_state_version for optimistic concurrency control.
         await self.exec_repo.update_execution(
             execution_id,
             ExecutionUpdateDTO(
@@ -426,7 +428,7 @@ class ExecutionOverrideService:
             rejected_by=initiator.id,
             rejected_at=datetime.now(timezone.utc),
         )
-        # Phase 4, Step 4.2: Enforce expected_state_version OCC before appending rejection event.
+        # Enforce expected_state_version OCC before appending rejection event.
         await self.exec_repo.update_execution(
             execution_id,
             ExecutionUpdateDTO(
