@@ -22,7 +22,7 @@ class _StubAsyncClient:
     def __init__(self, status_codes_by_email: dict[str, int], raise_for_emails: set[str] | None = None) -> None:
         """Initialize stub client with per-recipient status codes and error triggers."""
         self.status_codes_by_email = status_codes_by_email
-        self.raise_for_emails = raise_for_emails or set()
+        self.raise_for_emails = set() if raise_for_emails is None else raise_for_emails
         self.captured_requests: list[tuple[str, Any, dict[str, str]]] = []
 
     async def __aenter__(self) -> _StubAsyncClient:
@@ -110,6 +110,34 @@ async def test_email_service_http_api_missing_config_negative(monkeypatch: pytes
             "email_transport_mode": EmailTransportMode.HTTP_API,
             "email_api_endpoint": None,
             "email_api_key": None,
+        }
+    )
+    monkeypatch.setattr("backend_v2.services.auth.email_service.get_settings", lambda: invalid_settings)
+
+    service = EmailService()
+    item = TransactionalEmailItemDTO(
+        entity_id=generate_opaque_id(EntityPrefix.INVITATION),
+        recipient_email="alice@acme.example.com",
+        locale=SystemLocale.EN,
+        subject="Join Acme Corp",
+        html_body="<p>Invite</p>",
+        action_url=SecretStr(f"{base_settings.frontend_app_base_url.rstrip('/')}/invite/accept?token=tok_123456"),
+    )
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        await service.send_invitation_emails([item])
+    assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+@pytest.mark.asyncio
+async def test_email_service_http_api_blank_api_key_negative(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify EmailService raises ConfigurationError when HTTP_API mode has a whitespace-only API key."""
+    base_settings: Settings = get_settings()
+    invalid_settings = base_settings.model_copy(
+        update={
+            "email_transport_mode": EmailTransportMode.HTTP_API,
+            "email_api_endpoint": "https://mail.quorum.example.com/v1/send",
+            "email_api_key": SecretStr("   "),
         }
     )
     monkeypatch.setattr("backend_v2.services.auth.email_service.get_settings", lambda: invalid_settings)

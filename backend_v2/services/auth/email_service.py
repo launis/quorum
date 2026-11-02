@@ -151,6 +151,7 @@ class EmailService:
                 ErrorCodes.CONFIGURATION_ERROR.name,
                 msg,
                 extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                exc_info=True,
             )
             raise ConfigurationError(msg)
 
@@ -162,6 +163,7 @@ class EmailService:
                 ErrorCodes.CONFIGURATION_ERROR.name,
                 msg,
                 extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                exc_info=True,
             )
             raise ConfigurationError(msg)
 
